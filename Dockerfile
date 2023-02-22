@@ -22,6 +22,9 @@ RUN python -m venv /opt/venv
 # Make sure we use the venv (virtual environment)
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Upgrade pip to the latest version
+RUN pip install pip --upgrade
+
 # Install python packages and dependencies
 RUN pip install poetry mysqlclient  && \
     poetry config virtualenvs.create false
