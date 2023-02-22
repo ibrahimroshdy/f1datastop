@@ -23,7 +23,7 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install python packages and dependencies
-RUN pip install poetry psutil  && \
+RUN pip install poetry mysqlclient  && \
     poetry config virtualenvs.create false
 
 # copy poetry packages file
