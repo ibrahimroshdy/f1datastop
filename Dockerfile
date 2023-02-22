@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.source https://github.com/ibrahimroshdy/f1datasto
 LABEL org.opencontainers.image.description "F1 DatsStop is a Django based project bulit using Ergast Database for F1."
 
 RUN apt-get update \
-&& apt-get install -y --no-install-recommends git gcc libpq-dev python3-dev mysql-devel\
+&& apt-get install -y --no-install-recommends git gcc libpq-dev python3-dev libmysqlclient-dev \
 && apt-get purge -y --auto-remove \
 && rm -rf /var/lib/apt/lists/*
 
