@@ -5,10 +5,10 @@ from .base import Circuits, Constructors, Drivers, Seasons
 
 class Races(models.Model):
     raceid = models.BigAutoField(db_column='raceId', primary_key=True)  # Field name made lowercase.
-    year = models.ForeignKey(Seasons, on_delete=models.DO_NOTHING, db_column='year')
+    year = models.ForeignKey(Seasons, on_delete=models.CASCADE, db_column='year')
     round = models.IntegerField()
     circuitid = models.ForeignKey(Circuits,
-                                  on_delete=models.DO_NOTHING,
+                                  on_delete=models.CASCADE,
                                   db_column='circuitId')  # Field name made lowercase.
     name = models.CharField(max_length=255)
     date = models.DateField()
@@ -37,13 +37,13 @@ class Races(models.Model):
 class Qualifying(models.Model):
     qualifyid = models.BigAutoField(db_column='qualifyId', primary_key=True)  # Field name made lowercase.
     raceid = models.ForeignKey(Races,
-                               on_delete=models.DO_NOTHING,
+                               on_delete=models.CASCADE,
                                db_column='raceId')  # Field name made lowercase.
     driverid = models.ForeignKey(Drivers,
-                                 on_delete=models.DO_NOTHING,
+                                 on_delete=models.CASCADE,
                                  db_column='driverId')  # Field name made lowercase.
     constructorid = models.ForeignKey(Constructors,
-                                      on_delete=models.DO_NOTHING,
+                                      on_delete=models.CASCADE,
                                       db_column='constructorId')  # Field name made lowercase.
     number = models.IntegerField()
     position = models.IntegerField(blank=True, null=True)
@@ -62,10 +62,10 @@ class Qualifying(models.Model):
 
 class Laptimes(models.Model):
     raceid = models.ForeignKey(Races,
-                               on_delete=models.DO_NOTHING,
+                               on_delete=models.CASCADE,
                                db_column='raceId')  # Field name made lowercase.
     driverid = models.ForeignKey(Drivers,
-                                 on_delete=models.DO_NOTHING,
+                                 on_delete=models.CASCADE,
                                  db_column='driverId')  # Field name made lowercase.
     lap = models.IntegerField()
     position = models.IntegerField(blank=True, null=True)
@@ -84,10 +84,10 @@ class Laptimes(models.Model):
 
 class Pitstops(models.Model):
     raceid = models.ForeignKey(Races,
-                               on_delete=models.DO_NOTHING,
+                               on_delete=models.CASCADE,
                                db_column='raceId')  # Field name made lowercase.
     driverid = models.ForeignKey(Drivers,
-                                 on_delete=models.DO_NOTHING,
+                                 on_delete=models.CASCADE,
                                  db_column='driverId')  # Field name made lowercase.
     stop = models.IntegerField()
     lap = models.IntegerField()

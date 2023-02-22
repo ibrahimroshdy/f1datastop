@@ -28,7 +28,8 @@ class QualifyingAdmin(ReadOnlyAdmin):
 @admin.register(models.Laptimes)
 class LaptimesAdmin(ReadOnlyAdmin):
     list_display = ['raceid', 'driverid', 'lap', 'position', 'time', 'milliseconds']
-    search_fields = ['raceid__name', 'driverid__surame', 'lap', 'position', 'time', 'milliseconds']
+    search_fields = ['raceid__name', 'driverid__forename', 'driverid__surname', 'lap', 'position', 'time',
+                     'milliseconds']
     date_hierarchy = 'raceid__date'
 
 
