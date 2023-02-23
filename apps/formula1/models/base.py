@@ -25,7 +25,7 @@ class Drivers(models.Model):
 class Constructors(models.Model):
     """Constructors Model"""
     constructorid = models.BigAutoField(db_column='constructorId', primary_key=True)  # Field name made lowercase.
-    constructorref = models.CharField(db_column='constructorRef', max_length=255, unique=True)  # Field name made lowercase.
+    constructorref = models.CharField(db_column='constructorRef', max_length=255, unique=True)
     name = models.CharField(unique=True, max_length=255)
     nationality = models.CharField(max_length=255, blank=True, null=True)
     url = models.CharField(max_length=255)
@@ -52,7 +52,7 @@ class Circuits(models.Model):
     url = models.CharField(unique=True, max_length=255)
 
     def __str__(self):
-        return f'{self.country}: {self.location} - {self.name}'
+        return f'{self.country}: {self.location}'
 
     class Meta:
         db_table = 'circuits'

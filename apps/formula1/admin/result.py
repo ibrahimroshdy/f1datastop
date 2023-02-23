@@ -4,6 +4,13 @@ from apps.formula1 import models
 from .abstract import ReadOnlyAdmin
 
 
+@admin.register(models.Sprintresults)
+class SprintresultsAdmin(ReadOnlyAdmin):
+    list_display = ['raceid', 'driverid', 'constructorid', 'number', 'grid', 'position', 'positiontext', 'positionorder', 'laps', 'fastestlap']
+    list_filter = ['raceid__circuitid__country']
+    date_hierarchy = 'raceid__date'
+
+
 @admin.register(models.Driverstandings)
 class DriverstandingsAdmin(ReadOnlyAdmin):
     list_display = ['raceid', 'driverid', 'points', 'wins']

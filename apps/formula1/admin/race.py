@@ -30,6 +30,7 @@ class LaptimesAdmin(ReadOnlyAdmin):
     list_display = ['raceid', 'driverid', 'lap', 'position', 'time', 'milliseconds']
     search_fields = ['raceid__name', 'driverid__forename', 'driverid__surname', 'lap', 'position', 'time',
                      'milliseconds']
+    list_filter = ['raceid__circuitid__country', ]
     date_hierarchy = 'raceid__date'
 
 

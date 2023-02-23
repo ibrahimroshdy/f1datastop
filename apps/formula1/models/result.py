@@ -32,7 +32,7 @@ class Sprintresults(models.Model):
                                  db_column='statusId')  # Field name made lowercase.
 
     def __str__(self):
-        return f'S: {self.raceid}'
+        return f'SPR: {self.raceid.year} R[{self.raceid.name}] D[{self.driverid}] {self.statusid.status} - L{self.laps}@{self.time}:{self.milliseconds}'
 
     class Meta:
         db_table = 'sprintResults'
@@ -53,7 +53,7 @@ class Constructorresults(models.Model):
     status = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
-        return f'{self.constructorid.name} - {self.points} - {self.status}'
+        return f'CONRES: {self.raceid.year} R[{self.raceid.name}] C[{self.constructorid}] {self.status} - {self.points}'
 
     class Meta:
         db_table = 'constructorResults'
@@ -77,7 +77,7 @@ class Constructorstandings(models.Model):
     wins = models.IntegerField()
 
     def __str__(self):
-        return f'{self.raceid} - {self.wins}'
+        return f'CONSTAN: {self.raceid.year} R[{self.raceid.name}] C[{self.constructorid}] {self.wins} - {self.points} @ {self.position}'
 
     class Meta:
         db_table = 'constructorStandings'
@@ -101,7 +101,7 @@ class Driverstandings(models.Model):
     wins = models.IntegerField()
 
     def __str__(self):
-        return f'{self.driverid} - {self.raceid}: {self.points} -- {self.position}'
+        return f'CONSTAN: {self.raceid.year} R[{self.raceid.name}] D[{self.driverid}] {self.wins} - {self.points} @ {self.position}'
 
     class Meta:
         db_table = 'driverStandings'
@@ -138,6 +138,9 @@ class Results(models.Model):
     statusid = models.ForeignKey(Status,
                                  on_delete=models.CASCADE,
                                  db_column='statusId')  # Field name made lowercase.
+
+    def __str__(self):
+        return f'RRES: {self.raceid.year} R[{self.raceid.name}] D[{self.driverid}] {self.rank} - {self.points} @ {self.position}'
 
     class Meta:
         db_table = 'results'

@@ -26,7 +26,7 @@ class Races(models.Model):
     sprint_time = models.TimeField(blank=True, null=True)
 
     def __str__(self):
-        return f'{self.year} - {self.round} - {self.circuitid.country}: {self.circuitid.name}'
+        return f'R: {self.year} - {self.circuitid.country}: {self.circuitid.location}'
 
     class Meta:
         db_table = 'races'
@@ -52,7 +52,7 @@ class Qualifying(models.Model):
     q3 = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
-        return f'Q: {self.raceid}'
+        return f'Q: {self.raceid.year} Q[{self.raceid.name}] D[{self.driverid.driverref}] POS [{self.position}]'
 
     class Meta:
         db_table = 'qualifying'
@@ -73,7 +73,7 @@ class Laptimes(models.Model):
     milliseconds = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        return f'{self.driverid} - {self.raceid}: {self.lap}@{self.time}:{self.milliseconds}'
+        return f'LT: {self.raceid.year} R[{self.raceid.name}] D[{self.driverid}] - L{self.lap}@{self.time}:{self.milliseconds}'
 
     class Meta:
         db_table = 'lapTimes'
@@ -96,7 +96,7 @@ class Pitstops(models.Model):
     milliseconds = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        return f'{self.driverid}-{self.raceid}: L{self.lap};S{self.stop};T{self.time}:{self.milliseconds}'
+        return f'PS: {self.raceid.year} R[{self.raceid.name}] D[{self.driverid}] - L{self.lap}S{self.stop}@{self.duration}'
 
     class Meta:
         db_table = 'pitStops'

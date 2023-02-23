@@ -9,7 +9,14 @@ from loguru import logger
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
-from apps.formula1.models import Drivers, Constructors, Circuits, Seasons, Status, Races, Qualifying, Laptimes, Pitstops
+# Base
+from apps.formula1.models import Drivers, Constructors, Circuits, Seasons, Status
+
+# Race
+from apps.formula1.models import Races, Qualifying, Laptimes, Pitstops
+
+# Results
+from apps.formula1.models import Sprintresults
 
 
 class ErgastDataMapper:
@@ -129,30 +136,29 @@ class ErgastDataMapper:
     def update_qualifying(self, season=datetime.datetime.now().year):
         """Fetch the latest qualifying data from the Ergast API and update the database with any new qualifying."""
         qualifyings = self.ergast_instance.season(season).limit(sys.maxsize).get_qualifyings()
-        for qualifying in qualifyings:
-            for result in qualifying.qualifying_results:
-
-                if not Qualifying.objects.filter(raceid__name=qualifying.race_name,
-                                                 raceid__round=qualifying.round_no,
-                                                 raceid__date=qualifying.date.date(),
-                                                 raceid__circuitid__circuitref=qualifying.circuit.circuit_id,
-                                                 driverid__driverref=result.driver.driver_id,
-                                                 constructorid__constructorref=result.constructor.constructor_id).exists():
+        for race in qualifyings:
+            for qualifyingresult in race.qualifying_results:
+                if not Qualifying.objects.filter(raceid__name=race.race_name,
+                                                 raceid__round=race.round_no,
+                                                 raceid__date=race.date.date(),
+                                                 raceid__circuitid__circuitref=race.circuit.circuit_id,
+                                                 driverid__driverref=qualifyingresult.driver.driver_id,
+                                                 constructorid__constructorref=qualifyingresult.constructor.constructor_id).exists():
                     # If the qualifying doesn't already exist in the database, create a new Qualifyings object
                     _ = Qualifying.objects.create(
-                            raceid=Races.objects.get(name=qualifying.race_name,
-                                                     round=qualifying.round_no,
-                                                     date=qualifying.date.date()),
-                            driverid=Drivers.objects.get(driverref=result.driver.driver_id),
+                            raceid=Races.objects.get(name=race.race_name,
+                                                     round=race.round_no,
+                                                     date=race.date.date()),
+                            driverid=Drivers.objects.get(driverref=qualifyingresult.driver.driver_id),
                             constructorid=Constructors.objects.get(
-                                    constructorref=result.constructor.constructor_id),
-                            number=result.number,
-                            position=result.position,
-                            q1=result.qual_1 if result.qual_1 else None,
-                            q2=result.qual_2 if result.qual_2 else None,
-                            q3=result.qual_3 if result.qual_3 else None
+                                    constructorref=qualifyingresult.constructor.constructor_id),
+                            number=qualifyingresult.number,
+                            position=qualifyingresult.position,
+                            q1=qualifyingresult.qual_1 if qualifyingresult.qual_1 else None,
+                            q2=qualifyingresult.qual_2 if qualifyingresult.qual_2 else None,
+                            q3=qualifyingresult.qual_3 if qualifyingresult.qual_3 else None
                     )
-            logger.info(f"Q: S{season} - R{qualifying.round_no} - C: {qualifying.race_name}")
+            logger.info(f"Q: S{season} - R{race.round_no} - C: {race.race_name}")
 
     def update_laptimes(self, season=datetime.datetime.now().year):
         """Fetch the latest laptimes data from the Ergast API and update the database with any new laptimes."""
@@ -210,6 +216,49 @@ class ErgastDataMapper:
 
             logger.info(f"PS: S{season} - R{round_iter}")
 
+    def update_sprintresults(self, season=datetime.datetime.now().year):
+        sprintresults = self.ergast_instance.season(season).limit(sys.maxsize).get_sprints()
+        for race in sprintresults:
+            for sprintresult in race.sprint_results:
+                timetomili = int((float(sprintresult.time.minute) * 60 + float(sprintresult.time.second) * 1000) + (
+                        sprintresult.time.microsecond / 1000)) if sprintresult.time else None
+                if not Sprintresults.objects.filter(raceid__name=race.race_name,
+                                                    raceid__round=race.round_no,
+                                                    raceid__date=race.date.date(),
+                                                    raceid__circuitid__circuitref=race.circuit.circuit_id,
+                                                    driverid__driverref=sprintresult.driver.driver_id,
+                                                    constructorid__constructorref=sprintresult.constructor.constructor_id).exists():
+
+                    _ = Sprintresults.objects.create(raceid=Races.objects.get(name=race.race_name,
+                                                                              round=race.round_no,
+                                                                              date=race.date.date()),
+                                                     driverid=Drivers.objects.get(
+                                                             driverref=sprintresult.driver.driver_id),
+                                                     constructorid=Constructors.objects.get(
+                                                             constructorref=sprintresult.constructor.constructor_id),
+                                                     statusid=Status.objects.get(statusid=sprintresult.status),
+                                                     number=sprintresult.number,
+                                                     grid=sprintresult.grid,
+                                                     position=sprintresult.position,
+                                                     positiontext=sprintresult.position_text,
+                                                     positionorder=sprintresult.position,
+                                                     points=sprintresult.points,
+                                                     laps=sprintresult.laps,
+                                                     time=sprintresult.time,
+                                                     milliseconds=timetomili,
+                                                     fastestlap=sprintresult.fastest_lap.lap,
+                                                     fastestlaptime=sprintresult.fastest_lap.time)
+            logger.info(f"SPRES: S{season} - R{race.round_no}")
+
+    def update_constructorresults_driverresults(self, season=datetime.datetime.now().year):
+        # TODO: update_constructorresults_driverresults
+        constructorresults = self.ergast_instance.season(season).get_results()
+        print(constructorresults)
+
+    def update_constructorstandings(self, season=datetime.datetime.now().year):
+        # TODO: update_constructorstandings
+        constructorstanding = self.ergast_instance.season(season).get_constructor_standings()
+
 
 if __name__ == '__main__':
     e = ErgastDataMapper()
@@ -222,3 +271,5 @@ if __name__ == '__main__':
     # e.update_qualifying(2022)
     # e.update_laptimes(2022)
     # e.update_pitstops(2022)
+    # for i in range(1950, 2024):
+    #     e.update_sprintresults(i)
