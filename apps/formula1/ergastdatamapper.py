@@ -1,9 +1,12 @@
 import datetime
 import os
 import sys
+from collections import defaultdict
+from typing import Dict, List
 
 import django
 import ergast_py
+from ergast_py.models.result import Result as ErgastResult
 from loguru import logger
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
@@ -16,7 +19,9 @@ from apps.formula1.models import Drivers, Constructors, Circuits, Seasons, Statu
 from apps.formula1.models import Races, Qualifying, Laptimes, Pitstops
 
 # Results
-from apps.formula1.models import Sprintresults
+from apps.formula1.models import (Sprintresults, Constructorresults, Results as ResultsModel,
+                                  Constructorstandings as ConstructorstandingsModel,
+                                  Driverstandings as DriverstandingsModel)
 
 
 class ErgastDataMapper:
@@ -168,7 +173,7 @@ class ErgastDataMapper:
             for race in laptimes:
                 for laps in race.laps:
                     for timing in laps.timings:
-                        timetomili = int((float(timing.time.minute) * 60 + float(timing.time.second) * 1000) + (
+                        timetomilli = int((float(timing.time.minute) * 60 + float(timing.time.second) * 1000) + (
                                 timing.time.microsecond / 1000))
 
                         if not Laptimes.objects.filter(raceid__name=race.race_name,
@@ -184,7 +189,7 @@ class ErgastDataMapper:
                                     lap=laps.number,
                                     position=timing.position,
                                     time=timing.time,
-                                    milliseconds=timetomili)
+                                    milliseconds=timetomilli)
 
             logger.info(f"LT: S{season} - R{round_iter}")
 
@@ -195,7 +200,7 @@ class ErgastDataMapper:
             pitstops = self.ergast_instance.season(season).round(round_iter).limit(sys.maxsize).get_pit_stops()
             for race in pitstops:
                 for pitstop in race.pit_stops:
-                    timetomili = int((float(pitstop.duration.minute) * 60 + float(pitstop.duration.second) * 1000) + (
+                    timetomilli = int((float(pitstop.duration.minute) * 60 + float(pitstop.duration.second) * 1000) + (
                             pitstop.duration.microsecond / 1000))
 
                     if not Pitstops.objects.filter(raceid__name=race.race_name,
@@ -212,7 +217,7 @@ class ErgastDataMapper:
                                 stop=pitstop.stop,
                                 time=pitstop.local_time,
                                 duration=pitstop.duration,
-                                milliseconds=timetomili)
+                                milliseconds=timetomilli)
 
             logger.info(f"PS: S{season} - R{round_iter}")
 
@@ -220,7 +225,7 @@ class ErgastDataMapper:
         sprintresults = self.ergast_instance.season(season).limit(sys.maxsize).get_sprints()
         for race in sprintresults:
             for sprintresult in race.sprint_results:
-                timetomili = int((float(sprintresult.time.minute) * 60 + float(sprintresult.time.second) * 1000) + (
+                timetomilli = int((float(sprintresult.time.minute) * 60 + float(sprintresult.time.second) * 1000) + (
                         sprintresult.time.microsecond / 1000)) if sprintresult.time else None
                 if not Sprintresults.objects.filter(raceid__name=race.race_name,
                                                     raceid__round=race.round_no,
@@ -245,19 +250,140 @@ class ErgastDataMapper:
                                                      points=sprintresult.points,
                                                      laps=sprintresult.laps,
                                                      time=sprintresult.time,
-                                                     milliseconds=timetomili,
+                                                     milliseconds=timetomilli,
                                                      fastestlap=sprintresult.fastest_lap.lap,
                                                      fastestlaptime=sprintresult.fastest_lap.time)
             logger.info(f"SPRES: S{season} - R{race.round_no}")
 
+    def convert_to_dict(self, results: List[ErgastResult]) -> Dict[str, List[ErgastResult]]:
+        constructor_dict = {}
+        for result in results:
+            constructor_id = result.constructor.constructor_id
+            if constructor_id not in constructor_dict:
+                constructor_dict[constructor_id] = []
+            constructor_dict[constructor_id].append(result)
+
+        return constructor_dict
+
+    def sum_points_per_driver(self, results: List[ErgastResult]) -> Dict[str, Dict[str, float]]:
+        constructor_dict = defaultdict(lambda: defaultdict(float))
+        for result in results:
+            constructor_id = result.constructor.constructor_id
+            driver_id = result.driver.driver_id
+            points = result.points
+            constructor_dict[constructor_id][driver_id] += points
+        return constructor_dict
+
+    def sum_points_by_constructor(self, results: List[ErgastResult]) -> Dict[str, float]:
+        constructor_dict = {}
+        for result in results:
+            constructor_id = result.constructor.constructor_id
+            if constructor_id not in constructor_dict:
+                constructor_dict[constructor_id] = 0.0
+            constructor_dict[constructor_id] += result.points
+        return constructor_dict
+
     def update_constructorresults_driverresults(self, season=datetime.datetime.now().year):
-        # TODO: update_constructorresults_driverresults
-        constructorresults = self.ergast_instance.season(season).get_results()
-        print(constructorresults)
+        constructorresults = self.ergast_instance.season(season).limit(sys.maxsize).get_results()
+        for race in constructorresults:
+            constructor_sum_points = self.sum_points_by_constructor(results=race.results)
+            for result in race.results:
+
+                if not Constructorresults.objects.filter(raceid__date=race.date.date(),
+                                                         raceid__round=race.round_no,
+                                                         raceid__name=race.race_name,
+                                                         raceid__circuitid__circuitref=race.circuit.circuit_id,
+                                                         constructorid__constructorref=result.constructor.constructor_id).exists():
+
+                    _ = Constructorresults.objects.create(raceid=Races.objects.get(name=race.race_name,
+                                                                                   round=race.round_no,
+                                                                                   date=race.date.date()),
+                                                          constructorid=Constructors.objects.get(
+                                                                  constructorref=result.constructor.constructor_id),
+                                                          points=constructor_sum_points[
+                                                              result.constructor.constructor_id])
+                if not ResultsModel.objects.filter(raceid__date=race.date.date(),
+                                                   raceid__round=race.round_no,
+                                                   raceid__name=race.race_name,
+                                                   raceid__circuitid__circuitref=race.circuit.circuit_id,
+                                                   driverid__driverref=result.driver.driver_id,
+                                                   constructorid__constructorref=result.constructor.constructor_id).exists():
+                    if result.time:
+                        timetomilli = int((float(result.time.minute) * 60 + float(result.time.second) * 1000) + (
+                                result.time.microsecond / 1000))
+                    else:
+                        timetomilli = None
+                    _ = ResultsModel.objects.create(raceid=Races.objects.get(name=race.race_name,
+                                                                             round=race.round_no,
+                                                                             date=race.date.date()),
+                                                    driverid=Drivers.objects.get(
+                                                            driverref=result.driver.driver_id),
+                                                    constructorid=Constructors.objects.get(
+                                                            constructorref=result.constructor.constructor_id),
+                                                    number=result.number,
+                                                    grid=result.grid,
+                                                    position=result.position,
+                                                    positiontext=result.position_text,
+                                                    positionorder=result.position,
+                                                    points=result.points,
+                                                    laps=result.laps,
+                                                    time=result.time,
+                                                    milliseconds=timetomilli,
+                                                    fastestlap=result.fastest_lap.lap,
+                                                    rank=result.fastest_lap.rank,
+                                                    fastestlaptime=result.fastest_lap.time,
+                                                    fastestlapspeed=result.fastest_lap.average_speed.speed,
+                                                    statusid=Status.objects.get(statusid=result.status))
+                    logger.success(f"RACERES: S{season} - R{race.round_no} — {result.driver.driver_id}")
+
+            logger.info(f"RACERES: S{season} - R{race.round_no}")
+
+        # print(constructorresults)
 
     def update_constructorstandings(self, season=datetime.datetime.now().year):
-        # TODO: update_constructorstandings
-        constructorstanding = self.ergast_instance.season(season).get_constructor_standings()
+        races = len(self.ergast_instance.season(season).get_races()) + 1
+        for round_iter in range(1, races):
+            constructorstandings = self.ergast_instance.season(season).round(round_iter).get_constructor_standings()
+            for standinglist in constructorstandings:
+                for constructorstanding in standinglist.constructor_standings:
+                    if not ConstructorstandingsModel.objects.filter(raceid__year=standinglist.season,
+                                                                    raceid__round=standinglist.round_no,
+                                                                    constructorid__constructorref=constructorstanding.constructor.constructor_id).exists():
+
+                        _ = ConstructorstandingsModel.objects.create(raceid=Races.objects.get(year=standinglist.season,
+                                                                                              round=standinglist.round_no),
+                                                                     constructorid=Constructors.objects.get(
+                                                                             constructorref=constructorstanding.constructor.constructor_id),
+                                                                     points=constructorstanding.points,
+                                                                     position=constructorstanding.position,
+                                                                     positiontext=constructorstanding.position_text,
+                                                                     wins=constructorstanding.wins)
+                        logger.success(
+                                f"CONSTAND: S{season} - R{standinglist.round_no} — {constructorstanding.constructor.constructor_id}")
+
+                logger.info(f"CONSTAND: S{season} - R{standinglist.round_no}")
+
+    def update_driverstanding(self, season=datetime.datetime.now().year):
+        races = len(self.ergast_instance.season(season).get_races()) + 1
+        for round_iter in range(1, races):
+            driverstandings = self.ergast_instance.season(season).round(round_iter).get_driver_standings()
+            for standinglist in driverstandings:
+                for driverstanding in standinglist.driver_standings:
+                    if not DriverstandingsModel.objects.filter(raceid__year=standinglist.season,
+                                                               raceid__round=standinglist.round_no,
+                                                               driverid__driverref=driverstanding.driver.driver_id).exists():
+                        _ = DriverstandingsModel.objects.create(raceid=Races.objects.get(year=standinglist.season,
+                                                                                         round=standinglist.round_no),
+                                                                driverid=Drivers.objects.get(
+                                                                        driverref=driverstanding.driver.driver_id),
+                                                                points=driverstanding.points,
+                                                                position=driverstanding.position,
+                                                                positiontext=driverstanding.position_text,
+                                                                wins=driverstanding.wins)
+                        logger.success(
+                                f"DRISTAND: S{season} - R{standinglist.round_no} — {driverstanding.driver.driver_id}")
+
+                    logger.info(f"DRISTAND: S{season} - R{standinglist.round_no}")
 
 
 if __name__ == '__main__':
@@ -273,3 +399,9 @@ if __name__ == '__main__':
     # e.update_pitstops(2022)
     # for i in range(1950, 2024):
     #     e.update_sprintresults(i)
+
+    # e.update_constructorresults_driverresults(2022)
+    # e.update_constructorstandings(2022)
+    for year in range(2022, 2024):
+        e.update_constructorstandings(year)
+        e.update_driverstanding(year)

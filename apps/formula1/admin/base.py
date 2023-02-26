@@ -46,6 +46,6 @@ class SeasonsAdmin(ReadOnlyAdmin):
 @admin.register(models.Status)
 class StatusAdmin(ReadOnlyAdmin):
     """StatusAdmin View for Status Model"""
-    list_display = ['status']
+    list_display = ['status', 'statusid']
     search_fields = ['status']
     list_filter = ['status']

@@ -40,27 +40,6 @@ class Sprintresults(models.Model):
         verbose_name_plural = 'Sprint Results'
 
 
-class Constructorresults(models.Model):
-    constructorresultsid = models.BigAutoField(db_column='constructorResultsId',
-                                               primary_key=True)  # Field name made lowercase.
-    raceid = models.ForeignKey(Races,
-                               on_delete=models.CASCADE,
-                               db_column='raceId')  # Field name made lowercase.
-    constructorid = models.ForeignKey(Constructors,
-                                      on_delete=models.CASCADE,
-                                      db_column='constructorId')  # Field name made lowercase.
-    points = models.FloatField(blank=True, null=True)
-    status = models.CharField(max_length=255, blank=True, null=True)
-
-    def __str__(self):
-        return f'CONRES: {self.raceid.year} R[{self.raceid.name}] C[{self.constructorid}] {self.status} - {self.points}'
-
-    class Meta:
-        db_table = 'constructorResults'
-        verbose_name = 'Constructor Result'
-        verbose_name_plural = 'Constructor Results'
-
-
 class Constructorstandings(models.Model):
     constructorstandingsid = models.BigAutoField(db_column='constructorStandingsId',
                                                  primary_key=True)  # Field name made lowercase.
@@ -107,6 +86,27 @@ class Driverstandings(models.Model):
         db_table = 'driverStandings'
         verbose_name = 'Driver Standing'
         verbose_name_plural = 'Driver Standings'
+
+
+class Constructorresults(models.Model):
+    constructorresultsid = models.BigAutoField(db_column='constructorResultsId',
+                                               primary_key=True)  # Field name made lowercase.
+    raceid = models.ForeignKey(Races,
+                               on_delete=models.CASCADE,
+                               db_column='raceId')  # Field name made lowercase.
+    constructorid = models.ForeignKey(Constructors,
+                                      on_delete=models.CASCADE,
+                                      db_column='constructorId')  # Field name made lowercase.
+    points = models.FloatField(blank=True, null=True)
+    status = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f'CONRES: {self.raceid.year} R[{self.raceid.name}] C[{self.constructorid}] {self.status} - {self.points}'
+
+    class Meta:
+        db_table = 'constructorResults'
+        verbose_name = 'Constructor Result'
+        verbose_name_plural = 'Constructor Results'
 
 
 class Results(models.Model):

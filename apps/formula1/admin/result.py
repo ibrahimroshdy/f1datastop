@@ -6,15 +6,23 @@ from .abstract import ReadOnlyAdmin
 
 @admin.register(models.Sprintresults)
 class SprintresultsAdmin(ReadOnlyAdmin):
-    list_display = ['raceid', 'driverid', 'constructorid', 'number', 'grid', 'position', 'positiontext', 'positionorder', 'laps', 'fastestlap']
+    list_display = ['raceid', 'driverid', 'constructorid', 'number', 'grid', 'position', 'positiontext',
+                    'positionorder', 'laps', 'fastestlap']
     list_filter = ['raceid__circuitid__country']
     date_hierarchy = 'raceid__date'
 
 
 @admin.register(models.Driverstandings)
 class DriverstandingsAdmin(ReadOnlyAdmin):
-    list_display = ['raceid', 'driverid', 'points', 'wins']
+    list_display = ['raceid', 'driverid', 'points', 'position', 'positiontext', 'wins']
     list_filter = ['driverid__code']
+    date_hierarchy = 'raceid__date'
+
+
+@admin.register(models.Constructorstandings)
+class Constructorstandings(ReadOnlyAdmin):
+    list_display = ['raceid', 'constructorid', 'points', 'position', 'positiontext', 'wins']
+    list_filter = ['constructorid']
     date_hierarchy = 'raceid__date'
 
 
