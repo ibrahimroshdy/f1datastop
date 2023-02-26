@@ -24,7 +24,7 @@ from apps.formula1.models import (Sprintresults, Constructorresults, Results as 
                                   Driverstandings as DriverstandingsModel)
 
 
-class ErgastDataMapper:
+class ErgastDataUpdate:
     """A class that maps Ergast API driver data to Driver model objects in the database."""
 
     def __init__(self):
@@ -385,23 +385,22 @@ class ErgastDataMapper:
 
                     logger.info(f"DRISTAND: S{season} - R{standinglist.round_no}")
 
-
-if __name__ == '__main__':
-    e = ErgastDataMapper()
-    # e.update_drivers(2022)
-    # e.update_constructors(2022)
-    # e.update_circuits(2022)
-    # e.update_seasons()
-    # e.update_status()
-    # e.update_races(2022)
-    # e.update_qualifying(2022)
-    # e.update_laptimes(2022)
-    # e.update_pitstops(2022)
-    # for i in range(1950, 2024):
-    #     e.update_sprintresults(i)
-
-    # e.update_constructorresults_driverresults(2022)
-    # e.update_constructorstandings(2022)
-    for year in range(2022, 2024):
-        e.update_constructorstandings(year)
-        e.update_driverstanding(year)
+# if __name__ == '__main__':
+#     e = ErgastDataMapper()
+#     # e.update_drivers(2022)
+#     # e.update_constructors(2022)
+#     # e.update_circuits(2022)
+#     # e.update_seasons()
+#     # e.update_status()
+#     # e.update_races(2022)
+#     # e.update_qualifying(2022)
+#     # e.update_laptimes(2022)
+#     # e.update_pitstops(2022)
+#     # for i in range(1950, 2024):
+#     #     e.update_sprintresults(i)
+#
+#     e.update_constructorresults_driverresults(1961)
+#     # e.update_constructorstandings(2022)
+#     # for year in range(2022, 2024):
+#     #     e.update_constructorstandings(year)
+#     #     e.update_driverstanding(year)
