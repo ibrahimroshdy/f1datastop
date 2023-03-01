@@ -3,8 +3,8 @@ from django.db import models
 
 class Drivers(models.Model):
     """Driver Model"""
-    driverid = models.CharField(db_column='driverId', primary_key=True, max_length=255)  # Field name made lowercase.
-    driverref = models.CharField(db_column='driverRef', max_length=255, unique=True)  # Field name made lowercase.
+    driverid = models.BigAutoField(db_column='driverId', primary_key=True)  # Field name made lowercase.
+    driverref = models.CharField(db_column='driverRef', max_length=255)  # Field name made lowercase.
     number = models.IntegerField(blank=True, null=True)
     code = models.CharField(max_length=3, blank=True, null=True)
     forename = models.CharField(max_length=255)

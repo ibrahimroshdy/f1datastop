@@ -3,11 +3,12 @@ import os
 import sys
 from collections import defaultdict
 from typing import Dict, List
-
+from django.db.utils import IntegrityError
 import django
 import ergast_py
 from ergast_py.models.result import Result as ErgastResult
 from loguru import logger
+from tqdm import tqdm
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
@@ -33,26 +34,29 @@ class ErgastDataUpdate:
 
     def update_drivers(self, season=datetime.datetime.now().year):
         """Fetch the latest driver data from the Ergast API and update the database with any new drivers."""
-        drivers = self.ergast_instance.season(season).get_drivers()
+        drivers = self.ergast_instance.season(season).limit(sys.maxsize).get_drivers()
 
         for driver in drivers:
             if not Drivers.objects.filter(driverref=driver.driver_id).exists():
                 # If the driver doesn't already exist in the database, create a new Driver object
-                _ = Drivers.objects.create(
-                        driverref=driver.driver_id,
-                        url=driver.url,
-                        code=driver.code,
-                        dob=driver.date_of_birth,
-                        forename=driver.given_name,
-                        surname=driver.family_name,
-                        nationality=driver.nationality,
-                        number=driver.permanent_number
-                )
+                try:
+                    _ = Drivers.objects.create(
+                            driverref=driver.driver_id,
+                            url=driver.url,
+                            code=driver.code,
+                            dob=driver.date_of_birth,
+                            forename=driver.given_name,
+                            surname=driver.family_name,
+                            nationality=driver.nationality,
+                            number=driver.permanent_number
+                    )
+                except IntegrityError as IE:
+                    pass
             logger.info(f"D: S{season} - D: {driver.code} - N: {driver.nationality}")
 
     def update_constructors(self, season=datetime.datetime.now().year):
         """Fetch the latest constructor data from the Ergast API and update the database with any new constructors."""
-        constructors = self.ergast_instance.season(season).get_constructors()
+        constructors = self.ergast_instance.season(season).limit(sys.maxsize).get_constructors()
 
         for constructor in constructors:
             if not Constructors.objects.filter(constructorref=constructor.constructor_id).exists():
@@ -67,7 +71,7 @@ class ErgastDataUpdate:
 
     def update_circuits(self, season=datetime.datetime.now().year):
         """Fetch the latest circuit data from the Ergast API and update the database with any new circuits."""
-        circuits = self.ergast_instance.season(season).get_circuits()
+        circuits = self.ergast_instance.season(season).limit(sys.maxsize).get_circuits()
 
         for circuit in circuits:
             if not Circuits.objects.filter(circuitref=circuit.circuit_id).exists():
@@ -85,7 +89,7 @@ class ErgastDataUpdate:
 
     def update_seasons(self):
         """Fetch the latest season data from the Ergast API and update the database with any new seasons."""
-        seasons = self.ergast_instance.limit(1000).get_seasons()
+        seasons = self.ergast_instance.limit(sys.maxsize).get_seasons()
 
         for season in seasons:
             if not Seasons.objects.filter(year=season.season).exists():
@@ -98,7 +102,7 @@ class ErgastDataUpdate:
 
     def update_status(self):
         """Fetch the latest season data from the Ergast API and update the database with any new status."""
-        status = self.ergast_instance.limit(1000).get_statuses()
+        status = self.ergast_instance.limit(sys.maxsize).get_statuses()
 
         for stat in status:
             if not Status.objects.filter(status=stat.status).exists():
@@ -112,7 +116,7 @@ class ErgastDataUpdate:
 
     def update_races(self, season=datetime.datetime.now().year):
         """Fetch the latest races data from the Ergast API and update the database with any new race."""
-        races = self.ergast_instance.season(season).get_races()
+        races = self.ergast_instance.season(season).limit(sys.maxsize).get_races()
 
         for race in races:
             if not Races.objects.filter(name=race.race_name, round=race.round_no, date=race.date.date()).exists():
@@ -343,7 +347,7 @@ class ErgastDataUpdate:
     def update_constructorstandings(self, season=datetime.datetime.now().year):
         races = len(self.ergast_instance.season(season).get_races()) + 1
         for round_iter in range(1, races):
-            constructorstandings = self.ergast_instance.season(season).round(round_iter).get_constructor_standings()
+            constructorstandings = self.ergast_instance.season(season).round(round_iter).limit(sys.maxsize).get_constructor_standings()
             for standinglist in constructorstandings:
                 for constructorstanding in standinglist.constructor_standings:
                     if not ConstructorstandingsModel.objects.filter(raceid__year=standinglist.season,
@@ -366,7 +370,7 @@ class ErgastDataUpdate:
     def update_driverstanding(self, season=datetime.datetime.now().year):
         races = len(self.ergast_instance.season(season).get_races()) + 1
         for round_iter in range(1, races):
-            driverstandings = self.ergast_instance.season(season).round(round_iter).get_driver_standings()
+            driverstandings = self.ergast_instance.season(season).round(round_iter).limit(sys.maxsize).get_driver_standings()
             for standinglist in driverstandings:
                 for driverstanding in standinglist.driver_standings:
                     if not DriverstandingsModel.objects.filter(raceid__year=standinglist.season,
@@ -385,22 +389,24 @@ class ErgastDataUpdate:
 
                     logger.info(f"DRISTAND: S{season} - R{standinglist.round_no}")
 
-# if __name__ == '__main__':
-#     e = ErgastDataMapper()
-#     # e.update_drivers(2022)
-#     # e.update_constructors(2022)
-#     # e.update_circuits(2022)
-#     # e.update_seasons()
-#     # e.update_status()
-#     # e.update_races(2022)
-#     # e.update_qualifying(2022)
-#     # e.update_laptimes(2022)
-#     # e.update_pitstops(2022)
-#     # for i in range(1950, 2024):
-#     #     e.update_sprintresults(i)
-#
-#     e.update_constructorresults_driverresults(1961)
-#     # e.update_constructorstandings(2022)
-#     # for year in range(2022, 2024):
-#     #     e.update_constructorstandings(year)
-#     #     e.update_driverstanding(year)
+
+if __name__ == '__main__':
+
+    e = ErgastDataUpdate()
+    # e.update_constructorstandings(2004)
+
+    e.update_seasons()
+    e.update_status()
+    # for year in tqdm(range(2004, 2010)):
+    #     e.update_drivers(year)
+    #     e.update_constructors(year)
+    #     e.update_circuits(year)
+    #
+    #     e.update_races(year)
+    #     e.update_qualifying(year)
+    #     e.update_laptimes(year)
+    #     e.update_pitstops(year)
+    #
+    #     e.update_constructorresults_driverresults(year)
+    #     e.update_constructorstandings(year)
+    #     e.update_driverstanding(year)

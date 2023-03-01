@@ -23,6 +23,7 @@ toml = "0.10.2"
 django-import-export = "2.9.0"
 pyfiglet = "^0.8.post1"
 loguru = "^0.6.0"
+tqdm = "^4.64.1"
 
 
 
