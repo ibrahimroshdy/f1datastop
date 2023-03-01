@@ -3,12 +3,12 @@ import os
 import sys
 from collections import defaultdict
 from typing import Dict, List
-from django.db.utils import IntegrityError
+
 import django
 import ergast_py
+from django.db.utils import IntegrityError
 from ergast_py.models.result import Result as ErgastResult
 from loguru import logger
-from tqdm import tqdm
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
@@ -347,7 +347,8 @@ class ErgastDataUpdate:
     def update_constructorstandings(self, season=datetime.datetime.now().year):
         races = len(self.ergast_instance.season(season).get_races()) + 1
         for round_iter in range(1, races):
-            constructorstandings = self.ergast_instance.season(season).round(round_iter).limit(sys.maxsize).get_constructor_standings()
+            constructorstandings = self.ergast_instance.season(season).round(round_iter).limit(
+                    sys.maxsize).get_constructor_standings()
             for standinglist in constructorstandings:
                 for constructorstanding in standinglist.constructor_standings:
                     if not ConstructorstandingsModel.objects.filter(raceid__year=standinglist.season,
@@ -370,7 +371,8 @@ class ErgastDataUpdate:
     def update_driverstanding(self, season=datetime.datetime.now().year):
         races = len(self.ergast_instance.season(season).get_races()) + 1
         for round_iter in range(1, races):
-            driverstandings = self.ergast_instance.season(season).round(round_iter).limit(sys.maxsize).get_driver_standings()
+            driverstandings = self.ergast_instance.season(season).round(round_iter).limit(
+                    sys.maxsize).get_driver_standings()
             for standinglist in driverstandings:
                 for driverstanding in standinglist.driver_standings:
                     if not DriverstandingsModel.objects.filter(raceid__year=standinglist.season,
@@ -393,7 +395,6 @@ class ErgastDataUpdate:
 if __name__ == '__main__':
 
     e = ErgastDataUpdate()
-    # e.update_constructorstandings(2004)
 
     e.update_seasons()
     e.update_status()
