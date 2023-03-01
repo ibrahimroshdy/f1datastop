@@ -1,0 +1,1 @@
+from .ergastdataupdate import ErgastDataUpdate
