@@ -1,0 +1,161 @@
+
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { useState } from "react";
+
+const DriverComparison = () => {
+  const [driver1, setDriver1] = useState("1");
+  const [driver2, setDriver2] = useState("16");
+
+  const drivers = [
+    { value: "1", label: "Verstappen", color: "#0600EF" },
+    { value: "16", label: "Leclerc", color: "#DC0000" },
+    { value: "4", label: "Norris", color: "#FF8700" },
+    { value: "44", label: "Hamilton", color: "#00D2BE" },
+    { value: "11", label: "Perez", color: "#0600EF" },
+    { value: "55", label: "Sainz", color: "#DC0000" },
+  ];
+
+  const getDriverName = (driverId: string) => {
+    return drivers.find(d => d.value === driverId)?.label || "Unknown";
+  };
+
+  const getDriverColor = (driverId: string) => {
+    return drivers.find(d => d.value === driverId)?.color || "#FFFFFF";
+  };
+
+  // Mock lap time comparison data
+  const lapTimeData = [
+    { lap: "Lap 39", driver1Time: 73.451, driver2Time: 73.822 },
+    { lap: "Lap 40", driver1Time: 73.612, driver2Time: 73.614 },
+    { lap: "Lap 41", driver1Time: 73.247, driver2Time: 73.456 },
+    { lap: "Lap 42", driver1Time: 73.325, driver2Time: 73.251 },
+    { lap: "Lap 43", driver1Time: 73.401, driver2Time: 73.641 },
+    { lap: "Lap 44", driver1Time: 73.512, driver2Time: 73.387 },
+    { lap: "Lap 45", driver1Time: 72.645, driver2Time: 72.982 },
+  ];
+
+  // Mock sector time comparison data
+  const sectorTimeData = [
+    { name: "Sector 1", [getDriverName(driver1)]: 28.394, [getDriverName(driver2)]: 28.492 },
+    { name: "Sector 2", [getDriverName(driver1)]: 25.126, [getDriverName(driver2)]: 25.314 },
+    { name: "Sector 3", [getDriverName(driver1)]: 19.125, [getDriverName(driver2)]: 19.176 },
+    { name: "Overall", [getDriverName(driver1)]: 72.645, [getDriverName(driver2)]: 72.982 },
+  ];
+
+  return (
+    <Card className="race-card p-4">
+      <CardContent className="p-0 space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h3 className="font-bold">Driver Comparison</h3>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+            <div className="flex items-center gap-2">
+              <Select value={driver1} onValueChange={setDriver1}>
+                <SelectTrigger className="w-[180px] bg-f1-dark border-gray-800">
+                  <SelectValue placeholder="Select driver 1" />
+                </SelectTrigger>
+                <SelectContent className="bg-f1-dark border-gray-800">
+                  {drivers.map((driver) => (
+                    <SelectItem key={driver.value} value={driver.value}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: driver.color }}></div>
+                        <span>{driver.label} (#{driver.value})</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <span className="hidden sm:block text-gray-400">vs</span>
+            
+            <div className="flex items-center gap-2">
+              <Select value={driver2} onValueChange={setDriver2}>
+                <SelectTrigger className="w-[180px] bg-f1-dark border-gray-800">
+                  <SelectValue placeholder="Select driver 2" />
+                </SelectTrigger>
+                <SelectContent className="bg-f1-dark border-gray-800">
+                  {drivers.map((driver) => (
+                    <SelectItem key={driver.value} value={driver.value}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: driver.color }}></div>
+                        <span>{driver.label} (#{driver.value})</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-gray-400">Last 7 Laps Comparison</h4>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={lapTimeData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="lap" stroke="#888" />
+                  <YAxis stroke="#888" domain={[72, 74]} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
+                    labelStyle={{ color: "#fff" }}
+                    formatter={(value) => [`${value}s`]}
+                  />
+                  <Legend />
+                  <Bar 
+                    name={getDriverName(driver1)}
+                    dataKey="driver1Time" 
+                    fill={getDriverColor(driver1)} 
+                  />
+                  <Bar 
+                    name={getDriverName(driver2)}
+                    dataKey="driver2Time" 
+                    fill={getDriverColor(driver2)} 
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-gray-400">Latest Lap Sector Times</h4>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={sectorTimeData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="name" stroke="#888" />
+                  <YAxis stroke="#888" />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
+                    labelStyle={{ color: "#fff" }}
+                    formatter={(value) => [`${value}s`]}
+                  />
+                  <Legend />
+                  <Bar 
+                    dataKey={getDriverName(driver1)} 
+                    fill={getDriverColor(driver1)} 
+                  />
+                  <Bar 
+                    dataKey={getDriverName(driver2)} 
+                    fill={getDriverColor(driver2)} 
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default DriverComparison;

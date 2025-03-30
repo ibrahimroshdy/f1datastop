@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,22 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// F1 specific colors
+				"f1-red": "#e10600",
+				"f1-black": "#15151e",
+				"f1-gray": "#d2d2d2",
+				"f1-dark": "#252530",
+				"mercedes": "#00D2BE",
+				"ferrari": "#DC0000",
+				"redbull": "#0600EF",
+				"mclaren": "#FF8700",
+				"alpine": "#0090FF",
+				"aston-martin": "#006F62",
+				"williams": "#005AFF",
+				"alphatauri": "#2B4562",
+				"alfa-romeo": "#900000",
+				"haas": "#FFFFFF",
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -70,25 +86,27 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				'fade-in': {
+					'0%': { opacity: '0', transform: 'translateY(10px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
+				},
+				'pulse-red': {
+					'0%, 100%': { backgroundColor: 'rgba(225, 6, 0, 0.05)' },
+					'50%': { backgroundColor: 'rgba(225, 6, 0, 0.2)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.3s ease-out',
+				'pulse-red': 'pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
 			}
 		}
 	},
