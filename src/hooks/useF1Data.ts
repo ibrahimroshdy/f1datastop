@@ -2,46 +2,65 @@
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 
-export const useDriverStandings = () => {
+export const useDriverStandings = (year?: number) => {
   return useQuery({
-    queryKey: ["driverStandings"],
-    queryFn: f1Service.getDriverStandings,
+    queryKey: ["driverStandings", year],
+    queryFn: () => f1Service.getDriverStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
-export const useConstructorStandings = () => {
+export const useConstructorStandings = (year?: number) => {
   return useQuery({
-    queryKey: ["constructorStandings"],
-    queryFn: f1Service.getConstructorStandings,
+    queryKey: ["constructorStandings", year],
+    queryFn: () => f1Service.getConstructorStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
-export const useRaceSchedule = () => {
+export const useRaceSchedule = (year?: number) => {
   return useQuery({
-    queryKey: ["raceSchedule"],
-    queryFn: f1Service.getRaceSchedule,
+    queryKey: ["raceSchedule", year],
+    queryFn: () => f1Service.getRaceSchedule(year),
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 };
 
-export const useLastRaceResults = () => {
+export const useRaceResults = (year: number, round: string) => {
   return useQuery({
-    queryKey: ["lastRaceResults"],
-    queryFn: f1Service.getLastRaceResults,
+    queryKey: ["raceResults", year, round],
+    queryFn: () => f1Service.getRaceResults(year, round),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!year && !!round,
+  });
+};
+
+export const useRaceQualifying = (year: number, round: string) => {
+  return useQuery({
+    queryKey: ["raceQualifying", year, round],
+    queryFn: () => f1Service.getRaceQualifying(year, round),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!year && !!round,
+  });
+};
+
+export const useLastRaceResults = (year?: number) => {
+  return useQuery({
+    queryKey: ["lastRaceResults", year],
+    queryFn: () => f1Service.getLastRaceResults(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
-export const useNextRace = () => {
+export const useNextRace = (year?: number) => {
   return useQuery({
-    queryKey: ["nextRace"],
-    queryFn: f1Service.getNextRace,
+    queryKey: ["nextRace", year],
+    queryFn: () => f1Service.getNextRace(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
+// Unused in the refactored app but kept for API completeness
 export const useRaceStatus = (sessionId?: string) => {
   return useQuery({
     queryKey: ["raceStatus", sessionId],
@@ -51,12 +70,11 @@ export const useRaceStatus = (sessionId?: string) => {
   });
 };
 
-export const useDriverInfo = (sessionId?: string) => {
+export const useDriverInfo = (year?: number) => {
   return useQuery({
-    queryKey: ["driverInfo", sessionId],
-    queryFn: () => f1Service.getDriverInfo(sessionId),
+    queryKey: ["driverInfo", year],
+    queryFn: () => f1Service.getDriverInfo(year),
     staleTime: 1000 * 30, // 30 seconds
-    enabled: !!sessionId,
   });
 };
 

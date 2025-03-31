@@ -6,327 +6,11 @@ const BASE_URL = "https://api.jolpi.ca/ergast";
 // Get the current F1 season year
 const getCurrentSeason = () => new Date().getFullYear();
 
-// Mock data for when API is unavailable
-const mockDriverStandings = [
-  { position: "1", Driver: { givenName: "Max", familyName: "Verstappen", code: "VER" }, Constructors: [{ name: "Red Bull Racing", constructorId: "red_bull" }], points: "150" },
-  { position: "2", Driver: { givenName: "Sergio", familyName: "Perez", code: "PER" }, Constructors: [{ name: "Red Bull Racing", constructorId: "red_bull" }], points: "102" },
-  { position: "3", Driver: { givenName: "Charles", familyName: "Leclerc", code: "LEC" }, Constructors: [{ name: "Ferrari", constructorId: "ferrari" }], points: "98" },
-  { position: "4", Driver: { givenName: "Lando", familyName: "Norris", code: "NOR" }, Constructors: [{ name: "McLaren", constructorId: "mclaren" }], points: "87" },
-  { position: "5", Driver: { givenName: "Carlos", familyName: "Sainz", code: "SAI" }, Constructors: [{ name: "Ferrari", constructorId: "ferrari" }], points: "86" },
-  { position: "6", Driver: { givenName: "Lewis", familyName: "Hamilton", code: "HAM" }, Constructors: [{ name: "Mercedes", constructorId: "mercedes" }], points: "63" },
-  { position: "7", Driver: { givenName: "Fernando", familyName: "Alonso", code: "ALO" }, Constructors: [{ name: "Aston Martin", constructorId: "aston_martin" }], points: "55" },
-  { position: "8", Driver: { givenName: "George", familyName: "Russell", code: "RUS" }, Constructors: [{ name: "Mercedes", constructorId: "mercedes" }], points: "42" },
-  { position: "9", Driver: { givenName: "Oscar", familyName: "Piastri", code: "PIA" }, Constructors: [{ name: "McLaren", constructorId: "mclaren" }], points: "40" },
-  { position: "10", Driver: { givenName: "Lance", familyName: "Stroll", code: "STR" }, Constructors: [{ name: "Aston Martin", constructorId: "aston_martin" }], points: "17" },
-  { position: "11", Driver: { givenName: "Yuki", familyName: "Tsunoda", code: "TSU" }, Constructors: [{ name: "Racing Bulls", constructorId: "alphatauri" }], points: "10" },
-  { position: "12", Driver: { givenName: "Alexander", familyName: "Albon", code: "ALB" }, Constructors: [{ name: "Williams", constructorId: "williams" }], points: "6" },
-  { position: "13", Driver: { givenName: "Daniel", familyName: "Ricciardo", code: "RIC" }, Constructors: [{ name: "Racing Bulls", constructorId: "alphatauri" }], points: "6" },
-  { position: "14", Driver: { givenName: "Kevin", familyName: "Magnussen", code: "MAG" }, Constructors: [{ name: "Haas F1 Team", constructorId: "haas" }], points: "5" },
-  { position: "15", Driver: { givenName: "Nico", familyName: "Hulkenberg", code: "HUL" }, Constructors: [{ name: "Haas F1 Team", constructorId: "haas" }], points: "4" },
-  { position: "16", Driver: { givenName: "Esteban", familyName: "Ocon", code: "OCO" }, Constructors: [{ name: "Alpine", constructorId: "alpine" }], points: "2" },
-  { position: "17", Driver: { givenName: "Pierre", familyName: "Gasly", code: "GAS" }, Constructors: [{ name: "Alpine", constructorId: "alpine" }], points: "1" },
-  { position: "18", Driver: { givenName: "Logan", familyName: "Sargeant", code: "SAR" }, Constructors: [{ name: "Williams", constructorId: "williams" }], points: "0" },
-  { position: "19", Driver: { givenName: "Valtteri", familyName: "Bottas", code: "BOT" }, Constructors: [{ name: "Kick Sauber", constructorId: "alfa" }], points: "0" },
-  { position: "20", Driver: { givenName: "Zhou", familyName: "Guanyu", code: "ZHO" }, Constructors: [{ name: "Kick Sauber", constructorId: "alfa" }], points: "0" }
-];
-
-const mockConstructorStandings = [
-  { position: "1", Constructor: { name: "Red Bull Racing", constructorId: "red_bull" }, points: "252" },
-  { position: "2", Constructor: { name: "Ferrari", constructorId: "ferrari" }, points: "184" },
-  { position: "3", Constructor: { name: "McLaren", constructorId: "mclaren" }, points: "127" },
-  { position: "4", Constructor: { name: "Mercedes", constructorId: "mercedes" }, points: "105" },
-  { position: "5", Constructor: { name: "Aston Martin", constructorId: "aston_martin" }, points: "72" },
-  { position: "6", Constructor: { name: "Racing Bulls", constructorId: "alphatauri" }, points: "16" },
-  { position: "7", Constructor: { name: "Haas F1 Team", constructorId: "haas" }, points: "5" },
-  { position: "8", Constructor: { name: "Alpine", constructorId: "alpine" }, points: "3" },
-  { position: "9", Constructor: { name: "Williams", constructorId: "williams" }, points: "0" },
-  { position: "10", Constructor: { name: "Kick Sauber", constructorId: "alfa" }, points: "0" }
-];
-
-// Updated with the current year's races
-const mockRaceSchedule = () => {
-  const currentYear = getCurrentSeason();
-  return [
-    {
-      round: "1",
-      raceName: "Bahrain Grand Prix",
-      Circuit: {
-        circuitName: "Bahrain International Circuit",
-        Location: { country: "Bahrain" }
-      },
-      date: `${currentYear}-03-02`,
-      time: "15:00:00Z",
-      laps: 57
-    },
-    {
-      round: "2",
-      raceName: "Saudi Arabian Grand Prix",
-      Circuit: {
-        circuitName: "Jeddah Corniche Circuit",
-        Location: { country: "Saudi Arabia" }
-      },
-      date: `${currentYear}-03-09`,
-      time: "17:00:00Z",
-      laps: 50
-    },
-    {
-      round: "3",
-      raceName: "Australian Grand Prix",
-      Circuit: {
-        circuitName: "Albert Park Circuit",
-        Location: { country: "Australia" }
-      },
-      date: `${currentYear}-03-24`,
-      time: "05:00:00Z",
-      laps: 58
-    },
-    {
-      round: "4",
-      raceName: "Japanese Grand Prix",
-      Circuit: {
-        circuitName: "Suzuka Circuit",
-        Location: { country: "Japan" }
-      },
-      date: `${currentYear}-04-07`,
-      time: "06:00:00Z",
-      laps: 53
-    },
-    {
-      round: "5",
-      raceName: "Chinese Grand Prix",
-      Circuit: {
-        circuitName: "Shanghai International Circuit",
-        Location: { country: "China" }
-      },
-      date: `${currentYear}-04-21`,
-      time: "07:00:00Z",
-      laps: 56
-    },
-    {
-      round: "6",
-      raceName: "Miami Grand Prix",
-      Circuit: {
-        circuitName: "Miami International Autodrome",
-        Location: { country: "USA" }
-      },
-      date: `${currentYear}-05-05`,
-      time: "20:00:00Z",
-      laps: 57
-    },
-    {
-      round: "7",
-      raceName: "Emilia Romagna Grand Prix",
-      Circuit: {
-        circuitName: "Autodromo Enzo e Dino Ferrari",
-        Location: { country: "Italy" }
-      },
-      date: `${currentYear}-05-19`,
-      time: "13:00:00Z",
-      laps: 63
-    },
-    {
-      round: "8",
-      raceName: "Monaco Grand Prix",
-      Circuit: {
-        circuitName: "Circuit de Monaco",
-        Location: { country: "Monaco" }
-      },
-      date: `${currentYear}-05-26`,
-      time: "13:00:00Z",
-      laps: 78
-    },
-    {
-      round: "9",
-      raceName: "Canadian Grand Prix",
-      Circuit: {
-        circuitName: "Circuit Gilles Villeneuve",
-        Location: { country: "Canada" }
-      },
-      date: `${currentYear}-06-09`,
-      time: "18:00:00Z",
-      laps: 70
-    },
-    {
-      round: "10",
-      raceName: "Spanish Grand Prix",
-      Circuit: {
-        circuitName: "Circuit de Barcelona-Catalunya",
-        Location: { country: "Spain" }
-      },
-      date: `${currentYear}-06-23`,
-      time: "13:00:00Z",
-      laps: 66
-    },
-    {
-      round: "11",
-      raceName: "Austrian Grand Prix",
-      Circuit: {
-        circuitName: "Red Bull Ring",
-        Location: { country: "Austria" }
-      },
-      date: `${currentYear}-06-30`,
-      time: "13:00:00Z",
-      laps: 71
-    },
-    {
-      round: "12",
-      raceName: "British Grand Prix",
-      Circuit: {
-        circuitName: "Silverstone Circuit",
-        Location: { country: "UK" }
-      },
-      date: `${currentYear}-07-07`,
-      time: "14:00:00Z",
-      laps: 52
-    },
-    {
-      round: "13",
-      raceName: "Hungarian Grand Prix",
-      Circuit: {
-        circuitName: "Hungaroring",
-        Location: { country: "Hungary" }
-      },
-      date: `${currentYear}-07-21`,
-      time: "13:00:00Z",
-      laps: 70
-    },
-    {
-      round: "14",
-      raceName: "Belgian Grand Prix",
-      Circuit: {
-        circuitName: "Circuit de Spa-Francorchamps",
-        Location: { country: "Belgium" }
-      },
-      date: `${currentYear}-07-28`,
-      time: "13:00:00Z",
-      laps: 44
-    },
-    {
-      round: "15",
-      raceName: "Dutch Grand Prix",
-      Circuit: {
-        circuitName: "Circuit Zandvoort",
-        Location: { country: "Netherlands" }
-      },
-      date: `${currentYear}-08-25`,
-      time: "13:00:00Z",
-      laps: 72
-    },
-    {
-      round: "16",
-      raceName: "Italian Grand Prix",
-      Circuit: {
-        circuitName: "Autodromo Nazionale Monza",
-        Location: { country: "Italy" }
-      },
-      date: `${currentYear}-09-01`,
-      time: "13:00:00Z",
-      laps: 53
-    },
-    {
-      round: "17",
-      raceName: "Azerbaijan Grand Prix",
-      Circuit: {
-        circuitName: "Baku City Circuit",
-        Location: { country: "Azerbaijan" }
-      },
-      date: `${currentYear}-09-15`,
-      time: "11:00:00Z",
-      laps: 51
-    },
-    {
-      round: "18",
-      raceName: "Singapore Grand Prix",
-      Circuit: {
-        circuitName: "Marina Bay Street Circuit",
-        Location: { country: "Singapore" }
-      },
-      date: `${currentYear}-09-22`,
-      time: "12:00:00Z",
-      laps: 62
-    },
-    {
-      round: "19",
-      raceName: "United States Grand Prix",
-      Circuit: {
-        circuitName: "Circuit of the Americas",
-        Location: { country: "USA" }
-      },
-      date: `${currentYear}-10-20`,
-      time: "19:00:00Z",
-      laps: 56
-    },
-    {
-      round: "20",
-      raceName: "Mexico City Grand Prix",
-      Circuit: {
-        circuitName: "Autódromo Hermanos Rodríguez",
-        Location: { country: "Mexico" }
-      },
-      date: `${currentYear}-10-27`,
-      time: "20:00:00Z",
-      laps: 71
-    },
-    {
-      round: "21",
-      raceName: "São Paulo Grand Prix",
-      Circuit: {
-        circuitName: "Autódromo José Carlos Pace",
-        Location: { country: "Brazil" }
-      },
-      date: `${currentYear}-11-03`,
-      time: "17:00:00Z",
-      laps: 71
-    },
-    {
-      round: "22",
-      raceName: "Las Vegas Grand Prix",
-      Circuit: {
-        circuitName: "Las Vegas Strip Circuit",
-        Location: { country: "USA" }
-      },
-      date: `${currentYear}-11-23`,
-      time: "06:00:00Z",
-      laps: 50
-    },
-    {
-      round: "23",
-      raceName: "Qatar Grand Prix",
-      Circuit: {
-        circuitName: "Lusail International Circuit",
-        Location: { country: "Qatar" }
-      },
-      date: `${currentYear}-12-01`,
-      time: "15:00:00Z",
-      laps: 57
-    },
-    {
-      round: "24",
-      raceName: "Abu Dhabi Grand Prix",
-      Circuit: {
-        circuitName: "Yas Marina Circuit",
-        Location: { country: "United Arab Emirates" }
-      },
-      date: `${currentYear}-12-08`,
-      time: "13:00:00Z",
-      laps: 58
-    }
-  ];
-};
-
-const mockLastRaceResults = [
-  { position: "1", Driver: { givenName: "Max", familyName: "Verstappen", code: "VER" }, Constructor: { constructorId: "red_bull" }, Time: { time: "1:29:25.110" }, status: "Finished", points: "25" },
-  { position: "2", Driver: { givenName: "Lando", familyName: "Norris", code: "NOR" }, Constructor: { constructorId: "mclaren" }, Time: { time: "+20.023s" }, status: "Finished", points: "18" },
-  { position: "3", Driver: { givenName: "Charles", familyName: "Leclerc", code: "LEC" }, Constructor: { constructorId: "ferrari" }, Time: { time: "+21.032s" }, status: "Finished", points: "15" },
-  { position: "4", Driver: { givenName: "Carlos", familyName: "Sainz", code: "SAI" }, Constructor: { constructorId: "ferrari" }, Time: { time: "+24.918s" }, status: "Finished", points: "12" },
-  { position: "5", Driver: { givenName: "Lewis", familyName: "Hamilton", code: "HAM" }, Constructor: { constructorId: "mercedes" }, Time: { time: "+44.120s" }, status: "Finished", points: "10" }
-];
-
 // Fetch driver standings
-export const getDriverStandings = async () => {
+export const getDriverStandings = async (year?: number) => {
   try {
-    const year = getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${year}/driverStandings.json`, {
+    const seasonYear = year || getCurrentSeason();
+    const response = await fetch(`${BASE_URL}/f1/${seasonYear}/driverStandings.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -344,16 +28,15 @@ export const getDriverStandings = async () => {
     };
   } catch (error) {
     console.error("Failed to fetch driver standings:", error);
-    toast.error("Using offline data for driver standings.");
-    return { data: mockDriverStandings, error };
+    return { data: [], error };
   }
 };
 
 // Fetch constructor standings
-export const getConstructorStandings = async () => {
+export const getConstructorStandings = async (year?: number) => {
   try {
-    const year = getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${year}/constructorStandings.json`, {
+    const seasonYear = year || getCurrentSeason();
+    const response = await fetch(`${BASE_URL}/f1/${seasonYear}/constructorStandings.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -371,16 +54,15 @@ export const getConstructorStandings = async () => {
     };
   } catch (error) {
     console.error("Failed to fetch constructor standings:", error);
-    toast.error("Using offline data for constructor standings.");
-    return { data: mockConstructorStandings, error };
+    return { data: [], error };
   }
 };
 
 // Fetch race schedule
-export const getRaceSchedule = async () => {
+export const getRaceSchedule = async (year?: number) => {
   try {
-    const year = getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${year}.json`, {
+    const seasonYear = year || getCurrentSeason();
+    const response = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -398,17 +80,66 @@ export const getRaceSchedule = async () => {
     };
   } catch (error) {
     console.error("Failed to fetch race schedule:", error);
-    toast.error("Using offline data for race schedule.");
-    return { data: mockRaceSchedule(), error };
+    return { data: [], error };
+  }
+};
+
+// Fetch specific race results
+export const getRaceResults = async (year: number, round: string) => {
+  try {
+    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/results.json`, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return { 
+      data: data.MRData?.RaceTable?.Races?.[0] || {}, 
+      error: null 
+    };
+  } catch (error) {
+    console.error(`Failed to fetch results for round ${round}:`, error);
+    return { data: {}, error };
+  }
+};
+
+// Fetch qualifying results
+export const getRaceQualifying = async (year: number, round: string) => {
+  try {
+    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/qualifying.json`, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return { 
+      data: data.MRData?.RaceTable?.Races?.[0] || {}, 
+      error: null 
+    };
+  } catch (error) {
+    console.error(`Failed to fetch qualifying for round ${round}:`, error);
+    return { data: {}, error };
   }
 };
 
 // Fetch last race results
-export const getLastRaceResults = async () => {
+export const getLastRaceResults = async (year?: number) => {
   try {
-    const year = getCurrentSeason();
+    const seasonYear = year || getCurrentSeason();
     // First, get the race schedule to find the last completed race
-    const scheduleResponse = await fetch(`${BASE_URL}/f1/${year}.json`, {
+    const scheduleResponse = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -428,11 +159,8 @@ export const getLastRaceResults = async () => {
     
     if (completedRaces.length === 0) {
       return { 
-        data: { 
-          raceName: "Chinese Grand Prix", 
-          results: mockLastRaceResults 
-        }, 
-        error: null 
+        data: null, 
+        error: "No completed races found for this season" 
       };
     }
     
@@ -461,22 +189,15 @@ export const getLastRaceResults = async () => {
     };
   } catch (error) {
     console.error("Failed to fetch race results:", error);
-    toast.error("Using offline data for race results.");
-    return { 
-      data: { 
-        raceName: "Chinese Grand Prix", 
-        results: mockLastRaceResults 
-      }, 
-      error 
-    };
+    return { data: null, error };
   }
 };
 
 // Get next race data
-export const getNextRace = async () => {
+export const getNextRace = async (year?: number) => {
   try {
-    const year = getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${year}.json`, {
+    const seasonYear = year || getCurrentSeason();
+    const response = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -495,75 +216,34 @@ export const getNextRace = async () => {
     const upcomingRaces = races.filter(race => new Date(race.date) > now);
     
     if (upcomingRaces.length === 0) {
-      // Fallback to mock data if no upcoming races
-      const mockNext = {
-        data: [{
-          meeting_name: "Miami Grand Prix",
-          location: "Miami, USA",
-          session_status: "Upcoming",
-          session_name: "Miami Grand Prix",
-          session_type: "Race",
-          total_laps: "57",
-        }],
-        error: null
-      };
-      return mockNext;
+      return { data: null, error: "No upcoming races found for this season" };
     }
     
     const nextRace = upcomingRaces[0];
     
     // Transform data to match component expectations
-    const transformedData = [{
-      meeting_name: nextRace.raceName,
-      location: `${nextRace.Circuit.Location.locality || ''}, ${nextRace.Circuit.Location.country}`,
-      session_status: "Upcoming",
-      session_name: nextRace.raceName,
-      session_type: "Race",
-      total_laps: nextRace.laps || "Unknown",
-    }];
-    
-    return { data: transformedData, error: null };
+    return { data: nextRace, error: null };
   } catch (error) {
     console.error("Failed to fetch next race:", error);
-    toast.error("Using offline data for next race.");
-    
-    const mockNext = {
-      data: [{
-        meeting_name: "Miami Grand Prix",
-        location: "Miami, USA",
-        session_status: "Upcoming",
-        session_name: "Miami Grand Prix",
-        session_type: "Race",
-        total_laps: "57",
-      }],
-      error: null
-    };
-    return mockNext;
+    return { data: null, error };
   }
 };
 
-// Race status data
+// Race status data (simplified)
 export const getRaceStatus = async (sessionId?: string) => {
   try {
-    // Since we don't have live race status from the API, return mock data
-    const mockData = [{
-      lap_number: "42",
-      // Add more fields as needed by the components
-    }];
-    
-    return { data: mockData, error: null };
+    return { data: null, error: "Live timing data not available" };
   } catch (error) {
     console.error("Failed to fetch race status:", error);
-    toast.error("Failed to load race status. Please try again later.");
-    return { data: [], error };
+    return { data: null, error };
   }
 };
 
 // Driver info data
-export const getDriverInfo = async (sessionId?: string) => {
+export const getDriverInfo = async (year?: number) => {
   try {
-    const year = getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${year}/driverStandings.json`, {
+    const seasonYear = year || getCurrentSeason();
+    const response = await fetch(`${BASE_URL}/f1/${seasonYear}/driverStandings.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -577,113 +257,30 @@ export const getDriverInfo = async (sessionId?: string) => {
     const data = await response.json();
     const drivers = data.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
     
-    // Transform data to match component expectations
-    const transformedData = drivers.map((driver: any, index: number) => ({
-      driver_number: driver.Driver?.permanentNumber || `${index + 1}`,
-      full_name: `${driver.Driver?.givenName} ${driver.Driver?.familyName}`,
-      team_name: driver.Constructors?.[0]?.name || "Unknown Team",
-      position: driver.position,
-      gap_to_leader: index === 0 ? "0.0" : `${(Math.random() * 30).toFixed(1)}`,
-    }));
-    
-    return { data: transformedData, error: null };
+    return { data: drivers, error: null };
   } catch (error) {
     console.error("Failed to fetch driver info:", error);
-    toast.error("Using offline data for driver information.");
-    
-    // Fallback to mock data
-    const mockData = [
-      { driver_number: "1", full_name: "Max Verstappen", team_name: "Red Bull Racing", position: 1, gap_to_leader: "0.0" },
-      { driver_number: "11", full_name: "Sergio Perez", team_name: "Red Bull Racing", position: 2, gap_to_leader: "5.6" },
-      { driver_number: "16", full_name: "Charles Leclerc", team_name: "Ferrari", position: 3, gap_to_leader: "8.2" },
-      { driver_number: "55", full_name: "Carlos Sainz", team_name: "Ferrari", position: 4, gap_to_leader: "12.7" },
-      { driver_number: "4", full_name: "Lando Norris", team_name: "McLaren", position: 5, gap_to_leader: "15.4" },
-      { driver_number: "44", full_name: "Lewis Hamilton", team_name: "Mercedes", position: 6, gap_to_leader: "19.8" },
-      { driver_number: "63", full_name: "George Russell", team_name: "Mercedes", position: 7, gap_to_leader: "22.1" },
-      { driver_number: "14", full_name: "Fernando Alonso", team_name: "Aston Martin", position: 8, gap_to_leader: "25.5" },
-      { driver_number: "81", full_name: "Oscar Piastri", team_name: "McLaren", position: 9, gap_to_leader: "28.3" },
-      { driver_number: "18", full_name: "Lance Stroll", team_name: "Aston Martin", position: 10, gap_to_leader: "32.7" }
-    ];
-    
-    return { data: mockData, error };
-  }
-};
-
-// Weather data
-export const getWeatherData = async (sessionId?: string) => {
-  try {
-    // Return mock weather data
-    const mockData = [{
-      air_temperature: 25,
-      track_temperature: 30,
-      humidity: 65,
-      condition: "Partly Cloudy",
-    }];
-    
-    return { data: mockData, error: null };
-  } catch (error) {
-    console.error("Failed to fetch weather data:", error);
-    toast.error("Failed to load weather data. Please try again later.");
     return { data: [], error };
   }
 };
 
-// F1 News data
+// Weather data (simplified)
+export const getWeatherData = async (sessionId?: string) => {
+  try {
+    return { data: null, error: "Weather data not available" };
+  } catch (error) {
+    console.error("Failed to fetch weather data:", error);
+    return { data: null, error };
+  }
+};
+
+// F1 News data (simplified)
 export const getF1News = async () => {
   try {
-    // Return mock news data
-    const currentYear = getCurrentSeason();
-    const mockData = {
-      data: [
-        {
-          title: `Hamilton secures pole position for the Monaco Grand Prix ${currentYear}`,
-          url: "https://www.formula1.com/",
-          urlToImage: "https://placehold.co/600x400?text=F1+News+Image",
-          source: { name: "Formula1.com" },
-          publishedAt: new Date().toISOString(),
-        },
-        {
-          title: `Verstappen leads championship after Barcelona victory ${currentYear}`,
-          url: "https://www.formula1.com/",
-          urlToImage: "https://placehold.co/600x400?text=F1+News+Image",
-          source: { name: "Formula1.com" },
-          publishedAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-        },
-        {
-          title: `Ferrari reveals upgrades for upcoming races ${currentYear}`,
-          url: "https://www.formula1.com/",
-          urlToImage: "https://placehold.co/600x400?text=F1+News+Image",
-          source: { name: "Formula1.com" },
-          publishedAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        },
-        {
-          title: `McLaren showing strong pace in recent tests ${currentYear}`,
-          url: "https://www.formula1.com/",
-          urlToImage: "https://placehold.co/600x400?text=F1+News+Image",
-          source: { name: "SkySports F1" },
-          publishedAt: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-        },
-        {
-          title: `Alonso: 'Aston Martin has potential for podiums' ${currentYear}`,
-          url: "https://www.formula1.com/",
-          urlToImage: "https://placehold.co/600x400?text=F1+News+Image",
-          source: { name: "Twitter" },
-          publishedAt: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
-        },
-        {
-          title: `F1 announces new race in Madrid starting from ${currentYear + 2}`,
-          url: "https://www.formula1.com/",
-          urlToImage: "https://placehold.co/600x400?text=F1+News+Image",
-          source: { name: "Formula1.com" },
-          publishedAt: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
-        }
-      ]
-    };
-    
-    return mockData;
+    // External F1 news data is not available through the Ergast API
+    return { data: [], error: "News data not available through this API" };
   } catch (error) {
     console.error("Failed to fetch F1 news:", error);
-    toast.error("Failed to load F1 news. Please try again later.");
     return { data: [], error };
   }
 };
