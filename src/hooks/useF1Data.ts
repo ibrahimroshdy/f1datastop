@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 
@@ -29,6 +30,15 @@ export const useRaceResults = (year: number, round: string) => {
   return useQuery({
     queryKey: ["raceResults", year, round],
     queryFn: () => f1Service.getRaceResults(year, round),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    enabled: !!year && !!round,
+  });
+};
+
+export const useRaceQualifying = (year: number, round: string) => {
+  return useQuery({
+    queryKey: ["qualifying", year, round],
+    queryFn: () => f1Service.getRaceQualifying(year, round),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
   });
