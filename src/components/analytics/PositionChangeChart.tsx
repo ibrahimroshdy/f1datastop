@@ -1,10 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { Skeleton } from "@/components/ui/skeleton";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
-import { getLapTimes, getRaceResults } from "@/services/f1Service";
+import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { toast } from "sonner";
 
 interface PositionChangeChartProps {
@@ -13,97 +13,38 @@ interface PositionChangeChartProps {
 }
 
 const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
-  const [positionData, setPositionData] = useState<any[]>([]);
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>(["VER", "HAM", "LEC"]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
 
+  // Use React Query hooks for data fetching
+  const { 
+    data: raceResultsData, 
+    isLoading: isResultsLoading, 
+    error: resultsError 
+  } = useRaceResults(year, round);
+  
+  const { 
+    data: lapTimesData, 
+    isLoading: isLapTimesLoading, 
+    error: lapTimesError 
+  } = useLapTimes(year, round);
+  
+  const isLoading = isResultsLoading || isLapTimesLoading;
+  const error = resultsError || lapTimesError;
+
+  // Process available drivers once race results are loaded
   useEffect(() => {
-    if (round) {
-      setIsLoading(true);
-      setError(null);
+    if (raceResultsData?.data?.Results) {
+      const drivers = raceResultsData.data.Results.map((result: any) => ({
+        driverId: result.Driver.driverId,
+        code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
+        name: `${result.Driver.givenName} ${result.Driver.familyName}`,
+        team: result.Constructor?.constructorId || "unknown",
+      }));
       
-      getRaceResults(year, round)
-        .then(results => {
-          if (results?.data?.Results) {
-            const drivers = results.data.Results.map((result: any) => ({
-              driverId: result.Driver.driverId,
-              code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
-              name: `${result.Driver.givenName} ${result.Driver.familyName}`,
-              team: result.Constructor?.constructorId || "unknown",
-            }));
-            
-            setAvailableDrivers(drivers);
-            
-            return getLapTimes(year, round);
-          } else {
-            throw new Error("No race results found");
-          }
-        })
-        .then(lapData => {
-          if (lapData?.data?.Races && lapData.data.Races.length > 0) {
-            const race = lapData.data.Races[0];
-            
-            if (race.Laps && race.Laps.length > 0) {
-              const driverPositions: Record<string, any[]> = {};
-              
-              race.Laps.forEach((lap: any) => {
-                const lapNumber = parseInt(lap.number);
-                
-                lap.Timings.forEach((timing: any) => {
-                  const driverId = timing.driverId;
-                  const position = parseInt(timing.position);
-                  
-                  if (!driverPositions[driverId]) {
-                    driverPositions[driverId] = [];
-                  }
-                  
-                  driverPositions[driverId].push({
-                    lap: lapNumber,
-                    position: position
-                  });
-                });
-              });
-              
-              const lapsCount = race.Laps.length;
-              const positionByLap = Array.from({ length: lapsCount }, (_, i) => ({
-                lap: i + 1,
-              }));
-              
-              Object.entries(driverPositions).forEach(([driverId, positions]) => {
-                const driver = availableDrivers.find(d => d.driverId === driverId);
-                const driverCode = driver?.code || driverId.substring(0, 3).toUpperCase();
-                
-                positions.forEach(pos => {
-                  const lapIndex = pos.lap - 1;
-                  if (lapIndex < positionByLap.length) {
-                    positionByLap[lapIndex][driverCode] = pos.position;
-                  }
-                });
-              });
-              
-              setPositionData(positionByLap);
-            } else {
-              setError("No lap data available for this race");
-              setPositionData([]);
-            }
-          } else {
-            setError("No lap data available");
-            setPositionData([]);
-          }
-        })
-        .catch(error => {
-          console.error("Error fetching position data:", error);
-          setError("Failed to load position data");
-          setPositionData([]);
-          toast.error("Failed to load position data");
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      setAvailableDrivers(drivers);
     }
-  }, [round, year, availableDrivers]);
+  }, [raceResultsData]);
 
   const handleDriverToggle = (driverCode: string) => {
     setSelectedDrivers(prev => 
@@ -113,15 +54,67 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
     );
   };
 
+  // Memoize chart data to avoid recalculations
+  const chartData = useMemo(() => {
+    if (!lapTimesData?.data?.Races || !lapTimesData.data.Races.length) {
+      return [];
+    }
+    
+    const race = lapTimesData.data.Races[0];
+    
+    if (!race.Laps || !race.Laps.length) {
+      return [];
+    }
+    
+    const driverPositions: Record<string, any[]> = {};
+      
+    race.Laps.forEach((lap: any) => {
+      const lapNumber = parseInt(lap.number);
+      
+      lap.Timings.forEach((timing: any) => {
+        const driverId = timing.driverId;
+        const position = parseInt(timing.position);
+        
+        const driver = availableDrivers.find(d => d.driverId === driverId);
+        const driverCode = driver?.code || driverId.substring(0, 3).toUpperCase();
+        
+        if (!driverPositions[driverCode]) {
+          driverPositions[driverCode] = [];
+        }
+        
+        driverPositions[driverCode].push({
+          lap: lapNumber,
+          position: position
+        });
+      });
+    });
+    
+    const lapsCount = race.Laps.length;
+    const positionByLap = Array.from({ length: lapsCount }, (_, i) => ({
+      lap: i + 1,
+    }));
+    
+    Object.entries(driverPositions).forEach(([driverCode, positions]) => {
+      positions.forEach(pos => {
+        const lapIndex = pos.lap - 1;
+        if (lapIndex < positionByLap.length) {
+          positionByLap[lapIndex][driverCode] = pos.position;
+        }
+      });
+    });
+    
+    return positionByLap;
+  }, [lapTimesData, availableDrivers]);
+
   if (isLoading) {
     return <Skeleton className="h-full w-full" />;
   }
 
-  if (error || positionData.length === 0) {
+  if (error || chartData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <p className="text-muted-foreground">
-          {error || `No position data available for this race`}
+          No position data available for this race
         </p>
         <p className="text-sm text-muted-foreground mt-2">
           This could be because the race hasn't occurred yet or position data wasn't recorded.
@@ -154,7 +147,7 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
       <div className="h-[500px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
-            data={positionData}
+            data={chartData}
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />

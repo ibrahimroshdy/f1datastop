@@ -3,12 +3,12 @@ import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
 import YearSelector from "@/components/common/YearSelector";
 import LapTimeChart from "@/components/analytics/LapTimeChart";
 import PositionChangeChart from "@/components/analytics/PositionChangeChart";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -20,6 +20,8 @@ const Analytics = () => {
   // Handler for year changes
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
+    // Reset race selection when year changes to prevent errors
+    setSelectedRace("1");
   };
 
   // Handler for race selection
@@ -77,10 +79,12 @@ const Analytics = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[600px]">
-                <LapTimeChart 
-                  year={selectedYear} 
-                  round={selectedRace} 
-                />
+                {selectedTab === "lapTimes" && (
+                  <LapTimeChart 
+                    year={selectedYear} 
+                    round={selectedRace} 
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -94,10 +98,12 @@ const Analytics = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[600px]">
-                <PositionChangeChart 
-                  year={selectedYear} 
-                  round={selectedRace} 
-                />
+                {selectedTab === "positions" && (
+                  <PositionChangeChart 
+                    year={selectedYear} 
+                    round={selectedRace} 
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>

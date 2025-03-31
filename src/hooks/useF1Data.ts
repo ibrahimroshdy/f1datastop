@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 
@@ -22,7 +21,7 @@ export const useRaceSchedule = (year?: number) => {
   return useQuery({
     queryKey: ["raceSchedule", year],
     queryFn: () => f1Service.getRaceSchedule(year),
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 1000 * 60 * 60, // 1 hour
   });
 };
 
@@ -30,17 +29,18 @@ export const useRaceResults = (year: number, round: string) => {
   return useQuery({
     queryKey: ["raceResults", year, round],
     queryFn: () => f1Service.getRaceResults(year, round),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
   });
 };
 
-export const useRaceQualifying = (year: number, round: string) => {
+export const useLapTimes = (year: number, round: string) => {
   return useQuery({
-    queryKey: ["raceQualifying", year, round],
-    queryFn: () => f1Service.getRaceQualifying(year, round),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    queryKey: ["lapTimes", year, round],
+    queryFn: () => f1Service.getLapTimes(year, round),
+    staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
+    retry: 1, // Reduce retry attempts
   });
 };
 
@@ -48,15 +48,6 @@ export const usePitStops = (year: number, round: string) => {
   return useQuery({
     queryKey: ["pitStops", year, round],
     queryFn: () => f1Service.getPitStops(year, round),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!year && !!round,
-  });
-};
-
-export const useLapTimes = (year: number, round: string, driverId?: string) => {
-  return useQuery({
-    queryKey: ["lapTimes", year, round, driverId],
-    queryFn: () => f1Service.getLapTimes(year, round, driverId),
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!year && !!round,
   });
