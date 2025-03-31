@@ -46,11 +46,62 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
   const raceDate = new Date(race.date);
   const formattedDate = format(raceDate, "MMM d, yyyy");
   
+  // Get emoji flag based on country name
+  const getCountryEmoji = (countryName: string) => {
+    const countryEmojis: Record<string, string> = {
+      Australia: "🇦🇺",
+      Austria: "🇦🇹",
+      Azerbaijan: "🇦🇿",
+      Bahrain: "🇧🇭",
+      Belgium: "🇧🇪",
+      Brazil: "🇧🇷",
+      Canada: "🇨🇦",
+      China: "🇨🇳",
+      France: "🇫🇷",
+      Germany: "🇩🇪",
+      Hungary: "🇭🇺",
+      Italy: "🇮🇹",
+      Japan: "🇯🇵",
+      Mexico: "🇲🇽",
+      Monaco: "🇲🇨",
+      Netherlands: "🇳🇱",
+      Portugal: "🇵🇹",
+      Qatar: "🇶🇦",
+      Russia: "🇷🇺",
+      Saudi: "🇸🇦",
+      "Saudi Arabia": "🇸🇦",
+      Singapore: "🇸🇬",
+      Spain: "🇪🇸",
+      UAE: "🇦🇪",
+      "United Arab Emirates": "🇦🇪",
+      UK: "🇬🇧",
+      "United Kingdom": "🇬🇧",
+      USA: "🇺🇸",
+      "United States": "🇺🇸",
+      Vietnam: "🇻🇳",
+      Miami: "🇺🇸",
+      Las: "🇺🇸", // Las Vegas
+      Emilia: "🇮🇹", // Emilia-Romagna
+    };
+    
+    // Try to find a matching country name
+    for (const [key, emoji] of Object.entries(countryEmojis)) {
+      if (countryName.includes(key)) {
+        return emoji;
+      }
+    }
+    
+    return "🏁"; // Default racing flag
+  };
+  
+  const countryName = race.Circuit?.Location?.country || "";
+  const countryEmoji = getCountryEmoji(countryName);
+  
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          {race.raceName}
+          {countryEmoji} {race.raceName}
           <Badge className="ml-2" variant="secondary">Round {race.round}</Badge>
         </CardTitle>
       </CardHeader>
