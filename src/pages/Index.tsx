@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -17,6 +16,7 @@ import { Loader2, Trophy, Flag, Calendar, Clock, AlertCircle } from "lucide-reac
 import { formatDistance } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
+import PageSelector from "@/components/navigation/PageSelector";
 
 const Index = () => {
   const { data: driverStandings, isLoading: isDriversLoading } = useDriverStandings();
@@ -28,7 +28,6 @@ const Index = () => {
   const [isOffline, setIsOffline] = useState(false);
   
   useEffect(() => {
-    // Check if we're using offline data
     if (
       driverStandings?.error || 
       constructorStandings?.error || 
@@ -55,7 +54,6 @@ const Index = () => {
     return teamColors[constructorId] || "bg-gray-600";
   };
   
-  // Find the next race
   const nextRace = raceSchedule?.data?.find(race => {
     const raceDate = new Date(race.date + "T" + (race.time || "00:00:00Z"));
     return raceDate > new Date();
@@ -103,7 +101,6 @@ const Index = () => {
     };
   };
   
-  // Get top 3 drivers
   const topDrivers = driverStandings?.data?.slice(0, 3) || [];
   const maxPoints = driverStandings?.data?.length > 0 ? Number(driverStandings.data[0].points) : 0;
   
@@ -133,6 +130,8 @@ const Index = () => {
             </div>
           )}
         </div>
+        
+        <PageSelector />
       </header>
       
       {isOffline && (
@@ -151,7 +150,6 @@ const Index = () => {
         </div>
       ) : (
         <div className="space-y-8">
-          {/* Driver Standings */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="col-span-2 bg-gray-900 border-gray-800">
               <CardHeader className="pb-2">

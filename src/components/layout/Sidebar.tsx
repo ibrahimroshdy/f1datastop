@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { 
   Home, 
+  Calendar,
+  BarChart,
   X 
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -19,6 +21,8 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: Home },
+    { name: "Race Calendar", href: "/calendar", icon: Calendar },
+    { name: "Analytics", href: "/analytics", icon: BarChart },
   ];
 
   return (
