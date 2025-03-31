@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -18,5 +19,12 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  // Don't modify .gitignore or other protected files
+  fs: {
+    allow: [
+      path.resolve(__dirname, "./src"),
+      path.resolve(__dirname, "./public"),
+    ],
   },
 }));
