@@ -12,20 +12,24 @@ import RaceHighlights from "@/components/race/RaceHighlights";
 import { useCurrentRace } from "@/hooks/useF1Data";
 import { Loader2 } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const LiveRace = () => {
-  const { updateActiveSession } = useSession();
-  const { data: currentRace, isLoading } = useCurrentRace();
+  const { setActiveSessionId } = useSession();
+  const { data: currentRace, isLoading, error } = useCurrentRace();
   const [raceInfo, setRaceInfo] = useState<{name: string; lap: string; totalLaps: string}>({
     name: "Loading...",
     lap: "0",
     totalLaps: "0"
   });
   
+  const isOffline = error || !currentRace?.data || currentRace.data.length === 0;
+  
   useEffect(() => {
     if (currentRace?.data?.length > 0) {
       const race = currentRace.data[0];
-      updateActiveSession(race.session_id || "");
+      setActiveSessionId(race.session_id || "");
       
       setRaceInfo({
         name: race.meeting_name || "Unknown Grand Prix",
@@ -33,7 +37,7 @@ const LiveRace = () => {
         totalLaps: race.total_laps?.toString() || "0"
       });
     }
-  }, [currentRace, updateActiveSession]);
+  }, [currentRace, setActiveSessionId]);
 
   if (isLoading) {
     return (
@@ -48,6 +52,16 @@ const LiveRace = () => {
   return (
     <MainLayout>
       <div className="space-y-4">
+        {isOffline && (
+          <Alert className="mb-6 bg-yellow-900/20 border-yellow-600 text-yellow-200">
+            <AlertCircle className="h-4 w-4 text-yellow-400" />
+            <AlertTitle>No Live Race Data</AlertTitle>
+            <AlertDescription>
+              There is currently no live race in progress or we are unable to connect to the F1 data service.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">{raceInfo.name}: Live Race</h1>
           <div className="text-sm text-gray-400">Lap {raceInfo.lap}/{raceInfo.totalLaps}</div>

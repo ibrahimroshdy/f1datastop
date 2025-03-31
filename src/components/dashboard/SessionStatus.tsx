@@ -1,10 +1,10 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/context/SessionContext";
 import { useNextRace, useRaceStatus, useDriverInfo, useWeatherData } from "@/hooks/useF1Data";
 import { Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const SessionStatus = () => {
   const { activeSessionId } = useSession();
@@ -14,6 +14,14 @@ const SessionStatus = () => {
   const { data: weatherData, isLoading: isWeatherLoading } = useWeatherData(activeSessionId);
   
   const isLoading = isNextRaceLoading || isRaceStatusLoading || isDriverInfoLoading || isWeatherLoading;
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+  
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
   
   const getTeamColor = (teamName: string) => {
     const teamColors: Record<string, string> = {
@@ -52,13 +60,13 @@ const SessionStatus = () => {
   const drivers = driverInfoData?.data || [];
   const weather = weatherData?.data?.[0] || null;
   
-  // Get top 3 drivers sorted by position
+  const isLive = nextRace?.session_status === "Ongoing";
+  
   const topDrivers = [...drivers]
     .sort((a, b) => (a.position || 999) - (b.position || 999))
     .slice(0, 3);
 
-  // Fallback values if API data is missing
-  const sessionName = nextRace?.session_name || "Unknown Session";
+  const sessionName = nextRace?.session_name || "No Active Session";
   const trackName = nextRace?.location || "Unknown Track";
   const sessionType = nextRace?.session_type || "Unknown";
   const currentLap = raceStatus?.lap_number || "?";
@@ -71,7 +79,7 @@ const SessionStatus = () => {
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg">Current Session</CardTitle>
-          {nextRace?.session_status === "Ongoing" ? (
+          {isLive ? (
             <Badge variant="outline" className="bg-f1-red text-white border-0">LIVE</Badge>
           ) : (
             <Badge variant="outline" className="bg-blue-600 text-white border-0">UPCOMING</Badge>

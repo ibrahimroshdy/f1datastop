@@ -1,7 +1,11 @@
+
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 
-export const useDriverStandings = (year = new Date().getFullYear().toString()) => {
+// Get the current year
+const currentYear = new Date().getFullYear().toString();
+
+export const useDriverStandings = (year = currentYear) => {
   return useQuery({
     queryKey: ["driverStandings", year],
     queryFn: () => f1Service.getDriverStandings(year),
@@ -11,7 +15,7 @@ export const useDriverStandings = (year = new Date().getFullYear().toString()) =
   });
 };
 
-export const useConstructorStandings = (year = new Date().getFullYear().toString()) => {
+export const useConstructorStandings = (year = currentYear) => {
   return useQuery({
     queryKey: ["constructorStandings", year],
     queryFn: () => f1Service.getConstructorStandings(year),
@@ -21,7 +25,7 @@ export const useConstructorStandings = (year = new Date().getFullYear().toString
   });
 };
 
-export const useRaceSchedule = (year = new Date().getFullYear().toString()) => {
+export const useRaceSchedule = (year = currentYear) => {
   return useQuery({
     queryKey: ["raceSchedule", year],
     queryFn: () => f1Service.getRaceSchedule(year),
@@ -31,7 +35,7 @@ export const useRaceSchedule = (year = new Date().getFullYear().toString()) => {
   });
 };
 
-export const useLastRaceResults = (year = new Date().getFullYear().toString()) => {
+export const useLastRaceResults = (year = currentYear) => {
   return useQuery({
     queryKey: ["lastRaceResults", year],
     queryFn: () => f1Service.getLastRaceResults(year),
