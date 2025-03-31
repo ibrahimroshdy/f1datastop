@@ -2,6 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { TEAM_COLORS } from "@/constants/f1Colors";
 
 export interface TeamPerformanceChartProps {
   constructorData: any[];
@@ -11,25 +12,17 @@ export interface TeamPerformanceChartProps {
 const TeamPerformanceChart = ({ constructorData, isLoading }: TeamPerformanceChartProps) => {
   // Process data for the chart
   const chartData = !isLoading && constructorData && constructorData.length > 0
-    ? constructorData.map((team) => ({
-        name: team.Constructor ? team.Constructor.name : team.name || "Unknown",
-        value: parseFloat(team.points),
-      }))
+    ? constructorData.map((team) => {
+        // Handle both the MRData format and direct array format
+        const constructorInfo = team.Constructor || team;
+        
+        return {
+          name: constructorInfo ? constructorInfo.name : team.name || "Unknown",
+          value: parseFloat(team.points),
+          constructorId: constructorInfo ? constructorInfo.constructorId : team.constructorId || "default",
+        };
+      })
     : [];
-
-  // Colors for each team
-  const COLORS = [
-    "#0600EF", // Red Bull
-    "#F91536", // Ferrari
-    "#00D2BE", // Mercedes
-    "#FF8700", // McLaren
-    "#006F62", // Aston Martin
-    "#2B4562", // Racing Bulls
-    "#0090FF", // Alpine
-    "#005AFF", // Williams
-    "#900000", // Sauber
-    "#FFFFFF", // Haas
-  ];
 
   return (
     <Card className="w-full">
@@ -56,7 +49,10 @@ const TeamPerformanceChart = ({ constructorData, isLoading }: TeamPerformanceCha
                   label={({ name, percent }) => `${name} (${(percent * 100).toFixed(1)}%)`}
                 >
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={TEAM_COLORS[entry.constructorId] || `#${Math.floor(Math.random()*16777215).toString(16)}`} 
+                    />
                   ))}
                 </Pie>
                 <Tooltip 

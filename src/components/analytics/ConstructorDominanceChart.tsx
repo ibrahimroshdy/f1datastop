@@ -2,6 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { TEAM_COLORS } from "@/constants/f1Colors";
 
 export interface ConstructorDominanceChartProps {
   constructorData: any[];
@@ -12,26 +13,40 @@ const ConstructorDominanceChart = ({ constructorData, isLoading }: ConstructorDo
   // Generate some fake historical data for visualization purposes
   const generateHistoricalData = () => {
     const rounds = Array.from({ length: 10 }, (_, i) => i + 1);
-    const constructors = !isLoading && constructorData && constructorData.length > 0
-      ? constructorData.slice(0, 4).map(team => team.Constructor.name)
-      : ["Red Bull Racing", "Ferrari", "Mercedes", "McLaren"];
+    
+    // Process constructor data to handle different API response formats
+    const processedConstructors = !isLoading && constructorData && constructorData.length > 0
+      ? constructorData.slice(0, 4).map(team => {
+          const constructorInfo = team.Constructor || team;
+          return {
+            name: constructorInfo ? constructorInfo.name : team.name || "Unknown",
+            constructorId: constructorInfo ? constructorInfo.constructorId : team.constructorId || "default",
+            points: parseFloat(team.points)
+          };
+        })
+      : [
+          { name: "Red Bull", constructorId: "red_bull", points: 100 },
+          { name: "Ferrari", constructorId: "ferrari", points: 80 },
+          { name: "Mercedes", constructorId: "mercedes", points: 75 },
+          { name: "McLaren", constructorId: "mclaren", points: 60 }
+        ];
       
     return rounds.map(round => {
       const roundData: Record<string, number> = { round };
       
-      constructors.forEach(constructor => {
+      processedConstructors.forEach(constructor => {
         // Generate some simulated cumulative points data
-        const basePoints = constructorData?.find(c => c.Constructor.name === constructor)?.points || Math.random() * 100;
+        const basePoints = constructor.points || Math.random() * 100;
         const roundMultiplier = round / 10; // Increase points with each round
         
         let cumulativePoints = Math.floor(basePoints * roundMultiplier);
         // Add some randomness but ensure points always increase
         cumulativePoints = Math.max(
-          roundData[constructor] || 0,
+          roundData[constructor.name] || 0,
           cumulativePoints + Math.floor(Math.random() * 10)
         );
         
-        roundData[constructor] = cumulativePoints;
+        roundData[constructor.name] = cumulativePoints;
       });
       
       return roundData;
@@ -40,19 +55,21 @@ const ConstructorDominanceChart = ({ constructorData, isLoading }: ConstructorDo
 
   const chartData = generateHistoricalData();
 
-  // Colors for each team
-  const teamColors: Record<string, string> = {
-    "Red Bull Racing": "#0600EF",
-    "Ferrari": "#F91536",
-    "Mercedes": "#00D2BE",
-    "McLaren": "#FF8700",
-    "Aston Martin": "#006F62",
-    "Racing Bulls": "#2B4562",
-    "Alpine": "#0090FF",
-    "Williams": "#005AFF",
-    "Kick Sauber": "#900000",
-    "Haas F1 Team": "#FFFFFF",
-  };
+  // Get list of team names for the chart
+  const teamNames = !isLoading && constructorData && constructorData.length > 0
+    ? constructorData.slice(0, 4).map(team => {
+        const constructorInfo = team.Constructor || team;
+        return constructorInfo ? constructorInfo.name : team.name || "Unknown";
+      })
+    : ["Red Bull", "Ferrari", "Mercedes", "McLaren"];
+    
+  // Get list of team constructor IDs for colors
+  const teamIds = !isLoading && constructorData && constructorData.length > 0
+    ? constructorData.slice(0, 4).map(team => {
+        const constructorInfo = team.Constructor || team;
+        return constructorInfo ? constructorInfo.constructorId : team.constructorId || "default";
+      })
+    : ["red_bull", "ferrari", "mercedes", "mclaren"];
 
   return (
     <Card className="w-full">
@@ -85,14 +102,14 @@ const ConstructorDominanceChart = ({ constructorData, isLoading }: ConstructorDo
                 />
                 <Legend />
                 
-                {!isLoading && constructorData && constructorData.length > 0 && constructorData.slice(0, 4).map((team, index) => (
+                {teamNames.map((teamName, index) => (
                   <Area
-                    key={team.Constructor.name}
+                    key={teamName}
                     type="monotone"
-                    dataKey={team.Constructor.name}
+                    dataKey={teamName}
                     stackId="1"
-                    stroke={teamColors[team.Constructor.name] || `#${Math.floor(Math.random()*16777215).toString(16)}`}
-                    fill={teamColors[team.Constructor.name] || `#${Math.floor(Math.random()*16777215).toString(16)}`}
+                    stroke={TEAM_COLORS[teamIds[index]] || `#${Math.floor(Math.random()*16777215).toString(16)}`}
+                    fill={TEAM_COLORS[teamIds[index]] || `#${Math.floor(Math.random()*16777215).toString(16)}`}
                     fillOpacity={0.5}
                   />
                 ))}

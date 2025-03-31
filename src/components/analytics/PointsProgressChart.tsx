@@ -1,7 +1,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { TEAM_COLORS } from "@/constants/f1Colors";
 
 export interface PointsProgressChartProps {
   driverData: any[];
@@ -11,30 +12,20 @@ export interface PointsProgressChartProps {
 const PointsProgressChart = ({ driverData, isLoading }: PointsProgressChartProps) => {
   // Process data for the chart
   const chartData = !isLoading && driverData && driverData.length > 0
-    ? driverData.slice(0, 10).map((driver) => ({
-        name: driver.Driver.code || driver.Driver?.familyName?.substring(0, 3).toUpperCase(),
-        points: parseFloat(driver.points),
-        team: driver.Constructors[0].name,
-      }))
+    ? driverData.slice(0, 10).map((driver) => {
+        // Handle both the MRData format and direct array format
+        const driverInfo = driver.Driver || driver;
+        const constructors = driver.Constructors || [];
+        const team = constructors.length > 0 ? constructors[0] : { name: "Unknown", constructorId: "default" };
+        
+        return {
+          name: driverInfo.code || driverInfo?.familyName?.substring(0, 3).toUpperCase(),
+          points: parseFloat(driver.points),
+          team: team.name,
+          constructorId: team.constructorId,
+        };
+      })
     : [];
-
-  // Get colors for each team
-  const teamColors: Record<string, string> = {
-    "Red Bull Racing": "#0600EF",
-    "Ferrari": "#F91536",
-    "Mercedes": "#00D2BE",
-    "McLaren": "#FF8700",
-    "Aston Martin": "#006F62",
-    "Racing Bulls": "#2B4562",
-    "Alpine": "#0090FF",
-    "Williams": "#005AFF",
-    "Kick Sauber": "#900000",
-    "Haas F1 Team": "#FFFFFF",
-  };
-
-  const getColor = (teamName: string) => {
-    return teamColors[teamName] || "#cccccc";
-  };
 
   return (
     <Card className="w-full">
