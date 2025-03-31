@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -114,6 +115,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   const raceData = processRaceData();
   const qualifyingDisplayData = processQualifyingData();
 
+  // Helper function to remove flag emojis from race names
   const removeFlag = (raceName: string) => {
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
@@ -188,6 +190,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       domain={[1, 20]}
                       label={{ value: 'Grid Position', position: 'bottom' }}
                       reversed
+                      xAxisId="grid"
                     />
                     <YAxis 
                       type="number" 
@@ -196,6 +199,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       domain={[1, 20]}
                       label={{ value: 'Finish Position', angle: -90, position: 'left' }}
                       reversed
+                      yAxisId="position"
                     />
                     <ZAxis range={[50, 400]} />
                     <Tooltip 
@@ -217,11 +221,13 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       }}
                     />
                     <Legend />
-                    <ReferenceLine x={1} y={1} stroke="#666" strokeDasharray="3 3" />
-                    <ReferenceLine x={20} y={20} stroke="#666" strokeDasharray="3 3" />
+                    <ReferenceLine x={1} y={1} stroke="#666" strokeDasharray="3 3" xAxisId="grid" yAxisId="position" />
+                    <ReferenceLine x={20} y={20} stroke="#666" strokeDasharray="3 3" xAxisId="grid" yAxisId="position" />
                     <Scatter 
                       name="Drivers" 
                       data={raceData}
+                      xAxisId="grid"
+                      yAxisId="position"
                     >
                       {raceData.map((entry, index) => (
                         <Cell 
