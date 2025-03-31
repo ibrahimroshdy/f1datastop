@@ -3,13 +3,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { 
   Home, 
-  BarChart3, 
-  Calendar, 
-  Trophy, 
-  Clock, 
-  Users, 
-  Zap, 
-  MessageSquare, 
   X 
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -26,13 +19,6 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: Home },
-    { name: "Live Race", href: "/live", icon: Zap },
-    { name: "News Feed", href: "/news", icon: MessageSquare },
-    { name: "Race Calendar", href: "/calendar", icon: Calendar },
-    { name: "Standings", href: "/standings", icon: Trophy },
-    { name: "Timing", href: "/timing", icon: Clock },
-    { name: "Drivers", href: "/drivers", icon: Users },
-    { name: "Analytics", href: "/analytics", icon: BarChart3 },
   ];
 
   return (
