@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCurrentRace } from "@/hooks/useF1Data";
+import { useEffect, useState } from "react";
 
 interface SidebarProps {
   open: boolean;
@@ -26,6 +28,23 @@ interface SidebarProps {
 const Sidebar = ({ open, setOpen }: SidebarProps) => {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { data: currentRace } = useCurrentRace();
+  const [liveRaceName, setLiveRaceName] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (currentRace?.data?.length > 0) {
+      const race = currentRace.data[0];
+      if (race.session_status === "Ongoing") {
+        // Extract just the country/city name from the race name
+        const raceName = race.meeting_name?.split(" Grand Prix")[0] || "";
+        setLiveRaceName(raceName);
+      } else {
+        setLiveRaceName(null);
+      }
+    } else {
+      setLiveRaceName(null);
+    }
+  }, [currentRace]);
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: Home },
@@ -104,9 +123,19 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
           "absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800",
           !open && !isMobile && "flex justify-center"
         )}>
-          <div className="live-indicator">
-            <span className={cn("ml-1", !open && !isMobile && "hidden")}>LIVE: Monaco GP</span>
-          </div>
+          {liveRaceName ? (
+            <div className="live-indicator">
+              <span className={cn("ml-1", !open && !isMobile && "hidden")}>
+                LIVE: {liveRaceName} GP
+              </span>
+            </div>
+          ) : (
+            <div className="text-gray-500 text-sm flex items-center">
+              <span className={cn("ml-1", !open && !isMobile && "hidden")}>
+                No live races
+              </span>
+            </div>
+          )}
         </div>
       </aside>
     </>

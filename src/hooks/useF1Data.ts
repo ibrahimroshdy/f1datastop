@@ -1,35 +1,34 @@
-
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 
-export const useDriverStandings = () => {
+export const useDriverStandings = (year = new Date().getFullYear().toString()) => {
   return useQuery({
-    queryKey: ["driverStandings"],
-    queryFn: f1Service.getDriverStandings,
+    queryKey: ["driverStandings", year],
+    queryFn: () => f1Service.getDriverStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
-export const useConstructorStandings = () => {
+export const useConstructorStandings = (year = new Date().getFullYear().toString()) => {
   return useQuery({
-    queryKey: ["constructorStandings"],
-    queryFn: f1Service.getConstructorStandings,
+    queryKey: ["constructorStandings", year],
+    queryFn: () => f1Service.getConstructorStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
-export const useRaceSchedule = () => {
+export const useRaceSchedule = (year = new Date().getFullYear().toString()) => {
   return useQuery({
-    queryKey: ["raceSchedule"],
-    queryFn: f1Service.getRaceSchedule,
+    queryKey: ["raceSchedule", year],
+    queryFn: () => f1Service.getRaceSchedule(year),
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 };
 
-export const useLastRaceResults = () => {
+export const useLastRaceResults = (year = new Date().getFullYear().toString()) => {
   return useQuery({
-    queryKey: ["lastRaceResults"],
-    queryFn: f1Service.getLastRaceResults,
+    queryKey: ["lastRaceResults", year],
+    queryFn: () => f1Service.getLastRaceResults(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
@@ -74,5 +73,14 @@ export const useF1News = () => {
     queryKey: ["f1News"],
     queryFn: f1Service.getF1News,
     staleTime: 1000 * 60 * 15, // 15 minutes
+  });
+};
+
+export const useCurrentRace = () => {
+  return useQuery({
+    queryKey: ["currentRace"],
+    queryFn: f1Service.getCurrentRace,
+    staleTime: 1000 * 60, // 1 minute
+    refetchInterval: 1000 * 60, // Refetch every minute
   });
 };
