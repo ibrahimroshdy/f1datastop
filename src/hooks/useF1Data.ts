@@ -33,3 +33,47 @@ export const useLastRaceResults = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
+
+// Add missing hook functions
+export const useNextRace = () => {
+  return useQuery({
+    queryKey: ["nextRace"],
+    queryFn: f1Service.getNextRace,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+export const useRaceStatus = (sessionId?: string) => {
+  return useQuery({
+    queryKey: ["raceStatus", sessionId],
+    queryFn: () => f1Service.getRaceStatus(sessionId),
+    staleTime: 1000 * 60, // 1 minute
+    enabled: !!sessionId,
+  });
+};
+
+export const useDriverInfo = (sessionId?: string) => {
+  return useQuery({
+    queryKey: ["driverInfo", sessionId],
+    queryFn: () => f1Service.getDriverInfo(sessionId),
+    staleTime: 1000 * 30, // 30 seconds
+    enabled: !!sessionId,
+  });
+};
+
+export const useWeatherData = (sessionId?: string) => {
+  return useQuery({
+    queryKey: ["weatherData", sessionId],
+    queryFn: () => f1Service.getWeatherData(sessionId),
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    enabled: !!sessionId,
+  });
+};
+
+export const useF1News = () => {
+  return useQuery({
+    queryKey: ["f1News"],
+    queryFn: f1Service.getF1News,
+    staleTime: 1000 * 60 * 15, // 15 minutes
+  });
+};
