@@ -6,7 +6,8 @@ import {
   Calendar,
   BarChart,
   Users,
-  X 
+  X,
+  Award
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -25,6 +26,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
     { name: "Race Calendar", href: "/calendar", icon: Calendar },
     { name: "Analytics", href: "/analytics", icon: BarChart },
     { name: "Drivers", href: "/drivers", icon: Users },
+    { name: "Constructors", href: "/constructors", icon: Award },
   ];
 
   return (
@@ -84,8 +86,6 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
             </Link>
           ))}
         </nav>
-
-        {/* Removed the live race status with blinking red dot */}
       </aside>
     </>
   );

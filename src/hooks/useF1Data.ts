@@ -44,6 +44,24 @@ export const useRaceQualifying = (year: number, round: string) => {
   });
 };
 
+export const usePitStops = (year: number, round: string) => {
+  return useQuery({
+    queryKey: ["pitStops", year, round],
+    queryFn: () => f1Service.getPitStops(year, round),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!year && !!round,
+  });
+};
+
+export const useLapTimes = (year: number, round: string, driverId?: string) => {
+  return useQuery({
+    queryKey: ["lapTimes", year, round, driverId],
+    queryFn: () => f1Service.getLapTimes(year, round, driverId),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!year && !!round,
+  });
+};
+
 export const useLastRaceResults = (year?: number) => {
   return useQuery({
     queryKey: ["lastRaceResults", year],
@@ -60,7 +78,6 @@ export const useNextRace = (year?: number) => {
   });
 };
 
-// Unused in the refactored app but kept for API completeness
 export const useRaceStatus = (sessionId?: string) => {
   return useQuery({
     queryKey: ["raceStatus", sessionId],

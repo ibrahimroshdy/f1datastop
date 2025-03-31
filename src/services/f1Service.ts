@@ -206,6 +206,61 @@ export const getRaceQualifying = async (year: number, round: string) => {
   }
 };
 
+// Fetch pit stops for a specific race
+export const getPitStops = async (year: number, round: string) => {
+  try {
+    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/pitstops.json`, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return { 
+      data: data.MRData?.RaceTable || {}, 
+      error: null 
+    };
+  } catch (error) {
+    console.error(`Failed to fetch pit stops for round ${round}:`, error);
+    return { data: {}, error };
+  }
+};
+
+// Fetch lap times for a specific race
+export const getLapTimes = async (year: number, round: string, driverId?: string) => {
+  try {
+    let url = `${BASE_URL}/f1/${year}/${round}/laps.json`;
+    if (driverId) {
+      url = `${BASE_URL}/f1/${year}/${round}/drivers/${driverId}/laps.json`;
+    }
+    
+    const response = await fetch(url, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return { 
+      data: data.MRData?.RaceTable || {}, 
+      error: null 
+    };
+  } catch (error) {
+    console.error(`Failed to fetch lap times for round ${round}:`, error);
+    return { data: {}, error };
+  }
+};
+
 // Fetch last race results
 export const getLastRaceResults = async (year?: number) => {
   try {
