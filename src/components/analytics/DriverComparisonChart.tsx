@@ -34,14 +34,6 @@ const DriverComparisonChart = ({ driverData, isLoading }: DriverComparisonChartP
     }
   };
 
-  const chartData = [
-    { category: "Points", fullMark: Math.max(...topDrivers.map(d => d.points)) || 100 },
-    { category: "Wins", fullMark: 10 },
-    { category: "Podiums", fullMark: 20 },
-    { category: "Pole Positions", fullMark: 10 },
-    { category: "Fast Laps", fullMark: 10 },
-  ];
-
   // Generate random stats for demonstration purposes
   const driversWithStats = topDrivers.map(driver => {
     const randomWins = Math.floor(Math.random() * 10);
@@ -57,6 +49,27 @@ const DriverComparisonChart = ({ driverData, isLoading }: DriverComparisonChartP
       "Pole Positions": randomPoles,
       "Fast Laps": randomFastLaps,
     };
+  });
+
+  // Create chart data with all driver values
+  const chartData = [
+    { category: "Points", fullMark: Math.max(...topDrivers.map(d => d.points)) || 100 },
+    { category: "Wins", fullMark: 10 },
+    { category: "Podiums", fullMark: 20 },
+    { category: "Pole Positions", fullMark: 10 },
+    { category: "Fast Laps", fullMark: 10 },
+  ].map(item => {
+    // Add each selected driver's value to this category item
+    const categoryData = { ...item };
+    
+    selectedDrivers.forEach(driverCode => {
+      const driverData = driversWithStats.find(d => d.code === driverCode);
+      if (driverData) {
+        categoryData[driverCode] = driverData[item.category as keyof typeof driverData] || 0;
+      }
+    });
+    
+    return categoryData;
   });
 
   // Get colors for each team
@@ -122,10 +135,6 @@ const DriverComparisonChart = ({ driverData, isLoading }: DriverComparisonChartP
                         stroke={getColor(driverCode)}
                         fill={getColor(driverCode)}
                         fillOpacity={0.3}
-                        data={chartData.map(cat => ({
-                          ...cat,
-                          [driverCode]: driverData[cat.category as keyof typeof driverData] || 0
-                        }))}
                       />
                     );
                   })}
