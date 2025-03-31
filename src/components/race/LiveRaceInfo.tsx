@@ -23,14 +23,12 @@ const LiveRaceInfo = () => {
     );
   }
   
-  const nextRace = nextRaceData?.data || null;
+  const nextRace = nextRaceData?.data?.[0] || null;
   const raceStatus = raceStatusData?.data?.[0] || null;
   const weather = weatherData?.data?.[0] || null;
   
   // Get country flag emoji (fallback to Monaco flag)
-  const getCountryFlag = (location?: string) => {
-    if (!location) return "🏁";
-    
+  const getCountryFlag = (location: string) => {
     const countryFlags: Record<string, string> = {
       "Monte Carlo": "🇲🇨",
       "Monza": "🇮🇹",
@@ -60,23 +58,16 @@ const LiveRaceInfo = () => {
     };
     
     for (const [key, value] of Object.entries(countryFlags)) {
-      if (location.includes(key)) {
+      if (location?.includes(key)) {
         return value;
       }
     }
     return "🏁"; // Default racing flag
   };
   
-  const getLocation = () => {
-    if (nextRace?.Circuit?.Location?.locality) {
-      return `${nextRace.Circuit.Location.locality}, ${nextRace.Circuit.Location.country}`;
-    }
-    return nextRace?.Circuit?.circuitName || "Unknown Circuit";
-  };
-  
-  const flag = getCountryFlag(getLocation());
-  const raceName = nextRace?.raceName || "Upcoming Race";
-  const trackName = getLocation();
+  const flag = getCountryFlag(nextRace?.location || "");
+  const raceName = nextRace?.meeting_name || "Upcoming Race";
+  const trackName = nextRace?.location || "Circuit";
   const currentLap = raceStatus?.lap_number || "?";
   const totalLaps = nextRace?.total_laps || "?";
   const airTemp = weather?.air_temperature ? `${Math.round(weather.air_temperature)}°C` : "?°C";
@@ -91,7 +82,7 @@ const LiveRaceInfo = () => {
             <div className="flex items-center gap-2">
               <span className="text-2xl">{flag}</span>
               <h2 className="text-xl font-bold">{raceName}</h2>
-              {raceStatus?.session_status === "Ongoing" ? (
+              {nextRace?.session_status === "Ongoing" ? (
                 <Badge variant="outline" className="bg-f1-red text-white border-0">LIVE</Badge>
               ) : (
                 <Badge variant="outline" className="bg-blue-600 text-white border-0">UPCOMING</Badge>

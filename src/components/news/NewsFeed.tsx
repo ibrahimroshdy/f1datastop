@@ -6,19 +6,8 @@ import { useF1News } from "@/hooks/useF1Data";
 import { formatDistanceToNow } from "date-fns";
 import { Loader2 } from "lucide-react";
 
-interface NewsItem {
-  title: string;
-  url: string;
-  urlToImage?: string;
-  source: {
-    name: string;
-  };
-  publishedAt: string;
-}
-
 const NewsFeed = () => {
-  const { data: newsResponse, isLoading, error } = useF1News();
-  const newsData = newsResponse?.data as NewsItem[] | undefined;
+  const { data: newsData, isLoading, error } = useF1News();
   
   const getBadgeColor = (source: string) => {
     if (source.toLowerCase().includes("twitter") || source.toLowerCase().includes("x.com")) {
@@ -47,11 +36,7 @@ const NewsFeed = () => {
 
   const getTimeAgo = (dateString: string) => {
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return "recently";
-      }
-      return formatDistanceToNow(date, { addSuffix: true });
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
     } catch (e) {
       return "recently";
     }
@@ -65,7 +50,7 @@ const NewsFeed = () => {
     );
   }
 
-  if (error || !newsData) {
+  if (error || !newsData?.data) {
     return (
       <div className="space-y-3">
         <Card className="race-card p-4">
@@ -79,7 +64,7 @@ const NewsFeed = () => {
 
   return (
     <div className="space-y-3">
-      {newsData.slice(0, 6).map((news, index) => (
+      {newsData.data.slice(0, 6).map((news, index) => (
         <Card key={index} className="race-card p-4 cursor-pointer hover:border-f1-red/30">
           <a href={news.url} target="_blank" rel="noopener noreferrer">
             <div className="flex gap-3">

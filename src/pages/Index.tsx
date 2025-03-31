@@ -17,10 +17,8 @@ import { Loader2, Trophy, Flag, Calendar, Clock, AlertCircle } from "lucide-reac
 import { formatDistance } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
-import PageSelector from "@/components/dashboard/PageSelector";
 
 const Index = () => {
-  const currentYear = new Date().getFullYear();
   const { data: driverStandings, isLoading: isDriversLoading } = useDriverStandings();
   const { data: constructorStandings, isLoading: isConstructorsLoading } = useConstructorStandings();
   const { data: raceSchedule, isLoading: isScheduleLoading } = useRaceSchedule();
@@ -59,12 +57,8 @@ const Index = () => {
   
   // Find the next race
   const nextRace = raceSchedule?.data?.find(race => {
-    try {
-      const raceDate = new Date(race.date + "T" + (race.time || "00:00:00Z"));
-      return raceDate > new Date();
-    } catch (error) {
-      return false;
-    }
+    const raceDate = new Date(race.date + "T" + (race.time || "00:00:00Z"));
+    return raceDate > new Date();
   });
   
   const getCountryFlag = (country: string) => {
@@ -101,25 +95,12 @@ const Index = () => {
   };
   
   const formatRaceDate = (dateStr: string, timeStr: string) => {
-    try {
-      if (!dateStr) return { date: "N/A", time: "N/A", fromNow: "N/A" };
-      
-      const raceDate = new Date(dateStr + "T" + (timeStr || "00:00:00Z"));
-      
-      // Check if date is valid
-      if (isNaN(raceDate.getTime())) {
-        return { date: "N/A", time: "N/A", fromNow: "N/A" };
-      }
-      
-      return {
-        date: raceDate.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }),
-        time: raceDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
-        fromNow: formatDistance(raceDate, new Date(), { addSuffix: true })
-      };
-    } catch (error) {
-      console.error("Error formatting race date:", error);
-      return { date: "N/A", time: "N/A", fromNow: "N/A" };
-    }
+    const raceDate = new Date(dateStr + "T" + (timeStr || "00:00:00Z"));
+    return {
+      date: raceDate.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }),
+      time: raceDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
+      fromNow: formatDistance(raceDate, new Date(), { addSuffix: true })
+    };
   };
   
   // Get top 3 drivers
@@ -133,7 +114,7 @@ const Index = () => {
           <div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight flex items-center gap-2">
               <span className="h-8 w-8 bg-f1-red rounded-full flex items-center justify-center font-bold">F1</span>
-              Formula 1 Season {currentYear}
+              Formula 1 Season {new Date().getFullYear()}
             </h1>
             <p className="text-gray-400 mt-1">Live race data, standings and schedule</p>
           </div>
@@ -153,9 +134,6 @@ const Index = () => {
           )}
         </div>
       </header>
-      
-      {/* Page Selector */}
-      <PageSelector />
       
       {isOffline && (
         <Alert className="mb-6 bg-yellow-900/20 border-yellow-600 text-yellow-200">

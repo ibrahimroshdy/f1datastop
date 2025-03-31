@@ -14,9 +14,6 @@ import Drivers from "./pages/Drivers";
 import Analytics from "./pages/Analytics";
 import News from "./pages/News";
 import Timing from "./pages/Timing";
-import RaceResults from "./pages/RaceResults";
-import Qualifying from "./pages/Qualifying";
-import LapTimes from "./pages/LapTimes";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,9 +41,6 @@ const App = () => (
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/news" element={<News />} />
             <Route path="/timing" element={<Timing />} />
-            <Route path="/race-results" element={<RaceResults />} />
-            <Route path="/qualifying" element={<Qualifying />} />
-            <Route path="/lap-times" element={<LapTimes />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

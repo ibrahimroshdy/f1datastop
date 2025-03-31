@@ -3,39 +3,14 @@ import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useF1News } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 
-interface NewsItem {
-  title: string;
-  description?: string;
-  url: string;
-  urlToImage?: string;
-  publishedAt: string;
-  source: {
-    id?: string;
-    name: string;
-  };
-}
-
 const News = () => {
-  const { data: newsResponse, isLoading } = useF1News();
-  const newsData = newsResponse?.data as NewsItem[] | undefined;
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return "";
-      }
-      return format(date, 'dd MMM yyyy');
-    } catch (error) {
-      return "";
-    }
-  };
+  const { data: newsData, isLoading } = useF1News();
 
   return (
     <MainLayout>
@@ -66,7 +41,7 @@ const News = () => {
               </Card>
             ))
           ) : (
-            newsData?.map((article: NewsItem, index: number) => (
+            newsData?.data.map((article: any, index: number) => (
               <Card key={index} className="overflow-hidden flex flex-col">
                 <div className="h-48 overflow-hidden">
                   <img 
@@ -82,7 +57,7 @@ const News = () => {
                     </Badge>
                     {article.publishedAt && (
                       <span className="text-xs text-muted-foreground">
-                        {formatDate(article.publishedAt)}
+                        {format(new Date(article.publishedAt), 'dd MMM yyyy')}
                       </span>
                     )}
                   </div>

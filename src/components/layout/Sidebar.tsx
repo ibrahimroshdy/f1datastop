@@ -9,10 +9,7 @@ import {
   Clock, 
   Users, 
   Zap, 
-  MessageSquare,
-  Activity,
-  Flag,
-  Timer,
+  MessageSquare, 
   X 
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -32,9 +29,6 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
     { name: "Live Race", href: "/live", icon: Zap },
     { name: "News Feed", href: "/news", icon: MessageSquare },
     { name: "Race Calendar", href: "/calendar", icon: Calendar },
-    { name: "Race Results", href: "/race-results", icon: Flag },
-    { name: "Qualifying", href: "/qualifying", icon: Timer },
-    { name: "Lap Times", href: "/lap-times", icon: Activity },
     { name: "Standings", href: "/standings", icon: Trophy },
     { name: "Timing", href: "/timing", icon: Clock },
     { name: "Drivers", href: "/drivers", icon: Users },
@@ -78,7 +72,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex flex-col gap-1 px-2 py-4 overflow-y-auto max-h-[calc(100vh-8rem)]">
+        <nav className="flex flex-col gap-1 px-2 py-4">
           {navigation.map((item) => (
             <Link
               key={item.name}
