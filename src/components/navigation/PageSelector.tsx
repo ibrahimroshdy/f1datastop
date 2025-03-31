@@ -22,8 +22,7 @@ const PageSelector = () => {
     },
     {
       title: "Race Calendar",
-      description: "Explore the complete F1
-       race schedule",
+      description: "Explore the complete F1 race schedule",
       icon: <Calendar className="h-6 w-6" />,
       href: "/calendar",
       color: "from-green-500 to-green-700",
