@@ -4,8 +4,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   LineChart, 
   Line, 
-  XAxis, 
-  YAxis, 
   CartesianGrid, 
   Tooltip, 
   Legend, 
@@ -172,7 +170,7 @@ const DriverComparisonPanel = ({
                   <XAxis 
                     dataKey="lap" 
                     label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
-                    xAxisId="lap"
+                    xAxisId="driver"
                   />
                   <YAxis 
                     label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }} 
@@ -191,7 +189,7 @@ const DriverComparisonPanel = ({
                     dataKey={selectedDriver1} 
                     stroke={DRIVER_COLORS[selectedDriver1] || "#ff0000"} 
                     activeDot={{ r: 8 }} 
-                    xAxisId="lap"
+                    xAxisId="driver"
                     yAxisId="time"
                   />
                   <Line 
@@ -199,7 +197,7 @@ const DriverComparisonPanel = ({
                     dataKey={selectedDriver2} 
                     stroke={DRIVER_COLORS[selectedDriver2] || "#0000ff"} 
                     activeDot={{ r: 8 }} 
-                    xAxisId="lap"
+                    xAxisId="driver"
                     yAxisId="time"
                   />
                 </LineChart>

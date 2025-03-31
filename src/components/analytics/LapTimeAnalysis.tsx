@@ -284,10 +284,12 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
                   <XAxis 
                     dataKey="lap" 
                     label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+                    xAxisId="lapTime"
                   />
                   <YAxis 
                     label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }} 
                     domain={['dataMin - 1', 'dataMax + 1']}
+                    yAxisId="lapTime"
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -310,6 +312,7 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
                       stroke="red" 
                       strokeDasharray="3 3" 
                       label={{ value: 'Fastest Lap', position: 'right', fill: 'red' }} 
+                      yAxisId="lapTime"
                     />
                   )}
                   
@@ -326,6 +329,8 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
                         dot={{ r: 3 }}
                         activeDot={{ r: 8 }}
                         connectNulls
+                        xAxisId="lapTime"
+                        yAxisId="lapTime"
                       />
                     ))}
                 </LineChart>

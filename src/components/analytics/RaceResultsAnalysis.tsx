@@ -258,14 +258,14 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                     <XAxis 
                       dataKey="driver" 
                       type="category"
-                      xAxisId="driver"
+                      xAxisId="qualifying"
                     />
                     <YAxis 
                       type="number"
                       domain={['dataMin - 0.5', 'dataMax + 0.5']}
                       tickFormatter={(value) => value.toFixed(0)}
                       label={{ value: 'Lap Time (s)', angle: -90, position: 'left' }}
-                      yAxisId="time"
+                      yAxisId="qualifying"
                     />
                     <Tooltip 
                       contentStyle={{ 
@@ -288,8 +288,8 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       stroke="#8884d8" 
                       activeDot={{ r: 8 }}
                       connectNulls
-                      xAxisId="driver"
-                      yAxisId="time"
+                      xAxisId="qualifying"
+                      yAxisId="qualifying"
                     />
                     <Line 
                       type="monotone" 
@@ -298,8 +298,8 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       stroke="#82ca9d" 
                       activeDot={{ r: 8 }}
                       connectNulls
-                      xAxisId="driver"
-                      yAxisId="time"
+                      xAxisId="qualifying"
+                      yAxisId="qualifying"
                     />
                     <Line 
                       type="monotone" 
@@ -308,8 +308,8 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       stroke="#ffc658" 
                       activeDot={{ r: 8 }}
                       connectNulls
-                      xAxisId="driver"
-                      yAxisId="time"
+                      xAxisId="qualifying"
+                      yAxisId="qualifying"
                     />
                   </LineChart>
                 </ResponsiveContainer>
