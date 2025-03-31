@@ -79,8 +79,15 @@ const TelemetryChart = () => {
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis dataKey="distance" stroke="#888" />
-              <YAxis stroke="#888" />
+              <XAxis 
+                dataKey="distance" 
+                stroke="#888" 
+                xAxisId="distance"
+              />
+              <YAxis 
+                stroke="#888" 
+                yAxisId="values"
+              />
               <Tooltip 
                 contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
                 labelStyle={{ color: "#fff" }}
@@ -93,6 +100,8 @@ const TelemetryChart = () => {
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 6 }}
+                xAxisId="distance"
+                yAxisId="values"
               />
               <Line 
                 type="monotone" 
@@ -100,6 +109,8 @@ const TelemetryChart = () => {
                 stroke="#4CAF50" 
                 strokeWidth={1.5}
                 dot={false}
+                xAxisId="distance"
+                yAxisId="values"
               />
               <Line 
                 type="monotone" 
@@ -107,6 +118,8 @@ const TelemetryChart = () => {
                 stroke="#F44336" 
                 strokeWidth={1.5}
                 dot={false}
+                xAxisId="distance"
+                yAxisId="values"
               />
               <Line 
                 type="monotone" 
@@ -114,6 +127,8 @@ const TelemetryChart = () => {
                 stroke="#E10600" 
                 strokeWidth={1.5}
                 dot={false}
+                xAxisId="distance"
+                yAxisId="values"
               />
             </LineChart>
           </ResponsiveContainer>

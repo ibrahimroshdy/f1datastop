@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,7 +35,6 @@ const DriverComparisonPanel = ({
   const [selectedDriver2, setSelectedDriver2] = useState("HAM");
   const [selectedMetric, setSelectedMetric] = useState("lapTimes");
 
-  // Helper to format time in seconds to MM:SS.sss
   const formatTime = (seconds: number | string) => {
     if (typeof seconds === 'string') return seconds;
     const mins = Math.floor(seconds / 60);
@@ -44,7 +42,6 @@ const DriverComparisonPanel = ({
     return `${mins}:${secs.toFixed(3).padStart(6, '0')}`;
   };
 
-  // Transform lap time data for selected drivers
   const getLapTimeChartData = () => {
     if (!lapTimesData?.data) return [];
     
@@ -60,16 +57,13 @@ const DriverComparisonPanel = ({
       };
     });
   };
-  
-  // Transform tire strategy data
+
   const getTireStrategyData = () => {
     if (!tireStrategyData?.data) return [];
     
     return tireStrategyData.data.map((driver: any) => {
-      // Calculate total race distance for this driver
       const totalLaps = driver.strategy.reduce((sum: number, stint: any) => sum + stint.laps, 0);
       
-      // Convert to a chart-friendly format
       const result = [];
       let currentLap = 0;
       
@@ -175,8 +169,16 @@ const DriverComparisonPanel = ({
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="lap" label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} />
-                  <YAxis label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }} domain={['dataMin - 1', 'dataMax + 1']} />
+                  <XAxis 
+                    dataKey="lap" 
+                    label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+                    xAxisId="lap"
+                  />
+                  <YAxis 
+                    label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }} 
+                    domain={['dataMin - 1', 'dataMax + 1']} 
+                    yAxisId="time"
+                  />
                   <Tooltip formatter={(value) => {
                     if (typeof value === 'number') {
                       return [formatTime(value), 'Lap Time'];
@@ -189,12 +191,16 @@ const DriverComparisonPanel = ({
                     dataKey={selectedDriver1} 
                     stroke={DRIVER_COLORS[selectedDriver1] || "#ff0000"} 
                     activeDot={{ r: 8 }} 
+                    xAxisId="lap"
+                    yAxisId="time"
                   />
                   <Line 
                     type="monotone" 
                     dataKey={selectedDriver2} 
                     stroke={DRIVER_COLORS[selectedDriver2] || "#0000ff"} 
                     activeDot={{ r: 8 }} 
+                    xAxisId="lap"
+                    yAxisId="time"
                   />
                 </LineChart>
               </ResponsiveContainer>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -115,7 +114,6 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   const raceData = processRaceData();
   const qualifyingDisplayData = processQualifyingData();
 
-  // Helper function to remove flag emojis from race names
   const removeFlag = (raceName: string) => {
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
@@ -260,12 +258,14 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                     <XAxis 
                       dataKey="driver" 
                       type="category"
+                      xAxisId="driver"
                     />
                     <YAxis 
                       type="number"
                       domain={['dataMin - 0.5', 'dataMax + 0.5']}
                       tickFormatter={(value) => value.toFixed(0)}
                       label={{ value: 'Lap Time (s)', angle: -90, position: 'left' }}
+                      yAxisId="time"
                     />
                     <Tooltip 
                       contentStyle={{ 
@@ -288,6 +288,8 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       stroke="#8884d8" 
                       activeDot={{ r: 8 }}
                       connectNulls
+                      xAxisId="driver"
+                      yAxisId="time"
                     />
                     <Line 
                       type="monotone" 
@@ -296,6 +298,8 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       stroke="#82ca9d" 
                       activeDot={{ r: 8 }}
                       connectNulls
+                      xAxisId="driver"
+                      yAxisId="time"
                     />
                     <Line 
                       type="monotone" 
@@ -304,6 +308,8 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       stroke="#ffc658" 
                       activeDot={{ r: 8 }}
                       connectNulls
+                      xAxisId="driver"
+                      yAxisId="time"
                     />
                   </LineChart>
                 </ResponsiveContainer>
