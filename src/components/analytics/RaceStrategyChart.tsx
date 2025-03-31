@@ -12,6 +12,29 @@ interface RaceStrategyChartProps {
   isLoading: boolean;
 }
 
+// Define the race result and constructor interfaces
+interface Constructor {
+  name: string;
+  [key: string]: any;
+}
+
+interface RaceResult {
+  position: string;
+  Driver: {
+    code: string;
+    [key: string]: any;
+  };
+  Constructor: Constructor;
+  [key: string]: any;
+}
+
+interface Race {
+  round: string;
+  raceName: string;
+  Results?: RaceResult[];
+  [key: string]: any;
+}
+
 const RaceStrategyChart = ({ isLoading }: RaceStrategyChartProps) => {
   const [selectedSeason, setSelectedSeason] = useState("2023");
   const [selectedRace, setSelectedRace] = useState("");
@@ -56,20 +79,20 @@ const RaceStrategyChart = ({ isLoading }: RaceStrategyChartProps) => {
     if (!raceResults || !raceResults.Results) return [];
     
     const constructors = Array.from(new Set(
-      raceResults.Results.map((result: any) => result.Constructor.name)
+      raceResults.Results.map((result: RaceResult) => result.Constructor.name)
     ));
     
     if (selectedTeams.length === 0) {
-      // Default select the top 4 teams
-      setSelectedTeams(constructors.slice(0, 4));
+      // Default select the top 4 teams - using type assertion to assure TypeScript
+      setSelectedTeams(constructors.slice(0, 4) as string[]);
     }
     
     // Generate pit stop strategy simulation
     const totalLaps = 60; // Assuming a standard race
     
     return raceResults.Results
-      .filter((result: any) => selectedTeams.includes(result.Constructor.name))
-      .map((result: any) => {
+      .filter((result: RaceResult) => selectedTeams.includes(result.Constructor.name))
+      .map((result: RaceResult) => {
         const driver = result.Driver.code;
         const team = result.Constructor.name;
         const position = parseInt(result.position, 10);
@@ -172,9 +195,9 @@ const RaceStrategyChart = ({ isLoading }: RaceStrategyChartProps) => {
     );
   };
 
-  // Get available teams
+  // Get available teams with proper typing
   const availableTeams = raceResults?.Results 
-    ? Array.from(new Set(raceResults.Results.map((result: any) => result.Constructor.name)))
+    ? Array.from(new Set(raceResults.Results.map((result: RaceResult) => result.Constructor.name)))
     : [];
 
   return (
@@ -213,7 +236,7 @@ const RaceStrategyChart = ({ isLoading }: RaceStrategyChartProps) => {
                 <SelectValue placeholder="Select race" />
               </SelectTrigger>
               <SelectContent>
-                {races?.map((race: any) => (
+                {races?.map((race: Race) => (
                   <SelectItem key={race.round} value={race.round}>
                     {race.raceName}
                   </SelectItem>
@@ -228,7 +251,7 @@ const RaceStrategyChart = ({ isLoading }: RaceStrategyChartProps) => {
           <div className="mb-4">
             <p className="mb-2 text-sm text-muted-foreground">Select teams to compare:</p>
             <div className="flex flex-wrap gap-2">
-              {availableTeams.map(team => (
+              {availableTeams.map((team: string) => (
                 <Button
                   key={team}
                   size="sm"
@@ -284,8 +307,8 @@ const RaceStrategyChart = ({ isLoading }: RaceStrategyChartProps) => {
                     borderRadius: '5px',
                     color: 'white'
                   }}
-                  formatter={(value, name, props) => {
-                    if (name === 'Position') return [Math.floor(value), 'Position'];
+                  formatter={(value: any, name: string) => {
+                    if (name === 'Position') return [Math.floor(Number(value)), 'Position'];
                     if (name === 'Lap') return [value, 'Lap'];
                     return [value, name];
                   }}
