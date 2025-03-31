@@ -29,11 +29,7 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="hidden md:flex items-center ml-2 gap-2">
-          <div className="live-indicator">
-            {/* Removed the hardcoded race information */}
-          </div>
-        </div>
+        {/* Removed the live indicator completely */}
       </div>
 
       <div className="flex items-center gap-2">

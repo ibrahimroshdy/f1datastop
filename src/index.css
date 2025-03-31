@@ -62,13 +62,7 @@
   @apply bg-f1-dark border border-gray-800 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-f1-red/10;
 }
 
-.live-indicator {
-  @apply flex items-center text-xs font-semibold text-white;
-}
-.live-indicator::before {
-  content: '';
-  @apply w-2 h-2 bg-f1-red rounded-full mr-1 animate-pulse-red;
-}
+/* Removed the live-indicator class with the blinking red dot */
 
 .driver-bar {
   @apply h-7 flex items-center rounded overflow-hidden relative transition-all duration-300;

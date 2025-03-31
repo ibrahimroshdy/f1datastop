@@ -85,15 +85,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
           ))}
         </nav>
 
-        {/* Live race status */}
-        <div className={cn(
-          "absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800",
-          !open && !isMobile && "flex justify-center"
-        )}>
-          <div className="live-indicator">
-            <span className={cn("ml-1", !open && !isMobile && "hidden")}>LIVE: Monaco GP</span>
-          </div>
-        </div>
+        {/* Removed the live race status with blinking red dot */}
       </aside>
     </>
   );
