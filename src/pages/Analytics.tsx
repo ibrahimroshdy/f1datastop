@@ -242,7 +242,7 @@ const Analytics = () => {
               <CardContent className="pt-0">
                 <div className="h-[400px]">
                   <PointsProgressChart 
-                    driverData={driverStandingsData?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || []}
+                    driverData={driverStandingsData?.data || []}
                     isLoading={isDriverStandingsLoading}
                   />
                 </div>
@@ -257,7 +257,7 @@ const Analytics = () => {
               <CardContent className="pt-0">
                 <div className="h-[400px]">
                   <TeamPerformanceChart 
-                    constructorData={constructorStandingsData?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || []}
+                    constructorData={constructorStandingsData?.data || []}
                     isLoading={isConstructorStandingsLoading}
                   />
                 </div>
@@ -421,7 +421,7 @@ const Analytics = () => {
                 <CardContent className="pt-0">
                   <div className="h-[400px]">
                     <DriverComparisonChart 
-                      driverData={driverStandingsData?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || []}
+                      driverData={driverStandingsData?.data || []}
                       isLoading={isDriverStandingsLoading}
                     />
                   </div>
@@ -440,7 +440,7 @@ const Analytics = () => {
                 <CardContent>
                   <div className="h-[400px]">
                     <ConstructorDominanceChart 
-                      constructorData={constructorStandingsData?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || []}
+                      constructorData={constructorStandingsData?.data || []}
                       isLoading={isConstructorStandingsLoading}
                     />
                   </div>

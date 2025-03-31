@@ -12,7 +12,7 @@ const TeamPerformanceChart = ({ constructorData, isLoading }: TeamPerformanceCha
   // Process data for the chart
   const chartData = !isLoading && constructorData && constructorData.length > 0
     ? constructorData.map((team) => ({
-        name: team.Constructor.name,
+        name: team.Constructor ? team.Constructor.name : team.name || "Unknown",
         value: parseFloat(team.points),
       }))
     : [];
