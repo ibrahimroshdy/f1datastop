@@ -4,13 +4,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   BarChart, 
   Bar, 
-  XAxis, 
-  YAxis, 
   CartesianGrid, 
   Tooltip, 
   Cell, 
   ResponsiveContainer 
 } from "recharts";
+import { XAxis, YAxis } from "@/utils/rechartsWrapper";
 import { DRIVER_COLORS } from "@/constants/f1Colors";
 
 interface FastestLapsChartProps {
@@ -48,12 +47,17 @@ const FastestLapsChart = ({ data, isLoading }: FastestLapsChartProps) => {
               margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" domain={['dataMin - 0.5', 'dataMax + 0.5']} />
+              <XAxis 
+                type="number" 
+                domain={['dataMin - 0.5', 'dataMax + 0.5']} 
+                xAxisId="lapTime"
+              />
               <YAxis 
                 dataKey="driver" 
                 type="category" 
                 tick={{ fontSize: 12 }} 
-                width={40} 
+                width={40}
+                yAxisId="driver" 
               />
               <Tooltip 
                 formatter={(value: any) => {
@@ -62,7 +66,13 @@ const FastestLapsChart = ({ data, isLoading }: FastestLapsChartProps) => {
                     : [value, ''];
                 }}
               />
-              <Bar dataKey="fastestLap" name="Lap Time (seconds)" fill="#f1453d">
+              <Bar 
+                dataKey="fastestLap" 
+                name="Lap Time (seconds)" 
+                fill="#f1453d"
+                xAxisId="lapTime"
+                yAxisId="driver"
+              >
                 {data?.slice(0, 10).map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 

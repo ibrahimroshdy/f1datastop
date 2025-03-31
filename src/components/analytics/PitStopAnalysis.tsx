@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -145,6 +146,7 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
     setSelectedRace(value);
   };
 
+  // Helper function to remove flag emojis from race names
   const removeFlag = (raceName: string) => {
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
@@ -209,8 +211,18 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
                 layout="vertical"
               >
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} horizontal={true} vertical={false} />
-                <XAxis type="number" domain={['dataMin - 1', 'dataMax + 1']} unit="s" />
-                <YAxis dataKey="driver" type="category" width={40} />
+                <XAxis 
+                  type="number" 
+                  domain={['dataMin - 1', 'dataMax + 1']} 
+                  unit="s" 
+                  xAxisId="time"
+                />
+                <YAxis 
+                  dataKey="driver" 
+                  type="category" 
+                  width={40} 
+                  yAxisId="driver"
+                />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: '#1a1a1a',
@@ -228,6 +240,8 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
                   dataKey="avgPitTime" 
                   name="Average Pit Time" 
                   radius={[0, 4, 4, 0]}
+                  xAxisId="time"
+                  yAxisId="driver"
                 >
                   {pitStopData.map((entry, index) => (
                     <Cell 
