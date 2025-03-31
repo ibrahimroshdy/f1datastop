@@ -15,9 +15,8 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
         </div>
       </div>
       
-      {/* Empty right side */}
       <div className="flex items-center gap-2">
-        {/* Intentionally left empty */}
+        {/* Empty for now - can add user profile, settings, etc. */}
       </div>
     </header>
   );

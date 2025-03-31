@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { TEAM_COLORS } from "@/constants/f1Colors";
 
 export interface PointsProgressChartProps {
@@ -65,10 +65,16 @@ const PointsProgressChart = ({ driverData, isLoading }: PointsProgressChartProps
                 <Bar 
                   dataKey="points" 
                   name="Points" 
-                  fill="#f1263d"
                   radius={[4, 4, 0, 0]}
                   fillOpacity={0.8}
-                />
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={TEAM_COLORS[entry.constructorId] || "#f1263d"} 
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

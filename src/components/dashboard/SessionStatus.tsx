@@ -101,7 +101,7 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          {countryEmoji} {race.raceName}
+          <span>{countryEmoji}</span> {race.raceName}
           <Badge className="ml-2" variant="secondary">Round {race.round}</Badge>
         </CardTitle>
       </CardHeader>

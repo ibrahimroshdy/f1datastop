@@ -7,6 +7,7 @@ import { useRaceSchedule } from "@/hooks/useF1Data";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { getPitStops } from "@/services/f1Service";
+import { toast } from "sonner";
 
 interface PitStopAnalysisProps {
   year: number;
@@ -17,6 +18,7 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
   const [selectedRace, setSelectedRace] = useState<string>("");
   const [pitStopData, setPitStopData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Update selected race when schedule changes
   useEffect(() => {
@@ -41,19 +43,25 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
   useEffect(() => {
     if (selectedRace) {
       setIsLoading(true);
+      setError(null);
+      
       getPitStops(year, selectedRace)
         .then(response => {
-          if (response.data) {
+          if (response && response.data) {
             const processedData = processPitStopData(response.data);
             setPitStopData(processedData);
           } else {
             setPitStopData([]);
+            setError("No pit stop data available");
           }
-          setIsLoading(false);
         })
         .catch(error => {
           console.error("Error fetching pit stop data:", error);
           setPitStopData([]);
+          setError("Failed to load pit stop data");
+          toast.error("Failed to load pit stop data");
+        })
+        .finally(() => {
           setIsLoading(false);
         });
     }
@@ -61,35 +69,52 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
 
   // Process pit stop data for the chart
   const processPitStopData = (data: any) => {
-    if (!data.raceName) return [];
+    // Check if the required data structures exist
+    if (!data || !data.MRData || !data.MRData.RaceTable || !data.MRData.RaceTable.Races || 
+        data.MRData.RaceTable.Races.length === 0) {
+      return [];
+    }
+    
+    const race = data.MRData.RaceTable.Races[0];
+    
+    // If no pit stops data is available
+    if (!race.PitStops || race.PitStops.length === 0) {
+      return [];
+    }
     
     // Group pit stops by driver and calculate average
-    const pitStopsByDriver: Record<string, {times: number[], constructor: string}> = {};
+    const pitStopsByDriver: Record<string, {times: number[], constructor: string, driverCode: string}> = {};
     
-    if (data.Races && data.Races.length > 0 && data.Races[0].PitStops) {
-      data.Races[0].PitStops.forEach((stop: any) => {
-        const driverId = stop.driverId;
-        const seconds = convertToSeconds(stop.duration);
+    race.PitStops.forEach((stop: any) => {
+      const driverId = stop.driverId;
+      const seconds = convertToSeconds(stop.duration);
+      
+      if (!pitStopsByDriver[driverId]) {
+        // Find constructor for this driver
+        let constructor = "unknown";
+        let driverCode = driverId.toUpperCase().substring(0, 3);
         
-        if (!pitStopsByDriver[driverId]) {
-          // Find constructor for this driver
-          let constructor = "unknown";
-          if (data.Races[0].Results) {
-            const driverResult = data.Races[0].Results.find((r: any) => r.Driver.driverId === driverId);
-            if (driverResult && driverResult.Constructor) {
+        if (race.Results) {
+          const driverResult = race.Results.find((r: any) => r.Driver.driverId === driverId);
+          if (driverResult) {
+            if (driverResult.Constructor) {
               constructor = driverResult.Constructor.constructorId;
             }
+            if (driverResult.Driver.code) {
+              driverCode = driverResult.Driver.code;
+            }
           }
-          
-          pitStopsByDriver[driverId] = {
-            times: [],
-            constructor
-          };
         }
         
-        pitStopsByDriver[driverId].times.push(seconds);
-      });
-    }
+        pitStopsByDriver[driverId] = {
+          times: [],
+          constructor,
+          driverCode
+        };
+      }
+      
+      pitStopsByDriver[driverId].times.push(seconds);
+    });
     
     // Calculate averages and format for chart
     return Object.entries(pitStopsByDriver).map(([driverId, data]) => {
@@ -97,7 +122,7 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
       const avgTime = data.times.length > 0 ? totalTime / data.times.length : 0;
       
       return {
-        driver: driverId.toUpperCase(),
+        driver: data.driverCode,
         avgPitTime: parseFloat(avgTime.toFixed(3)),
         constructorId: data.constructor,
         count: data.times.length
@@ -122,9 +147,9 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
     setSelectedRace(value);
   };
 
-  const getRaceName = (round: string) => {
+  const getRaceName = () => {
     if (!raceScheduleData?.data) return "Loading...";
-    const race = raceScheduleData.data.find(race => race.round === round);
+    const race = raceScheduleData.data.find(race => race.round === selectedRace);
     return race ? race.raceName : "Unknown Race";
   };
 
@@ -139,7 +164,7 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
           <Select 
             value={selectedRace} 
             onValueChange={handleRaceChange}
-            disabled={isScheduleLoading}
+            disabled={isScheduleLoading || isLoading}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select a race" />
@@ -161,10 +186,14 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-[350px] w-full" />
-        ) : pitStopData.length === 0 ? (
+        ) : error || pitStopData.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[350px] text-center">
-            <p className="text-muted-foreground">No pit stop data available for {getRaceName(selectedRace)}</p>
-            <p className="text-sm text-muted-foreground mt-2">This could be because the race hasn't occurred yet or pit stop data wasn't recorded.</p>
+            <p className="text-muted-foreground">
+              {error || `No pit stop data available for ${getRaceName()}`}
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              This could be because the race hasn't occurred yet or pit stop data wasn't recorded.
+            </p>
           </div>
         ) : (
           <div className="h-[350px] w-full">
@@ -193,7 +222,6 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
                 <Bar 
                   dataKey="avgPitTime" 
                   name="Average Pit Time" 
-                  fill="#f1263d"
                   radius={[0, 4, 4, 0]}
                 >
                   {pitStopData.map((entry, index) => (

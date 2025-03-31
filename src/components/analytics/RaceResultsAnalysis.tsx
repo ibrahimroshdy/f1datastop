@@ -5,8 +5,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRaceSchedule, useRaceResults, useRaceQualifying } from "@/hooks/useF1Data";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ScatterChart, Scatter, ZAxis } from 'recharts';
-import { TEAM_COLORS } from "@/constants/f1Colors";
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  Legend, 
+  ScatterChart, 
+  Scatter, 
+  ZAxis,
+  ReferenceLine,
+  Cell
+} from 'recharts';
+import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 
 interface RaceResultsAnalysisProps {
   year: number;
@@ -45,7 +59,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   const processRaceData = () => {
     if (!raceResultsData?.data || !raceResultsData.data.Results) return [];
     
-    return raceResultsData.data.Results.map((result: any, index: number) => {
+    return raceResultsData.data.Results.map((result: any) => {
       const driver = result.Driver;
       const position = parseInt(result.position);
       const grid = parseInt(result.grid);
@@ -60,6 +74,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
         laps: parseInt(result.laps),
         status: result.status,
         time: result.Time ? result.Time.time : null,
+        color: TEAM_COLORS[constructor.constructorId] || TEAM_COLORS.default
       };
     }).sort((a: any, b: any) => a.position - b.position);
   };
@@ -82,7 +97,8 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
         q1,
         q2,
         q3,
-        bestTime: q3 || q2 || q1
+        bestTime: q3 || q2 || q1,
+        color: TEAM_COLORS[constructor.constructorId] || TEAM_COLORS.default
       };
     }).sort((a: any, b: any) => a.position - b.position);
   };
@@ -203,14 +219,18 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       }}
                     />
                     <Legend />
+                    <ReferenceLine x={1} y={1} stroke="#666" strokeDasharray="3 3" />
+                    <ReferenceLine x={20} y={20} stroke="#666" strokeDasharray="3 3" />
                     <Scatter 
                       name="Drivers" 
-                      data={raceData} 
-                      fill="#f1263d"
+                      data={raceData}
                     >
-                      {/* Custom coloring of points based on constructor */}
-                      {/* Each data point rendered with its team color */}
-                      {/* Each point will be colored by the driver's team color */}
+                      {raceData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.color} 
+                        />
+                      ))}
                     </Scatter>
                   </ScatterChart>
                 </ResponsiveContainer>

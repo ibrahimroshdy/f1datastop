@@ -52,6 +52,40 @@ const RaceCalendar = () => {
     return "upcoming";
   };
   
+  // Get country flag emoji
+  const getCountryFlag = (country: string) => {
+    const countryEmojis: Record<string, string> = {
+      Australia: "🇦🇺",
+      Austria: "🇦🇹",
+      Azerbaijan: "🇦🇿",
+      Bahrain: "🇧🇭",
+      Belgium: "🇧🇪",
+      Brazil: "🇧🇷",
+      Canada: "🇨🇦",
+      China: "🇨🇳",
+      France: "🇫🇷",
+      Germany: "🇩🇪",
+      Hungary: "🇭🇺",
+      Italy: "🇮🇹",
+      Japan: "🇯🇵",
+      Mexico: "🇲🇽",
+      Monaco: "🇲🇨",
+      Netherlands: "🇳🇱",
+      Portugal: "🇵🇹",
+      Qatar: "🇶🇦",
+      Russia: "🇷🇺",
+      "Saudi Arabia": "🇸🇦",
+      Singapore: "🇸🇬",
+      Spain: "🇪🇸",
+      "United Arab Emirates": "🇦🇪",
+      "United Kingdom": "🇬🇧",
+      "United States": "🇺🇸",
+      USA: "🇺🇸",
+    };
+    
+    return countryEmojis[country] || "🏁";
+  };
+  
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -75,6 +109,8 @@ const RaceCalendar = () => {
             {raceSchedule?.data?.map((race: any) => {
               const status = getRaceStatus(race);
               const raceDate = parseISO(race.date);
+              const country = race.Circuit?.Location?.country || "";
+              const flag = getCountryFlag(country);
               
               return (
                 <Card 
@@ -88,11 +124,7 @@ const RaceCalendar = () => {
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-2">
-                          <div className="text-2xl">
-                            {race.Circuit?.Location?.country ? 
-                              `${race.Circuit.Location.country.slice(0, 2)}` : 
-                              "🏁"}
-                          </div>
+                          <div className="text-2xl">{flag}</div>
                           <h3 className="font-bold text-lg">{race.raceName}</h3>
                         </div>
                         <Badge 

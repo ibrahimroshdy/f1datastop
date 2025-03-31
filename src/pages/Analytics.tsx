@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedSection, setSelectedSection] = useState<string>("overview");
+  const [selectedSection, setSelectedSection] = useState<string>("detailed");
   
   // Fetch data using react-query hooks
   const { data: driverStandingsData, isLoading: isDriverStandingsLoading, error: driverError } = useDriverStandings(selectedYear);
