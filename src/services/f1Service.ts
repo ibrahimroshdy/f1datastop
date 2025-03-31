@@ -1,7 +1,6 @@
-
 import { toast } from "sonner";
 
-const BASE_URL = "https://jolpica-f1-node-c7d9d12a46ee.herokuapp.com/api";
+const BASE_URL = "https://api.jolpi.ca/ergast/f1";
 
 // Mock data for when API is unavailable
 const mockDriverStandings = [
