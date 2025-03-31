@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,7 +92,7 @@ const LapTimes = () => {
   });
   
   // Process the lap times data for the chart
-  const processedData = React.useMemo(() => {
+  const processedData = useMemo(() => {
     if (!lapTimes) return [];
     
     // Find the maximum number of laps
