@@ -30,6 +30,15 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
     }
   };
 
+  // Helper function to remove flag emojis from race names
+  const removeFlag = (raceName: string) => {
+    // This will match and remove flag emojis at the beginning followed by a space
+    if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
+      return raceName.substring(raceName.indexOf(' ') + 1);
+    }
+    return raceName;
+  };
+
   return (
     <header className="h-16 border-b border-gray-800 bg-f1-dark flex items-center px-4 justify-between">
       <div className="flex items-center">
@@ -46,7 +55,7 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
             <CalendarDays size={16} className="text-f1-red" />
             <div>
               <span className="font-medium">Next Race:</span>{' '}
-              <span className="text-gray-300">{nextRace.raceName?.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s/, '')}</span>{' '}
+              <span className="text-gray-300">{nextRace.raceName && removeFlag(nextRace.raceName)}</span>{' '}
               {nextRace.date && nextRace.time && (
                 <span className="text-gray-400">
                   {formatDateString(nextRace.date, nextRace.time)}

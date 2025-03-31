@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -182,10 +183,19 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
     );
   };
 
+  // Helper function to remove flag emojis from race names
+  const removeFlag = (raceName: string) => {
+    // This will match and remove flag emojis at the beginning followed by a space
+    if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
+      return raceName.substring(raceName.indexOf(' ') + 1);
+    }
+    return raceName;
+  };
+
   const getRaceName = () => {
     if (!raceScheduleData?.data) return "Loading...";
     const race = raceScheduleData.data.find(race => race.round === selectedRace);
-    return race ? race.raceName.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s/, '') : "Unknown Race";
+    return race ? removeFlag(race.raceName) : "Unknown Race";
   };
 
   // Get lap times for selected drivers only
@@ -239,7 +249,7 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
               ) : (
                 raceScheduleData?.data?.map((race) => (
                   <SelectItem key={race.round} value={race.round}>
-                    {race.raceName.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s/, '')}
+                    {race.raceName && removeFlag(race.raceName)}
                   </SelectItem>
                 ))
               )}
