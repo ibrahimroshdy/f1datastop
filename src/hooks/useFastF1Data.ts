@@ -113,7 +113,7 @@ export const useTopSpeeds = () => {
 
 // Data generation helper functions
 const generateLapTimeData = (raceId: string, year: number) => {
-  const drivers = ["VER", "HAM", "LEC", "SAI", "PER", "RUS", "ALO", "STR", "NOR", "OCO"];
+  const drivers = ["VER", "HAM", "LEC", "SAI", "PER", "RUS", "NOR", "PIA", "ALO", "STR"];
   const laps = Array.from({ length: 50 }, (_, i) => i + 1);
   
   return drivers.map(driver => ({
@@ -126,7 +126,7 @@ const generateLapTimeData = (raceId: string, year: number) => {
 };
 
 const generateTireStrategyData = (raceId: string, year: number) => {
-  const drivers = ["VER", "HAM", "LEC", "SAI", "PER", "RUS", "ALO", "STR", "NOR", "OCO"];
+  const drivers = ["VER", "HAM", "LEC", "SAI", "PER", "RUS", "NOR", "PIA", "ALO", "STR"];
   const tireTypes = ["SOFT", "MEDIUM", "HARD"];
   
   return drivers.map(driver => ({
@@ -156,7 +156,7 @@ const generateTelemetryData = (driverId: string, year: number) => {
 };
 
 const generateFastestLapsData = (year: number) => {
-  const drivers = ["VER", "HAM", "LEC", "SAI", "PER", "RUS", "ALO", "STR", "NOR", "OCO", "GAS", "TSU", "BOT", "ZHO", "HUL", "MAG", "PIA", "SAR", "ALB", "DEV"];
+  const drivers = ["VER", "HAM", "LEC", "SAI", "PER", "RUS", "ALO", "STR", "NOR", "PIA", "GAS", "TSU", "BOT", "ZHO", "HUL", "MAG", "OCO", "ALB", "SAR", "RIC"];
   
   return drivers.map(driver => ({
     driver,
@@ -166,7 +166,7 @@ const generateFastestLapsData = (year: number) => {
 };
 
 const generateTopSpeedsData = (year: number) => {
-  const drivers = ["VER", "HAM", "LEC", "SAI", "PER", "RUS", "ALO", "STR", "NOR", "OCO", "GAS", "TSU", "BOT", "ZHO", "HUL", "MAG", "PIA", "SAR", "ALB", "DEV"];
+  const drivers = ["VER", "HAM", "LEC", "SAI", "PER", "RUS", "ALO", "STR", "NOR", "PIA", "GAS", "TSU", "BOT", "ZHO", "HUL", "MAG", "OCO", "ALB", "SAR", "RIC"];
   
   return drivers.map(driver => ({
     driver,

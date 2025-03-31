@@ -1,683 +1,495 @@
 
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
-import { useFastestLaps, useTopSpeeds } from "@/hooks/useFastF1Data";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { 
+  LineChart, 
+  Line, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Scatter,
+  ScatterChart,
+  ZAxis,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
+} from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFastestLaps, useTopSpeeds, useLapTimes, useTireStrategies } from "@/hooks/useFastF1Data";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter } from 'recharts';
-import { ChefHat, Flame, Gauge, Timer } from "lucide-react";
+import PointsProgressChart from "@/components/analytics/PointsProgressChart";
+import TeamPerformanceChart from "@/components/analytics/TeamPerformanceChart";
+import DriverComparisonChart from "@/components/analytics/DriverComparisonChart";
+import ConstructorDominanceChart from "@/components/analytics/ConstructorDominanceChart";
+
+const colors = {
+  "red_bull": "#0600EF",
+  "ferrari": "#DC0000",
+  "mercedes": "#00D2BE",
+  "mclaren": "#FF8700",
+  "aston_martin": "#006F62",
+  "alpine": "#0090FF",
+  "alphatauri": "#2B4562",
+  "haas": "#FFFFFF",
+  "williams": "#005AFF",
+  "alfa": "#900000",
+  "VER": "#0600EF",
+  "PER": "#0600EF",
+  "LEC": "#DC0000",
+  "SAI": "#DC0000",
+  "HAM": "#00D2BE",
+  "RUS": "#00D2BE",
+  "NOR": "#FF8700",
+  "PIA": "#FF8700",
+  "ALO": "#006F62",
+  "STR": "#006F62",
+};
+
+const RACECOLORS = [
+  "#ff5f5f", "#5f5fff", "#5fff5f", "#ff5fff", "#5fffff", "#ffff5f",
+  "#ff7f7f", "#7f7fff", "#7fff7f", "#ff7fff", "#7fffff", "#ffff7f",
+  "#ff9f9f", "#9f9fff", "#9fff9f", "#ff9fff", "#9fffff", "#ffff9f",
+  "#ffbfbf", "#bfbfff", "#bfffbf", "#ffbfff", "#bfffff", "#ffffbf",
+];
 
 const Analytics = () => {
-  const { data: driverStandings, isLoading: isDriversLoading } = useDriverStandings();
-  const { data: constructorStandings, isLoading: isConstructorsLoading } = useConstructorStandings();
-  const { data: fastestLaps, isLoading: isFastestLapsLoading } = useFastestLaps();
-  const { data: topSpeeds, isLoading: isTopSpeedsLoading } = useTopSpeeds();
+  const [selectedRace, setSelectedRace] = useState("monaco"); // Default race
+  const [selectedDriver1, setSelectedDriver1] = useState("VER");
+  const [selectedDriver2, setSelectedDriver2] = useState("HAM");
+  const [selectedMetric, setSelectedMetric] = useState("lapTimes");
   
-  const isLoading = isDriversLoading || isConstructorsLoading || isFastestLapsLoading || isTopSpeedsLoading;
-  
+  const { data: fastestLapsData, isLoading: isLapsLoading } = useFastestLaps();
+  const { data: topSpeedsData, isLoading: isSpeedsLoading } = useTopSpeeds();
+  const { data: lapTimesData, isLoading: isLapTimesLoading } = useLapTimes(selectedRace);
+  const { data: tireStrategyData, isLoading: isTireDataLoading } = useTireStrategies(selectedRace);
+
+  // Get current year for the UI
   const currentYear = new Date().getFullYear();
-  
-  // Colors for each team
-  const teamColors: Record<string, string> = {
-    "Red Bull Racing": "#0600EF",
-    "Ferrari": "#F91536",
-    "Mercedes": "#00D2BE",
-    "McLaren": "#FF8700",
-    "Aston Martin": "#006F62",
-    "Racing Bulls": "#2B4562",
-    "Alpine": "#0090FF",
-    "Williams": "#005AFF",
-    "Kick Sauber": "#900000",
-    "Haas F1 Team": "#FFFFFF",
-  };
-  
-  // Process data for speed comparison chart
-  const getSpeedComparisonData = () => {
-    if (isLoading || !topSpeeds?.data) return [];
+
+  // Transform lap time data for selected drivers
+  const getLapTimeChartData = () => {
+    if (!lapTimesData?.data) return [];
     
-    return topSpeeds.data.slice(0, 10).map(item => ({
-      name: item.driver,
-      speed: item.topSpeed,
-      race: item.race
-    }));
-  };
-  
-  // Process data for fastest lap comparison
-  const getFastestLapData = () => {
-    if (isLoading || !fastestLaps?.data) return [];
+    const driver1Data = lapTimesData.data.find(d => d.driver === selectedDriver1)?.laps || [];
+    const driver2Data = lapTimesData.data.find(d => d.driver === selectedDriver2)?.laps || [];
     
-    return fastestLaps.data.slice(0, 10).map(item => ({
-      name: item.driver,
-      time: item.fastestLap,
-      race: item.race
-    }));
-  };
-  
-  // Process driver standings data
-  const getDriverPointsData = () => {
-    if (isLoading || !driverStandings?.data) return [];
-    
-    return driverStandings.data.slice(0, 10).map(driver => ({
-      name: driver.Driver.code,
-      points: parseFloat(driver.points),
-      team: driver.Constructors[0].name
-    }));
-  };
-  
-  // Process constructor standings data
-  const getConstructorData = () => {
-    if (isLoading || !constructorStandings?.data) return [];
-    
-    return constructorStandings.data.map(constructor => ({
-      name: constructor.Constructor.name,
-      value: parseFloat(constructor.points),
-      color: teamColors[constructor.Constructor.name] || "#cccccc"
-    }));
-  };
-  
-  // Generate some race simulation data
-  const getRaceSimulationData = () => {
-    const driverCodes = ["VER", "HAM", "LEC", "SAI", "PER", "RUS", "NOR", "PIA", "ALO", "STR"];
-    const laps = Array.from({ length: 20 }, (_, i) => i + 1);
-    
-    return laps.map(lap => {
-      const lapData: any = { lap };
-      
-      driverCodes.forEach(code => {
-        // Generate simulated gap to leader
-        if (code === "VER") {
-          lapData[code] = 0; // Leader
-        } else {
-          // Start with a base gap and add some randomness per lap
-          const baseGap = ["HAM", "LEC", "SAI", "PER"].includes(code) ? 
-            lap * 0.2 + Math.random() * 0.3 : 
-            lap * 0.5 + Math.random() * 0.8;
-          
-          lapData[code] = parseFloat(baseGap.toFixed(1));
-        }
-      });
-      
-      return lapData;
+    return driver1Data.map((lap, index) => {
+      const driver2Lap = driver2Data[index] || { lap: lap.lap, time: 0 };
+      return {
+        lap: lap.lap,
+        [selectedDriver1]: lap.time,
+        [selectedDriver2]: driver2Lap.time
+      };
     });
   };
   
-  const speedComparisonData = getSpeedComparisonData();
-  const fastestLapData = getFastestLapData();
-  const driverPointsData = getDriverPointsData();
-  const constructorData = getConstructorData();
-  const raceSimulationData = getRaceSimulationData();
+  // Transform tire strategy data
+  const getTireStrategyData = () => {
+    if (!tireStrategyData?.data) return [];
+    
+    return tireStrategyData.data.map(driver => {
+      // Calculate total race distance for this driver
+      const totalLaps = driver.strategy.reduce((sum, stint) => sum + stint.laps, 0);
+      
+      // Convert to a chart-friendly format
+      const result = [];
+      let currentLap = 0;
+      
+      driver.strategy.forEach((stint, index) => {
+        const startLap = currentLap;
+        currentLap += stint.laps;
+        
+        result.push({
+          driver: driver.driver,
+          stint: index + 1,
+          compound: stint.tire,
+          startLap,
+          endLap: currentLap,
+          laps: stint.laps,
+        });
+      });
+      
+      return { driver: driver.driver, totalLaps, stints: result };
+    });
+  };
+  
+  // Helper to format time in seconds to MM:SS.sss
+  const formatTime = (seconds: number | string) => {
+    if (typeof seconds === 'string') return seconds;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toFixed(3).padStart(6, '0')}`;
+  };
   
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex flex-col">
-          <h1 className="text-3xl font-bold">F1 Analytics {currentYear}</h1>
-          <p className="text-muted-foreground">Visualizations and analytics using Formula 1 data</p>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold">F1 Analytics</h1>
+          <p className="text-muted-foreground">
+            Analyze Formula 1 performance data for the {currentYear} season
+          </p>
         </div>
-
-        <Tabs defaultValue="performance" className="w-full">
-          <TabsList className="grid w-full md:w-[600px] grid-cols-3">
+        
+        <Tabs defaultValue="performance">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="comparison">Driver Comparison</TabsTrigger>
-            <TabsTrigger value="simulation">Race Simulation</TabsTrigger>
+            <TabsTrigger value="simulation">Season Simulation</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="performance" className="mt-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Top Speed Chart */}
-              <Card className="w-full">
+          {/* Performance Tab */}
+          <TabsContent value="performance" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Fastest Laps Card */}
+              <Card>
                 <CardHeader>
-                  <div className="flex items-center space-x-2">
-                    <Gauge className="h-5 w-5 text-f1-red" />
-                    <CardTitle>Top Speeds</CardTitle>
-                  </div>
-                  <CardDescription>Highest speeds recorded in {currentYear}</CardDescription>
+                  <CardTitle>Fastest Laps of {currentYear}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[350px] w-full" />
-                  ) : (
-                    <div className="h-[350px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={speedComparisonData}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                          layout="vertical"
-                        >
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.2} horizontal={false} />
-                          <XAxis type="number" domain={[300, 'auto']} />
-                          <YAxis type="category" dataKey="name" width={40} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: '#1a1a1a',
-                              borderColor: '#333',
-                              borderRadius: '5px',
-                              color: 'white'
-                            }} 
-                            formatter={(value) => [`${value} km/h`, "Top Speed"]}
-                            labelFormatter={(value) => `${value} (${speedComparisonData.find(d => d.name === value)?.race})`}
-                          />
-                          <Bar 
-                            dataKey="speed" 
-                            fill="#f1263d" 
-                            radius={[0, 4, 4, 0]}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
+                  {isLapsLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-[300px] w-full" />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              {/* Fastest Lap Chart */}
-              <Card className="w-full">
-                <CardHeader>
-                  <div className="flex items-center space-x-2">
-                    <Timer className="h-5 w-5 text-f1-red" />
-                    <CardTitle>Fastest Laps</CardTitle>
-                  </div>
-                  <CardDescription>Best lap times recorded in {currentYear}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[350px] w-full" />
                   ) : (
-                    <div className="h-[350px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={fastestLapData}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                          layout="vertical"
-                        >
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.2} horizontal={false} />
-                          <XAxis type="number" domain={[80, 'auto']} />
-                          <YAxis type="category" dataKey="name" width={40} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: '#1a1a1a',
-                              borderColor: '#333',
-                              borderRadius: '5px',
-                              color: 'white'
-                            }} 
-                            formatter={(value) => [`${value.toFixed(3)}s`, "Lap Time"]}
-                            labelFormatter={(value) => `${value} (${fastestLapData.find(d => d.name === value)?.race})`}
-                          />
-                          <Bar 
-                            dataKey="time" 
-                            fill="#0090FF" 
-                            radius={[0, 4, 4, 0]}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              {/* Constructor Points Distribution */}
-              <Card className="w-full">
-                <CardHeader>
-                  <div className="flex items-center space-x-2">
-                    <ChefHat className="h-5 w-5 text-f1-red" />
-                    <CardTitle>Constructor Points</CardTitle>
-                  </div>
-                  <CardDescription>Points distribution among constructors</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[350px] w-full" />
-                  ) : (
-                    <div className="h-[350px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={constructorData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={true}
-                            outerRadius={130}
-                            fill="#8884d8"
-                            dataKey="value"
-                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(1)}%)`}
-                          >
-                            {constructorData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: '#1a1a1a',
-                              borderColor: '#333',
-                              borderRadius: '5px',
-                              color: 'white'
-                            }} 
-                            formatter={(value) => [`${value} points`, "Points"]}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              {/* Driver Points Chart */}
-              <Card className="w-full">
-                <CardHeader>
-                  <div className="flex items-center space-x-2">
-                    <Flame className="h-5 w-5 text-f1-red" />
-                    <CardTitle>Driver Points</CardTitle>
-                  </div>
-                  <CardDescription>Points earned by top drivers in {currentYear}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[350px] w-full" />
-                  ) : (
-                    <div className="h-[350px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={driverPointsData}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: '#1a1a1a',
-                              borderColor: '#333',
-                              borderRadius: '5px',
-                              color: 'white'
-                            }} 
-                            formatter={(value) => [`${value} points`, "Points"]}
-                            labelFormatter={(value) => {
-                              const driver = driverPointsData.find(d => d.name === value);
-                              return `${value} (${driver?.team})`;
-                            }}
-                          />
-                          <Bar 
-                            dataKey="points" 
-                            fill="#f1263d" 
-                            radius={[4, 4, 0, 0]}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="comparison" className="mt-6">
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Driver Performance Metrics</CardTitle>
-                <CardDescription>Visual comparison of driver performance across multiple metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <Skeleton className="h-[500px] w-full" />
-                ) : (
-                  <div className="h-[500px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart outerRadius={180} data={[
-                        { category: "Qualifying", VER: 90, HAM: 88, LEC: 87, NOR: 85, PER: 78 },
-                        { category: "Race Pace", VER: 95, HAM: 90, LEC: 85, NOR: 82, PER: 83 },
-                        { category: "Tire Management", VER: 92, HAM: 93, LEC: 80, NOR: 79, PER: 85 },
-                        { category: "Wet Weather", VER: 94, HAM: 95, LEC: 82, NOR: 81, PER: 70 },
-                        { category: "Overtaking", VER: 93, HAM: 88, LEC: 89, NOR: 84, PER: 79 },
-                        { category: "Consistency", VER: 96, HAM: 90, LEC: 84, NOR: 85, PER: 80 },
-                      ]}>
-                        <PolarGrid strokeOpacity={0.2} />
-                        <PolarAngleAxis dataKey="category" tick={{ fill: "white" }} />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="rgba(255,255,255,0.3)" />
-                        
-                        <Radar
-                          name="Verstappen"
-                          dataKey="VER"
-                          stroke="#0600EF"
-                          fill="#0600EF"
-                          fillOpacity={0.3}
-                        />
-                        <Radar
-                          name="Hamilton"
-                          dataKey="HAM"
-                          stroke="#00D2BE"
-                          fill="#00D2BE"
-                          fillOpacity={0.3}
-                        />
-                        <Radar
-                          name="Leclerc"
-                          dataKey="LEC"
-                          stroke="#F91536"
-                          fill="#F91536"
-                          fillOpacity={0.3}
-                        />
-                        <Radar
-                          name="Norris"
-                          dataKey="NOR"
-                          stroke="#FF8700"
-                          fill="#FF8700"
-                          fillOpacity={0.3}
-                        />
-                        <Radar
-                          name="Perez"
-                          dataKey="PER"
-                          stroke="#6E59A5"
-                          fill="#6E59A5"
-                          fillOpacity={0.3}
-                        />
-                        
-                        <Legend />
-                        <Tooltip
-                          contentStyle={{ 
-                            backgroundColor: '#1a1a1a',
-                            borderColor: '#333',
-                            borderRadius: '5px',
-                            color: 'white'
-                          }}
-                        />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <Card className="w-full">
-                <CardHeader>
-                  <CardTitle>Cornering Speed vs. Straight Line Speed</CardTitle>
-                  <CardDescription>Comparison of driver performance in corners vs. straights</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[350px] w-full" />
-                  ) : (
-                    <div className="h-[350px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ScatterChart
-                          margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                          <XAxis type="number" dataKey="corner" name="Corner Speed" unit="km/h" domain={[170, 210]} />
-                          <YAxis type="number" dataKey="straight" name="Straight Speed" unit="km/h" domain={[320, 360]} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: '#1a1a1a',
-                              borderColor: '#333',
-                              borderRadius: '5px',
-                              color: 'white'
-                            }}
-                            formatter={(value) => [`${value} km/h`, ""]}
-                            cursor={{ strokeDasharray: '3 3' }}
-                          />
-                          <Scatter name="Ferrari" data={[
-                            { corner: 190, straight: 335, driver: 'LEC' },
-                            { corner: 187, straight: 338, driver: 'SAI' },
-                          ]} fill="#F91536" />
-                          <Scatter name="Red Bull" data={[
-                            { corner: 195, straight: 340, driver: 'VER' },
-                            { corner: 188, straight: 343, driver: 'PER' },
-                          ]} fill="#0600EF" />
-                          <Scatter name="Mercedes" data={[
-                            { corner: 192, straight: 330, driver: 'HAM' },
-                            { corner: 190, straight: 328, driver: 'RUS' },
-                          ]} fill="#00D2BE" />
-                          <Scatter name="McLaren" data={[
-                            { corner: 193, straight: 336, driver: 'NOR' },
-                            { corner: 186, straight: 334, driver: 'PIA' },
-                          ]} fill="#FF8700" />
-                          <Legend />
-                        </ScatterChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <Card className="w-full">
-                <CardHeader>
-                  <CardTitle>Qualifying vs. Race Performance</CardTitle>
-                  <CardDescription>Comparison of qualifying position vs. race finish position</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[350px] w-full" />
-                  ) : (
-                    <div className="h-[350px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ScatterChart
-                          margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                          <XAxis type="number" dataKey="qualifying" name="Qualifying Position" reversed domain={[20, 1]} />
-                          <YAxis type="number" dataKey="race" name="Race Position" reversed domain={[20, 1]} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: '#1a1a1a',
-                              borderColor: '#333',
-                              borderRadius: '5px',
-                              color: 'white'
-                            }}
-                            formatter={(value, name) => [`Position ${value}`, name]}
-                            cursor={{ strokeDasharray: '3 3' }}
-                          />
-                          {/* Improvement line */}
-                          <Line type="monotone" dataKey="same" stroke="gray" strokeDasharray="3 3" dot={false} activeDot={false} />
-                          <Scatter name="Ferrari" data={[
-                            { qualifying: 2, race: 3, driver: 'LEC' },
-                            { qualifying: 3, race: 2, driver: 'SAI' },
-                          ]} fill="#F91536" />
-                          <Scatter name="Red Bull" data={[
-                            { qualifying: 1, race: 1, driver: 'VER' },
-                            { qualifying: 4, race: 4, driver: 'PER' },
-                          ]} fill="#0600EF" />
-                          <Scatter name="Mercedes" data={[
-                            { qualifying: 6, race: 3, driver: 'HAM' },
-                            { qualifying: 7, race: 5, driver: 'RUS' },
-                          ]} fill="#00D2BE" />
-                          <Scatter name="McLaren" data={[
-                            { qualifying: 5, race: 5, driver: 'NOR' },
-                            { qualifying: 8, race: 8, driver: 'PIA' },
-                          ]} fill="#FF8700" />
-                          <Legend />
-                        </ScatterChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="simulation" className="mt-6">
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Race Gap Simulation</CardTitle>
-                <CardDescription>Time gap to leader during race simulation</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <Skeleton className="h-[500px] w-full" />
-                ) : (
-                  <div className="h-[500px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={raceSimulationData}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart
+                        data={fastestLapsData?.data?.slice(0, 10)}
+                        layout="vertical"
+                        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                        <XAxis dataKey="lap" label={{ value: 'Lap', position: 'insideBottomRight', offset: -10 }} />
-                        <YAxis label={{ value: 'Gap to Leader (sec)', angle: -90, position: 'insideLeft' }} />
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" domain={['dataMin - 0.5', 'dataMax + 0.5']} />
+                        <YAxis 
+                          dataKey="driver" 
+                          type="category" 
+                          tick={{ fontSize: 12 }} 
+                          width={40} 
+                        />
                         <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: '#1a1a1a',
-                            borderColor: '#333',
-                            borderRadius: '5px',
-                            color: 'white'
+                          formatter={(value: any) => {
+                            return typeof value === 'number' 
+                              ? [`${formatTime(value)}`, 'Lap Time'] 
+                              : [value, ''];
                           }}
-                          formatter={(value) => [`${parseFloat(value).toFixed(2)}s`, ""]}
                         />
                         <Legend />
-                        <Line type="monotone" dataKey="VER" name="Verstappen" stroke="#0600EF" dot={false} strokeWidth={2} />
-                        <Line type="monotone" dataKey="HAM" name="Hamilton" stroke="#00D2BE" dot={false} strokeWidth={2} />
-                        <Line type="monotone" dataKey="LEC" name="Leclerc" stroke="#F91536" dot={false} strokeWidth={2} />
-                        <Line type="monotone" dataKey="SAI" name="Sainz" stroke="#F91536" dot={false} strokeWidth={1} strokeDasharray="5 5" />
-                        <Line type="monotone" dataKey="PER" name="Perez" stroke="#0600EF" dot={false} strokeWidth={1} strokeDasharray="5 5" />
-                        <Line type="monotone" dataKey="RUS" name="Russell" stroke="#00D2BE" dot={false} strokeWidth={1} strokeDasharray="5 5" />
-                        <Line type="monotone" dataKey="NOR" name="Norris" stroke="#FF8700" dot={false} strokeWidth={2} />
-                        <Line type="monotone" dataKey="PIA" name="Piastri" stroke="#FF8700" dot={false} strokeWidth={1} strokeDasharray="5 5" />
-                        <Line type="monotone" dataKey="ALO" name="Alonso" stroke="#006F62" dot={false} strokeWidth={2} />
-                        <Line type="monotone" dataKey="STR" name="Stroll" stroke="#006F62" dot={false} strokeWidth={1} strokeDasharray="5 5" />
-                      </LineChart>
+                        <Bar dataKey="fastestLap" name="Lap Time (seconds)" fill="#f1453d">
+                          {fastestLapsData?.data?.slice(0, 10).map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={colors[entry.driver] || RACECOLORS[index % RACECOLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
                     </ResponsiveContainer>
-                  </div>
-                )}
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Top Speeds Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Speeds of {currentYear}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isSpeedsLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-[300px] w-full" />
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart
+                        data={topSpeedsData?.data?.slice(0, 10)}
+                        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="driver" />
+                        <YAxis domain={['auto', 'auto']} />
+                        <Tooltip formatter={(value) => [`${String(value)} km/h`, 'Top Speed']} />
+                        <Legend />
+                        <Bar dataKey="topSpeed" name="Speed (km/h)" fill="#3498db">
+                          {topSpeedsData?.data?.slice(0, 10).map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={colors[entry.driver] || RACECOLORS[index % RACECOLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Points Progress Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Driver Points Progression</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="h-[400px]">
+                  <PointsProgressChart />
+                </div>
               </CardContent>
             </Card>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <Card className="w-full">
+            {/* Constructor Performance Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Constructor Performance</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="h-[400px]">
+                  <TeamPerformanceChart />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Comparison Tab */}
+          <TabsContent value="comparison" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="md:col-span-3">
                 <CardHeader>
-                  <CardTitle>Tire Strategy Simulation</CardTitle>
-                  <CardDescription>Various tire strategy simulations and their effect on race time</CardDescription>
+                  <CardTitle className="flex justify-between items-center">
+                    <span>Driver Comparison</span>
+                    <div className="flex gap-4">
+                      <Select value={selectedDriver1} onValueChange={setSelectedDriver1}>
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue placeholder="Driver 1" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="VER">VER</SelectItem>
+                          <SelectItem value="HAM">HAM</SelectItem>
+                          <SelectItem value="LEC">LEC</SelectItem>
+                          <SelectItem value="SAI">SAI</SelectItem>
+                          <SelectItem value="PER">PER</SelectItem>
+                          <SelectItem value="RUS">RUS</SelectItem>
+                          <SelectItem value="NOR">NOR</SelectItem>
+                          <SelectItem value="PIA">PIA</SelectItem>
+                          <SelectItem value="ALO">ALO</SelectItem>
+                          <SelectItem value="STR">STR</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <Select value={selectedDriver2} onValueChange={setSelectedDriver2}>
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue placeholder="Driver 2" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="VER">VER</SelectItem>
+                          <SelectItem value="HAM">HAM</SelectItem>
+                          <SelectItem value="LEC">LEC</SelectItem>
+                          <SelectItem value="SAI">SAI</SelectItem>
+                          <SelectItem value="PER">PER</SelectItem>
+                          <SelectItem value="RUS">RUS</SelectItem>
+                          <SelectItem value="NOR">NOR</SelectItem>
+                          <SelectItem value="PIA">PIA</SelectItem>
+                          <SelectItem value="ALO">ALO</SelectItem>
+                          <SelectItem value="STR">STR</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <Select value={selectedRace} onValueChange={setSelectedRace}>
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue placeholder="Race" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bahrain">Bahrain</SelectItem>
+                          <SelectItem value="jeddah">Saudi Arabia</SelectItem>
+                          <SelectItem value="australia">Australia</SelectItem>
+                          <SelectItem value="japan">Japan</SelectItem>
+                          <SelectItem value="china">China</SelectItem>
+                          <SelectItem value="miami">Miami</SelectItem>
+                          <SelectItem value="monaco">Monaco</SelectItem>
+                          <SelectItem value="spain">Spain</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <Select value={selectedMetric} onValueChange={setSelectedMetric}>
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue placeholder="Metric" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="lapTimes">Lap Times</SelectItem>
+                          <SelectItem value="tireStrategy">Tire Strategy</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[350px] w-full" />
+                  {selectedMetric === "lapTimes" ? (
+                    <div className="h-[400px]">
+                      {isLapTimesLoading ? (
+                        <div className="flex items-center justify-center h-full">
+                          <Skeleton className="h-full w-full" />
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart
+                            data={getLapTimeChartData()}
+                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="lap" label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} />
+                            <YAxis label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }} domain={['dataMin - 1', 'dataMax + 1']} />
+                            <Tooltip formatter={(value) => {
+                              if (typeof value === 'number') {
+                                return [formatTime(value), 'Lap Time'];
+                              }
+                              return [value, ''];
+                            }} />
+                            <Legend />
+                            <Line type="monotone" dataKey={selectedDriver1} stroke={colors[selectedDriver1] || "#ff0000"} activeDot={{ r: 8 }} />
+                            <Line type="monotone" dataKey={selectedDriver2} stroke={colors[selectedDriver2] || "#0000ff"} activeDot={{ r: 8 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
                   ) : (
-                    <div className="h-[350px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                          margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                          <XAxis type="number" domain={[1, 50]} label={{ value: 'Lap', position: 'insideBottomRight', offset: -10 }} />
-                          <YAxis label={{ value: 'Lap Time (sec)', angle: -90, position: 'insideLeft' }} domain={[80, 90]} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: '#1a1a1a',
-                              borderColor: '#333',
-                              borderRadius: '5px',
-                              color: 'white'
-                            }}
-                          />
-                          <Legend />
-                          <Line 
-                            data={Array.from({ length: 50 }, (_, i) => ({
-                              lap: i + 1,
-                              time: i < 20 ? 83 + (i * 0.1) : i < 22 ? 88 : 83 + ((i - 22) * 0.08),
-                              strategy: "One Stop (M-H)"
-                            }))} 
-                            type="monotone" 
-                            dataKey="time" 
-                            name="One Stop (M-H)" 
-                            stroke="#FEF7CD" 
-                            dot={false} 
-                          />
-                          <Line 
-                            data={Array.from({ length: 50 }, (_, i) => ({
-                              lap: i + 1,
-                              time: i < 15 ? 82.5 + (i * 0.15) : i < 17 ? 88 : i < 32 ? 82.8 + ((i - 17) * 0.12) : i < 34 ? 88 : 83 + ((i - 34) * 0.08),
-                              strategy: "Two Stop (S-M-S)"
-                            }))} 
-                            type="monotone" 
-                            dataKey="time" 
-                            name="Two Stop (S-M-S)" 
-                            stroke="#F91536" 
-                            dot={false} 
-                          />
-                          <Line 
-                            data={Array.from({ length: 50 }, (_, i) => ({
-                              lap: i + 1,
-                              time: i < 25 ? 83.2 + (i * 0.08) : i < 27 ? 88 : 83.4 + ((i - 27) * 0.07),
-                              strategy: "One Stop (H-M)"
-                            }))} 
-                            type="monotone" 
-                            dataKey="time" 
-                            name="One Stop (H-M)" 
-                            stroke="#FFFFFF" 
-                            dot={false} 
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
+                    <div className="h-[400px]">
+                      {isTireDataLoading ? (
+                        <div className="flex items-center justify-center h-full">
+                          <Skeleton className="h-full w-full" />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-6">
+                          {getTireStrategyData()
+                            .filter(d => d.driver === selectedDriver1 || d.driver === selectedDriver2)
+                            .map((driverData, idx) => (
+                              <div key={driverData.driver} className="tire-strategy">
+                                <h3 className="font-medium mb-2">{driverData.driver} - Tire Strategy</h3>
+                                <div className="flex w-full h-8 rounded-md overflow-hidden">
+                                  {driverData.stints.map((stint, i) => {
+                                    const width = (stint.laps / driverData.totalLaps) * 100;
+                                    const bgColor = 
+                                      stint.compound === "SOFT" ? "bg-red-600" : 
+                                      stint.compound === "MEDIUM" ? "bg-yellow-500" : 
+                                      stint.compound === "HARD" ? "bg-white" : 
+                                      "bg-green-500"; // For wet/intermediate
+                                    
+                                    return (
+                                      <div 
+                                        key={i} 
+                                        className={`${bgColor} relative`}
+                                        style={{ width: `${width}%` }}
+                                      >
+                                        <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-black">
+                                          {stint.compound[0]}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div className="flex justify-between mt-1 text-xs text-gray-400">
+                                  <span>Lap 1</span>
+                                  <span>Lap {driverData.totalLaps}</span>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
               </Card>
               
-              <Card className="w-full">
+              <Card className="md:col-span-3">
                 <CardHeader>
-                  <CardTitle>Pit Stop Timing Analysis</CardTitle>
-                  <CardDescription>Effect of pit stop timing on race position</CardDescription>
+                  <CardTitle>Side-by-Side Performance</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="h-[400px]">
+                    <DriverComparisonChart />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          {/* Simulation Tab */}
+          <TabsContent value="simulation" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Constructor Win Probability</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-[350px] w-full" />
-                  ) : (
-                    <div className="h-[350px] w-full">
-                      <div className="grid grid-cols-1 gap-6">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Badge className="bg-f1-red">Optimal Window</Badge>
-                              <span className="ml-2 text-sm">Lap 15-18</span>
-                            </div>
-                            <span className="text-sm">+0.0s race time</span>
-                          </div>
-                          <div className="h-8 bg-gray-800 rounded-md overflow-hidden">
-                            <div className="bg-f1-red h-full" style={{ width: '15%' }}></div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Badge className="bg-amber-600">Early Stop</Badge>
-                              <span className="ml-2 text-sm">Lap 10-14</span>
-                            </div>
-                            <span className="text-sm">+3.2s race time</span>
-                          </div>
-                          <div className="h-8 bg-gray-800 rounded-md overflow-hidden">
-                            <div className="bg-amber-600 h-full" style={{ width: '65%' }}></div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Badge className="bg-blue-600">Late Stop</Badge>
-                              <span className="ml-2 text-sm">Lap 19-25</span>
-                            </div>
-                            <span className="text-sm">+2.1s race time</span>
-                          </div>
-                          <div className="h-8 bg-gray-800 rounded-md overflow-hidden">
-                            <div className="bg-blue-600 h-full" style={{ width: '45%' }}></div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Badge className="bg-gray-600">Very Late</Badge>
-                              <span className="ml-2 text-sm">Lap 26+</span>
-                            </div>
-                            <span className="text-sm">+7.8s race time</span>
-                          </div>
-                          <div className="h-8 bg-gray-800 rounded-md overflow-hidden">
-                            <div className="bg-gray-600 h-full" style={{ width: '90%' }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <div className="h-[400px]">
+                    <ConstructorDominanceChart />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Championship Prediction</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <RadarChart outerRadius={90} width={730} height={250} data={[
+                      { subject: 'Verstappen', A: 120, fullMark: 150 },
+                      { subject: 'Perez', A: 98, fullMark: 150 },
+                      { subject: 'Hamilton', A: 86, fullMark: 150 },
+                      { subject: 'Leclerc', A: 99, fullMark: 150 },
+                      { subject: 'Sainz', A: 85, fullMark: 150 },
+                      { subject: 'Norris', A: 65, fullMark: 150 },
+                    ]}>
+                      <PolarGrid />
+                      <PolarAngleAxis dataKey="subject" />
+                      <PolarRadiusAxis angle={90} domain={[0, 150]} />
+                      <Radar name="Championship Points" dataKey="A" stroke="#f1453d" fill="#f1453d" fillOpacity={0.6} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+              
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Performance Distribution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <ScatterChart
+                      margin={{ top: 20, right: 20, bottom: 10, left: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="qualifying" name="Qualifying" unit="s" />
+                      <YAxis dataKey="race" name="Race Pace" unit="s" />
+                      <ZAxis dataKey="results" name="Results" range={[30, 200]} />
+                      <Tooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value) => {
+                        return typeof value === 'number' ? [value.toFixed(3), ''] : [value, ''];
+                      }} />
+                      <Legend />
+                      <Scatter name="Red Bull" data={[
+                        { qualifying: 92.1, race: 97.2, results: 150, driver: 'VER' },
+                        { qualifying: 92.7, race: 98.1, results: 120, driver: 'PER' },
+                      ]} fill="#0600EF" />
+                      <Scatter name="Ferrari" data={[
+                        { qualifying: 92.2, race: 97.6, results: 140, driver: 'LEC' },
+                        { qualifying: 92.4, race: 97.8, results: 130, driver: 'SAI' },
+                      ]} fill="#DC0000" />
+                      <Scatter name="Mercedes" data={[
+                        { qualifying: 92.3, race: 97.5, results: 120, driver: 'HAM' },
+                        { qualifying: 92.6, race: 97.9, results: 110, driver: 'RUS' },
+                      ]} fill="#00D2BE" />
+                      <Scatter name="McLaren" data={[
+                        { qualifying: 92.4, race: 97.7, results: 110, driver: 'NOR' },
+                        { qualifying: 92.9, race: 98.2, results: 90, driver: 'PIA' },
+                      ]} fill="#FF8700" />
+                    </ScatterChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
             </div>

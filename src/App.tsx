@@ -8,6 +8,7 @@ import { SessionProvider } from "@/context/SessionContext";
 import Index from "./pages/Index";
 import RaceCalendar from "./pages/RaceCalendar";
 import Analytics from "./pages/Analytics";
+import Drivers from "./pages/Drivers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/calendar" element={<RaceCalendar />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/drivers" element={<Drivers />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

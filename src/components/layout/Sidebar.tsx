@@ -5,6 +5,7 @@ import {
   Home, 
   Calendar,
   BarChart,
+  Users,
   X 
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -23,6 +24,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
     { name: "Dashboard", href: "/", icon: Home },
     { name: "Race Calendar", href: "/calendar", icon: Calendar },
     { name: "Analytics", href: "/analytics", icon: BarChart },
+    { name: "Drivers", href: "/drivers", icon: Users },
   ];
 
   return (

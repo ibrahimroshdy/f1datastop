@@ -1,7 +1,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Home, Calendar, BarChart } from "lucide-react";
+import { Home, Calendar, BarChart, Users } from "lucide-react";
 
 interface PageOption {
   title: string;
@@ -34,10 +34,17 @@ const PageSelector = () => {
       href: "/analytics",
       color: "from-purple-500 to-purple-700",
     },
+    {
+      title: "Drivers",
+      description: "View detailed information on all F1 drivers",
+      icon: <Users className="h-6 w-6" />,
+      href: "/drivers",
+      color: "from-orange-500 to-orange-700",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
       {pages.map((page) => (
         <Link key={page.title} to={page.href}>
           <Card className="h-full hover:bg-gray-800 transition-colors border-gray-800 cursor-pointer overflow-hidden group">
