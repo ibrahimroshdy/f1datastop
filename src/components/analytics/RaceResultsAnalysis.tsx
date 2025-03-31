@@ -126,7 +126,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   const getRaceName = () => {
     if (!raceScheduleData?.data) return "Loading...";
     const race = raceScheduleData.data.find(race => race.round === selectedRace);
-    return race ? race.raceName.replace(/^[🇦-🇿]{2}\s/, '') : "Unknown Race";
+    return race ? race.raceName.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s/, '') : "Unknown Race";
   };
 
   return (
@@ -153,7 +153,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
               ) : (
                 raceScheduleData?.data?.map((race) => (
                   <SelectItem key={race.round} value={race.round}>
-                    {race.raceName.replace(/^[🇦-🇿]{2}\s/, '')}
+                    {race.raceName.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s/, '')}
                   </SelectItem>
                 ))
               )}

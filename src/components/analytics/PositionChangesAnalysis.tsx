@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,10 +21,8 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
   const [error, setError] = useState<string | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
 
-  // Update selected race when schedule changes
   useEffect(() => {
     if (raceScheduleData?.data && raceScheduleData.data.length > 0 && !selectedRace) {
-      // Select the latest race by default
       const sortedRaces = [...raceScheduleData.data].sort((a, b) => 
         new Date(a.date).getTime() - new Date(b.date).getTime());
       
@@ -41,13 +38,11 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
     }
   }, [raceScheduleData, selectedRace]);
 
-  // Fetch position data when selected race changes
   useEffect(() => {
     if (selectedRace) {
       setIsLoading(true);
       setError(null);
       
-      // First get race results to identify drivers
       getRaceResults(year, selectedRace)
         .then(results => {
           if (results?.data?.Results) {
@@ -60,7 +55,6 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
             
             setAvailableDrivers(drivers);
             
-            // Then get lap times to track position changes
             return getLapTimes(year, selectedRace);
           } else {
             throw new Error("No race results found");
@@ -73,7 +67,6 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
             if (race.Laps && race.Laps.length > 0) {
               const driverPositions: Record<string, any[]> = {};
               
-              // Process each lap
               race.Laps.forEach((lap: any) => {
                 const lapNumber = parseInt(lap.number);
                 
@@ -92,13 +85,11 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
                 });
               });
               
-              // Transform into chart-friendly format
               const lapsCount = race.Laps.length;
               const positionByLap = Array.from({ length: lapsCount }, (_, i) => ({
                 lap: i + 1,
               }));
               
-              // Add driver positions for each lap
               Object.entries(driverPositions).forEach(([driverId, positions]) => {
                 const driver = availableDrivers.find(d => d.driverId === driverId);
                 const driverCode = driver?.code || driverId.substring(0, 3).toUpperCase();
@@ -148,7 +139,7 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
   const getRaceName = () => {
     if (!raceScheduleData?.data) return "Loading...";
     const race = raceScheduleData.data.find(race => race.round === selectedRace);
-    return race ? race.raceName.replace(/^[🇦-🇿]{2}\s/, '') : "Unknown Race";
+    return race ? race.raceName.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s/, '') : "Unknown Race";
   };
 
   return (
@@ -173,7 +164,7 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
               ) : (
                 raceScheduleData?.data?.map((race) => (
                   <SelectItem key={race.round} value={race.round}>
-                    {race.raceName.replace(/^[🇦-🇿]{2}\s/, '')}
+                    {race.raceName.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s/, '')}
                   </SelectItem>
                 ))
               )}

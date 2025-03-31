@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -186,7 +185,7 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
   const getRaceName = () => {
     if (!raceScheduleData?.data) return "Loading...";
     const race = raceScheduleData.data.find(race => race.round === selectedRace);
-    return race ? race.raceName.replace(/^[🇦-🇿]{2}\s/, '') : "Unknown Race";
+    return race ? race.raceName.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s/, '') : "Unknown Race";
   };
 
   // Get lap times for selected drivers only
@@ -240,7 +239,7 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
               ) : (
                 raceScheduleData?.data?.map((race) => (
                   <SelectItem key={race.round} value={race.round}>
-                    {race.raceName.replace(/^[🇦-🇿]{2}\s/, '')}
+                    {race.raceName.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s/, '')}
                   </SelectItem>
                 ))
               )}

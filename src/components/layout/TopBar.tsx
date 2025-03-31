@@ -46,7 +46,7 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
             <CalendarDays size={16} className="text-f1-red" />
             <div>
               <span className="font-medium">Next Race:</span>{' '}
-              <span className="text-gray-300">{nextRace.raceName?.replace(/^[🇦-🇿]{2}\s/, '')}</span>{' '}
+              <span className="text-gray-300">{nextRace.raceName?.replace(/^[\u{1F1E6}-\u{1F1FF}]{2}\s/, '')}</span>{' '}
               {nextRace.date && nextRace.time && (
                 <span className="text-gray-400">
                   {formatDateString(nextRace.date, nextRace.time)}
