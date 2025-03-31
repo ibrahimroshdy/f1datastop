@@ -6,6 +6,8 @@ export const useDriverStandings = (year = new Date().getFullYear().toString()) =
     queryKey: ["driverStandings", year],
     queryFn: () => f1Service.getDriverStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -14,6 +16,8 @@ export const useConstructorStandings = (year = new Date().getFullYear().toString
     queryKey: ["constructorStandings", year],
     queryFn: () => f1Service.getConstructorStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -22,6 +26,8 @@ export const useRaceSchedule = (year = new Date().getFullYear().toString()) => {
     queryKey: ["raceSchedule", year],
     queryFn: () => f1Service.getRaceSchedule(year),
     staleTime: 1000 * 60 * 10, // 10 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -30,6 +36,8 @@ export const useLastRaceResults = (year = new Date().getFullYear().toString()) =
     queryKey: ["lastRaceResults", year],
     queryFn: () => f1Service.getLastRaceResults(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -82,5 +90,7 @@ export const useCurrentRace = () => {
     queryFn: f1Service.getCurrentRace,
     staleTime: 1000 * 60, // 1 minute
     refetchInterval: 1000 * 60, // Refetch every minute
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 };

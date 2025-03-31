@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults } from "@/hooks/useF1Data";
 import { Loader2, Trophy, Calendar, Clock, AlertCircle } from "lucide-react";
-import { formatDistance } from "date-fns";
+import { formatDistance, isValid } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
 
@@ -101,12 +101,33 @@ const Index = () => {
   };
   
   const formatRaceDate = (dateStr: string, timeStr: string) => {
-    const raceDate = new Date(dateStr + "T" + (timeStr || "00:00:00Z"));
-    return {
-      date: raceDate.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }),
-      time: raceDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
-      fromNow: formatDistance(raceDate, new Date(), { addSuffix: true })
-    };
+    try {
+      // Make sure we have a valid date string format
+      if (!dateStr) return { date: "Unknown", time: "Unknown", fromNow: "Unknown" };
+      
+      // Ensure we have a valid time string or use a default
+      const formattedTimeStr = timeStr || "00:00:00Z";
+      
+      // Create the date object
+      const raceDate = new Date(dateStr + "T" + formattedTimeStr);
+      
+      // Check if the date is valid before proceeding
+      if (!isValid(raceDate)) {
+        return { date: "Invalid date", time: "Invalid time", fromNow: "Unknown" };
+      }
+      
+      // Get the current date for relative time calculation
+      const now = new Date();
+      
+      return {
+        date: raceDate.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }),
+        time: raceDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
+        fromNow: formatDistance(raceDate, now, { addSuffix: true })
+      };
+    } catch (error) {
+      console.error("Error formatting race date:", error, { dateStr, timeStr });
+      return { date: "Error", time: "Error", fromNow: "Unknown" };
+    }
   };
   
   // Get top 3 drivers
