@@ -40,7 +40,9 @@ export const fetchWithErrorHandling = async <T>(
 
 export const getNextRace = async () => {
   const currentDate = new Date();
+  // Ensure we're using the current year, not hardcoded to 2023
   const formattedDate = currentDate.toISOString().split('T')[0];
+  console.log(`Current date for API request: ${formattedDate}`);
   
   return fetchWithErrorHandling('/sessions', {
     'session_date_gte': formattedDate

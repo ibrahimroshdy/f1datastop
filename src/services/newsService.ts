@@ -26,34 +26,36 @@ export const getF1News = async () => {
   }
 };
 
-// Fallback data if API fails
+// Fallback data with current timestamps
 const getFallbackNews = () => {
+  const now = new Date();
+  
   return [
     {
       title: "Verstappen extends lead with dramatic Monaco victory",
       source: { name: "Formula1.com" },
-      publishedAt: new Date(Date.now() - 10 * 60000).toISOString(),
+      publishedAt: new Date(now.getTime() - 10 * 60000).toISOString(),
       url: "#",
       urlToImage: "https://placehold.co/200x120",
     },
     {
       title: "Ferrari's strategy error costs Leclerc potential win at home race",
       source: { name: "Twitter" },
-      publishedAt: new Date(Date.now() - 25 * 60000).toISOString(),
+      publishedAt: new Date(now.getTime() - 25 * 60000).toISOString(),
       url: "#",
       urlToImage: null,
     },
     {
       title: "Hamilton: 'The car felt better today but we still have work to do'",
       source: { name: "Mercedes AMG F1" },
-      publishedAt: new Date(Date.now() - 42 * 60000).toISOString(),
+      publishedAt: new Date(now.getTime() - 42 * 60000).toISOString(),
       url: "#",
       urlToImage: null,
     },
     {
       title: "Norris secures third consecutive podium, McLaren's development paying off",
       source: { name: "Sky Sports F1" },
-      publishedAt: new Date(Date.now() - 60 * 60000).toISOString(),
+      publishedAt: new Date(now.getTime() - 60 * 60000).toISOString(),
       url: "#",
       urlToImage: "https://placehold.co/200x120",
     },
