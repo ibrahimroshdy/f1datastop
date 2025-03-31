@@ -2,7 +2,7 @@
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDriverStandings, useConstructorStandings, useRaceSchedule, useRaceResults, useRaceQualifying } from "@/hooks/useF1Data";
+import { useDriverStandings, useConstructorStandings, useRaceSchedule } from "@/hooks/useF1Data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +11,8 @@ import PointsProgressChart from "@/components/analytics/PointsProgressChart";
 import TeamPerformanceChart from "@/components/analytics/TeamPerformanceChart";
 import PitStopAnalysis from "@/components/analytics/PitStopAnalysis";
 import RaceResultsAnalysis from "@/components/analytics/RaceResultsAnalysis";
+import PositionChangesAnalysis from "@/components/analytics/PositionChangesAnalysis";
+import LapTimeAnalysis from "@/components/analytics/LapTimeAnalysis";
 import { toast } from "sonner";
 
 const Analytics = () => {
@@ -125,6 +127,8 @@ const Analytics = () => {
           </div>
         ) : (
           <div className="space-y-6">
+            <PositionChangesAnalysis year={selectedYear} />
+            <LapTimeAnalysis year={selectedYear} />
             <PitStopAnalysis year={selectedYear} />
             <RaceResultsAnalysis year={selectedYear} />
           </div>

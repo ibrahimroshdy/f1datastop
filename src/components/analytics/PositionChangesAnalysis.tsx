@@ -1,0 +1,268 @@
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRaceSchedule } from "@/hooks/useF1Data";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
+import { getRaceResults, getLapTimes } from "@/services/f1Service";
+import { toast } from "sonner";
+
+interface PositionChangesAnalysisProps {
+  year: number;
+}
+
+const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
+  const { data: raceScheduleData, isLoading: isScheduleLoading } = useRaceSchedule(year);
+  const [selectedRace, setSelectedRace] = useState<string>("");
+  const [positionData, setPositionData] = useState<any[]>([]);
+  const [selectedDrivers, setSelectedDrivers] = useState<string[]>(["VER", "HAM", "LEC"]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
+
+  // Update selected race when schedule changes
+  useEffect(() => {
+    if (raceScheduleData?.data && raceScheduleData.data.length > 0 && !selectedRace) {
+      // Select the latest race by default
+      const sortedRaces = [...raceScheduleData.data].sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime());
+      
+      const lastCompletedRace = sortedRaces
+        .filter(race => new Date(race.date) < new Date())
+        .pop();
+        
+      if (lastCompletedRace) {
+        setSelectedRace(lastCompletedRace.round);
+      } else if (sortedRaces.length > 0) {
+        setSelectedRace(sortedRaces[0].round);
+      }
+    }
+  }, [raceScheduleData, selectedRace]);
+
+  // Fetch position data when selected race changes
+  useEffect(() => {
+    if (selectedRace) {
+      setIsLoading(true);
+      setError(null);
+      
+      // First get race results to identify drivers
+      getRaceResults(year, selectedRace)
+        .then(results => {
+          if (results?.data?.Results) {
+            const drivers = results.data.Results.map((result: any) => ({
+              driverId: result.Driver.driverId,
+              code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
+              name: `${result.Driver.givenName} ${result.Driver.familyName}`,
+              team: result.Constructor?.constructorId || "unknown",
+            }));
+            
+            setAvailableDrivers(drivers);
+            
+            // Then get lap times to track position changes
+            return getLapTimes(year, selectedRace);
+          } else {
+            throw new Error("No race results found");
+          }
+        })
+        .then(lapData => {
+          if (lapData?.data?.Races && lapData.data.Races.length > 0) {
+            const race = lapData.data.Races[0];
+            
+            if (race.Laps && race.Laps.length > 0) {
+              const driverPositions: Record<string, any[]> = {};
+              
+              // Process each lap
+              race.Laps.forEach((lap: any) => {
+                const lapNumber = parseInt(lap.number);
+                
+                lap.Timings.forEach((timing: any) => {
+                  const driverId = timing.driverId;
+                  const position = parseInt(timing.position);
+                  
+                  if (!driverPositions[driverId]) {
+                    driverPositions[driverId] = [];
+                  }
+                  
+                  driverPositions[driverId].push({
+                    lap: lapNumber,
+                    position: position
+                  });
+                });
+              });
+              
+              // Transform into chart-friendly format
+              const lapsCount = race.Laps.length;
+              const positionByLap = Array.from({ length: lapsCount }, (_, i) => ({
+                lap: i + 1,
+              }));
+              
+              // Add driver positions for each lap
+              Object.entries(driverPositions).forEach(([driverId, positions]) => {
+                const driver = availableDrivers.find(d => d.driverId === driverId);
+                const driverCode = driver?.code || driverId.substring(0, 3).toUpperCase();
+                
+                positions.forEach(pos => {
+                  const lapIndex = pos.lap - 1;
+                  if (lapIndex < positionByLap.length) {
+                    positionByLap[lapIndex][driverCode] = pos.position;
+                  }
+                });
+              });
+              
+              setPositionData(positionByLap);
+            } else {
+              setError("No lap data available for this race");
+              setPositionData([]);
+            }
+          } else {
+            setError("No lap data available");
+            setPositionData([]);
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching position data:", error);
+          setError("Failed to load position data");
+          setPositionData([]);
+          toast.error("Failed to load position data");
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [selectedRace, year, availableDrivers]);
+
+  const handleRaceChange = (value: string) => {
+    setSelectedRace(value);
+  };
+
+  const handleDriverToggle = (driverCode: string) => {
+    setSelectedDrivers(prev => 
+      prev.includes(driverCode)
+        ? prev.filter(d => d !== driverCode)
+        : [...prev, driverCode]
+    );
+  };
+
+  const getRaceName = () => {
+    if (!raceScheduleData?.data) return "Loading...";
+    const race = raceScheduleData.data.find(race => race.round === selectedRace);
+    return race ? race.raceName.replace(/^[🇦-🇿]{2}\s/, '') : "Unknown Race";
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div>
+            <CardTitle>Position Changes During Race</CardTitle>
+            <CardDescription>Track how drivers' positions change throughout the race</CardDescription>
+          </div>
+          <Select 
+            value={selectedRace} 
+            onValueChange={handleRaceChange}
+            disabled={isScheduleLoading || isLoading}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select a race" />
+            </SelectTrigger>
+            <SelectContent>
+              {isScheduleLoading ? (
+                <SelectItem value="loading">Loading...</SelectItem>
+              ) : (
+                raceScheduleData?.data?.map((race) => (
+                  <SelectItem key={race.round} value={race.round}>
+                    {race.raceName.replace(/^[🇦-🇿]{2}\s/, '')}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : error || positionData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-[400px] text-center">
+            <p className="text-muted-foreground">
+              {error || `No position data available for ${getRaceName()}`}
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              This could be because the race hasn't occurred yet or position data wasn't recorded.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <div className="mb-4 flex flex-wrap gap-2">
+              {availableDrivers.map(driver => (
+                <button
+                  key={driver.code}
+                  className={`px-2 py-1 rounded text-xs font-medium ${
+                    selectedDrivers.includes(driver.code)
+                      ? 'bg-gray-800 text-white'
+                      : 'bg-gray-200 text-gray-800'
+                  }`}
+                  onClick={() => handleDriverToggle(driver.code)}
+                  style={{
+                    borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+                  }}
+                >
+                  {driver.code}
+                </button>
+              ))}
+            </div>
+            
+            <div className="h-[400px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={positionData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis 
+                    dataKey="lap" 
+                    label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+                  />
+                  <YAxis 
+                    reversed 
+                    domain={[1, 20]} 
+                    label={{ value: 'Position', angle: -90, position: 'insideLeft' }} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1a1a1a',
+                      borderColor: '#333',
+                      borderRadius: '5px'
+                    }}
+                    formatter={(value) => [`Position: ${value}`, '']}
+                  />
+                  <Legend />
+                  
+                  {availableDrivers
+                    .filter(driver => selectedDrivers.includes(driver.code))
+                    .map(driver => (
+                      <Line
+                        key={driver.code}
+                        type="monotone"
+                        dataKey={driver.code}
+                        name={`${driver.code} (${driver.name.split(' ').pop()})`}
+                        stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 8 }}
+                        connectNulls
+                      />
+                    ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default PositionChangesAnalysis;

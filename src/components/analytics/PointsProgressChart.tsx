@@ -22,7 +22,8 @@ const PointsProgressChart = ({ driverData, isLoading }: PointsProgressChartProps
           name: driverInfo.code || driverInfo?.familyName?.substring(0, 3).toUpperCase(),
           points: parseFloat(driver.points),
           team: team.name,
-          constructorId: team.constructorId,
+          constructorId: team.constructorId.toLowerCase(),
+          fullName: `${driverInfo.givenName} ${driverInfo.familyName}`,
         };
       })
     : [];
@@ -53,13 +54,10 @@ const PointsProgressChart = ({ driverData, isLoading }: PointsProgressChartProps
                     borderRadius: '5px',
                     color: 'white'
                   }} 
-                  formatter={(value, name, props) => [
-                    `${value} points`, 
-                    "Points"
-                  ]}
+                  formatter={(value, name) => [`${value} points`, "Points"]}
                   labelFormatter={(value) => {
                     const driver = chartData.find(item => item.name === value);
-                    return `${value} (${driver?.team})`;
+                    return driver ? `${driver.fullName} (${driver.team})` : value;
                   }}
                 />
                 <Bar 

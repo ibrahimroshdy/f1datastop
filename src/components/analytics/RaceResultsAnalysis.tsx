@@ -69,12 +69,12 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
         position,
         grid: grid === 0 ? 20 : grid, // Pit lane starts are usually marked as 0
         driver: driver.code || driver.familyName.substring(0, 3).toUpperCase(),
-        constructorId: constructor.constructorId,
+        constructorId: constructor.constructorId.toLowerCase(),
         positionChange: grid === 0 ? 0 : grid - position,
         laps: parseInt(result.laps),
         status: result.status,
         time: result.Time ? result.Time.time : null,
-        color: TEAM_COLORS[constructor.constructorId] || TEAM_COLORS.default
+        color: TEAM_COLORS[constructor.constructorId.toLowerCase()] || TEAM_COLORS.default
       };
     }).sort((a: any, b: any) => a.position - b.position);
   };
@@ -93,12 +93,12 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
       return {
         position: parseInt(result.position),
         driver: driver.code || driver.familyName.substring(0, 3).toUpperCase(),
-        constructorId: constructor.constructorId,
+        constructorId: constructor.constructorId.toLowerCase(),
         q1,
         q2,
         q3,
         bestTime: q3 || q2 || q1,
-        color: TEAM_COLORS[constructor.constructorId] || TEAM_COLORS.default
+        color: TEAM_COLORS[constructor.constructorId.toLowerCase()] || TEAM_COLORS.default
       };
     }).sort((a: any, b: any) => a.position - b.position);
   };
@@ -126,7 +126,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   const getRaceName = () => {
     if (!raceScheduleData?.data) return "Loading...";
     const race = raceScheduleData.data.find(race => race.round === selectedRace);
-    return race ? race.raceName : "Unknown Race";
+    return race ? race.raceName.replace(/^[🇦-🇿]{2}\s/, '') : "Unknown Race";
   };
 
   return (
@@ -153,7 +153,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
               ) : (
                 raceScheduleData?.data?.map((race) => (
                   <SelectItem key={race.round} value={race.round}>
-                    {race.raceName}
+                    {race.raceName.replace(/^[🇦-🇿]{2}\s/, '')}
                   </SelectItem>
                 ))
               )}
@@ -171,7 +171,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
           <TabsContent value="grid">
             {isResultsLoading ? (
               <Skeleton className="h-[350px] w-full" />
-            ) : raceData.length === 0 ? (
+            ) : !raceResultsData?.data?.Results || raceResultsData.data.Results.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[350px] text-center">
                 <p className="text-muted-foreground">No race results available</p>
                 <p className="text-sm text-muted-foreground mt-2">This could be because the race hasn't occurred yet or results weren't recorded.</p>
@@ -241,7 +241,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
           <TabsContent value="qualifying">
             {isQualifyingLoading ? (
               <Skeleton className="h-[350px] w-full" />
-            ) : qualifyingDisplayData.length === 0 ? (
+            ) : !qualifyingResultsData?.data?.QualifyingResults || qualifyingResultsData.data.QualifyingResults.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[350px] text-center">
                 <p className="text-muted-foreground">No qualifying data available</p>
                 <p className="text-sm text-muted-foreground mt-2">This could be because qualifying hasn't occurred yet or data wasn't recorded.</p>
@@ -269,7 +269,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                         borderColor: '#333',
                         borderRadius: '5px'
                       }}
-                      formatter={(value, name, props) => {
+                      formatter={(value, name) => {
                         if (name === 'Q1') return [formatTime(value as number), 'Q1'];
                         if (name === 'Q2') return [formatTime(value as number), 'Q2'];
                         if (name === 'Q3') return [formatTime(value as number), 'Q3'];

@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { TEAM_COLORS } from "@/constants/f1Colors";
-import { getPitStops } from "@/services/f1Service";
+import { getPitStops, getRaceResults } from "@/services/f1Service";
 import { toast } from "sonner";
 
 interface PitStopAnalysisProps {
@@ -19,6 +19,7 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
   const [pitStopData, setPitStopData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [driverInfo, setDriverInfo] = useState<Record<string, any>>({});
 
   // Update selected race when schedule changes
   useEffect(() => {
@@ -39,6 +40,32 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
     }
   }, [raceScheduleData, selectedRace]);
 
+  // Fetch driver information for the race
+  useEffect(() => {
+    if (selectedRace) {
+      getRaceResults(year, selectedRace)
+        .then(response => {
+          if (response?.data?.Results) {
+            const drivers: Record<string, any> = {};
+            
+            response.data.Results.forEach((result: any) => {
+              const driverId = result.Driver.driverId;
+              drivers[driverId] = {
+                code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
+                team: result.Constructor?.constructorId || "unknown",
+                fullName: `${result.Driver.givenName} ${result.Driver.familyName}`
+              };
+            });
+            
+            setDriverInfo(drivers);
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching driver info:", error);
+        });
+    }
+  }, [selectedRace, year]);
+
   // Fetch pit stop data when selected race changes
   useEffect(() => {
     if (selectedRace) {
@@ -47,8 +74,8 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
       
       getPitStops(year, selectedRace)
         .then(response => {
-          if (response && response.data) {
-            const processedData = processPitStopData(response.data);
+          if (response?.data?.Races && response.data.Races.length > 0 && response.data.Races[0].PitStops) {
+            const processedData = processPitStopData(response.data.Races[0]);
             setPitStopData(processedData);
           } else {
             setPitStopData([]);
@@ -65,67 +92,47 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
           setIsLoading(false);
         });
     }
-  }, [selectedRace, year]);
+  }, [selectedRace, year, driverInfo]);
 
   // Process pit stop data for the chart
-  const processPitStopData = (data: any) => {
-    // Check if the required data structures exist
-    if (!data || !data.MRData || !data.MRData.RaceTable || !data.MRData.RaceTable.Races || 
-        data.MRData.RaceTable.Races.length === 0) {
-      return [];
-    }
-    
-    const race = data.MRData.RaceTable.Races[0];
-    
+  const processPitStopData = (race: any) => {
     // If no pit stops data is available
     if (!race.PitStops || race.PitStops.length === 0) {
       return [];
     }
     
     // Group pit stops by driver and calculate average
-    const pitStopsByDriver: Record<string, {times: number[], constructor: string, driverCode: string}> = {};
+    const pitStopsByDriver: Record<string, {times: number[], lapNumbers: number[]}> = {};
     
     race.PitStops.forEach((stop: any) => {
       const driverId = stop.driverId;
       const seconds = convertToSeconds(stop.duration);
+      const lapNumber = parseInt(stop.lap);
       
       if (!pitStopsByDriver[driverId]) {
-        // Find constructor for this driver
-        let constructor = "unknown";
-        let driverCode = driverId.toUpperCase().substring(0, 3);
-        
-        if (race.Results) {
-          const driverResult = race.Results.find((r: any) => r.Driver.driverId === driverId);
-          if (driverResult) {
-            if (driverResult.Constructor) {
-              constructor = driverResult.Constructor.constructorId;
-            }
-            if (driverResult.Driver.code) {
-              driverCode = driverResult.Driver.code;
-            }
-          }
-        }
-        
         pitStopsByDriver[driverId] = {
           times: [],
-          constructor,
-          driverCode
+          lapNumbers: []
         };
       }
       
       pitStopsByDriver[driverId].times.push(seconds);
+      pitStopsByDriver[driverId].lapNumbers.push(lapNumber);
     });
     
     // Calculate averages and format for chart
     return Object.entries(pitStopsByDriver).map(([driverId, data]) => {
       const totalTime = data.times.reduce((sum, time) => sum + time, 0);
       const avgTime = data.times.length > 0 ? totalTime / data.times.length : 0;
+      const driver = driverInfo[driverId] || { code: driverId.substring(0, 3).toUpperCase(), team: "unknown" };
       
       return {
-        driver: data.driverCode,
+        driver: driver.code,
         avgPitTime: parseFloat(avgTime.toFixed(3)),
-        constructorId: data.constructor,
-        count: data.times.length
+        constructorId: driver.team.toLowerCase(),
+        count: data.times.length,
+        fullName: driver.fullName || driver.code,
+        lapNumbers: data.lapNumbers.join(', ')
       };
     }).sort((a, b) => a.avgPitTime - b.avgPitTime);
   };
@@ -150,7 +157,7 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
   const getRaceName = () => {
     if (!raceScheduleData?.data) return "Loading...";
     const race = raceScheduleData.data.find(race => race.round === selectedRace);
-    return race ? race.raceName : "Unknown Race";
+    return race ? race.raceName.replace(/^[🇦-🇿]{2}\s/, '') : "Unknown Race";
   };
 
   return (
@@ -175,7 +182,7 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
               ) : (
                 raceScheduleData?.data?.map((race) => (
                   <SelectItem key={race.round} value={race.round}>
-                    {race.raceName}
+                    {race.raceName.replace(/^[🇦-🇿]{2}\s/, '')}
                   </SelectItem>
                 ))
               )}
@@ -216,7 +223,7 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
                   formatter={(value, name) => [`${value} seconds`, 'Avg Pit Time']}
                   labelFormatter={(value) => {
                     const driver = pitStopData.find(d => d.driver === value);
-                    return `${value} (${driver?.count || 0} stops)`;
+                    return driver ? `${driver.fullName} (${driver.count} stops, laps: ${driver.lapNumbers})` : value;
                   }}
                 />
                 <Bar 
