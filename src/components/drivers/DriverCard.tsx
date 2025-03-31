@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Info, X } from "lucide-react";
+import { Info } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -17,9 +17,9 @@ const DriverCard = ({ driver }: DriverCardProps) => {
   
   // Map constructor IDs to team colors using our constants file
   const constructorId = driver.Constructors[0].constructorId;
-  const teamColorClass = TEAM_COLORS[constructorId] 
-    ? `border-[${TEAM_COLORS[constructorId]}] bg-[${TEAM_COLORS[constructorId]}]/10` 
-    : "border-gray-500 bg-gray-500/10";
+  
+  // Get the team color using the constructor ID
+  const teamColor = TEAM_COLORS[constructorId] || TEAM_COLORS.default;
 
   // Extract birth year for age calculation
   const birthYear = driver.Driver.dateOfBirth 
@@ -28,17 +28,24 @@ const DriverCard = ({ driver }: DriverCardProps) => {
   const currentYear = new Date().getFullYear();
   const age = birthYear ? currentYear - birthYear : "N/A";
 
+  // Get driver number
+  const driverNumber = driver.Driver.permanentNumber || 'N/A';
+
   return (
     <>
-      <Card className="overflow-hidden border-t-4 border-t-f1-red hover:shadow-md transition-shadow">
+      <Card className="overflow-hidden border-t-4 hover:shadow-md transition-shadow" style={{ borderTopColor: teamColor }}>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
-            <Avatar className="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center text-white font-bold">
+            <Avatar className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: teamColor }}>
               {driver.Driver.code?.slice(0, 2) || driver.Driver.familyName.slice(0, 2)}
             </Avatar>
             <div>
               <h3 className="text-lg font-bold">{driver.Driver.givenName} {driver.Driver.familyName}</h3>
-              <p className="text-sm text-muted-foreground">{driver.Constructors[0].name}</p>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: teamColor }}></span>
+                {driver.Constructors[0].name}
+                <span className="ml-1 text-xs font-medium">#{driverNumber}</span>
+              </p>
             </div>
           </div>
           <Badge variant="outline" className="bg-f1-dark">P{driver.position}</Badge>
@@ -59,7 +66,7 @@ const DriverCard = ({ driver }: DriverCardProps) => {
             </div>
             <div>
               <p className="text-muted-foreground">Driver Number</p>
-              <p className="font-semibold">#{driver.Driver.permanentNumber || 'N/A'}</p>
+              <p className="font-semibold">#{driverNumber}</p>
             </div>
           </div>
         </CardContent>
@@ -81,12 +88,12 @@ const DriverCard = ({ driver }: DriverCardProps) => {
             <DialogTitle className="flex items-center gap-2">
               <span 
                 className="inline-block w-4 h-4 rounded-full"
-                style={{ backgroundColor: TEAM_COLORS[constructorId] || "#CCCCCC" }}
+                style={{ backgroundColor: teamColor }}
               ></span>
               {driver.Driver.givenName} {driver.Driver.familyName}
             </DialogTitle>
             <DialogDescription>
-              {driver.Constructors[0].name} | #{driver.Driver.permanentNumber || 'N/A'}
+              {driver.Constructors[0].name} | #{driverNumber}
             </DialogDescription>
           </DialogHeader>
           
