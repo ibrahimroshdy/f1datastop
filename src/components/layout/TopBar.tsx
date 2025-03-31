@@ -31,7 +31,7 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
         </Button>
         <div className="hidden md:flex items-center ml-2 gap-2">
           <div className="live-indicator">
-            <span className="ml-1">LIVE: Monaco GP - Lap 45/78</span>
+            {/* Removed the hardcoded race information */}
           </div>
         </div>
       </div>
