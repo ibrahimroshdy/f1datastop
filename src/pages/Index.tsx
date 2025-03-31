@@ -13,8 +13,10 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults } from "@/hooks/useF1Data";
-import { Loader2, Trophy, Flag, Calendar, Clock } from "lucide-react";
+import { Loader2, Trophy, Flag, Calendar, Clock, AlertCircle } from "lucide-react";
 import { formatDistance } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useEffect, useState } from "react";
 
 const Index = () => {
   const { data: driverStandings, isLoading: isDriversLoading } = useDriverStandings();
@@ -23,6 +25,19 @@ const Index = () => {
   const { data: lastRaceResults, isLoading: isResultsLoading } = useLastRaceResults();
   
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading;
+  const [isOffline, setIsOffline] = useState(false);
+  
+  useEffect(() => {
+    // Check if we're using offline data
+    if (
+      driverStandings?.error || 
+      constructorStandings?.error || 
+      raceSchedule?.error || 
+      lastRaceResults?.error
+    ) {
+      setIsOffline(true);
+    }
+  }, [driverStandings, constructorStandings, raceSchedule, lastRaceResults]);
   
   const getTeamColor = (constructorId: string) => {
     const teamColors: Record<string, string> = {
@@ -119,6 +134,16 @@ const Index = () => {
           )}
         </div>
       </header>
+      
+      {isOffline && (
+        <Alert className="mb-6 bg-yellow-900/20 border-yellow-600 text-yellow-200">
+          <AlertCircle className="h-4 w-4 text-yellow-400" />
+          <AlertTitle>API Connection Issue</AlertTitle>
+          <AlertDescription>
+            Unable to connect to the F1 API. Showing offline data instead. Some information might not be up to date.
+          </AlertDescription>
+        </Alert>
+      )}
       
       {isLoading ? (
         <div className="flex items-center justify-center h-96">
