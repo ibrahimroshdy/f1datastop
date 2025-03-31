@@ -34,7 +34,6 @@ export const useLastRaceResults = () => {
   });
 };
 
-// Add missing hook functions
 export const useNextRace = () => {
   return useQuery({
     queryKey: ["nextRace"],

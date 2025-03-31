@@ -1,38 +1,19 @@
 
 import { toast } from "sonner";
 
-const BASE_URL = "https://ergast.com/api/f1";
+const BASE_URL = "https://jolpica-f1-node-c7d9d12a46ee.herokuapp.com/api";
 
-// Fetch current season data
-export const getCurrentSeason = async () => {
-  try {
-    const response = await fetch(`${BASE_URL}/current.json`);
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return { data: data.MRData, error: null };
-  } catch (error) {
-    console.error("Failed to fetch F1 season data:", error);
-    toast.error("Failed to load F1 season data. Please try again later.");
-    return { data: null, error };
-  }
-};
-
-// Fetch driver standings for current season
+// Fetch driver standings
 export const getDriverStandings = async () => {
   try {
-    const currentYear = new Date().getFullYear();
-    const response = await fetch(`${BASE_URL}/${currentYear}/driverStandings.json`);
+    const response = await fetch(`${BASE_URL}/driver-standings/2024`);
     
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
     
     const data = await response.json();
-    return { data: data.MRData.StandingsTable.StandingsLists[0]?.DriverStandings || [], error: null };
+    return { data: data.data || [], error: null };
   } catch (error) {
     console.error("Failed to fetch driver standings:", error);
     toast.error("Failed to load driver standings. Please try again later.");
@@ -40,18 +21,17 @@ export const getDriverStandings = async () => {
   }
 };
 
-// Fetch constructor standings for current season
+// Fetch constructor standings
 export const getConstructorStandings = async () => {
   try {
-    const currentYear = new Date().getFullYear();
-    const response = await fetch(`${BASE_URL}/${currentYear}/constructorStandings.json`);
+    const response = await fetch(`${BASE_URL}/team-standings/2024`);
     
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
     
     const data = await response.json();
-    return { data: data.MRData.StandingsTable.StandingsLists[0]?.ConstructorStandings || [], error: null };
+    return { data: data.data || [], error: null };
   } catch (error) {
     console.error("Failed to fetch constructor standings:", error);
     toast.error("Failed to load constructor standings. Please try again later.");
@@ -59,18 +39,17 @@ export const getConstructorStandings = async () => {
   }
 };
 
-// Fetch upcoming race schedule
+// Fetch race schedule
 export const getRaceSchedule = async () => {
   try {
-    const currentYear = new Date().getFullYear();
-    const response = await fetch(`${BASE_URL}/${currentYear}.json`);
+    const response = await fetch(`${BASE_URL}/race-schedule/2024`);
     
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
     
     const data = await response.json();
-    return { data: data.MRData.RaceTable.Races, error: null };
+    return { data: data.data || [], error: null };
   } catch (error) {
     console.error("Failed to fetch race schedule:", error);
     toast.error("Failed to load race schedule. Please try again later.");
@@ -81,18 +60,44 @@ export const getRaceSchedule = async () => {
 // Fetch last race results
 export const getLastRaceResults = async () => {
   try {
-    const currentYear = new Date().getFullYear();
-    const response = await fetch(`${BASE_URL}/${currentYear}/last/results.json`);
+    const scheduleResponse = await fetch(`${BASE_URL}/race-schedule/2024`);
     
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+    if (!scheduleResponse.ok) {
+      throw new Error(`API request failed with status ${scheduleResponse.status}`);
     }
     
-    const data = await response.json();
+    const scheduleData = await scheduleResponse.json();
+    const races = scheduleData.data || [];
+    
+    // Find the last completed race
+    const now = new Date();
+    const completedRaces = races.filter(race => new Date(race.date) < now);
+    
+    if (completedRaces.length === 0) {
+      return { 
+        data: { 
+          raceName: null, 
+          results: [] 
+        }, 
+        error: null 
+      };
+    }
+    
+    const lastRace = completedRaces[completedRaces.length - 1];
+    
+    // Get results for the last race
+    const resultsResponse = await fetch(`${BASE_URL}/race-results/${lastRace.year}/${lastRace.round}`);
+    
+    if (!resultsResponse.ok) {
+      throw new Error(`API request failed with status ${resultsResponse.status}`);
+    }
+    
+    const resultsData = await resultsResponse.json();
+    
     return { 
       data: {
-        raceName: data.MRData.RaceTable.Races[0]?.raceName,
-        results: data.MRData.RaceTable.Races[0]?.Results || []
+        raceName: lastRace.name,
+        results: resultsData.data || []
       }, 
       error: null 
     };
@@ -103,29 +108,37 @@ export const getLastRaceResults = async () => {
   }
 };
 
-// New functions to match the hooks
-
 // Get next race data
 export const getNextRace = async () => {
   try {
-    const currentYear = new Date().getFullYear();
-    const response = await fetch(`${BASE_URL}/${currentYear}/next.json`);
+    const response = await fetch(`${BASE_URL}/race-schedule/2024`);
     
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
     
     const data = await response.json();
+    const races = data.data || [];
+    
+    // Find the next upcoming race
+    const now = new Date();
+    const upcomingRaces = races.filter(race => new Date(race.date) > now);
+    
+    if (upcomingRaces.length === 0) {
+      return { data: [], error: null };
+    }
+    
+    const nextRace = upcomingRaces[0];
     
     // Transform data to match component expectations
-    const transformedData = data.MRData.RaceTable.Races.map((race: any) => ({
-      meeting_name: race.raceName,
-      location: `${race.Circuit.Location.locality}, ${race.Circuit.Location.country}`,
-      session_status: new Date(race.date + "T" + (race.time || "00:00:00Z")) > new Date() ? "Upcoming" : "Ongoing",
-      session_name: race.raceName,
+    const transformedData = [{
+      meeting_name: nextRace.name,
+      location: `${nextRace.Circuit.location}, ${nextRace.Circuit.country}`,
+      session_status: "Upcoming",
+      session_name: nextRace.name,
       session_type: "Race",
-      total_laps: "78", // Default value as API doesn't provide this
-    }));
+      total_laps: nextRace.laps || "Unknown",
+    }];
     
     return { data: transformedData, error: null };
   } catch (error) {
@@ -135,10 +148,10 @@ export const getNextRace = async () => {
   }
 };
 
-// Race status data (mock data as Ergast doesn't provide live race data)
+// Race status data
 export const getRaceStatus = async (sessionId?: string) => {
   try {
-    // Since Ergast doesn't provide live race status, return mock data
+    // Since we don't have live race status from the API, return mock data
     const mockData = [{
       lap_number: "42",
       // Add more fields as needed by the components
@@ -152,24 +165,23 @@ export const getRaceStatus = async (sessionId?: string) => {
   }
 };
 
-// Driver info data (mock data as Ergast doesn't provide this format)
+// Driver info data
 export const getDriverInfo = async (sessionId?: string) => {
   try {
-    // Get current drivers from standings to use in mock data
-    const driversResponse = await fetch(`${BASE_URL}/current/driverStandings.json`);
+    const response = await fetch(`${BASE_URL}/driver-standings/2024`);
     
-    if (!driversResponse.ok) {
-      throw new Error(`API request failed with status ${driversResponse.status}`);
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
     }
     
-    const driversData = await driversResponse.json();
-    const drivers = driversData.MRData.StandingsTable.StandingsLists[0]?.DriverStandings || [];
+    const data = await response.json();
+    const drivers = data.data || [];
     
-    // Create mock data based on real drivers
+    // Transform data to match component expectations
     const mockData = drivers.slice(0, 10).map((driver: any, index: number) => ({
-      driver_number: driver.Driver.permanentNumber,
-      full_name: `${driver.Driver.givenName} ${driver.Driver.familyName}`,
-      team_name: driver.Constructors[0].name,
+      driver_number: driver.permanentNumber || driver.driverNumber || `${index + 1}`,
+      full_name: driver.name || `Driver ${index + 1}`,
+      team_name: driver.team?.name || "Unknown Team",
       position: index + 1,
       gap_to_leader: index === 0 ? "0.0" : (Math.random() * 30).toFixed(1),
     }));
@@ -182,7 +194,7 @@ export const getDriverInfo = async (sessionId?: string) => {
   }
 };
 
-// Weather data (mock data as Ergast doesn't provide this)
+// Weather data
 export const getWeatherData = async (sessionId?: string) => {
   try {
     // Return mock weather data
@@ -201,7 +213,7 @@ export const getWeatherData = async (sessionId?: string) => {
   }
 };
 
-// F1 News data (mock data as we don't have a news API integrated)
+// F1 News data
 export const getF1News = async () => {
   try {
     // Return mock news data
