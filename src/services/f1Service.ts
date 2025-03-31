@@ -1,6 +1,7 @@
+
 import { toast } from "sonner";
 
-const BASE_URL = "https://api.jolpi.ca/ergast/f1";
+const BASE_URL = "https://api.jolpi.ca/ergast";
 
 // Mock data for when API is unavailable
 const mockDriverStandings = [
@@ -109,7 +110,7 @@ const mockLastRaceResults = [
 // Fetch driver standings
 export const getDriverStandings = async () => {
   try {
-    const response = await fetch(`${BASE_URL}/driver-standings/2024`, {
+    const response = await fetch(`${BASE_URL}/f1/current/driverStandings.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -121,7 +122,10 @@ export const getDriverStandings = async () => {
     }
     
     const data = await response.json();
-    return { data: data.data || [], error: null };
+    return { 
+      data: data.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [], 
+      error: null 
+    };
   } catch (error) {
     console.error("Failed to fetch driver standings:", error);
     toast.error("Using offline data for driver standings.");
@@ -132,7 +136,7 @@ export const getDriverStandings = async () => {
 // Fetch constructor standings
 export const getConstructorStandings = async () => {
   try {
-    const response = await fetch(`${BASE_URL}/team-standings/2024`, {
+    const response = await fetch(`${BASE_URL}/f1/current/constructorStandings.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -144,7 +148,10 @@ export const getConstructorStandings = async () => {
     }
     
     const data = await response.json();
-    return { data: data.data || [], error: null };
+    return { 
+      data: data.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || [], 
+      error: null 
+    };
   } catch (error) {
     console.error("Failed to fetch constructor standings:", error);
     toast.error("Using offline data for constructor standings.");
@@ -155,7 +162,7 @@ export const getConstructorStandings = async () => {
 // Fetch race schedule
 export const getRaceSchedule = async () => {
   try {
-    const response = await fetch(`${BASE_URL}/race-schedule/2024`, {
+    const response = await fetch(`${BASE_URL}/f1/current.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -167,7 +174,10 @@ export const getRaceSchedule = async () => {
     }
     
     const data = await response.json();
-    return { data: data.data || [], error: null };
+    return { 
+      data: data.MRData?.RaceTable?.Races || [], 
+      error: null 
+    };
   } catch (error) {
     console.error("Failed to fetch race schedule:", error);
     toast.error("Using offline data for race schedule.");
@@ -178,7 +188,8 @@ export const getRaceSchedule = async () => {
 // Fetch last race results
 export const getLastRaceResults = async () => {
   try {
-    const scheduleResponse = await fetch(`${BASE_URL}/race-schedule/2024`, {
+    // First, get the race schedule to find the last completed race
+    const scheduleResponse = await fetch(`${BASE_URL}/f1/current.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -190,7 +201,7 @@ export const getLastRaceResults = async () => {
     }
     
     const scheduleData = await scheduleResponse.json();
-    const races = scheduleData.data || [];
+    const races = scheduleData.MRData?.RaceTable?.Races || [];
     
     // Find the last completed race
     const now = new Date();
@@ -209,7 +220,7 @@ export const getLastRaceResults = async () => {
     const lastRace = completedRaces[completedRaces.length - 1];
     
     // Get results for the last race
-    const resultsResponse = await fetch(`${BASE_URL}/race-results/${lastRace.year}/${lastRace.round}`, {
+    const resultsResponse = await fetch(`${BASE_URL}/f1/${lastRace.season}/${lastRace.round}/results.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -224,8 +235,8 @@ export const getLastRaceResults = async () => {
     
     return { 
       data: {
-        raceName: lastRace.name,
-        results: resultsData.data || []
+        raceName: lastRace.raceName,
+        results: resultsData.MRData?.RaceTable?.Races?.[0]?.Results || []
       }, 
       error: null 
     };
@@ -245,7 +256,7 @@ export const getLastRaceResults = async () => {
 // Get next race data
 export const getNextRace = async () => {
   try {
-    const response = await fetch(`${BASE_URL}/race-schedule/2024`, {
+    const response = await fetch(`${BASE_URL}/f1/current.json`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
@@ -257,7 +268,7 @@ export const getNextRace = async () => {
     }
     
     const data = await response.json();
-    const races = data.data || [];
+    const races = data.MRData?.RaceTable?.Races || [];
     
     // Find the next upcoming race
     const now = new Date();
@@ -283,10 +294,10 @@ export const getNextRace = async () => {
     
     // Transform data to match component expectations
     const transformedData = [{
-      meeting_name: nextRace.name,
-      location: `${nextRace.Circuit.location}, ${nextRace.Circuit.country}`,
+      meeting_name: nextRace.raceName,
+      location: `${nextRace.Circuit.Location.locality}, ${nextRace.Circuit.Location.country}`,
       session_status: "Upcoming",
-      session_name: nextRace.name,
+      session_name: nextRace.raceName,
       session_type: "Race",
       total_laps: nextRace.laps || "Unknown",
     }];
