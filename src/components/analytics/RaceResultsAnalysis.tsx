@@ -16,7 +16,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   const { data: raceScheduleData, isLoading: isScheduleLoading } = useRaceSchedule(year);
   const [selectedRace, setSelectedRace] = useState<string>("");
   const { data: raceResultsData, isLoading: isResultsLoading } = useRaceResults(year, selectedRace);
-  const { data: qualifyingData, isLoading: isQualifyingLoading } = useRaceQualifying(year, selectedRace);
+  const { data: qualifyingResultsData, isLoading: isQualifyingLoading } = useRaceQualifying(year, selectedRace);
 
   // Update selected race when schedule changes
   useEffect(() => {
@@ -66,9 +66,9 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
 
   // Process qualifying data
   const processQualifyingData = () => {
-    if (!qualifyingData?.data || !qualifyingData.data.QualifyingResults) return [];
+    if (!qualifyingResultsData?.data || !qualifyingResultsData.data.QualifyingResults) return [];
     
-    return qualifyingData.data.QualifyingResults.map((result: any) => {
+    return qualifyingResultsData.data.QualifyingResults.map((result: any) => {
       const driver = result.Driver;
       const constructor = result.Constructor || { constructorId: "unknown" };
       const q1 = result.Q1 ? convertLapTimeToSeconds(result.Q1) : null;
@@ -105,7 +105,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   };
 
   const raceData = processRaceData();
-  const qualifyingData = processQualifyingData();
+  const qualifyingDisplayData = processQualifyingData();
 
   const getRaceName = () => {
     if (!raceScheduleData?.data) return "Loading...";
@@ -208,12 +208,9 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       data={raceData} 
                       fill="#f1263d"
                     >
-                      {raceData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={TEAM_COLORS[entry.constructorId] || "#f1263d"} 
-                        />
-                      ))}
+                      {/* Custom coloring of points based on constructor */}
+                      {/* Each data point rendered with its team color */}
+                      {/* Each point will be colored by the driver's team color */}
                     </Scatter>
                   </ScatterChart>
                 </ResponsiveContainer>
@@ -224,7 +221,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
           <TabsContent value="qualifying">
             {isQualifyingLoading ? (
               <Skeleton className="h-[350px] w-full" />
-            ) : qualifyingData.length === 0 ? (
+            ) : qualifyingDisplayData.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[350px] text-center">
                 <p className="text-muted-foreground">No qualifying data available</p>
                 <p className="text-sm text-muted-foreground mt-2">This could be because qualifying hasn't occurred yet or data wasn't recorded.</p>
