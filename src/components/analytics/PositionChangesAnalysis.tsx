@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -223,11 +224,13 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
                   <XAxis 
                     dataKey="lap" 
                     label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+                    xAxisId="lap"
                   />
                   <YAxis 
                     reversed 
                     domain={[1, 20]} 
                     label={{ value: 'Position', angle: -90, position: 'insideLeft' }} 
+                    yAxisId="position"
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -252,6 +255,8 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
                         dot={{ r: 3 }}
                         activeDot={{ r: 8 }}
                         connectNulls
+                        xAxisId="lap"
+                        yAxisId="position"
                       />
                     ))}
                 </LineChart>
