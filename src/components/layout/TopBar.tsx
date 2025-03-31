@@ -1,7 +1,7 @@
 
 import { useNextRace } from "@/hooks/useF1Data";
 import { CalendarDays } from "lucide-react";
-import { format, addHours } from "date-fns";
+import { format } from "date-fns";
 
 interface TopBarProps {
   sidebarOpen: boolean;
@@ -32,7 +32,6 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
 
   // Helper function to remove flag emojis from race names
   const removeFlag = (raceName: string) => {
-    // This will match and remove flag emojis at the beginning followed by a space
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
     }

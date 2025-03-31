@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRaceSchedule } from "@/hooks/useF1Data";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { getPitStops, getRaceResults } from "@/services/f1Service";
 import { toast } from "sonner";
@@ -21,10 +21,8 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
   const [error, setError] = useState<string | null>(null);
   const [driverInfo, setDriverInfo] = useState<Record<string, any>>({});
 
-  // Update selected race when schedule changes
   useEffect(() => {
     if (raceScheduleData?.data && raceScheduleData.data.length > 0 && !selectedRace) {
-      // Select the latest race by default
       const sortedRaces = [...raceScheduleData.data].sort((a, b) => 
         new Date(a.date).getTime() - new Date(b.date).getTime());
       
@@ -40,7 +38,6 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
     }
   }, [raceScheduleData, selectedRace]);
 
-  // Fetch driver information for the race
   useEffect(() => {
     if (selectedRace) {
       getRaceResults(year, selectedRace)
@@ -66,7 +63,6 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
     }
   }, [selectedRace, year]);
 
-  // Fetch pit stop data when selected race changes
   useEffect(() => {
     if (selectedRace) {
       setIsLoading(true);
@@ -94,14 +90,11 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
     }
   }, [selectedRace, year, driverInfo]);
 
-  // Process pit stop data for the chart
   const processPitStopData = (race: any) => {
-    // If no pit stops data is available
     if (!race.PitStops || race.PitStops.length === 0) {
       return [];
     }
     
-    // Group pit stops by driver and calculate average
     const pitStopsByDriver: Record<string, {times: number[], lapNumbers: number[]}> = {};
     
     race.PitStops.forEach((stop: any) => {
@@ -120,7 +113,6 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
       pitStopsByDriver[driverId].lapNumbers.push(lapNumber);
     });
     
-    // Calculate averages and format for chart
     return Object.entries(pitStopsByDriver).map(([driverId, data]) => {
       const totalTime = data.times.reduce((sum, time) => sum + time, 0);
       const avgTime = data.times.length > 0 ? totalTime / data.times.length : 0;
@@ -137,7 +129,6 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
     }).sort((a, b) => a.avgPitTime - b.avgPitTime);
   };
 
-  // Helper to convert MM:SS.sss to seconds
   const convertToSeconds = (timeString: string): number => {
     if (!timeString) return 0;
     
@@ -154,9 +145,7 @@ const PitStopAnalysis = ({ year }: PitStopAnalysisProps) => {
     setSelectedRace(value);
   };
 
-  // Helper function to remove flag emojis from race names
   const removeFlag = (raceName: string) => {
-    // This will match and remove flag emojis at the beginning followed by a space
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
     }

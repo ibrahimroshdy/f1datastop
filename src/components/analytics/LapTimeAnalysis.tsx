@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRaceSchedule } from "@/hooks/useF1Data";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
+import { LineChart, Line, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { getRaceResults, getLapTimes } from "@/services/f1Service";
 import { toast } from "sonner";
@@ -23,10 +23,8 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
   const [fastestLap, setFastestLap] = useState<number | null>(null);
 
-  // Update selected race when schedule changes
   useEffect(() => {
     if (raceScheduleData?.data && raceScheduleData.data.length > 0 && !selectedRace) {
-      // Select the latest race by default
       const sortedRaces = [...raceScheduleData.data].sort((a, b) => 
         new Date(a.date).getTime() - new Date(b.date).getTime());
       
@@ -42,13 +40,11 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
     }
   }, [raceScheduleData, selectedRace]);
 
-  // Fetch lap time data when selected race changes
   useEffect(() => {
     if (selectedRace) {
       setIsLoading(true);
       setError(null);
       
-      // First get race results to identify drivers
       getRaceResults(year, selectedRace)
         .then(results => {
           if (results?.data?.Results) {
@@ -63,7 +59,6 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
               } : null
             }));
             
-            // Find fastest lap overall
             let fastest = Number.MAX_VALUE;
             let fastLap = null;
             
@@ -77,7 +72,6 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
             setFastestLap(fastLap);
             setAvailableDrivers(drivers);
             
-            // Then get lap times
             return getLapTimes(year, selectedRace);
           } else {
             throw new Error("No race results found");
@@ -90,7 +84,6 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
             if (race.Laps && race.Laps.length > 0) {
               const driverLaps: Record<string, any[]> = {};
               
-              // Process each lap
               race.Laps.forEach((lap: any) => {
                 const lapNumber = parseInt(lap.number);
                 
@@ -112,7 +105,6 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
                 });
               });
               
-              // Transform into chart-friendly format
               const processedData = Object.entries(driverLaps).map(([driverCode, laps]) => {
                 const driver = availableDrivers.find(d => d.code === driverCode);
                 
@@ -146,7 +138,6 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
     }
   }, [selectedRace, year, availableDrivers, fastestLap]);
 
-  // Helper function to convert lap time (MM:SS.sss) to seconds
   const convertLapTimeToSeconds = (lapTime: string): number => {
     if (!lapTime) return 0;
     
@@ -162,7 +153,6 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
     return minutes * 60 + seconds;
   };
 
-  // Format seconds back to MM:SS.sss
   const formatTime = (seconds: number): string => {
     if (!seconds) return "N/A";
     
@@ -183,9 +173,7 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
     );
   };
 
-  // Helper function to remove flag emojis from race names
   const removeFlag = (raceName: string) => {
-    // This will match and remove flag emojis at the beginning followed by a space
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
     }
@@ -198,24 +186,20 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
     return race ? removeFlag(race.raceName) : "Unknown Race";
   };
 
-  // Get lap times for selected drivers only
   const getSelectedDriversData = () => {
     const selectedData = lapTimeData
       .filter(driver => selectedDrivers.includes(driver.driver));
     
     if (selectedData.length === 0) return [];
     
-    // Find the max number of laps among selected drivers
     const maxLaps = Math.max(
       ...selectedData.map(driver => driver.laps.length)
     );
     
-    // Create a lap-by-lap chart data structure
     const chartData = Array.from({ length: maxLaps }, (_, i) => ({
       lap: i + 1
     }));
     
-    // Add each driver's lap time
     selectedData.forEach(driver => {
       driver.laps.forEach((lap: any) => {
         if (lap.lap <= chartData.length) {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,8 +7,6 @@ import { useRaceSchedule, useRaceResults, useRaceQualifying } from "@/hooks/useF
 import { 
   LineChart, 
   Line, 
-  XAxis, 
-  YAxis, 
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer, 
@@ -17,9 +14,9 @@ import {
   ScatterChart, 
   Scatter, 
   ZAxis,
-  ReferenceLine,
   Cell
 } from 'recharts';
+import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 
 interface RaceResultsAnalysisProps {
@@ -32,10 +29,8 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   const { data: raceResultsData, isLoading: isResultsLoading } = useRaceResults(year, selectedRace);
   const { data: qualifyingResultsData, isLoading: isQualifyingLoading } = useRaceQualifying(year, selectedRace);
 
-  // Update selected race when schedule changes
   useEffect(() => {
     if (raceScheduleData?.data && raceScheduleData.data.length > 0 && !selectedRace) {
-      // Select the latest race by default
       const sortedRaces = [...raceScheduleData.data].sort((a, b) => 
         new Date(a.date).getTime() - new Date(b.date).getTime());
       
@@ -55,7 +50,6 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
     setSelectedRace(value);
   };
 
-  // Process race results data for visualization
   const processRaceData = () => {
     if (!raceResultsData?.data || !raceResultsData.data.Results) return [];
     
@@ -67,7 +61,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
       
       return {
         position,
-        grid: grid === 0 ? 20 : grid, // Pit lane starts are usually marked as 0
+        grid: grid === 0 ? 20 : grid,
         driver: driver.code || driver.familyName.substring(0, 3).toUpperCase(),
         constructorId: constructor.constructorId.toLowerCase(),
         positionChange: grid === 0 ? 0 : grid - position,
@@ -79,7 +73,6 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
     }).sort((a: any, b: any) => a.position - b.position);
   };
 
-  // Process qualifying data
   const processQualifyingData = () => {
     if (!qualifyingResultsData?.data || !qualifyingResultsData.data.QualifyingResults) return [];
     
@@ -103,11 +96,9 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
     }).sort((a: any, b: any) => a.position - b.position);
   };
 
-  // Convert lap time string to seconds for better visualization
   const convertLapTimeToSeconds = (lapTime: string): number => {
     if (!lapTime) return 0;
     
-    // Format: 1:23.456 or 23.456
     const parts = lapTime.includes(':') 
       ? lapTime.split(':') 
       : ['0', lapTime];
@@ -123,9 +114,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   const raceData = processRaceData();
   const qualifyingDisplayData = processQualifyingData();
 
-  // Helper function to remove flag emojis from race names
   const removeFlag = (raceName: string) => {
-    // This will match and remove flag emojis at the beginning followed by a space
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
     }
@@ -321,7 +310,6 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   );
 };
 
-// Helper function to format time in MM:SS.sss format
 const formatTime = (seconds: number) => {
   if (!seconds) return "N/A";
   

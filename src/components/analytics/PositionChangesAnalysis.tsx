@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRaceSchedule } from "@/hooks/useF1Data";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { getRaceResults, getLapTimes } from "@/services/f1Service";
 import { toast } from "sonner";
@@ -137,9 +137,7 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
     );
   };
 
-  // Helper function to remove flag emojis from race names
   const removeFlag = (raceName: string) => {
-    // This will match and remove flag emojis at the beginning followed by a space
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
     }
