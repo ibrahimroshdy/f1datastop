@@ -7,6 +7,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SessionProvider } from "@/context/SessionContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import LiveRace from "./pages/LiveRace";
+import Standings from "./pages/Standings";
+import RaceCalendar from "./pages/RaceCalendar";
+import Drivers from "./pages/Drivers";
+import Analytics from "./pages/Analytics";
+import News from "./pages/News";
+import Timing from "./pages/Timing";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,6 +34,13 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/live" element={<LiveRace />} />
+            <Route path="/standings" element={<Standings />} />
+            <Route path="/calendar" element={<RaceCalendar />} />
+            <Route path="/drivers" element={<Drivers />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/news" element={<News />} />
+            <Route path="/timing" element={<Timing />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
