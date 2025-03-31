@@ -313,6 +313,7 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
                       strokeDasharray="3 3" 
                       label={{ value: 'Fastest Lap', position: 'right', fill: 'red' }} 
                       yAxisId="lapTime"
+                      xAxisId="lapTime"
                     />
                   )}
                   
