@@ -2,46 +2,35 @@
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 
-// Get the current year
-const currentYear = new Date().getFullYear().toString();
-
-export const useDriverStandings = (year = currentYear) => {
+export const useDriverStandings = () => {
   return useQuery({
-    queryKey: ["driverStandings", year],
-    queryFn: () => f1Service.getDriverStandings(year),
+    queryKey: ["driverStandings"],
+    queryFn: f1Service.getDriverStandings,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 2,
-    refetchOnWindowFocus: false,
   });
 };
 
-export const useConstructorStandings = (year = currentYear) => {
+export const useConstructorStandings = () => {
   return useQuery({
-    queryKey: ["constructorStandings", year],
-    queryFn: () => f1Service.getConstructorStandings(year),
+    queryKey: ["constructorStandings"],
+    queryFn: f1Service.getConstructorStandings,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 2,
-    refetchOnWindowFocus: false,
   });
 };
 
-export const useRaceSchedule = (year = currentYear) => {
+export const useRaceSchedule = () => {
   return useQuery({
-    queryKey: ["raceSchedule", year],
-    queryFn: () => f1Service.getRaceSchedule(year),
+    queryKey: ["raceSchedule"],
+    queryFn: f1Service.getRaceSchedule,
     staleTime: 1000 * 60 * 10, // 10 minutes
-    retry: 2,
-    refetchOnWindowFocus: false,
   });
 };
 
-export const useLastRaceResults = (year = currentYear) => {
+export const useLastRaceResults = () => {
   return useQuery({
-    queryKey: ["lastRaceResults", year],
-    queryFn: () => f1Service.getLastRaceResults(year),
+    queryKey: ["lastRaceResults"],
+    queryFn: f1Service.getLastRaceResults,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 2,
-    refetchOnWindowFocus: false,
   });
 };
 
@@ -85,16 +74,5 @@ export const useF1News = () => {
     queryKey: ["f1News"],
     queryFn: f1Service.getF1News,
     staleTime: 1000 * 60 * 15, // 15 minutes
-  });
-};
-
-export const useCurrentRace = () => {
-  return useQuery({
-    queryKey: ["currentRace"],
-    queryFn: f1Service.getCurrentRace,
-    staleTime: 1000 * 60, // 1 minute
-    refetchInterval: 1000 * 60, // Refetch every minute
-    retry: 2,
-    refetchOnWindowFocus: false,
   });
 };

@@ -1,39 +1,20 @@
 
-import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLastRaceResults } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Timing = () => {
-  const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear.toString());
-  const { data: lastRaceData, isLoading } = useLastRaceResults(selectedYear);
+  const { data: lastRaceData, isLoading } = useLastRaceResults();
 
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="flex flex-col">
-            <h1 className="text-3xl font-bold">Race Timing</h1>
-            <p className="text-muted-foreground">Latest race results and timing information</p>
-          </div>
-          
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[120px] bg-gray-800">
-              <SelectValue placeholder="Year" />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 6 }, (_, i) => currentYear - i).map(year => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col">
+          <h1 className="text-3xl font-bold">Race Timing</h1>
+          <p className="text-muted-foreground">Latest race results and timing information</p>
         </div>
 
         <Card>

@@ -12,21 +12,17 @@ import {
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults } from "@/hooks/useF1Data";
-import { Loader2, Trophy, Calendar, Clock, AlertCircle } from "lucide-react";
-import { formatDistance, isValid } from "date-fns";
+import { Loader2, Trophy, Flag, Calendar, Clock, AlertCircle } from "lucide-react";
+import { formatDistance } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
 
 const Index = () => {
-  const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear.toString());
-  
-  const { data: driverStandings, isLoading: isDriversLoading } = useDriverStandings(selectedYear);
-  const { data: constructorStandings, isLoading: isConstructorsLoading } = useConstructorStandings(selectedYear);
-  const { data: raceSchedule, isLoading: isScheduleLoading } = useRaceSchedule(selectedYear);
-  const { data: lastRaceResults, isLoading: isResultsLoading } = useLastRaceResults(selectedYear);
+  const { data: driverStandings, isLoading: isDriversLoading } = useDriverStandings();
+  const { data: constructorStandings, isLoading: isConstructorsLoading } = useConstructorStandings();
+  const { data: raceSchedule, isLoading: isScheduleLoading } = useRaceSchedule();
+  const { data: lastRaceResults, isLoading: isResultsLoading } = useLastRaceResults();
   
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading;
   const [isOffline, setIsOffline] = useState(false);
@@ -40,8 +36,6 @@ const Index = () => {
       lastRaceResults?.error
     ) {
       setIsOffline(true);
-    } else {
-      setIsOffline(false);
     }
   }, [driverStandings, constructorStandings, raceSchedule, lastRaceResults]);
   
@@ -101,33 +95,12 @@ const Index = () => {
   };
   
   const formatRaceDate = (dateStr: string, timeStr: string) => {
-    try {
-      // Make sure we have a valid date string format
-      if (!dateStr) return { date: "Unknown", time: "Unknown", fromNow: "Unknown" };
-      
-      // Ensure we have a valid time string or use a default
-      const formattedTimeStr = timeStr || "00:00:00Z";
-      
-      // Create the date object
-      const raceDate = new Date(dateStr + "T" + formattedTimeStr);
-      
-      // Check if the date is valid before proceeding
-      if (!isValid(raceDate)) {
-        return { date: "Invalid date", time: "Invalid time", fromNow: "Unknown" };
-      }
-      
-      // Get the current date for relative time calculation
-      const now = new Date();
-      
-      return {
-        date: raceDate.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }),
-        time: raceDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
-        fromNow: formatDistance(raceDate, now, { addSuffix: true })
-      };
-    } catch (error) {
-      console.error("Error formatting race date:", error, { dateStr, timeStr });
-      return { date: "Error", time: "Error", fromNow: "Unknown" };
-    }
+    const raceDate = new Date(dateStr + "T" + (timeStr || "00:00:00Z"));
+    return {
+      date: raceDate.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }),
+      time: raceDate.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
+      fromNow: formatDistance(raceDate, new Date(), { addSuffix: true })
+    };
   };
   
   // Get top 3 drivers
@@ -141,38 +114,24 @@ const Index = () => {
           <div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight flex items-center gap-2">
               <span className="h-8 w-8 bg-f1-red rounded-full flex items-center justify-center font-bold">F1</span>
-              Formula 1 Season {selectedYear}
+              Formula 1 Season {new Date().getFullYear()}
             </h1>
             <p className="text-gray-400 mt-1">Live race data, standings and schedule</p>
           </div>
-          <div className="flex items-center gap-4 mt-4 md:mt-0">
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-[120px] bg-gray-800">
-                <SelectValue placeholder="Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: 6 }, (_, i) => currentYear - i).map(year => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {nextRace && (
-              <div className="bg-gray-800 rounded-lg px-4 py-2 flex items-center gap-2">
-                <span className="text-xl">{getCountryFlag(nextRace.Circuit.Location.country)}</span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-f1-red text-white border-0">NEXT RACE</Badge>
-                    <span className="font-medium">{nextRace.raceName}</span>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    {formatRaceDate(nextRace.date, nextRace.time || "").fromNow}
-                  </div>
+          {nextRace && (
+            <div className="mt-4 md:mt-0 bg-gray-800 rounded-lg px-4 py-2 flex items-center gap-2">
+              <span className="text-xl">{getCountryFlag(nextRace.Circuit.Location.country)}</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-f1-red text-white border-0">NEXT RACE</Badge>
+                  <span className="font-medium">{nextRace.raceName}</span>
+                </div>
+                <div className="text-sm text-gray-400">
+                  {formatRaceDate(nextRace.date, nextRace.time || "").fromNow}
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </header>
       

@@ -1,9 +1,9 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/context/SessionContext";
 import { useNextRace, useRaceStatus, useWeatherData } from "@/hooks/useF1Data";
 import { Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
 
 const LiveRaceInfo = () => {
   const { activeSessionId } = useSession();
@@ -12,14 +12,6 @@ const LiveRaceInfo = () => {
   const { data: weatherData, isLoading: isWeatherLoading } = useWeatherData(activeSessionId);
   
   const isLoading = isNextRaceLoading || isRaceStatusLoading || isWeatherLoading;
-  const [currentDateTime, setCurrentDateTime] = useState(new Date());
-  
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
   
   if (isLoading) {
     return (
@@ -35,8 +27,7 @@ const LiveRaceInfo = () => {
   const raceStatus = raceStatusData?.data?.[0] || null;
   const weather = weatherData?.data?.[0] || null;
   
-  const isLive = nextRace?.session_status === "Ongoing";
-  
+  // Get country flag emoji (fallback to Monaco flag)
   const getCountryFlag = (location: string) => {
     const countryFlags: Record<string, string> = {
       "Monte Carlo": "🇲🇨",
@@ -66,10 +57,8 @@ const LiveRaceInfo = () => {
       "Yas Marina": "🇦🇪",
     };
     
-    if (!location) return "🏁";
-    
     for (const [key, value] of Object.entries(countryFlags)) {
-      if (location.includes(key)) {
+      if (location?.includes(key)) {
         return value;
       }
     }
@@ -77,7 +66,7 @@ const LiveRaceInfo = () => {
   };
   
   const flag = getCountryFlag(nextRace?.location || "");
-  const raceName = nextRace?.meeting_name || "No Live Race";
+  const raceName = nextRace?.meeting_name || "Upcoming Race";
   const trackName = nextRace?.location || "Circuit";
   const currentLap = raceStatus?.lap_number || "?";
   const totalLaps = nextRace?.total_laps || "?";
@@ -93,7 +82,7 @@ const LiveRaceInfo = () => {
             <div className="flex items-center gap-2">
               <span className="text-2xl">{flag}</span>
               <h2 className="text-xl font-bold">{raceName}</h2>
-              {isLive ? (
+              {nextRace?.session_status === "Ongoing" ? (
                 <Badge variant="outline" className="bg-f1-red text-white border-0">LIVE</Badge>
               ) : (
                 <Badge variant="outline" className="bg-blue-600 text-white border-0">UPCOMING</Badge>
