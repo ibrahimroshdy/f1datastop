@@ -18,6 +18,7 @@ const SessionStatus = () => {
   const getTeamColor = (teamName: string) => {
     const teamColors: Record<string, string> = {
       "Red Bull Racing": "bg-redbull",
+      "Red Bull": "bg-redbull",
       "Ferrari": "bg-ferrari",
       "Mercedes": "bg-mercedes",
       "McLaren": "bg-mclaren",
@@ -25,6 +26,7 @@ const SessionStatus = () => {
       "Alpine": "bg-alpine",
       "Racing Bulls": "bg-alphatauri",
       "Haas F1 Team": "bg-haas",
+      "Haas": "bg-haas",
       "Williams": "bg-williams",
       "Kick Sauber": "bg-alfa-romeo",
     };
@@ -52,9 +54,15 @@ const SessionStatus = () => {
   const drivers = driverInfoData?.data || [];
   const weather = weatherData?.data?.[0] || null;
   
-  // Get top 3 drivers sorted by position
-  const topDrivers = [...drivers]
-    .sort((a, b) => (a.position || 999) - (b.position || 999))
+  // Add position property to drivers for sorting if it doesn't exist
+  const driversWithPosition = drivers.map((driver, index) => ({
+    ...driver,
+    position: driver.driver_number // Use driver number as fallback for position
+  }));
+  
+  // Get top 3 drivers sorted by position (or driver_number as fallback)
+  const topDrivers = [...driversWithPosition]
+    .sort((a, b) => parseInt(a.position, 10) - parseInt(b.position, 10))
     .slice(0, 3);
 
   // Fallback values if API data is missing
@@ -64,7 +72,7 @@ const SessionStatus = () => {
   const currentLap = raceStatus?.lap_number || "?";
   const totalLaps = nextRace?.total_laps || "?";
   const temperature = weather?.air_temperature ? `${Math.round(weather.air_temperature)}°C` : "?°C";
-  const weatherCondition = weather?.condition || "Unknown";
+  const weatherCondition = weather?.conditions || "Unknown"; // Changed from condition to conditions
 
   return (
     <Card className="race-card h-full">
@@ -111,10 +119,10 @@ const SessionStatus = () => {
               topDrivers.map((driver, index) => (
                 <div key={driver.driver_number} className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-6 ${getTeamColor(driver.team_name)} rounded-sm`}></div>
-                    <p className={index === 0 ? "font-medium" : ""}>{driver.full_name}</p>
+                    <div className={`w-2 h-6 ${getTeamColor(driver.team)} rounded-sm`}></div>
+                    <p className={index === 0 ? "font-medium" : ""}>{driver.name}</p>
                   </div>
-                  <p className="text-sm">{index === 0 ? "-" : `+${driver.gap_to_leader || "?.?"}s`}</p>
+                  <p className="text-sm">{index === 0 ? "-" : `+${driver.driver_number || "?.?"}s`}</p>
                 </div>
               ))
             ) : (
