@@ -34,14 +34,6 @@ const DriverComparisonChart = ({ driverData, isLoading }: DriverComparisonChartP
     }
   };
 
-  const chartData = [
-    { category: "Points", fullMark: Math.max(...topDrivers.map(d => d.points)) || 100 },
-    { category: "Wins", fullMark: 10 },
-    { category: "Podiums", fullMark: 20 },
-    { category: "Pole Positions", fullMark: 10 },
-    { category: "Fast Laps", fullMark: 10 },
-  ];
-
   // Generate random stats for demonstration purposes
   const driversWithStats = topDrivers.map(driver => {
     const randomWins = Math.floor(Math.random() * 10);
@@ -77,6 +69,37 @@ const DriverComparisonChart = ({ driverData, isLoading }: DriverComparisonChartP
     return driverColors[driverCode] || "#cccccc";
   };
 
+  // Create radar chart data structure
+  const createRadarData = () => {
+    const categories = ["Points", "Wins", "Podiums", "Pole Positions", "Fast Laps"];
+    const maxValues = {
+      "Points": Math.max(...driversWithStats.map(d => d.points || 0)),
+      "Wins": Math.max(...driversWithStats.map(d => d.Wins || 0)),
+      "Podiums": Math.max(...driversWithStats.map(d => d.Podiums || 0)),
+      "Pole Positions": Math.max(...driversWithStats.map(d => d["Pole Positions"] || 0)),
+      "Fast Laps": Math.max(...driversWithStats.map(d => d["Fast Laps"] || 0)),
+    };
+
+    return categories.map(category => {
+      const dataObj: any = {
+        category: category,
+        fullMark: maxValues[category as keyof typeof maxValues] || 100,
+      };
+      
+      // Add data for each selected driver
+      selectedDrivers.forEach(driverCode => {
+        const driver = driversWithStats.find(d => d.code === driverCode);
+        if (driver) {
+          dataObj[driverCode] = driver[category as keyof typeof driver] || 0;
+        }
+      });
+      
+      return dataObj;
+    });
+  };
+
+  const radarData = createRadarData();
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -105,7 +128,7 @@ const DriverComparisonChart = ({ driverData, isLoading }: DriverComparisonChartP
             </div>
             <div className="h-[500px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart outerRadius={180} data={chartData}>
+                <RadarChart outerRadius={180} data={radarData}>
                   <PolarGrid strokeOpacity={0.2} />
                   <PolarAngleAxis dataKey="category" tick={{ fill: "white" }} />
                   <PolarRadiusAxis angle={30} domain={[0, "auto"]} stroke="rgba(255,255,255,0.3)" />
@@ -122,10 +145,6 @@ const DriverComparisonChart = ({ driverData, isLoading }: DriverComparisonChartP
                         stroke={getColor(driverCode)}
                         fill={getColor(driverCode)}
                         fillOpacity={0.3}
-                        data={chartData.map(cat => ({
-                          ...cat,
-                          [driverCode]: driverData[cat.category as keyof typeof driverData] || 0
-                        }))}
                       />
                     );
                   })}
