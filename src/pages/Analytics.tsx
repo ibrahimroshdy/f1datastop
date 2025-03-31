@@ -28,6 +28,7 @@ import {
 } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFastestLaps, useTopSpeeds, useLapTimes, useTireStrategies } from "@/hooks/useFastF1Data";
+import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import PointsProgressChart from "@/components/analytics/PointsProgressChart";
@@ -75,6 +76,8 @@ const Analytics = () => {
   const { data: topSpeedsData, isLoading: isSpeedsLoading } = useTopSpeeds();
   const { data: lapTimesData, isLoading: isLapTimesLoading } = useLapTimes(selectedRace);
   const { data: tireStrategyData, isLoading: isTireDataLoading } = useTireStrategies(selectedRace);
+  const { data: driverStandingsData, isLoading: isDriverStandingsLoading } = useDriverStandings();
+  const { data: constructorStandingsData, isLoading: isConstructorStandingsLoading } = useConstructorStandings();
 
   // Get current year for the UI
   const currentYear = new Date().getFullYear();
@@ -238,7 +241,10 @@ const Analytics = () => {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="h-[400px]">
-                  <PointsProgressChart />
+                  <PointsProgressChart 
+                    driverData={driverStandingsData?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || []}
+                    isLoading={isDriverStandingsLoading}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -250,7 +256,10 @@ const Analytics = () => {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="h-[400px]">
-                  <TeamPerformanceChart />
+                  <TeamPerformanceChart 
+                    constructorData={constructorStandingsData?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || []}
+                    isLoading={isConstructorStandingsLoading}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -411,7 +420,10 @@ const Analytics = () => {
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="h-[400px]">
-                    <DriverComparisonChart />
+                    <DriverComparisonChart 
+                      driverData={driverStandingsData?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || []}
+                      isLoading={isDriverStandingsLoading}
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -427,7 +439,10 @@ const Analytics = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="h-[400px]">
-                    <ConstructorDominanceChart />
+                    <ConstructorDominanceChart 
+                      constructorData={constructorStandingsData?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || []}
+                      isLoading={isConstructorStandingsLoading}
+                    />
                   </div>
                 </CardContent>
               </Card>

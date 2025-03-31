@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface DriverComparisonChartProps {
+export interface DriverComparisonChartProps {
   driverData: any[];
   isLoading: boolean;
 }
@@ -14,9 +14,9 @@ const DriverComparisonChart = ({ driverData, isLoading }: DriverComparisonChartP
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>(["VER", "HAM", "LEC"]);
 
   // Process data for the chart
-  const topDrivers = !isLoading && driverData
+  const topDrivers = !isLoading && driverData && driverData.length > 0
     ? driverData.slice(0, 20).map((driver) => ({
-        code: driver.Driver.code,
+        code: driver.Driver.code || driver.Driver?.familyName?.substring(0, 3).toUpperCase(),
         name: `${driver.Driver.givenName} ${driver.Driver.familyName}`,
         points: parseFloat(driver.points),
         position: parseInt(driver.position),

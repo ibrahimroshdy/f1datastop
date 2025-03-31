@@ -3,16 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-interface PointsProgressChartProps {
+export interface PointsProgressChartProps {
   driverData: any[];
   isLoading: boolean;
 }
 
 const PointsProgressChart = ({ driverData, isLoading }: PointsProgressChartProps) => {
   // Process data for the chart
-  const chartData = !isLoading && driverData
+  const chartData = !isLoading && driverData && driverData.length > 0
     ? driverData.slice(0, 10).map((driver) => ({
-        name: driver.Driver.code,
+        name: driver.Driver.code || driver.Driver?.familyName?.substring(0, 3).toUpperCase(),
         points: parseFloat(driver.points),
         team: driver.Constructors[0].name,
       }))

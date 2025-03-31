@@ -3,14 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
-interface TeamPerformanceChartProps {
+export interface TeamPerformanceChartProps {
   constructorData: any[];
   isLoading: boolean;
 }
 
 const TeamPerformanceChart = ({ constructorData, isLoading }: TeamPerformanceChartProps) => {
   // Process data for the chart
-  const chartData = !isLoading && constructorData
+  const chartData = !isLoading && constructorData && constructorData.length > 0
     ? constructorData.map((team) => ({
         name: team.Constructor.name,
         value: parseFloat(team.points),

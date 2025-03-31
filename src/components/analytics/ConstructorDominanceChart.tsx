@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-interface ConstructorDominanceChartProps {
+export interface ConstructorDominanceChartProps {
   constructorData: any[];
   isLoading: boolean;
 }
@@ -12,7 +12,7 @@ const ConstructorDominanceChart = ({ constructorData, isLoading }: ConstructorDo
   // Generate some fake historical data for visualization purposes
   const generateHistoricalData = () => {
     const rounds = Array.from({ length: 10 }, (_, i) => i + 1);
-    const constructors = !isLoading && constructorData
+    const constructors = !isLoading && constructorData && constructorData.length > 0
       ? constructorData.slice(0, 4).map(team => team.Constructor.name)
       : ["Red Bull Racing", "Ferrari", "Mercedes", "McLaren"];
       
@@ -85,7 +85,7 @@ const ConstructorDominanceChart = ({ constructorData, isLoading }: ConstructorDo
                 />
                 <Legend />
                 
-                {!isLoading && constructorData && constructorData.slice(0, 4).map((team, index) => (
+                {!isLoading && constructorData && constructorData.length > 0 && constructorData.slice(0, 4).map((team, index) => (
                   <Area
                     key={team.Constructor.name}
                     type="monotone"
