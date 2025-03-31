@@ -7,10 +7,108 @@ import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const RaceCalendar = () => {
   const { data: raceSchedule, isLoading } = useRaceSchedule();
   const currentDate = new Date();
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  
+  // Calculate total pages
+  const totalRaces = raceSchedule?.data?.length || 0;
+  const totalPages = Math.ceil(totalRaces / itemsPerPage);
+  
+  // Get current page data
+  const getCurrentPageData = () => {
+    if (!raceSchedule?.data) return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return raceSchedule.data.slice(startIndex, endIndex);
+  };
+  
+  const currentRaces = getCurrentPageData();
+  
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  // Generate pagination items
+  const renderPaginationItems = () => {
+    const items = [];
+    
+    // Always show first page
+    items.push(
+      <PaginationItem key="first">
+        <PaginationLink 
+          isActive={currentPage === 1} 
+          onClick={() => handlePageChange(1)}
+        >
+          1
+        </PaginationLink>
+      </PaginationItem>
+    );
+    
+    // Show ellipsis if not showing second page
+    if (currentPage > 3) {
+      items.push(
+        <PaginationItem key="ellipsis-1">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+    
+    // Show current page and neighbors
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      if (i === 1 || i === totalPages) continue; // Skip first and last pages as they're always shown
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink 
+            isActive={currentPage === i} 
+            onClick={() => handlePageChange(i)}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    // Show ellipsis if not showing second-to-last page
+    if (currentPage < totalPages - 2) {
+      items.push(
+        <PaginationItem key="ellipsis-2">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+    
+    // Always show last page if there's more than 1 page
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key="last">
+          <PaginationLink 
+            isActive={currentPage === totalPages} 
+            onClick={() => handlePageChange(totalPages)}
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+    
+    return items;
+  };
 
   return (
     <MainLayout>
@@ -37,7 +135,7 @@ const RaceCalendar = () => {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  Array(10).fill(0).map((_, i) => (
+                  Array(itemsPerPage).fill(0).map((_, i) => (
                     <TableRow key={i}>
                       <TableCell><Skeleton className="h-6 w-6" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-40" /></TableCell>
@@ -47,7 +145,7 @@ const RaceCalendar = () => {
                     </TableRow>
                   ))
                 ) : (
-                  raceSchedule?.data.map((race: any) => {
+                  currentRaces.map((race: any) => {
                     const raceDate = parseISO(race.date);
                     const isPast = raceDate < currentDate;
                     const isNext = !isPast && raceDate > currentDate && 
@@ -81,6 +179,30 @@ const RaceCalendar = () => {
                 )}
               </TableBody>
             </Table>
+            
+            {!isLoading && totalPages > 1 && (
+              <div className="mt-6">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)} 
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                      />
+                    </PaginationItem>
+                    
+                    {renderPaginationItems()}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)} 
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
