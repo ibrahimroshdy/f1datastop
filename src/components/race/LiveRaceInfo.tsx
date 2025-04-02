@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/context/SessionContext";
 import { useNextRace, useRaceStatus, useWeatherData } from "@/hooks/useF1Data";
 import { Loader2 } from "lucide-react";
+import { getCountryFlag, getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 
 const LiveRaceInfo = () => {
   const { activeSessionId } = useSession();
@@ -27,97 +28,17 @@ const LiveRaceInfo = () => {
   const raceStatus = raceStatusData?.data?.[0] || null;
   const weather = weatherData?.data?.[0] || null;
   
-  // Get clean race name (without emoji if present)
-  const getRaceNameWithoutEmoji = (raceName: string) => {
-    if (raceName && raceName.includes(' ') && raceName.indexOf(' ') <= 3) {
-      return raceName.substring(raceName.indexOf(' ') + 1);
-    }
-    return raceName || "Upcoming Race";
-  };
-  
-  // Get country flag emoji
-  const getCountryFlag = (location: string) => {
-    const countryFlags: Record<string, string> = {
-      "Monte Carlo": "🇲🇨",
-      "Monza": "🇮🇹",
-      "Melbourne": "🇦🇺",
-      "Sakhir": "🇧🇭",
-      "Jeddah": "🇸🇦",
-      "Shanghai": "🇨🇳",
-      "Miami": "🇺🇸",
-      "Imola": "🇮🇹",
-      "Monaco": "🇲🇨",
-      "Montreal": "🇨🇦",
-      "Barcelona": "🇪🇸",
-      "Spielberg": "🇦🇹",
-      "Silverstone": "🇬🇧",
-      "Budapest": "🇭🇺",
-      "Spa": "🇧🇪",
-      "Zandvoort": "🇳🇱",
-      "Baku": "🇦🇿",
-      "Singapore": "🇸🇬",
-      "Suzuka": "🇯🇵",
-      "Losail": "🇶🇦",
-      "Austin": "🇺🇸",
-      "Mexico City": "🇲🇽",
-      "Sao Paulo": "🇧🇷",
-      "Las Vegas": "🇺🇸",
-      "Yas Marina": "🇦🇪",
-    };
-    
-    for (const [key, value] of Object.entries(countryFlags)) {
-      if (location?.includes(key)) {
-        return value;
-      }
-    }
-    
-    // Check by country directly if we have it
-    if (nextRace?.Circuit?.Location?.country) {
-      const country = nextRace.Circuit.Location.country;
-      const countryEmojis: Record<string, string> = {
-        "Australia": "🇦🇺",
-        "Austria": "🇦🇹",
-        "Azerbaijan": "🇦🇿",
-        "Bahrain": "🇧🇭",
-        "Belgium": "🇧🇪",
-        "Brazil": "🇧🇷",
-        "Canada": "🇨🇦",
-        "China": "🇨🇳",
-        "France": "🇫🇷",
-        "Germany": "🇩🇪",
-        "Hungary": "🇭🇺",
-        "Italy": "🇮🇹",
-        "Japan": "🇯🇵",
-        "Mexico": "🇲🇽",
-        "Monaco": "🇲🇨",
-        "Netherlands": "🇳🇱",
-        "Portugal": "🇵🇹",
-        "Qatar": "🇶🇦",
-        "Russia": "🇷🇺",
-        "Saudi Arabia": "🇸🇦",
-        "Singapore": "🇸🇬",
-        "Spain": "🇪🇸",
-        "United Arab Emirates": "🇦🇪",
-        "United Kingdom": "🇬🇧",
-        "United States": "🇺🇸",
-      };
-      
-      if (countryEmojis[country]) {
-        return countryEmojis[country];
-      }
-    }
-    
-    return "🏁"; // Default racing flag
-  };
-  
   let flag = "🏁";
   let raceName = "Upcoming Race";
   let trackName = "Circuit";
   
   if (nextRace) {
-    flag = getCountryFlag(nextRace.location || nextRace.Circuit?.Location?.locality || "");
-    raceName = getRaceNameWithoutEmoji(nextRace.meeting_name || nextRace.raceName || "");
-    trackName = nextRace.location || nextRace.Circuit?.circuitName || "Circuit";
+    // Get country from location data
+    const location = nextRace.Circuit?.Location?.locality || "";
+    const country = nextRace.Circuit?.Location?.country || "";
+    flag = getCountryFlag(country || location);
+    raceName = getRaceNameWithoutEmoji(nextRace.raceName || nextRace.meeting_name || "");
+    trackName = nextRace.Circuit?.circuitName || nextRace.location || "Circuit";
   }
   
   const currentLap = raceStatus?.lap_number || "?";

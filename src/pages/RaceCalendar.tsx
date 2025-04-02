@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import YearSelector from "@/components/common/YearSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import { getCountryFlag, getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 
 const RaceCalendar = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -50,48 +51,6 @@ const RaceCalendar = () => {
     }
     
     return "upcoming";
-  };
-  
-  // Get country flag emoji
-  const getCountryFlag = (country: string) => {
-    const countryEmojis: Record<string, string> = {
-      Australia: "🇦🇺",
-      Austria: "🇦🇹",
-      Azerbaijan: "🇦🇿",
-      Bahrain: "🇧🇭",
-      Belgium: "🇧🇪",
-      Brazil: "🇧🇷",
-      Canada: "🇨🇦",
-      China: "🇨🇳",
-      France: "🇫🇷",
-      Germany: "🇩🇪",
-      Hungary: "🇭🇺",
-      Italy: "🇮🇹",
-      Japan: "🇯🇵",
-      Mexico: "🇲🇽",
-      Monaco: "🇲🇨",
-      Netherlands: "🇳🇱",
-      Portugal: "🇵🇹",
-      Qatar: "🇶🇦",
-      Russia: "🇷🇺",
-      "Saudi Arabia": "🇸🇦",
-      Singapore: "🇸🇬",
-      Spain: "🇪🇸",
-      "United Arab Emirates": "🇦🇪",
-      "United Kingdom": "🇬🇧",
-      "United States": "🇺🇸",
-      USA: "🇺🇸",
-    };
-    
-    return countryEmojis[country] || "🏁";
-  };
-  
-  // Get clean race name (without emoji if present)
-  const getRaceNameWithoutEmoji = (raceName: string) => {
-    if (raceName && raceName.includes(' ') && raceName.indexOf(' ') <= 3) {
-      return raceName.substring(raceName.indexOf(' ') + 1);
-    }
-    return raceName;
   };
   
   return (

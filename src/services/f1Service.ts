@@ -1,75 +1,18 @@
 import { toast } from "sonner";
+import { getCountryFlag, addFlagToRaceName } from "@/utils/countryUtils";
 
 const BASE_URL = "https://api.jolpi.ca/ergast";
 
 // Get the current F1 season year
 const getCurrentSeason = () => new Date().getFullYear();
 
-// Map of country codes to emoji flags
-const COUNTRY_EMOJIS: Record<string, string> = {
-  australia: "🇦🇺",
-  austria: "🇦🇹",
-  azerbaijan: "🇦🇿",
-  bahrain: "🇧🇭",
-  belgium: "🇧🇪",
-  brazil: "🇧🇷",
-  canada: "🇨🇦",
-  china: "🇨🇳",
-  hungary: "🇭🇺",
-  italy: "🇮🇹",
-  japan: "🇯🇵",
-  mexico: "🇲🇽",
-  monaco: "🇲🇨",
-  netherlands: "🇳🇱",
-  portugal: "🇵🇹",
-  qatar: "🇶🇦",
-  saudi_arabia: "🇸🇦",
-  singapore: "🇸🇬",
-  spain: "🇪🇸",
-  uae: "🇦🇪",
-  uk: "🇬🇧",
-  usa: "🇺🇸",
-  miami: "🇺🇸",
-  vegas: "🇺🇸",
-  imola: "🇮🇹",
-  emilia_romagna: "🇮🇹",
-  abu_dhabi: "🇦🇪",
-  styria: "🇦🇹",
-  france: "🇫🇷",
-  russia: "🇷🇺",
-  turkey: "🇹🇷",
-  germany: "🇩🇪",
-};
-
-// Helper to get country emoji from race name or circuit name
-const getCountryEmoji = (raceName: string, circuitId: string): string => {
-  // Try to extract country from race name
-  const lowerRaceName = raceName.toLowerCase();
-  
-  for (const [country, emoji] of Object.entries(COUNTRY_EMOJIS)) {
-    if (lowerRaceName.includes(country.replace('_', ' '))) {
-      return emoji + " ";
-    }
-  }
-  
-  // Try with circuit ID
-  const lowerCircuitId = circuitId.toLowerCase();
-  for (const [country, emoji] of Object.entries(COUNTRY_EMOJIS)) {
-    if (lowerCircuitId.includes(country.replace('_', ''))) {
-      return emoji + " ";
-    }
-  }
-  
-  return "";
-};
-
 // Process race data to add emojis
 const processRaceData = (races: any[]) => {
   return races.map(race => {
-    const emoji = getCountryEmoji(race.raceName, race.Circuit.circuitId);
+    const countryName = race.Circuit?.Location?.country || "";
     return {
       ...race,
-      raceName: `${emoji}${race.raceName}`
+      raceName: addFlagToRaceName(race.raceName, countryName)
     };
   });
 };

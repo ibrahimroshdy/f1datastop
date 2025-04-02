@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays } from "lucide-react";
+import { getCountryFlag, getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 
 interface SessionStatusProps {
   year?: number;
@@ -47,64 +48,9 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
   const raceDate = new Date(race.date);
   const formattedDate = format(raceDate, "MMM d, yyyy");
   
-  // Get clean race name (without emoji if present)
-  const getRaceNameWithoutEmoji = (raceName: string) => {
-    if (raceName.includes(' ') && raceName.indexOf(' ') <= 3) {
-      return raceName.substring(raceName.indexOf(' ') + 1);
-    }
-    return raceName;
-  };
-  
-  // Get emoji flag based on country name
-  const getCountryEmoji = (countryName: string) => {
-    const countryEmojis: Record<string, string> = {
-      Australia: "🇦🇺",
-      Austria: "🇦🇹",
-      Azerbaijan: "🇦🇿",
-      Bahrain: "🇧🇭",
-      Belgium: "🇧🇪",
-      Brazil: "🇧🇷",
-      Canada: "🇨🇦",
-      China: "🇨🇳",
-      France: "🇫🇷",
-      Germany: "🇩🇪",
-      Hungary: "🇭🇺",
-      Italy: "🇮🇹",
-      Japan: "🇯🇵",
-      Mexico: "🇲🇽",
-      Monaco: "🇲🇨",
-      Netherlands: "🇳🇱",
-      Portugal: "🇵🇹",
-      Qatar: "🇶🇦",
-      Russia: "🇷🇺",
-      Saudi: "🇸🇦",
-      "Saudi Arabia": "🇸🇦",
-      Singapore: "🇸🇬",
-      Spain: "🇪🇸",
-      UAE: "🇦🇪",
-      "United Arab Emirates": "🇦🇪",
-      UK: "🇬🇧",
-      "United Kingdom": "🇬🇧",
-      USA: "🇺🇸",
-      "United States": "🇺🇸",
-      Vietnam: "🇻🇳",
-      Miami: "🇺🇸",
-      Las: "🇺🇸", // Las Vegas
-      Emilia: "🇮🇹", // Emilia-Romagna
-    };
-    
-    // Try to find a matching country name
-    for (const [key, emoji] of Object.entries(countryEmojis)) {
-      if (countryName.includes(key)) {
-        return emoji;
-      }
-    }
-    
-    return "🏁"; // Default racing flag
-  };
-  
+  // Get country from location data
   const countryName = race.Circuit?.Location?.country || "";
-  const countryEmoji = getCountryEmoji(countryName);
+  const countryEmoji = getCountryFlag(countryName);
   const raceName = getRaceNameWithoutEmoji(race.raceName);
   
   // Calculate days until the race

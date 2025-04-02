@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getRaceNameWithoutEmoji, getCountryFlag } from "@/utils/countryUtils";
 
 const Standings = () => {
   const [activeTab, setActiveTab] = useState("drivers");
@@ -61,7 +62,14 @@ const Standings = () => {
                               <span className="text-xs text-muted-foreground">{driver.Driver.code}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{driver.Constructors[0].name}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {driver.Constructors[0]?.nationality && (
+                                <span className="text-lg">{getCountryFlag(driver.Constructors[0].nationality)}</span>
+                              )}
+                              <span>{driver.Constructors[0].name}</span>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right font-bold">{driver.points}</TableCell>
                         </TableRow>
                       ))
@@ -100,7 +108,10 @@ const Standings = () => {
                         <TableRow key={constructor.position}>
                           <TableCell className="font-medium">{constructor.position}</TableCell>
                           <TableCell>
-                            <div className="flex items-center">
+                            <div className="flex items-center gap-2">
+                              {constructor.Constructor?.nationality && (
+                                <span className="text-lg">{getCountryFlag(constructor.Constructor.nationality)}</span>
+                              )}
                               <span className="font-medium">{constructor.Constructor.name}</span>
                             </div>
                           </TableCell>
