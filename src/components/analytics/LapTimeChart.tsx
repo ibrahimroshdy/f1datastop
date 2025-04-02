@@ -1,7 +1,7 @@
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
+import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { Skeleton } from "@/components/ui/skeleton";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
@@ -15,7 +15,6 @@ interface LapTimeChartProps {
 const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>(["VER", "HAM", "LEC"]);
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
-  const [fastestLap, setFastestLap] = useState<number | null>(null);
 
   // Use React Query hooks for data fetching
   const { 
@@ -41,23 +40,8 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
         code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
         name: `${result.Driver.givenName} ${result.Driver.familyName}`,
         team: result.Constructor?.constructorId || "unknown",
-        fastLap: result.FastestLap ? {
-          lap: parseInt(result.FastestLap.lap),
-          time: convertLapTimeToSeconds(result.FastestLap.Time.time)
-        } : null
       }));
       
-      let fastest = Number.MAX_VALUE;
-      let fastLap = null;
-      
-      drivers.forEach(driver => {
-        if (driver.fastLap && driver.fastLap.time < fastest) {
-          fastest = driver.fastLap.time;
-          fastLap = driver.fastLap.time;
-        }
-      });
-      
-      setFastestLap(fastLap);
       setAvailableDrivers(drivers);
     }
   }, [raceResultsData]);
@@ -105,10 +89,10 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
       return [];
     }
     
-    const driverLaps: Record<string, any[]> = {};
-      
-    race.Laps.forEach((lap: any) => {
+    // Process lap time data lap by lap
+    return race.Laps.map((lap: any) => {
       const lapNumber = parseInt(lap.number);
+      const lapData: any = { lap: lapNumber };
       
       lap.Timings.forEach((timing: any) => {
         const driverId = timing.driverId;
@@ -116,34 +100,11 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
         const driverCode = driver?.code || driverId.substring(0, 3).toUpperCase();
         const lapTime = convertLapTimeToSeconds(timing.time);
         
-        if (!driverLaps[driverCode]) {
-          driverLaps[driverCode] = [];
-        }
-        
-        driverLaps[driverCode].push({
-          lap: lapNumber,
-          time: lapTime
-        });
+        lapData[driverCode] = lapTime;
       });
+      
+      return lapData;
     });
-    
-    const maxLaps = Math.max(
-      ...Object.values(driverLaps).map(laps => laps.length)
-    );
-    
-    const formattedData = Array.from({ length: maxLaps }, (_, i) => ({
-      lap: i + 1
-    }));
-    
-    Object.entries(driverLaps).forEach(([driverCode, laps]) => {
-      laps.forEach(lap => {
-        if (lap.lap <= formattedData.length) {
-          formattedData[lap.lap - 1][driverCode] = lap.time;
-        }
-      });
-    });
-    
-    return formattedData;
   }, [lapTimesData, availableDrivers]);
 
   if (isLoading) {
@@ -215,17 +176,6 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
               }}
             />
             <Legend />
-            
-            {fastestLap && (
-              <ReferenceLine 
-                y={fastestLap} 
-                stroke="red" 
-                strokeDasharray="3 3" 
-                label={{ value: 'Fastest Lap', position: 'right', fill: 'red' }} 
-                yAxisId="lapTime"
-                xAxisId="lapTime"
-              />
-            )}
             
             {availableDrivers
               .filter(driver => selectedDrivers.includes(driver.code))

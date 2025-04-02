@@ -66,10 +66,10 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
       return [];
     }
     
-    const driverPositions: Record<string, any[]> = {};
-      
-    race.Laps.forEach((lap: any) => {
+    // Process position data lap by lap
+    return race.Laps.map((lap: any) => {
       const lapNumber = parseInt(lap.number);
+      const lapData: any = { lap: lapNumber };
       
       lap.Timings.forEach((timing: any) => {
         const driverId = timing.driverId;
@@ -78,32 +78,11 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
         const driver = availableDrivers.find(d => d.driverId === driverId);
         const driverCode = driver?.code || driverId.substring(0, 3).toUpperCase();
         
-        if (!driverPositions[driverCode]) {
-          driverPositions[driverCode] = [];
-        }
-        
-        driverPositions[driverCode].push({
-          lap: lapNumber,
-          position: position
-        });
+        lapData[driverCode] = position;
       });
+      
+      return lapData;
     });
-    
-    const lapsCount = race.Laps.length;
-    const positionByLap = Array.from({ length: lapsCount }, (_, i) => ({
-      lap: i + 1,
-    }));
-    
-    Object.entries(driverPositions).forEach(([driverCode, positions]) => {
-      positions.forEach(pos => {
-        const lapIndex = pos.lap - 1;
-        if (lapIndex < positionByLap.length) {
-          positionByLap[lapIndex][driverCode] = pos.position;
-        }
-      });
-    });
-    
-    return positionByLap;
   }, [lapTimesData, availableDrivers]);
 
   if (isLoading) {
