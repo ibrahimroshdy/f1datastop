@@ -40,9 +40,23 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
         code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
         name: `${result.Driver.givenName} ${result.Driver.familyName}`,
         team: result.Constructor?.constructorId || "unknown",
+        finishPosition: parseInt(result.position) || 0,
+        grid: parseInt(result.grid) || 0,
       }));
       
       setAvailableDrivers(drivers);
+      
+      // Auto-select the top 5 finishers if available
+      if (drivers.length > 0) {
+        const topDrivers = drivers
+          .sort((a, b) => a.finishPosition - b.finishPosition)
+          .slice(0, 5)
+          .map(d => d.code);
+        
+        if (topDrivers.length > 0) {
+          setSelectedDrivers(topDrivers);
+        }
+      }
     }
   }, [raceResultsData]);
 
@@ -102,25 +116,54 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
     );
   }
 
+  // Find starting and final positions for each driver
+  const getPositionChangeSummary = (driverCode: string) => {
+    if (chartData.length === 0) return null;
+    
+    const firstLap = chartData[0];
+    const lastLap = chartData[chartData.length - 1];
+    
+    if (!firstLap[driverCode] || !lastLap[driverCode]) return null;
+    
+    const startPos = firstLap[driverCode];
+    const endPos = lastLap[driverCode];
+    const posChange = startPos - endPos;
+    
+    return {
+      start: startPos,
+      end: endPos,
+      change: posChange,
+      improved: posChange > 0
+    };
+  };
+
   return (
     <div className="h-full">
       <div className="mb-4 flex flex-wrap gap-2">
-        {availableDrivers.map(driver => (
-          <button
-            key={driver.code}
-            className={`px-2 py-1 rounded text-xs font-medium ${
-              selectedDrivers.includes(driver.code)
-                ? 'bg-gray-800 text-white'
-                : 'bg-gray-200 text-gray-800'
-            }`}
-            onClick={() => handleDriverToggle(driver.code)}
-            style={{
-              borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
-            }}
-          >
-            {driver.code}
-          </button>
-        ))}
+        {availableDrivers.map(driver => {
+          const summary = getPositionChangeSummary(driver.code);
+          return (
+            <button
+              key={driver.code}
+              className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 ${
+                selectedDrivers.includes(driver.code)
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-200 text-gray-800'
+              }`}
+              onClick={() => handleDriverToggle(driver.code)}
+              style={{
+                borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+              }}
+            >
+              <span>{driver.code}</span>
+              {summary && (
+                <span className={`text-xs ${summary.improved ? 'text-green-500' : 'text-red-500'}`}>
+                  {summary.improved ? `↑${summary.change}` : summary.change === 0 ? '→' : `↓${Math.abs(summary.change)}`}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
       
       <div className="h-[500px] w-full">
@@ -140,6 +183,7 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
               domain={[1, 20]} 
               label={{ value: 'Position', angle: -90, position: 'insideLeft' }} 
               yAxisId="position"
+              ticks={[1, 5, 10, 15, 20]}
             />
             <Tooltip 
               contentStyle={{ 
@@ -147,7 +191,16 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
                 borderColor: '#333',
                 borderRadius: '5px'
               }}
-              formatter={(value) => [`Position: ${value}`, '']}
+              formatter={(value, name, props) => {
+                const driverCode = String(name).split(' ')[0];
+                const driver = availableDrivers.find(d => d.code === driverCode);
+                
+                return [
+                  `Position: ${value}`,
+                  driver ? `${driverCode} (${driver.name.split(' ').pop()})` : driverCode
+                ];
+              }}
+              labelFormatter={(label) => `Lap ${label}`}
             />
             <Legend />
             

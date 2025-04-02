@@ -8,7 +8,6 @@ import LapTimeChart from "@/components/analytics/LapTimeChart";
 import PositionChangeChart from "@/components/analytics/PositionChangeChart";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -75,7 +74,7 @@ const Analytics = () => {
               <CardHeader>
                 <CardTitle>Lap Time Analysis</CardTitle>
                 <CardDescription>
-                  Compare lap times between drivers during a race
+                  Compare lap-by-lap times between drivers during a race
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[600px]">
