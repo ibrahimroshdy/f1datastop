@@ -98,6 +98,8 @@ serve(async (req) => {
     };
 
     console.log("Sending notification to Slack...");
+    console.log("Webhook URL:", SLACK_WEBHOOK_URL.substring(0, 15) + "...");
+    console.log("Message:", JSON.stringify(slackMessage, null, 2));
     
     // Send the message to Slack
     const response = await fetch(SLACK_WEBHOOK_URL, {

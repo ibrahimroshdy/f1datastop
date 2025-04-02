@@ -114,7 +114,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Notify Slack about the new signup
       try {
-        await supabase.functions.invoke("notify-slack", {
+        console.log("Sending signup notification to Slack...");
+        const notifyResult = await supabase.functions.invoke("notify-slack", {
           body: {
             type: "signup",
             userData: {
@@ -125,7 +126,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             },
           },
         });
-        console.log("Slack notification sent successfully");
+        
+        console.log("Slack notification result:", notifyResult);
+        
+        if (notifyResult.error) {
+          console.error("Error in Slack notification response:", notifyResult.error);
+        } else {
+          console.log("Slack notification sent successfully");
+        }
       } catch (slackError) {
         // Don't fail the signup if the slack notification fails, just log it
         console.error("Failed to send Slack notification:", slackError);
