@@ -86,6 +86,26 @@ const RaceCalendar = () => {
     return countryEmojis[country] || "🏁";
   };
   
+  // Get circuit name from race data
+  const getCircuitName = (race: any) => {
+    // Try to get the circuit name first
+    if (race.Circuit && race.Circuit.circuitName) {
+      return race.Circuit.circuitName;
+    }
+    
+    // If no circuit name, use race name but clean it
+    if (race.raceName) {
+      // Remove flag emoji if present
+      let name = race.raceName;
+      if (name.length > 3 && name.indexOf(' ') > 0) {
+        name = name.substring(name.indexOf(' ') + 1);
+      }
+      return name;
+    }
+    
+    return "Unknown Race";
+  };
+  
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -111,6 +131,7 @@ const RaceCalendar = () => {
               const raceDate = parseISO(race.date);
               const country = race.Circuit?.Location?.country || "";
               const flag = getCountryFlag(country);
+              const circuitName = getCircuitName(race);
               
               return (
                 <Card 
@@ -140,7 +161,7 @@ const RaceCalendar = () => {
                       </div>
                       
                       <div className="mt-2">
-                        <p className="text-sm text-gray-400">{race.Circuit.circuitName}</p>
+                        <p className="text-sm text-gray-400">{circuitName}</p>
                         <p className="mt-2 text-sm">
                           {format(raceDate, 'dd MMM yyyy')}
                           {race.time && ` • ${format(parseISO(`${race.date}T${race.time}`), 'HH:mm')}`}

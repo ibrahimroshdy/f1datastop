@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { toast } from "sonner";
@@ -186,8 +187,20 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
             >
               <span>{driver.code}</span>
               {summary && (
-                <span className={`text-xs ${summary.improved ? 'text-green-500' : 'text-red-500'}`}>
-                  {summary.improved ? `↑${summary.change}` : summary.change === 0 ? '→' : `↓${Math.abs(summary.change)}`}
+                <span className={`text-xs ml-1 flex items-center ${
+                  summary.improved 
+                    ? 'text-green-500' 
+                    : summary.change === 0 
+                      ? 'text-gray-500' 
+                      : 'text-red-500'
+                }`}>
+                  {summary.improved ? (
+                    <><ArrowUp size={10} /> {summary.change}</>
+                  ) : summary.change === 0 ? (
+                    <><Minus size={10} /> 0</>
+                  ) : (
+                    <><ArrowDown size={10} /> {Math.abs(summary.change)}</>
+                  )}
                 </span>
               )}
             </button>
@@ -199,7 +212,7 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis 
@@ -211,7 +224,11 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
               type="number"
               allowDecimals={false}
               // Add more ticks to show lap numbers more clearly
-              ticks={Array.from({length: Math.min(20, maxLap)}, (_, i) => Math.max(1, Math.round(i * maxLap / Math.min(20, maxLap))))}
+              ticks={
+                maxLap > 50
+                  ? Array.from({length: 10}, (_, i) => Math.round(i * maxLap / 10) || 1)
+                  : Array.from({length: Math.min(maxLap, 20)}, (_, i) => i + 1)
+              }
             />
             <YAxis 
               reversed 
@@ -224,7 +241,8 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
               contentStyle={{ 
                 backgroundColor: '#1a1a1a',
                 borderColor: '#333',
-                borderRadius: '5px'
+                borderRadius: '5px',
+                color: 'white'
               }}
               formatter={(value, name, props) => {
                 const driverCode = String(name).split(' ')[0];
@@ -237,7 +255,11 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
               }}
               labelFormatter={(label) => `Lap ${label}`}
             />
-            <Legend />
+            <Legend formatter={(value) => {
+              const driverCode = value.split(' ')[0];
+              const driver = availableDrivers.find(d => d.code === driverCode);
+              return driver ? `${driverCode} (${driver.name.split(' ').pop()})` : driverCode;
+            }} />
             
             {availableDrivers
               .filter(driver => selectedDrivers.includes(driver.code))

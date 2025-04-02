@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,8 @@ import PositionChangeChart from "@/components/analytics/PositionChangeChart";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Info, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -31,10 +32,22 @@ const Analytics = () => {
   };
 
   // Remove emoji flags from race names
-  const removeFlag = (raceName: string) => {
+  const cleanRaceName = (raceName: string) => {
+    if (!raceName) return "";
+    
+    // Remove flag emoji if present (typically at the start followed by a space)
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
     }
+    
+    // Make sure to include circuit name
+    if (raceName.includes("Grand Prix")) {
+      const parts = raceName.split("Grand Prix");
+      if (parts.length > 1) {
+        return `${parts[0]}Grand Prix`;
+      }
+    }
+    
     return raceName;
   };
 
@@ -47,16 +60,16 @@ const Analytics = () => {
             <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
             
             <Select value={selectedRace} onValueChange={handleRaceChange}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[220px]">
                 <SelectValue placeholder="Select race" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-900">
                 {isRaceScheduleLoading ? (
                   <SelectItem value="loading">Loading...</SelectItem>
                 ) : (
                   raceScheduleData?.data?.map((race: any) => (
                     <SelectItem key={race.round} value={race.round}>
-                      {removeFlag(race.raceName)}
+                      {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
                     </SelectItem>
                   ))
                 )}
@@ -73,6 +86,21 @@ const Analytics = () => {
             For races with many laps, data loading may take a moment to retrieve all laps.
           </AlertDescription>
         </Alert>
+        
+        {selectedTab === "positions" && (
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-sm font-medium">Position Change Legend:</span>
+            <Badge className="flex items-center gap-1 bg-green-100 text-green-800">
+              <ArrowUp size={12} /> Improved
+            </Badge>
+            <Badge className="flex items-center gap-1 bg-red-100 text-red-800">
+              <ArrowDown size={12} /> Lost positions
+            </Badge>
+            <Badge className="flex items-center gap-1 bg-gray-100 text-gray-800">
+              <Minus size={12} /> No change
+            </Badge>
+          </div>
+        )}
         
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
           <TabsList className="grid w-full grid-cols-2">

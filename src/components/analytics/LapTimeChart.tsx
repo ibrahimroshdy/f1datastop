@@ -1,8 +1,8 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { toast } from "sonner";
@@ -231,12 +231,13 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
           <h3 className="text-lg font-semibold">
             {displayMode === 'absolute' ? 'Absolute Lap Times' : 'Gap to Fastest Lap'}
           </h3>
-          <button 
+          <Button 
             onClick={toggleDisplayMode}
-            className="px-3 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 rounded text-sm"
+            variant="outline"
+            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white font-medium"
           >
             Show {displayMode === 'absolute' ? 'Gaps' : 'Absolute Times'}
-          </button>
+          </Button>
         </div>
         
         <div className="flex flex-wrap gap-2">
@@ -274,13 +275,21 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis 
               dataKey="lap" 
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
               xAxisId="lapTime"
+              domain={['dataMin', 'dataMax']}
+              type="number"
+              allowDecimals={false}
+              ticks={
+                chartData.length > 50
+                  ? Array.from({length: 10}, (_, i) => Math.round(i * chartData.length / 10) || 1)
+                  : undefined
+              }
             />
             <YAxis 
               label={{ 
@@ -295,7 +304,8 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
               contentStyle={{ 
                 backgroundColor: '#1a1a1a',
                 borderColor: '#333',
-                borderRadius: '5px'
+                borderRadius: '5px',
+                color: 'white'
               }}
               formatter={(value, name, props) => {
                 if (typeof value !== 'number') return [value, name];
@@ -315,7 +325,11 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
               }}
               labelFormatter={(label) => `Lap ${label}`}
             />
-            <Legend />
+            <Legend formatter={(value) => {
+              const driverCode = value.split(' ')[0];
+              const driver = availableDrivers.find(d => d.code === driverCode);
+              return driver ? `${driverCode} (${driver.name.split(' ').pop()})` : driverCode;
+            }} />
             
             {fastestLapTime && displayMode === 'absolute' && (
               <ReferenceLine 
