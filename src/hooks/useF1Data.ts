@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 import { optimizeLapData } from "@/utils/dataLoadingUtils";
@@ -44,16 +45,18 @@ export const useRaceQualifying = (year: number, round: string) => {
   });
 };
 
-export const useLapTimes = (year: number, round: string, loadFullData: boolean = false) => {
+export const useLapTimes = (year: number, round: string, firstDriverOnly: boolean = false) => {
   return useQuery({
-    queryKey: ["lapTimes", year, round, loadFullData],
+    queryKey: ["lapTimes", year, round, firstDriverOnly],
     queryFn: async () => {
-      const data = await f1Service.getLapTimes(year, round);
-      return optimizeLapData(data, loadFullData);
+      const data = await f1Service.getLapTimes(year, round, firstDriverOnly);
+      // Always return full data, we no longer optimize by removing laps
+      return data;
     },
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
-    retry: 1, // Reduce retry attempts
+    retry: 3, // Increase retry attempts
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     gcTime: 1000 * 60 * 60 * 2, // 2 hours
   });
 };

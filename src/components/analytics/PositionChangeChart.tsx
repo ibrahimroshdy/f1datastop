@@ -6,8 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUp, ArrowDown, Minus, Loader2 } from "lucide-react";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 
 interface PositionChangeChartProps {
   year: number;
@@ -16,11 +14,11 @@ interface PositionChangeChartProps {
 
 const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
+  const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
   const [totalLaps, setTotalLaps] = useState<number>(0);
   const [isProcessingData, setIsProcessingData] = useState<boolean>(false);
-  const [loadFullData, setLoadFullData] = useState<boolean>(false);
-  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Use React Query hooks for data fetching
   const { 
@@ -33,11 +31,23 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
     data: lapTimesData, 
     isLoading: isLapTimesLoading, 
     error: lapTimesError,
-    refetch: refetchLapTimes
-  } = useLapTimes(year, round, loadFullData);
+    refetch: refetchLapTimes,
+    isError
+  } = useLapTimes(year, round, false); // Always fetch all laps
   
   const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
+
+  // Auto-retry on error
+  useEffect(() => {
+    if (isError && retryCount < 5) {
+      const timer = setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        refetchLapTimes();
+      }, 2000); // Retry every 2 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [isError, retryCount, refetchLapTimes]);
 
   // Set only the first driver selected by default
   useEffect(() => {
@@ -78,14 +88,6 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
     }
   }, [lapTimesData]);
 
-  const handleLoadAllData = async () => {
-    setIsLoadingMore(true);
-    setLoadFullData(true);
-    await refetchLapTimes();
-    setIsLoadingMore(false);
-    toast.success("Full position data loaded successfully");
-  };
-
   const handleDriverToggle = (driverCode: string) => {
     setSelectedDrivers(prev => 
       prev.includes(driverCode)
@@ -93,6 +95,15 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
         : [...prev, driverCode]
     );
   };
+
+  const handleDriverHover = (driverCode: string | null) => {
+    setHoveredDriver(driverCode);
+  };
+
+  // Calculate visible drivers (either all selected or just the hovered one)
+  const visibleDrivers = hoveredDriver 
+    ? selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers
+    : selectedDrivers;
 
   // Memoize chart data to avoid recalculations
   const chartData = useMemo(() => {
@@ -125,7 +136,7 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
     });
   }, [lapTimesData, availableDrivers]);
 
-  if (isLoading) {
+  if (isLoading || (isError && retryCount < 5)) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <Skeleton className="h-[500px] w-full" />
@@ -134,11 +145,32 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
             Processing race data with {totalLaps} laps...
           </p>
         )}
+        {isError && retryCount < 5 && (
+          <div className="absolute flex flex-col items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">
+              Loading data... (retry {retryCount + 1}/5)
+            </p>
+          </div>
+        )}
       </div>
     );
   }
 
-  if (error || chartData.length === 0) {
+  if (error && retryCount >= 5) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center">
+        <p className="text-muted-foreground">
+          Unable to load position data after multiple attempts
+        </p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Please try again later or select a different race
+        </p>
+      </div>
+    );
+  }
+
+  if (chartData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <p className="text-muted-foreground">
@@ -177,8 +209,6 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
     ? Math.max(...chartData.map(lap => lap.lap)) 
     : totalLaps;
 
-  const isPartialData = !loadFullData && totalLaps > 10;
-
   return (
     <div className="h-full">
       <div className="mb-4 flex flex-wrap justify-between items-center gap-2">
@@ -188,12 +218,14 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
             return (
               <button
                 key={driver.code}
-                className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 ${
+                className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-all duration-200 ${
                   selectedDrivers.includes(driver.code)
                     ? 'bg-gray-800 text-white'
                     : 'bg-gray-200 text-gray-800'
                 }`}
                 onClick={() => handleDriverToggle(driver.code)}
+                onMouseEnter={() => handleDriverHover(driver.code)}
+                onMouseLeave={() => handleDriverHover(null)}
                 style={{
                   borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
                 }}
@@ -220,24 +252,6 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
             );
           })}
         </div>
-        
-        {isPartialData && (
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={handleLoadAllData}
-            disabled={isLoadingMore}
-          >
-            {isLoadingMore ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              <>Load All Laps</>
-            )}
-          </Button>
-        )}
       </div>
       
       <div className="h-[500px] w-full">
@@ -245,6 +259,8 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
           <LineChart
             data={chartData}
             margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
+            animationDuration={300}
+            animationEasing="ease-in-out"
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis 
@@ -294,7 +310,7 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
             }} />
             
             {availableDrivers
-              .filter(driver => selectedDrivers.includes(driver.code))
+              .filter(driver => visibleDrivers.includes(driver.code))
               .map(driver => (
                 <Line
                   key={driver.code}
@@ -308,6 +324,8 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
                   connectNulls
                   xAxisId="position"
                   yAxisId="position"
+                  isAnimationActive={true}
+                  animationDuration={500}
                 />
               ))}
           </LineChart>
@@ -318,11 +336,6 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
         <p className="text-xs text-muted-foreground">
           Total Laps: {maxLap}
         </p>
-        {isPartialData && (
-          <p className="text-xs text-muted-foreground">
-            Showing partial lap data. Click "Load All Laps" to view complete race data.
-          </p>
-        )}
       </div>
     </div>
   );

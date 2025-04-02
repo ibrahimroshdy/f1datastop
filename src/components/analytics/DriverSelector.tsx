@@ -1,60 +1,68 @@
 
 import React from 'react';
+import { Badge } from "@/components/ui/badge";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { formatTime } from "@/utils/lapTimeUtils";
 
-interface Driver {
-  driverId: string;
-  code: string;
-  name: string;
-  team: string;
-  hasFastestLap?: boolean;
-  fastestLapTime?: string | null;
-  finishPosition?: number;
-}
-
 interface DriverSelectorProps {
-  availableDrivers: Driver[];
+  availableDrivers: any[];
   selectedDrivers: string[];
   onDriverToggle: (driverCode: string) => void;
+  onDriverHover?: (driverCode: string | null) => void;
   displayMode: 'absolute' | 'gap';
-  fastestLapTime: {time: number, driver: string} | null;
-  getAverageTime: (driverCode: string) => { avg: string, laps: number } | null;
+  fastestLapTime: { time: number, driver: string } | null;
+  getAverageTime: (driverCode: string) => number | null;
 }
 
 const DriverSelector: React.FC<DriverSelectorProps> = ({
   availableDrivers,
   selectedDrivers,
   onDriverToggle,
+  onDriverHover,
   displayMode,
   fastestLapTime,
   getAverageTime
 }) => {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 py-1">
       {availableDrivers.map(driver => {
-        const avgData = getAverageTime(driver.code);
+        const isSelected = selectedDrivers.includes(driver.code);
+        const averageTime = getAverageTime(driver.code);
+        const hasFastestLap = fastestLapTime && driver.code === fastestLapTime.driver;
+        
         return (
           <button
             key={driver.code}
-            className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 ${
-              selectedDrivers.includes(driver.code)
-                ? 'bg-gray-800 text-white'
-                : 'bg-f1-black border border-gray-700 text-gray-200 hover:bg-gray-800'
-            }`}
+            className={`
+              px-3 py-1.5 rounded-md text-sm font-medium flex flex-col items-start
+              transition-all duration-200 ease-in-out
+              ${isSelected 
+                ? 'bg-gray-800 text-white ring-2 ring-offset-2 ring-offset-background ring-gray-800' 
+                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}
+            `}
             onClick={() => onDriverToggle(driver.code)}
+            onMouseEnter={() => onDriverHover && onDriverHover(driver.code)}
+            onMouseLeave={() => onDriverHover && onDriverHover(null)}
             style={{
-              borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+              borderLeft: `4px solid ${TEAM_COLORS[driver.team] || '#666'}`,
             }}
           >
-            <span>{driver.code}</span>
-            {avgData && (
-              <span className="text-xs opacity-75 ml-1">
-                {displayMode === 'absolute' ? formatTime(Number(avgData.avg)) : ''}
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold">{driver.code}</span>
+              <span className="text-xs opacity-70">P{driver.finishPosition}</span>
+              {hasFastestLap && (
+                <Badge className="ml-1 bg-purple-600 text-[0.65rem] px-1.5 py-0 h-4">
+                  FL
+                </Badge>
+              )}
+            </div>
+            
+            {averageTime && isSelected && (
+              <span className="text-xs opacity-80">
+                {displayMode === 'absolute' 
+                  ? formatTime(averageTime) 
+                  : `+${(averageTime - (fastestLapTime?.time || 0)).toFixed(3)}s`}
               </span>
-            )}
-            {fastestLapTime?.driver === driver.code && (
-              <span className="text-purple-500 ml-1">⚡</span>
             )}
           </button>
         );

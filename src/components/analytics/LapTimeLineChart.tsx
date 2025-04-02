@@ -26,6 +26,8 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
         <LineChart
           data={chartData}
           margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
+          animationDuration={300}
+          animationEasing="ease-in-out"
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
           <XAxis 
@@ -111,6 +113,8 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 connectNulls
                 xAxisId="lapTime"
                 yAxisId="lapTime"
+                animationDuration={500}
+                isAnimationActive={true}
               />
             ))}
         </LineChart>
