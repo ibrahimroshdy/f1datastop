@@ -7,10 +7,13 @@ import {
   BarChart,
   Users,
   X,
-  Award
+  Award,
+  User,
+  LogIn
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/context/AuthContext";
 
 interface SidebarProps {
   open: boolean;
@@ -20,14 +23,22 @@ interface SidebarProps {
 const Sidebar = ({ open, setOpen }: SidebarProps) => {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
 
-  const navigation = [
+  const mainNavigation = [
     { name: "Dashboard", href: "/", icon: Home },
+  ];
+
+  const protectedNavigation = [
     { name: "Race Calendar", href: "/calendar", icon: Calendar },
     { name: "Analytics", href: "/analytics", icon: BarChart },
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Constructors", href: "/constructors", icon: Award },
   ];
+
+  const authNavigation = user 
+    ? [{ name: "Profile", href: "/profile", icon: User }]
+    : [{ name: "Login / Signup", href: "/auth/login", icon: LogIn }];
 
   // Close sidebar when a navigation item is clicked on mobile
   const handleNavClick = () => {
@@ -75,7 +86,53 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
 
         {/* Navigation */}
         <nav className="flex flex-col gap-1 px-2 py-4">
-          {navigation.map((item) => (
+          {/* Main Navigation */}
+          {mainNavigation.map((item) => (
+            <Link
+              key={item.name}
+              to={item.href}
+              onClick={handleNavClick}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
+                location.pathname === item.href
+                  ? "bg-f1-red text-white font-medium"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800",
+                !open && !isMobile && "justify-center"
+              )}
+            >
+              <item.icon className="h-5 w-5 shrink-0" />
+              <span className={cn("truncate", !open && !isMobile && "hidden")}>
+                {item.name}
+              </span>
+            </Link>
+          ))}
+
+          {/* Protected Navigation */}
+          {protectedNavigation.map((item) => (
+            <Link
+              key={item.name}
+              to={item.href}
+              onClick={handleNavClick}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
+                location.pathname === item.href
+                  ? "bg-f1-red text-white font-medium"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800",
+                !open && !isMobile && "justify-center"
+              )}
+            >
+              <item.icon className="h-5 w-5 shrink-0" />
+              <span className={cn("truncate", !open && !isMobile && "hidden")}>
+                {item.name}
+              </span>
+            </Link>
+          ))}
+
+          {/* Separator */}
+          <div className="h-px bg-gray-800 my-2 mx-3" />
+
+          {/* Auth Navigation */}
+          {authNavigation.map((item) => (
             <Link
               key={item.name}
               to={item.href}
