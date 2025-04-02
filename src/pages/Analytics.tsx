@@ -9,8 +9,9 @@ import PositionChangeChart from "@/components/analytics/PositionChangeChart";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Info, ArrowUp, ArrowDown, Minus, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -59,22 +60,34 @@ const Analytics = () => {
           <div className="flex flex-col md:flex-row items-center gap-4">
             <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
             
-            <Select value={selectedRace} onValueChange={handleRaceChange}>
-              <SelectTrigger className="w-[250px] bg-f1-black text-white border-gray-700">
-                <SelectValue placeholder="Select race" />
-              </SelectTrigger>
-              <SelectContent className="bg-black border-gray-700 text-white">
-                {isRaceScheduleLoading ? (
-                  <SelectItem value="loading">Loading...</SelectItem>
-                ) : (
-                  raceScheduleData?.data?.map((race: any) => (
-                    <SelectItem key={race.round} value={race.round}>
-                      {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
+            {isRaceScheduleLoading ? (
+              <div className="w-[250px] flex items-center space-x-2">
+                <Skeleton className="h-10 w-full" />
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <Select value={selectedRace} onValueChange={handleRaceChange}>
+                <SelectTrigger className="w-[250px] bg-f1-black text-white border-gray-700">
+                  <SelectValue placeholder="Select race" />
+                </SelectTrigger>
+                <SelectContent className="bg-black border-gray-700 text-white">
+                  {isRaceScheduleLoading ? (
+                    <SelectItem value="loading">
+                      <div className="flex items-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading races...
+                      </div>
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                  ) : (
+                    raceScheduleData?.data?.map((race: any) => (
+                      <SelectItem key={race.round} value={race.round}>
+                        {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
         
@@ -82,8 +95,8 @@ const Analytics = () => {
           <Info className="h-4 w-4" />
           <AlertDescription>
             View lap-by-lap data including position changes and timing information. 
-            Select a race and switch between tabs to explore different analytics. 
-            Data is loaded progressively to improve performance - use "Load All Laps" for complete race data.
+            Select a race and switch between tabs to explore different analytics.
+            If data loading fails, the system will automatically retry loading the information.
           </AlertDescription>
         </Alert>
         

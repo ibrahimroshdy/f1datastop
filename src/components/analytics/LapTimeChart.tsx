@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
@@ -7,6 +6,7 @@ import DriverSelector from "./DriverSelector";
 import LapTimeLineChart from "./LapTimeLineChart";
 import DisplayModeToggle from "./DisplayModeToggle";
 import { Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface LapTimeChartProps {
   year: number;
@@ -20,8 +20,8 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
   const [fastestLapTime, setFastestLapTime] = useState<{time: number, driver: string} | null>(null);
   const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
   const [retryCount, setRetryCount] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
-  // Use React Query hooks for data fetching
   const { 
     data: raceResultsData, 
     isLoading: isResultsLoading, 
@@ -33,24 +33,28 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     isLoading: isLapTimesLoading, 
     error: lapTimesError,
     refetch: refetchLapTimes,
-    isError
+    isError,
+    isFetching
   } = useLapTimes(year, round, false); // Always fetch full data
   
   const isLoading = isResultsLoading || isLapTimesLoading;
   const error = resultsError || lapTimesError;
 
-  // Auto-retry on error
   useEffect(() => {
     if (isError && retryCount < 5) {
+      setLoadingProgress(retryCount * 20);
       const timer = setTimeout(() => {
         setRetryCount(prev => prev + 1);
         refetchLapTimes();
-      }, 2000); // Retry every 2 seconds
+      }, 2000);
       return () => clearTimeout(timer);
+    } else if (!isError && !isLoading && !isFetching) {
+      setLoadingProgress(100);
+    } else if (isFetching) {
+      setLoadingProgress(50);
     }
-  }, [isError, retryCount, refetchLapTimes]);
+  }, [isError, retryCount, refetchLapTimes, isLoading, isFetching]);
   
-  // Set only the first driver selected by default
   useEffect(() => {
     if (raceResultsData?.data?.Results && raceResultsData.data.Results.length > 0) {
       const drivers = raceResultsData.data.Results.map((result: any) => ({
@@ -65,7 +69,6 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
       
       setAvailableDrivers(drivers);
       
-      // Auto-select only the winner by default
       if (drivers.length > 0) {
         const winner = drivers.find(d => d.finishPosition === 1);
         if (winner) {
@@ -77,7 +80,6 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     }
   }, [raceResultsData]);
 
-  // Memoize chart data to avoid recalculations
   const chartData = useMemo(() => {
     const { chartData, fastestLapTime: fastestLap } = processLapTimeData(
       lapTimesData,
@@ -114,29 +116,34 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     setHoveredDriver(driverCode);
   };
 
-  // Calculate visible drivers (either all selected or just the hovered one)
   const visibleDrivers = hoveredDriver 
     ? selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers
     : selectedDrivers;
 
-  if (isLoading || (isError && retryCount < 5)) {
+  if (isLoading || (isError && retryCount < 5) || isFetching) {
     return (
-      <div className="h-full flex flex-col items-center justify-center">
-        <Skeleton className="h-full w-full" />
-        <div className="absolute flex flex-col items-center justify-center">
+      <div className="h-full flex flex-col items-center justify-center space-y-4">
+        <Skeleton className="h-full w-full opacity-30" /> 
+        <div className="absolute flex flex-col items-center justify-center space-y-6 w-3/4 max-w-md">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-muted-foreground">
-            {isError 
-              ? `Loading data... (retry ${retryCount + 1}/5)` 
-              : "Loading lap time data..."}
-          </p>
+          <div className="w-full space-y-2">
+            <Progress 
+              value={loadingProgress} 
+              className="h-2 w-full" 
+              indicatorClassName={isError ? "bg-yellow-500" : "bg-blue-500"}
+            />
+            <p className="text-center text-muted-foreground text-sm">
+              {isError 
+                ? `Loading data... Retry ${retryCount + 1}/5` 
+                : "Loading lap time data..."}
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   if (error && retryCount >= 5) {
-    // Even if we get an error, we still show the UI but with a message
     return (
       <div className="h-full">
         <div className="mb-4 flex flex-col gap-4">
@@ -221,7 +228,6 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
   );
 };
 
-// Helper function from lapTimeUtils.ts
 const getDriverAverageLapTime = (chartData: any[], driverCode: string) => {
   if (chartData.length === 0) return null;
   

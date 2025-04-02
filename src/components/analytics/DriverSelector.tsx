@@ -39,12 +39,15 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
               ${isSelected 
                 ? 'bg-gray-800 text-white ring-2 ring-offset-2 ring-offset-background ring-gray-800' 
                 : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}
+              ${onDriverHover ? 'cursor-pointer' : ''}
             `}
             onClick={() => onDriverToggle(driver.code)}
             onMouseEnter={() => onDriverHover && onDriverHover(driver.code)}
             onMouseLeave={() => onDriverHover && onDriverHover(null)}
             style={{
               borderLeft: `4px solid ${TEAM_COLORS[driver.team] || '#666'}`,
+              transform: isSelected ? 'translateY(-2px)' : 'none',
+              boxShadow: isSelected ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none'
             }}
           >
             <div className="flex items-center gap-1.5">
