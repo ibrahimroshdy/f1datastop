@@ -83,7 +83,7 @@ const Analytics = () => {
           <AlertDescription>
             View lap-by-lap data including position changes and timing information. 
             Select a race and switch between tabs to explore different analytics. 
-            For races with many laps, data loading may take a moment to retrieve all laps.
+            Data is loaded progressively to improve performance - use "Load All Laps" for complete race data.
           </AlertDescription>
         </Alert>
         

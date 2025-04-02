@@ -7,6 +7,8 @@ import { processLapTimeData, getDriverAverageLapTime } from "@/utils/lapTimeUtil
 import DriverSelector from "./DriverSelector";
 import LapTimeLineChart from "./LapTimeLineChart";
 import DisplayModeToggle from "./DisplayModeToggle";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface LapTimeChartProps {
   year: number;
@@ -14,10 +16,12 @@ interface LapTimeChartProps {
 }
 
 const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
-  const [selectedDrivers, setSelectedDrivers] = useState<string[]>(["VER", "HAM", "LEC"]);
+  const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
   const [fastestLapTime, setFastestLapTime] = useState<{time: number, driver: string} | null>(null);
   const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
+  const [loadFullData, setLoadFullData] = useState<boolean>(false);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
 
   // Use React Query hooks for data fetching
   const { 
@@ -29,15 +33,16 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
   const { 
     data: lapTimesData, 
     isLoading: isLapTimesLoading, 
-    error: lapTimesError 
-  } = useLapTimes(year, round);
+    error: lapTimesError,
+    refetch: refetchLapTimes
+  } = useLapTimes(year, round, loadFullData);
   
   const isLoading = isResultsLoading || isLapTimesLoading;
   const error = resultsError || lapTimesError;
   
-  // Process available drivers once race results are loaded
+  // Set only the first driver selected by default
   useEffect(() => {
-    if (raceResultsData?.data?.Results) {
+    if (raceResultsData?.data?.Results && raceResultsData.data.Results.length > 0) {
       const drivers = raceResultsData.data.Results.map((result: any) => ({
         driverId: result.Driver.driverId,
         code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
@@ -50,24 +55,25 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
       
       setAvailableDrivers(drivers);
       
-      // Auto-select the top 3 finishers and the driver with fastest lap if available
+      // Auto-select only the winner by default
       if (drivers.length > 0) {
-        const topDrivers = drivers
-          .sort((a, b) => a.finishPosition - b.finishPosition)
-          .slice(0, 3)
-          .map(d => d.code);
-        
-        const fastestLapDriver = drivers.find(d => d.hasFastestLap);
-        if (fastestLapDriver && !topDrivers.includes(fastestLapDriver.code)) {
-          topDrivers.push(fastestLapDriver.code);
-        }
-        
-        if (topDrivers.length > 0) {
-          setSelectedDrivers(topDrivers);
+        const winner = drivers.find(d => d.finishPosition === 1);
+        if (winner) {
+          setSelectedDrivers([winner.code]);
+        } else {
+          setSelectedDrivers([drivers[0].code]);
         }
       }
     }
   }, [raceResultsData]);
+
+  const handleLoadAllData = async () => {
+    setIsLoadingMore(true);
+    setLoadFullData(true);
+    await refetchLapTimes();
+    setIsLoadingMore(false);
+    toast.success("Full lap data loaded successfully");
+  };
 
   // Memoize chart data to avoid recalculations
   const chartData = useMemo(() => {
@@ -117,6 +123,9 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     );
   }
 
+  const totalLaps = chartData.length;
+  const isPartialData = !loadFullData && totalLaps > 10;
+
   return (
     <div className="h-full">
       <div className="mb-4 flex flex-col gap-4">
@@ -124,10 +133,30 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
           <h3 className="text-lg font-semibold">
             {displayMode === 'absolute' ? 'Absolute Lap Times' : 'Gap to Fastest Lap'}
           </h3>
-          <DisplayModeToggle 
-            displayMode={displayMode} 
-            onToggle={toggleDisplayMode} 
-          />
+          <div className="flex flex-wrap gap-2">
+            <DisplayModeToggle 
+              displayMode={displayMode} 
+              onToggle={toggleDisplayMode} 
+            />
+            
+            {isPartialData && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={handleLoadAllData}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>Load All Laps</>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
         
         <DriverSelector 
@@ -147,6 +176,12 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
         displayMode={displayMode}
         fastestLapTime={fastestLapTime}
       />
+      
+      {isPartialData && (
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          Showing partial lap data. Click "Load All Laps" to view complete race data.
+        </p>
+      )}
     </div>
   );
 };

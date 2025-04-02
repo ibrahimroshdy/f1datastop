@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
+import { optimizeLapData } from "@/utils/dataLoadingUtils";
 
 export const useDriverStandings = (year?: number) => {
   return useQuery({
@@ -43,10 +44,13 @@ export const useRaceQualifying = (year: number, round: string) => {
   });
 };
 
-export const useLapTimes = (year: number, round: string) => {
+export const useLapTimes = (year: number, round: string, loadFullData: boolean = false) => {
   return useQuery({
-    queryKey: ["lapTimes", year, round],
-    queryFn: () => f1Service.getLapTimes(year, round),
+    queryKey: ["lapTimes", year, round, loadFullData],
+    queryFn: async () => {
+      const data = await f1Service.getLapTimes(year, round);
+      return optimizeLapData(data, loadFullData);
+    },
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
     retry: 1, // Reduce retry attempts

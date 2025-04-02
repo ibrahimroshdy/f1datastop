@@ -3,10 +3,11 @@ import { useState, useEffect, useMemo } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { ArrowUp, ArrowDown, Minus, Loader2 } from "lucide-react";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface PositionChangeChartProps {
   year: number;
@@ -18,6 +19,8 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
   const [totalLaps, setTotalLaps] = useState<number>(0);
   const [isProcessingData, setIsProcessingData] = useState<boolean>(false);
+  const [loadFullData, setLoadFullData] = useState<boolean>(false);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
 
   // Use React Query hooks for data fetching
   const { 
@@ -29,15 +32,16 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
   const { 
     data: lapTimesData, 
     isLoading: isLapTimesLoading, 
-    error: lapTimesError 
-  } = useLapTimes(year, round);
+    error: lapTimesError,
+    refetch: refetchLapTimes
+  } = useLapTimes(year, round, loadFullData);
   
   const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
 
-  // Process available drivers once race results are loaded
+  // Set only the first driver selected by default
   useEffect(() => {
-    if (raceResultsData?.data?.Results) {
+    if (raceResultsData?.data?.Results && raceResultsData.data.Results.length > 0) {
       const drivers = raceResultsData.data.Results.map((result: any) => ({
         driverId: result.Driver.driverId,
         code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
@@ -49,15 +53,13 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
       
       setAvailableDrivers(drivers);
       
-      // Auto-select the top 5 finishers if available
+      // Auto-select only the winner by default
       if (drivers.length > 0) {
-        const topDrivers = drivers
-          .sort((a, b) => a.finishPosition - b.finishPosition)
-          .slice(0, 5)
-          .map(d => d.code);
-        
-        if (topDrivers.length > 0) {
-          setSelectedDrivers(topDrivers);
+        const winner = drivers.find(d => d.finishPosition === 1);
+        if (winner) {
+          setSelectedDrivers([winner.code]);
+        } else {
+          setSelectedDrivers([drivers[0].code]);
         }
       }
     }
@@ -75,6 +77,14 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
       }, 0);
     }
   }, [lapTimesData]);
+
+  const handleLoadAllData = async () => {
+    setIsLoadingMore(true);
+    setLoadFullData(true);
+    await refetchLapTimes();
+    setIsLoadingMore(false);
+    toast.success("Full position data loaded successfully");
+  };
 
   const handleDriverToggle = (driverCode: string) => {
     setSelectedDrivers(prev => 
@@ -167,45 +177,67 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
     ? Math.max(...chartData.map(lap => lap.lap)) 
     : totalLaps;
 
+  const isPartialData = !loadFullData && totalLaps > 10;
+
   return (
     <div className="h-full">
-      <div className="mb-4 flex flex-wrap gap-2">
-        {availableDrivers.map(driver => {
-          const summary = getPositionChangeSummary(driver.code);
-          return (
-            <button
-              key={driver.code}
-              className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 ${
-                selectedDrivers.includes(driver.code)
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-gray-200 text-gray-800'
-              }`}
-              onClick={() => handleDriverToggle(driver.code)}
-              style={{
-                borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
-              }}
-            >
-              <span>{driver.code}</span>
-              {summary && (
-                <span className={`text-xs ml-1 flex items-center ${
-                  summary.improved 
-                    ? 'text-green-500' 
-                    : summary.change === 0 
-                      ? 'text-gray-500' 
-                      : 'text-red-500'
-                }`}>
-                  {summary.improved ? (
-                    <><ArrowUp size={10} /> {summary.change}</>
-                  ) : summary.change === 0 ? (
-                    <><Minus size={10} /> 0</>
-                  ) : (
-                    <><ArrowDown size={10} /> {Math.abs(summary.change)}</>
-                  )}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <div className="mb-4 flex flex-wrap justify-between items-center gap-2">
+        <div className="flex flex-wrap gap-2">
+          {availableDrivers.map(driver => {
+            const summary = getPositionChangeSummary(driver.code);
+            return (
+              <button
+                key={driver.code}
+                className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 ${
+                  selectedDrivers.includes(driver.code)
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-200 text-gray-800'
+                }`}
+                onClick={() => handleDriverToggle(driver.code)}
+                style={{
+                  borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+                }}
+              >
+                <span>{driver.code}</span>
+                {summary && (
+                  <span className={`text-xs ml-1 flex items-center ${
+                    summary.improved 
+                      ? 'text-green-500' 
+                      : summary.change === 0 
+                        ? 'text-gray-500' 
+                        : 'text-red-500'
+                  }`}>
+                    {summary.improved ? (
+                      <><ArrowUp size={10} /> {summary.change}</>
+                    ) : summary.change === 0 ? (
+                      <><Minus size={10} /> 0</>
+                    ) : (
+                      <><ArrowDown size={10} /> {Math.abs(summary.change)}</>
+                    )}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        
+        {isPartialData && (
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={handleLoadAllData}
+            disabled={isLoadingMore}
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>Load All Laps</>
+            )}
+          </Button>
+        )}
       </div>
       
       <div className="h-[500px] w-full">
@@ -281,9 +313,17 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-xs text-muted-foreground mt-2 text-right">
-        Total Laps: {maxLap}
-      </p>
+      
+      <div className="flex justify-between items-center mt-2">
+        <p className="text-xs text-muted-foreground">
+          Total Laps: {maxLap}
+        </p>
+        {isPartialData && (
+          <p className="text-xs text-muted-foreground">
+            Showing partial lap data. Click "Load All Laps" to view complete race data.
+          </p>
+        )}
+      </div>
     </div>
   );
 };
