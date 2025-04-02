@@ -13,7 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults } from "@/hooks/useF1Data";
-import { Loader2, Trophy, Flag, Calendar, Clock, AlertCircle, Users } from "lucide-react";
+import { Loader2, Trophy, Flag, Calendar, Clock, AlertCircle, Users, Building2 } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
@@ -62,37 +62,12 @@ const Index = () => {
     return raceDate > new Date();
   });
   
-  const getCountryFlag = (country: string) => {
-    const countryFlags: Record<string, string> = {
-      "Australia": "🇦🇺",
-      "Austria": "🇦🇹",
-      "Azerbaijan": "🇦🇿",
-      "Bahrain": "🇧🇭",
-      "Belgium": "🇧🇪",
-      "Brazil": "🇧🇷",
-      "Canada": "🇨🇦",
-      "China": "🇨🇳",
-      "France": "🇫🇷",
-      "Germany": "🇩🇪",
-      "Hungary": "🇭🇺",
-      "Italy": "🇮🇹",
-      "Japan": "🇯🇵",
-      "Mexico": "🇲🇽",
-      "Monaco": "🇲🇨",
-      "Netherlands": "🇳🇱",
-      "Portugal": "🇵🇹",
-      "Qatar": "🇶🇦",
-      "Saudi Arabia": "🇸🇦",
-      "Singapore": "🇸🇬",
-      "Spain": "🇪🇸",
-      "United Arab Emirates": "🇦🇪",
-      "United Kingdom": "🇬🇧",
-      "United States": "🇺🇸",
-      "USA": "🇺🇸",
-      "UK": "🇬🇧",
-    };
-    
-    return countryFlags[country] || "🏁";
+  // Helper function to remove emoji flags from race names
+  const removeFlag = (raceName: string) => {
+    if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
+      return raceName.substring(raceName.indexOf(' ') + 1);
+    }
+    return raceName;
   };
   
   const formatRaceDate = (dateStr: string, timeStr: string) => {
@@ -130,7 +105,7 @@ const Index = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="bg-f1-red text-white border-0">NEXT RACE</Badge>
-                    <span className="font-medium">{nextRace.raceName}</span>
+                    <span className="font-medium">{removeFlag(nextRace.raceName)}</span>
                   </div>
                   <div className="text-sm text-gray-400">
                     {formatRaceDate(nextRace.date, nextRace.time || "").fromNow}
@@ -205,34 +180,67 @@ const Index = () => {
                 </CardContent>
               </Card>
               
-              <Card className="bg-gray-900 border-gray-800">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-f1-red" />
-                    Last Race Results
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-2">
-                    <h3 className="font-bold text-lg">{lastRaceResults?.data?.raceName}</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {lastRaceResults?.data?.results?.slice(0, 5).map((result) => (
-                      <div key={result.position} className="flex justify-between items-center border-b border-gray-800 pb-2">
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium w-6">{result.position}</span>
-                          <div className={`w-1.5 h-6 ${getTeamColor(result.Constructor.constructorId)} rounded-sm`}></div>
-                          <span>{result.Driver.code}</span>
+              <div className="space-y-6">
+                <Card className="bg-gray-900 border-gray-800">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-f1-red" />
+                      Constructor Standings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {constructorStandings?.data?.slice(0, 5).map((team) => (
+                        <div key={team.position} className="flex items-center gap-3">
+                          <span className="text-lg font-medium w-6">{team.position}</span>
+                          <div className={`w-2 h-8 ${getTeamColor(team.Constructor.constructorId)} rounded-sm`}></div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-medium">{team.Constructor.name}</span>
+                              <span className="font-medium">{team.points} pts</span>
+                            </div>
+                            <Progress 
+                              value={(Number(team.points) / Number(constructorStandings.data[0].points)) * 100} 
+                              className="h-2 bg-gray-800" 
+                            />
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-medium">{result.Time?.time || "DNF"}</div>
-                          <div className="text-xs text-gray-400">{result.status}</div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gray-900 border-gray-800">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-f1-red" />
+                      Last Race Results
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-2">
+                      <h3 className="font-bold text-lg">
+                        {lastRaceResults?.data?.raceName ? removeFlag(lastRaceResults.data.raceName) : "No race data"}
+                      </h3>
+                    </div>
+                    <div className="space-y-3">
+                      {lastRaceResults?.data?.results?.slice(0, 5).map((result) => (
+                        <div key={result.position} className="flex justify-between items-center border-b border-gray-800 pb-2">
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium w-6">{result.position}</span>
+                            <div className={`w-1.5 h-6 ${getTeamColor(result.Constructor.constructorId)} rounded-sm`}></div>
+                            <span>{result.Driver.code}</span>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">{result.Time?.time || "DNF"}</div>
+                            <div className="text-xs text-gray-400">{result.status}</div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
             
             <Tabs defaultValue="schedule">
@@ -253,7 +261,7 @@ const Index = () => {
                             <div className="flex items-center gap-2">
                               <span className="text-2xl">{getCountryFlag(race.Circuit.Location.country)}</span>
                               <div>
-                                <h3 className="font-bold">{race.raceName}</h3>
+                                <h3 className="font-bold">{removeFlag(race.raceName)}</h3>
                                 <p className="text-sm text-gray-400">{race.Circuit.circuitName}</p>
                               </div>
                             </div>

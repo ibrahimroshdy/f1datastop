@@ -6,7 +6,7 @@ import { useConstructorStandings, useDriverStandings } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import YearSelector from "@/components/common/YearSelector";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -42,6 +42,19 @@ const Constructors = () => {
     // For past years, ideally we would have historical data
     // For now, we'll just check if they're listed as position 1
     return constructor.position === "1";
+  };
+  
+  // Helper function to get team logo URL
+  const getTeamLogoUrl = (constructorId: string) => {
+    return `https://raw.githubusercontent.com/npranav10/F1-Dashboard/main/public/img/teams/${constructorId}.png`;
+  };
+
+  // Helper function to remove emoji flags from race names
+  const removeFlag = (raceName: string) => {
+    if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
+      return raceName.substring(raceName.indexOf(' ') + 1);
+    }
+    return raceName;
   };
 
   return (
@@ -103,8 +116,14 @@ const Constructors = () => {
                 >
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: teamColor }}>
-                        {constructor.Constructor.name.charAt(0)}
+                      <Avatar className="h-12 w-12 rounded-full flex items-center justify-center" style={{ backgroundColor: teamColor }}>
+                        <AvatarImage 
+                          src={getTeamLogoUrl(constructor.Constructor.constructorId)}
+                          alt={constructor.Constructor.name}
+                        />
+                        <AvatarFallback style={{ backgroundColor: teamColor }} className="text-white font-bold">
+                          {constructor.Constructor.name.charAt(0)}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-2">

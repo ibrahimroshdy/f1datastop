@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 
@@ -30,6 +30,11 @@ const DriverCard = ({ driver }: DriverCardProps) => {
 
   // Get driver number
   const driverNumber = driver.Driver.permanentNumber || 'N/A';
+  
+  // Generate driver image URL based on driver ID (or use a fallback)
+  const getDriverImageUrl = (driverId: string) => {
+    return `https://raw.githubusercontent.com/npranav10/F1-Dashboard/main/public/img/drivers/${driverId}.png`;
+  };
 
   return (
     <>
@@ -37,7 +42,13 @@ const DriverCard = ({ driver }: DriverCardProps) => {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
             <Avatar className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: teamColor }}>
-              {driver.Driver.code?.slice(0, 2) || driver.Driver.familyName.slice(0, 2)}
+              <AvatarImage 
+                src={getDriverImageUrl(driver.Driver.driverId)} 
+                alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`} 
+              />
+              <AvatarFallback style={{ backgroundColor: teamColor }}>
+                {driver.Driver.code?.slice(0, 2) || driver.Driver.familyName.slice(0, 2)}
+              </AvatarFallback>
             </Avatar>
             <div>
               <h3 className="text-lg font-bold">{driver.Driver.givenName} {driver.Driver.familyName}</h3>
