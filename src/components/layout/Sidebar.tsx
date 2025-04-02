@@ -70,7 +70,40 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
         {/* Logo and close button */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
           <Link to="/" className="flex items-center gap-2" onClick={handleNavClick}>
-            <img src="/lovable-uploads/697808f9-3d9e-47b2-9297-4941de42f4ae.png" alt="F1 DataStop" className="w-8 h-8" />
+            <svg
+              className="w-8 h-8"
+              viewBox="0 0 100 100"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle cx="50" cy="50" r="50" fill="#252530" />
+              <circle cx="50" cy="50" r="45" fill="#e10600" />
+              <circle cx="50" cy="50" r="38" fill="#252530" />
+              <path
+                d="M20 50 H27 V35 H32 L38 50 H47 L40 33 C44 31 46 28 46 24 C46 18 42 15 35 15 H20 V50 Z"
+                fill="white"
+              />
+              <path
+                d="M27 29 V22 H33 C36 22 37 23 37 25.5 C37 28 36 29 33 29 H27 Z"
+                fill="white"
+              />
+              <path 
+                d="M50 15 V50 H57 V37 H70 V50 H77 V15 H70 V30 H57 V15 H50 Z"
+                fill="white" 
+              />
+              <path
+                d="M82.5 40 V15 H95 C100 15 105 20 105 27.5 C105 35 100 40 95 40 H82.5 Z M89.5 34 H93 C96 34 98 32 98 27.5 C98 23 96 21 93 21 H89.5 V34 Z"
+                fill="white"
+              />
+              <text 
+                x="50" 
+                y="70" 
+                fontFamily="Arial, sans-serif" 
+                fontSize="12" 
+                fontWeight="bold" 
+                textAnchor="middle" 
+                fill="white"
+              >DATASTOP</text>
+            </svg>
             <span className={cn("font-bold tracking-tight transition-opacity", 
               !open && !isMobile && "opacity-0"
             )}>
