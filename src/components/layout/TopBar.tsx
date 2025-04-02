@@ -7,12 +7,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import f1Logo from "@/assets/f1-logo.svg";
-
 interface TopBarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
 }
-
 const TopBar = ({
   sidebarOpen,
   setSidebarOpen
@@ -158,7 +156,7 @@ const TopBar = ({
               </div>
             </PopoverContent>
           </Popover> : <Link to="/auth/login">
-            <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white font-thin">
+            <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white font-medium">
               <UserCircle className="mr-2 h-4 w-4" />
               Sign In
             </Button>
@@ -166,5 +164,4 @@ const TopBar = ({
       </div>
     </header>;
 };
-
 export default TopBar;
