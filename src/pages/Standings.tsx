@@ -27,11 +27,11 @@ const Standings = () => {
           </TabsList>
           
           <TabsContent value="drivers" className="mt-6">
-            <Card>
+            <Card className="w-full">
               <CardHeader>
                 <CardTitle>Drivers Championship {new Date().getFullYear()}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -73,11 +73,11 @@ const Standings = () => {
           </TabsContent>
           
           <TabsContent value="constructors" className="mt-6">
-            <Card>
+            <Card className="w-full">
               <CardHeader>
                 <CardTitle>Constructors Championship {new Date().getFullYear()}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
