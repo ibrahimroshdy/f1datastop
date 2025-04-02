@@ -105,7 +105,7 @@ serve(async (req) => {
           elements: [
             {
               type: "mrkdwn",
-              text: `Signup received from F1 RaceHub application`,
+              text: `Signup received from F1 DataStop application`,
             },
           ],
         },
