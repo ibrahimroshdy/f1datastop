@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
 
 interface AuthContextProps {
   user: User | null;
@@ -72,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
@@ -111,7 +112,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       toast.success("Registration successful! Please check your email to confirm your account.");
-      return data;
     } catch (error: any) {
       console.error("Error during sign up:", error);
       throw error;
@@ -132,7 +132,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       toast.success("Login successful!");
       navigate("/");
-      return data;
     } catch (error: any) {
       console.error("Error during sign in:", error);
       throw error;
