@@ -231,7 +231,7 @@ export const getPitStops = async (year: number, round: string) => {
 };
 
 // Fetch lap times for a specific race with pagination support
-export const getLapTimes = async (year: number, round: string, driverId?: string) => {
+export const getLapTimes = async (year: number, round: string, driverId?: string, page?: number, itemsPerPage?: number) => {
   try {
     let baseUrl = `${BASE_URL}/f1/${year}/${round}/laps`;
     if (driverId) {
@@ -253,6 +253,35 @@ export const getLapTimes = async (year: number, round: string, driverId?: string
     const initialData = await initialResponse.json();
     const total = parseInt(initialData.MRData?.total || "0");
     const limit = 100; // Increase the limit to reduce number of requests
+    
+    // If pagination is requested and we have page and itemsPerPage
+    if (page && itemsPerPage) {
+      const offset = (page - 1) * itemsPerPage;
+      const paginatedUrl = `${baseUrl}.json?limit=${itemsPerPage}&offset=${offset}`;
+      
+      const paginatedResponse = await fetch(paginatedUrl, {
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!paginatedResponse.ok) {
+        throw new Error(`API request failed with status ${paginatedResponse.status}`);
+      }
+      
+      const paginatedData = await paginatedResponse.json();
+      
+      return { 
+        data: { 
+          Races: paginatedData.MRData?.RaceTable?.Races || [],
+          totalLaps: total,
+          currentPage: page,
+          totalPages: Math.ceil(total / itemsPerPage)
+        }, 
+        error: null 
+      };
+    }
     
     // If there are more laps than the initial limit, fetch all of them
     if (total > 30) {
@@ -310,14 +339,22 @@ export const getLapTimes = async (year: number, round: string, driverId?: string
       };
       
       return { 
-        data: { Races: completeData.RaceTable.Races }, 
+        data: { 
+          Races: completeData.RaceTable.Races,
+          totalLaps: total,
+          totalPages: Math.ceil(total / (itemsPerPage || 10))
+        }, 
         error: null 
       };
     }
     
     // If there are fewer than 30 laps, return the initial data
     return { 
-      data: initialData.MRData?.RaceTable || {}, 
+      data: { 
+        ...initialData.MRData?.RaceTable || {},
+        totalLaps: total,
+        totalPages: Math.ceil(total / (itemsPerPage || 10))
+      }, 
       error: null 
     };
   } catch (error) {

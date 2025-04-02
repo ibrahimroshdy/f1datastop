@@ -1,8 +1,8 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
+import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { toast } from "sonner";
@@ -10,15 +10,18 @@ import { toast } from "sonner";
 interface LapTimeChartProps {
   year: number;
   round: string;
+  currentPage?: number;
+  itemsPerPage?: number;
 }
 
-const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
-  const [selectedDrivers, setSelectedDrivers] = useState<string[]>(["VER", "HAM", "LEC"]);
+const LapTimeChart = ({ year, round, currentPage = 1, itemsPerPage = 10 }: LapTimeChartProps) => {
+  const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
-  const [fastestLapTime, setFastestLapTime] = useState<{time: number, driver: string} | null>(null);
-  const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
+  const [totalLaps, setTotalLaps] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [isProcessingData, setIsProcessingData] = useState<boolean>(false);
 
-  // Use React Query hooks for data fetching
+  // Use React Query hooks for data fetching with pagination
   const { 
     data: raceResultsData, 
     isLoading: isResultsLoading, 
@@ -29,11 +32,11 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     data: lapTimesData, 
     isLoading: isLapTimesLoading, 
     error: lapTimesError 
-  } = useLapTimes(year, round);
+  } = useLapTimes(year, round, currentPage, itemsPerPage);
   
-  const isLoading = isResultsLoading || isLapTimesLoading;
+  const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
-  
+
   // Process available drivers once race results are loaded
   useEffect(() => {
     if (raceResultsData?.data?.Results) {
@@ -42,54 +45,28 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
         code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
         name: `${result.Driver.givenName} ${result.Driver.familyName}`,
         team: result.Constructor?.constructorId || "unknown",
-        hasFastestLap: result.FastestLap?.rank === "1" || false,
-        fastestLapTime: result.FastestLap?.Time?.time || null,
-        finishPosition: parseInt(result.position) || 0,
       }));
       
       setAvailableDrivers(drivers);
       
-      // Auto-select the top 3 finishers and the driver with fastest lap if available
-      if (drivers.length > 0) {
+      // Auto-select top drivers if none selected
+      if (selectedDrivers.length === 0 && drivers.length > 0) {
         const topDrivers = drivers
-          .sort((a, b) => a.finishPosition - b.finishPosition)
-          .slice(0, 3)
+          .slice(0, Math.min(3, drivers.length))
           .map(d => d.code);
         
-        const fastestLapDriver = drivers.find(d => d.hasFastestLap);
-        if (fastestLapDriver && !topDrivers.includes(fastestLapDriver.code)) {
-          topDrivers.push(fastestLapDriver.code);
-        }
-        
-        if (topDrivers.length > 0) {
-          setSelectedDrivers(topDrivers);
-        }
+        setSelectedDrivers(topDrivers);
       }
     }
-  }, [raceResultsData]);
+  }, [raceResultsData, selectedDrivers.length]);
 
-  const convertLapTimeToSeconds = (lapTime: string): number => {
-    if (!lapTime) return 0;
-    
-    const parts = lapTime.includes(':') 
-      ? lapTime.split(':') 
-      : ['0', lapTime];
-    
-    if (parts.length !== 2) return 0;
-    
-    const minutes = parseFloat(parts[0]);
-    const seconds = parseFloat(parts[1]);
-    
-    return minutes * 60 + seconds;
-  };
-
-  const formatTime = (seconds: number): string => {
-    if (!seconds) return "N/A";
-    
-    const mins = Math.floor(seconds / 60);
-    const secs = (seconds % 60).toFixed(3);
-    return `${mins}:${secs.padStart(6, '0')}`;
-  };
+  // Update total laps and pages when lap data changes
+  useEffect(() => {
+    if (lapTimesData?.data) {
+      setTotalLaps(lapTimesData.data.totalLaps || 0);
+      setTotalPages(lapTimesData.data.totalPages || 1);
+    }
+  }, [lapTimesData]);
 
   const handleDriverToggle = (driverCode: string) => {
     setSelectedDrivers(prev => 
@@ -99,97 +76,68 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     );
   };
 
-  const toggleDisplayMode = () => {
-    setDisplayMode(prev => prev === 'absolute' ? 'gap' : 'absolute');
-  };
-
-  // Memoize chart data to avoid recalculations
-  const chartData = useMemo(() => {
-    if (!lapTimesData?.data?.Races || !lapTimesData.data.Races.length) {
+  // Process lap time data for the current page
+  const processedData = useMemo(() => {
+    if (!lapTimesData?.data?.Races || lapTimesData.data.Races.length === 0) {
       return [];
     }
-    
+
     const race = lapTimesData.data.Races[0];
-    
-    if (!race.Laps || !race.Laps.length) {
+    if (!race?.Laps || race.Laps.length === 0) {
       return [];
     }
 
-    // Find the fastest lap time in the entire race
-    let overallFastestLap = { time: Number.MAX_VALUE, driver: '', lap: 0 };
-    
-    // Process lap time data lap by lap
-    const data = race.Laps.map((lap: any) => {
+    // Process each lap in the current page
+    return race.Laps.map((lap: any) => {
       const lapNumber = parseInt(lap.number);
       const lapData: any = { lap: lapNumber };
-      
+
       lap.Timings.forEach((timing: any) => {
         const driverId = timing.driverId;
+        const lapTime = timing.time;
+
+        // Convert lap time (mm:ss.SSS) to seconds for easier charting
+        const timeParts = lapTime.includes(':') 
+          ? lapTime.split(':') 
+          : ['0', lapTime];
+        
+        const minutes = parseFloat(timeParts[0]);
+        const seconds = parseFloat(timeParts[1]);
+        const timeInSeconds = minutes * 60 + seconds;
+
         const driver = availableDrivers.find(d => d.driverId === driverId);
         const driverCode = driver?.code || driverId.substring(0, 3).toUpperCase();
-        const lapTime = convertLapTimeToSeconds(timing.time);
-        
-        // Track fastest lap
-        if (lapTime > 0 && lapTime < overallFastestLap.time) {
-          overallFastestLap = { 
-            time: lapTime, 
-            driver: driverCode,
-            lap: lapNumber
-          };
-        }
-        
-        lapData[driverCode] = lapTime;
-        lapData[`${driverCode}_raw`] = timing.time; // Store original time format
+
+        lapData[driverCode] = timeInSeconds;
       });
-      
+
       return lapData;
     });
+  }, [lapTimesData, availableDrivers]);
+
+  // Format function for tooltip
+  const formatTime = (seconds: number | null): string => {
+    if (seconds === null || isNaN(seconds)) return "N/A";
     
-    // Set the fastest lap for the reference line
-    if (overallFastestLap.time < Number.MAX_VALUE) {
-      setFastestLapTime({
-        time: overallFastestLap.time,
-        driver: overallFastestLap.driver
-      });
-    }
-    
-    // If we're in gap mode, calculate gaps to fastest lap
-    if (displayMode === 'gap' && data.length > 0) {
-      // Find baseline (typically the race leader) for each lap
-      return data.map(lap => {
-        const lapNumber = lap.lap;
-        const newLap = { lap: lapNumber };
-        
-        // Find the fastest time in this lap
-        let fastestInLap = Number.MAX_VALUE;
-        availableDrivers.forEach(driver => {
-          const time = lap[driver.code];
-          if (time && time > 0 && time < fastestInLap) {
-            fastestInLap = time;
-          }
-        });
-        
-        // Calculate gaps for each driver
-        availableDrivers.forEach(driver => {
-          const time = lap[driver.code];
-          if (time && time > 0) {
-            newLap[driver.code] = time - fastestInLap;
-            newLap[`${driver.code}_raw`] = lap[`${driver.code}_raw`];
-          }
-        });
-        
-        return newLap;
-      });
-    }
-    
-    return data;
-  }, [lapTimesData, availableDrivers, displayMode]);
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(3);
+    return `${mins}:${secs.padStart(6, '0')}`;
+  };
 
   if (isLoading) {
-    return <Skeleton className="h-full w-full" />;
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <Skeleton className="h-[500px] w-full" />
+        {isProcessingData && (
+          <p className="text-sm text-muted-foreground mt-2">
+            Processing lap time data...
+          </p>
+        )}
+      </div>
+    );
   }
 
-  if (error || chartData.length === 0) {
+  if (error || processedData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <p className="text-muted-foreground">
@@ -202,102 +150,46 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     );
   }
 
-  // Calculate driver's average lap time
-  const getDriverAverageLapTime = (driverCode: string) => {
-    if (chartData.length === 0) return null;
-    
-    let totalTime = 0;
-    let lapsCount = 0;
-    
-    chartData.forEach(lap => {
-      if (lap[driverCode] && lap[driverCode] > 0) {
-        totalTime += lap[driverCode];
-        lapsCount++;
-      }
-    });
-    
-    if (lapsCount === 0) return null;
-    
-    return {
-      avg: (totalTime / lapsCount).toFixed(3),
-      laps: lapsCount
-    };
-  };
+  // Calculate current page range for display
+  const startLap = ((currentPage - 1) * itemsPerPage) + 1;
+  const endLap = Math.min(startLap + processedData.length - 1, totalLaps);
 
   return (
     <div className="h-full">
-      <div className="mb-4 flex flex-col gap-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">
-            {displayMode === 'absolute' ? 'Absolute Lap Times' : 'Gap to Fastest Lap'}
-          </h3>
-          <Button 
-            onClick={toggleDisplayMode}
-            variant="outline"
-            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white font-medium"
+      <div className="mb-4 flex flex-wrap gap-2">
+        {availableDrivers.map(driver => (
+          <button
+            key={driver.code}
+            className={`px-2 py-1 rounded text-xs font-medium ${
+              selectedDrivers.includes(driver.code)
+                ? 'bg-gray-800 text-white'
+                : 'bg-gray-200 text-gray-800'
+            }`}
+            onClick={() => handleDriverToggle(driver.code)}
+            style={{
+              borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+            }}
           >
-            Show {displayMode === 'absolute' ? 'Gaps' : 'Absolute Times'}
-          </Button>
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
-          {availableDrivers.map(driver => {
-            const avgData = getDriverAverageLapTime(driver.code);
-            return (
-              <button
-                key={driver.code}
-                className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 ${
-                  selectedDrivers.includes(driver.code)
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-gray-200 text-gray-800'
-                }`}
-                onClick={() => handleDriverToggle(driver.code)}
-                style={{
-                  borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
-                }}
-              >
-                <span>{driver.code}</span>
-                {avgData && (
-                  <span className="text-xs opacity-75 ml-1">
-                    {displayMode === 'absolute' ? formatTime(Number(avgData.avg)) : ''}
-                  </span>
-                )}
-                {fastestLapTime?.driver === driver.code && (
-                  <span className="text-purple-500 ml-1">⚡</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+            {driver.code}
+          </button>
+        ))}
       </div>
       
       <div className="h-[500px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
-            data={chartData}
-            margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
+            data={processedData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis 
               dataKey="lap" 
-              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+              label={{ value: `Lap Number (${startLap}-${endLap} of ${totalLaps})`, position: 'insideBottomRight', offset: -10 }} 
               xAxisId="lapTime"
-              domain={['dataMin', 'dataMax']}
-              type="number"
-              allowDecimals={false}
-              ticks={
-                chartData.length > 50
-                  ? Array.from({length: 10}, (_, i) => Math.round(i * chartData.length / 10) || 1)
-                  : undefined
-              }
             />
             <YAxis 
-              label={{ 
-                value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', 
-                angle: -90, 
-                position: 'insideLeft' 
-              }} 
-              domain={displayMode === 'absolute' ? ['dataMin - 1', 'dataMax + 1'] : [0, 'dataMax + 0.5']}
+              label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }} 
+              domain={['dataMin - 1', 'dataMax + 1']}
               yAxisId="lapTime"
             />
             <Tooltip 
@@ -307,44 +199,23 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
                 borderRadius: '5px',
                 color: 'white'
               }}
-              formatter={(value, name, props) => {
-                if (typeof value !== 'number') return [value, name];
-                
-                const driverCode = String(name).split(' ')[0];
-                const originalTime = props.payload[`${driverCode}_raw`];
-                
-                if (displayMode === 'absolute') {
-                  return [formatTime(value), name];
-                } else {
-                  // Gap mode
-                  return [
-                    `+${value.toFixed(3)}s (${originalTime})`,
-                    name
-                  ];
+              formatter={(value, name) => {
+                if (typeof value === 'number') {
+                  const driverCode = String(name);
+                  const driver = availableDrivers.find(d => d.code === driverCode);
+                  const driverName = driver ? `${driver.name}` : driverCode;
+                  
+                  return [formatTime(value), driverName];
                 }
+                return [value, name];
               }}
               labelFormatter={(label) => `Lap ${label}`}
             />
             <Legend formatter={(value) => {
-              const driverCode = value.split(' ')[0];
+              const driverCode = String(value);
               const driver = availableDrivers.find(d => d.code === driverCode);
               return driver ? `${driverCode} (${driver.name.split(' ').pop()})` : driverCode;
             }} />
-            
-            {fastestLapTime && displayMode === 'absolute' && (
-              <ReferenceLine 
-                y={fastestLapTime.time} 
-                stroke="purple" 
-                strokeDasharray="3 3" 
-                label={{ 
-                  value: `Fastest Lap: ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`, 
-                  position: 'right', 
-                  fill: 'purple' 
-                }} 
-                yAxisId="lapTime"
-                xAxisId="lapTime"
-              />
-            )}
             
             {availableDrivers
               .filter(driver => selectedDrivers.includes(driver.code))
@@ -353,7 +224,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
                   key={driver.code}
                   type="monotone"
                   dataKey={driver.code}
-                  name={`${driver.code} (${driver.name.split(' ').pop()})`}
+                  name={driver.code}
                   stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
                   strokeWidth={2}
                   dot={{ r: 3 }}
@@ -365,6 +236,11 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
               ))}
           </LineChart>
         </ResponsiveContainer>
+      </div>
+      
+      <div className="text-xs text-muted-foreground mt-2 flex justify-between">
+        <span>Page {currentPage} of {totalPages}</span>
+        <span>Viewing laps {startLap}-{endLap} of {totalLaps}</span>
       </div>
     </div>
   );
