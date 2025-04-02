@@ -1,13 +1,12 @@
-
 import { useNextRace } from "@/hooks/useF1Data";
 import { CalendarDays, Menu, UserCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import f1Logo from "@/assets/f1-logo.svg";
 
 interface TopBarProps {
   sidebarOpen: boolean;
@@ -22,14 +21,11 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
   
   const formatDateString = (dateStr: string, timeStr: string) => {
     try {
-      // Parse date and time strings to create Date object
       const [year, month, day] = dateStr.split('-').map(Number);
       const [hour, minute] = timeStr.split(':').map(Number);
       
-      // JavaScript months are 0-indexed
       const date = new Date(year, month - 1, day, hour, minute);
       
-      // Format the date for display
       return format(date, 'EEE, MMM d, yyyy - HH:mm');
     } catch (error) {
       console.error("Error parsing date:", error);
@@ -37,7 +33,6 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
     }
   };
 
-  // Helper function to remove flag emojis from race names
   const getRaceNameWithoutEmoji = (raceName: string) => {
     if (raceName && raceName.includes(' ') && raceName.indexOf(' ') <= 3) {
       return raceName.substring(raceName.indexOf(' ') + 1);
@@ -45,7 +40,6 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
     return raceName;
   };
 
-  // Get country flag emoji
   const getCountryFlag = (country: string) => {
     const countryEmojis: Record<string, string> = {
       Australia: "🇦🇺",
@@ -86,7 +80,6 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
     flag = getCountryFlag(nextRace.Circuit?.Location?.country || "");
   }
 
-  // Get initials for avatar fallback
   const getInitials = () => {
     if (profile) {
       const firstName = profile.first_name || '';
@@ -99,7 +92,6 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
     return "U";
   };
 
-  // Get display name for user
   const getDisplayName = () => {
     if (profile && (profile.first_name || profile.last_name)) {
       return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
@@ -116,7 +108,6 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
   return (
     <header className="h-16 border-b border-gray-800 bg-f1-dark flex items-center px-4 justify-between">
       <div className="flex items-center">
-        {/* Menu button for mobile */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="md:hidden mr-3 text-gray-400 hover:text-white"
@@ -125,9 +116,8 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
           <Menu size={24} />
         </button>
         
-        {/* Logo for small screens */}
         <div className="md:hidden flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-f1-red flex items-center justify-center font-bold text-white">F1</div>
+          <img src={f1Logo} alt="F1 DataStop" className="w-8 h-8" />
           <span className="font-bold tracking-tight">DataStop</span>
         </div>
       </div>
@@ -148,7 +138,6 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
           </div>
         )}
 
-        {/* User Avatar with Popover */}
         {user ? (
           <Popover>
             <PopoverTrigger asChild>

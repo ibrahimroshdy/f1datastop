@@ -14,6 +14,7 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
+import f1Logo from "@/assets/f1-logo.svg";
 
 interface SidebarProps {
   open: boolean;
@@ -70,7 +71,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
         {/* Logo and close button */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
           <Link to="/" className="flex items-center gap-2" onClick={handleNavClick}>
-            <div className="w-8 h-8 rounded-full bg-f1-red flex items-center justify-center font-bold text-white">F1</div>
+            <img src={f1Logo} alt="F1 DataStop" className="w-8 h-8" />
             <span className={cn("font-bold tracking-tight transition-opacity", 
               !open && !isMobile && "opacity-0"
             )}>
