@@ -1,3 +1,4 @@
+
 import { useNextRace } from "@/hooks/useF1Data";
 import { CalendarDays, Menu, UserCircle } from "lucide-react";
 import { format } from "date-fns";
@@ -6,7 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import f1Logo from "@/assets/f1-logo.svg";
 
 interface TopBarProps {
   sidebarOpen: boolean;
@@ -117,7 +117,7 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
         </button>
         
         <div className="md:hidden flex items-center gap-2">
-          <img src={f1Logo} alt="F1 DataStop" className="w-8 h-8" />
+          <img src="/lovable-uploads/697808f9-3d9e-47b2-9297-4941de42f4ae.png" alt="F1 DataStop" className="w-8 h-8" />
           <span className="font-bold tracking-tight">DataStop</span>
         </div>
       </div>
