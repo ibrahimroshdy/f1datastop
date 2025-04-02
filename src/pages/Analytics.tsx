@@ -57,24 +57,30 @@ const Analytics = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h1 className="text-3xl font-bold">F1 Analytics</h1>
           <div className="flex flex-col md:flex-row items-center gap-4">
-            <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-white">Season:</span>
+              <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
+            </div>
             
-            <Select value={selectedRace} onValueChange={handleRaceChange}>
-              <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Select race" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-900">
-                {isRaceScheduleLoading ? (
-                  <SelectItem value="loading">Loading...</SelectItem>
-                ) : (
-                  raceScheduleData?.data?.map((race: any) => (
-                    <SelectItem key={race.round} value={race.round}>
-                      {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-white">Race:</span>
+              <Select value={selectedRace} onValueChange={handleRaceChange}>
+                <SelectTrigger className="w-[250px] bg-gray-900 border-gray-700 text-white">
+                  <SelectValue placeholder="Select race" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  {isRaceScheduleLoading ? (
+                    <SelectItem value="loading">Loading...</SelectItem>
+                  ) : (
+                    raceScheduleData?.data?.map((race: any) => (
+                      <SelectItem key={race.round} value={race.round}>
+                        {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
         
