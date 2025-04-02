@@ -1,3 +1,4 @@
+
 import { useNextRace } from "@/hooks/useF1Data";
 import { CalendarDays, Menu, UserCircle } from "lucide-react";
 import { format } from "date-fns";
@@ -185,7 +186,7 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
               className="text-gray-300 hover:text-white"
             >
               <UserCircle className="mr-2 h-4 w-4" />
-              Sign In
+              Sign In to F1 DataStop
             </Button>
           </Link>
         )}
