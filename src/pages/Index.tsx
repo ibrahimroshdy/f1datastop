@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -57,12 +56,48 @@ const Index = () => {
     return teamColors[constructorId] || "bg-gray-600";
   };
   
+  const getCountryFlag = (location: string) => {
+    const countryFlags: Record<string, string> = {
+      "Monte Carlo": "🇲🇨",
+      "Monza": "🇮🇹",
+      "Melbourne": "🇦🇺",
+      "Sakhir": "🇧🇭",
+      "Jeddah": "🇸🇦",
+      "Shanghai": "🇨🇳",
+      "Miami": "🇺🇸",
+      "Imola": "🇮🇹",
+      "Monaco": "🇲🇨",
+      "Montreal": "🇨🇦",
+      "Barcelona": "🇪🇸",
+      "Spielberg": "🇦🇹",
+      "Silverstone": "🇬🇧",
+      "Budapest": "🇭🇺",
+      "Spa": "🇧🇪",
+      "Zandvoort": "🇳🇱",
+      "Baku": "🇦🇿",
+      "Singapore": "🇸🇬",
+      "Suzuka": "🇯🇵",
+      "Losail": "🇶🇦",
+      "Austin": "🇺🇸",
+      "Mexico City": "🇲🇽",
+      "Sao Paulo": "🇧🇷",
+      "Las Vegas": "🇺🇸",
+      "Yas Marina": "🇦🇪",
+    };
+    
+    for (const [key, value] of Object.entries(countryFlags)) {
+      if (location?.includes(key)) {
+        return value;
+      }
+    }
+    return "🏁"; // Default racing flag
+  };
+  
   const nextRace = raceSchedule?.data?.find(race => {
     const raceDate = new Date(race.date + "T" + (race.time || "00:00:00Z"));
     return raceDate > new Date();
   });
   
-  // Helper function to remove emoji flags from race names
   const removeFlag = (raceName: string) => {
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
@@ -82,7 +117,6 @@ const Index = () => {
   const topDrivers = driverStandings?.data?.slice(0, 3) || [];
   const maxPoints = driverStandings?.data?.length > 0 ? Number(driverStandings.data[0].points) : 0;
   
-  // Only show top 10 by default, but can show all with toggle
   const driversToShow = showAllDrivers 
     ? driverStandings?.data 
     : driverStandings?.data?.slice(0, 10);
