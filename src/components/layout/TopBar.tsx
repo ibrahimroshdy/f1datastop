@@ -1,4 +1,3 @@
-
 import { useNextRace } from "@/hooks/useF1Data";
 import { CalendarDays, Menu, UserCircle } from "lucide-react";
 import { format } from "date-fns";
@@ -119,7 +118,7 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
         
         <div className="md:hidden flex items-center gap-2">
           <img src={f1Logo} alt="F1 DataStop" className="w-8 h-8" />
-          <span className="font-bold tracking-tight">DataStop</span>
+          <span className="font-bold tracking-tight">F1 DataStop</span>
         </div>
       </div>
       

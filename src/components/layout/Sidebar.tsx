@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { 
@@ -75,7 +74,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
             <span className={cn("font-bold tracking-tight transition-opacity", 
               !open && !isMobile && "opacity-0"
             )}>
-              DataStop
+              F1 DataStop
             </span>
           </Link>
           {isMobile && (
