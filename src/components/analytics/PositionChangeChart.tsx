@@ -11,18 +11,15 @@ import { toast } from "sonner";
 interface PositionChangeChartProps {
   year: number;
   round: string;
-  currentPage?: number;
-  itemsPerPage?: number;
 }
 
-const PositionChangeChart = ({ year, round, currentPage = 1, itemsPerPage = 10 }: PositionChangeChartProps) => {
+const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
   const [totalLaps, setTotalLaps] = useState<number>(0);
-  const [totalPages, setTotalPages] = useState<number>(1);
   const [isProcessingData, setIsProcessingData] = useState<boolean>(false);
 
-  // Use React Query hooks for data fetching with pagination
+  // Use React Query hooks for data fetching
   const { 
     data: raceResultsData, 
     isLoading: isResultsLoading, 
@@ -33,7 +30,7 @@ const PositionChangeChart = ({ year, round, currentPage = 1, itemsPerPage = 10 }
     data: lapTimesData, 
     isLoading: isLapTimesLoading, 
     error: lapTimesError 
-  } = useLapTimes(year, round, currentPage, itemsPerPage);
+  } = useLapTimes(year, round);
   
   const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
@@ -52,23 +49,30 @@ const PositionChangeChart = ({ year, round, currentPage = 1, itemsPerPage = 10 }
       
       setAvailableDrivers(drivers);
       
-      // Auto-select the top finishers if no drivers are selected
-      if (selectedDrivers.length === 0 && drivers.length > 0) {
+      // Auto-select the top 5 finishers if available
+      if (drivers.length > 0) {
         const topDrivers = drivers
           .sort((a, b) => a.finishPosition - b.finishPosition)
           .slice(0, 5)
           .map(d => d.code);
         
-        setSelectedDrivers(topDrivers);
+        if (topDrivers.length > 0) {
+          setSelectedDrivers(topDrivers);
+        }
       }
     }
-  }, [raceResultsData, selectedDrivers.length]);
+  }, [raceResultsData]);
 
-  // Update total laps and pages when lap data changes
+  // Update total laps when lap data changes
   useEffect(() => {
-    if (lapTimesData?.data) {
-      setTotalLaps(lapTimesData.data.totalLaps || 0);
-      setTotalPages(lapTimesData.data.totalPages || 1);
+    if (lapTimesData?.data?.Races?.[0]?.Laps) {
+      setIsProcessingData(true);
+      // Use setTimeout to allow UI to update before processing large dataset
+      setTimeout(() => {
+        const laps = lapTimesData.data.Races[0].Laps;
+        setTotalLaps(laps.length);
+        setIsProcessingData(false);
+      }, 0);
     }
   }, [lapTimesData]);
 
@@ -80,19 +84,19 @@ const PositionChangeChart = ({ year, round, currentPage = 1, itemsPerPage = 10 }
     );
   };
 
-  // Memoize chart data for the current page to avoid recalculations
+  // Memoize chart data to avoid recalculations
   const chartData = useMemo(() => {
-    if (!lapTimesData?.data?.Races || lapTimesData.data.Races.length === 0) {
+    if (!lapTimesData?.data?.Races || !lapTimesData.data.Races.length) {
       return [];
     }
     
     const race = lapTimesData.data.Races[0];
     
-    if (!race?.Laps || race.Laps.length === 0) {
+    if (!race.Laps || !race.Laps.length) {
       return [];
     }
     
-    // Process position data lap by lap for the current page
+    // Process position data lap by lap
     return race.Laps.map((lap: any) => {
       const lapNumber = parseInt(lap.number);
       const lapData: any = { lap: lapNumber };
@@ -111,7 +115,33 @@ const PositionChangeChart = ({ year, round, currentPage = 1, itemsPerPage = 10 }
     });
   }, [lapTimesData, availableDrivers]);
 
-  // Find starting and final positions for each driver in the current page
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <Skeleton className="h-[500px] w-full" />
+        {isProcessingData && (
+          <p className="text-sm text-muted-foreground mt-2">
+            Processing race data with {totalLaps} laps...
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (error || chartData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center">
+        <p className="text-muted-foreground">
+          No position data available for this race
+        </p>
+        <p className="text-sm text-muted-foreground mt-2">
+          This could be because the race hasn't occurred yet or position data wasn't recorded.
+        </p>
+      </div>
+    );
+  }
+
+  // Find starting and final positions for each driver
   const getPositionChangeSummary = (driverCode: string) => {
     if (chartData.length === 0) return null;
     
@@ -132,40 +162,10 @@ const PositionChangeChart = ({ year, round, currentPage = 1, itemsPerPage = 10 }
     };
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <Skeleton className="h-[500px] w-full" />
-        {isProcessingData && (
-          <p className="text-sm text-muted-foreground mt-2">
-            Processing position data...
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  if (error || chartData.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center">
-        <p className="text-muted-foreground">
-          No position data available for this race
-        </p>
-        <p className="text-sm text-muted-foreground mt-2">
-          This could be because the race hasn't occurred yet or position data wasn't recorded.
-        </p>
-      </div>
-    );
-  }
-
-  // Calculate current page range for display
-  const startLap = ((currentPage - 1) * itemsPerPage) + 1;
-  const endLap = Math.min(startLap + chartData.length - 1, totalLaps);
-  
-  // Calculate maximum lap number visible on the current page
-  const maxVisibleLap = chartData.length > 0 
+  // Calculate maximum lap number from the data
+  const maxLap = chartData.length > 0 
     ? Math.max(...chartData.map(lap => lap.lap)) 
-    : startLap + itemsPerPage - 1;
+    : totalLaps;
 
   return (
     <div className="h-full">
@@ -217,17 +217,17 @@ const PositionChangeChart = ({ year, round, currentPage = 1, itemsPerPage = 10 }
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis 
               dataKey="lap" 
-              label={{ value: `Lap Number (${startLap}-${endLap} of ${totalLaps})`, position: 'insideBottomRight', offset: -10 }} 
+              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
               xAxisId="position"
-              // Explicitly set domain to show visible laps on this page
-              domain={[startLap, maxVisibleLap]}
+              // Explicitly set domain to show all laps
+              domain={[1, maxLap]}
               type="number"
               allowDecimals={false}
               // Add more ticks to show lap numbers more clearly
               ticks={
-                chartData.length > 10
-                  ? Array.from({length: 10}, (_, i) => Math.floor(startLap + i * (maxVisibleLap - startLap) / 9))
-                  : chartData.map(d => d.lap)
+                maxLap > 50
+                  ? Array.from({length: 10}, (_, i) => Math.round(i * maxLap / 10) || 1)
+                  : Array.from({length: Math.min(maxLap, 20)}, (_, i) => i + 1)
               }
             />
             <YAxis 
@@ -281,11 +281,9 @@ const PositionChangeChart = ({ year, round, currentPage = 1, itemsPerPage = 10 }
           </LineChart>
         </ResponsiveContainer>
       </div>
-      
-      <div className="text-xs text-muted-foreground mt-2 flex justify-between">
-        <span>Page {currentPage} of {totalPages}</span>
-        <span>Viewing laps {startLap}-{endLap} of {totalLaps}</span>
-      </div>
+      <p className="text-xs text-muted-foreground mt-2 text-right">
+        Total Laps: {maxLap}
+      </p>
     </div>
   );
 };

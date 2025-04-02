@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 
@@ -44,10 +43,10 @@ export const useRaceQualifying = (year: number, round: string) => {
   });
 };
 
-export const useLapTimes = (year: number, round: string, page?: number, itemsPerPage?: number) => {
+export const useLapTimes = (year: number, round: string) => {
   return useQuery({
-    queryKey: ["lapTimes", year, round, page, itemsPerPage],
-    queryFn: () => f1Service.getLapTimes(year, round, undefined, page, itemsPerPage),
+    queryKey: ["lapTimes", year, round],
+    queryFn: () => f1Service.getLapTimes(year, round),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
     retry: 1, // Reduce retry attempts
