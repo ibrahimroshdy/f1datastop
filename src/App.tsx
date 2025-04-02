@@ -46,7 +46,7 @@ const App = () => (
                 <Route path="/auth/signup" element={<Signup />} />
               </Route>
               
-              {/* Protected routes (require authentication) */}
+              {/* Protected routes with blur effect for non-authenticated users */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/calendar" element={<RaceCalendar />} />
                 <Route path="/analytics" element={<Analytics />} />

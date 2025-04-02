@@ -1,6 +1,7 @@
 
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import AuthBlurOverlay from "./AuthBlurOverlay";
 
 export const ProtectedRoute = () => {
   const { user, isLoading } = useAuth();
@@ -14,9 +15,16 @@ export const ProtectedRoute = () => {
     );
   }
 
-  // Redirect to login if not authenticated
+  // If not authenticated, show the blurred background with login prompt
   if (!user) {
-    return <Navigate to="/auth/login" replace />;
+    return (
+      <div className="relative">
+        <div className="filter blur-sm pointer-events-none">
+          <Outlet />
+        </div>
+        <AuthBlurOverlay />
+      </div>
+    );
   }
 
   // Render the protected content
