@@ -68,7 +68,9 @@ const Analytics = () => {
         <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
           <Info className="h-4 w-4" />
           <AlertDescription>
-            View lap-by-lap data including position changes and timing information. Select a race and switch between tabs to explore different analytics.
+            View lap-by-lap data including position changes and timing information. 
+            Select a race and switch between tabs to explore different analytics. 
+            For races with many laps, data loading may take a moment to retrieve all laps.
           </AlertDescription>
         </Alert>
         

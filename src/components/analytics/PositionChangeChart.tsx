@@ -16,6 +16,7 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
   const [totalLaps, setTotalLaps] = useState<number>(0);
+  const [isProcessingData, setIsProcessingData] = useState<boolean>(false);
 
   // Use React Query hooks for data fetching
   const { 
@@ -30,7 +31,7 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
     error: lapTimesError 
   } = useLapTimes(year, round);
   
-  const isLoading = isResultsLoading || isLapTimesLoading;
+  const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
 
   // Process available drivers once race results are loaded
@@ -64,8 +65,13 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
   // Update total laps when lap data changes
   useEffect(() => {
     if (lapTimesData?.data?.Races?.[0]?.Laps) {
-      const laps = lapTimesData.data.Races[0].Laps;
-      setTotalLaps(laps.length);
+      setIsProcessingData(true);
+      // Use setTimeout to allow UI to update before processing large dataset
+      setTimeout(() => {
+        const laps = lapTimesData.data.Races[0].Laps;
+        setTotalLaps(laps.length);
+        setIsProcessingData(false);
+      }, 0);
     }
   }, [lapTimesData]);
 
@@ -109,7 +115,16 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
   }, [lapTimesData, availableDrivers]);
 
   if (isLoading) {
-    return <Skeleton className="h-full w-full" />;
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <Skeleton className="h-[500px] w-full" />
+        {isProcessingData && (
+          <p className="text-sm text-muted-foreground mt-2">
+            Processing race data with {totalLaps} laps...
+          </p>
+        )}
+      </div>
+    );
   }
 
   if (error || chartData.length === 0) {
@@ -196,7 +211,7 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
               type="number"
               allowDecimals={false}
               // Add more ticks to show lap numbers more clearly
-              ticks={Array.from({length: maxLap > 10 ? 10 : maxLap}, (_, i) => Math.max(1, Math.round(i * maxLap / 10)))}
+              ticks={Array.from({length: Math.min(20, maxLap)}, (_, i) => Math.max(1, Math.round(i * maxLap / Math.min(20, maxLap))))}
             />
             <YAxis 
               reversed 
@@ -244,6 +259,9 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
           </LineChart>
         </ResponsiveContainer>
       </div>
+      <p className="text-xs text-muted-foreground mt-2 text-right">
+        Total Laps: {maxLap}
+      </p>
     </div>
   );
 };

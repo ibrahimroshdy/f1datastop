@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 const BASE_URL = "https://api.jolpi.ca/ergast";
@@ -231,28 +230,94 @@ export const getPitStops = async (year: number, round: string) => {
   }
 };
 
-// Fetch lap times for a specific race
+// Fetch lap times for a specific race with pagination support
 export const getLapTimes = async (year: number, round: string, driverId?: string) => {
   try {
-    let url = `${BASE_URL}/f1/${year}/${round}/laps.json`;
+    let baseUrl = `${BASE_URL}/f1/${year}/${round}/laps`;
     if (driverId) {
-      url = `${BASE_URL}/f1/${year}/${round}/drivers/${driverId}/laps.json`;
+      baseUrl = `${BASE_URL}/f1/${year}/${round}/drivers/${driverId}/laps`;
     }
     
-    const response = await fetch(url, {
+    // First request to get total number of laps
+    const initialResponse = await fetch(`${baseUrl}.json?limit=30&offset=0`, {
       mode: 'cors',
       headers: {
         'Accept': 'application/json'
       }
     });
     
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+    if (!initialResponse.ok) {
+      throw new Error(`API request failed with status ${initialResponse.status}`);
     }
     
-    const data = await response.json();
+    const initialData = await initialResponse.json();
+    const total = parseInt(initialData.MRData?.total || "0");
+    const limit = 100; // Increase the limit to reduce number of requests
+    
+    // If there are more laps than the initial limit, fetch all of them
+    if (total > 30) {
+      console.log(`Fetching all ${total} laps for race ${year}/${round} with pagination`);
+      
+      // Store the initial results
+      let allLaps = initialData.MRData?.RaceTable?.Races?.[0]?.Laps || [];
+      
+      // Calculate how many additional requests we need
+      const requestsNeeded = Math.ceil((total - 30) / limit);
+      const fetchPromises = [];
+      
+      for (let i = 0; i < requestsNeeded; i++) {
+        const offset = 30 + (i * limit);
+        const url = `${baseUrl}.json?limit=${limit}&offset=${offset}`;
+        
+        fetchPromises.push(
+          fetch(url, {
+            mode: 'cors',
+            headers: {
+              'Accept': 'application/json'
+            }
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`API request failed with status ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => data.MRData?.RaceTable?.Races?.[0]?.Laps || [])
+        );
+      }
+      
+      // Wait for all requests to complete
+      const additionalLapsArrays = await Promise.all(fetchPromises);
+      
+      // Combine all the laps from additional requests
+      additionalLapsArrays.forEach(laps => {
+        allLaps = [...allLaps, ...laps];
+      });
+      
+      // Sort laps by lap number to ensure correct order
+      allLaps.sort((a, b) => parseInt(a.number) - parseInt(b.number));
+      
+      // Reconstruct the response object with all laps
+      const completeData = {
+        ...initialData.MRData,
+        RaceTable: {
+          ...initialData.MRData.RaceTable,
+          Races: [{
+            ...initialData.MRData.RaceTable.Races[0],
+            Laps: allLaps
+          }]
+        }
+      };
+      
+      return { 
+        data: { Races: completeData.RaceTable.Races }, 
+        error: null 
+      };
+    }
+    
+    // If there are fewer than 30 laps, return the initial data
     return { 
-      data: data.MRData?.RaceTable || {}, 
+      data: initialData.MRData?.RaceTable || {}, 
       error: null 
     };
   } catch (error) {
