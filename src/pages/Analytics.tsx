@@ -60,10 +60,10 @@ const Analytics = () => {
             <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
             
             <Select value={selectedRace} onValueChange={handleRaceChange}>
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-[250px] bg-f1-black text-white border-gray-700">
                 <SelectValue placeholder="Select race" />
               </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-900">
+              <SelectContent className="bg-black border-gray-700 text-white">
                 {isRaceScheduleLoading ? (
                   <SelectItem value="loading">Loading...</SelectItem>
                 ) : (

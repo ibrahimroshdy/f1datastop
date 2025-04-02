@@ -40,7 +40,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
             className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 ${
               selectedDrivers.includes(driver.code)
                 ? 'bg-gray-800 text-white'
-                : 'bg-gray-200 text-gray-800'
+                : 'bg-f1-black border border-gray-700 text-gray-200 hover:bg-gray-800'
             }`}
             onClick={() => onDriverToggle(driver.code)}
             style={{

@@ -12,7 +12,7 @@ const DisplayModeToggle: React.FC<DisplayModeToggleProps> = ({ displayMode, onTo
     <Button 
       onClick={onToggle}
       variant="outline"
-      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-black dark:text-white font-medium"
+      className="px-3 py-1 bg-f1-black hover:bg-gray-800 text-white border-gray-700 font-medium"
     >
       Show {displayMode === 'absolute' ? 'Gaps' : 'Absolute Times'}
     </Button>
