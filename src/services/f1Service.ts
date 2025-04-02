@@ -231,12 +231,11 @@ export const getPitStops = async (year: number, round: string) => {
 };
 
 // Fetch lap times for a specific race with pagination support
-export const getLapTimes = async (year: number, round: string, driverId?: string) => {
+export const getLapTimes = async (year: number, round: string, firstDriverOnly?: string) => {
   try {
+    // Construct the URL based on whether we want a specific driver's data or all drivers
+    // If firstDriverOnly is undefined, we'll fetch all drivers' lap times
     let baseUrl = `${BASE_URL}/f1/${year}/${round}/laps`;
-    if (driverId) {
-      baseUrl = `${BASE_URL}/f1/${year}/${round}/drivers/${driverId}/laps`;
-    }
     
     // First request to get total number of laps
     const initialResponse = await fetch(`${baseUrl}.json?limit=30&offset=0`, {

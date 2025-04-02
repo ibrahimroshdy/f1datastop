@@ -7,6 +7,7 @@ import LapTimeLineChart from "./LapTimeLineChart";
 import DisplayModeToggle from "./DisplayModeToggle";
 import { Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
 interface LapTimeChartProps {
   year: number;
@@ -35,7 +36,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     refetch: refetchLapTimes,
     isError,
     isFetching
-  } = useLapTimes(year, round, false); // Always fetch full data
+  } = useLapTimes(year, round, undefined); // Use undefined instead of false
   
   const isLoading = isResultsLoading || isLapTimesLoading;
   const error = resultsError || lapTimesError;
@@ -43,6 +44,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
   useEffect(() => {
     if (isError && retryCount < 5) {
       setLoadingProgress(retryCount * 20);
+      console.log("Retrying lap times fetch, attempt:", retryCount + 1);
       const timer = setTimeout(() => {
         setRetryCount(prev => prev + 1);
         refetchLapTimes();
@@ -81,6 +83,10 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
   }, [raceResultsData]);
 
   const chartData = useMemo(() => {
+    if (!lapTimesData || Object.keys(lapTimesData).length === 0) {
+      return [];
+    }
+    
     const { chartData, fastestLapTime: fastestLap } = processLapTimeData(
       lapTimesData,
       availableDrivers,
@@ -134,7 +140,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
             />
             <p className="text-center text-muted-foreground text-sm">
               {isError 
-                ? `Loading data... Retry ${retryCount + 1}/5` 
+                ? `Loading lap time data... Retry ${retryCount + 1}/5 - This may take a moment` 
                 : "Loading lap time data..."}
             </p>
           </div>

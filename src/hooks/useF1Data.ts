@@ -49,8 +49,9 @@ export const useLapTimes = (year: number, round: string, firstDriverOnly: boolea
   return useQuery({
     queryKey: ["lapTimes", year, round, firstDriverOnly ? "firstDriverOnly" : "allDrivers"],
     queryFn: async () => {
-      const data = await f1Service.getLapTimes(year, round, firstDriverOnly ? "true" : "false");
-      // Always return full data, we no longer optimize by removing laps
+      // Instead of passing 'false' as a string, we should either pass a valid driver ID or omit it completely
+      // to get all drivers' lap times
+      const data = await f1Service.getLapTimes(year, round, firstDriverOnly ? "true" : undefined);
       return data;
     },
     staleTime: 1000 * 60 * 60, // 1 hour
