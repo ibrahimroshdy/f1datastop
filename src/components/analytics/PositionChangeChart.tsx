@@ -146,6 +146,11 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
     };
   };
 
+  // Calculate maximum lap number from the data
+  const maxLap = chartData.length > 0 
+    ? Math.max(...chartData.map(lap => lap.lap)) 
+    : totalLaps;
+
   return (
     <div className="h-full">
       <div className="mb-4 flex flex-wrap gap-2">
@@ -186,10 +191,12 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
               dataKey="lap" 
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
               xAxisId="position"
-              // Allow full domain of lap numbers to show
-              domain={[1, totalLaps > 0 ? totalLaps : 'dataMax']}
+              // Explicitly set domain to show all laps
+              domain={[1, maxLap]}
               type="number"
               allowDecimals={false}
+              // Add more ticks to show lap numbers more clearly
+              ticks={Array.from({length: maxLap > 10 ? 10 : maxLap}, (_, i) => Math.max(1, Math.round(i * maxLap / 10)))}
             />
             <YAxis 
               reversed 
