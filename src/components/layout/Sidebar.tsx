@@ -63,7 +63,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
             <span className={cn("font-bold tracking-tight transition-opacity", 
               !open && !isMobile && "opacity-0"
             )}>
-              RaceHub
+              DataStop
             </span>
           </Link>
           {isMobile && (
