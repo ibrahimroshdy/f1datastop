@@ -61,9 +61,6 @@ const Login = () => {
         
         <Card className="w-full bg-f1-dark border-gray-800">
           <CardHeader className="space-y-1 text-center">
-            <div className="flex justify-center mb-4">
-              <img src="/lovable-uploads/697808f9-3d9e-47b2-9297-4941de42f4ae.png" alt="F1 DataStop Logo" className="h-16 w-auto" />
-            </div>
             <CardTitle className="text-2xl font-bold">
               {showForgotPassword ? "Reset Password" : "Sign In"}
             </CardTitle>
