@@ -12,10 +12,11 @@ interface AuthContextProps {
   profile: any | null; // Profile data from our profiles table
   isLoading: boolean;
   signUp: (email: string, password: string, username: string, firstName: string, lastName: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (emailOrUsername: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   updateProfile: (data: Partial<{ username: string; first_name: string; last_name: string }>) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -92,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     username: string,
     firstName: string,
     lastName: string
-  ) => {
+  ): Promise<void> => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -118,11 +119,72 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (emailOrUsername: string, password: string): Promise<void> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Check if input is an email (contains @) or username
+      const isEmail = emailOrUsername.includes('@');
+      
+      if (isEmail) {
+        // Direct login with email
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailOrUsername,
+          password,
+        });
+
+        if (error) {
+          toast.error(error.message);
+          throw error;
+        }
+
+        toast.success("Login successful!");
+        navigate("/");
+      } else {
+        // Find user by username first
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', emailOrUsername)
+          .maybeSingle();
+
+        if (profileError || !profileData) {
+          toast.error("Username not found");
+          throw new Error("Username not found");
+        }
+
+        // Get user email from auth.users using the user ID from profiles
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
+          profileData.id
+        );
+
+        if (userError || !userData?.user?.email) {
+          toast.error("Failed to find user");
+          throw new Error("Failed to find user");
+        }
+
+        // Login with the retrieved email
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: userData.user.email,
+          password,
+        });
+
+        if (error) {
+          toast.error(error.message);
+          throw error;
+        }
+
+        toast.success("Login successful!");
+        navigate("/");
+      }
+    } catch (error: any) {
+      console.error("Error during sign in:", error);
+      throw error;
+    }
+  };
+
+  const resetPassword = async (email: string): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth/reset-password',
       });
 
       if (error) {
@@ -130,10 +192,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
-      toast.success("Login successful!");
-      navigate("/");
+      toast.success("Password reset email sent. Please check your inbox.");
     } catch (error: any) {
-      console.error("Error during sign in:", error);
+      console.error("Error during password reset:", error);
       throw error;
     }
   };
@@ -174,7 +235,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateProfile = async (data: Partial<{ username: string; first_name: string; last_name: string }>) => {
+  const updateProfile = async (data: Partial<{ username: string; first_name: string; last_name: string }>): Promise<void> => {
     if (!user) return;
     
     try {
@@ -207,6 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signOut,
     deleteAccount,
     updateProfile,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

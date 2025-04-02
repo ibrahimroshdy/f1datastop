@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +45,7 @@ const App = () => (
               <Route element={<PublicOnlyRoute />}>
                 <Route path="/auth/login" element={<Login />} />
                 <Route path="/auth/signup" element={<Signup />} />
+                <Route path="/auth/reset-password" element={<ResetPassword />} />
               </Route>
               
               {/* Protected routes with blur effect for non-authenticated users */}
