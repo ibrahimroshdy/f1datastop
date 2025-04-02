@@ -47,9 +47,9 @@ export const useRaceQualifying = (year: number, round: string) => {
 
 export const useLapTimes = (year: number, round: string, firstDriverOnly: boolean = false) => {
   return useQuery({
-    queryKey: ["lapTimes", year, round, firstDriverOnly],
+    queryKey: ["lapTimes", year, round, firstDriverOnly ? "firstDriverOnly" : "allDrivers"],
     queryFn: async () => {
-      const data = await f1Service.getLapTimes(year, round, firstDriverOnly);
+      const data = await f1Service.getLapTimes(year, round, firstDriverOnly ? "true" : "false");
       // Always return full data, we no longer optimize by removing laps
       return data;
     },

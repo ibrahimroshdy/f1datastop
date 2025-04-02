@@ -57,7 +57,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
               )}
             </div>
             
-            {averageTime && isSelected && (
+            {averageTime !== null && isSelected && (
               <span className="text-xs opacity-80">
                 {displayMode === 'absolute' 
                   ? formatTime(averageTime) 

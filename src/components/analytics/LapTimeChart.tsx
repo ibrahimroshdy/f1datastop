@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
-import { processLapTimeData, getDriverAverageLapTime } from "@/utils/lapTimeUtils";
+import { processLapTimeData } from "@/utils/lapTimeUtils";
 import DriverSelector from "./DriverSelector";
 import LapTimeLineChart from "./LapTimeLineChart";
 import DisplayModeToggle from "./DisplayModeToggle";
@@ -104,8 +104,10 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     setDisplayMode(prev => prev === 'absolute' ? 'gap' : 'absolute');
   };
 
-  const getDriverAverage = (driverCode: string) => {
-    return getDriverAverageLapTime(chartData, driverCode);
+  const getDriverAverage = (driverCode: string): number | null => {
+    const result = getDriverAverageLapTime(chartData, driverCode);
+    if (result === null) return null;
+    return parseFloat(result.avg);
   };
 
   const handleDriverHover = (driverCode: string | null) => {
@@ -217,6 +219,28 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
       />
     </div>
   );
+};
+
+// Helper function from lapTimeUtils.ts
+const getDriverAverageLapTime = (chartData: any[], driverCode: string) => {
+  if (chartData.length === 0) return null;
+  
+  let totalTime = 0;
+  let lapsCount = 0;
+  
+  chartData.forEach(lap => {
+    if (lap[driverCode] && lap[driverCode] > 0) {
+      totalTime += lap[driverCode];
+      lapsCount++;
+    }
+  });
+  
+  if (lapsCount === 0) return null;
+  
+  return {
+    avg: (totalTime / lapsCount).toFixed(3),
+    laps: lapsCount
+  };
 };
 
 export default LapTimeChart;

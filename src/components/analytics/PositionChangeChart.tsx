@@ -259,8 +259,6 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
           <LineChart
             data={chartData}
             margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
-            animationDuration={300}
-            animationEasing="ease-in-out"
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis 
@@ -325,7 +323,6 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
                   xAxisId="position"
                   yAxisId="position"
                   isAnimationActive={true}
-                  animationDuration={500}
                 />
               ))}
           </LineChart>
