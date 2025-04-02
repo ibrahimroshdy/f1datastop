@@ -4,6 +4,7 @@ import { useNextRace } from "@/hooks/useF1Data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CalendarDays } from "lucide-react";
 
 interface SessionStatusProps {
   year?: number;
@@ -106,6 +107,11 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
   const countryEmoji = getCountryEmoji(countryName);
   const raceName = getRaceNameWithoutEmoji(race.raceName);
   
+  // Calculate days until the race
+  const today = new Date();
+  const daysUntil = Math.ceil((raceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const daysText = daysUntil > 0 ? `in ${daysUntil} day${daysUntil === 1 ? '' : 's'}` : 'today';
+  
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -115,8 +121,16 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="font-medium">{race.Circuit.circuitName}</p>
-        <p className="text-muted-foreground">{formattedDate}</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <p className="font-medium text-sm">{race.Circuit.circuitName}</p>
+            <p className="text-muted-foreground text-sm">{formattedDate}</p>
+          </div>
+          <div className="flex items-center gap-1 mt-1 sm:mt-0 text-sm bg-gray-800 rounded-lg px-2 py-1 text-gray-300">
+            <CalendarDays size={14} className="text-f1-red" />
+            <span>{daysText}</span>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
