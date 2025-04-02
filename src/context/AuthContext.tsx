@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
@@ -12,7 +11,7 @@ interface AuthContextProps {
   profile: any | null; // Profile data from our profiles table
   isLoading: boolean;
   signUp: (email: string, password: string, username: string, firstName: string, lastName: string) => Promise<void>;
-  signIn: (emailOrUsername: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   updateProfile: (data: Partial<{ username: string; first_name: string; last_name: string }>) => Promise<void>;
@@ -158,67 +157,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signIn = async (emailOrUsername: string, password: string): Promise<void> => {
+  const signIn = async (email: string, password: string): Promise<void> => {
     try {
-      // Check if input is an email (contains @) or username
-      const isEmail = emailOrUsername.includes('@');
-      
-      if (isEmail) {
-        // Direct login with email
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: emailOrUsername,
-          password,
-        });
+      // Direct login with email
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          toast.error(error.message);
-          throw error;
-        }
-
-        toast.success("Login successful!");
-        navigate("/");
-      } else {
-        // Find user by username first
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('username', emailOrUsername)
-          .maybeSingle();
-
-        if (profileError) {
-          toast.error("Error looking up username");
-          throw profileError;
-        }
-        
-        if (!profileData) {
-          toast.error("Username not found");
-          throw new Error("Username not found");
-        }
-
-        // Get the user's email using the ID from profiles
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
-          profileData.id
-        );
-
-        if (userError || !userData?.user?.email) {
-          toast.error("Failed to find user");
-          throw new Error("Failed to find user");
-        }
-
-        // Login with the retrieved email
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: userData.user.email,
-          password,
-        });
-
-        if (error) {
-          toast.error(error.message);
-          throw error;
-        }
-
-        toast.success("Login successful!");
-        navigate("/");
+      if (error) {
+        toast.error(error.message);
+        throw error;
       }
+
+      toast.success("Login successful!");
+      navigate("/");
     } catch (error: any) {
       console.error("Error during sign in:", error);
       throw error;

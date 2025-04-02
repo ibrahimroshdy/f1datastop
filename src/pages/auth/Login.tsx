@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -5,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
 
 const Login = () => {
-  const [emailOrUsername, setEmailOrUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +22,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      await signIn(emailOrUsername, password);
+      await signIn(email, password);
     } catch (error) {
       console.error('Login error:', error);
     } finally {
@@ -66,7 +67,7 @@ const Login = () => {
             <CardDescription>
               {showForgotPassword 
                 ? "Enter your email address to receive a password reset link"
-                : "Enter your email or username and password to access your account"
+                : "Enter your email and password to access your account"
               }
             </CardDescription>
           </CardHeader>
@@ -106,16 +107,19 @@ const Login = () => {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="emailOrUsername">Email or Username</Label>
-                  <Input
-                    id="emailOrUsername"
-                    type="text"
-                    placeholder="you@example.com or your username"
-                    value={emailOrUsername}
-                    onChange={(e) => setEmailOrUsername(e.target.value)}
-                    required
-                    className="bg-gray-800 border-gray-700"
-                  />
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="bg-gray-800 border-gray-700 pl-10"
+                    />
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
