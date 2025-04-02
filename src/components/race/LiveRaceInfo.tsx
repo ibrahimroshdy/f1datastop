@@ -23,11 +23,19 @@ const LiveRaceInfo = () => {
     );
   }
   
-  const nextRace = nextRaceData?.data?.[0] || null;
+  const nextRace = nextRaceData?.data || null;
   const raceStatus = raceStatusData?.data?.[0] || null;
   const weather = weatherData?.data?.[0] || null;
   
-  // Get country flag emoji (fallback to Monaco flag)
+  // Get clean race name (without emoji if present)
+  const getRaceNameWithoutEmoji = (raceName: string) => {
+    if (raceName && raceName.includes(' ') && raceName.indexOf(' ') <= 3) {
+      return raceName.substring(raceName.indexOf(' ') + 1);
+    }
+    return raceName || "Upcoming Race";
+  };
+  
+  // Get country flag emoji
   const getCountryFlag = (location: string) => {
     const countryFlags: Record<string, string> = {
       "Monte Carlo": "🇲🇨",
@@ -62,12 +70,56 @@ const LiveRaceInfo = () => {
         return value;
       }
     }
+    
+    // Check by country directly if we have it
+    if (nextRace?.Circuit?.Location?.country) {
+      const country = nextRace.Circuit.Location.country;
+      const countryEmojis: Record<string, string> = {
+        "Australia": "🇦🇺",
+        "Austria": "🇦🇹",
+        "Azerbaijan": "🇦🇿",
+        "Bahrain": "🇧🇭",
+        "Belgium": "🇧🇪",
+        "Brazil": "🇧🇷",
+        "Canada": "🇨🇦",
+        "China": "🇨🇳",
+        "France": "🇫🇷",
+        "Germany": "🇩🇪",
+        "Hungary": "🇭🇺",
+        "Italy": "🇮🇹",
+        "Japan": "🇯🇵",
+        "Mexico": "🇲🇽",
+        "Monaco": "🇲🇨",
+        "Netherlands": "🇳🇱",
+        "Portugal": "🇵🇹",
+        "Qatar": "🇶🇦",
+        "Russia": "🇷🇺",
+        "Saudi Arabia": "🇸🇦",
+        "Singapore": "🇸🇬",
+        "Spain": "🇪🇸",
+        "United Arab Emirates": "🇦🇪",
+        "United Kingdom": "🇬🇧",
+        "United States": "🇺🇸",
+      };
+      
+      if (countryEmojis[country]) {
+        return countryEmojis[country];
+      }
+    }
+    
     return "🏁"; // Default racing flag
   };
   
-  const flag = getCountryFlag(nextRace?.location || "");
-  const raceName = nextRace?.meeting_name || "Upcoming Race";
-  const trackName = nextRace?.location || "Circuit";
+  let flag = "🏁";
+  let raceName = "Upcoming Race";
+  let trackName = "Circuit";
+  
+  if (nextRace) {
+    flag = getCountryFlag(nextRace.location || nextRace.Circuit?.Location?.locality || "");
+    raceName = getRaceNameWithoutEmoji(nextRace.meeting_name || nextRace.raceName || "");
+    trackName = nextRace.location || nextRace.Circuit?.circuitName || "Circuit";
+  }
+  
   const currentLap = raceStatus?.lap_number || "?";
   const totalLaps = nextRace?.total_laps || "?";
   const airTemp = weather?.air_temperature ? `${Math.round(weather.air_temperature)}°C` : "?°C";

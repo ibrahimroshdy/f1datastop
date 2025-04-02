@@ -31,12 +31,53 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
   };
 
   // Helper function to remove flag emojis from race names
-  const removeFlag = (raceName: string) => {
-    if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
+  const getRaceNameWithoutEmoji = (raceName: string) => {
+    if (raceName && raceName.includes(' ') && raceName.indexOf(' ') <= 3) {
       return raceName.substring(raceName.indexOf(' ') + 1);
     }
     return raceName;
   };
+
+  // Get country flag emoji
+  const getCountryFlag = (country: string) => {
+    const countryEmojis: Record<string, string> = {
+      Australia: "🇦🇺",
+      Austria: "🇦🇹",
+      Azerbaijan: "🇦🇿",
+      Bahrain: "🇧🇭",
+      Belgium: "🇧🇪",
+      Brazil: "🇧🇷",
+      Canada: "🇨🇦",
+      China: "🇨🇳",
+      France: "🇫🇷",
+      Germany: "🇩🇪",
+      Hungary: "🇭🇺",
+      Italy: "🇮🇹",
+      Japan: "🇯🇵",
+      Mexico: "🇲🇽",
+      Monaco: "🇲🇨",
+      Netherlands: "🇳🇱",
+      Portugal: "🇵🇹",
+      Qatar: "🇶🇦",
+      Russia: "🇷🇺",
+      "Saudi Arabia": "🇸🇦",
+      Singapore: "🇸🇬",
+      Spain: "🇪🇸",
+      "United Arab Emirates": "🇦🇪",
+      "United Kingdom": "🇬🇧",
+      "United States": "🇺🇸",
+      USA: "🇺🇸",
+    };
+    
+    return countryEmojis[country] || "🏁";
+  };
+
+  let raceName = "";
+  let flag = "";
+  if (nextRace) {
+    raceName = getRaceNameWithoutEmoji(nextRace.raceName);
+    flag = getCountryFlag(nextRace.Circuit?.Location?.country || "");
+  }
 
   return (
     <header className="h-16 border-b border-gray-800 bg-f1-dark flex items-center px-4 justify-between">
@@ -54,7 +95,7 @@ const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
             <CalendarDays size={16} className="text-f1-red" />
             <div>
               <span className="font-medium">Next Race:</span>{' '}
-              <span className="text-gray-300">{nextRace.raceName && removeFlag(nextRace.raceName)}</span>{' '}
+              <span className="text-gray-300">{flag} {raceName}</span>{' '}
               {nextRace.date && nextRace.time && (
                 <span className="text-gray-400">
                   {formatDateString(nextRace.date, nextRace.time)}

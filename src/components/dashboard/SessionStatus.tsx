@@ -46,6 +46,14 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
   const raceDate = new Date(race.date);
   const formattedDate = format(raceDate, "MMM d, yyyy");
   
+  // Get clean race name (without emoji if present)
+  const getRaceNameWithoutEmoji = (raceName: string) => {
+    if (raceName.includes(' ') && raceName.indexOf(' ') <= 3) {
+      return raceName.substring(raceName.indexOf(' ') + 1);
+    }
+    return raceName;
+  };
+  
   // Get emoji flag based on country name
   const getCountryEmoji = (countryName: string) => {
     const countryEmojis: Record<string, string> = {
@@ -96,12 +104,13 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
   
   const countryName = race.Circuit?.Location?.country || "";
   const countryEmoji = getCountryEmoji(countryName);
+  const raceName = getRaceNameWithoutEmoji(race.raceName);
   
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          <span>{countryEmoji}</span> {race.raceName}
+          <span>{countryEmoji}</span> {raceName}
           <Badge className="ml-2" variant="secondary">Round {race.round}</Badge>
         </CardTitle>
       </CardHeader>

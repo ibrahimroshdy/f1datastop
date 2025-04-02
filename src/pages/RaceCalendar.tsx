@@ -86,24 +86,12 @@ const RaceCalendar = () => {
     return countryEmojis[country] || "🏁";
   };
   
-  // Get circuit name from race data
-  const getCircuitName = (race: any) => {
-    // Try to get the circuit name first
-    if (race.Circuit && race.Circuit.circuitName) {
-      return race.Circuit.circuitName;
+  // Get clean race name (without emoji if present)
+  const getRaceNameWithoutEmoji = (raceName: string) => {
+    if (raceName && raceName.includes(' ') && raceName.indexOf(' ') <= 3) {
+      return raceName.substring(raceName.indexOf(' ') + 1);
     }
-    
-    // If no circuit name, use race name but clean it
-    if (race.raceName) {
-      // Remove flag emoji if present
-      let name = race.raceName;
-      if (name.length > 3 && name.indexOf(' ') > 0) {
-        name = name.substring(name.indexOf(' ') + 1);
-      }
-      return name;
-    }
-    
-    return "Unknown Race";
+    return raceName;
   };
   
   return (
@@ -131,7 +119,8 @@ const RaceCalendar = () => {
               const raceDate = parseISO(race.date);
               const country = race.Circuit?.Location?.country || "";
               const flag = getCountryFlag(country);
-              const circuitName = getCircuitName(race);
+              const raceName = getRaceNameWithoutEmoji(race.raceName);
+              const circuitName = race.Circuit?.circuitName || "Unknown Circuit";
               
               return (
                 <Card 
@@ -146,7 +135,7 @@ const RaceCalendar = () => {
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-2">
                           <div className="text-2xl">{flag}</div>
-                          <h3 className="font-bold text-lg">{race.raceName}</h3>
+                          <h3 className="font-bold text-lg">{raceName}</h3>
                         </div>
                         <Badge 
                           className={
