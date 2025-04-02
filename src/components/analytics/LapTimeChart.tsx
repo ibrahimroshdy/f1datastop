@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
@@ -7,7 +8,6 @@ import LapTimeLineChart from "./LapTimeLineChart";
 import DisplayModeToggle from "./DisplayModeToggle";
 import { Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
 
 interface LapTimeChartProps {
   year: number;
@@ -36,7 +36,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     refetch: refetchLapTimes,
     isError,
     isFetching
-  } = useLapTimes(year, round, undefined); // Use undefined instead of false
+  } = useLapTimes(year, round, undefined);
   
   const isLoading = isResultsLoading || isLapTimesLoading;
   const error = resultsError || lapTimesError;
@@ -122,9 +122,12 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     setHoveredDriver(driverCode);
   };
 
-  const visibleDrivers = hoveredDriver 
-    ? selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers
-    : selectedDrivers;
+  const visibleDrivers = useMemo(() => {
+    if (hoveredDriver) {
+      return selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers;
+    }
+    return selectedDrivers;
+  }, [hoveredDriver, selectedDrivers]);
 
   if (isLoading || (isError && retryCount < 5) || isFetching) {
     return (
@@ -163,15 +166,17 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
             />
           </div>
           
-          <DriverSelector 
-            availableDrivers={availableDrivers}
-            selectedDrivers={selectedDrivers}
-            onDriverToggle={handleDriverToggle}
-            displayMode={displayMode}
-            fastestLapTime={fastestLapTime}
-            getAverageTime={getDriverAverage}
-            onDriverHover={handleDriverHover}
-          />
+          <div className="max-h-28 overflow-y-auto">
+            <DriverSelector 
+              availableDrivers={availableDrivers}
+              selectedDrivers={selectedDrivers}
+              onDriverToggle={handleDriverToggle}
+              displayMode={displayMode}
+              fastestLapTime={fastestLapTime}
+              getAverageTime={getDriverAverage}
+              onDriverHover={handleDriverHover}
+            />
+          </div>
         </div>
         
         <div className="flex flex-col items-center justify-center h-[500px] text-center">
@@ -212,15 +217,17 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
           />
         </div>
         
-        <DriverSelector 
-          availableDrivers={availableDrivers}
-          selectedDrivers={selectedDrivers}
-          onDriverToggle={handleDriverToggle}
-          displayMode={displayMode}
-          fastestLapTime={fastestLapTime}
-          getAverageTime={getDriverAverage}
-          onDriverHover={handleDriverHover}
-        />
+        <div className="max-h-28 overflow-y-auto">
+          <DriverSelector 
+            availableDrivers={availableDrivers}
+            selectedDrivers={selectedDrivers}
+            onDriverToggle={handleDriverToggle}
+            displayMode={displayMode}
+            fastestLapTime={fastestLapTime}
+            getAverageTime={getDriverAverage}
+            onDriverHover={handleDriverHover}
+          />
+        </div>
       </div>
       
       <LapTimeLineChart 
@@ -229,6 +236,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
         selectedDrivers={visibleDrivers}
         displayMode={displayMode}
         fastestLapTime={fastestLapTime}
+        hoveredDriver={hoveredDriver}
       />
     </div>
   );

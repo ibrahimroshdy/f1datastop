@@ -101,9 +101,12 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
   };
 
   // Calculate visible drivers (either all selected or just the hovered one)
-  const visibleDrivers = hoveredDriver 
-    ? selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers
-    : selectedDrivers;
+  const visibleDrivers = useMemo(() => {
+    if (hoveredDriver) {
+      return selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers;
+    }
+    return selectedDrivers;
+  }, [hoveredDriver, selectedDrivers]);
 
   // Memoize chart data to avoid recalculations
   const chartData = useMemo(() => {
@@ -211,47 +214,45 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
 
   return (
     <div className="h-full">
-      <div className="mb-4 flex flex-wrap justify-between items-center gap-2">
-        <div className="flex flex-wrap gap-2">
-          {availableDrivers.map(driver => {
-            const summary = getPositionChangeSummary(driver.code);
-            return (
-              <button
-                key={driver.code}
-                className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-all duration-200 ${
-                  selectedDrivers.includes(driver.code)
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-gray-200 text-gray-800'
-                }`}
-                onClick={() => handleDriverToggle(driver.code)}
-                onMouseEnter={() => handleDriverHover(driver.code)}
-                onMouseLeave={() => handleDriverHover(null)}
-                style={{
-                  borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
-                }}
-              >
-                <span>{driver.code}</span>
-                {summary && (
-                  <span className={`text-xs ml-1 flex items-center ${
-                    summary.improved 
-                      ? 'text-green-500' 
-                      : summary.change === 0 
-                        ? 'text-gray-500' 
-                        : 'text-red-500'
-                  }`}>
-                    {summary.improved ? (
-                      <><ArrowUp size={10} /> {summary.change}</>
-                    ) : summary.change === 0 ? (
-                      <><Minus size={10} /> 0</>
-                    ) : (
-                      <><ArrowDown size={10} /> {Math.abs(summary.change)}</>
-                    )}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+      <div className="mb-4 flex flex-wrap justify-start items-center gap-2 max-h-28 overflow-y-auto">
+        {availableDrivers.map(driver => {
+          const summary = getPositionChangeSummary(driver.code);
+          return (
+            <button
+              key={driver.code}
+              className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-all duration-200 ${
+                selectedDrivers.includes(driver.code)
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-200 text-gray-800'
+              }`}
+              onClick={() => handleDriverToggle(driver.code)}
+              onMouseEnter={() => handleDriverHover(driver.code)}
+              onMouseLeave={() => handleDriverHover(null)}
+              style={{
+                borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+              }}
+            >
+              <span>{driver.code}</span>
+              {summary && (
+                <span className={`text-xs ml-1 flex items-center ${
+                  summary.improved 
+                    ? 'text-green-500' 
+                    : summary.change === 0 
+                      ? 'text-gray-500' 
+                      : 'text-red-500'
+                }`}>
+                  {summary.improved ? (
+                    <><ArrowUp size={10} /> {summary.change}</>
+                  ) : summary.change === 0 ? (
+                    <><Minus size={10} /> 0</>
+                  ) : (
+                    <><ArrowDown size={10} /> {Math.abs(summary.change)}</>
+                  )}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
       
       <div className="h-[500px] w-full">
@@ -316,13 +317,14 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
                   dataKey={driver.code}
                   name={`${driver.code} (${driver.name.split(' ').pop()})`}
                   stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
-                  strokeWidth={2}
+                  strokeWidth={hoveredDriver === driver.code ? 3 : 2}
                   dot={{ r: 1 }}
                   activeDot={{ r: 6 }}
                   connectNulls
                   xAxisId="position"
                   yAxisId="position"
-                  isAnimationActive={true}
+                  isAnimationActive={false}
+                  opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
                 />
               ))}
           </LineChart>

@@ -11,6 +11,7 @@ interface LapTimeLineChartProps {
   selectedDrivers: string[];
   displayMode: 'absolute' | 'gap';
   fastestLapTime: { time: number, driver: string } | null;
+  hoveredDriver: string | null;
 }
 
 const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
@@ -18,7 +19,8 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
   availableDrivers,
   selectedDrivers,
   displayMode,
-  fastestLapTime
+  fastestLapTime,
+  hoveredDriver
 }) => {
   return (
     <div className="h-[500px] w-full">
@@ -105,14 +107,14 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 dataKey={driver.code}
                 name={`${driver.code} (${driver.name.split(' ').pop()})`}
                 stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 8 }}
+                strokeWidth={hoveredDriver === driver.code ? 3 : 2}
+                dot={{ r: 2 }}
+                activeDot={{ r: 6 }}
                 connectNulls
                 xAxisId="lapTime"
                 yAxisId="lapTime"
-                isAnimationActive={true}
-                animationDuration={500}
+                isAnimationActive={false}
+                opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
               />
             ))}
         </LineChart>
