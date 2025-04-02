@@ -128,7 +128,6 @@ const Index = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight flex items-center gap-2">
-                <span className="h-8 w-8 bg-f1-red rounded-full flex items-center justify-center font-bold">F1</span>
                 Formula 1 Season {new Date().getFullYear()}
               </h1>
               <p className="text-gray-400 mt-1">Live race data, standings and schedule</p>
