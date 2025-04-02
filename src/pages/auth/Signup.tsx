@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import f1Logo from '@/assets/f1-logo.svg';
 
 const Signup = () => {
   const [firstName, setFirstName] = useState('');
@@ -47,7 +49,7 @@ const Signup = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-f1-black p-4">
       <div className="w-full max-w-md">
-        <div className="mb-6">
+        <div className="mb-6 flex justify-between items-center">
           <Link 
             to="/" 
             className="inline-flex items-center text-gray-400 hover:text-white transition-colors"
@@ -55,10 +57,17 @@ const Signup = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Return to Dashboard
           </Link>
+          
+          <div className="flex justify-center mb-4">
+            <img src={f1Logo} alt="F1 DataStop Logo" className="h-12 w-12" />
+          </div>
         </div>
         
         <Card className="w-full bg-f1-dark border-gray-800">
           <CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-4">
+              <img src={f1Logo} alt="F1 DataStop Logo" className="h-16 w-16" />
+            </div>
             <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
             <CardDescription>
               Enter your information to create an account
