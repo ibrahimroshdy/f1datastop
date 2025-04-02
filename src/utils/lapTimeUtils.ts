@@ -117,7 +117,8 @@ export const processLapTimeData = (
     };
   }
   
-  return { chartData, fastestLapTime };
+  // For absolute mode, return the original data
+  return { chartData: data, fastestLapTime };
 };
 
 /**
