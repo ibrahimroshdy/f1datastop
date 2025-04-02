@@ -8,6 +8,8 @@ import LapTimeChart from "@/components/analytics/LapTimeChart";
 import PositionChangeChart from "@/components/analytics/PositionChangeChart";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -62,6 +64,13 @@ const Analytics = () => {
             </Select>
           </div>
         </div>
+        
+        <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            View lap-by-lap data including position changes and timing information. Select a race and switch between tabs to explore different analytics.
+          </AlertDescription>
+        </Alert>
         
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
           <TabsList className="grid w-full grid-cols-2">

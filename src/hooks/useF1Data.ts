@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 
@@ -51,6 +50,7 @@ export const useLapTimes = (year: number, round: string) => {
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
     retry: 1, // Reduce retry attempts
+    cacheTime: 1000 * 60 * 60 * 2, // 2 hours
   });
 };
 

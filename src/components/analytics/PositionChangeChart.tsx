@@ -13,8 +13,9 @@ interface PositionChangeChartProps {
 }
 
 const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
-  const [selectedDrivers, setSelectedDrivers] = useState<string[]>(["VER", "HAM", "LEC"]);
+  const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
+  const [totalLaps, setTotalLaps] = useState<number>(0);
 
   // Use React Query hooks for data fetching
   const { 
@@ -59,6 +60,14 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
       }
     }
   }, [raceResultsData]);
+
+  // Update total laps when lap data changes
+  useEffect(() => {
+    if (lapTimesData?.data?.Races?.[0]?.Laps) {
+      const laps = lapTimesData.data.Races[0].Laps;
+      setTotalLaps(laps.length);
+    }
+  }, [lapTimesData]);
 
   const handleDriverToggle = (driverCode: string) => {
     setSelectedDrivers(prev => 
@@ -177,6 +186,10 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
               dataKey="lap" 
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
               xAxisId="position"
+              // Allow full domain of lap numbers to show
+              domain={[1, totalLaps > 0 ? totalLaps : 'dataMax']}
+              type="number"
+              allowDecimals={false}
             />
             <YAxis 
               reversed 
@@ -214,8 +227,8 @@ const PositionChangeChart = ({ year, round }: PositionChangeChartProps) => {
                   name={`${driver.code} (${driver.name.split(' ').pop()})`}
                   stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
                   strokeWidth={2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 8 }}
+                  dot={{ r: 1 }}
+                  activeDot={{ r: 6 }}
                   connectNulls
                   xAxisId="position"
                   yAxisId="position"
