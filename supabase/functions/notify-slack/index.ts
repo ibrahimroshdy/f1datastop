@@ -17,20 +17,33 @@ interface NotifySlackRequest {
 }
 
 serve(async (req) => {
+  console.log("📣 Notify-Slack function started");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const SLACK_WEBHOOK_URL = Deno.env.get("SLACK_WEBHOOK_URL");
     if (!SLACK_WEBHOOK_URL) {
+      console.error("❌ SLACK_WEBHOOK_URL environment variable is not set");
       throw new Error("SLACK_WEBHOOK_URL environment variable is not set");
     }
 
-    const { type, userData } = await req.json() as NotifySlackRequest;
+    console.log("✅ SLACK_WEBHOOK_URL is set");
+    
+    // Log the request body for debugging
+    const requestBody = await req.text();
+    console.log("Request body:", requestBody);
+    
+    // Parse the JSON body
+    const { type, userData } = JSON.parse(requestBody) as NotifySlackRequest;
+    console.log("Parsed request data:", { type, userData });
 
     if (type !== "signup") {
+      console.error("❌ Invalid notification type:", type);
       return new Response(
         JSON.stringify({ error: "Only signup notifications are supported" }),
         {
@@ -47,6 +60,8 @@ serve(async (req) => {
     const userName = userData.firstName && userData.lastName
       ? `${userData.firstName} ${userData.lastName}`
       : userData.username || userData.email.split('@')[0];
+
+    console.log("Formatted user name:", userName);
 
     // Prepare the message for Slack
     const slackMessage = {
@@ -98,10 +113,11 @@ serve(async (req) => {
     };
 
     console.log("Sending notification to Slack...");
-    console.log("Webhook URL:", SLACK_WEBHOOK_URL.substring(0, 15) + "...");
-    console.log("Message:", JSON.stringify(slackMessage, null, 2));
+    console.log("Webhook URL (masked):", SLACK_WEBHOOK_URL.substring(0, 15) + "...");
+    console.log("Slack message:", JSON.stringify(slackMessage, null, 2));
     
     // Send the message to Slack
+    console.log("Sending POST request to Slack webhook...");
     const response = await fetch(SLACK_WEBHOOK_URL, {
       method: "POST",
       headers: {
@@ -110,13 +126,17 @@ serve(async (req) => {
       body: JSON.stringify(slackMessage),
     });
 
+    console.log("Slack API response status:", response.status);
+    
+    const responseText = await response.text();
+    console.log("Slack API response body:", responseText);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Error from Slack:", errorText);
-      throw new Error(`Slack API error: ${response.status} ${errorText}`);
+      console.error("❌ Error response from Slack:", responseText);
+      throw new Error(`Slack API error: ${response.status} ${responseText}`);
     }
 
-    console.log("Slack notification sent successfully!");
+    console.log("✅ Slack notification sent successfully!");
 
     return new Response(
       JSON.stringify({ success: true, message: "Notification sent to Slack" }),
@@ -126,7 +146,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error in notify-slack function:", error);
+    console.error("❌ Error in notify-slack function:", error);
     
     return new Response(
       JSON.stringify({ error: error.message }),
