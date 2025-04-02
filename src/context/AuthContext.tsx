@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
@@ -182,9 +183,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .from('profiles')
           .select('id')
           .eq('username', emailOrUsername)
-          .single();
+          .maybeSingle();
 
-        if (profileError || !profileData) {
+        if (profileError) {
+          toast.error("Error looking up username");
+          throw profileError;
+        }
+        
+        if (!profileData) {
           toast.error("Username not found");
           throw new Error("Username not found");
         }
