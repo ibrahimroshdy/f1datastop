@@ -117,8 +117,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Sending signup notification to Slack...");
         console.log("Signup data:", { email, username, firstName, lastName });
         
-        const notifyResult = await supabase.functions.invoke("notify-slack", {
-          body: {
+        // Use a direct POST request to the Edge Function URL instead of invoke
+        const functionURL = "https://envqfquhkcbnitwlzepx.supabase.co/functions/v1/notify-slack";
+        
+        const response = await fetch(functionURL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`
+          },
+          body: JSON.stringify({
             type: "signup",
             userData: {
               email,
@@ -126,15 +134,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               firstName,
               lastName,
             },
-          },
+          }),
         });
         
-        console.log("Slack notification response:", notifyResult);
+        const notifyResult = await response.json();
+        console.log("Slack notification direct response:", notifyResult);
         
-        if (notifyResult.error) {
-          console.error("Error in Slack notification response:", notifyResult.error);
+        if (!response.ok) {
+          console.error("Error in Slack notification direct response:", notifyResult);
         } else {
-          console.log("Slack notification sent successfully");
+          console.log("Slack notification sent successfully via direct call");
         }
       } catch (slackError) {
         // Don't fail the signup if the slack notification fails, just log it

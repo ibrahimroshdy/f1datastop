@@ -2,4 +2,4 @@
 project_id = "envqfquhkcbnitwlzepx"
 
 [functions.notify-slack]
-verify_jwt = true
+verify_jwt = false
