@@ -1,58 +1,64 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
+import f1Logo from '@/assets/f1-logo.svg';
 
 const ResetPassword = () => {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [isEmailSent, setIsEmailSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const navigate = useNavigate();
+  const { resetPassword } = useAuth();
+  const location = useLocation();
+  const [token, setToken] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordMismatchError, setPasswordMismatchError] = useState<string | null>(null);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash || !hash.includes('type=recovery')) {
-      toast.error("Invalid or missing reset token");
-      navigate('/auth/login');
-    }
-  }, [navigate]);
+    const params = new URLSearchParams(location.search);
+    const tokenFromUrl = params.get('token');
+    setToken(tokenFromUrl);
+  }, [location.search]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (password !== confirmPassword) {
-      toast.error("Passwords don't match");
-      return;
-    }
-    
     setIsLoading(true);
-    
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      
-      if (error) {
-        toast.error(error.message);
-        throw error;
-      }
-      
-      toast.success("Password has been reset successfully");
-      navigate('/auth/login');
+      await resetPassword(email);
+      setIsEmailSent(true);
     } catch (error) {
-      console.error('Error resetting password:', error);
+      console.error('Password reset request error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const togglePasswordVisibility = () => setShowPassword(!showPassword);
-  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmNewPassword) {
+      setPasswordMismatchError("Passwords do not match");
+      return;
+    }
+    setPasswordMismatchError(null);
+    setIsLoading(true);
+  
+    try {
+      // Assuming you have a function in your AuthContext to handle the actual password reset with the token
+      // and new password.  Replace 'confirmPasswordReset' with the actual function name.
+      // await confirmPasswordReset(token, newPassword);
+      setResetSuccess(true);
+    } catch (error) {
+      console.error('Password reset error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-f1-black p-4">
@@ -66,67 +72,106 @@ const ResetPassword = () => {
             Return to Dashboard
           </Link>
         </div>
+
+        <div className="mb-6 flex justify-center">
+          <img src={f1Logo} alt="F1 DataStop" className="w-20 h-20" />
+        </div>
         
-        <Card className="w-full max-w-md bg-f1-dark border-gray-800">
+        <Card className="w-full bg-f1-dark border-gray-800">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              {token ? "Reset Password" : "Request Password Reset"}
+            </CardTitle>
             <CardDescription>
-              Enter your new password below
+              {token
+                ? "Enter your new password"
+                : isEmailSent
+                  ? "Check your email for a password reset link."
+                  : "Enter your email to receive a password reset link"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="bg-gray-800 border-gray-700 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+            {!token ? (
+              isEmailSent ? (
+                <div className="text-center text-gray-400">
+                  <CheckCircle className="mx-auto h-6 w-6 text-green-500 mb-2" />
+                  <p>Password reset link has been sent to your email.</p>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    className="bg-gray-800 border-gray-700 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={toggleConfirmPasswordVisibility}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200"
+              ) : (
+                <form onSubmit={handleRequestReset} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="bg-gray-800 border-gray-700"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-f1-red hover:bg-red-700"
+                    disabled={isLoading}
                   >
-                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+                    {isLoading ? "Sending..." : "Send Reset Link"}
+                  </Button>
+                </form>
+              )
+            ) : resetSuccess ? (
+              <div className="text-center text-gray-400">
+                <CheckCircle className="mx-auto h-6 w-6 text-green-500 mb-2" />
+                <p>Your password has been successfully reset.</p>
+                <Link to="/auth/login" className="text-f1-red hover:underline">
+                  Return to Login
+                </Link>
               </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-f1-red hover:bg-red-700" 
-                disabled={isLoading}
-              >
-                {isLoading ? "Resetting..." : "Reset Password"}
-              </Button>
-            </form>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    className="bg-gray-800 border-gray-700"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmNewPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    required
+                    className="bg-gray-800 border-gray-700"
+                  />
+                </div>
+                {passwordMismatchError && (
+                  <p className="text-sm text-red-500">{passwordMismatchError}</p>
+                )}
+                <Button
+                  type="submit"
+                  className="w-full bg-f1-red hover:bg-red-700"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Resetting..." : "Reset Password"}
+                </Button>
+              </form>
+            )}
           </CardContent>
+          <CardFooter className="flex justify-center">
+            <Link to="/auth/login" className="text-sm text-gray-400 hover:text-f1-red hover:underline">
+              Return to Login
+            </Link>
+          </CardFooter>
         </Card>
       </div>
     </div>

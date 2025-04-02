@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -7,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
+import f1Logo from '@/assets/f1-logo.svg';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -57,6 +57,10 @@ const Login = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Return to Dashboard
           </Link>
+        </div>
+        
+        <div className="mb-6 flex justify-center">
+          <img src={f1Logo} alt="F1 DataStop" className="w-20 h-20" />
         </div>
         
         <Card className="w-full bg-f1-dark border-gray-800">
