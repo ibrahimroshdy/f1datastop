@@ -1,5 +1,5 @@
 import { useNextRace } from "@/hooks/useF1Data";
-import { CalendarDays, Menu, UserCircle } from "lucide-react";
+import { CalendarDays, Menu, UserCircle, Twitter } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,10 +7,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import f1Logo from "@/assets/f1-logo.svg";
+
 interface TopBarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
 }
+
 const TopBar = ({
   sidebarOpen,
   setSidebarOpen
@@ -126,6 +128,16 @@ const TopBar = ({
             </div>
           </div>}
 
+        <a 
+          href="https://twitter.com/f1datastop" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-gray-400 hover:text-white transition-colors"
+          aria-label="Follow us on X/Twitter"
+        >
+          <Twitter size={20} />
+        </a>
+
         {user ? <Popover>
             <PopoverTrigger asChild>
               <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -164,4 +176,5 @@ const TopBar = ({
       </div>
     </header>;
 };
+
 export default TopBar;
