@@ -1,11 +1,12 @@
 import { useNextRace } from "@/hooks/useF1Data";
-import { CalendarDays, Menu, UserCircle, Twitter } from "lucide-react";
+import { CalendarDays, Menu, UserCircle, Twitter, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import f1Logo from "@/assets/f1-logo.svg";
 
 interface TopBarProps {
@@ -27,6 +28,7 @@ const TopBar = ({
     signOut
   } = useAuth();
   const nextRace = nextRaceData?.data;
+  
   const formatDateString = (dateStr: string, timeStr: string) => {
     try {
       const [year, month, day] = dateStr.split('-').map(Number);
@@ -104,6 +106,25 @@ const TopBar = ({
     }
     return "User";
   };
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'F1 DataStop - Live Formula 1 News and Race Data',
+          text: 'Get real-time Formula 1 news, race data, and analysis with F1 DataStop',
+          url: window.location.href,
+        });
+      } else {
+        navigator.clipboard.writeText(window.location.href);
+        toast.success('Link copied to clipboard');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast.error('Failed to share');
+    }
+  };
+
   return <header className="h-16 border-b border-gray-800 bg-f1-dark flex items-center px-4 justify-between">
       <div className="flex items-center">
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden mr-3 text-gray-400 hover:text-white" aria-label="Toggle menu">
@@ -127,6 +148,14 @@ const TopBar = ({
                 </span>}
             </div>
           </div>}
+
+        <button 
+          onClick={handleShare}
+          className="text-gray-400 hover:text-white transition-colors"
+          aria-label="Share F1 DataStop"
+        >
+          <Share2 size={20} />
+        </button>
 
         <a 
           href="https://twitter.com/f1datastop" 
