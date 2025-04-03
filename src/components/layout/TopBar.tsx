@@ -107,21 +107,29 @@ const TopBar = ({
     return "User";
   };
 
-  const handleShare = async () => {
+  const handleShare = () => {
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'F1 DataStop - Live Formula 1 News and Race Data',
-          text: 'Get real-time Formula 1 news, race data, and analysis with F1 DataStop',
-          url: window.location.href,
-        });
-      } else {
-        navigator.clipboard.writeText(window.location.href);
-        toast.success('Link copied to clipboard');
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard!');
+      
+      if (navigator.share && window.isSecureContext) {
+        setTimeout(() => {
+          try {
+            navigator.share({
+              title: 'F1 DataStop - Live Formula 1 News and Race Data',
+              text: 'Get real-time Formula 1 news, race data, and analysis with F1 DataStop',
+              url: window.location.href,
+            }).catch(err => {
+              console.log('Share API not available or rejected, already used clipboard fallback');
+            });
+          } catch (shareError) {
+            console.log('Error with share API, already used clipboard fallback');
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Error sharing:', error);
-      toast.error('Failed to share');
+      toast.error('Could not copy to clipboard. Try manually selecting the URL.');
     }
   };
 
