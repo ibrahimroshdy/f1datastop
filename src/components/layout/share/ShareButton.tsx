@@ -5,7 +5,10 @@ import { toast } from "sonner";
 const ShareButton = () => {
   const handleShare = () => {
     try {
-      navigator.clipboard.writeText(window.location.href);
+      // Use the base URL instead of the current page URL
+      const shareUrl = window.location.origin;
+      
+      navigator.clipboard.writeText(shareUrl);
       toast.success('Link copied to clipboard!');
       
       if (navigator.share && window.isSecureContext) {
@@ -14,7 +17,7 @@ const ShareButton = () => {
             navigator.share({
               title: 'F1 DataStop - Live Formula 1 News and Race Data',
               text: 'Get real-time Formula 1 news, race data, and analysis with F1 DataStop',
-              url: window.location.href,
+              url: shareUrl,
             }).catch(err => {
               console.log('Share API not available or rejected, already used clipboard fallback');
             });
