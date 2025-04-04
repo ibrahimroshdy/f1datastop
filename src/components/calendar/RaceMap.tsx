@@ -35,11 +35,12 @@ const RaceMap = () => {
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const popupsRef = useRef<mapboxgl.Popup[]>([]);
+  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
   const { data: raceSchedule, isLoading } = useRaceSchedule(selectedYear);
 
   // This function creates a path visualization between race locations
   const createRacePath = (races: Race[]) => {
-    if (!map.current || races.length < 2) return;
+    if (!map.current || races.length < 2 || !mapLoaded) return;
     
     // Create coordinates array from race locations
     const coordinates = races.map(race => [
@@ -138,9 +139,12 @@ const RaceMap = () => {
       'top-right'
     );
 
-    // Add custom globe effects
+    // Wait for the map style to be fully loaded before interacting with it
     map.current.on('style.load', () => {
       if (!map.current) return;
+      
+      // Set mapLoaded to true to indicate the style has finished loading
+      setMapLoaded(true);
       
       // Add atmosphere and fog effects
       map.current.setFog({
@@ -214,9 +218,9 @@ const RaceMap = () => {
     };
   }, []);
 
-  // Add race markers and path when race data is loaded
+  // Add race markers and path when race data is loaded AND map style is loaded
   useEffect(() => {
-    if (!map.current || isLoading || !raceSchedule?.data) return;
+    if (!map.current || isLoading || !raceSchedule?.data || !mapLoaded) return;
 
     // Clear any existing markers
     markersRef.current.forEach(marker => marker.remove());
@@ -298,7 +302,7 @@ const RaceMap = () => {
       });
     });
     
-    // Add the race path visualization
+    // Add the race path visualization only after map is loaded
     createRacePath(races);
     
     // Fit the map to show all markers (with padding)
@@ -319,7 +323,7 @@ const RaceMap = () => {
       });
     }
     
-  }, [raceSchedule, isLoading]);
+  }, [raceSchedule, isLoading, mapLoaded]); // Added mapLoaded as a dependency
 
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
