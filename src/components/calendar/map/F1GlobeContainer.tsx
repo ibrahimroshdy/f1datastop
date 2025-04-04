@@ -5,6 +5,7 @@ import { Race } from "@/components/calendar/map/types";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import MapLoadingOverlay from "@/components/calendar/map/MapLoadingOverlay";
 import MapTips from "@/components/calendar/map/MapTips";
+import MapLegend from "@/components/calendar/map/MapLegend";
 import SelectedRaceInfo from "@/components/calendar/map/SelectedRaceInfo";
 
 interface F1GlobeContainerProps {
@@ -352,6 +353,9 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
       
       {/* Tips */}
       <MapTips />
+      
+      {/* Legend */}
+      <MapLegend />
     </div>
   );
 };
