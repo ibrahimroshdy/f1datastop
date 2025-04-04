@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import YearSelector from "@/components/common/YearSelector";
-import F1MapContainer from "@/components/calendar/map/F1MapContainer";
+import F1GlobeContainer from "@/components/calendar/map/F1GlobeContainer";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 
 const RaceMap = () => {
@@ -16,11 +16,11 @@ const RaceMap = () => {
   return (
     <div className="flex flex-col space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-        <h2 className="text-xl font-bold">F1 Race Map</h2>
+        <h2 className="text-xl font-bold">F1 Race Globe</h2>
         <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
       </div>
 
-      <F1MapContainer selectedYear={selectedYear} />
+      <F1GlobeContainer selectedYear={selectedYear} />
 
       {isLoading && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
