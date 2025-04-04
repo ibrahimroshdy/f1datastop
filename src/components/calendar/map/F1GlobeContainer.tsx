@@ -84,10 +84,19 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
       const radius = Math.cos(Math.abs(lat) * Math.PI / 180);
       const height = Math.sin(lat * Math.PI / 180);
       
-      const latitudeGeometry = new THREE.CircleGeometry(radius, 64);
-      latitudeGeometry.vertices = latitudeGeometry.vertices || [];
-      latitudeGeometry.vertices.shift(); // Remove center vertex
+      // Create points for latitude circle
+      const points = [];
+      const segments = 64;
+      for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * Math.PI * 2;
+        points.push(new THREE.Vector3(
+          radius * Math.cos(theta),
+          0,
+          radius * Math.sin(theta)
+        ));
+      }
       
+      const latitudeGeometry = new THREE.BufferGeometry().setFromPoints(points);
       const latitudeLine = new THREE.Line(latitudeGeometry, gridMaterial);
       latitudeLine.rotation.x = Math.PI / 2;
       latitudeLine.position.y = height;
