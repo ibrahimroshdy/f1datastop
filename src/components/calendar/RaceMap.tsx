@@ -235,7 +235,8 @@ const RaceMap = () => {
       
       if (!lat || !long) return;
       
-      const coordinates = [parseFloat(long), parseFloat(lat)];
+      // Fix: Ensure coordinates are properly formatted as [lng, lat]
+      const coordinates: [number, number] = [parseFloat(long), parseFloat(lat)];
       
       // Create custom HTML element for marker
       const el = document.createElement('div');
@@ -285,7 +286,7 @@ const RaceMap = () => {
       el.addEventListener('click', () => {
         setSelectedRace(race);
         
-        // Fly to this race location
+        // Fix: Ensure coordinates for flyTo are properly formatted
         map.current?.flyTo({
           center: coordinates,
           zoom: 5,
@@ -304,10 +305,12 @@ const RaceMap = () => {
     if (races.length > 0) {
       const bounds = new mapboxgl.LngLatBounds();
       races.forEach(race => {
-        bounds.extend([
+        // Fix: Ensure coordinates for extending bounds are properly formatted
+        const raceCoords: [number, number] = [
           parseFloat(race.Circuit.Location.long), 
           parseFloat(race.Circuit.Location.lat)
-        ]);
+        ];
+        bounds.extend(raceCoords);
       });
       
       map.current.fitBounds(bounds, {
