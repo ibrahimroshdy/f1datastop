@@ -39,6 +39,7 @@ const App = () => (
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Index />} />
+              <Route path="/calendar" element={<RaceCalendar />} />
               <Route path="*" element={<NotFound />} />
               
               {/* Auth routes (only accessible if not logged in) */}
@@ -50,7 +51,6 @@ const App = () => (
               
               {/* Protected routes with blur effect for non-authenticated users */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/calendar" element={<RaceCalendar />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/drivers" element={<Drivers />} />
                 <Route path="/constructors" element={<Constructors />} />

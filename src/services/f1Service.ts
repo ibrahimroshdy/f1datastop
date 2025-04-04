@@ -176,11 +176,8 @@ export const getPitStops = async (year: number, round: string) => {
 // Fetch lap times for a specific race with pagination support
 export const getLapTimes = async (year: number, round: string, firstDriverOnly?: string) => {
   try {
-    // Construct the URL based on whether we want a specific driver's data or all drivers
-    // If firstDriverOnly is undefined, we'll fetch all drivers' lap times
     let baseUrl = `${BASE_URL}/f1/${year}/${round}/laps`;
     
-    // First request to get total number of laps
     const initialResponse = await fetch(`${baseUrl}.json?limit=30&offset=0`, {
       mode: 'cors',
       headers: {
@@ -194,16 +191,13 @@ export const getLapTimes = async (year: number, round: string, firstDriverOnly?:
     
     const initialData = await initialResponse.json();
     const total = parseInt(initialData.MRData?.total || "0");
-    const limit = 100; // Increase the limit to reduce number of requests
+    const limit = 100;
     
-    // If there are more laps than the initial limit, fetch all of them
     if (total > 30) {
       console.log(`Fetching all ${total} laps for race ${year}/${round} with pagination`);
       
-      // Store the initial results
       let allLaps = initialData.MRData?.RaceTable?.Races?.[0]?.Laps || [];
       
-      // Calculate how many additional requests we need
       const requestsNeeded = Math.ceil((total - 30) / limit);
       const fetchPromises = [];
       
@@ -228,18 +222,14 @@ export const getLapTimes = async (year: number, round: string, firstDriverOnly?:
         );
       }
       
-      // Wait for all requests to complete
       const additionalLapsArrays = await Promise.all(fetchPromises);
       
-      // Combine all the laps from additional requests
       additionalLapsArrays.forEach(laps => {
         allLaps = [...allLaps, ...laps];
       });
       
-      // Sort laps by lap number to ensure correct order
       allLaps.sort((a, b) => parseInt(a.number) - parseInt(b.number));
       
-      // Reconstruct the response object with all laps
       const completeData = {
         ...initialData.MRData,
         RaceTable: {
@@ -257,7 +247,6 @@ export const getLapTimes = async (year: number, round: string, firstDriverOnly?:
       };
     }
     
-    // If there are fewer than 30 laps, return the initial data
     return { 
       data: initialData.MRData?.RaceTable || {}, 
       error: null 
@@ -272,7 +261,6 @@ export const getLapTimes = async (year: number, round: string, firstDriverOnly?:
 export const getLastRaceResults = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    // First, get the race schedule to find the last completed race
     const scheduleResponse = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
       mode: 'cors',
       headers: {
@@ -287,7 +275,6 @@ export const getLastRaceResults = async (year?: number) => {
     const scheduleData = await scheduleResponse.json();
     const races = scheduleData.MRData?.RaceTable?.Races || [];
     
-    // Find the last completed race
     const now = new Date();
     const completedRaces = races.filter(race => new Date(race.date) < now);
     
@@ -300,7 +287,6 @@ export const getLastRaceResults = async (year?: number) => {
     
     const lastRace = completedRaces[completedRaces.length - 1];
     
-    // Get results for the last race
     const resultsResponse = await fetch(`${BASE_URL}/f1/${lastRace.season}/${lastRace.round}/results.json`, {
       mode: 'cors',
       headers: {
@@ -345,7 +331,6 @@ export const getNextRace = async (year?: number) => {
     const data = await response.json();
     const races = data.MRData?.RaceTable?.Races || [];
     
-    // Find the next upcoming race
     const now = new Date();
     const upcomingRaces = races.filter(race => new Date(race.date) > now);
     
@@ -355,7 +340,6 @@ export const getNextRace = async (year?: number) => {
     
     const nextRace = upcomingRaces[0];
     
-    // Transform data to match component expectations
     return { data: nextRace, error: null };
   } catch (error) {
     console.error("Failed to fetch next race:", error);
@@ -411,10 +395,34 @@ export const getWeatherData = async (sessionId?: string) => {
 // F1 News data (simplified)
 export const getF1News = async () => {
   try {
-    // External F1 news data is not available through the Ergast API
     return { data: [], error: "News data not available through this API" };
   } catch (error) {
     console.error("Failed to fetch F1 news:", error);
+    return { data: [], error };
+  }
+};
+
+// Fetch F1 circuits data
+export const getF1Circuits = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}/f1/circuits.json`, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return { 
+      data: data.MRData?.CircuitTable?.Circuits || [],
+      error: null 
+    };
+  } catch (error) {
+    console.error("Failed to fetch circuits:", error);
     return { data: [], error };
   }
 };

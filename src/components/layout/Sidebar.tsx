@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { 
@@ -27,10 +28,10 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
 
   const mainNavigation = [
     { name: "Dashboard", href: "/", icon: Home },
+    { name: "Race Calendar", href: "/calendar", icon: Calendar },
   ];
 
   const protectedNavigation = [
-    { name: "Race Calendar", href: "/calendar", icon: Calendar },
     { name: "Analytics", href: "/analytics", icon: BarChart },
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Constructors", href: "/constructors", icon: Award },

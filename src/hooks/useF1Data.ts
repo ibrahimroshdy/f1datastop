@@ -120,3 +120,11 @@ export const useF1News = () => {
     staleTime: 1000 * 60 * 15, // 15 minutes
   });
 };
+
+export const useF1Circuits = () => {
+  return useQuery({
+    queryKey: ["f1Circuits"],
+    queryFn: f1Service.getF1Circuits,
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours (this rarely changes)
+  });
+};
