@@ -2,19 +2,22 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { Race } from "@/components/calendar/map/types";
+import { Race, GlobeDetailLevel } from "@/components/calendar/map/types";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import MapLoadingOverlay from "@/components/calendar/map/MapLoadingOverlay";
 import MapTips from "@/components/calendar/map/MapTips";
 import MapLegend from "@/components/calendar/map/MapLegend";
 import SelectedRaceInfo from "@/components/calendar/map/SelectedRaceInfo";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import MapControls from "@/components/calendar/map/MapControls";
-import WorldMapData from "@/components/calendar/map/WorldMapData";
+import { Search, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { getCountryFlag } from "@/utils/countryUtils";
-import { Search, Globe } from "lucide-react";
+
+// Import the new components
+import RaceSequencePath from "@/components/calendar/map/RaceSequencePath";
+import CountryOutlines from "@/components/calendar/map/CountryOutlines";
+import GlobeControls from "@/components/calendar/map/GlobeControls";
 
 interface F1GlobeContainerProps {
   selectedYear: number;
@@ -33,6 +36,8 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
   const [hoveredRace, setHoveredRace] = useState<Race | null>(null);
   const [hoverPoint, setHoverPoint] = useState<{x: number, y: number} | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [showPaths, setShowPaths] = useState<boolean>(true);
+  const [detailLevel, setDetailLevel] = useState<GlobeDetailLevel>('medium');
   const [filterStatus, setFilterStatus] = useState<{
     first: boolean;
     upcoming: boolean;
@@ -172,38 +177,6 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
       globe.add(longitudeLine);
     }
 
-    // Add world map outlines with country borders
-    WorldMapData.features.forEach(feature => {
-      const countryCoordinates = feature.geometry.coordinates;
-      
-      countryCoordinates.forEach((polygon: any) => {
-        // For each polygon in the country's geometry
-        polygon.forEach((ring: any) => {
-          const points: THREE.Vector3[] = [];
-          
-          // Create points for each coordinate in the ring
-          ring.forEach((coord: number[]) => {
-            const [long, lat] = coord;
-            const position = latLongToVector3(lat, long, 1.005);
-            points.push(position);
-          });
-          
-          if (points.length > 1) {
-            // Create a line for the country border
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const material = new THREE.LineBasicMaterial({ 
-              color: 0x4a7a9c,
-              transparent: true,
-              opacity: 0.7,
-              linewidth: 1
-            });
-            const line = new THREE.Line(geometry, material);
-            globe.add(line);
-          }
-        });
-      });
-    });
-    
     // Create markers group
     const markersGroup = new THREE.Group();
     markersGroupRef.current = markersGroup;
@@ -441,7 +414,35 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
         markersGroupRef.current.add(glow);
       }
       
-      // Add line from center to marker
+      // Add race round number as a floating label
+      const roundCanvas = document.createElement('canvas');
+      roundCanvas.width = 64;
+      roundCanvas.height = 64;
+      
+      const ctx = roundCanvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillRect(0, 0, 64, 64);
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = markerColor === 0x00ff00 ? '#00ff00' : 
+                        markerColor === 0xe10600 ? '#e10600' : '#ffffff';
+        ctx.fillText(round.toString(), 32, 32);
+      }
+      
+      const roundTexture = new THREE.CanvasTexture(roundCanvas);
+      const roundLabelMaterial = new THREE.SpriteMaterial({
+        map: roundTexture,
+        transparent: true
+      });
+      
+      const roundLabel = new THREE.Sprite(roundLabelMaterial);
+      roundLabel.position.copy(position.clone().multiplyScalar(1.12)); // Position above the marker
+      roundLabel.scale.set(0.2, 0.2, 0.2);
+      markersGroupRef.current.add(roundLabel);
+      
+      // Add line connecting marker to globe center
       const lineMaterial = new THREE.LineBasicMaterial({ 
         color: isUpcoming ? 0xe10600 : 0x666666,
         transparent: true,
@@ -532,14 +533,6 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
       containerRef.current?.removeEventListener('click', handleClick);
     };
   }, [isGlobeReady, data, searchTerm, filterStatus]);
-  
-  // Handle filter toggle
-  const toggleFilter = (filter: 'first' | 'upcoming' | 'completed') => {
-    setFilterStatus(prev => ({
-      ...prev,
-      [filter]: !prev[filter]
-    }));
-  };
 
   // Helper function to convert latitude and longitude to 3D coordinates
   const latLongToVector3 = (lat: number, long: number, radius: number): THREE.Vector3 => {
@@ -554,11 +547,46 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
     
     return new THREE.Vector3(x, y, z);
   };
+  
+  // Handle filter toggle
+  const toggleFilter = (filter: 'first' | 'upcoming' | 'completed') => {
+    setFilterStatus(prev => ({
+      ...prev,
+      [filter]: !prev[filter]
+    }));
+  };
+  
+  // Toggle paths visibility
+  const handleTogglePaths = () => {
+    setShowPaths(prev => !prev);
+  };
+  
+  // Handle detail level change
+  const handleDetailLevelChange = (level: GlobeDetailLevel) => {
+    setDetailLevel(level);
+  };
 
   return (
     <div className="relative w-full h-[70vh] rounded-xl overflow-hidden bg-gray-900 border border-gray-800">
       {/* Globe container */}
       <div ref={containerRef} className="absolute inset-0" />
+      
+      {/* Race sequence paths */}
+      {data?.data && isGlobeReady && globeRef.current && (
+        <RaceSequencePath 
+          races={data.data} 
+          globe={globeRef.current} 
+          showPaths={showPaths} 
+        />
+      )}
+      
+      {/* Country outlines */}
+      {isGlobeReady && globeRef.current && (
+        <CountryOutlines 
+          globe={globeRef.current} 
+          detailLevel={detailLevel} 
+        />
+      )}
       
       {/* Search and filters */}
       <div className="absolute top-4 left-4 z-20 flex gap-2">
@@ -573,6 +601,14 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
           />
         </div>
       </div>
+
+      {/* Path toggle and detail level controls */}
+      <GlobeControls 
+        showPaths={showPaths}
+        onTogglePaths={handleTogglePaths}
+        detailLevel={detailLevel}
+        onChangeDetailLevel={handleDetailLevelChange}
+      />
 
       {/* Filter buttons */}
       <div className="absolute top-4 right-4 z-20 flex gap-2">
@@ -623,6 +659,9 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
           <div className="font-bold">{getCountryFlag(hoveredRace.Circuit.Location.country)} {hoveredRace.raceName}</div>
           <div className="text-gray-300 mt-1">{format(parseISO(hoveredRace.date), 'dd MMM yyyy')}</div>
           <div className="text-gray-300">{hoveredRace.Circuit.Location.locality}, {hoveredRace.Circuit.Location.country}</div>
+          <div className="text-gray-400 text-[10px] mt-1">
+            Coordinates: {hoveredRace.Circuit.Location.lat}, {hoveredRace.Circuit.Location.long}
+          </div>
         </div>
       )}
       
@@ -631,9 +670,6 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
       
       {/* Legend */}
       <MapLegend />
-
-      {/* Controls hints */}
-      <MapControls />
     </div>
   );
 };

@@ -49,3 +49,13 @@ export interface RaceMapProps {
   selectedYear: number;
   onYearChange: (year: number) => void;
 }
+
+// Added new interface for race path connection
+export interface RaceConnection {
+  fromRace: Race;
+  toRace: Race;
+  completed: boolean;
+}
+
+// Added detail level type
+export type GlobeDetailLevel = 'low' | 'medium' | 'high';

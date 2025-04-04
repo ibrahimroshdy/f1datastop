@@ -1,21 +1,41 @@
 
-import { Circle } from "lucide-react";
+import React from 'react';
+import { Route } from 'lucide-react';
 
 const MapLegend = () => {
   return (
-    <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-sm rounded-md p-3 border border-gray-700 z-10">
-      <div className="text-xs text-white font-medium mb-2">Race Legend</div>
-      <div className="flex items-center gap-2 mb-1.5">
-        <div className="w-3 h-3 rounded-full bg-green-500 border border-white/50 shadow-glow-green"></div>
-        <span className="text-xs text-gray-200">First Race</span>
+    <div className="absolute bottom-4 right-4 text-xs text-white bg-black/70 backdrop-blur-sm rounded-md px-4 py-3 shadow-lg border border-gray-700 z-10">
+      <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-600">
+        <span className="font-medium">Race Status</span>
       </div>
+      
       <div className="flex items-center gap-2 mb-1.5">
-        <div className="w-3 h-3 rounded-full bg-red-600 border border-white/50 shadow-glow-red"></div>
-        <span className="text-xs text-gray-200">Upcoming Races</span>
+        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+        <span>First Race</span>
       </div>
+      
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className="w-3 h-3 rounded-full bg-red-600"></div>
+        <span>Upcoming Races</span>
+      </div>
+      
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-3 h-3 rounded-full bg-white"></div>
+        <span>Completed Races</span>
+      </div>
+      
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-600 mb-2">
+        <span className="font-medium">Race Paths</span>
+      </div>
+      
+      <div className="flex items-center gap-2 mb-1.5">
+        <Route className="h-3 w-3 text-red-600" />
+        <span>Upcoming Race Path</span>
+      </div>
+      
       <div className="flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full bg-white border border-white/50"></div>
-        <span className="text-xs text-gray-200">Completed Races</span>
+        <Route className="h-3 w-3 text-blue-400" />
+        <span>Completed Race Path</span>
       </div>
     </div>
   );
