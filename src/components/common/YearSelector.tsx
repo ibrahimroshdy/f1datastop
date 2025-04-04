@@ -5,9 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface YearSelectorProps {
   selectedYear: number;
   onYearChange: (year: number) => void;
+  className?: string; // Added className as optional prop
 }
 
-const YearSelector = ({ selectedYear, onYearChange }: YearSelectorProps) => {
+const YearSelector = ({ selectedYear, onYearChange, className }: YearSelectorProps) => {
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   
   useEffect(() => {
@@ -27,7 +28,7 @@ const YearSelector = ({ selectedYear, onYearChange }: YearSelectorProps) => {
         value={selectedYear.toString()}
         onValueChange={(value) => onYearChange(parseInt(value))}
       >
-        <SelectTrigger className="w-[100px]">
+        <SelectTrigger className={`w-[100px] ${className || ''}`}>
           <SelectValue placeholder={selectedYear.toString()} />
         </SelectTrigger>
         <SelectContent>
