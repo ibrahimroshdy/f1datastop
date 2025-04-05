@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
+import { toast } from "sonner";
 
 export interface Driver {
   driverId: string;
@@ -26,6 +27,7 @@ export const usePositionChangeData = (year: number, round: string) => {
   const [totalLaps, setTotalLaps] = useState<number>(0);
   const [isProcessingData, setIsProcessingData] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   // Use React Query hooks for data fetching
   const { 
@@ -39,22 +41,32 @@ export const usePositionChangeData = (year: number, round: string) => {
     isLoading: isLapTimesLoading, 
     error: lapTimesError,
     refetch: refetchLapTimes,
-    isError
+    isError,
+    failureCount
   } = useLapTimes(year, round, false); // Always fetch all laps
   
   const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
 
-  // Auto-retry on error
+  // Auto-retry on error with increased delay between retries
   useEffect(() => {
-    if (isError && retryCount < 5) {
+    if (isError && retryCount < 10) {
+      const delaySeconds = Math.min(3 * (2 ** retryCount), 30);
+      setLoadingProgress((retryCount * 10));
+      
       const timer = setTimeout(() => {
+        toast.info(`Retrying position data... Attempt ${retryCount + 1}/10`, {
+          id: `position-retry-${retryCount}`,
+          duration: 3000,
+        });
+        
         setRetryCount(prev => prev + 1);
         refetchLapTimes();
-      }, 2000); // Retry every 2 seconds
+      }, delaySeconds * 1000);
+      
       return () => clearTimeout(timer);
     }
-  }, [isError, retryCount, refetchLapTimes]);
+  }, [isError, retryCount, refetchLapTimes, failureCount]);
 
   // Set only the first driver selected by default
   useEffect(() => {
@@ -183,6 +195,7 @@ export const usePositionChangeData = (year: number, round: string) => {
     isError,
     error,
     retryCount,
+    loadingProgress,
     totalLaps,
     maxLap,
     handleDriverToggle,

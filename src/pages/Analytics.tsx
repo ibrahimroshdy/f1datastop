@@ -96,7 +96,8 @@ const Analytics = () => {
           <AlertDescription>
             View lap-by-lap data including position changes and timing information. 
             Select a race and switch between tabs to explore different analytics.
-            If data loading fails, the system will automatically retry loading the information.
+            If you encounter "429 Too Many Requests" errors, the system will automatically 
+            retry with increasing delays between attempts.
           </AlertDescription>
         </Alert>
         
@@ -126,7 +127,8 @@ const Analytics = () => {
               <CardHeader>
                 <CardTitle>Lap Time Analysis</CardTitle>
                 <CardDescription>
-                  Compare lap-by-lap times between drivers during a race
+                  Compare lap-by-lap times between drivers during a race.
+                  The system will automatically retry if API rate limits are encountered.
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[600px]">
@@ -145,7 +147,8 @@ const Analytics = () => {
               <CardHeader>
                 <CardTitle>Position Changes</CardTitle>
                 <CardDescription>
-                  Track how drivers' positions change throughout the race
+                  Track how drivers' positions change throughout the race.
+                  The system will automatically retry if API rate limits are encountered.
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[600px]">

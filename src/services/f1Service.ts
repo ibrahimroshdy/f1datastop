@@ -186,6 +186,11 @@ export const getLapTimes = async (year: number, round: string, firstDriverOnly?:
     });
     
     if (!initialResponse.ok) {
+      if (initialResponse.status === 429) {
+        const error: any = new Error(`API request failed with status ${initialResponse.status}`);
+        error.status = 429;
+        throw error;
+      }
       throw new Error(`API request failed with status ${initialResponse.status}`);
     }
     
@@ -206,54 +211,90 @@ export const getLapTimes = async (year: number, round: string, firstDriverOnly?:
         const url = `${baseUrl}.json?limit=${limit}&offset=${offset}`;
         
         fetchPromises.push(
-          fetch(url, {
-            mode: 'cors',
-            headers: {
-              'Accept': 'application/json'
+          new Promise(async (resolve, reject) => {
+            await new Promise(r => setTimeout(r, i * 200));
+            
+            try {
+              const response = await fetch(url, {
+                mode: 'cors',
+                headers: {
+                  'Accept': 'application/json'
+                }
+              });
+              
+              if (!response.ok) {
+                if (response.status === 429) {
+                  const error: any = new Error(`API request failed with status ${response.status}`);
+                  error.status = 429;
+                  reject(error);
+                  return;
+                }
+                throw new Error(`API request failed with status ${response.status}`);
+              }
+              
+              const data = await response.json();
+              resolve(data.MRData?.RaceTable?.Races?.[0]?.Laps || []);
+            } catch (error) {
+              reject(error);
             }
           })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`API request failed with status ${response.status}`);
-            }
-            return response.json();
-          })
-          .then(data => data.MRData?.RaceTable?.Races?.[0]?.Laps || [])
         );
       }
       
-      const additionalLapsArrays = await Promise.all(fetchPromises);
-      
-      additionalLapsArrays.forEach(laps => {
-        allLaps = [...allLaps, ...laps];
-      });
-      
-      allLaps.sort((a, b) => parseInt(a.number) - parseInt(b.number));
-      
-      const completeData = {
-        ...initialData.MRData,
-        RaceTable: {
-          ...initialData.MRData.RaceTable,
-          Races: [{
-            ...initialData.MRData.RaceTable.Races[0],
-            Laps: allLaps
-          }]
+      try {
+        const additionalLapsArrays = await Promise.all(fetchPromises);
+        
+        additionalLapsArrays.forEach(laps => {
+          allLaps = [...allLaps, ...laps];
+        });
+        
+        allLaps.sort((a: any, b: any) => parseInt(a.number) - parseInt(b.number));
+        
+        const completeData = {
+          ...initialData.MRData,
+          RaceTable: {
+            ...initialData.MRData.RaceTable,
+            Races: [{
+              ...initialData.MRData.RaceTable.Races[0],
+              Laps: allLaps
+            }]
+          }
+        };
+        
+        return { 
+          data: { Races: completeData.RaceTable.Races }, 
+          error: null 
+        };
+      } catch (error: any) {
+        console.error(`Failed to fetch all lap times for round ${round}:`, error);
+        if (allLaps.length > 0) {
+          return { 
+            data: { 
+              Races: [{ 
+                ...initialData.MRData.RaceTable.Races[0],
+                Laps: allLaps,
+                incomplete: true
+              }] 
+            }, 
+            error: "Incomplete data due to API rate limits",
+            status: error.status || 500
+          };
         }
-      };
-      
-      return { 
-        data: { Races: completeData.RaceTable.Races }, 
-        error: null 
-      };
+        throw error;
+      }
     }
     
     return { 
       data: initialData.MRData?.RaceTable || {}, 
       error: null 
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Failed to fetch lap times for round ${round}:`, error);
-    return { data: {}, error };
+    return { 
+      data: {}, 
+      error: error.message || "Failed to fetch lap times",
+      status: error.status || 500
+    };
   }
 };
 

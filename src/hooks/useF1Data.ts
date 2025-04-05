@@ -83,16 +83,26 @@ export const useRaceQualifying = (year: number, round: string) => {
 };
 
 export const useLapTimes = (year: number, round: string, firstDriverOnly: boolean = false) => {
-  // Enhanced retry config with longer delays for lap times (which are more likely to hit rate limits)
-  const lapTimesRetryConfig = createRetryConfig(3000, 8);
+  // Enhanced retry config with longer delays and more attempts for lap times
+  const lapTimesRetryConfig = createRetryConfig(3000, 10);
   
   return useQuery({
     queryKey: ["lapTimes", year, round, firstDriverOnly ? "firstDriverOnly" : "allDrivers"],
     queryFn: async () => {
-      // Instead of passing 'false' as a string, we should either pass a valid driver ID or omit it completely
-      // to get all drivers' lap times
-      const data = await f1Service.getLapTimes(year, round, firstDriverOnly ? "true" : undefined);
-      return data;
+      try {
+        // Instead of passing 'false' as a string, we should either pass a valid driver ID or omit it completely
+        // to get all drivers' lap times
+        const data = await f1Service.getLapTimes(year, round, firstDriverOnly ? "true" : undefined);
+        return data;
+      } catch (error: any) {
+        if (error?.status === 429) {
+          toast.error("Rate limit exceeded. System will retry automatically.", {
+            description: "The F1 API has rate limits to prevent overuse.",
+            duration: 5000,
+          });
+        }
+        throw error; // Re-throw the error to let React Query handle retries
+      }
     },
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,

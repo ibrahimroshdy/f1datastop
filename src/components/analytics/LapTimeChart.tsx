@@ -8,6 +8,8 @@ import LapTimeLineChart from "./LapTimeLineChart";
 import DisplayModeToggle from "./DisplayModeToggle";
 import { Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface LapTimeChartProps {
   year: number;
@@ -22,6 +24,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
   const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
   const [retryCount, setRetryCount] = useState(0);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState("Loading lap time data...");
 
   const { 
     data: raceResultsData, 
@@ -35,28 +38,38 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     error: lapTimesError,
     refetch: refetchLapTimes,
     isError,
-    isFetching
+    isFetching,
+    failureCount
   } = useLapTimes(year, round, undefined);
   
   const isLoading = isResultsLoading || isLapTimesLoading;
   const error = resultsError || lapTimesError;
 
+  // Auto-retry on error with increased delay between retries
   useEffect(() => {
-    if (isError && retryCount < 5) {
-      setLoadingProgress(retryCount * 20);
-      console.log("Retrying lap times fetch, attempt:", retryCount + 1);
+    if (isError && retryCount < 10) {
+      const delaySeconds = Math.min(3 * (2 ** retryCount), 30);
+      setLoadingProgress((retryCount * 10));
+      setLoadingMessage(`Rate limit reached. Retry ${retryCount + 1}/10 in ${delaySeconds} seconds...`);
+      
+      console.log(`Retrying lap times fetch attempt ${retryCount + 1}/10 in ${delaySeconds} seconds`);
+      
       const timer = setTimeout(() => {
         setRetryCount(prev => prev + 1);
         refetchLapTimes();
-      }, 2000);
+      }, delaySeconds * 1000);
+      
       return () => clearTimeout(timer);
     } else if (!isError && !isLoading && !isFetching) {
       setLoadingProgress(100);
+      setLoadingMessage("Loading complete!");
     } else if (isFetching) {
       setLoadingProgress(50);
+      setLoadingMessage("Fetching lap time data...");
     }
-  }, [isError, retryCount, refetchLapTimes, isLoading, isFetching]);
+  }, [isError, retryCount, refetchLapTimes, isLoading, isFetching, failureCount]);
   
+  // Setup available drivers when race results load
   useEffect(() => {
     if (raceResultsData?.data?.Results && raceResultsData.data.Results.length > 0) {
       const drivers = raceResultsData.data.Results.map((result: any) => ({
@@ -82,6 +95,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     }
   }, [raceResultsData]);
 
+  // Process lap time data
   const chartData = useMemo(() => {
     if (!lapTimesData || Object.keys(lapTimesData).length === 0) {
       return [];
@@ -100,6 +114,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     return chartData;
   }, [lapTimesData, availableDrivers, displayMode]);
 
+  // Event handlers
   const handleDriverToggle = (driverCode: string) => {
     setSelectedDrivers(prev => 
       prev.includes(driverCode)
@@ -129,7 +144,8 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     return selectedDrivers;
   }, [hoveredDriver, selectedDrivers]);
 
-  if (isLoading || (isError && retryCount < 5) || isFetching) {
+  // Loading state with retry information
+  if (isLoading || (isError && retryCount < 10) || isFetching) {
     return (
       <div className="h-full flex flex-col items-center justify-center space-y-4">
         <Skeleton className="h-full w-full opacity-30" /> 
@@ -142,17 +158,25 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
               indicatorClassName={isError ? "bg-yellow-500" : "bg-blue-500"}
             />
             <p className="text-center text-muted-foreground text-sm">
-              {isError 
-                ? `Loading lap time data... Retry ${retryCount + 1}/5 - This may take a moment` 
-                : "Loading lap time data..."}
+              {loadingMessage}
             </p>
+            {isError && (
+              <Alert className="mt-4 bg-yellow-50 border-yellow-200 text-yellow-900">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-xs">
+                  Rate limit exceeded (429 error). The system will automatically retry.
+                  This happens because the F1 API has strict rate limits.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         </div>
       </div>
     );
   }
 
-  if (error && retryCount >= 5) {
+  // Error state after max retries
+  if (error && retryCount >= 10) {
     return (
       <div className="h-full">
         <div className="mb-4 flex flex-col gap-4">
@@ -165,6 +189,14 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
               onToggle={toggleDisplayMode} 
             />
           </div>
+          
+          <Alert className="bg-red-50 border-red-200 text-red-900 mb-4">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription>
+              After multiple attempts, we couldn't load the lap time data due to API rate limits. 
+              Please try again later or select a different race.
+            </AlertDescription>
+          </Alert>
           
           <div className="max-h-28 overflow-y-auto">
             <DriverSelector 
@@ -191,6 +223,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     );
   }
 
+  // No data available state
   if (chartData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
@@ -204,6 +237,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
     );
   }
 
+  // Normal view with data
   return (
     <div className="h-full">
       <div className="mb-4 flex flex-col gap-4">
