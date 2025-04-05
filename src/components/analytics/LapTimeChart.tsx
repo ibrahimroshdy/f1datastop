@@ -141,9 +141,11 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                 const originalTime = displayMode === 'gap' ? chartData.find(d => d[`${driverCode}_original`])?.[`${driverCode}_original`] : value;
                 
                 if (displayMode === 'absolute') {
-                  return [`${value.toFixed(3)}s`, driverCode];
+                  // Make sure value is a number before calling toFixed
+                  return [typeof value === 'number' ? `${value.toFixed(3)}s` : `${value}`, driverCode];
                 } else {
-                  return [`+${value.toFixed(3)}s`, driverCode];
+                  // Make sure value is a number before calling toFixed
+                  return [typeof value === 'number' ? `+${value.toFixed(3)}s` : `+${value}`, driverCode];
                 }
               }}
               labelFormatter={(label) => `Lap ${label}`}
