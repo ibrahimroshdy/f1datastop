@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
@@ -29,8 +28,53 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
   fastestLapTime,
   hoveredDriver
 }) => {
+  // Skip rendering if no data available
+  if (chartData.length === 0 || selectedDrivers.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[500px] border border-dashed border-gray-300 rounded-lg">
+        <p className="text-muted-foreground">Select drivers to view lap time data</p>
+      </div>
+    );
+  }
+
+  // Calculate min and max for domain to keep the chart smooth
+  const calculateYDomain = () => {
+    if (displayMode === 'absolute') {
+      let minTime = Number.MAX_VALUE;
+      let maxTime = 0;
+      
+      chartData.forEach(lap => {
+        selectedDrivers.forEach(driver => {
+          if (lap[driver] && typeof lap[driver] === 'number') {
+            minTime = Math.min(minTime, lap[driver]);
+            maxTime = Math.max(maxTime, lap[driver]);
+          }
+        });
+      });
+
+      // Add some padding to the domain
+      const padding = (maxTime - minTime) * 0.05;
+      return [minTime - padding, maxTime + padding];
+    } else {
+      // For gap mode, start at 0 and find the max gap
+      let maxGap = 0;
+      
+      chartData.forEach(lap => {
+        selectedDrivers.forEach(driver => {
+          if (lap[driver] && typeof lap[driver] === 'number') {
+            maxGap = Math.max(maxGap, lap[driver]);
+          }
+        });
+      });
+      
+      return [0, maxGap * 1.1]; // Add 10% padding at the top
+    }
+  };
+
+  const yDomain = calculateYDomain();
+  
   return (
-    <div className="h-[500px] w-full">
+    <div className="h-[500px] w-full bg-gray-950 rounded-lg p-4">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
@@ -39,7 +83,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
           <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
           <XAxis 
             dataKey="lap" 
-            label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+            label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10, fill: "#999" }} 
             xAxisId="lapTime"
             domain={['dataMin', 'dataMax']}
             type="number"
@@ -49,16 +93,19 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 ? Array.from({length: 10}, (_, i) => Math.round(i * chartData.length / 10) || 1)
                 : undefined
             }
+            tick={{ fill: '#999' }}
           />
           <YAxis 
             label={{ 
               value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', 
               angle: -90, 
-              position: 'insideLeft' 
+              position: 'insideLeft',
+              fill: "#999"
             }} 
-            domain={displayMode === 'absolute' ? ['dataMin - 1', 'dataMax + 1'] : [0, 'dataMax + 0.5']}
+            domain={yDomain}
             yAxisId="lapTime"
             tickFormatter={(value) => displayMode === 'absolute' ? formatTime(value) : `+${value.toFixed(1)}`}
+            tick={{ fill: '#999' }}
           />
           <Tooltip 
             contentStyle={{ 
@@ -91,17 +138,18 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
               const driver = availableDrivers.find(d => d.code === driverCode);
               return driver ? `${driverCode} (${driver.name.split(' ').pop()})` : driverCode;
             }} 
+            wrapperStyle={{ color: '#ddd' }}
           />
           
           {fastestLapTime && displayMode === 'absolute' && (
             <ReferenceLine 
               y={fastestLapTime.time} 
-              stroke="purple" 
+              stroke="#c026d3" // Purple color
               strokeDasharray="3 3" 
               label={{ 
                 value: `Fastest Lap: ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`, 
                 position: 'right', 
-                fill: 'purple' 
+                fill: '#c026d3' 
               }} 
               yAxisId="lapTime"
               xAxisId="lapTime"

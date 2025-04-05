@@ -1,9 +1,7 @@
 
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
-import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
-import { formatTime } from "@/utils/lapTimeUtils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Driver {
@@ -45,7 +43,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
       </div>
       
       {/* Scrollable driver grid */}
-      <ScrollArea className="h-auto max-h-[180px] border rounded-md border-gray-200 dark:border-gray-800 p-2">
+      <ScrollArea className="h-auto max-h-[230px] border rounded-md bg-gray-900 p-2">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
           {availableDrivers.map(driver => {
             const isSelected = selectedDrivers.includes(driver.code);
@@ -56,25 +54,25 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
             return (
               <button
                 key={driver.code}
-                className={`p-2 rounded text-xs flex flex-col transition-all duration-200 ${
+                className={`p-2 rounded-md text-xs flex flex-col transition-all duration-200 ${
                   isSelected
                     ? 'bg-gray-800 text-white'
-                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                    : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
                 }`}
                 onClick={() => onDriverToggle(driver.code)}
                 onMouseEnter={() => onDriverHover && onDriverHover(driver.code)}
                 onMouseLeave={() => onDriverHover && onDriverHover(null)}
                 style={{
                   borderLeft: `4px solid ${teamColor}`,
-                  opacity: isSelected || !onDriverHover ? 1 : 0.8,
+                  opacity: isSelected || !onDriverHover ? 1 : 0.7,
                 }}
               >
                 <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold">{driver.code}</span>
+                  <span className="font-bold text-base">{driver.code}</span>
                   <div className="flex items-center">
-                    <span className="text-[10px] opacity-70">P{driver.finishPosition}</span>
+                    <span className="text-[10px] opacity-70 mr-1">P{driver.finishPosition}</span>
                     {hasFastestLap && (
-                      <Badge className="ml-1 bg-purple-600 text-[0.65rem] px-1.5 py-0 h-4">
+                      <Badge className="bg-purple-600 text-[0.65rem] px-1.5 py-0 h-4">
                         FL
                       </Badge>
                     )}
@@ -100,6 +98,15 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
       </ScrollArea>
     </div>
   );
+};
+
+// Import formatTime function
+const formatTime = (seconds: number): string => {
+  if (!seconds) return "N/A";
+  
+  const mins = Math.floor(seconds / 60);
+  const secs = (seconds % 60).toFixed(3);
+  return `${mins}:${secs.padStart(6, '0')}`;
 };
 
 export default DriverSelector;
