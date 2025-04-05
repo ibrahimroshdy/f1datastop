@@ -95,26 +95,10 @@ const Analytics = () => {
           <Info className="h-4 w-4" />
           <AlertDescription>
             View lap-by-lap data including position changes and timing information. 
-            Select a race and switch between tabs to explore different analytics.
-            If you encounter "429 Too Many Requests" errors, the system will automatically 
-            retry with increasing delays between attempts.
+            The system includes automatic retry with exponential backoff when rate limits (429 errors) are encountered.
+            If data loading fails, the chart will automatically retry up to 15 times with increasing delays.
           </AlertDescription>
         </Alert>
-        
-        {selectedTab === "positions" && (
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-sm font-medium">Position Change Legend:</span>
-            <Badge className="flex items-center gap-1 bg-green-100 text-green-800">
-              <ArrowUp size={12} /> Improved
-            </Badge>
-            <Badge className="flex items-center gap-1 bg-red-100 text-red-800">
-              <ArrowDown size={12} /> Lost positions
-            </Badge>
-            <Badge className="flex items-center gap-1 bg-gray-100 text-gray-800">
-              <Minus size={12} /> No change
-            </Badge>
-          </div>
-        )}
         
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
           <TabsList className="grid w-full grid-cols-2">
@@ -128,7 +112,7 @@ const Analytics = () => {
                 <CardTitle>Lap Time Analysis</CardTitle>
                 <CardDescription>
                   Compare lap-by-lap times between drivers during a race.
-                  The system will automatically retry if API rate limits are encountered.
+                  The system will automatically retry with increasing delays between attempts if rate limits are encountered.
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[600px]">
@@ -148,7 +132,7 @@ const Analytics = () => {
                 <CardTitle>Position Changes</CardTitle>
                 <CardDescription>
                   Track how drivers' positions change throughout the race.
-                  The system will automatically retry if API rate limits are encountered.
+                  The system will automatically retry with increasing delays between attempts if rate limits are encountered.
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[600px]">

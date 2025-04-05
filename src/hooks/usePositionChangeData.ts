@@ -28,6 +28,7 @@ export const usePositionChangeData = (year: number, round: string) => {
   const [isProcessingData, setIsProcessingData] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState(0);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Use React Query hooks for data fetching
   const { 
@@ -50,12 +51,15 @@ export const usePositionChangeData = (year: number, round: string) => {
 
   // Auto-retry on error with increased delay between retries
   useEffect(() => {
-    if (isError && retryCount < 10) {
-      const delaySeconds = Math.min(3 * (2 ** retryCount), 30);
-      setLoadingProgress((retryCount * 10));
+    if (isError && retryCount < 15) { // Increased max retry attempts to 15
+      const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // More aggressive backoff up to 60 seconds
+      
+      // More detailed progress feedback
+      setLoadingProgress((retryCount * 7));
+      setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
       
       const timer = setTimeout(() => {
-        toast.info(`Retrying position data... Attempt ${retryCount + 1}/10`, {
+        toast.info(`Retrying position data... Attempt ${retryCount + 1}/15`, {
           id: `position-retry-${retryCount}`,
           duration: 3000,
         });
@@ -65,8 +69,12 @@ export const usePositionChangeData = (year: number, round: string) => {
       }, delaySeconds * 1000);
       
       return () => clearTimeout(timer);
+    } else if (!isError && !isLoading) {
+      // Reset error state once data loads successfully
+      setErrorMessage(null);
+      setLoadingProgress(100);
     }
-  }, [isError, retryCount, refetchLapTimes, failureCount]);
+  }, [isError, retryCount, refetchLapTimes, failureCount, isLoading]);
 
   // Set only the first driver selected by default
   useEffect(() => {
@@ -196,6 +204,7 @@ export const usePositionChangeData = (year: number, round: string) => {
     error,
     retryCount,
     loadingProgress,
+    errorMessage,
     totalLaps,
     maxLap,
     handleDriverToggle,

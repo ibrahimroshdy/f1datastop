@@ -1,19 +1,18 @@
-
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 import { optimizeLapData } from "@/utils/dataLoadingUtils";
 import { toast } from "sonner";
 import { useState } from "react";
 
-// Helper function to create exponential backoff retry logic
+// Helper function to create exponential backoff retry logic with more aggressive backoff
 const createRetryConfig = (retryDelayBase = 2000, maxRetryAttempts = 5) => ({
   retry: maxRetryAttempts,
   retryDelay: (attemptIndex: number) => {
-    // Exponential backoff with jitter to avoid thundering herd
-    const delay = Math.min(retryDelayBase * (2 ** attemptIndex) * (0.8 + Math.random() * 0.4), 30000);
+    // Enhanced exponential backoff with jitter to avoid thundering herd
+    // More aggressive delay with higher base value and exponential growth
+    const delay = Math.min(retryDelayBase * (2 ** attemptIndex) * (0.8 + Math.random() * 0.4), 60000);
     
-    const isRateLimitError = attemptIndex > 0;
-    if (isRateLimitError) {
+    if (attemptIndex > 0) {
       toast.info(`Rate limit reached. Retrying in ${Math.round(delay/1000)} seconds...`, {
         id: `retry-toast-${attemptIndex}`,
         duration: delay,
@@ -22,18 +21,14 @@ const createRetryConfig = (retryDelayBase = 2000, maxRetryAttempts = 5) => ({
     }
     
     return delay;
-  },
-  onError: (error: any) => {
-    if (error?.status === 429) {
-      console.log("Rate limit error (429) encountered, will retry automatically");
-    } else {
-      console.error("API request error:", error);
-    }
   }
 });
 
 // Default retry config with moderate settings
-const defaultRetryConfig = createRetryConfig();
+const defaultRetryConfig = createRetryConfig(2000, 5);
+
+// Specialized retry config for lap times with higher delay and more attempts
+const lapTimesRetryConfig = createRetryConfig(5000, 10);
 
 export const useDriverStandings = (year?: number) => {
   return useQuery({
@@ -83,13 +78,13 @@ export const useRaceQualifying = (year: number, round: string) => {
 };
 
 export const useLapTimes = (year: number, round: string, firstDriverOnly: boolean = false) => {
-  // Enhanced retry config with longer delays and more attempts for lap times
-  const lapTimesRetryConfig = createRetryConfig(3000, 10);
-  
   return useQuery({
     queryKey: ["lapTimes", year, round, firstDriverOnly ? "firstDriverOnly" : "allDrivers"],
     queryFn: async () => {
       try {
+        // Add a small delay before making the request to avoid immediate rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         // Instead of passing 'false' as a string, we should either pass a valid driver ID or omit it completely
         // to get all drivers' lap times
         const data = await f1Service.getLapTimes(year, round, firstDriverOnly ? "true" : undefined);
@@ -97,7 +92,7 @@ export const useLapTimes = (year: number, round: string, firstDriverOnly: boolea
       } catch (error: any) {
         if (error?.status === 429) {
           toast.error("Rate limit exceeded. System will retry automatically.", {
-            description: "The F1 API has rate limits to prevent overuse.",
+            description: "The F1 API has strict rate limits. Waiting before retry...",
             duration: 5000,
           });
         }
