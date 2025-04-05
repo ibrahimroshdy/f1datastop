@@ -96,3 +96,10 @@ export interface GlobeSceneData {
   controls: any;
   markersGroup: THREE.Group;
 }
+
+// Add MapRaceMarkersProps interface for the MapContainer version
+export interface MapRaceMarkersProps {
+  map: mapboxgl.Map;
+  races: Race[];
+  onRaceClick: (race: Race) => void;
+}

@@ -4,7 +4,7 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Race } from "@/components/calendar/map/types";
-import RaceMarkers from "@/components/calendar/map/RaceMarkers";
+import MapRaceMarkers from "@/components/calendar/map/MapRaceMarkers";
 import RacePath from "@/components/calendar/map/RacePath";
 import MapLegend from "@/components/calendar/map/MapLegend";
 import SelectedRaceInfo from "@/components/calendar/map/SelectedRaceInfo";
@@ -214,7 +214,7 @@ const F1MapContainer = ({ selectedYear }: F1MapContainerProps) => {
       {/* Race markers and path */}
       {data?.data && mapLoaded && map.current && (
         <>
-          <RaceMarkers 
+          <MapRaceMarkers 
             map={map.current} 
             races={data.data} 
             onRaceClick={handleRaceClick}
