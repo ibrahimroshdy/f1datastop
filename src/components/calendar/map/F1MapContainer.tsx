@@ -11,6 +11,7 @@ import SelectedRaceInfo from "@/components/calendar/map/SelectedRaceInfo";
 import MapLoadingOverlay from "@/components/calendar/map/MapLoadingOverlay";
 import MapTips from "@/components/calendar/map/MapTips";
 import MapDebugger from "@/components/calendar/map/MapDebugger";
+import { toast } from "sonner";
 
 // Replace this with your Mapbox public token
 // In production, this should come from environment variables
@@ -42,17 +43,19 @@ const F1MapContainer = ({ selectedYear }: F1MapContainerProps) => {
 
   // Initialize the map
   useEffect(() => {
-    if (!mapboxgl.supported()) {
-      console.error("Mapbox GL is not supported by your browser");
-      return;
-    }
-
     if (!mapContainer.current || map.current) return;
     
     console.log("Initializing map with token:", MAPBOX_TOKEN);
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+    
+    if (!mapboxgl.supported()) {
+      console.error("Mapbox GL is not supported by your browser");
+      toast.error("Your browser doesn't support Mapbox GL. Try a modern browser.");
+      return;
+    }
     
     try {
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+      
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/dark-v11', // Darker theme for better race visualization
@@ -60,8 +63,7 @@ const F1MapContainer = ({ selectedYear }: F1MapContainerProps) => {
         zoom: 1.5,
         center: [10, 30],
         pitch: 40,
-        bearing: 0,
-        attributionControl: false
+        bearing: 0
       });
       
       console.log("Map instance created successfully");
@@ -77,6 +79,7 @@ const F1MapContainer = ({ selectedYear }: F1MapContainerProps) => {
       // Add event listeners for debugging
       map.current.on('error', (e) => {
         console.error('Mapbox error:', e);
+        toast.error("Map error occurred. Please refresh the page.");
       });
 
       map.current.on('load', () => {
@@ -172,11 +175,14 @@ const F1MapContainer = ({ selectedYear }: F1MapContainerProps) => {
       return () => {
         console.log("Cleaning up map");
         clearInterval(interval);
-        map.current?.remove();
-        map.current = null;
+        if (map.current) {
+          map.current.remove();
+          map.current = null;
+        }
       };
     } catch (error) {
       console.error("Error initializing map:", error);
+      toast.error("Failed to initialize map. Please refresh the page.");
     }
   }, []);
 
@@ -209,7 +215,7 @@ const F1MapContainer = ({ selectedYear }: F1MapContainerProps) => {
       <MapDebugger mapLoaded={mapLoaded} raceData={raceSchedule} />
       
       {/* Loading overlay */}
-      {isLoading && <MapLoadingOverlay />}
+      {(isLoading || !mapLoaded) && <MapLoadingOverlay />}
       
       {/* Race markers and path */}
       {data?.data && mapLoaded && map.current && (

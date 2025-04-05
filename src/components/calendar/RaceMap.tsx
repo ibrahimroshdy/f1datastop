@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import YearSelector from "@/components/common/YearSelector";
-import F1GlobeContainer from "@/components/calendar/map/F1GlobeContainer";
+import F1MapContainer from "@/components/calendar/map/F1MapContainer";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Globe } from "lucide-react";
+import { toast } from "sonner";
 
 const RaceMap = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -12,6 +13,7 @@ const RaceMap = () => {
 
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
+    toast.info(`Loading race data for ${year}`);
   };
 
   return (
@@ -19,7 +21,7 @@ const RaceMap = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Globe className="h-5 w-5" />
-          F1 Race Globe
+          F1 Race Map
         </h2>
         <YearSelector 
           selectedYear={selectedYear} 
@@ -28,7 +30,7 @@ const RaceMap = () => {
       </div>
 
       <div className="bg-gray-900/30 rounded-xl p-0.5 backdrop-blur-sm border border-gray-800">
-        <F1GlobeContainer selectedYear={selectedYear} onYearChange={handleYearChange} />
+        <F1MapContainer selectedYear={selectedYear} />
       </div>
 
       {isLoading && (
