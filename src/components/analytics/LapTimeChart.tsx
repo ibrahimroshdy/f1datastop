@@ -80,6 +80,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
         hasFastestLap: result.FastestLap?.rank === "1" || false,
         fastestLapTime: result.FastestLap?.Time?.time || null,
         finishPosition: parseInt(result.position) || 0,
+        grid: parseInt(result.grid) || 0,
       }));
       
       setAvailableDrivers(drivers);
@@ -198,7 +199,7 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
             </AlertDescription>
           </Alert>
           
-          <div className="max-h-28 overflow-y-auto">
+          <div className="max-h-52">
             <DriverSelector 
               availableDrivers={availableDrivers}
               selectedDrivers={selectedDrivers}
@@ -251,17 +252,15 @@ const LapTimeChart = ({ year, round }: LapTimeChartProps) => {
           />
         </div>
         
-        <div className="max-h-28 overflow-y-auto">
-          <DriverSelector 
-            availableDrivers={availableDrivers}
-            selectedDrivers={selectedDrivers}
-            onDriverToggle={handleDriverToggle}
-            displayMode={displayMode}
-            fastestLapTime={fastestLapTime}
-            getAverageTime={getDriverAverage}
-            onDriverHover={handleDriverHover}
-          />
-        </div>
+        <DriverSelector 
+          availableDrivers={availableDrivers}
+          selectedDrivers={selectedDrivers}
+          onDriverToggle={handleDriverToggle}
+          displayMode={displayMode}
+          fastestLapTime={fastestLapTime}
+          getAverageTime={getDriverAverage}
+          onDriverHover={handleDriverHover}
+        />
       </div>
       
       <LapTimeLineChart 

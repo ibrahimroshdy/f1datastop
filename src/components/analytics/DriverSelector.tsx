@@ -1,11 +1,22 @@
 
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
-import { TEAM_COLORS } from "@/constants/f1Colors";
+import { ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { formatTime } from "@/utils/lapTimeUtils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface Driver {
+  driverId: string;
+  code: string;
+  name: string;
+  team: string;
+  finishPosition: number;
+  hasFastestLap?: boolean;
+}
 
 interface DriverSelectorProps {
-  availableDrivers: any[];
+  availableDrivers: Driver[];
   selectedDrivers: string[];
   onDriverToggle: (driverCode: string) => void;
   onDriverHover?: (driverCode: string | null) => void;
@@ -24,52 +35,69 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
   getAverageTime
 }) => {
   return (
-    <div className="flex flex-wrap gap-2 py-1">
-      {availableDrivers.map(driver => {
-        const isSelected = selectedDrivers.includes(driver.code);
-        const averageTime = getAverageTime(driver.code);
-        const hasFastestLap = fastestLapTime && driver.code === fastestLapTime.driver;
-        
-        return (
-          <button
-            key={driver.code}
-            className={`
-              px-3 py-1.5 rounded-md text-sm font-medium flex flex-col items-start
-              transition-all duration-200 ease-in-out
-              ${isSelected 
-                ? 'bg-gray-800 text-white ring-2 ring-offset-2 ring-offset-background ring-gray-800' 
-                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}
-              ${onDriverHover ? 'cursor-pointer' : ''}
-            `}
-            onClick={() => onDriverToggle(driver.code)}
-            onMouseEnter={() => onDriverHover && onDriverHover(driver.code)}
-            onMouseLeave={() => onDriverHover && onDriverHover(null)}
-            style={{
-              borderLeft: `4px solid ${TEAM_COLORS[driver.team] || '#666'}`,
-              transform: isSelected ? 'translateY(-2px)' : 'none',
-              boxShadow: isSelected ? '0 2px 8px rgba(0, 0, 0, 0.15)' : 'none'
-            }}
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold">{driver.code}</span>
-              <span className="text-xs opacity-70">P{driver.finishPosition}</span>
-              {hasFastestLap && (
-                <Badge className="ml-1 bg-purple-600 text-[0.65rem] px-1.5 py-0 h-4">
-                  FL
-                </Badge>
-              )}
-            </div>
+    <div className="flex flex-col gap-3">
+      {/* Legend */}
+      <div className="flex flex-wrap gap-2 items-center text-sm">
+        <span className="font-medium">Fastest Lap:</span>
+        <Badge className="flex items-center gap-1 bg-purple-600 text-white">
+          FL
+        </Badge>
+      </div>
+      
+      {/* Scrollable driver grid */}
+      <ScrollArea className="h-auto max-h-[180px] border rounded-md border-gray-200 dark:border-gray-800 p-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          {availableDrivers.map(driver => {
+            const isSelected = selectedDrivers.includes(driver.code);
+            const averageTime = getAverageTime(driver.code);
+            const hasFastestLap = fastestLapTime && driver.code === fastestLapTime.driver;
+            const teamColor = TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666";
             
-            {averageTime !== null && isSelected && (
-              <span className="text-xs opacity-80">
-                {displayMode === 'absolute' 
-                  ? formatTime(averageTime) 
-                  : `+${(averageTime - (fastestLapTime?.time || 0)).toFixed(3)}s`}
-              </span>
-            )}
-          </button>
-        );
-      })}
+            return (
+              <button
+                key={driver.code}
+                className={`p-2 rounded text-xs flex flex-col transition-all duration-200 ${
+                  isSelected
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+                onClick={() => onDriverToggle(driver.code)}
+                onMouseEnter={() => onDriverHover && onDriverHover(driver.code)}
+                onMouseLeave={() => onDriverHover && onDriverHover(null)}
+                style={{
+                  borderLeft: `4px solid ${teamColor}`,
+                  opacity: isSelected || !onDriverHover ? 1 : 0.8,
+                }}
+              >
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-bold">{driver.code}</span>
+                  <div className="flex items-center">
+                    <span className="text-[10px] opacity-70">P{driver.finishPosition}</span>
+                    {hasFastestLap && (
+                      <Badge className="ml-1 bg-purple-600 text-[0.65rem] px-1.5 py-0 h-4">
+                        FL
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                {averageTime !== null && (
+                  <div className="grid grid-cols-1 gap-1 w-full text-[10px]">
+                    <div className="flex items-center justify-between">
+                      <span className="opacity-70">Avg:</span>
+                      <span className="font-medium">
+                        {displayMode === 'absolute' 
+                          ? formatTime(averageTime) 
+                          : `+${(averageTime - (fastestLapTime?.time || 0)).toFixed(3)}s`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </ScrollArea>
     </div>
   );
 };

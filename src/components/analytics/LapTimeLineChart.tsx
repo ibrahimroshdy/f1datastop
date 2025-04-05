@@ -5,9 +5,16 @@ import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { formatTime } from "@/utils/lapTimeUtils";
 
+interface Driver {
+  driverId: string;
+  code: string;
+  name: string;
+  team: string;
+}
+
 interface LapTimeLineChartProps {
   chartData: any[];
-  availableDrivers: any[];
+  availableDrivers: Driver[];
   selectedDrivers: string[];
   displayMode: 'absolute' | 'gap';
   fastestLapTime: { time: number, driver: string } | null;
@@ -51,6 +58,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
             }} 
             domain={displayMode === 'absolute' ? ['dataMin - 1', 'dataMax + 1'] : [0, 'dataMax + 0.5']}
             yAxisId="lapTime"
+            tickFormatter={(value) => displayMode === 'absolute' ? formatTime(value) : `+${value.toFixed(1)}`}
           />
           <Tooltip 
             contentStyle={{ 
@@ -77,11 +85,13 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
             }}
             labelFormatter={(label) => `Lap ${label}`}
           />
-          <Legend formatter={(value) => {
-            const driverCode = value.split(' ')[0];
-            const driver = availableDrivers.find(d => d.code === driverCode);
-            return driver ? `${driverCode} (${driver.name.split(' ').pop()})` : driverCode;
-          }} />
+          <Legend 
+            formatter={(value) => {
+              const driverCode = value.split(' ')[0];
+              const driver = availableDrivers.find(d => d.code === driverCode);
+              return driver ? `${driverCode} (${driver.name.split(' ').pop()})` : driverCode;
+            }} 
+          />
           
           {fastestLapTime && displayMode === 'absolute' && (
             <ReferenceLine 
