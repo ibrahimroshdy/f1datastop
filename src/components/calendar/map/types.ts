@@ -97,9 +97,31 @@ export interface GlobeSceneData {
   markersGroup: THREE.Group;
 }
 
-// Add MapRaceMarkersProps interface for the MapContainer version
+export interface ThreeGlobePoint {
+  lat: number;
+  lng: number;
+  size: number;
+  color: string;
+  race: Race;
+  isFirstRace: boolean;
+  isUpcoming: boolean;
+  isCompleted: boolean;
+}
+
+export interface ThreeGlobeArc {
+  startLat: number;
+  startLng: number;
+  endLat: number;
+  endLng: number;
+  color: string;
+  dashLength: number;
+  dashGap: number;
+  animateTime: number;
+}
+
+// Map related interfaces
 export interface MapRaceMarkersProps {
-  map: mapboxgl.Map;
+  map: any;
   races: Race[];
   onRaceClick: (race: Race) => void;
 }

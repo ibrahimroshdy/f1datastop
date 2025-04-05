@@ -1,49 +1,71 @@
 
-import React from 'react';
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Globe, MapPin, Route, Eye, EyeOff, Layers } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-
-interface GlobeControlsProps {
-  showPaths: boolean;
-  onTogglePaths: () => void;
-  detailLevel: 'low' | 'medium' | 'high';
-  onChangeDetailLevel: (level: 'low' | 'medium' | 'high') => void;
-}
+import { GlobeControlsProps } from "./types";
+import { Eye, EyeOff, Settings2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 const GlobeControls = ({ 
   showPaths, 
-  onTogglePaths, 
+  onTogglePaths,
   detailLevel,
-  onChangeDetailLevel
+  onChangeDetailLevel 
 }: GlobeControlsProps) => {
   return (
-    <div className="absolute bottom-4 left-4 z-20 flex gap-2 flex-col sm:flex-row">
-      <div className="flex items-center gap-2 bg-black/80 backdrop-blur-sm rounded-md px-3 py-2 text-white border border-gray-700">
-        <Button 
-          onClick={onTogglePaths}
-          size="sm"
-          variant={showPaths ? "default" : "outline"}
-          className={`flex items-center gap-1.5 h-7 text-sm ${showPaths ? 'bg-f1-red hover:bg-f1-red/90' : 'text-gray-300 hover:text-white'}`}
-        >
-          {showPaths ? <Route className="h-4 w-4" /> : <Route className="h-4 w-4" />}
-          <span>Race Paths</span>
-        </Button>
-      </div>
+    <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button 
+            onClick={onTogglePaths}
+            className="p-2 bg-black/60 backdrop-blur-sm border border-gray-700 rounded-md text-white hover:bg-black/80 transition-colors"
+          >
+            {showPaths ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {showPaths ? "Hide race paths" : "Show race paths"}
+        </TooltipContent>
+      </Tooltip>
 
-      <div className="flex items-center gap-2 bg-black/80 backdrop-blur-sm rounded-md px-3 py-2 text-white border border-gray-700">
-        <span className="text-sm text-gray-300 mr-1 flex items-center gap-1">
-          <Layers className="h-3.5 w-3.5" />
-          Detail:
-        </span>
-        <ToggleGroup type="single" value={detailLevel} onValueChange={(value) => {
-          if (value) onChangeDetailLevel(value as 'low' | 'medium' | 'high');
-        }}>
-          <ToggleGroupItem value="low" size="sm" className="text-xs h-7 px-2 data-[state=on]:bg-f1-red data-[state=on]:text-white">Low</ToggleGroupItem>
-          <ToggleGroupItem value="medium" size="sm" className="text-xs h-7 px-2 data-[state=on]:bg-f1-red data-[state=on]:text-white">Medium</ToggleGroupItem>
-          <ToggleGroupItem value="high" size="sm" className="text-xs h-7 px-2 data-[state=on]:bg-f1-red data-[state=on]:text-white">High</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
+      <Popover>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <button 
+              className="p-2 bg-black/60 backdrop-blur-sm border border-gray-700 rounded-md text-white hover:bg-black/80 transition-colors"
+            >
+              <Settings2 className="h-5 w-5" />
+            </button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <PopoverContent className="w-60 bg-black/80 backdrop-blur-sm border border-gray-700 text-white">
+          <div className="space-y-2 p-2">
+            <h4 className="font-medium text-xs uppercase text-gray-400">Globe Settings</h4>
+            <RadioGroup 
+              value={detailLevel} 
+              onValueChange={value => onChangeDetailLevel(value as GlobeDetailLevel)}
+              className="mt-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="low" id="low" className="border-white" />
+                <Label htmlFor="low">Low Detail (Fastest)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="medium" id="medium" className="border-white" />
+                <Label htmlFor="medium">Medium Detail</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="high" id="high" className="border-white" />
+                <Label htmlFor="high">High Detail (Slowest)</Label>
+              </div>
+            </RadioGroup>
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 };

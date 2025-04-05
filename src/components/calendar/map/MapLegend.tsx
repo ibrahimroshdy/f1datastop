@@ -1,53 +1,37 @@
 
-import React from 'react';
-import { Route, MapPin, Circle } from 'lucide-react';
+import { Info } from "lucide-react";
 
 const MapLegend = () => {
   return (
-    <div className="absolute bottom-4 right-4 text-xs text-white bg-black/70 backdrop-blur-sm rounded-md px-4 py-3 shadow-lg border border-gray-700 z-10">
-      <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-600">
-        <span className="font-medium">Race Status</span>
-      </div>
-      
-      <div className="flex items-center gap-2 mb-1.5">
-        <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm shadow-green-400/50"></div>
-        <span>First Race of Season</span>
-      </div>
-      
-      <div className="flex items-center gap-2 mb-1.5">
-        <div className="w-3 h-3 rounded-full bg-red-600 shadow-sm shadow-red-500/50"></div>
-        <span>Upcoming Races</span>
-      </div>
-      
+    <div className="absolute bottom-4 left-4 p-3 bg-black/70 text-white z-20 rounded-lg text-xs max-w-[300px] backdrop-blur-sm">
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-3 h-3 rounded-full bg-white shadow-sm shadow-white/50"></div>
-        <span>Completed Races</span>
+        <Info className="h-4 w-4 text-gray-400" />
+        <span className="font-bold">Race Legend</span>
       </div>
-      
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-600 mb-2">
-        <span className="font-medium">Race Sequence</span>
+      <div className="grid grid-cols-1 gap-2">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          <span>First Race</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-600"></div>
+          <span>Upcoming Race</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-white"></div>
+          <span>Completed Race</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-0.5 w-10 bg-red-600 opacity-70"></div>
+          <span>Upcoming Path</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-0.5 w-10 bg-white opacity-70"></div>
+          <span>Completed Path</span>
+        </div>
       </div>
-      
-      <div className="flex items-center gap-2 mb-1.5">
-        <Route className="h-3 w-3 text-red-500" />
-        <span>Upcoming Race Path</span>
-      </div>
-      
-      <div className="flex items-center gap-2 mb-2">
-        <Route className="h-3 w-3 text-blue-400" />
-        <span>Completed Race Path</span>
-      </div>
-      
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-600 mb-2">
-        <span className="font-medium">Navigation</span>
-      </div>
-      
-      <div className="text-gray-300 mb-1">
-        • Click and drag to rotate globe
-      </div>
-      
-      <div className="text-gray-300">
-        • Scroll to zoom in/out
+      <div className="text-gray-400 text-[10px] mt-2">
+        Click on race markers for details. Drag to rotate, scroll to zoom.
       </div>
     </div>
   );

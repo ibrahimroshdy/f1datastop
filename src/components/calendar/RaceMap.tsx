@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import YearSelector from "@/components/common/YearSelector";
 import F1MapContainer from "@/components/calendar/map/F1MapContainer";
@@ -9,12 +9,20 @@ import { toast } from "sonner";
 
 const RaceMap = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const { isLoading } = useRaceSchedule(selectedYear);
+  const { isLoading, error } = useRaceSchedule(selectedYear);
 
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
     toast.info(`Loading race data for ${year}`);
   };
+
+  // Show error toast if the API request fails
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to load race data. Please try again.");
+      console.error("Race data loading error:", error);
+    }
+  }, [error]);
 
   return (
     <div className="flex flex-col space-y-4">
@@ -30,7 +38,7 @@ const RaceMap = () => {
       </div>
 
       <div className="bg-gray-900/30 rounded-xl p-0.5 backdrop-blur-sm border border-gray-800">
-        <F1MapContainer selectedYear={selectedYear} />
+        <F1MapContainer selectedYear={selectedYear} onYearChange={handleYearChange} />
       </div>
 
       {isLoading && (
