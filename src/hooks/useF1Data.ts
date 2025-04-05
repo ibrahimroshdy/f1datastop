@@ -2,12 +2,45 @@
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 import { optimizeLapData } from "@/utils/dataLoadingUtils";
+import { toast } from "sonner";
+import { useState } from "react";
+
+// Helper function to create exponential backoff retry logic
+const createRetryConfig = (retryDelayBase = 2000, maxRetryAttempts = 5) => ({
+  retry: maxRetryAttempts,
+  retryDelay: (attemptIndex: number) => {
+    // Exponential backoff with jitter to avoid thundering herd
+    const delay = Math.min(retryDelayBase * (2 ** attemptIndex) * (0.8 + Math.random() * 0.4), 30000);
+    
+    const isRateLimitError = attemptIndex > 0;
+    if (isRateLimitError) {
+      toast.info(`Rate limit reached. Retrying in ${Math.round(delay/1000)} seconds...`, {
+        id: `retry-toast-${attemptIndex}`,
+        duration: delay,
+      });
+      console.log(`Rate limit retry attempt ${attemptIndex + 1} in ${Math.round(delay/1000)} seconds`);
+    }
+    
+    return delay;
+  },
+  onError: (error: any) => {
+    if (error?.status === 429) {
+      console.log("Rate limit error (429) encountered, will retry automatically");
+    } else {
+      console.error("API request error:", error);
+    }
+  }
+});
+
+// Default retry config with moderate settings
+const defaultRetryConfig = createRetryConfig();
 
 export const useDriverStandings = (year?: number) => {
   return useQuery({
     queryKey: ["driverStandings", year],
     queryFn: () => f1Service.getDriverStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
+    ...defaultRetryConfig,
   });
 };
 
@@ -16,6 +49,7 @@ export const useConstructorStandings = (year?: number) => {
     queryKey: ["constructorStandings", year],
     queryFn: () => f1Service.getConstructorStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
+    ...defaultRetryConfig,
   });
 };
 
@@ -24,6 +58,7 @@ export const useRaceSchedule = (year?: number) => {
     queryKey: ["raceSchedule", year],
     queryFn: () => f1Service.getRaceSchedule(year),
     staleTime: 1000 * 60 * 60, // 1 hour
+    ...defaultRetryConfig,
   });
 };
 
@@ -33,6 +68,7 @@ export const useRaceResults = (year: number, round: string) => {
     queryFn: () => f1Service.getRaceResults(year, round),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
+    ...defaultRetryConfig,
   });
 };
 
@@ -42,10 +78,14 @@ export const useRaceQualifying = (year: number, round: string) => {
     queryFn: () => f1Service.getRaceQualifying(year, round),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
+    ...defaultRetryConfig,
   });
 };
 
 export const useLapTimes = (year: number, round: string, firstDriverOnly: boolean = false) => {
+  // Enhanced retry config with longer delays for lap times (which are more likely to hit rate limits)
+  const lapTimesRetryConfig = createRetryConfig(3000, 8);
+  
   return useQuery({
     queryKey: ["lapTimes", year, round, firstDriverOnly ? "firstDriverOnly" : "allDrivers"],
     queryFn: async () => {
@@ -56,8 +96,7 @@ export const useLapTimes = (year: number, round: string, firstDriverOnly: boolea
     },
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
-    retry: 3, // Increase retry attempts
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    ...lapTimesRetryConfig,
     gcTime: 1000 * 60 * 60 * 2, // 2 hours
   });
 };
@@ -68,6 +107,7 @@ export const usePitStops = (year: number, round: string) => {
     queryFn: () => f1Service.getPitStops(year, round),
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!year && !!round,
+    ...defaultRetryConfig,
   });
 };
 
@@ -76,6 +116,7 @@ export const useLastRaceResults = (year?: number) => {
     queryKey: ["lastRaceResults", year],
     queryFn: () => f1Service.getLastRaceResults(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
+    ...defaultRetryConfig,
   });
 };
 
@@ -84,6 +125,7 @@ export const useNextRace = (year?: number) => {
     queryKey: ["nextRace", year],
     queryFn: () => f1Service.getNextRace(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
+    ...defaultRetryConfig,
   });
 };
 
@@ -93,6 +135,7 @@ export const useRaceStatus = (sessionId?: string) => {
     queryFn: () => f1Service.getRaceStatus(sessionId),
     staleTime: 1000 * 60, // 1 minute
     enabled: !!sessionId,
+    ...defaultRetryConfig,
   });
 };
 
@@ -101,6 +144,7 @@ export const useDriverInfo = (year?: number) => {
     queryKey: ["driverInfo", year],
     queryFn: () => f1Service.getDriverInfo(year),
     staleTime: 1000 * 30, // 30 seconds
+    ...defaultRetryConfig,
   });
 };
 
@@ -110,6 +154,7 @@ export const useWeatherData = (sessionId?: string) => {
     queryFn: () => f1Service.getWeatherData(sessionId),
     staleTime: 1000 * 60 * 2, // 2 minutes
     enabled: !!sessionId,
+    ...defaultRetryConfig,
   });
 };
 
@@ -118,6 +163,7 @@ export const useF1News = () => {
     queryKey: ["f1News"],
     queryFn: f1Service.getF1News,
     staleTime: 1000 * 60 * 15, // 15 minutes
+    ...defaultRetryConfig,
   });
 };
 
@@ -126,5 +172,6 @@ export const useF1Circuits = () => {
     queryKey: ["f1Circuits"],
     queryFn: f1Service.getF1Circuits,
     staleTime: 1000 * 60 * 60 * 24, // 24 hours (this rarely changes)
+    ...defaultRetryConfig,
   });
 };
