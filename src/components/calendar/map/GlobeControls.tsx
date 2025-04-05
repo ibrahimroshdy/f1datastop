@@ -1,5 +1,5 @@
 
-import { GlobeControlsProps } from "./types";
+import { GlobeControlsProps, GlobeDetailLevel } from "./types";
 import { Eye, EyeOff, Settings2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {

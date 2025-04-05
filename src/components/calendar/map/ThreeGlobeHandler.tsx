@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import ThreeGlobe from 'three-globe';
 import * as THREE from 'three';
@@ -35,7 +34,6 @@ const ThreeGlobeHandler = ({
   const [isInitialized, setIsInitialized] = useState(false);
   const markerRefs = useRef<any[]>([]);
 
-  // Initialize globe
   useEffect(() => {
     if (!containerRef.current || isInitialized) return;
 
@@ -77,7 +75,6 @@ const ThreeGlobeHandler = ({
     const Globe = new ThreeGlobe()
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
       .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-      .backgroundColor('rgba(0,0,0,0)')
       .polygonsData(countriesData.features)
       .polygonCapColor(() => 'rgba(200, 200, 200, 0.05)')
       .polygonSideColor(() => 'rgba(150, 150, 150, 0.1)')
