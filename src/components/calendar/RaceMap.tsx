@@ -21,7 +21,7 @@ const RaceMap = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Globe className="h-5 w-5" />
-          F1 Race Map
+          F1 Race Globe
         </h2>
         <YearSelector 
           selectedYear={selectedYear} 
