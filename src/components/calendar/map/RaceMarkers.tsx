@@ -1,118 +1,285 @@
 
-import { useRef, useEffect } from "react";
-import mapboxgl from "mapbox-gl";
-import { format, parseISO } from "date-fns";
-import { Race } from "@/components/calendar/map/types";
-import { getCountryFlag } from "@/utils/countryUtils";
+import { useEffect } from 'react';
+import * as THREE from 'three';
+import { Race } from './types';
 
 interface RaceMarkersProps {
-  map: mapboxgl.Map;
   races: Race[];
-  onRaceClick: (race: Race) => void;
+  globe: THREE.Mesh;
+  camera: THREE.PerspectiveCamera;
+  controls: any;
+  markersGroup: THREE.Group;
+  containerRef: React.RefObject<HTMLDivElement>;
+  onRaceSelect: (race: Race) => void;
+  onRaceHover: (race: Race | null, point: {x: number, y: number} | null) => void;
 }
 
-const RaceMarkers = ({ map, races, onRaceClick }: RaceMarkersProps) => {
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
-  const popupsRef = useRef<mapboxgl.Popup[]>([]);
-  
-  // Add markers for each race
+const RaceMarkers = ({ 
+  races, 
+  globe, 
+  camera, 
+  controls, 
+  markersGroup, 
+  containerRef,
+  onRaceSelect,
+  onRaceHover 
+}: RaceMarkersProps) => {
   useEffect(() => {
-    // Sort races by round number
+    if (!globe || !markersGroup || races.length === 0 || !containerRef.current) return;
+
+    // Clear existing markers
+    while (markersGroup.children.length > 0) {
+      const object = markersGroup.children[0];
+      if (object instanceof THREE.Mesh) {
+        if (object.geometry) object.geometry.dispose();
+        if (object.material instanceof THREE.Material) {
+          object.material.dispose();
+        } else if (Array.isArray(object.material)) {
+          object.material.forEach(material => material.dispose());
+        }
+      }
+      markersGroup.remove(object);
+    }
+
+    // Sort races by round
     const sortedRaces = [...races].sort((a, b) => parseInt(a.round) - parseInt(b.round));
     
-    // Clear any existing markers
-    markersRef.current.forEach(marker => marker.remove());
-    markersRef.current = [];
-    
-    // Clear any existing popups
-    popupsRef.current.forEach(popup => popup.remove());
-    popupsRef.current = [];
-    
-    // Add markers for each race
+    // Create markers for each race
     sortedRaces.forEach((race) => {
-      const { Circuit, raceName, date, round } = race;
-      const { lat, long, locality, country } = Circuit.Location;
+      if (!race.Circuit?.Location?.lat || !race.Circuit?.Location?.long) return;
       
-      if (!lat || !long) return;
+      const lat = parseFloat(race.Circuit.Location.lat);
+      const long = parseFloat(race.Circuit.Location.long);
+      const position = latLongToVector3(lat, long, 1.02);
       
-      // Ensure coordinates are properly formatted as [lng, lat]
-      const coordinates: [number, number] = [parseFloat(long), parseFloat(lat)];
+      // Determine marker color and status
+      const raceDate = new Date(race.date);
+      const today = new Date();
+      const round = parseInt(race.round);
+      const isFirstRace = round === 1;
+      const isCompleted = raceDate <= today && !isFirstRace;
+      const isUpcoming = !isCompleted && !isFirstRace;
       
-      // Create custom HTML element for marker
-      const el = document.createElement('div');
-      el.className = 'race-marker';
-      el.style.width = '20px';
-      el.style.height = '20px';
-      el.style.borderRadius = '50%';
-      el.style.backgroundColor = parseInt(round) === 1 ? '#00ff00' : // First race green
-                                new Date(date) > new Date() ? '#e10600' : // Upcoming race red
-                                '#888888'; // Past race gray
-      el.style.border = '2px solid white';
-      el.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
-      el.style.cursor = 'pointer';
-      el.innerHTML = `<span style="position:absolute;top:-20px;left:50%;transform:translateX(-50%);color:white;font-weight:bold;text-shadow:0 0 3px black;">${round}</span>`;
-      
-      // Create popup
-      const flag = getCountryFlag(country);
-      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
-        .setHTML(
-          `<div style="padding:5px;">
-            <div style="font-weight:bold;font-size:14px;margin-bottom:4px;">
-              ${flag} ${raceName}
-            </div>
-            <div style="font-size:12px;margin-bottom:3px;">
-              ${locality}, ${country}
-            </div>
-            <div style="font-size:12px;color:#aaaaaa;">
-              ${format(parseISO(date), 'dd MMM yyyy')}
-            </div>
-            <div style="font-size:10px;margin-top:5px;color:#e10600;">
-              Round ${round}
-            </div>
-          </div>`
-        );
-      
-      popupsRef.current.push(popup);
+      let markerColor = isFirstRace ? 0x00ff00 : // Green for first race
+                       isUpcoming ? 0xe10600 : // Red for upcoming races
+                       0xffffff; // White for completed races
       
       // Create marker
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat(coordinates)
-        .setPopup(popup)
-        .addTo(map);
+      const markerGeometry = new THREE.SphereGeometry(0.02, 16, 16);
+      const markerMaterial = new THREE.MeshBasicMaterial({ color: markerColor });
+      const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+      marker.position.copy(position);
+      marker.userData = { race };
+      markersGroup.add(marker);
       
-      markersRef.current.push(marker);
+      // Add pulse effect for upcoming/first races
+      if (isUpcoming || isFirstRace) {
+        const pulseGeometry = new THREE.SphereGeometry(0.022, 16, 16);
+        const pulseMaterial = new THREE.MeshBasicMaterial({
+          color: markerColor,
+          transparent: true,
+          opacity: 0.6
+        });
+        
+        const pulse = new THREE.Mesh(pulseGeometry, pulseMaterial);
+        pulse.position.copy(position);
+        
+        // Create animation
+        let scale = 1.0;
+        let growingPhase = true;
+        const pulseSpeed = isFirstRace ? 0.02 : 0.015;
+        const minScale = 1.0;
+        const maxScale = isFirstRace ? 1.5 : 1.3;
+        
+        const animatePulse = () => {
+          if (growingPhase) {
+            scale += pulseSpeed;
+            if (scale >= maxScale) growingPhase = false;
+          } else {
+            scale -= pulseSpeed;
+            if (scale <= minScale) growingPhase = true;
+          }
+          
+          pulse.scale.set(scale, scale, scale);
+          requestAnimationFrame(animatePulse);
+        };
+        
+        animatePulse();
+        markersGroup.add(pulse);
+      }
       
-      // Handle marker click
-      el.addEventListener('click', () => {
-        onRaceClick(race);
+      // Add race number label
+      const roundCanvas = document.createElement('canvas');
+      roundCanvas.width = 64;
+      roundCanvas.height = 64;
+      
+      const ctx = roundCanvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillRect(0, 0, 64, 64);
+        ctx.font = 'bold 28px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = isFirstRace ? '#00ff00' : 
+                      isUpcoming ? '#e10600' : '#ffffff';
+        ctx.fillText(race.round, 32, 32);
+      }
+      
+      const roundTexture = new THREE.CanvasTexture(roundCanvas);
+      const roundMaterial = new THREE.SpriteMaterial({
+        map: roundTexture,
+        transparent: true,
+        sizeAttenuation: false
       });
+      
+      const roundSprite = new THREE.Sprite(roundMaterial);
+      roundSprite.position.copy(position.clone().multiplyScalar(1.1));
+      roundSprite.scale.set(0.05, 0.05, 0.05);
+      markersGroup.add(roundSprite);
+      
+      // Add connecting line to globe center
+      const lineMaterial = new THREE.LineBasicMaterial({ 
+        color: isUpcoming ? 0xe10600 : 0x666666,
+        transparent: true,
+        opacity: isUpcoming ? 0.4 : 0.2
+      });
+      
+      const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        position
+      ]);
+      
+      const line = new THREE.Line(lineGeometry, lineMaterial);
+      markersGroup.add(line);
     });
+
+    // Raycasting for interaction
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
     
-    // Fit the map to show all markers
-    if (sortedRaces.length > 0) {
-      const bounds = new mapboxgl.LngLatBounds();
-      sortedRaces.forEach(race => {
-        const raceCoords: [number, number] = [
-          parseFloat(race.Circuit.Location.long), 
-          parseFloat(race.Circuit.Location.lat)
-        ];
-        bounds.extend(raceCoords);
-      });
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!containerRef.current || !camera) return;
       
-      map.fitBounds(bounds, {
-        padding: { top: 50, bottom: 50, left: 50, right: 50 },
-        maxZoom: 2
-      });
-    }
-    
-    // Cleanup function
-    return () => {
-      markersRef.current.forEach(marker => marker.remove());
-      popupsRef.current.forEach(popup => popup.remove());
+      const rect = containerRef.current.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / containerRef.current.clientWidth) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / containerRef.current.clientHeight) * 2 + 1;
+      
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(markersGroup.children);
+      
+      if (intersects.length > 0) {
+        const obj = intersects[0].object;
+        const race = obj.userData?.race;
+        
+        if (race) {
+          containerRef.current.style.cursor = 'pointer';
+          
+          // Calculate screen position for tooltip
+          const vector = new THREE.Vector3();
+          vector.copy(obj.position);
+          vector.project(camera);
+          
+          const x = (vector.x * 0.5 + 0.5) * containerRef.current.clientWidth;
+          const y = (-vector.y * 0.5 + 0.5) * containerRef.current.clientHeight;
+          
+          onRaceHover(race, {x, y});
+        }
+      } else {
+        containerRef.current.style.cursor = 'grab';
+        onRaceHover(null, null);
+      }
     };
-  }, [map, races, onRaceClick]);
-  
-  return null; // This component doesn't render anything itself
+    
+    const handleClick = (event: MouseEvent) => {
+      if (!containerRef.current || !camera) return;
+      
+      const rect = containerRef.current.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / containerRef.current.clientWidth) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / containerRef.current.clientHeight) * 2 + 1;
+      
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(markersGroup.children);
+      
+      if (intersects.length > 0) {
+        const obj = intersects[0].object;
+        const race = obj.userData?.race;
+        
+        if (race) {
+          onRaceSelect(race);
+          
+          // Animate camera to focus on selected race
+          if (globe && controls) {
+            const lat = parseFloat(race.Circuit.Location.lat);
+            const long = parseFloat(race.Circuit.Location.long);
+            
+            // Calculate target position
+            const phi = (90 - lat) * Math.PI / 180;
+            const theta = (long + 90) * Math.PI / 180;
+            
+            const distance = camera.position.length();
+            const targetPosition = new THREE.Vector3(
+              -Math.sin(phi) * Math.cos(theta) * distance * 0.8,
+              Math.cos(phi) * distance * 0.8,
+              Math.sin(phi) * Math.sin(theta) * distance * 0.8
+            );
+            
+            // Animate camera movement
+            const startPosition = camera.position.clone();
+            const duration = 1000; // ms
+            const startTime = Date.now();
+            
+            function animateCamera() {
+              const elapsed = Date.now() - startTime;
+              const progress = Math.min(elapsed / duration, 1);
+              
+              // Easing function for smooth animation
+              const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+              const easedProgress = easeOutCubic(progress);
+              
+              // Interpolate position
+              camera.position.lerpVectors(
+                startPosition,
+                targetPosition,
+                easedProgress
+              );
+              
+              // Update controls target
+              controls.target.copy(latLongToVector3(lat, long, 1));
+              controls.update();
+              
+              if (progress < 1) {
+                requestAnimationFrame(animateCamera);
+              }
+            }
+            
+            animateCamera();
+          }
+        }
+      }
+    };
+    
+    containerRef.current.addEventListener('mousemove', handleMouseMove);
+    containerRef.current.addEventListener('click', handleClick);
+    
+    return () => {
+      containerRef.current?.removeEventListener('mousemove', handleMouseMove);
+      containerRef.current?.removeEventListener('click', handleClick);
+    };
+  }, [races, globe, camera, controls, markersGroup, containerRef, onRaceSelect, onRaceHover]);
+
+  // Helper function to convert lat/long to 3D vector
+  const latLongToVector3 = (lat: number, long: number, radius: number): THREE.Vector3 => {
+    const phi = (90 - lat) * Math.PI / 180; 
+    const theta = (long + 180) * Math.PI / 180;
+    
+    const x = -radius * Math.sin(phi) * Math.cos(theta);
+    const y = radius * Math.cos(phi);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
+    
+    return new THREE.Vector3(x, y, z);
+  };
+
+  return null;
 };
 
 export default RaceMarkers;

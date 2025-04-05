@@ -1,335 +1,73 @@
 
-import { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { Race, GlobeDetailLevel } from "@/components/calendar/map/types";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Race, GlobeDetailLevel, RaceMapProps } from "@/components/calendar/map/types";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import MapLoadingOverlay from "@/components/calendar/map/MapLoadingOverlay";
-import MapTips from "@/components/calendar/map/MapTips";
 import MapLegend from "@/components/calendar/map/MapLegend";
 import SelectedRaceInfo from "@/components/calendar/map/SelectedRaceInfo";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Globe } from "lucide-react";
-import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
-import { getCountryFlag } from "@/utils/countryUtils";
-
-// Import the new components
-import RaceSequencePath from "@/components/calendar/map/RaceSequencePath";
-import CountryOutlines from "@/components/calendar/map/CountryOutlines";
 import GlobeControls from "@/components/calendar/map/GlobeControls";
+import { Globe, Search } from "lucide-react";
+import { toast } from "sonner";
+import GlobeScene from "@/components/calendar/map/GlobeScene";
+import RaceMarkers from "@/components/calendar/map/RaceMarkers";
+import PathsLayer from "@/components/calendar/map/PathsLayer";
+import CountriesLayer from "@/components/calendar/map/CountriesLayer";
 
-interface F1GlobeContainerProps {
-  selectedYear: number;
-}
-
-const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
+const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const globeRef = useRef<THREE.Mesh | null>(null);
-  const markersGroupRef = useRef<THREE.Group | null>(null);
-  const controlsRef = useRef<OrbitControls | null>(null);
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
-  const [isGlobeReady, setIsGlobeReady] = useState<boolean>(false);
+  const [sceneData, setSceneData] = useState<any>(null);
   const [hoveredRace, setHoveredRace] = useState<Race | null>(null);
   const [hoverPoint, setHoverPoint] = useState<{x: number, y: number} | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showPaths, setShowPaths] = useState<boolean>(true);
   const [detailLevel, setDetailLevel] = useState<GlobeDetailLevel>('medium');
-  const [filterStatus, setFilterStatus] = useState<{
-    first: boolean;
-    upcoming: boolean;
-    completed: boolean;
-  }>({
+  const [filterStatus, setFilterStatus] = useState({
     first: true,
     upcoming: true,
     completed: true
   });
   
-  const raceSchedule = useRaceSchedule(selectedYear);
-  const { isLoading, data } = raceSchedule;
+  const { isLoading, data } = useRaceSchedule(selectedYear);
+  const races = data?.data || [];
 
-  // Add debug logging
-  useEffect(() => {
-    console.log("F1GlobeContainer rendered", { 
-      selectedYear,
-      containerExists: !!containerRef.current,
-      isGlobeReady,
-      dataLoaded: !!data,
-      isLoading
-    });
-  });
-
-  // Initialize the globe
-  useEffect(() => {
-    if (!containerRef.current) return;
-    
-    console.log("Initializing globe visualization");
-    
-    // Create scene
-    const scene = new THREE.Scene();
-    sceneRef.current = scene;
-    scene.background = new THREE.Color(0x0a0e17); // darker background for more contrast
-    
-    // Create camera
-    const camera = new THREE.PerspectiveCamera(
-      40, // field of view
-      containerRef.current.clientWidth / containerRef.current.clientHeight, // aspect ratio
-      0.1, // near clipping plane
-      1000 // far clipping plane
-    );
-    cameraRef.current = camera;
-    camera.position.z = 5;
-    
-    // Create renderer with better visuals
-    const renderer = new THREE.WebGLRenderer({ 
-      antialias: true,
-      alpha: true,
-      powerPreference: "high-performance"
-    });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    rendererRef.current = renderer;
-    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    // Enable shadows
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    containerRef.current.appendChild(renderer.domElement);
-    
-    // Add OrbitControls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.rotateSpeed = 0.8;
-    controls.zoomSpeed = 1.2;
-    controls.panSpeed = 0.8;
-    controls.minDistance = 2.5;
-    controls.maxDistance = 10;
-    controlsRef.current = controls;
-    
-    // Create globe with better geometry and materials
-    const globeGeometry = new THREE.SphereGeometry(1, 64, 64);
-    
-    // Create a more sophisticated material for the globe
-    const globeMaterial = new THREE.MeshPhongMaterial({
-      color: 0x182436, // dark blue
-      shininess: 15,
-      specular: 0x333333,
-      wireframe: false,
-    });
-    
-    const globe = new THREE.Mesh(globeGeometry, globeMaterial);
-    globe.castShadow = true;
-    globe.receiveShadow = true;
-    globeRef.current = globe;
-    scene.add(globe);
-    
-    // Add grid lines to make it look like a globe
-    const gridMaterial = new THREE.LineBasicMaterial({ 
-      color: 0x3a506b, 
-      transparent: true, 
-      opacity: 0.4 
-    });
-    
-    // Add latitude lines
-    for (let lat = -80; lat <= 80; lat += 20) {
-      const radius = Math.cos(Math.abs(lat) * Math.PI / 180);
-      const height = Math.sin(lat * Math.PI / 180);
-      
-      // Create points for latitude circle
-      const points = [];
-      const segments = 64;
-      for (let i = 0; i <= segments; i++) {
-        const theta = (i / segments) * Math.PI * 2;
-        points.push(new THREE.Vector3(
-          radius * Math.cos(theta),
-          0,
-          radius * Math.sin(theta)
-        ));
-      }
-      
-      const latitudeGeometry = new THREE.BufferGeometry().setFromPoints(points);
-      const latitudeLine = new THREE.Line(latitudeGeometry, gridMaterial);
-      latitudeLine.rotation.x = Math.PI / 2;
-      latitudeLine.position.y = height;
-      globe.add(latitudeLine);
-    }
-    
-    // Add longitude lines
-    for (let lng = 0; lng < 360; lng += 20) {
-      const longitudeGeometry = new THREE.BufferGeometry();
-      const points = [];
-      
-      for (let lat = -90; lat <= 90; lat += 5) {
-        const phi = (90 - lat) * Math.PI / 180;
-        const theta = lng * Math.PI / 180;
-        
-        const x = Math.sin(phi) * Math.cos(theta);
-        const y = Math.cos(phi);
-        const z = Math.sin(phi) * Math.sin(theta);
-        
-        points.push(new THREE.Vector3(x, y, z));
-      }
-      
-      longitudeGeometry.setFromPoints(points);
-      const longitudeLine = new THREE.Line(longitudeGeometry, gridMaterial);
-      globe.add(longitudeLine);
-    }
-
-    // Create markers group
-    const markersGroup = new THREE.Group();
-    markersGroupRef.current = markersGroup;
-    scene.add(markersGroup);
-    
-    // Add ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
-    
-    // Add directional light with shadows
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 3, 5);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 1024;
-    directionalLight.shadow.mapSize.height = 1024;
-    scene.add(directionalLight);
-
-    // Add a subtle hemisphere light for better global illumination
-    const hemisphereLight = new THREE.HemisphereLight(0xaaaaff, 0x444444, 0.2);
-    scene.add(hemisphereLight);
-    
-    // Handle window resize
-    const handleResize = () => {
-      if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
-      
-      const width = containerRef.current.clientWidth;
-      const height = containerRef.current.clientHeight;
-      
-      cameraRef.current.aspect = width / height;
-      cameraRef.current.updateProjectionMatrix();
-      
-      rendererRef.current.setSize(width, height);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    
-    // Animation function
-    let lastTime = 0;
-    const animate = (time: number) => {
-      if (!globeRef.current || !rendererRef.current || !sceneRef.current || !cameraRef.current || !controlsRef.current) return;
-      
-      const delta = time - lastTime;
-      lastTime = time;
-      
-      // Update controls
-      controlsRef.current.update();
-      
-      // Auto rotation when not interacting
-      if (!controlsRef.current.enableDamping) {
-        globeRef.current.rotation.y += 0.0002;
-      }
-      
-      rendererRef.current.render(sceneRef.current, cameraRef.current);
-      requestAnimationFrame(animate);
-    };
-    
-    // Start animation
-    requestAnimationFrame(animate);
-    
-    // Mark globe as ready
-    setIsGlobeReady(true);
-    
-    // Event listeners for raycasting to detect hover over race markers
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!containerRef.current || !cameraRef.current || !markersGroupRef.current) return;
-      
-      // Calculate mouse position in normalized device coordinates
-      const rect = containerRef.current.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / containerRef.current.clientWidth) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / containerRef.current.clientHeight) * 2 + 1;
-      
-      // Cast a ray from the camera through the mouse position
-      raycaster.setFromCamera(mouse, cameraRef.current);
-      
-      // Check intersections with markers
-      const intersects = raycaster.intersectObjects(
-        markersGroupRef.current.children.filter(obj => obj instanceof THREE.Mesh)
-      );
-      
-      document.body.style.cursor = intersects.length > 0 ? 'pointer' : 'default';
-      
-      if (intersects.length > 0) {
-        const selectedObject = intersects[0].object;
-        const race = selectedObject.userData?.race;
-        
-        if (race) {
-          setHoveredRace(race);
-          const screenPosition = new THREE.Vector3();
-          selectedObject.updateMatrixWorld();
-          screenPosition.setFromMatrixPosition(selectedObject.matrixWorld);
-          screenPosition.project(cameraRef.current);
-          
-          const x = (screenPosition.x * 0.5 + 0.5) * containerRef.current.clientWidth;
-          const y = (- screenPosition.y * 0.5 + 0.5) * containerRef.current.clientHeight;
-          
-          setHoverPoint({x, y});
-        }
-      } else {
-        setHoveredRace(null);
-        setHoverPoint(null);
-      }
-    };
-    
-    containerRef.current.addEventListener('mousemove', handleMouseMove);
-    
-    // Cleanup function
-    return () => {
-      console.log("Cleaning up globe");
-      window.removeEventListener('resize', handleResize);
-      containerRef.current?.removeEventListener('mousemove', handleMouseMove);
-      
-      if (containerRef.current && rendererRef.current) {
-        containerRef.current.removeChild(rendererRef.current.domElement);
-      }
-      
-      if (globeRef.current) {
-        globeRef.current.geometry.dispose();
-        if (globeRef.current.material instanceof THREE.Material) {
-          globeRef.current.material.dispose();
-        } else if (Array.isArray(globeRef.current.material)) {
-          globeRef.current.material.forEach(material => material.dispose());
-        }
-      }
-      
-      if (rendererRef.current) {
-        rendererRef.current.dispose();
-      }
-
-      if (controlsRef.current) {
-        controlsRef.current.dispose();
-      }
-    };
+  // Handle scene creation
+  const handleSceneCreated = useCallback((data) => {
+    setSceneData(data);
   }, []);
 
-  // Add race markers when data is loaded
-  useEffect(() => {
-    if (!isGlobeReady || !markersGroupRef.current || !data?.data || !globeRef.current) {
-      return;
-    }
+  // Handle race selection
+  const handleRaceSelect = useCallback((race: Race) => {
+    setSelectedRace(race);
     
-    console.log("Adding race markers to globe");
-    
-    // Clear existing markers
-    while (markersGroupRef.current.children.length > 0) {
-      const object = markersGroupRef.current.children[0];
-      markersGroupRef.current.remove(object);
-    }
+    toast.success(`Selected: ${race.raceName}`, {
+      description: `Round ${race.round} - ${race.date}`
+    });
+  }, []);
 
-    // Filter data based on search term and filters
-    const filteredRaces = data.data.filter(race => {
+  // Handle filter toggle
+  const toggleFilter = (filter: 'first' | 'upcoming' | 'completed') => {
+    setFilterStatus(prev => ({
+      ...prev,
+      [filter]: !prev[filter]
+    }));
+  };
+  
+  // Toggle paths visibility
+  const handleTogglePaths = () => {
+    setShowPaths(prev => !prev);
+  };
+  
+  // Handle detail level change
+  const handleDetailLevelChange = (level: GlobeDetailLevel) => {
+    setDetailLevel(level);
+  };
+
+  // Filter races based on search and status
+  const getFilteredRaces = () => {
+    if (!races || races.length === 0) return [];
+    
+    return races.filter(race => {
       // Apply search filter
       if (searchTerm) {
         const searchTermLower = searchTerm.toLowerCase();
@@ -353,241 +91,53 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
 
       return true;
     });
-    
-    // Create markers for each filtered race
-    filteredRaces.forEach((race) => {
-      const { Circuit, round } = race;
-      const { lat, long } = Circuit.Location;
-      
-      if (!lat || !long) return;
-      
-      // Convert lat/long to 3D coordinates
-      const position = latLongToVector3(parseFloat(lat), parseFloat(long), 1.03); // Slightly above globe surface
-      
-      // Determine marker color based on race status
-      const raceDate = new Date(race.date);
-      const today = new Date();
-      const isFirstRace = parseInt(round) === 1;
-      const isUpcoming = raceDate > today;
-      const isCompleted = !isFirstRace && !isUpcoming;
-      
-      let markerColor: number;
-      
-      if (isFirstRace) markerColor = 0x00ff00; // Green for first race
-      else if (isUpcoming) markerColor = 0xe10600; // Red for upcoming races
-      else markerColor = 0xffffff; // White for completed races
-      
-      // Create glowing marker
-      const markerGeometry = new THREE.SphereGeometry(0.02, 16, 16);
-      const markerMaterial = new THREE.MeshBasicMaterial({ 
-        color: markerColor
-      });
-      
-      const marker = new THREE.Mesh(markerGeometry, markerMaterial);
-      marker.position.copy(position);
-      marker.userData = { race }; // Store race data for click detection
-      markersGroupRef.current.add(marker);
-      
-      // Add pulsing effect for upcoming races
-      if (isUpcoming || isFirstRace) {
-        const glowGeometry = new THREE.SphereGeometry(0.025, 16, 16);
-        const glowMaterial = new THREE.MeshBasicMaterial({
-          color: markerColor,
-          transparent: true,
-          opacity: 0.3
-        });
-        
-        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-        glow.position.copy(position);
-        
-        // Animate the glow
-        const pulseSpeed = isFirstRace ? 1.5 : 1.0;
-        const pulseScale = { value: 1.0 };
-        const animate = () => {
-          pulseScale.value = 1.0 + 0.3 * Math.sin(Date.now() * 0.003 * pulseSpeed);
-          glow.scale.set(pulseScale.value, pulseScale.value, pulseScale.value);
-          
-          requestAnimationFrame(animate);
-        };
-        animate();
-        
-        markersGroupRef.current.add(glow);
-      }
-      
-      // Add race round number as a floating label
-      const roundCanvas = document.createElement('canvas');
-      roundCanvas.width = 64;
-      roundCanvas.height = 64;
-      
-      const ctx = roundCanvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = 'rgba(0,0,0,0)';
-        ctx.fillRect(0, 0, 64, 64);
-        ctx.font = 'bold 32px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = markerColor === 0x00ff00 ? '#00ff00' : 
-                        markerColor === 0xe10600 ? '#e10600' : '#ffffff';
-        ctx.fillText(round.toString(), 32, 32);
-      }
-      
-      const roundTexture = new THREE.CanvasTexture(roundCanvas);
-      const roundLabelMaterial = new THREE.SpriteMaterial({
-        map: roundTexture,
-        transparent: true
-      });
-      
-      const roundLabel = new THREE.Sprite(roundLabelMaterial);
-      roundLabel.position.copy(position.clone().multiplyScalar(1.12)); // Position above the marker
-      roundLabel.scale.set(0.2, 0.2, 0.2);
-      markersGroupRef.current.add(roundLabel);
-      
-      // Add line connecting marker to globe center
-      const lineMaterial = new THREE.LineBasicMaterial({ 
-        color: isUpcoming ? 0xe10600 : 0x666666,
-        transparent: true,
-        opacity: isUpcoming ? 0.5 : 0.2
-      });
-      
-      const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0), // Center of the globe
-        position
-      ]);
-      
-      const line = new THREE.Line(lineGeometry, lineMaterial);
-      markersGroupRef.current.add(line);
-    });
-    
-    // Add click event for marker selection
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    
-    const handleClick = (event: MouseEvent) => {
-      if (!containerRef.current || !cameraRef.current || !sceneRef.current || !markersGroupRef.current) return;
-      
-      // Calculate mouse position in normalized device coordinates
-      const rect = containerRef.current.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / containerRef.current.clientWidth) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / containerRef.current.clientHeight) * 2 + 1;
-      
-      // Cast a ray from the camera through the mouse position
-      raycaster.setFromCamera(mouse, cameraRef.current);
-      
-      // Check intersections with markers
-      const intersects = raycaster.intersectObjects(
-        markersGroupRef.current.children.filter(obj => obj instanceof THREE.Mesh)
-      );
-      
-      if (intersects.length > 0) {
-        const selectedObject = intersects[0].object;
-        const race = selectedObject.userData?.race;
-        
-        if (race) {
-          console.log("Selected race:", race.raceName);
-          setSelectedRace(race);
-          
-          // Show a toast notification
-          toast.success(`Selected: ${race.raceName}`, {
-            description: `Round ${race.round} - ${format(parseISO(race.date), 'dd MMM yyyy')}`
-          });
-          
-          // Rotate globe to center on selected race
-          if (globeRef.current && controlsRef.current) {
-            const lat = parseFloat(race.Circuit.Location.lat);
-            const long = parseFloat(race.Circuit.Location.long);
-            
-            const phi = (90 - lat) * Math.PI / 180;
-            const theta = (long + 90) * Math.PI / 180;
-            
-            // Make the globe face the selected race
-            const targetPosition = new THREE.Vector3(
-              -Math.sin(phi) * Math.cos(theta) * 3,
-              Math.cos(phi) * 3,
-              Math.sin(phi) * Math.sin(theta) * 3
-            );
-            
-            // Animate camera movement
-            const animateCamera = () => {
-              if (!cameraRef.current) return;
+  };
 
-              cameraRef.current.position.lerp(targetPosition, 0.05);
-              
-              if (cameraRef.current.position.distanceTo(targetPosition) > 0.1) {
-                requestAnimationFrame(animateCamera);
-              } else {
-                // Set control target to look at the race location
-                controlsRef.current!.target.copy(latLongToVector3(lat, long, 1.03));
-                controlsRef.current!.update();
-              }
-            };
-            
-            animateCamera();
-          }
-        }
-      }
-    };
-    
-    containerRef.current?.addEventListener('click', handleClick);
-    
-    return () => {
-      containerRef.current?.removeEventListener('click', handleClick);
-    };
-  }, [isGlobeReady, data, searchTerm, filterStatus]);
-
-  // Helper function to convert latitude and longitude to 3D coordinates
-  const latLongToVector3 = (lat: number, long: number, radius: number): THREE.Vector3 => {
-    // Convert latitude and longitude to spherical coordinates
-    const phi = (90 - lat) * Math.PI / 180; // phi is 0 at the north pole
-    const theta = (long + 180) * Math.PI / 180; // theta is -180 to 180
-    
-    // Convert spherical coordinates to Cartesian coordinates
-    const x = -radius * Math.sin(phi) * Math.cos(theta);
-    const y = radius * Math.cos(phi);
-    const z = radius * Math.sin(phi) * Math.sin(theta);
-    
-    return new THREE.Vector3(x, y, z);
-  };
-  
-  // Handle filter toggle
-  const toggleFilter = (filter: 'first' | 'upcoming' | 'completed') => {
-    setFilterStatus(prev => ({
-      ...prev,
-      [filter]: !prev[filter]
-    }));
-  };
-  
-  // Toggle paths visibility
-  const handleTogglePaths = () => {
-    setShowPaths(prev => !prev);
-  };
-  
-  // Handle detail level change
-  const handleDetailLevelChange = (level: GlobeDetailLevel) => {
-    setDetailLevel(level);
-  };
+  const filteredRaces = getFilteredRaces();
 
   return (
     <div className="relative w-full h-[70vh] rounded-xl overflow-hidden bg-gray-900 border border-gray-800">
       {/* Globe container */}
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="absolute inset-0">
+        {containerRef.current && (
+          <GlobeScene 
+            containerRef={containerRef} 
+            onSceneCreated={handleSceneCreated}
+            detailLevel={detailLevel}
+          />
+        )}
+      </div>
       
-      {/* Race sequence paths */}
-      {data?.data && isGlobeReady && globeRef.current && (
-        <RaceSequencePath 
-          races={data.data} 
-          globe={globeRef.current} 
-          showPaths={showPaths} 
-        />
+      {/* Race markers and paths */}
+      {sceneData && sceneData.globe && (
+        <>
+          <RaceMarkers 
+            races={filteredRaces} 
+            globe={sceneData.globe}
+            camera={sceneData.camera}
+            controls={sceneData.controls}
+            markersGroup={sceneData.markersGroup}
+            containerRef={containerRef}
+            onRaceSelect={handleRaceSelect}
+            onRaceHover={(race, point) => {
+              setHoveredRace(race);
+              setHoverPoint(point);
+            }}
+          />
+          
+          <PathsLayer 
+            races={filteredRaces} 
+            globe={sceneData.globe}
+            showPaths={showPaths}
+          />
+          
+          <CountriesLayer 
+            globe={sceneData.globe}
+            detailLevel={detailLevel} 
+          />
+        </>
       )}
-      
-      {/* Country outlines */}
-      {isGlobeReady && globeRef.current && (
-        <CountryOutlines 
-          globe={globeRef.current} 
-          detailLevel={detailLevel} 
-        />
-      )}
-      
+
       {/* Search and filters */}
       <div className="absolute top-4 left-4 z-20 flex gap-2">
         <div className="relative">
@@ -602,7 +152,7 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
         </div>
       </div>
 
-      {/* Path toggle and detail level controls */}
+      {/* Globe controls */}
       <GlobeControls 
         showPaths={showPaths}
         onTogglePaths={handleTogglePaths}
@@ -656,17 +206,12 @@ const F1GlobeContainer = ({ selectedYear }: F1GlobeContainerProps) => {
             transform: 'translate(-50%, -100%)'
           }}
         >
-          <div className="font-bold">{getCountryFlag(hoveredRace.Circuit.Location.country)} {hoveredRace.raceName}</div>
-          <div className="text-gray-300 mt-1">{format(parseISO(hoveredRace.date), 'dd MMM yyyy')}</div>
+          <div className="font-bold">{hoveredRace.raceName}</div>
+          <div className="text-gray-300 mt-1">{hoveredRace.date}</div>
           <div className="text-gray-300">{hoveredRace.Circuit.Location.locality}, {hoveredRace.Circuit.Location.country}</div>
-          <div className="text-gray-400 text-[10px] mt-1">
-            Coordinates: {hoveredRace.Circuit.Location.lat}, {hoveredRace.Circuit.Location.long}
-          </div>
+          <div className="text-gray-400 text-[10px] mt-1">Round {hoveredRace.round}</div>
         </div>
       )}
-      
-      {/* Tips */}
-      <MapTips />
       
       {/* Legend */}
       <MapLegend />

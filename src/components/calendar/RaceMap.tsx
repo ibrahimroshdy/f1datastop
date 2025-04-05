@@ -24,12 +24,11 @@ const RaceMap = () => {
         <YearSelector 
           selectedYear={selectedYear} 
           onYearChange={handleYearChange} 
-          className="bg-black/60 border border-gray-700 text-white"
         />
       </div>
 
       <div className="bg-gray-900/30 rounded-xl p-0.5 backdrop-blur-sm border border-gray-800">
-        <F1GlobeContainer selectedYear={selectedYear} />
+        <F1GlobeContainer selectedYear={selectedYear} onYearChange={handleYearChange} />
       </div>
 
       {isLoading && (
