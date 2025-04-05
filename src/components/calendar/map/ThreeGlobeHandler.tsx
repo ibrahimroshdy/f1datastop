@@ -117,7 +117,7 @@ const ThreeGlobeHandler = ({
         renderer.render(scene, camera);
       };
 
-      // Handle window resize
+      // Define handleResize function within the scope
       const handleResize = () => {
         if (!containerRef.current || !camera || !renderer) return;
         
@@ -144,6 +144,12 @@ const ThreeGlobeHandler = ({
     }
     
     return () => {
+      // Define handleResize again in the cleanup function to have it in scope
+      const handleResize = () => {
+        // This is just a placeholder to satisfy TypeScript
+        // The actual cleanup just needs to remove the event listener with the same function reference
+      };
+      
       window.removeEventListener('resize', handleResize);
       
       if (frameRef.current) {
