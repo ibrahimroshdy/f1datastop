@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from 'react';
 import ThreeGlobe from 'three-globe';
 import * as THREE from 'three';
@@ -80,9 +81,10 @@ const ThreeGlobeHandler = ({
       .polygonSideColor(() => 'rgba(150, 150, 150, 0.1)')
       .polygonStrokeColor(() => '#111');
 
-    // Set detail level
+    // Set detail level based on selected option
     const polygonResolution = detailLevel === 'high' ? 3 : detailLevel === 'medium' ? 2 : 1;
-    Globe.polygonResolution(polygonResolution);
+    // Change from polygonResolution to hexPolygonResolution as suggested by TypeScript
+    Globe.hexPolygonResolution(polygonResolution);
 
     // Add atmosphere
     Globe.atmosphereColor('rgb(59,130,246)');
@@ -290,7 +292,8 @@ const ThreeGlobeHandler = ({
     
     const globe = globeRef.current;
     const polygonResolution = detailLevel === 'high' ? 3 : detailLevel === 'medium' ? 2 : 1;
-    globe.polygonResolution(polygonResolution);
+    // Change from polygonResolution to hexPolygonResolution as suggested by TypeScript
+    globe.hexPolygonResolution(polygonResolution);
     
   }, [detailLevel]);
 
