@@ -90,7 +90,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
                     <div className="flex items-center justify-between pl-1">
                       <span className="opacity-70">Gap:</span>
                       <span className="font-medium">
-                        {fastestLapTime ? `+${(averageTime || 0) - fastestLapTime.time > 0 ? (averageTime || 0) - fastestLapTime.time : 0}s` : 'N/A'}
+                        {fastestLapTime ? `+${(averageTime || 0) - fastestLapTime.time > 0 ? ((averageTime || 0) - fastestLapTime.time).toFixed(3) : 0}s` : 'N/A'}
                       </span>
                     </div>
                   </div>
