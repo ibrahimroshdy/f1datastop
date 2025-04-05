@@ -4,11 +4,11 @@ export interface Race {
   round: string;
   raceName: string;
   date: string;
-  time?: string; // Added as optional
-  season?: string; // Added as optional
+  time?: string;
+  season?: string;
   Circuit: {
     circuitName: string;
-    url?: string; // Added as optional
+    url?: string;
     Location: {
       lat: string;
       long: string;
@@ -16,7 +16,6 @@ export interface Race {
       country: string;
     }
   };
-  // Added all the optional race event props
   FirstPractice?: {
     date: string;
     time?: string;
@@ -43,19 +42,17 @@ export interface Race {
   };
 }
 
-export type RaceStatus = "first" | "upcoming" | "completed";
+export type RaceStatus = "first" | "upcoming" | "completed" | "next";
 
 export interface RaceMapProps {
   selectedYear: number;
   onYearChange: (year: number) => void;
 }
 
-// Added new interface for race path connection
 export interface RaceConnection {
   fromRace: Race;
   toRace: Race;
   completed: boolean;
 }
 
-// Added detail level type
 export type GlobeDetailLevel = 'low' | 'medium' | 'high';

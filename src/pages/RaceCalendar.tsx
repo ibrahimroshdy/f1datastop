@@ -72,7 +72,7 @@ const RaceCalendar = () => {
             </TabsTrigger>
             <TabsTrigger value="map" className="flex items-center gap-2 data-[state=active]:bg-f1-red">
               <Globe className="h-4 w-4" />
-              <span>Race Map</span>
+              <span>Race Map <Badge variant="outline" className="ml-1 text-xs py-0 h-5">BETA</Badge></span>
             </TabsTrigger>
           </TabsList>
           
@@ -120,7 +120,7 @@ const RaceCalendar = () => {
                               className={
                                 status === "completed" ? "bg-gray-700" : 
                                 status === "next" ? "bg-f1-red" : 
-                                "bg-gray-800"
+                                "bg-amber-600"
                               }>
                               {status === "completed" ? "Completed" : 
                                status === "next" ? "Next Race" : 

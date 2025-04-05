@@ -10,7 +10,7 @@ interface RaceSequencePathProps {
 
 const RaceSequencePath = ({ races, globe, showPaths }: RaceSequencePathProps) => {
   useEffect(() => {
-    if (!globe || !showPaths) return;
+    if (!globe || !showPaths || !races || races.length === 0) return;
     
     // Clear any existing path lines
     globe.children = globe.children.filter(child => 
@@ -19,10 +19,19 @@ const RaceSequencePath = ({ races, globe, showPaths }: RaceSequencePathProps) =>
     // Sort races by round number to ensure correct sequence
     const sortedRaces = [...races].sort((a, b) => parseInt(a.round) - parseInt(b.round));
 
+    // Determine which races are completed based on current date
+    const today = new Date();
+    
     // Draw path between consecutive races
     for (let i = 0; i < sortedRaces.length - 1; i++) {
       const currentRace = sortedRaces[i];
       const nextRace = sortedRaces[i + 1];
+      
+      // Skip if missing coordinates
+      if (!currentRace.Circuit.Location.lat || !currentRace.Circuit.Location.long || 
+          !nextRace.Circuit.Location.lat || !nextRace.Circuit.Location.long) {
+        continue;
+      }
       
       // Convert lat/lng to 3D coordinates
       const startPosition = latLongToVector3(
@@ -37,23 +46,36 @@ const RaceSequencePath = ({ races, globe, showPaths }: RaceSequencePathProps) =>
         1.01
       );
 
-      // Create a curved path between points
-      const curvePoints = createArcPoints(startPosition, endPosition);
+      // Determine if the path is for completed races or upcoming races
+      const currentRaceDate = new Date(currentRace.date);
+      const isCompletedPath = currentRaceDate < today;
       
-      // Create path geometry
+      // Create a curved arc between the points with more segments for smoother curves
+      const curvePoints = createArcPoints(startPosition, endPosition, 48);
+      
+      // Create line geometry
       const pathGeometry = new THREE.BufferGeometry().setFromPoints(curvePoints);
       
-      // Determine line color based on race status
-      const raceDate = new Date(currentRace.date);
-      const today = new Date();
-      const isCompleted = raceDate <= today;
+      // Create gradient colors for the line
+      const colors = [];
+      const color1 = isCompletedPath ? new THREE.Color(0x4a7a9c) : new THREE.Color(0xe10600);
+      const color2 = isCompletedPath ? new THREE.Color(0x6f9ebe) : new THREE.Color(0xff5a52);
       
-      // Create line material with glow effect
+      for (let j = 0; j < curvePoints.length; j++) {
+        const t = j / (curvePoints.length - 1);
+        const color = new THREE.Color().lerpColors(color1, color2, t);
+        colors.push(color.r, color.g, color.b);
+      }
+      
+      // Add colors to geometry
+      pathGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      
+      // Create line material with vertex colors
       const pathMaterial = new THREE.LineBasicMaterial({
-        color: isCompleted ? 0x4a7a9c : 0xe10600,
+        vertexColors: true,
         linewidth: 1,
         transparent: true,
-        opacity: isCompleted ? 0.5 : 0.7,
+        opacity: isCompletedPath ? 0.6 : 0.8,
       });
       
       // Create the path line
@@ -61,27 +83,73 @@ const RaceSequencePath = ({ races, globe, showPaths }: RaceSequencePathProps) =>
       pathLine.userData = { 
         isRacePath: true,
         fromRace: currentRace.round,
-        toRace: nextRace.round
+        toRace: nextRace.round,
+        completed: isCompletedPath
       };
       
       // Add to globe
       globe.add(pathLine);
+      
+      // Add direction indicators (small segments that show direction)
+      if (curvePoints.length > 10) {
+        // Place arrows at intervals along the path
+        const numArrows = 1; // Just one arrow in the middle
+        for (let a = 1; a <= numArrows; a++) {
+          const position = Math.floor(curvePoints.length * (a / (numArrows + 1)));
+          if (position < 2 || position >= curvePoints.length - 2) continue;
+          
+          const point = curvePoints[position];
+          const prevPoint = curvePoints[position - 2];
+          const direction = new THREE.Vector3().subVectors(point, prevPoint).normalize();
+          
+          // Create arrow points
+          const arrowLength = 0.05;
+          const arrowBase = new THREE.Vector3().copy(point).sub(
+            new THREE.Vector3().copy(direction).multiplyScalar(arrowLength * 0.5)
+          );
+          const arrowTip = new THREE.Vector3().copy(point).add(
+            new THREE.Vector3().copy(direction).multiplyScalar(arrowLength * 0.5)
+          );
+          
+          const arrowGeometry = new THREE.BufferGeometry().setFromPoints([arrowBase, arrowTip]);
+          
+          const arrowMaterial = new THREE.LineBasicMaterial({
+            color: isCompletedPath ? 0x6f9ebe : 0xff5a52,
+            linewidth: 2,
+            transparent: true,
+            opacity: isCompletedPath ? 0.7 : 0.9,
+          });
+          
+          const arrow = new THREE.Line(arrowGeometry, arrowMaterial);
+          arrow.userData = { 
+            isRacePath: true,
+            isArrow: true
+          };
+          
+          globe.add(arrow);
+        }
+      }
     }
     
   }, [races, globe, showPaths]);
 
-  // Helper function to create curved arc points between two positions
+  // Helper function to create curved arc points between two positions with adaptive elevation
   const createArcPoints = (start: THREE.Vector3, end: THREE.Vector3, segments: number = 32): THREE.Vector3[] => {
     const points: THREE.Vector3[] = [];
+    
+    // Calculate distance between points
+    const distance = start.distanceTo(end);
+    
+    // Determine arc height based on distance (longer distances = higher arc)
+    const arcHeightFactor = Math.min(0.3, distance * 0.3);
     
     // Find the middle point
     const middle = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
     
-    // Push the middle point outward to create an arc
-    const distance = start.distanceTo(end);
-    middle.normalize().multiplyScalar(1.0 + distance * 0.2);
+    // Normalize and push the middle point outward to create an arc
+    middle.normalize().multiplyScalar(1.0 + arcHeightFactor);
     
-    // Create a quadratic curve
+    // Create a quadratic curve with more segments for smoother appearance
     for (let i = 0; i <= segments; i++) {
       const t = i / segments;
       
@@ -92,7 +160,7 @@ const RaceSequencePath = ({ races, globe, showPaths }: RaceSequencePathProps) =>
       point.z = (1 - t) * (1 - t) * start.z + 2 * (1 - t) * t * middle.z + t * t * end.z;
       
       // Normalize to keep on the surface of the globe with slight elevation
-      point.normalize().multiplyScalar(1.01);
+      point.normalize().multiplyScalar(1.01 + (t * (1-t) * 0.03)); // Slightly higher in the middle
       points.push(point);
     }
     

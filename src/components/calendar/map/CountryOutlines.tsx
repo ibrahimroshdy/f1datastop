@@ -23,8 +23,9 @@ const CountryOutlines = ({ globe, detailLevel }: CountryOutlinesProps) => {
       countryCoordinates.forEach((polygon: any) => {
         // For each polygon in the country's geometry
         polygon.forEach((ring: any) => {
-          if (detailLevel === 'low' && Math.random() > 0.3) return; // Skip some countries for low detail
-          if (detailLevel === 'medium' && Math.random() > 0.6) return; // Skip fewer for medium detail
+          // Skip some countries based on detail level to improve performance
+          if (detailLevel === 'low' && Math.random() > 0.6) return;
+          if (detailLevel === 'medium' && Math.random() > 0.8) return;
           
           const points: THREE.Vector3[] = [];
           
@@ -33,17 +34,17 @@ const CountryOutlines = ({ globe, detailLevel }: CountryOutlinesProps) => {
           const step = detailLevel === 'high' ? 1 : detailLevel === 'medium' ? 2 : 3;
           for (let i = 0; i < ring.length; i += step) {
             const [long, lat] = ring[i];
-            const position = latLongToVector3(lat, long, 1.002); // Slightly above globe surface
+            const position = latLongToVector3(lat, long, 1.003); // Slightly above globe surface
             points.push(position);
           }
           
           if (points.length > 1) {
-            // Create a line for the country border
+            // Create a line for the country border with glow effect
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             const material = new THREE.LineBasicMaterial({ 
-              color: 0x4a7a9c,
+              color: 0x6a9ac4,
               transparent: true,
-              opacity: 0.7,
+              opacity: 0.5,
               linewidth: 1
             });
             const line = new THREE.Line(geometry, material);
@@ -53,6 +54,63 @@ const CountryOutlines = ({ globe, detailLevel }: CountryOutlinesProps) => {
         });
       });
     });
+    
+    // Add continent outlines with stronger lines
+    const continents = [
+      { name: "North America", color: 0x8aa7c5 },
+      { name: "South America", color: 0x8aa7c5 },
+      { name: "Europe", color: 0x8aa7c5 },
+      { name: "Africa", color: 0x8aa7c5 },
+      { name: "Asia", color: 0x8aa7c5 },
+      { name: "Oceania", color: 0x8aa7c5 },
+      { name: "Antarctica", color: 0x8aa7c5 }
+    ];
+    
+    // Create more visible grid lines
+    const gridMaterial = new THREE.LineBasicMaterial({ 
+      color: 0x3a506b, 
+      transparent: true, 
+      opacity: 0.3,
+      linewidth: 1
+    });
+    
+    // Add latitude lines (parallels)
+    for (let lat = -80; lat <= 80; lat += 20) {
+      const radius = Math.cos(Math.abs(lat) * Math.PI / 180);
+      const height = Math.sin(lat * Math.PI / 180);
+      
+      // Create points for latitude circle
+      const points = [];
+      const segments = 64;
+      for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * Math.PI * 2;
+        points.push(new THREE.Vector3(
+          radius * Math.cos(theta),
+          height,
+          radius * Math.sin(theta)
+        ));
+      }
+      
+      const latitudeGeometry = new THREE.BufferGeometry().setFromPoints(points);
+      const latitudeLine = new THREE.Line(latitudeGeometry, gridMaterial);
+      latitudeLine.userData = { isCountryBorder: true };
+      globe.add(latitudeLine);
+    }
+    
+    // Add longitude lines (meridians)
+    for (let lng = -180; lng < 180; lng += 20) {
+      const points = [];
+      
+      for (let lat = -90; lat <= 90; lat += 5) {
+        const position = latLongToVector3(lat, lng, 1.001);
+        points.push(position);
+      }
+      
+      const longitudeGeometry = new THREE.BufferGeometry().setFromPoints(points);
+      const longitudeLine = new THREE.Line(longitudeGeometry, gridMaterial);
+      longitudeLine.userData = { isCountryBorder: true };
+      globe.add(longitudeLine);
+    }
     
   }, [globe, detailLevel]);
   
