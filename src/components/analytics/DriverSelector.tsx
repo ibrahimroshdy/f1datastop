@@ -43,7 +43,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
       </div>
       
       {/* Scrollable driver grid */}
-      <ScrollArea className="h-auto max-h-[230px] border rounded-md bg-gray-900 p-2">
+      <ScrollArea className="h-auto max-h-[180px] border rounded-md border-gray-200 dark:border-gray-800 p-2">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
           {availableDrivers.map(driver => {
             const isSelected = selectedDrivers.includes(driver.code);
@@ -54,10 +54,10 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
             return (
               <button
                 key={driver.code}
-                className={`p-2 rounded-md text-xs flex flex-col transition-all duration-200 ${
+                className={`p-2 rounded text-xs flex flex-col transition-all duration-200 ${
                   isSelected
                     ? 'bg-gray-800 text-white'
-                    : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                 }`}
                 onClick={() => onDriverToggle(driver.code)}
                 onMouseEnter={() => onDriverHover && onDriverHover(driver.code)}
@@ -68,7 +68,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
                 }}
               >
                 <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold text-base">{driver.code}</span>
+                  <span className="font-bold">{driver.code}</span>
                   <div className="flex items-center">
                     <span className="text-[10px] opacity-70 mr-1">P{driver.finishPosition}</span>
                     {hasFastestLap && (
@@ -80,13 +80,17 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
                 </div>
                 
                 {averageTime !== null && (
-                  <div className="grid grid-cols-1 gap-1 w-full text-[10px]">
-                    <div className="flex items-center justify-between">
+                  <div className="grid grid-cols-2 gap-1 w-full text-[10px]">
+                    <div className="flex items-center justify-between border-r pr-1">
                       <span className="opacity-70">Avg:</span>
                       <span className="font-medium">
-                        {displayMode === 'absolute' 
-                          ? formatTime(averageTime) 
-                          : `+${(averageTime - (fastestLapTime?.time || 0)).toFixed(3)}s`}
+                        {displayMode === 'absolute' ? formatTime(averageTime) : `+${(averageTime - (fastestLapTime?.time || 0)).toFixed(3)}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pl-1">
+                      <span className="opacity-70">Gap:</span>
+                      <span className="font-medium">
+                        {fastestLapTime ? `+${(averageTime || 0) - fastestLapTime.time > 0 ? (averageTime || 0) - fastestLapTime.time : 0}s` : 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -100,7 +104,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
   );
 };
 
-// Import formatTime function
+// Format time function
 const formatTime = (seconds: number): string => {
   if (!seconds) return "N/A";
   

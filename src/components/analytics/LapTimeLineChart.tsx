@@ -31,7 +31,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
   // Skip rendering if no data available
   if (chartData.length === 0 || selectedDrivers.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[500px] border border-dashed border-gray-300 rounded-lg">
+      <div className="flex items-center justify-center h-[450px] border border-dashed border-gray-300 rounded-lg">
         <p className="text-muted-foreground">Select drivers to view lap time data</p>
       </div>
     );
@@ -72,40 +72,32 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
   };
 
   const yDomain = calculateYDomain();
+  const maxLap = chartData.length > 0 ? Math.max(...chartData.map(lap => lap.lap)) : 0;
   
   return (
-    <div className="h-[500px] w-full bg-gray-950 rounded-lg p-4">
+    <div className="h-[450px] mt-4 flex-grow">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         >
-          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#eee" opacity={0.3} />
           <XAxis 
             dataKey="lap" 
-            label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10, fill: "#999" }} 
-            xAxisId="lapTime"
-            domain={['dataMin', 'dataMax']}
             type="number"
-            allowDecimals={false}
-            ticks={
-              chartData.length > 50
-                ? Array.from({length: 10}, (_, i) => Math.round(i * chartData.length / 10) || 1)
-                : undefined
-            }
-            tick={{ fill: '#999' }}
+            domain={[1, maxLap]}
+            label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+            xAxisId="lapTime"
           />
           <YAxis 
             label={{ 
               value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', 
               angle: -90, 
               position: 'insideLeft',
-              fill: "#999"
             }} 
             domain={yDomain}
             yAxisId="lapTime"
             tickFormatter={(value) => displayMode === 'absolute' ? formatTime(value) : `+${value.toFixed(1)}`}
-            tick={{ fill: '#999' }}
           />
           <Tooltip 
             contentStyle={{ 
@@ -137,8 +129,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
               const driverCode = value.split(' ')[0];
               const driver = availableDrivers.find(d => d.code === driverCode);
               return driver ? `${driverCode} (${driver.name.split(' ').pop()})` : driverCode;
-            }} 
-            wrapperStyle={{ color: '#ddd' }}
+            }}
           />
           
           {fastestLapTime && displayMode === 'absolute' && (
@@ -152,7 +143,6 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 fill: '#c026d3' 
               }} 
               yAxisId="lapTime"
-              xAxisId="lapTime"
             />
           )}
           
@@ -166,8 +156,8 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 name={`${driver.code} (${driver.name.split(' ').pop()})`}
                 stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
                 strokeWidth={hoveredDriver === driver.code ? 3 : 2}
-                dot={{ r: 2 }}
-                activeDot={{ r: 6 }}
+                dot={{ r: 3 }}
+                activeDot={{ r: 8 }}
                 connectNulls
                 xAxisId="lapTime"
                 yAxisId="lapTime"
