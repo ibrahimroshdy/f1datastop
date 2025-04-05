@@ -1,15 +1,14 @@
 
-import React, { useState, useEffect } from "react";
-import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import React, { useState } from "react";
+import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 import { XAxis, YAxis } from "@/utils/rechartsWrapper";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowUp, ArrowDown, Minus, AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { usePositionChangeData } from "@/hooks/usePositionChangeData";
+import DriverSelectionGrid from "./charts/DriverSelectionGrid";
 
 interface PositionChangeChartProps {
   year: number;
@@ -93,76 +92,17 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
   }
 
   return (
-    <div className="h-full">
-      <div className="flex flex-col gap-4 mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium">Position Change Legend:</span>
-          <Badge className="flex items-center gap-1 bg-green-100 text-green-800">
-            <ArrowUp size={12} /> Improved
-          </Badge>
-          <Badge className="flex items-center gap-1 bg-red-100 text-red-800">
-            <ArrowDown size={12} /> Lost positions
-          </Badge>
-          <Badge className="flex items-center gap-1 bg-gray-100 text-gray-800">
-            <Minus size={12} /> No change
-          </Badge>
-        </div>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-          {availableDrivers.map(driver => {
-            const summary = getPositionChangeSummary(driver.code);
-            
-            return (
-              <button
-                key={driver.code}
-                className={`p-2 rounded text-sm ${
-                  selectedDrivers.includes(driver.code)
-                    ? 'bg-gray-800 text-white'
-                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-                onClick={() => handleDriverToggle(driver.code)}
-                onMouseEnter={() => handleDriverHover(driver.code)}
-                onMouseLeave={() => handleDriverHover(null)}
-                style={{
-                  borderLeft: `4px solid ${TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || '#666'}`,
-                  opacity: hoveredDriver ? (hoveredDriver === driver.code || !selectedDrivers.includes(hoveredDriver) ? 1 : 0.5) : 1,
-                  transition: 'opacity 0.2s ease'
-                }}
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-bold">{driver.code}</span>
-                  {summary && (
-                    <span 
-                      className={`flex items-center ${
-                        summary.improved 
-                          ? 'text-green-600' 
-                          : summary.change < 0 
-                            ? 'text-red-600' 
-                            : 'text-gray-600'
-                      }`}
-                    >
-                      {summary.improved ? (
-                        <ArrowUp size={14} />
-                      ) : summary.change < 0 ? (
-                        <ArrowDown size={14} />
-                      ) : (
-                        <Minus size={14} />
-                      )}
-                      {Math.abs(summary.change)}
-                    </span>
-                  )}
-                </div>
-                <div className="flex justify-between text-xs mt-1">
-                  <span>Start: {driver.grid}</span>
-                  <span>End: {summary?.end || 'DNF'}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    <div className="h-full flex flex-col">
+      {/* Driver selection grid */}
+      <DriverSelectionGrid 
+        availableDrivers={availableDrivers}
+        selectedDrivers={selectedDrivers}
+        onDriverToggle={handleDriverToggle}
+        onDriverHover={handleDriverHover}
+        getPositionChangeSummary={getPositionChangeSummary}
+      />
       
-      <div className="h-[450px]">
+      <div className="h-[450px] mt-4 flex-grow">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
@@ -185,6 +125,12 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
             <Tooltip
               formatter={(value) => [`Position: ${value}`, '']}
               labelFormatter={(label) => `Lap ${label}`}
+              contentStyle={{ 
+                backgroundColor: '#1a1a1a',
+                borderColor: '#333',
+                borderRadius: '5px',
+                color: 'white'
+              }}
             />
             <Legend
               formatter={(value) => {

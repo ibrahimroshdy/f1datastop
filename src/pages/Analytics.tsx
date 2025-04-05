@@ -135,7 +135,7 @@ const Analytics = () => {
                   The system will automatically retry with increasing delays between attempts if rate limits are encountered.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="h-[600px]">
+              <CardContent className="h-[600px] p-4">
                 {selectedTab === "positions" && (
                   <PositionChangeChart 
                     year={selectedYear} 
