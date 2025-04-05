@@ -142,6 +142,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 position: 'right', 
                 fill: '#c026d3' 
               }} 
+              xAxisId="lapTime"
               yAxisId="lapTime"
             />
           )}
