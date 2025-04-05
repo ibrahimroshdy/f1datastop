@@ -25,8 +25,23 @@ const F1MapContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
     completed: true
   });
   
-  const { isLoading, data } = useRaceSchedule(selectedYear);
+  const { isLoading, data, error } = useRaceSchedule(selectedYear);
   const races = data?.data || [];
+
+  // Log any errors that occur
+  useEffect(() => {
+    if (error) {
+      console.error("Error loading race data:", error);
+      toast.error("Failed to load race schedule data");
+    }
+  }, [error]);
+
+  // Log when race data is loaded
+  useEffect(() => {
+    if (data && races.length > 0) {
+      console.log(`Loaded ${races.length} races for year ${selectedYear}`);
+    }
+  }, [data, races.length, selectedYear]);
 
   // Handle race selection
   const handleRaceSelect = useCallback((race: Race) => {
@@ -87,28 +102,31 @@ const F1MapContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
 
   const filteredRaces = getFilteredRaces();
 
-  const handleGlobeReady = () => {
+  const handleGlobeReady = useCallback(() => {
+    console.log("Globe is ready!");
     setGlobeReady(true);
-  };
+  }, []);
 
-  const handleRaceHover = (race: Race | null, point: {x: number, y: number} | null) => {
+  const handleRaceHover = useCallback((race: Race | null, point: {x: number, y: number} | null) => {
     setHoveredRace(race);
     setHoverPoint(point);
-  };
+  }, []);
 
   return (
     <div className="relative w-full h-[70vh] rounded-xl overflow-hidden bg-gray-900 border border-gray-800">
       {/* Globe container */}
       <div ref={containerRef} className="absolute inset-0">
-        <ThreeGlobeHandler
-          containerRef={containerRef}
-          races={filteredRaces}
-          onRaceSelect={handleRaceSelect}
-          onRaceHover={handleRaceHover}
-          showPaths={showPaths}
-          detailLevel={detailLevel}
-          onGlobeReady={handleGlobeReady}
-        />
+        {containerRef.current && (
+          <ThreeGlobeHandler
+            containerRef={containerRef}
+            races={filteredRaces}
+            onRaceSelect={handleRaceSelect}
+            onRaceHover={handleRaceHover}
+            showPaths={showPaths}
+            detailLevel={detailLevel}
+            onGlobeReady={handleGlobeReady}
+          />
+        )}
       </div>
       
       {/* Search and filters */}
@@ -158,7 +176,7 @@ const F1MapContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
         </button>
       </div>
       
-      {/* Loading overlay */}
+      {/* Loading overlay - show when loading data or globe is initializing */}
       {(isLoading || !globeReady) && <MapLoadingOverlay />}
       
       {/* Selected race info overlay */}
