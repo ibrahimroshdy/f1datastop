@@ -1,5 +1,5 @@
 
-import { Twitter } from "lucide-react";
+import { X } from "lucide-react";
 
 const SocialLinks = () => {
   return (
@@ -10,7 +10,7 @@ const SocialLinks = () => {
       className="text-gray-400 hover:text-white transition-colors"
       aria-label="Follow us on X/Twitter"
     >
-      <Twitter size={20} />
+      <X size={20} />
     </a>
   );
 };
