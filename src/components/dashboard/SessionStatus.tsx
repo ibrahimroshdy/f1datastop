@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { useNextRace } from "@/hooks/useF1Data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,7 @@ interface SessionStatusProps {
 
 const SessionStatus = ({ year }: SessionStatusProps) => {
   const currentYear = new Date().getFullYear();
-  const { data: nextRace, isLoading } = useNextRace(year || currentYear);
+  const { data: nextRace, isLoading } = useNextRace();
   
   if (isLoading) {
     return (

@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import * as f1BackendService from "@/services/f1BackendService";
 import { useApi } from "@/context/ApiContext";
@@ -124,6 +123,49 @@ export const useNextRace = () => {
     queryKey: ["backend", "nextRace"],
     queryFn: () => f1BackendService.getNextRace(),
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: backendAvailable,
+    ...defaultRetryConfig,
+  });
+};
+
+// Add F1 News hook
+export const useF1News = () => {
+  const backendAvailable = useBackendCheck();
+  
+  return useQuery({
+    queryKey: ["backend", "f1News"],
+    queryFn: () => {
+      // We'll return mock data for now as the real endpoint is not implemented
+      return Promise.resolve({
+        data: [
+          {
+            title: "Hamilton signs new contract with Mercedes",
+            description: "Lewis Hamilton has signed a new multi-year contract with Mercedes.",
+            url: "https://www.formula1.com",
+            urlToImage: "https://placehold.co/600x400?text=F1+News",
+            publishedAt: new Date().toISOString(),
+            source: { name: "Formula1.com" }
+          },
+          {
+            title: "Verstappen wins the Dutch Grand Prix",
+            description: "Max Verstappen has won his home race in Zandvoort.",
+            url: "https://www.formula1.com",
+            urlToImage: "https://placehold.co/600x400?text=F1+News",
+            publishedAt: new Date().toISOString(),
+            source: { name: "Formula1.com" }
+          },
+          {
+            title: "Ferrari brings upgrades to Monza",
+            description: "Ferrari has brought significant upgrades to their home race in Monza.",
+            url: "https://www.formula1.com",
+            urlToImage: "https://placehold.co/600x400?text=F1+News",
+            publishedAt: new Date().toISOString(),
+            source: { name: "Formula1.com" }
+          }
+        ]
+      });
+    },
+    staleTime: 1000 * 60 * 15, // 15 minutes
     enabled: backendAvailable,
     ...defaultRetryConfig,
   });

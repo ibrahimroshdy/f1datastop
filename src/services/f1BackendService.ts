@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 const BACKEND_URL = "http://localhost:8000/api"; // Change this to match your backend URL
@@ -199,5 +198,21 @@ export const getNextRace = async () => {
     console.error("Failed to fetch next race:", error);
     toast.error("Failed to fetch next race");
     return { data: null, error };
+  }
+};
+
+// Get F1 News
+export const getF1News = async () => {
+  try {
+    // In a real implementation, this would call the backend API
+    // For now, we're using mock data in the useF1News hook
+    return { 
+      data: [], 
+      error: null 
+    };
+  } catch (error) {
+    console.error("Failed to fetch F1 news:", error);
+    toast.error("Failed to fetch F1 news");
+    return { data: [], error };
   }
 };
