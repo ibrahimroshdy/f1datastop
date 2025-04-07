@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults } from "@/hooks/useF1Data";
+import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults, useRaceQualifying } from "@/hooks/useF1Data";
 import { Loader2, Trophy, Flag, Calendar, Clock, AlertCircle, Users, Building2 } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -30,14 +30,25 @@ const Index = () => {
     data: lastRaceResults,
     isLoading: isResultsLoading
   } = useLastRaceResults();
+  const {
+    data: qualifyingData,
+    isLoading: isQualifyingLoading
+  } = useRaceQualifying(lastRaceYear || new Date().getFullYear(), lastRaceRound || "");
 
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading;
   const [isOffline, setIsOffline] = useState(false);
   const [showAllDrivers, setShowAllDrivers] = useState(false);
+  const [lastRaceRound, setLastRaceRound] = useState<string | null>(null);
+  const [lastRaceYear, setLastRaceYear] = useState<number | null>(null);
 
   useEffect(() => {
     if (driverStandings?.error || constructorStandings?.error || raceSchedule?.error || lastRaceResults?.error) {
       setIsOffline(true);
+    }
+    
+    if (lastRaceResults?.data?.season && lastRaceResults?.data?.round) {
+      setLastRaceRound(lastRaceResults.data.round);
+      setLastRaceYear(parseInt(lastRaceResults.data.season));
     }
   }, [driverStandings, constructorStandings, raceSchedule, lastRaceResults]);
 
@@ -121,6 +132,11 @@ const Index = () => {
         addSuffix: true
       })
     };
+  };
+
+  const formatQualifyingTime = (time: string | null): string => {
+    if (!time) return "No time";
+    return time;
   };
 
   const topDrivers = driverStandings?.data?.slice(0, 3) || [];
@@ -231,7 +247,7 @@ const Index = () => {
                   </CardContent>
                 </Card>
                 
-                <Card className="bg-gray-900 border-gray-800">
+                <Card className="bg-gray-900 border-gray-800 h-[calc(100%-220px)]">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2">
                       <Clock className="h-5 w-5 text-f1-red" />
@@ -252,26 +268,63 @@ const Index = () => {
                             {lastRaceResults?.data?.raceName ? getRaceNameWithoutEmoji(lastRaceResults?.data?.raceName) : "No race data"}
                           </h3>
                         </div>
-                        <div className="space-y-2.5">
-                          {lastRaceResults?.data?.results?.slice(0, 5).map(result => (
-                            <div key={result.position} className="flex justify-between items-center border-b border-gray-800 pb-2">
-                              <div className="flex items-center gap-3">
-                                <span className="font-medium w-6">{result.position}</span>
-                                <div className={`w-1.5 h-6 ${getTeamColor(result.Constructor.constructorId)} rounded-sm`}></div>
-                                <span>{result.Driver.code}</span>
-                              </div>
-                              <div className="text-right">
-                                <div className="font-medium">
-                                  {result.position === '1' 
-                                    ? result.Time?.time 
-                                    : result.status === "Finished" 
-                                      ? result.Time?.time 
-                                      : result.status}
+                        
+                        <Tabs defaultValue="race">
+                          <TabsList className="bg-gray-800 w-full mb-3">
+                            <TabsTrigger value="race" className="flex-1 data-[state=active]:bg-f1-red">Race</TabsTrigger>
+                            <TabsTrigger value="qualifying" className="flex-1 data-[state=active]:bg-f1-red">Qualifying</TabsTrigger>
+                          </TabsList>
+                          
+                          <TabsContent value="race" className="m-0">
+                            <div className="space-y-2.5">
+                              {lastRaceResults?.data?.results?.map(result => (
+                                <div key={result.position} className="flex justify-between items-center border-b border-gray-800 pb-2">
+                                  <div className="flex items-center gap-3">
+                                    <span className="font-medium w-6">{result.position}</span>
+                                    <div className={`w-1.5 h-6 ${getTeamColor(result.Constructor.constructorId)} rounded-sm`}></div>
+                                    <span>{result.Driver.code}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-medium">
+                                      {result.position === '1' 
+                                        ? result.Time?.time 
+                                        : result.status === "Finished" 
+                                          ? result.Time?.time 
+                                          : result.status}
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="qualifying" className="m-0">
+                            {isQualifyingLoading ? (
+                              <div className="flex justify-center py-4">
+                                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                              </div>
+                            ) : !qualifyingData?.data?.QualifyingResults || qualifyingData.data.QualifyingResults.length === 0 ? (
+                              <p className="text-gray-400 text-center py-4">No qualifying data available</p>
+                            ) : (
+                              <div className="space-y-2.5">
+                                {qualifyingData.data.QualifyingResults.slice(0, 10).map((result: any) => (
+                                  <div key={result.position} className="flex justify-between items-center border-b border-gray-800 pb-2">
+                                    <div className="flex items-center gap-3">
+                                      <span className="font-medium w-6">{result.position}</span>
+                                      <div className={`w-1.5 h-6 ${getTeamColor(result.Constructor.constructorId)} rounded-sm`}></div>
+                                      <span>{result.Driver.code}</span>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="font-medium">
+                                        {result.Q3 || result.Q2 || result.Q1 || "No time"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </TabsContent>
+                        </Tabs>
                       </>
                     )}
                   </CardContent>
