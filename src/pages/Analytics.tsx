@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, ArrowUp, ArrowDown, Minus, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import YearComparisonAnalytics from "@/components/analytics/YearComparisonAnalytics";
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -55,95 +56,117 @@ const Analytics = () => {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <h1 className="text-3xl font-bold">F1 Analytics</h1>
-          <div className="flex flex-col md:flex-row items-center gap-4">
-            <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
-            
-            {isRaceScheduleLoading ? (
-              <div className="w-[250px] flex items-center space-x-2">
-                <Skeleton className="h-10 w-full" />
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <Select value={selectedRace} onValueChange={handleRaceChange}>
-                <SelectTrigger className="w-[250px] bg-f1-black text-white border-gray-700">
-                  <SelectValue placeholder="Select race" />
-                </SelectTrigger>
-                <SelectContent className="bg-black border-gray-700 text-white">
-                  {isRaceScheduleLoading ? (
-                    <SelectItem value="loading">
-                      <div className="flex items-center">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Loading races...
-                      </div>
-                    </SelectItem>
-                  ) : (
-                    raceScheduleData?.data?.map((race: any) => (
-                      <SelectItem key={race.round} value={race.round}>
-                        {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold">F1 Analytics</h1>
         
-        <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            View lap-by-lap data including position changes and timing information. 
-            The system includes automatic retry with exponential backoff when rate limits (429 errors) are encountered.
-            If data loading fails, the chart will automatically retry up to 15 times with increasing delays.
-          </AlertDescription>
-        </Alert>
-        
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="lapTimes">Lap Times</TabsTrigger>
-            <TabsTrigger value="positions">Position Changes</TabsTrigger>
+        <Tabs defaultValue="raceAnalytics" className="w-full">
+          <TabsList className="grid grid-cols-3 w-full">
+            <TabsTrigger value="raceAnalytics">Race Analytics</TabsTrigger>
+            <TabsTrigger value="seasonComparison">Season Comparison</TabsTrigger>
+            <TabsTrigger value="inDepthAnalytics">In-Depth Analytics</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="lapTimes" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Lap Time Analysis</CardTitle>
-                <CardDescription>
-                  Compare lap-by-lap times between drivers during a race.
-                  The system will automatically retry with increasing delays between attempts if rate limits are encountered.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[600px]">
-                {selectedTab === "lapTimes" && (
-                  <LapTimeChart 
-                    year={selectedYear} 
-                    round={selectedRace} 
-                  />
+          <TabsContent value="raceAnalytics" className="mt-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
+                
+                {isRaceScheduleLoading ? (
+                  <div className="w-[250px] flex items-center space-x-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <Select value={selectedRace} onValueChange={handleRaceChange}>
+                    <SelectTrigger className="w-[250px] bg-f1-black text-white border-gray-700">
+                      <SelectValue placeholder="Select race" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black border-gray-700 text-white">
+                      {isRaceScheduleLoading ? (
+                        <SelectItem value="loading">
+                          <div className="flex items-center">
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Loading races...
+                          </div>
+                        </SelectItem>
+                      ) : (
+                        raceScheduleData?.data?.map((race: any) => (
+                          <SelectItem key={race.round} value={race.round}>
+                            {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+            
+            <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                View lap-by-lap data including position changes and timing information. 
+                The system includes automatic retry with exponential backoff when rate limits (429 errors) are encountered.
+                If data loading fails, the chart will automatically retry up to 15 times with increasing delays.
+              </AlertDescription>
+            </Alert>
+            
+            <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="lapTimes">Lap Times</TabsTrigger>
+                <TabsTrigger value="positions">Position Changes</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="lapTimes" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Lap Time Analysis</CardTitle>
+                    <CardDescription>
+                      Compare lap-by-lap times between drivers during a race.
+                      The system will automatically retry with increasing delays between attempts if rate limits are encountered.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[600px]">
+                    {selectedTab === "lapTimes" && (
+                      <LapTimeChart 
+                        year={selectedYear} 
+                        round={selectedRace} 
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="positions" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Position Changes</CardTitle>
+                    <CardDescription>
+                      Track how drivers' positions change throughout the race.
+                      The system will automatically retry with increasing delays between attempts if rate limits are encountered.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[600px] p-4">
+                    {selectedTab === "positions" && (
+                      <PositionChangeChart 
+                        year={selectedYear} 
+                        round={selectedRace} 
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
           
-          <TabsContent value="positions" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Position Changes</CardTitle>
-                <CardDescription>
-                  Track how drivers' positions change throughout the race.
-                  The system will automatically retry with increasing delays between attempts if rate limits are encountered.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[600px] p-4">
-                {selectedTab === "positions" && (
-                  <PositionChangeChart 
-                    year={selectedYear} 
-                    round={selectedRace} 
-                  />
-                )}
-              </CardContent>
-            </Card>
+          <TabsContent value="seasonComparison" className="mt-6">
+            <YearComparisonAnalytics />
+          </TabsContent>
+          
+          <TabsContent value="inDepthAnalytics" className="mt-6">
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold mb-2">In-Depth Analytics Coming Soon</h3>
+              <p className="text-muted-foreground">Advanced statistical analysis and performance metrics will be available in a future update.</p>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
