@@ -1,13 +1,13 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { toast } from "sonner";
 
-type ApiSource = 'direct' | 'backend';
+const BACKEND_URL = "http://localhost:8000";
 
 interface ApiContextProps {
-  apiSource: ApiSource;
-  setApiSource: (source: ApiSource) => void;
-  toggleApiSource: () => void;
+  isBackendConnected: boolean;
+  setIsBackendConnected: (connected: boolean) => void;
+  backendUrl: string;
 }
 
 const ApiContext = createContext<ApiContextProps | undefined>(undefined);
@@ -17,18 +17,43 @@ interface ApiProviderProps {
 }
 
 export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
-  const [apiSource, setApiSource] = useState<ApiSource>('direct');
+  const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
+  
+  // Check backend connection on initial load
+  useEffect(() => {
+    const checkBackendConnection = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/`);
+        if (response.ok) {
+          setIsBackendConnected(true);
+          toast.success("Connected to Python F1 Backend");
+        } else {
+          setIsBackendConnected(false);
+          toast.error("Backend API responded with an error");
+        }
+      } catch (error) {
+        console.error("Failed to connect to backend:", error);
+        setIsBackendConnected(false);
+        toast.error("Could not connect to F1 Python Backend", {
+          description: "Make sure the backend server is running on port 8000"
+        });
+      }
+    };
 
-  const toggleApiSource = () => {
-    const newSource = apiSource === 'direct' ? 'backend' : 'direct';
-    setApiSource(newSource);
-    toast.info(`Switched to ${newSource === 'direct' ? 'Direct API' : 'Python Backend'}`, {
-      description: newSource === 'backend' ? 'Using Fast-F1 Python library for data' : 'Using direct Ergast API for data'
-    });
-  };
+    checkBackendConnection();
+    
+    // Check connection every 30 seconds
+    const intervalId = setInterval(checkBackendConnection, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
-    <ApiContext.Provider value={{ apiSource, setApiSource, toggleApiSource }}>
+    <ApiContext.Provider value={{ 
+      isBackendConnected, 
+      setIsBackendConnected,
+      backendUrl: BACKEND_URL
+    }}>
       {children}
     </ApiContext.Provider>
   );
