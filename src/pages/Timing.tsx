@@ -61,7 +61,7 @@ const Timing = () => {
                         {result.position === '1' 
                           ? result.Time?.time 
                           : (result.status === "Finished" 
-                            ? (result.Time?.time || "")
+                            ? (result.Time?.time || "") 
                             : (
                               <Badge variant="outline" className="bg-gray-800">
                                 {result.status}

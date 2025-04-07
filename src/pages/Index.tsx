@@ -165,7 +165,7 @@ const Index = () => {
         {isLoading ? <div className="flex items-center justify-center h-96">
             <Loader2 className="w-12 h-12 animate-spin text-f1-red" />
           </div> : <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <Card className="col-span-2 bg-gray-900 border-gray-800">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
@@ -206,7 +206,7 @@ const Index = () => {
                 </CardContent>
               </Card>
               
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <Card className="bg-gray-900 border-gray-800">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2">
