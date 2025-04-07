@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Bell, Menu } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import UserMenu from "@/components/layout/user/UserMenu";
-import { useAuth } from "@/context/auth/authHooks";
+import { useAuth } from "@/context/AuthContext"; // Fixed import path
 import ApiSourceToggle from "@/components/settings/ApiSourceToggle";
 
 interface TopBarProps {
@@ -31,7 +31,7 @@ const TopBar = ({ toggleSidebar }: TopBarProps) => {
           <Bell className="h-5 w-5" />
           <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-f1-red">3</Badge>
         </Button>
-        <UserMenu user={user} />
+        <UserMenu /> {/* Removed the user prop as UserMenu fetches its own user data */}
       </div>
     </header>
   );
