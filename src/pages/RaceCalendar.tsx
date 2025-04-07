@@ -100,9 +100,9 @@ const RaceCalendar = () => {
                           </div>
                           <Badge 
                             className={
-                              status === "completed" ? "bg-gray-700" : 
+                              status === "completed" ? "bg-green-600" : 
                               status === "next" ? "bg-f1-red" : 
-                              "bg-amber-600"
+                              "bg-gray-500"
                             }>
                             {status === "completed" ? "Completed" : 
                              status === "next" ? "Next Race" : 
@@ -151,4 +151,3 @@ const RaceCalendar = () => {
 };
 
 export default RaceCalendar;
-

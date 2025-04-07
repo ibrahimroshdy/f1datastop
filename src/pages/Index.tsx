@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
 import PageSelector from "@/components/navigation/PageSelector";
 import MainLayout from "@/components/layout/MainLayout";
+
 const Index = () => {
   const {
     data: driverStandings,
@@ -28,14 +29,17 @@ const Index = () => {
     data: lastRaceResults,
     isLoading: isResultsLoading
   } = useLastRaceResults();
+
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading;
   const [isOffline, setIsOffline] = useState(false);
   const [showAllDrivers, setShowAllDrivers] = useState(false);
+
   useEffect(() => {
     if (driverStandings?.error || constructorStandings?.error || raceSchedule?.error || lastRaceResults?.error) {
       setIsOffline(true);
     }
   }, [driverStandings, constructorStandings, raceSchedule, lastRaceResults]);
+
   const getTeamColor = (constructorId: string) => {
     const teamColors: Record<string, string> = {
       "red_bull": "bg-redbull",
@@ -51,6 +55,7 @@ const Index = () => {
     };
     return teamColors[constructorId] || "bg-gray-600";
   };
+
   const getCountryFlag = (location: string) => {
     const countryFlags: Record<string, string> = {
       "Monte Carlo": "🇲🇨",
@@ -86,16 +91,19 @@ const Index = () => {
     }
     return "🏁"; // Default racing flag
   };
+
   const nextRace = raceSchedule?.data?.find(race => {
     const raceDate = new Date(race.date + "T" + (race.time || "00:00:00Z"));
     return raceDate > new Date();
   });
+
   const removeFlag = (raceName: string) => {
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
       return raceName.substring(raceName.indexOf(' ') + 1);
     }
     return raceName;
   };
+
   const formatRaceDate = (dateStr: string, timeStr: string) => {
     const raceDate = new Date(dateStr + "T" + (timeStr || "00:00:00Z"));
     return {
@@ -113,9 +121,11 @@ const Index = () => {
       })
     };
   };
+
   const topDrivers = driverStandings?.data?.slice(0, 3) || [];
   const maxPoints = driverStandings?.data?.length > 0 ? Number(driverStandings.data[0].points) : 0;
   const driversToShow = showAllDrivers ? driverStandings?.data : driverStandings?.data?.slice(0, 10);
+
   return <MainLayout>
       <div className="min-h-screen bg-f1-dark text-white p-4 md:p-8">
         <header className="mb-8">
@@ -261,6 +271,9 @@ const Index = () => {
                   {raceSchedule?.data?.slice(0, 6).map(race => {
                 const raceTime = formatRaceDate(race.date, race.time || "");
                 const isPast = new Date(race.date) < new Date();
+                
+                const isNextRace = nextRace && nextRace.round === race.round;
+                
                 return <Card key={race.round} className={`bg-gray-900 border-gray-800 ${isPast ? 'opacity-70' : ''}`}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
@@ -271,8 +284,8 @@ const Index = () => {
                                 <p className="text-sm text-gray-400">{race.Circuit.circuitName}</p>
                               </div>
                             </div>
-                            <Badge variant="outline" className={`${isPast ? 'bg-gray-600' : 'bg-f1-red'} text-white border-0`}>
-                              {isPast ? 'COMPLETED' : 'UPCOMING'}
+                            <Badge variant="outline" className={`${isPast ? 'bg-green-600' : isNextRace ? 'bg-f1-red' : 'bg-gray-500'} text-white border-0`}>
+                              {isPast ? 'COMPLETED' : isNextRace ? 'NEXT RACE' : 'UPCOMING'}
                             </Badge>
                           </div>
                           <div className="mt-3 text-sm">
@@ -314,4 +327,5 @@ const Index = () => {
       </div>
     </MainLayout>;
 };
+
 export default Index;
