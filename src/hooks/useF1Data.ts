@@ -39,6 +39,16 @@ export const useDriverStandings = (year?: number) => {
   });
 };
 
+// New hook for OpenF1 Drivers
+export const useOpenF1Drivers = (year?: number) => {
+  return useQuery({
+    queryKey: ["openF1Drivers", year],
+    queryFn: () => f1Service.getOpenF1Drivers(year),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    ...defaultRetryConfig,
+  });
+};
+
 export const useConstructorStandings = (year?: number) => {
   return useQuery({
     queryKey: ["constructorStandings", year],

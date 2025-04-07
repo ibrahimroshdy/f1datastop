@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { getCountryFlag, addFlagToRaceName } from "@/utils/countryUtils";
 
 const BASE_URL = "https://api.jolpi.ca/ergast";
+const OPENF1_BASE_URL = "https://api.openf1.org/v1";
 
 // Get the current F1 season year
 const getCurrentSeason = () => new Date().getFullYear();
@@ -15,6 +16,128 @@ const processRaceData = (races: any[]) => {
       raceName: addFlagToRaceName(race.raceName, countryName)
     };
   });
+};
+
+// New function to fetch drivers from OpenF1 API
+export const getOpenF1Drivers = async (year?: number) => {
+  try {
+    const seasonYear = year || getCurrentSeason();
+    
+    // OpenF1 API requires year as a filter parameter
+    const url = `${OPENF1_BASE_URL}/drivers?year=${seasonYear}`;
+    
+    console.log(`Fetching OpenF1 drivers from: ${url}`);
+    
+    const response = await fetch(url, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Map data to include constructor information
+    // We need to map the OpenF1 driver format to match our application expectations
+    const mappedData = await mapOpenF1DriversToFormat(data, seasonYear);
+    
+    return { 
+      data: mappedData, 
+      error: null 
+    };
+  } catch (error) {
+    console.error("Failed to fetch OpenF1 drivers:", error);
+    return { data: [], error };
+  }
+};
+
+// Helper function to map OpenF1 driver data to our expected format
+const mapOpenF1DriversToFormat = async (drivers: any[], year: number) => {
+  try {
+    // Group drivers by driver_number to get unique drivers (OpenF1 may return multiple records per driver)
+    const uniqueDriversMap = new Map();
+    
+    drivers.forEach(driver => {
+      if (!uniqueDriversMap.has(driver.driver_number) || 
+          (driver.meeting_key && (!uniqueDriversMap.get(driver.driver_number).meeting_key || 
+                                  driver.meeting_key > uniqueDriversMap.get(driver.driver_number).meeting_key))) {
+        uniqueDriversMap.set(driver.driver_number, driver);
+      }
+    });
+    
+    // Convert to array and get constructor data
+    const uniqueDrivers = Array.from(uniqueDriversMap.values());
+    
+    // Fetch team/constructor information from separate API call
+    const constructorsUrl = `${OPENF1_BASE_URL}/constructors?year=${year}`;
+    const constructorsResponse = await fetch(constructorsUrl, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!constructorsResponse.ok) {
+      throw new Error(`Constructors API request failed with status ${constructorsResponse.status}`);
+    }
+    
+    const constructorsData = await constructorsResponse.json();
+    
+    // Create a constructor map: driver_number -> constructor
+    const driverConstructorMap = new Map();
+    
+    constructorsData.forEach((constructor: any) => {
+      if (constructor.driver_number) {
+        driverConstructorMap.set(constructor.driver_number.toString(), constructor);
+      }
+    });
+    
+    // Transform data to match our expected format
+    return uniqueDrivers.map((driver: any, index: number) => {
+      // Get constructor for this driver
+      const constructor = driverConstructorMap.get(driver.driver_number.toString()) || {
+        name: "Unknown Team",
+        constructorId: "unknown"
+      };
+      
+      // Split driver name into given name and family name
+      const nameParts = (driver.full_name || "Unknown Driver").split(" ");
+      const familyName = nameParts.pop() || "";
+      const givenName = nameParts.join(" ");
+      
+      return {
+        position: index + 1, // We don't have exact standings, so use index for now
+        positionText: (index + 1).toString(),
+        points: "N/A", // OpenF1 doesn't provide points directly
+        wins: "N/A", // OpenF1 doesn't provide wins directly
+        Driver: {
+          driverId: driver.driver_number.toString(),
+          permanentNumber: driver.driver_number.toString(),
+          code: driver.abbreviation || "N/A",
+          url: "", // OpenF1 doesn't provide URLs
+          givenName: givenName,
+          familyName: familyName,
+          dateOfBirth: "", // OpenF1 doesn't provide date of birth
+          nationality: driver.country || "Unknown",
+        },
+        Constructors: [
+          {
+            constructorId: constructor.constructorId || constructor.name?.toLowerCase().replace(/\s+/g, "") || "unknown",
+            url: "", // OpenF1 doesn't provide URLs
+            name: constructor.name || "Unknown Team",
+            nationality: constructor.country || "Unknown",
+          }
+        ]
+      };
+    });
+  } catch (error) {
+    console.error("Error mapping OpenF1 driver data:", error);
+    return [];
+  }
 };
 
 // Fetch driver standings

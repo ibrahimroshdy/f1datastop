@@ -2,7 +2,7 @@
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card } from "@/components/ui/card";
-import { useDriverStandings } from "@/hooks/useF1Data";
+import { useOpenF1Drivers } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -12,13 +12,13 @@ import YearSelector from "@/components/common/YearSelector";
 const Drivers = () => {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const { data: driverStandings, isLoading } = useDriverStandings(selectedYear);
+  const { data: driverData, isLoading } = useOpenF1Drivers(selectedYear);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredDrivers = driverStandings?.data.filter((driver: any) => {
+  const filteredDrivers = driverData?.data?.filter((driver: any) => {
     const fullName = `${driver.Driver.givenName} ${driver.Driver.familyName}`.toLowerCase();
     return fullName.includes(searchQuery.toLowerCase()) || 
-      driver.Driver.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      driver.Driver.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       driver.Constructors[0].name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
@@ -76,3 +76,4 @@ const Drivers = () => {
 };
 
 export default Drivers;
+
