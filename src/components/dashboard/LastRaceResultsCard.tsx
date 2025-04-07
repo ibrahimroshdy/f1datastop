@@ -11,7 +11,7 @@ const LastRaceResultsCard = ({
   isResultsLoading,
   getTeamColor
 }: LastRaceResultsCardProps) => {
-  return <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100%-152px)]">
+  return <Card className="">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-f1-red" />
