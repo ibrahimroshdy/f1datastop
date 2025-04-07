@@ -239,7 +239,7 @@ const Index = () => {
                       Last Race Results
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="flex-1 flex flex-col pb-6">
+                  <CardContent className="flex-1 flex flex-col pb-8">
                     {isResultsLoading ? (
                       <div className="space-y-2">
                         <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
@@ -275,7 +275,7 @@ const Index = () => {
                             </div>
                           ))}
                           {/* Additional bottom padding/margin to ensure proper spacing */}
-                          <div className="h-4"></div>
+                          <div className="h-6"></div>
                         </div>
                       </>
                     )}
