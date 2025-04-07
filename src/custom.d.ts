@@ -30,6 +30,7 @@ interface OpenF1Constructor {
   meeting_key?: number;
   session_key?: number;
   team_color?: string;
+  team_colour?: string;
 }
 
 interface OpenF1Session {

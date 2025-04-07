@@ -150,13 +150,15 @@ const mapOpenF1DriversToFormat = (drivers: OpenF1Driver[], session: OpenF1Sessio
           familyName: familyName,
           dateOfBirth: "", // OpenF1 doesn't provide date of birth
           nationality: driver.country_code || "Unknown",
+          headshot_url: driver.headshot_url || "", // Add the headshot URL
         },
         Constructors: [
           {
-            constructorId: driver.team_name?.toLowerCase().replace(/\s+/g, "") || "unknown",
+            constructorId: driver.team_name?.toLowerCase().replace(/\s+/g, "_") || "unknown",
             url: "",
             name: driver.team_name || "Unknown Team",
             nationality: "Unknown", // OpenF1 doesn't provide constructor nationality
+            team_colour: driver.team_colour || "", // Add the team color
           }
         ]
       };

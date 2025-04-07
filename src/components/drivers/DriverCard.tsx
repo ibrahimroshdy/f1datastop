@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Info } from "lucide-react";
+import { Info, Circle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -15,11 +15,14 @@ interface DriverCardProps {
 const DriverCard = ({ driver }: DriverCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
   
-  // Map constructor IDs to team colors using our constants file
+  // Get team color directly from the API (if available) or fall back to our constants
   const constructorId = driver.Constructors[0].constructorId;
+  const apiTeamColor = driver.Constructors[0].team_colour;
   
-  // Get the team color using the constructor ID
-  const teamColor = TEAM_COLORS[constructorId] || TEAM_COLORS.default;
+  // Use the API's team color if available, otherwise fall back to our constants
+  const teamColor = apiTeamColor 
+    ? `#${apiTeamColor}` 
+    : TEAM_COLORS[constructorId] || TEAM_COLORS.default;
 
   // Extract birth year for age calculation
   const birthYear = driver.Driver.dateOfBirth 
@@ -31,10 +34,13 @@ const DriverCard = ({ driver }: DriverCardProps) => {
   // Get driver number
   const driverNumber = driver.Driver.permanentNumber || 'N/A';
   
-  // Generate driver image URL based on driver ID (or use a fallback)
-  const getDriverImageUrl = (driverId: string) => {
-    return `https://raw.githubusercontent.com/npranav10/F1-Dashboard/main/public/img/drivers/${driverId}.png`;
-  };
+  // Get the headshot URL directly from the API or use a fallback
+  const driverHeadshotUrl = driver.Driver.headshot_url;
+  const driverCode = driver.Driver.code || 'N/A';
+  const driverInitials = driverCode.slice(0, 2);
+  
+  // Get driver position for the position badge
+  const position = driver.position || 'N/A';
 
   return (
     <>
@@ -42,30 +48,33 @@ const DriverCard = ({ driver }: DriverCardProps) => {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
             <Avatar className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: teamColor }}>
-              <AvatarImage 
-                src={getDriverImageUrl(driver.Driver.driverId)} 
-                alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`} 
-              />
-              <AvatarFallback style={{ backgroundColor: teamColor }}>
-                {driver.Driver.code?.slice(0, 2) || driver.Driver.familyName.slice(0, 2)}
-              </AvatarFallback>
+              {driverHeadshotUrl ? (
+                <AvatarImage 
+                  src={driverHeadshotUrl} 
+                  alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`} 
+                />
+              ) : (
+                <AvatarFallback style={{ backgroundColor: teamColor }}>
+                  {driverInitials}
+                </AvatarFallback>
+              )}
             </Avatar>
             <div>
               <h3 className="text-lg font-bold">{driver.Driver.givenName} {driver.Driver.familyName}</h3>
               <p className="text-sm text-muted-foreground flex items-center gap-1">
-                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: teamColor }}></span>
+                <Circle className="h-2 w-2 fill-current" style={{ color: teamColor }} />
                 {driver.Constructors[0].name}
                 <span className="ml-1 text-xs font-medium">#{driverNumber}</span>
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="bg-f1-dark">P{driver.position}</Badge>
+          <Badge variant="outline" className="bg-f1-dark">P{position}</Badge>
         </CardHeader>
         <CardContent className="pb-2">
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <p className="text-muted-foreground">Driver Code</p>
-              <p className="font-semibold">{driver.Driver.code}</p>
+              <p className="font-semibold">{driverCode}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Points</p>
@@ -97,10 +106,10 @@ const DriverCard = ({ driver }: DriverCardProps) => {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span 
-                className="inline-block w-4 h-4 rounded-full"
-                style={{ backgroundColor: teamColor }}
-              ></span>
+              <Circle 
+                className="h-4 w-4 fill-current"
+                style={{ color: teamColor }}
+              />
               {driver.Driver.givenName} {driver.Driver.familyName}
             </DialogTitle>
             <DialogDescription>
@@ -122,7 +131,7 @@ const DriverCard = ({ driver }: DriverCardProps) => {
                 </div>
                 <div>
                   <span className="text-muted-foreground text-sm">Code:</span>
-                  <p>{driver.Driver.code}</p>
+                  <p>{driverCode}</p>
                 </div>
               </div>
             </div>
@@ -132,7 +141,7 @@ const DriverCard = ({ driver }: DriverCardProps) => {
               <div className="space-y-2">
                 <div>
                   <span className="text-muted-foreground text-sm">Position:</span>
-                  <p>{driver.position}</p>
+                  <p>{position}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground text-sm">Points:</span>
