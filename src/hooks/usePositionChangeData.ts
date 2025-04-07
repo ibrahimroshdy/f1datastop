@@ -55,7 +55,7 @@ export const usePositionChangeData = (year: number, round: string) => {
       const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // More aggressive backoff up to 60 seconds
       
       // More detailed progress feedback with 2 decimal places
-      setLoadingProgress(parseFloat(((retryCount * 7)).toFixed(2)));
+      setLoadingProgress(parseFloat((retryCount * 7).toFixed(2)));
       setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
       
       const timer = setTimeout(() => {
