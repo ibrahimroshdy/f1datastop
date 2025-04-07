@@ -14,7 +14,7 @@ const Timing = () => {
   const [lastRaceRound, setLastRaceRound] = useState<string | null>(null);
   const [lastRaceYear, setLastRaceYear] = useState<number | null>(null);
   
-  // Add qualifying data fetch
+  // Move the qualifying data hook after state declarations
   const {
     data: qualifyingData,
     isLoading: isQualifyingLoading

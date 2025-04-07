@@ -30,16 +30,18 @@ const Index = () => {
     data: lastRaceResults,
     isLoading: isResultsLoading
   } = useLastRaceResults();
-  const {
-    data: qualifyingData,
-    isLoading: isQualifyingLoading
-  } = useRaceQualifying(lastRaceYear || new Date().getFullYear(), lastRaceRound || "");
-
+  
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading;
   const [isOffline, setIsOffline] = useState(false);
   const [showAllDrivers, setShowAllDrivers] = useState(false);
   const [lastRaceRound, setLastRaceRound] = useState<string | null>(null);
   const [lastRaceYear, setLastRaceYear] = useState<number | null>(null);
+  
+  // Move this hook call after the state declarations
+  const {
+    data: qualifyingData,
+    isLoading: isQualifyingLoading
+  } = useRaceQualifying(lastRaceYear || new Date().getFullYear(), lastRaceRound || "");
 
   useEffect(() => {
     if (driverStandings?.error || constructorStandings?.error || raceSchedule?.error || lastRaceResults?.error) {
