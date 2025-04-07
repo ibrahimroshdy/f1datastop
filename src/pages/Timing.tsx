@@ -5,6 +5,7 @@ import { useLastRaceResults } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 
 const Timing = () => {
   const { data: lastRaceData, isLoading } = useLastRaceResults();
@@ -19,7 +20,9 @@ const Timing = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>{lastRaceData?.data.raceName || "Last Race"} Results</CardTitle>
+            <CardTitle>
+              {lastRaceData?.data?.raceName ? getRaceNameWithoutEmoji(lastRaceData.data.raceName) : "Last Race"} Results
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -44,7 +47,7 @@ const Timing = () => {
                     </TableRow>
                   ))
                 ) : (
-                  lastRaceData?.data.results.map((result: any) => (
+                  lastRaceData?.data?.results?.map((result: any) => (
                     <TableRow key={result.position}>
                       <TableCell className="font-medium">{result.position}</TableCell>
                       <TableCell>
@@ -55,13 +58,16 @@ const Timing = () => {
                       </TableCell>
                       <TableCell>{result.Constructor.name}</TableCell>
                       <TableCell>
-                        {result.status === "Finished" ? (
-                          result.Time?.time || "Finished"
-                        ) : (
-                          <Badge variant="outline" className="bg-gray-800">
-                            {result.status}
-                          </Badge>
-                        )}
+                        {result.position === '1' 
+                          ? result.Time?.time 
+                          : (result.status === "Finished" 
+                            ? result.Time?.time 
+                            : (
+                              <Badge variant="outline" className="bg-gray-800">
+                                {result.status}
+                              </Badge>
+                            )
+                          )}
                       </TableCell>
                       <TableCell className="text-right font-bold">{result.points}</TableCell>
                     </TableRow>

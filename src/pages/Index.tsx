@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
 import PageSelector from "@/components/navigation/PageSelector";
 import MainLayout from "@/components/layout/MainLayout";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 
 const Index = () => {
   const {
@@ -238,24 +239,43 @@ const Index = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="mb-2">
-                      <h3 className="font-bold text-lg">
-                        {lastRaceResults?.data?.raceName ? removeFlag(lastRaceResults.data.raceName) : "No race data"}
-                      </h3>
-                    </div>
-                    <div className="space-y-3">
-                      {lastRaceResults?.data?.results?.slice(0, 5).map(result => <div key={result.position} className="flex justify-between items-center border-b border-gray-800 pb-2">
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium w-6">{result.position}</span>
-                            <div className={`w-1.5 h-6 ${getTeamColor(result.Constructor.constructorId)} rounded-sm`}></div>
-                            <span>{result.Driver.code}</span>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">{result.Time?.time || "DNF"}</div>
-                            <div className="text-xs text-gray-400">{result.status}</div>
-                          </div>
-                        </div>)}
-                    </div>
+                    {isResultsLoading ? (
+                      <div className="space-y-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                      </div>
+                    ) : !lastRaceResults?.data?.raceName ? (
+                      <p className="text-gray-400">No recent race data available</p>
+                    ) : (
+                      <>
+                        <div className="mb-3">
+                          <h3 className="font-bold text-lg">
+                            {lastRaceResults?.data?.raceName ? getRaceNameWithoutEmoji(lastRaceResults?.data?.raceName) : "No race data"}
+                          </h3>
+                        </div>
+                        <div className="space-y-2.5">
+                          {lastRaceResults?.data?.results?.slice(0, 5).map(result => (
+                            <div key={result.position} className="flex justify-between items-center border-b border-gray-800 pb-2">
+                              <div className="flex items-center gap-3">
+                                <span className="font-medium w-6">{result.position}</span>
+                                <div className={`w-1.5 h-6 ${getTeamColor(result.Constructor.constructorId)} rounded-sm`}></div>
+                                <span>{result.Driver.code}</span>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium">
+                                  {result.position === '1' 
+                                    ? result.Time?.time 
+                                    : (result.Time?.time.startsWith('+') 
+                                      ? result.Time.time 
+                                      : result.status === "Finished" 
+                                        ? "+"+result.Time?.time 
+                                        : result.status)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </div>
