@@ -1,37 +1,43 @@
 
-import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Bell, Menu } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import UserMenu from "@/components/layout/user/UserMenu";
-import { useAuth } from "@/context/AuthContext"; // Fixed import path
-import ApiSourceToggle from "@/components/settings/ApiSourceToggle";
+import f1Logo from "@/assets/f1-logo.svg";
+import NextRaceInfo from "./nextRace/NextRaceInfo";
+import UserMenu from "./user/UserMenu";
+import ShareButton from "./share/ShareButton";
+import SocialLinks from "./social/SocialLinks";
 
 interface TopBarProps {
-  toggleSidebar: () => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
 }
 
-const TopBar = ({ toggleSidebar }: TopBarProps) => {
-  const { user } = useAuth();
-  
+const TopBar = ({
+  sidebarOpen,
+  setSidebarOpen
+}: TopBarProps) => {
   return (
-    <header className="border-b border-gray-800 px-4 py-3 flex justify-between items-center sticky top-0 bg-f1-dark z-30">
+    <header className="h-16 border-b border-gray-800 bg-f1-dark flex items-center px-4 justify-between">
       <div className="flex items-center">
-        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-2 md:hidden">
-          <Menu className="h-5 w-5" />
-        </Button>
-        <Link to="/" className="flex items-center">
-          <img src="/f1-logo.svg" alt="F1 Logo" className="h-8" />
-        </Link>
+        <button 
+          onClick={() => setSidebarOpen(!sidebarOpen)} 
+          className="md:hidden mr-3 text-gray-400 hover:text-white" 
+          aria-label="Toggle menu"
+        >
+          <Menu size={24} />
+        </button>
+        
+        <div className="md:hidden flex items-center gap-2">
+          <img src={f1Logo} alt="F1 DataStop" className="w-8 h-8" />
+          <span className="font-bold tracking-tight">F1 DataStop</span>
+        </div>
       </div>
       
-      <div className="flex items-center gap-2">
-        <ApiSourceToggle />
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-f1-red">3</Badge>
-        </Button>
-        <UserMenu /> {/* Removed the user prop as UserMenu fetches its own user data */}
+      <div className="flex items-center gap-3">
+        <NextRaceInfo />
+        <ShareButton />
+        <SocialLinks />
+        <UserMenu />
       </div>
     </header>
   );

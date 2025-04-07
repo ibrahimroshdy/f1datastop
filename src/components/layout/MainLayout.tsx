@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
@@ -20,7 +19,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     <div className="flex h-screen bg-f1-black text-white overflow-hidden">
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <TopBar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        <TopBar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         <main className="flex-1 overflow-auto p-4 md:p-6">
           {children}
         </main>

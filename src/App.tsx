@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SessionProvider } from "@/context/SessionContext";
 import { AuthProvider } from "@/context/AuthContext";
-import { ApiProvider } from "@/context/ApiContext";
 import { ProtectedRoute, PublicOnlyRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import RaceCalendar from "./pages/RaceCalendar";
@@ -32,37 +31,35 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <SessionProvider>
-      <ApiProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<Index />} />
-                <Route path="/calendar" element={<RaceCalendar />} />
-                <Route path="*" element={<NotFound />} />
-                
-                {/* Auth routes (only accessible if not logged in) */}
-                <Route element={<PublicOnlyRoute />}>
-                  <Route path="/auth/login" element={<Login />} />
-                  <Route path="/auth/signup" element={<Signup />} />
-                  <Route path="/auth/reset-password" element={<ResetPassword />} />
-                </Route>
-                
-                {/* Protected routes with blur effect for non-authenticated users */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/drivers" element={<Drivers />} />
-                  <Route path="/constructors" element={<Constructors />} />
-                  <Route path="/profile" element={<Profile />} />
-                </Route>
-              </Routes>
-            </TooltipProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </ApiProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/calendar" element={<RaceCalendar />} />
+              <Route path="*" element={<NotFound />} />
+              
+              {/* Auth routes (only accessible if not logged in) */}
+              <Route element={<PublicOnlyRoute />}>
+                <Route path="/auth/login" element={<Login />} />
+                <Route path="/auth/signup" element={<Signup />} />
+                <Route path="/auth/reset-password" element={<ResetPassword />} />
+              </Route>
+              
+              {/* Protected routes with blur effect for non-authenticated users */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/drivers" element={<Drivers />} />
+                <Route path="/constructors" element={<Constructors />} />
+                <Route path="/profile" element={<Profile />} />
+              </Route>
+            </Routes>
+          </TooltipProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </SessionProvider>
   </QueryClientProvider>
 );

@@ -1,199 +1,182 @@
 import { useQuery } from "@tanstack/react-query";
-import * as f1BackendService from "@/services/f1BackendService";
-import { useApi } from "@/context/ApiContext";
+import * as f1Service from "@/services/f1Service";
+import { optimizeLapData } from "@/utils/dataLoadingUtils";
 import { toast } from "sonner";
+import { useState } from "react";
 
-// Basic retry configuration
-const defaultRetryConfig = {
-  retry: 3,
-  retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
-};
-
-// Helper function to display a toast when backend is not connected
-const useBackendCheck = () => {
-  const { isBackendConnected } = useApi();
-  
-  if (!isBackendConnected) {
-    return false;
+// Helper function to create exponential backoff retry logic with more aggressive backoff
+const createRetryConfig = (retryDelayBase = 2000, maxRetryAttempts = 5) => ({
+  retry: maxRetryAttempts,
+  retryDelay: (attemptIndex: number) => {
+    // Enhanced exponential backoff with jitter to avoid thundering herd
+    // More aggressive delay with higher base value and exponential growth
+    const delay = Math.min(retryDelayBase * (2 ** attemptIndex) * (0.8 + Math.random() * 0.4), 60000);
+    
+    if (attemptIndex > 0) {
+      toast.info(`Rate limit reached. Retrying in ${Math.round(delay/1000)} seconds...`, {
+        id: `retry-toast-${attemptIndex}`,
+        duration: delay,
+      });
+      console.log(`Rate limit retry attempt ${attemptIndex + 1} in ${Math.round(delay/1000)} seconds`);
+    }
+    
+    return delay;
   }
-  
-  return true;
-};
+});
 
-// Hooks to access Python backend data
+// Default retry config with moderate settings
+const defaultRetryConfig = createRetryConfig(2000, 5);
+
+// Specialized retry config for lap times with higher delay and more attempts
+const lapTimesRetryConfig = createRetryConfig(5000, 10);
+
 export const useDriverStandings = (year?: number) => {
-  const backendAvailable = useBackendCheck();
-  
   return useQuery({
-    queryKey: ["backend", "driverStandings", year],
-    queryFn: () => f1BackendService.getDriverStandings(year),
+    queryKey: ["driverStandings", year],
+    queryFn: () => f1Service.getDriverStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: backendAvailable,
     ...defaultRetryConfig,
   });
 };
 
 export const useConstructorStandings = (year?: number) => {
-  const backendAvailable = useBackendCheck();
-  
   return useQuery({
-    queryKey: ["backend", "constructorStandings", year],
-    queryFn: () => f1BackendService.getConstructorStandings(year),
+    queryKey: ["constructorStandings", year],
+    queryFn: () => f1Service.getConstructorStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: backendAvailable,
     ...defaultRetryConfig,
   });
 };
 
 export const useRaceSchedule = (year?: number) => {
-  const backendAvailable = useBackendCheck();
-  
   return useQuery({
-    queryKey: ["backend", "raceSchedule", year],
-    queryFn: () => f1BackendService.getRaceSchedule(year),
+    queryKey: ["raceSchedule", year],
+    queryFn: () => f1Service.getRaceSchedule(year),
     staleTime: 1000 * 60 * 60, // 1 hour
-    enabled: backendAvailable,
     ...defaultRetryConfig,
   });
 };
 
 export const useRaceResults = (year: number, round: string) => {
-  const backendAvailable = useBackendCheck();
-  
   return useQuery({
-    queryKey: ["backend", "raceResults", year, round],
-    queryFn: () => f1BackendService.getRaceResults(year, round),
+    queryKey: ["raceResults", year, round],
+    queryFn: () => f1Service.getRaceResults(year, round),
     staleTime: 1000 * 60 * 60, // 1 hour
-    enabled: !!year && !!round && backendAvailable,
+    enabled: !!year && !!round,
     ...defaultRetryConfig,
   });
 };
 
 export const useRaceQualifying = (year: number, round: string) => {
-  const backendAvailable = useBackendCheck();
-  
   return useQuery({
-    queryKey: ["backend", "qualifying", year, round],
-    queryFn: () => f1BackendService.getRaceQualifying(year, round),
+    queryKey: ["qualifying", year, round],
+    queryFn: () => f1Service.getRaceQualifying(year, round),
     staleTime: 1000 * 60 * 60, // 1 hour
-    enabled: !!year && !!round && backendAvailable,
+    enabled: !!year && !!round,
     ...defaultRetryConfig,
   });
 };
 
 export const useLapTimes = (year: number, round: string, firstDriverOnly: boolean = false) => {
-  const backendAvailable = useBackendCheck();
-  
   return useQuery({
-    queryKey: ["backend", "lapTimes", year, round, firstDriverOnly ? "firstDriverOnly" : "allDrivers"],
+    queryKey: ["lapTimes", year, round, firstDriverOnly ? "firstDriverOnly" : "allDrivers"],
     queryFn: async () => {
       try {
-        // Add a small delay before making the request
+        // Add a small delay before making the request to avoid immediate rate limiting
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        const data = await f1BackendService.getLapTimes(year, round, firstDriverOnly ? "true" : undefined);
+        // Instead of passing 'false' as a string, we should either pass a valid driver ID or omit it completely
+        // to get all drivers' lap times
+        const data = await f1Service.getLapTimes(year, round, firstDriverOnly ? "true" : undefined);
         return data;
       } catch (error: any) {
-        toast.error("Failed to fetch lap times");
-        throw error;
+        if (error?.status === 429) {
+          toast.error("Rate limit exceeded. System will retry automatically.", {
+            description: "The F1 API has strict rate limits. Waiting before retry...",
+            duration: 5000,
+          });
+        }
+        throw error; // Re-throw the error to let React Query handle retries
       }
     },
     staleTime: 1000 * 60 * 60, // 1 hour
-    enabled: !!year && !!round && backendAvailable,
-    ...defaultRetryConfig,
+    enabled: !!year && !!round,
+    ...lapTimesRetryConfig,
+    gcTime: 1000 * 60 * 60 * 2, // 2 hours
   });
 };
 
-export const useLastRaceResults = () => {
-  const backendAvailable = useBackendCheck();
-  
+export const usePitStops = (year: number, round: string) => {
   return useQuery({
-    queryKey: ["backend", "lastRaceResults"],
-    queryFn: () => f1BackendService.getLastRaceResults(),
+    queryKey: ["pitStops", year, round],
+    queryFn: () => f1Service.getPitStops(year, round),
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: backendAvailable,
+    enabled: !!year && !!round,
     ...defaultRetryConfig,
   });
 };
 
-export const useNextRace = () => {
-  const backendAvailable = useBackendCheck();
-  
+export const useLastRaceResults = (year?: number) => {
   return useQuery({
-    queryKey: ["backend", "nextRace"],
-    queryFn: () => f1BackendService.getNextRace(),
+    queryKey: ["lastRaceResults", year],
+    queryFn: () => f1Service.getLastRaceResults(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: backendAvailable,
     ...defaultRetryConfig,
   });
 };
 
-// Add F1 News hook
-export const useF1News = () => {
-  const backendAvailable = useBackendCheck();
-  
+export const useNextRace = (year?: number) => {
   return useQuery({
-    queryKey: ["backend", "f1News"],
-    queryFn: () => {
-      // We'll return mock data for now as the real endpoint is not implemented
-      return Promise.resolve({
-        data: [
-          {
-            title: "Hamilton signs new contract with Mercedes",
-            description: "Lewis Hamilton has signed a new multi-year contract with Mercedes.",
-            url: "https://www.formula1.com",
-            urlToImage: "https://placehold.co/600x400?text=F1+News",
-            publishedAt: new Date().toISOString(),
-            source: { name: "Formula1.com" }
-          },
-          {
-            title: "Verstappen wins the Dutch Grand Prix",
-            description: "Max Verstappen has won his home race in Zandvoort.",
-            url: "https://www.formula1.com",
-            urlToImage: "https://placehold.co/600x400?text=F1+News",
-            publishedAt: new Date().toISOString(),
-            source: { name: "Formula1.com" }
-          },
-          {
-            title: "Ferrari brings upgrades to Monza",
-            description: "Ferrari has brought significant upgrades to their home race in Monza.",
-            url: "https://www.formula1.com",
-            urlToImage: "https://placehold.co/600x400?text=F1+News",
-            publishedAt: new Date().toISOString(),
-            source: { name: "Formula1.com" }
-          }
-        ]
-      });
-    },
-    staleTime: 1000 * 60 * 15, // 15 minutes
-    enabled: backendAvailable,
+    queryKey: ["nextRace", year],
+    queryFn: () => f1Service.getNextRace(year),
+    staleTime: 1000 * 60 * 5, // 5 minutes
     ...defaultRetryConfig,
   });
 };
 
-// Additional hooks used in the application (for components that were previously using Ergast API)
 export const useRaceStatus = (sessionId?: string) => {
-  const backendAvailable = useBackendCheck();
-  
-  // Using a mock for now, would need to implement in the Python backend
   return useQuery({
-    queryKey: ["backend", "raceStatus", sessionId],
-    queryFn: () => ({ data: [{ lap_number: "45/51" }] }), // Mock data
-    staleTime: 1000 * 10, // 10 seconds
-    enabled: !!sessionId && backendAvailable,
+    queryKey: ["raceStatus", sessionId],
+    queryFn: () => f1Service.getRaceStatus(sessionId),
+    staleTime: 1000 * 60, // 1 minute
+    enabled: !!sessionId,
+    ...defaultRetryConfig,
+  });
+};
+
+export const useDriverInfo = (year?: number) => {
+  return useQuery({
+    queryKey: ["driverInfo", year],
+    queryFn: () => f1Service.getDriverInfo(year),
+    staleTime: 1000 * 30, // 30 seconds
     ...defaultRetryConfig,
   });
 };
 
 export const useWeatherData = (sessionId?: string) => {
-  const backendAvailable = useBackendCheck();
-  
-  // Using a mock for now, would need to implement in the Python backend
   return useQuery({
-    queryKey: ["backend", "weatherData", sessionId],
-    queryFn: () => ({ data: [{ air_temperature: 25, track_temperature: 35, humidity: 60 }] }), // Mock data
-    staleTime: 1000 * 60, // 1 minute
-    enabled: !!sessionId && backendAvailable,
+    queryKey: ["weatherData", sessionId],
+    queryFn: () => f1Service.getWeatherData(sessionId),
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    enabled: !!sessionId,
+    ...defaultRetryConfig,
+  });
+};
+
+export const useF1News = () => {
+  return useQuery({
+    queryKey: ["f1News"],
+    queryFn: f1Service.getF1News,
+    staleTime: 1000 * 60 * 15, // 15 minutes
+    ...defaultRetryConfig,
+  });
+};
+
+export const useF1Circuits = () => {
+  return useQuery({
+    queryKey: ["f1Circuits"],
+    queryFn: f1Service.getF1Circuits,
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours (this rarely changes)
     ...defaultRetryConfig,
   });
 };
