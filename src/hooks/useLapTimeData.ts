@@ -222,7 +222,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
 
   // Memoize chart data to avoid recalculations
   const chartData = useMemo(() => {
-    if (!lapTimesData?.data?.Races?.[0]?.Laps || !fastestLapTime) {
+    if (!lapTimesData?.data?.Races?.[0]?.Laps) {
       return [];
     }
     
@@ -234,6 +234,18 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
       const lapNumber = parseInt(lap.number);
       const lapData: any = { lap: lapNumber };
       
+      // For gap mode, find fastest lap time in this lap
+      let fastestInLap = Number.MAX_VALUE;
+      
+      if (displayMode === 'gap') {
+        lap.Timings.forEach((timing: any) => {
+          const lapTime = convertLapTimeToSeconds(timing.time);
+          if (lapTime > 0 && lapTime < fastestInLap) {
+            fastestInLap = lapTime;
+          }
+        });
+      }
+      
       lap.Timings.forEach((timing: any) => {
         const driver = availableDrivers.find(d => d.driverId === timing.driverId);
         if (driver) {
@@ -241,9 +253,9 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
           
           if (displayMode === 'absolute') {
             lapData[driver.code] = lapTime;
-          } else {
-            // For gap mode, calculate difference from fastest lap time
-            lapData[driver.code] = lapTime - fastestLapTime.time;
+          } else if (displayMode === 'gap' && fastestInLap < Number.MAX_VALUE) {
+            // For gap mode, calculate difference from fastest lap time in this lap
+            lapData[driver.code] = lapTime - fastestInLap;
             lapData[`${driver.code}_original`] = lapTime; // Store original time for tooltips
           }
         }
@@ -253,7 +265,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     });
     
     return processedData;
-  }, [lapTimesData, availableDrivers, fastestLapTime, displayMode]);
+  }, [lapTimesData, availableDrivers, displayMode]);
 
   // Calculate maximum lap number from the data
   const maxLap = chartData.length > 0 

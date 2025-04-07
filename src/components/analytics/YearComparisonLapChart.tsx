@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import DataLoadingProgress from "./DataLoadingProgress";
+import DisplayModeToggle from "./DisplayModeToggle";
 
 interface YearComparisonLapChartProps {
   baseYear: number;
@@ -166,7 +167,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     }
   }, [comparisonResults, comparisonYear]);
 
-  // Process lap time data for both years
+  // Process lap time data for both years based on the current display mode
   useEffect(() => {
     if (baseLapTimes?.data?.Races && comparisonLapTimes?.data?.Races && 
         baseDrivers.length > 0 && comparisonDrivers.length > 0) {
@@ -187,11 +188,61 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         const maxCompLaps = compRace.Laps.length;
         const maxLaps = Math.max(maxBaseLaps, maxCompLaps);
         
+        // Find fastest lap time overall for gap mode
+        let fastestLapTime = Number.MAX_VALUE;
+        
+        if (displayMode === 'gap') {
+          // Find fastest lap time from both years for reference
+          baseRace.Laps.forEach((lap: any) => {
+            lap.Timings.forEach((timing: any) => {
+              const lapTime = convertLapTimeToSeconds(timing.time);
+              if (lapTime > 0 && lapTime < fastestLapTime) {
+                fastestLapTime = lapTime;
+              }
+            });
+          });
+          
+          compRace.Laps.forEach((lap: any) => {
+            lap.Timings.forEach((timing: any) => {
+              const lapTime = convertLapTimeToSeconds(timing.time);
+              if (lapTime > 0 && lapTime < fastestLapTime) {
+                fastestLapTime = lapTime;
+              }
+            });
+          });
+        }
+        
         // Process lap time data
         const processedData = [];
         
         for (let i = 0; i < maxLaps; i++) {
           const lapData: any = { lap: i + 1 };
+          
+          // Find fastest lap time for this lap (for gap mode)
+          let fastestInLap = Number.MAX_VALUE;
+          
+          if (displayMode === 'gap') {
+            // Find fastest time in this lap across both years
+            if (i < maxBaseLaps) {
+              const baseLap = baseRace.Laps[i];
+              baseLap.Timings.forEach((timing: any) => {
+                const lapTime = convertLapTimeToSeconds(timing.time);
+                if (lapTime > 0 && lapTime < fastestInLap) {
+                  fastestInLap = lapTime;
+                }
+              });
+            }
+            
+            if (i < maxCompLaps) {
+              const compLap = compRace.Laps[i];
+              compLap.Timings.forEach((timing: any) => {
+                const lapTime = convertLapTimeToSeconds(timing.time);
+                if (lapTime > 0 && lapTime < fastestInLap) {
+                  fastestInLap = lapTime;
+                }
+              });
+            }
+          }
           
           // Process base year lap data
           if (i < maxBaseLaps) {
@@ -200,7 +251,16 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
               const driver = baseDrivers.find(d => d.driverId === timing.driverId);
               if (driver) {
                 const lapTime = convertLapTimeToSeconds(timing.time);
-                lapData[`${driver.code}_${baseYear}`] = lapTime;
+                
+                if (displayMode === 'absolute') {
+                  lapData[`${driver.code}_${baseYear}`] = lapTime;
+                } else {
+                  // For gap mode, calculate difference from fastest lap in this lap
+                  lapData[`${driver.code}_${baseYear}`] = fastestInLap < Number.MAX_VALUE 
+                    ? lapTime - fastestInLap 
+                    : 0;
+                }
+                
                 lapData[`${driver.code}_${baseYear}_raw`] = timing.time;
               }
             });
@@ -213,7 +273,16 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
               const driver = comparisonDrivers.find(d => d.driverId === timing.driverId);
               if (driver) {
                 const lapTime = convertLapTimeToSeconds(timing.time);
-                lapData[`${driver.code}_${comparisonYear}`] = lapTime;
+                
+                if (displayMode === 'absolute') {
+                  lapData[`${driver.code}_${comparisonYear}`] = lapTime;
+                } else {
+                  // For gap mode, calculate difference from fastest lap in this lap
+                  lapData[`${driver.code}_${comparisonYear}`] = fastestInLap < Number.MAX_VALUE 
+                    ? lapTime - fastestInLap 
+                    : 0;
+                }
+                
                 lapData[`${driver.code}_${comparisonYear}_raw`] = timing.time;
               }
             });
@@ -252,7 +321,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         setIsProcessingData(false);
       }
     }
-  }, [baseLapTimes, comparisonLapTimes, baseDrivers, comparisonDrivers, baseYear, comparisonYear]);
+  }, [baseLapTimes, comparisonLapTimes, baseDrivers, comparisonDrivers, baseYear, comparisonYear, displayMode]);
 
   const toggleBaseDriver = (driverCode: string) => {
     setSelectedBaseDrivers(prev => 
@@ -319,12 +388,10 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     <div className="h-full">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
         <div className="flex items-center gap-2">
-          <button 
-            onClick={toggleDisplayMode}
-            className="px-3 py-1 text-xs font-medium rounded bg-gray-200 hover:bg-gray-300 transition-colors"
-          >
-            Show {displayMode === 'absolute' ? 'Gaps' : 'Absolute Times'}
-          </button>
+          <DisplayModeToggle 
+            displayMode={displayMode} 
+            onToggle={toggleDisplayMode}
+          />
         </div>
         
         <div className="flex flex-col md:flex-row gap-2 md:items-center">
