@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from "@/utils/rechartsWrapper";
@@ -36,7 +35,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   
-  // Fetch results and lap times for base year
   const { 
     data: baseResults,
     isLoading: isBaseResultsLoading,
@@ -51,7 +49,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     failureCount: baseLapTimesFailureCount
   } = useLapTimes(baseYear, baseRound);
   
-  // Fetch results and lap times for comparison year
   const { 
     data: comparisonResults,
     isLoading: isComparisonResultsLoading,
@@ -76,19 +73,16 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   const isError = isBaseLapTimesError || isComparisonLapTimesError;
   const totalFailureCount = baseLapTimesFailureCount + comparisonLapTimesFailureCount;
   
-  // Update retryCount when failureCount changes
   useEffect(() => {
     if (totalFailureCount > retryCount) {
       setRetryCount(totalFailureCount);
     }
   }, [totalFailureCount, retryCount]);
 
-  // Update loading progress
   useEffect(() => {
     if (isLoading) {
       const progressInterval = setInterval(() => {
         setLoadingProgress(prev => {
-          // If we already have some data but are still loading, start from a higher base %
           const baseProgress = (chartData.length > 0) ? 50 : 0;
           const newProgress = Math.min(baseProgress + Math.random() * 5 + prev/10, 95);
           return newProgress;
@@ -101,7 +95,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     }
   }, [isLoading, chartData.length]);
 
-  // Set error message when errors occur
   useEffect(() => {
     if (baseLapTimesError || comparisonLapTimesError) {
       const errorMsg = (baseLapTimesError || comparisonLapTimesError)?.toString();
@@ -115,7 +108,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     }
   }, [baseLapTimesError, comparisonLapTimesError, retryCount]);
 
-  // Process base year results to get drivers
   useEffect(() => {
     if (baseResults?.data?.Results) {
       const drivers = baseResults.data.Results.map((result: any) => ({
@@ -129,7 +121,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
       
       setBaseDrivers(drivers);
       
-      // Auto-select winner by default
       if (drivers.length > 0) {
         const winner = drivers.find(d => d.finishPosition === 1);
         if (winner) {
@@ -141,7 +132,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     }
   }, [baseResults, baseYear]);
 
-  // Process comparison year results to get drivers
   useEffect(() => {
     if (comparisonResults?.data?.Results) {
       const drivers = comparisonResults.data.Results.map((result: any) => ({
@@ -155,7 +145,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
       
       setComparisonDrivers(drivers);
       
-      // Auto-select winner by default
       if (drivers.length > 0) {
         const winner = drivers.find(d => d.finishPosition === 1);
         if (winner) {
@@ -167,7 +156,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     }
   }, [comparisonResults, comparisonYear]);
 
-  // Process lap time data for both years based on the current display mode
   useEffect(() => {
     if (baseLapTimes?.data?.Races && comparisonLapTimes?.data?.Races && 
         baseDrivers.length > 0 && comparisonDrivers.length > 0) {
@@ -183,16 +171,13 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
           return;
         }
         
-        // Find max number of laps between both races
         const maxBaseLaps = baseRace.Laps.length;
         const maxCompLaps = compRace.Laps.length;
         const maxLaps = Math.max(maxBaseLaps, maxCompLaps);
         
-        // Find fastest lap time overall for gap mode
         let fastestLapTime = Number.MAX_VALUE;
         
         if (displayMode === 'gap') {
-          // Find fastest lap time from both years for reference
           baseRace.Laps.forEach((lap: any) => {
             lap.Timings.forEach((timing: any) => {
               const lapTime = convertLapTimeToSeconds(timing.time);
@@ -212,17 +197,14 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
           });
         }
         
-        // Process lap time data
         const processedData = [];
         
         for (let i = 0; i < maxLaps; i++) {
           const lapData: any = { lap: i + 1 };
           
-          // Find fastest lap time for this lap (for gap mode)
           let fastestInLap = Number.MAX_VALUE;
           
           if (displayMode === 'gap') {
-            // Find fastest time in this lap across both years
             if (i < maxBaseLaps) {
               const baseLap = baseRace.Laps[i];
               baseLap.Timings.forEach((timing: any) => {
@@ -244,7 +226,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             }
           }
           
-          // Process base year lap data
           if (i < maxBaseLaps) {
             const lap = baseRace.Laps[i];
             lap.Timings.forEach((timing: any) => {
@@ -255,7 +236,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                 if (displayMode === 'absolute') {
                   lapData[`${driver.code}_${baseYear}`] = lapTime;
                 } else {
-                  // For gap mode, calculate difference from fastest lap in this lap
                   lapData[`${driver.code}_${baseYear}`] = fastestInLap < Number.MAX_VALUE 
                     ? lapTime - fastestInLap 
                     : 0;
@@ -266,7 +246,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             });
           }
           
-          // Process comparison year lap data
           if (i < maxCompLaps) {
             const lap = compRace.Laps[i];
             lap.Timings.forEach((timing: any) => {
@@ -277,7 +256,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                 if (displayMode === 'absolute') {
                   lapData[`${driver.code}_${comparisonYear}`] = lapTime;
                 } else {
-                  // For gap mode, calculate difference from fastest lap in this lap
                   lapData[`${driver.code}_${comparisonYear}`] = fastestInLap < Number.MAX_VALUE 
                     ? lapTime - fastestInLap 
                     : 0;
@@ -291,7 +269,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
           processedData.push(lapData);
         }
         
-        // Check if we have partial data from either year
         if ((baseRace.isPartialData || baseRace.incomplete) && 
             (compRace.isPartialData || compRace.incomplete)) {
           toast.warning("Partial lap data loaded for both years", {
@@ -405,7 +382,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         </div>
       </div>
       
-      {/* Show partial data warning if applicable */}
       {(baseLapTimes?.data?.Races?.[0]?.isPartialData || 
         baseLapTimes?.data?.Races?.[0]?.incomplete ||
         comparisonLapTimes?.data?.Races?.[0]?.isPartialData ||
@@ -470,7 +446,10 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-            <XAxis dataKey="lap" label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} />
+            <XAxis 
+              dataKey="lap" 
+              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+            />
             <YAxis 
               label={{ 
                 value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', 
@@ -505,7 +484,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
               }}
             />
             
-            {/* Base year lines */}
             {baseDrivers
               .filter(driver => selectedBaseDrivers.includes(driver.code))
               .map(driver => (
@@ -514,7 +492,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   type="monotone"
                   dataKey={`${driver.code}_${baseYear}`}
                   name={`${driver.code}_${baseYear}`}
-                  stroke={`#f59e0b`} // Amber color for base year
+                  stroke={`#f59e0b`}
                   strokeDasharray={driver.finishPosition === 1 ? "0" : "5 5"}
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
                   dot={{ r: 2, fill: `#f59e0b` }}
@@ -523,7 +501,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                 />
               ))}
             
-            {/* Comparison year lines */}
             {comparisonDrivers
               .filter(driver => selectedComparisonDrivers.includes(driver.code))
               .map(driver => (
@@ -532,7 +509,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   type="monotone"
                   dataKey={`${driver.code}_${comparisonYear}`}
                   name={`${driver.code}_${comparisonYear}`}
-                  stroke={`#3b82f6`} // Blue color for comparison year
+                  stroke={`#3b82f6`}
                   strokeDasharray={driver.finishPosition === 1 ? "0" : "5 5"}
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
                   dot={{ r: 2, fill: `#3b82f6` }}
