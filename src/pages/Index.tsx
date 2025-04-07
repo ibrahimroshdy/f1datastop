@@ -264,11 +264,9 @@ const Index = () => {
                                 <div className="font-medium">
                                   {result.position === '1' 
                                     ? result.Time?.time 
-                                    : (result.Time?.time.startsWith('+') 
-                                      ? result.Time.time 
-                                      : result.status === "Finished" 
-                                        ? "+"+result.Time?.time 
-                                        : result.status)}
+                                    : result.status === "Finished" 
+                                      ? result.Time?.time 
+                                      : result.status}
                                 </div>
                               </div>
                             </div>

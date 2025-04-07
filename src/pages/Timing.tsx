@@ -31,7 +31,7 @@ const Timing = () => {
                   <TableHead className="w-16">Pos</TableHead>
                   <TableHead>Driver</TableHead>
                   <TableHead>Team</TableHead>
-                  <TableHead>Time/Status</TableHead>
+                  <TableHead>Time/Gap</TableHead>
                   <TableHead className="text-right">Points</TableHead>
                 </TableRow>
               </TableHeader>
@@ -61,7 +61,7 @@ const Timing = () => {
                         {result.position === '1' 
                           ? result.Time?.time 
                           : (result.status === "Finished" 
-                            ? result.Time?.time 
+                            ? (result.Time?.time || "")
                             : (
                               <Badge variant="outline" className="bg-gray-800">
                                 {result.status}
