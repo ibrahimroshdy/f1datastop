@@ -49,7 +49,8 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     if (isError && retryCount < 15) { // Up to 15 retry attempts
       const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // Backoff up to 60 seconds
       
-      setLoadingProgress((retryCount * 7));
+      // Updated to show 2 decimal places
+      setLoadingProgress(parseFloat((retryCount * 7).toFixed(2)));
       setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
       
       const timer = setTimeout(() => {
@@ -65,7 +66,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
       return () => clearTimeout(timer);
     } else if (!isError && !isLoading) {
       setErrorMessage(null);
-      setLoadingProgress(100);
+      setLoadingProgress(100.00); // Make sure we show exactly 100.00%
     }
   }, [isError, retryCount, refetchLapTimes, failureCount, isLoading]);
 
@@ -239,13 +240,9 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
         if (driver) {
           const lapTime = convertLapTimeToSeconds(timing.time);
           
-          if (displayMode === 'absolute') {
-            lapData[driver.code] = lapTime;
-          } else {
-            // For gap mode, calculate difference from fastest lap time
-            lapData[driver.code] = lapTime - fastestLapTime.time;
-            lapData[`${driver.code}_original`] = lapTime; // Store original time for tooltips
-          }
+          // Only use absolute mode for now to avoid axis issues
+          lapData[driver.code] = lapTime;
+          lapData[`${driver.code}_original`] = lapTime; // Store original time for tooltips
         }
       });
       
@@ -253,7 +250,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     });
     
     return processedData;
-  }, [lapTimesData, availableDrivers, fastestLapTime, displayMode]);
+  }, [lapTimesData, availableDrivers, fastestLapTime]);
 
   // Calculate maximum lap number from the data
   const maxLap = chartData.length > 0 
