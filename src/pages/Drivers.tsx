@@ -8,6 +8,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import DriverCard from "@/components/drivers/DriverCard";
 import YearSelector from "@/components/common/YearSelector";
+import { Badge } from "@/components/ui/badge";
 
 const Drivers = () => {
   const currentYear = new Date().getFullYear();
@@ -22,13 +23,25 @@ const Drivers = () => {
       driver.Constructors[0].name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  const sessionInfo = driverData?.sessionInfo;
+
   return (
     <MainLayout>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold">F1 Drivers</h1>
-            <p className="text-muted-foreground">Formula 1 drivers for the {selectedYear} season</p>
+            <p className="text-muted-foreground">
+              Formula 1 drivers for the {selectedYear} season
+              {sessionInfo && (
+                <>
+                  <span className="mx-1">•</span>
+                  <Badge variant="outline" className="ml-1">
+                    {sessionInfo.country_name} {sessionInfo.session_name}
+                  </Badge>
+                </>
+              )}
+            </p>
           </div>
           <YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />
         </div>
@@ -64,11 +77,19 @@ const Drivers = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredDrivers?.map((driver: any) => (
-              <DriverCard key={driver.Driver.driverId} driver={driver} />
-            ))}
-          </div>
+          <>
+            {filteredDrivers?.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-lg text-muted-foreground">No drivers found for {selectedYear}. Try another year.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredDrivers?.map((driver: any) => (
+                  <DriverCard key={driver.Driver.driverId} driver={driver} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </MainLayout>
@@ -76,4 +97,3 @@ const Drivers = () => {
 };
 
 export default Drivers;
-
