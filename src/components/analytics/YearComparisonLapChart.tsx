@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from "@/utils/rechartsWrapper";
@@ -9,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import DataLoadingProgress from "./DataLoadingProgress";
-import DisplayModeToggle from "./DisplayModeToggle";
 
 interface YearComparisonLapChartProps {
   baseYear: number;
@@ -35,6 +35,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   
+  // Fetch results and lap times for base year
   const { 
     data: baseResults,
     isLoading: isBaseResultsLoading,
@@ -49,6 +50,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     failureCount: baseLapTimesFailureCount
   } = useLapTimes(baseYear, baseRound);
   
+  // Fetch results and lap times for comparison year
   const { 
     data: comparisonResults,
     isLoading: isComparisonResultsLoading,
@@ -73,16 +75,19 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   const isError = isBaseLapTimesError || isComparisonLapTimesError;
   const totalFailureCount = baseLapTimesFailureCount + comparisonLapTimesFailureCount;
   
+  // Update retryCount when failureCount changes
   useEffect(() => {
     if (totalFailureCount > retryCount) {
       setRetryCount(totalFailureCount);
     }
   }, [totalFailureCount, retryCount]);
 
+  // Update loading progress
   useEffect(() => {
     if (isLoading) {
       const progressInterval = setInterval(() => {
         setLoadingProgress(prev => {
+          // If we already have some data but are still loading, start from a higher base %
           const baseProgress = (chartData.length > 0) ? 50 : 0;
           const newProgress = Math.min(baseProgress + Math.random() * 5 + prev/10, 95);
           return newProgress;
@@ -95,6 +100,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     }
   }, [isLoading, chartData.length]);
 
+  // Set error message when errors occur
   useEffect(() => {
     if (baseLapTimesError || comparisonLapTimesError) {
       const errorMsg = (baseLapTimesError || comparisonLapTimesError)?.toString();
@@ -108,6 +114,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     }
   }, [baseLapTimesError, comparisonLapTimesError, retryCount]);
 
+  // Process base year results to get drivers
   useEffect(() => {
     if (baseResults?.data?.Results) {
       const drivers = baseResults.data.Results.map((result: any) => ({
@@ -121,6 +128,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
       
       setBaseDrivers(drivers);
       
+      // Auto-select winner by default
       if (drivers.length > 0) {
         const winner = drivers.find(d => d.finishPosition === 1);
         if (winner) {
@@ -132,6 +140,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     }
   }, [baseResults, baseYear]);
 
+  // Process comparison year results to get drivers
   useEffect(() => {
     if (comparisonResults?.data?.Results) {
       const drivers = comparisonResults.data.Results.map((result: any) => ({
@@ -145,6 +154,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
       
       setComparisonDrivers(drivers);
       
+      // Auto-select winner by default
       if (drivers.length > 0) {
         const winner = drivers.find(d => d.finishPosition === 1);
         if (winner) {
@@ -156,6 +166,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     }
   }, [comparisonResults, comparisonYear]);
 
+  // Process lap time data for both years
   useEffect(() => {
     if (baseLapTimes?.data?.Races && comparisonLapTimes?.data?.Races && 
         baseDrivers.length > 0 && comparisonDrivers.length > 0) {
@@ -171,96 +182,38 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
           return;
         }
         
+        // Find max number of laps between both races
         const maxBaseLaps = baseRace.Laps.length;
         const maxCompLaps = compRace.Laps.length;
         const maxLaps = Math.max(maxBaseLaps, maxCompLaps);
         
-        let fastestLapTime = Number.MAX_VALUE;
-        
-        if (displayMode === 'gap') {
-          baseRace.Laps.forEach((lap: any) => {
-            lap.Timings.forEach((timing: any) => {
-              const lapTime = convertLapTimeToSeconds(timing.time);
-              if (lapTime > 0 && lapTime < fastestLapTime) {
-                fastestLapTime = lapTime;
-              }
-            });
-          });
-          
-          compRace.Laps.forEach((lap: any) => {
-            lap.Timings.forEach((timing: any) => {
-              const lapTime = convertLapTimeToSeconds(timing.time);
-              if (lapTime > 0 && lapTime < fastestLapTime) {
-                fastestLapTime = lapTime;
-              }
-            });
-          });
-        }
-        
+        // Process lap time data
         const processedData = [];
         
         for (let i = 0; i < maxLaps; i++) {
           const lapData: any = { lap: i + 1 };
           
-          let fastestInLap = Number.MAX_VALUE;
-          
-          if (displayMode === 'gap') {
-            if (i < maxBaseLaps) {
-              const baseLap = baseRace.Laps[i];
-              baseLap.Timings.forEach((timing: any) => {
-                const lapTime = convertLapTimeToSeconds(timing.time);
-                if (lapTime > 0 && lapTime < fastestInLap) {
-                  fastestInLap = lapTime;
-                }
-              });
-            }
-            
-            if (i < maxCompLaps) {
-              const compLap = compRace.Laps[i];
-              compLap.Timings.forEach((timing: any) => {
-                const lapTime = convertLapTimeToSeconds(timing.time);
-                if (lapTime > 0 && lapTime < fastestInLap) {
-                  fastestInLap = lapTime;
-                }
-              });
-            }
-          }
-          
+          // Process base year lap data
           if (i < maxBaseLaps) {
             const lap = baseRace.Laps[i];
             lap.Timings.forEach((timing: any) => {
               const driver = baseDrivers.find(d => d.driverId === timing.driverId);
               if (driver) {
                 const lapTime = convertLapTimeToSeconds(timing.time);
-                
-                if (displayMode === 'absolute') {
-                  lapData[`${driver.code}_${baseYear}`] = lapTime;
-                } else {
-                  lapData[`${driver.code}_${baseYear}`] = fastestInLap < Number.MAX_VALUE 
-                    ? lapTime - fastestInLap 
-                    : 0;
-                }
-                
+                lapData[`${driver.code}_${baseYear}`] = lapTime;
                 lapData[`${driver.code}_${baseYear}_raw`] = timing.time;
               }
             });
           }
           
+          // Process comparison year lap data
           if (i < maxCompLaps) {
             const lap = compRace.Laps[i];
             lap.Timings.forEach((timing: any) => {
               const driver = comparisonDrivers.find(d => d.driverId === timing.driverId);
               if (driver) {
                 const lapTime = convertLapTimeToSeconds(timing.time);
-                
-                if (displayMode === 'absolute') {
-                  lapData[`${driver.code}_${comparisonYear}`] = lapTime;
-                } else {
-                  lapData[`${driver.code}_${comparisonYear}`] = fastestInLap < Number.MAX_VALUE 
-                    ? lapTime - fastestInLap 
-                    : 0;
-                }
-                
+                lapData[`${driver.code}_${comparisonYear}`] = lapTime;
                 lapData[`${driver.code}_${comparisonYear}_raw`] = timing.time;
               }
             });
@@ -269,6 +222,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
           processedData.push(lapData);
         }
         
+        // Check if we have partial data from either year
         if ((baseRace.isPartialData || baseRace.incomplete) && 
             (compRace.isPartialData || compRace.incomplete)) {
           toast.warning("Partial lap data loaded for both years", {
@@ -298,7 +252,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         setIsProcessingData(false);
       }
     }
-  }, [baseLapTimes, comparisonLapTimes, baseDrivers, comparisonDrivers, baseYear, comparisonYear, displayMode]);
+  }, [baseLapTimes, comparisonLapTimes, baseDrivers, comparisonDrivers, baseYear, comparisonYear]);
 
   const toggleBaseDriver = (driverCode: string) => {
     setSelectedBaseDrivers(prev => 
@@ -365,10 +319,12 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     <div className="h-full">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
         <div className="flex items-center gap-2">
-          <DisplayModeToggle 
-            displayMode={displayMode} 
-            onToggle={toggleDisplayMode}
-          />
+          <button 
+            onClick={toggleDisplayMode}
+            className="px-3 py-1 text-xs font-medium rounded bg-gray-200 hover:bg-gray-300 transition-colors"
+          >
+            Show {displayMode === 'absolute' ? 'Gaps' : 'Absolute Times'}
+          </button>
         </div>
         
         <div className="flex flex-col md:flex-row gap-2 md:items-center">
@@ -382,6 +338,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         </div>
       </div>
       
+      {/* Show partial data warning if applicable */}
       {(baseLapTimes?.data?.Races?.[0]?.isPartialData || 
         baseLapTimes?.data?.Races?.[0]?.incomplete ||
         comparisonLapTimes?.data?.Races?.[0]?.isPartialData ||
@@ -446,10 +403,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-            <XAxis 
-              dataKey="lap" 
-              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
-            />
+            <XAxis dataKey="lap" label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} />
             <YAxis 
               label={{ 
                 value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', 
@@ -484,6 +438,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
               }}
             />
             
+            {/* Base year lines */}
             {baseDrivers
               .filter(driver => selectedBaseDrivers.includes(driver.code))
               .map(driver => (
@@ -492,7 +447,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   type="monotone"
                   dataKey={`${driver.code}_${baseYear}`}
                   name={`${driver.code}_${baseYear}`}
-                  stroke={`#f59e0b`}
+                  stroke={`#f59e0b`} // Amber color for base year
                   strokeDasharray={driver.finishPosition === 1 ? "0" : "5 5"}
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
                   dot={{ r: 2, fill: `#f59e0b` }}
@@ -501,6 +456,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                 />
               ))}
             
+            {/* Comparison year lines */}
             {comparisonDrivers
               .filter(driver => selectedComparisonDrivers.includes(driver.code))
               .map(driver => (
@@ -509,7 +465,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   type="monotone"
                   dataKey={`${driver.code}_${comparisonYear}`}
                   name={`${driver.code}_${comparisonYear}`}
-                  stroke={`#3b82f6`}
+                  stroke={`#3b82f6`} // Blue color for comparison year
                   strokeDasharray={driver.finishPosition === 1 ? "0" : "5 5"}
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
                   dot={{ r: 2, fill: `#3b82f6` }}

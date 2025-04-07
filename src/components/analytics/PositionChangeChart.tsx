@@ -114,11 +114,13 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
               type="number"
               domain={[1, maxLap]}
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
+              xAxisId="position"
             />
             <YAxis
               reversed
               domain={[1, 20]}
               label={{ value: 'Position', angle: -90, position: 'insideLeft' }}
+              yAxisId="position"
             />
             <Tooltip
               formatter={(value) => [`Position: ${value}`, '']}
@@ -149,6 +151,8 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
                   dot={{ r: 3 }}
                   activeDot={{ r: 8 }}
                   connectNulls
+                  xAxisId="position"
+                  yAxisId="position"
                   isAnimationActive={false}
                   opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
                 />

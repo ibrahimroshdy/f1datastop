@@ -25,12 +25,10 @@ export const convertLapTimeToSeconds = (lapTime: string): number => {
  * Formats a time in seconds to a string (e.g. 90.456 to "1:30.456")
  */
 export const formatTime = (seconds: number): string => {
-  if (!seconds && seconds !== 0) return "N/A";
+  if (!seconds) return "N/A";
   
   const mins = Math.floor(seconds / 60);
   const secs = (seconds % 60).toFixed(3);
-  
-  // Format properly with leading zeros on seconds if needed
   return `${mins}:${secs.padStart(6, '0')}`;
 };
 
@@ -60,18 +58,6 @@ export const processLapTimeData = (
     const lapNumber = parseInt(lap.number);
     const lapData: any = { lap: lapNumber };
     
-    // For gap mode, find the fastest time in this lap
-    let fastestInLap = Number.MAX_VALUE;
-    
-    if (displayMode === 'gap') {
-      lap.Timings.forEach((timing: any) => {
-        const lapTime = convertLapTimeToSeconds(timing.time);
-        if (lapTime > 0 && lapTime < fastestInLap) {
-          fastestInLap = lapTime;
-        }
-      });
-    }
-    
     lap.Timings.forEach((timing: any) => {
       const driverId = timing.driverId;
       const driver = availableDrivers.find(d => d.driverId === driverId);
@@ -87,13 +73,7 @@ export const processLapTimeData = (
         };
       }
       
-      if (displayMode === 'absolute') {
-        lapData[driverCode] = lapTime;
-      } else if (displayMode === 'gap' && fastestInLap < Number.MAX_VALUE) {
-        // For gap mode, calculate time difference to fastest lap
-        lapData[driverCode] = lapTime - fastestInLap;
-      }
-      
+      lapData[driverCode] = lapTime;
       lapData[`${driverCode}_raw`] = timing.time; // Store original time format
     });
     
@@ -105,6 +85,39 @@ export const processLapTimeData = (
     ? { time: overallFastestLap.time, driver: overallFastestLap.driver }
     : null;
   
+  // If we're in gap mode, calculate gaps to fastest lap
+  if (displayMode === 'gap' && data.length > 0) {
+    // Find baseline (typically the race leader) for each lap
+    return { 
+      chartData: data.map(lap => {
+        const lapNumber = lap.lap;
+        const newLap = { lap: lapNumber };
+        
+        // Find the fastest time in this lap
+        let fastestInLap = Number.MAX_VALUE;
+        availableDrivers.forEach(driver => {
+          const time = lap[driver.code];
+          if (time && time > 0 && time < fastestInLap) {
+            fastestInLap = time;
+          }
+        });
+        
+        // Calculate gaps for each driver
+        availableDrivers.forEach(driver => {
+          const time = lap[driver.code];
+          if (time && time > 0) {
+            newLap[driver.code] = time - fastestInLap;
+            newLap[`${driver.code}_raw`] = lap[`${driver.code}_raw`];
+          }
+        });
+        
+        return newLap;
+      }),
+      fastestLapTime 
+    };
+  }
+  
+  // For absolute mode, return the original data
   return { chartData: data, fastestLapTime };
 };
 

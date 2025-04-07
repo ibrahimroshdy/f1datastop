@@ -86,7 +86,8 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
             dataKey="lap" 
             type="number"
             domain={[1, maxLap]}
-            label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
+            label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+            xAxisId="lapTime"
           />
           <YAxis 
             label={{ 
@@ -95,6 +96,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
               position: 'insideLeft',
             }} 
             domain={yDomain}
+            yAxisId="lapTime"
             tickFormatter={(value) => displayMode === 'absolute' ? formatTime(value) : `+${value.toFixed(1)}`}
           />
           <Tooltip 
@@ -139,7 +141,9 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 value: `Fastest Lap: ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`, 
                 position: 'right', 
                 fill: '#c026d3' 
-              }}
+              }} 
+              xAxisId="lapTime"
+              yAxisId="lapTime"
             />
           )}
           
@@ -156,6 +160,8 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 dot={{ r: 3 }}
                 activeDot={{ r: 8 }}
                 connectNulls
+                xAxisId="lapTime"
+                yAxisId="lapTime"
                 isAnimationActive={false}
                 opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
               />
