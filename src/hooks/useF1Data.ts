@@ -39,26 +39,6 @@ export const useDriverStandings = (year?: number) => {
   });
 };
 
-// Updated hook for OpenF1 Sessions
-export const useOpenF1Sessions = (year?: number) => {
-  return useQuery({
-    queryKey: ["openF1Sessions", year],
-    queryFn: () => f1Service.getOpenF1Sessions(year),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    ...defaultRetryConfig,
-  });
-};
-
-// Updated hook for OpenF1 Drivers
-export const useOpenF1Drivers = (year?: number) => {
-  return useQuery({
-    queryKey: ["openF1Drivers", year],
-    queryFn: () => f1Service.getOpenF1Drivers(year),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    ...defaultRetryConfig,
-  });
-};
-
 export const useConstructorStandings = (year?: number) => {
   return useQuery({
     queryKey: ["constructorStandings", year],
