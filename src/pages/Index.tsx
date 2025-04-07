@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -231,14 +232,14 @@ const Index = () => {
                   </CardContent>
                 </Card>
                 
-                <Card className="bg-gray-900 border-gray-800">
+                <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100%-152px)]">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2">
                       <Clock className="h-5 w-5 text-f1-red" />
                       Last Race Results
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex-1 flex flex-col pb-6">
                     {isResultsLoading ? (
                       <div className="space-y-2">
                         <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
@@ -252,7 +253,7 @@ const Index = () => {
                             {lastRaceResults?.data?.raceName ? getRaceNameWithoutEmoji(lastRaceResults?.data?.raceName) : "No race data"}
                           </h3>
                         </div>
-                        <div className="space-y-2.5">
+                        <div className="space-y-2.5 flex-1">
                           {lastRaceResults?.data?.results?.slice(0, 5).map(result => (
                             <div key={result.position} className="flex justify-between items-center border-b border-gray-800 pb-2">
                               <div className="flex items-center gap-3">
@@ -273,6 +274,8 @@ const Index = () => {
                               </div>
                             </div>
                           ))}
+                          {/* Additional bottom padding/margin to ensure proper spacing */}
+                          <div className="h-4"></div>
                         </div>
                       </>
                     )}
