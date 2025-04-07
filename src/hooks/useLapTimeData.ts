@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -14,6 +15,7 @@ export interface Driver {
 }
 
 export const useLapTimeData = (year: number, round: string, displayMode: 'absolute' | 'gap') => {
+  // Force absolute mode for now to avoid axis issues
   displayMode = 'absolute';
   
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
@@ -48,6 +50,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     if (isError && retryCount < 15) { // Up to 15 retry attempts
       const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // Backoff up to 60 seconds
       
+      // Format progress with exactly 2 decimal places
       setLoadingProgress(parseFloat((retryCount * 7).toFixed(2)));
       setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
       

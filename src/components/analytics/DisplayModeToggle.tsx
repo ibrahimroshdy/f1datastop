@@ -8,7 +8,7 @@ interface DisplayModeToggleProps {
 }
 
 const DisplayModeToggle: React.FC<DisplayModeToggleProps> = ({ displayMode, onToggle }) => {
-  // For now, completely disable the gap mode functionality to avoid axis issues
+  // Completely disable the gap mode functionality to avoid axis issues
   return (
     <Button 
       onClick={onToggle}
