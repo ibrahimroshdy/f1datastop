@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -54,7 +53,7 @@ export const usePositionChangeData = (year: number, round: string) => {
     if (isError && retryCount < 15) { // Increased max retry attempts to 15
       const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // More aggressive backoff up to 60 seconds
       
-      // More detailed progress feedback with 2 decimal places
+      // Format progress with exactly 2 decimal places
       setLoadingProgress(parseFloat((retryCount * 7).toFixed(2)));
       setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
       
@@ -106,11 +105,15 @@ export const usePositionChangeData = (year: number, round: string) => {
   useEffect(() => {
     if (lapTimesData?.data?.Races?.[0]?.Laps) {
       setIsProcessingData(true);
+      const processingMessage = "Processing position change data...";
+      setErrorMessage(processingMessage);
+      
       // Use setTimeout to allow UI to update before processing large dataset
       setTimeout(() => {
         const laps = lapTimesData.data.Races[0].Laps;
         setTotalLaps(laps.length);
         setIsProcessingData(false);
+        setErrorMessage(null);
       }, 0);
     }
   }, [lapTimesData]);

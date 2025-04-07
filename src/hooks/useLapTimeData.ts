@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -15,6 +14,8 @@ export interface Driver {
 }
 
 export const useLapTimeData = (year: number, round: string, displayMode: 'absolute' | 'gap') => {
+  displayMode = 'absolute';
+  
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
@@ -25,7 +26,6 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Use React Query hooks for data fetching
   const { 
     data: raceResultsData, 
     isLoading: isResultsLoading, 
@@ -44,12 +44,10 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
   const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
 
-  // Auto-retry on error with increased delay between retries
   useEffect(() => {
     if (isError && retryCount < 15) { // Up to 15 retry attempts
       const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // Backoff up to 60 seconds
       
-      // Updated to show 2 decimal places
       setLoadingProgress(parseFloat((retryCount * 7).toFixed(2)));
       setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
       
@@ -70,7 +68,6 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     }
   }, [isError, retryCount, refetchLapTimes, failureCount, isLoading]);
 
-  // Process race results to get available drivers
   useEffect(() => {
     if (raceResultsData?.data?.Results && raceResultsData.data.Results.length > 0) {
       const drivers = raceResultsData.data.Results.map((result: any) => {
@@ -91,7 +88,6 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
       
       setAvailableDrivers(drivers);
       
-      // Auto-select only the winner by default
       if (drivers.length > 0) {
         const winner = drivers.find(d => d.finishPosition === 1);
         if (winner) {
@@ -101,7 +97,6 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
         }
       }
 
-      // Find fastest lap time
       let fastestDriver = null;
       let fastestTime = Number.MAX_VALUE;
 
@@ -121,15 +116,16 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     }
   }, [raceResultsData]);
 
-  // Process lap times data
   useEffect(() => {
     if (lapTimesData?.data?.Races?.[0]?.Laps) {
       setIsProcessingData(true);
+      const processingMessage = "Processing lap time data...";
+      setErrorMessage(processingMessage);
+      
       setTimeout(() => {
         const laps = lapTimesData.data.Races[0].Laps;
         setTotalLaps(laps.length);
         
-        // Find fastest lap time from lap data if not already set
         if (!fastestLapTime) {
           let fastestTime = Number.MAX_VALUE;
           let fastestDriver = '';
@@ -154,6 +150,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
         }
         
         setIsProcessingData(false);
+        setErrorMessage(null);
       }, 0);
     }
   }, [lapTimesData, availableDrivers, fastestLapTime]);
@@ -170,7 +167,6 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     setHoveredDriver(driverCode);
   };
 
-  // Calculate visible drivers (either all selected or just the hovered one)
   const visibleDrivers = useMemo(() => {
     if (hoveredDriver) {
       return selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers;
@@ -178,11 +174,9 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     return selectedDrivers;
   }, [hoveredDriver, selectedDrivers]);
 
-  // Helper function to convert lap time string to seconds
   const convertLapTimeToSeconds = (lapTimeStr: string): number => {
     if (!lapTimeStr) return 0;
     
-    // Handle different time formats (e.g., "1:30.123" or "90.123")
     const timeParts = lapTimeStr.split(':');
     if (timeParts.length === 2) {
       const minutes = parseFloat(timeParts[0]);
@@ -193,7 +187,6 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     return parseFloat(lapTimeStr);
   };
 
-  // Function to get average lap time for a driver
   const getAverageTime = (driverCode: string): number | null => {
     if (!lapTimesData?.data?.Races || !driverCode) return null;
     
@@ -221,7 +214,6 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     return lapCount > 0 ? totalTime / lapCount : null;
   };
 
-  // Memoize chart data to avoid recalculations
   const chartData = useMemo(() => {
     if (!lapTimesData?.data?.Races?.[0]?.Laps || !fastestLapTime) {
       return [];
@@ -240,9 +232,8 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
         if (driver) {
           const lapTime = convertLapTimeToSeconds(timing.time);
           
-          // Only use absolute mode for now to avoid axis issues
           lapData[driver.code] = lapTime;
-          lapData[`${driver.code}_original`] = lapTime; // Store original time for tooltips
+          lapData[`${driver.code}_original`] = lapTime;
         }
       });
       
@@ -252,7 +243,6 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     return processedData;
   }, [lapTimesData, availableDrivers, fastestLapTime]);
 
-  // Calculate maximum lap number from the data
   const maxLap = chartData.length > 0 
     ? Math.max(...chartData.map(lap => lap.lap)) 
     : totalLaps;
