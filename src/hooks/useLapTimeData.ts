@@ -13,7 +13,8 @@ import {
 } from "@/utils/lapTimeDataUtils";
 import { Driver, FastestLapTime } from "@/types/lapTimeTypes";
 
-export { Driver, FastestLapTime };
+// Use export type for re-exporting types
+export type { Driver, FastestLapTime };
 
 export const useLapTimeData = (year: number, round: string, requestedDisplayMode: 'absolute' | 'gap') => {
   // Force absolute mode to avoid axis issues
