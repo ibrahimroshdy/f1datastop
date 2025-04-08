@@ -152,19 +152,20 @@ export const useQualifyingData = (year: number, round: string) => {
     return selectedDrivers;
   }, [hoveredDriver, selectedDrivers]);
 
-  // Helper function to convert lap time string to seconds
-  const convertLapTimeToSeconds = (lapTimeStr: string): number => {
-    if (!lapTimeStr) return 0;
+  // Function to convert lap time string (e.g. "1:15.912") to seconds
+  const convertLapTimeToSeconds = (timeStr: string): number | null => {
+    if (!timeStr) return null;
     
-    // Handle different time formats (e.g., "1:30.123" or "90.123")
-    const timeParts = lapTimeStr.split(':');
-    if (timeParts.length === 2) {
-      const minutes = parseFloat(timeParts[0]);
-      const seconds = parseFloat(timeParts[1]);
+    // Handle format 'M:SS.sss'
+    const parts = timeStr.split(':');
+    if (parts.length === 2) {
+      const minutes = parseFloat(parts[0]);
+      const seconds = parseFloat(parts[1]);
       return minutes * 60 + seconds;
     }
     
-    return parseFloat(lapTimeStr);
+    // If just a number is provided, assume it's seconds
+    return parseFloat(timeStr);
   };
 
   // Generate chart data

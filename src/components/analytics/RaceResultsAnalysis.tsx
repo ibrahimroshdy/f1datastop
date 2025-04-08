@@ -79,9 +79,16 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
     return qualifyingResultsData.data.QualifyingResults.map((result: any) => {
       const driver = result.Driver;
       const constructor = result.Constructor || { constructorId: "unknown" };
+      
+      // Handle time formats like '1:15.912'
       const q1 = result.Q1 ? convertLapTimeToSeconds(result.Q1) : null;
       const q2 = result.Q2 ? convertLapTimeToSeconds(result.Q2) : null;
       const q3 = result.Q3 ? convertLapTimeToSeconds(result.Q3) : null;
+      
+      // Store original string values for display
+      const q1String = result.Q1 || '';
+      const q2String = result.Q2 || '';
+      const q3String = result.Q3 || '';
       
       return {
         position: parseInt(result.position),
@@ -90,7 +97,11 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
         q1,
         q2,
         q3,
+        q1String,
+        q2String,
+        q3String,
         bestTime: q3 || q2 || q1,
+        bestTimeString: q3String || q2String || q1String,
         color: TEAM_COLORS[constructor.constructorId.toLowerCase()] || TEAM_COLORS.default
       };
     }).sort((a: any, b: any) => a.position - b.position);
@@ -99,16 +110,14 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
   const convertLapTimeToSeconds = (lapTime: string): number => {
     if (!lapTime) return 0;
     
-    const parts = lapTime.includes(':') 
-      ? lapTime.split(':') 
-      : ['0', lapTime];
+    // Handle time formats like '1:15.912'
+    if (lapTime.includes(':')) {
+      const [minutes, seconds] = lapTime.split(':');
+      return parseFloat(minutes) * 60 + parseFloat(seconds);
+    }
     
-    if (parts.length !== 2) return 0;
-    
-    const minutes = parseFloat(parts[0]);
-    const seconds = parseFloat(parts[1]);
-    
-    return minutes * 60 + seconds;
+    // If just a number is provided, assume it's seconds
+    return parseFloat(lapTime);
   };
 
   const raceData = processRaceData();
@@ -274,9 +283,18 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                         borderRadius: '5px'
                       }}
                       formatter={(value, name) => {
-                        if (name === 'Q1') return [formatTime(value as number), 'Q1'];
-                        if (name === 'Q2') return [formatTime(value as number), 'Q2'];
-                        if (name === 'Q3') return [formatTime(value as number), 'Q3'];
+                        if (name === 'Q1') {
+                          const driver = qualifyingDisplayData.find(d => d.q1 === value);
+                          return [driver?.q1String || formatTime(value as number), 'Q1'];
+                        }
+                        if (name === 'Q2') {
+                          const driver = qualifyingDisplayData.find(d => d.q2 === value);
+                          return [driver?.q2String || formatTime(value as number), 'Q2'];
+                        }
+                        if (name === 'Q3') {
+                          const driver = qualifyingDisplayData.find(d => d.q3 === value);
+                          return [driver?.q3String || formatTime(value as number), 'Q3'];
+                        }
                         return [value, name];
                       }}
                     />

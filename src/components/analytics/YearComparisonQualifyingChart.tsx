@@ -88,7 +88,7 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
   const convertLapTimeToSeconds = (timeStr: string): number | null => {
     if (!timeStr) return null;
     
-    // If string is already in seconds, e.g. '90.123'
+    // If the string is already in seconds, e.g., '90.123'
     if (!timeStr.includes(':')) {
       return parseFloat(timeStr);
     }
@@ -107,6 +107,7 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
     if (baseQualifying?.data?.QualifyingResults) {
       const results = baseQualifying.data.QualifyingResults;
       const drivers = results.map((result: any) => {
+        // Properly handle Q1, Q2, Q3 times in format "1:15.912"
         const q1Time = convertLapTimeToSeconds(result.Q1);
         const q2Time = convertLapTimeToSeconds(result.Q2);
         const q3Time = convertLapTimeToSeconds(result.Q3);
@@ -131,7 +132,11 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
           q1Time,
           q2Time,
           q3Time,
-          year: baseYear
+          year: baseYear,
+          // Store original time strings for display purposes
+          q1String: result.Q1 || '',
+          q2String: result.Q2 || '',
+          q3String: result.Q3 || ''
         };
       });
       
@@ -187,6 +192,7 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
     if (comparisonQualifying?.data?.QualifyingResults) {
       const results = comparisonQualifying.data.QualifyingResults;
       const drivers = results.map((result: any) => {
+        // Properly handle Q1, Q2, Q3 times in format "1:15.912"
         const q1Time = convertLapTimeToSeconds(result.Q1);
         const q2Time = convertLapTimeToSeconds(result.Q2);
         const q3Time = convertLapTimeToSeconds(result.Q3);
@@ -211,7 +217,11 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
           q1Time,
           q2Time,
           q3Time,
-          year: comparisonYear
+          year: comparisonYear,
+          // Store original time strings for display purposes
+          q1String: result.Q1 || '',
+          q2String: result.Q2 || '',
+          q3String: result.Q3 || ''
         };
       });
       
@@ -564,6 +574,30 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
             <Tooltip 
               formatter={(value, name) => {
                 if (typeof value !== 'number') return [value, name];
+                
+                // Determine which driver and session the value corresponds to
+                const [session, yearType] = (name as string).split('_');
+                const isBaseYear = yearType === 'Base';
+                
+                // Find the driver data
+                const chartItem = chartData.find(item => {
+                  const itemYearType = item.yearSuffix;
+                  return itemYearType === yearType && item[`${session}_${yearType}`] === value;
+                });
+                
+                if (chartItem) {
+                  // Use original time string if available
+                  const originalTimeProperty = `${session.toLowerCase()}String`;
+                  const driverData = isBaseYear 
+                    ? baseDrivers.find(d => d.code === chartItem.driverCode)
+                    : comparisonDrivers.find(d => d.code === chartItem.driverCode);
+                    
+                  if (driverData && driverData[originalTimeProperty]) {
+                    return [driverData[originalTimeProperty], formatLegendText(name as string)];
+                  }
+                }
+                
+                // Fallback to formatted time if original string not found
                 return [formatLapTime(value), formatLegendText(name as string)];
               }}
               labelFormatter={(label) => {
