@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { getCountryFlag, addFlagToRaceName } from "@/utils/countryUtils";
 
@@ -173,17 +174,50 @@ export const getPitStops = async (year: number, round: string) => {
   }
 };
 
-// Fetch lap times for a specific race with pagination support
+// Enhanced throttled fetch with retry for handling 429 errors
+async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3): Promise<Response> {
+  let retries = 0;
+  
+  while (true) {
+    try {
+      const response = await fetch(url, {
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      // If we get rate limited, wait and retry
+      if (response.status === 429 && retries < maxRetries) {
+        retries++;
+        // Calculate exponential backoff with jitter
+        const delay = retryDelay * (2 ** retries) * (0.8 + Math.random() * 0.4);
+        console.log(`Rate limit hit. Retry ${retries}/${maxRetries} after ${Math.round(delay)}ms delay`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      if (retries < maxRetries) {
+        retries++;
+        const delay = retryDelay * (2 ** retries);
+        console.log(`Network error. Retry ${retries}/${maxRetries} after ${delay}ms delay`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
+// Fetch lap times for a specific race with enhanced pagination and retry support
 export const getLapTimes = async (year: number, round: string, firstDriverOnly?: string) => {
   try {
     let baseUrl = `${BASE_URL}/f1/${year}/${round}/laps`;
     
-    const initialResponse = await fetch(`${baseUrl}.json?limit=30&offset=0`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
+    // Initial request with small page size to quickly get total count
+    const initialResponse = await throttledFetch(`${baseUrl}.json?limit=30&offset=0`, 3000, 5);
     
     if (!initialResponse.ok) {
       if (initialResponse.status === 429) {
@@ -206,21 +240,18 @@ export const getLapTimes = async (year: number, round: string, firstDriverOnly?:
       const requestsNeeded = Math.ceil((total - 30) / limit);
       const fetchPromises = [];
       
+      // Stagger requests to avoid overwhelming the API
       for (let i = 0; i < requestsNeeded; i++) {
         const offset = 30 + (i * limit);
-        const url = `${baseUrl}.json?limit=${limit}&offset=${offset}`;
         
         fetchPromises.push(
           new Promise(async (resolve, reject) => {
+            // Increasing delays between batch requests to reduce rate limiting
             await new Promise(r => setTimeout(r, i * 200));
             
             try {
-              const response = await fetch(url, {
-                mode: 'cors',
-                headers: {
-                  'Accept': 'application/json'
-                }
-              });
+              // Use throttled fetch for each pagination request
+              const response = await throttledFetch(`${baseUrl}.json?limit=${limit}&offset=${offset}`, 5000, 5);
               
               if (!response.ok) {
                 if (response.status === 429) {
@@ -242,13 +273,23 @@ export const getLapTimes = async (year: number, round: string, firstDriverOnly?:
       }
       
       try {
-        const additionalLapsArrays = await Promise.all(fetchPromises);
+        // Use allSettled to get as much data as possible even if some requests fail
+        const results = await Promise.allSettled(fetchPromises);
         
-        additionalLapsArrays.forEach(laps => {
-          allLaps = [...allLaps, ...laps];
+        // Process successful requests
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            allLaps = [...allLaps, ...result.value];
+          } else {
+            console.warn(`Failed to fetch lap data batch ${index + 1}:`, result.reason);
+          }
         });
         
+        // Sort laps by number to ensure correct order after parallel fetching
         allLaps.sort((a: any, b: any) => parseInt(a.number) - parseInt(b.number));
+        
+        // Check if we have partial data (some requests succeeded, some failed)
+        const isPartialData = results.some(r => r.status === 'rejected');
         
         const completeData = {
           ...initialData.MRData,
@@ -256,18 +297,34 @@ export const getLapTimes = async (year: number, round: string, firstDriverOnly?:
             ...initialData.MRData.RaceTable,
             Races: [{
               ...initialData.MRData.RaceTable.Races[0],
-              Laps: allLaps
+              Laps: allLaps,
+              isPartialData
             }]
           }
         };
         
+        // If we have partial data but still enough to show something useful
+        if (isPartialData && allLaps.length > 10) {
+          toast.warning("Some lap data could not be loaded due to API rate limits", {
+            description: "Showing partial data. You may see gaps in the charts.",
+            duration: 5000,
+          });
+        }
+        
         return { 
           data: { Races: completeData.RaceTable.Races }, 
-          error: null 
+          error: isPartialData ? "Partial data loaded due to API rate limits" : null,
+          isPartialData
         };
       } catch (error: any) {
         console.error(`Failed to fetch all lap times for round ${round}:`, error);
+        // Return partial data if we have some laps
         if (allLaps.length > 0) {
+          toast.warning("Partial lap data loaded", {
+            description: "API rate limits prevented loading all laps. Showing what was available.",
+            duration: 5000,
+          });
+          
           return { 
             data: { 
               Races: [{ 
@@ -277,7 +334,8 @@ export const getLapTimes = async (year: number, round: string, firstDriverOnly?:
               }] 
             }, 
             error: "Incomplete data due to API rate limits",
-            status: error.status || 500
+            status: error.status || 500,
+            isPartialData: true
           };
         }
         throw error;

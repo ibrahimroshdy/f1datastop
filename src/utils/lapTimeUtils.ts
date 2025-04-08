@@ -33,6 +33,13 @@ export const formatTime = (seconds: number): string => {
 };
 
 /**
+ * Formats a percentage to have two decimal places
+ */
+export const formatPercentage = (value: number): string => {
+  return value.toFixed(2);
+};
+
+/**
  * Processes lap time data for use in charts
  */
 export const processLapTimeData = (
@@ -85,39 +92,7 @@ export const processLapTimeData = (
     ? { time: overallFastestLap.time, driver: overallFastestLap.driver }
     : null;
   
-  // If we're in gap mode, calculate gaps to fastest lap
-  if (displayMode === 'gap' && data.length > 0) {
-    // Find baseline (typically the race leader) for each lap
-    return { 
-      chartData: data.map(lap => {
-        const lapNumber = lap.lap;
-        const newLap = { lap: lapNumber };
-        
-        // Find the fastest time in this lap
-        let fastestInLap = Number.MAX_VALUE;
-        availableDrivers.forEach(driver => {
-          const time = lap[driver.code];
-          if (time && time > 0 && time < fastestInLap) {
-            fastestInLap = time;
-          }
-        });
-        
-        // Calculate gaps for each driver
-        availableDrivers.forEach(driver => {
-          const time = lap[driver.code];
-          if (time && time > 0) {
-            newLap[driver.code] = time - fastestInLap;
-            newLap[`${driver.code}_raw`] = lap[`${driver.code}_raw`];
-          }
-        });
-        
-        return newLap;
-      }),
-      fastestLapTime 
-    };
-  }
-  
-  // For absolute mode, return the original data
+  // For now, we'll only return absolute mode data to avoid axis issues
   return { chartData: data, fastestLapTime };
 };
 

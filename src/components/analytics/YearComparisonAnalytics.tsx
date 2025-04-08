@@ -1,15 +1,13 @@
-
 import { useState } from "react";
 import { useRaceSchedule, useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, ArrowLeftRight, Loader2 } from "lucide-react";
+import { Info, GitCompare, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import YearComparisonLapChart from "./YearComparisonLapChart";
 import YearComparisonPositionChart from "./YearComparisonPositionChart";
-import DisplayModeToggle from "./DisplayModeToggle";
 
 const YearComparisonAnalytics = () => {
   const [baseYear, setBaseYear] = useState<number>(new Date().getFullYear() - 1);
@@ -17,9 +15,7 @@ const YearComparisonAnalytics = () => {
   const [selectedRaceBase, setSelectedRaceBase] = useState<string>("1");
   const [selectedRaceComparison, setSelectedRaceComparison] = useState<string>("1");
   const [selectedTab, setSelectedTab] = useState<string>("lapTimes");
-  const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
   
-  // Fetch race schedules for both years
   const { 
     data: baseRaceSchedule, 
     isLoading: isBaseScheduleLoading 
@@ -30,12 +26,6 @@ const YearComparisonAnalytics = () => {
     isLoading: isComparisonScheduleLoading 
   } = useRaceSchedule(comparisonYear);
 
-  // Handler for display mode toggle
-  const handleDisplayModeToggle = () => {
-    setDisplayMode(displayMode === 'absolute' ? 'gap' : 'absolute');
-  };
-
-  // Handler for year changes
   const handleBaseYearChange = (value: string) => {
     const year = parseInt(value);
     setBaseYear(year);
@@ -48,7 +38,6 @@ const YearComparisonAnalytics = () => {
     setSelectedRaceComparison("1");
   };
 
-  // Handler for race selection
   const handleBaseRaceChange = (value: string) => {
     setSelectedRaceBase(value);
   };
@@ -57,7 +46,6 @@ const YearComparisonAnalytics = () => {
     setSelectedRaceComparison(value);
   };
 
-  // Remove emoji flags from race names
   const cleanRaceName = (raceName: string) => {
     if (!raceName) return "";
     
@@ -75,7 +63,6 @@ const YearComparisonAnalytics = () => {
     return raceName;
   };
 
-  // Generate year options
   const generateYearOptions = () => {
     const currentYear = new Date().getFullYear();
     const years = [];
@@ -90,7 +77,7 @@ const YearComparisonAnalytics = () => {
   return (
     <div className="space-y-6">
       <Alert className="bg-amber-50 text-amber-800 border-amber-200">
-        <ArrowLeftRight className="h-4 w-4" />
+        <GitCompare className="h-4 w-4" />
         <AlertDescription>
           Compare lap times and position changes from races in different seasons. 
           Select a base year and a comparison year to see how performance has evolved.
@@ -98,7 +85,6 @@ const YearComparisonAnalytics = () => {
       </Alert>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {/* Base Year Selection */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Base Year</CardTitle>
@@ -151,7 +137,6 @@ const YearComparisonAnalytics = () => {
           </CardContent>
         </Card>
 
-        {/* Comparison Year Selection */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Comparison Year</CardTitle>
@@ -205,13 +190,6 @@ const YearComparisonAnalytics = () => {
         </Card>
       </div>
 
-      <div className="flex justify-end mb-4">
-        <DisplayModeToggle 
-          displayMode={displayMode} 
-          onToggle={handleDisplayModeToggle} 
-        />
-      </div>
-
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="lapTimes">Lap Time Comparison</TabsTrigger>
@@ -232,7 +210,6 @@ const YearComparisonAnalytics = () => {
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}
                 comparisonRound={selectedRaceComparison}
-                displayMode={displayMode}
               />
             </CardContent>
           </Card>
@@ -252,7 +229,6 @@ const YearComparisonAnalytics = () => {
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}
                 comparisonRound={selectedRaceComparison}
-                displayMode={displayMode}
               />
             </CardContent>
           </Card>

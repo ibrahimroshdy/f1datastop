@@ -9,49 +9,60 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import DataLoadingProgress from "./DataLoadingProgress";
 
 interface YearComparisonLapChartProps {
   baseYear: number;
   baseRound: string;
   comparisonYear: number;
   comparisonRound: string;
-  displayMode: 'absolute' | 'gap';
 }
 
 const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   baseYear,
   baseRound,
   comparisonYear,
-  comparisonRound,
-  displayMode
+  comparisonRound
 }) => {
   const [baseDrivers, setBaseDrivers] = useState<any[]>([]);
   const [comparisonDrivers, setComparisonDrivers] = useState<any[]>([]);
   const [selectedBaseDrivers, setSelectedBaseDrivers] = useState<string[]>([]);
   const [selectedComparisonDrivers, setSelectedComparisonDrivers] = useState<string[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
   const [isProcessingData, setIsProcessingData] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Fetch results and lap times for base year
   const { 
     data: baseResults,
-    isLoading: isBaseResultsLoading
+    isLoading: isBaseResultsLoading,
+    error: baseResultsError,
   } = useRaceResults(baseYear, baseRound);
   
   const {
     data: baseLapTimes,
-    isLoading: isBaseLapTimesLoading
+    isLoading: isBaseLapTimesLoading,
+    error: baseLapTimesError,
+    isError: isBaseLapTimesError,
+    failureCount: baseLapTimesFailureCount
   } = useLapTimes(baseYear, baseRound);
   
   // Fetch results and lap times for comparison year
   const { 
     data: comparisonResults,
-    isLoading: isComparisonResultsLoading
+    isLoading: isComparisonResultsLoading,
+    error: comparisonResultsError
   } = useRaceResults(comparisonYear, comparisonRound);
   
   const {
     data: comparisonLapTimes,
-    isLoading: isComparisonLapTimesLoading
+    isLoading: isComparisonLapTimesLoading,
+    error: comparisonLapTimesError,
+    isError: isComparisonLapTimesError,
+    failureCount: comparisonLapTimesFailureCount
   } = useLapTimes(comparisonYear, comparisonRound);
   
   const isLoading = 
@@ -60,6 +71,48 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     isComparisonResultsLoading || 
     isComparisonLapTimesLoading ||
     isProcessingData;
+
+  const isError = isBaseLapTimesError || isComparisonLapTimesError;
+  const totalFailureCount = baseLapTimesFailureCount + comparisonLapTimesFailureCount;
+  
+  // Update retryCount when failureCount changes
+  useEffect(() => {
+    if (totalFailureCount > retryCount) {
+      setRetryCount(totalFailureCount);
+    }
+  }, [totalFailureCount, retryCount]);
+
+  // Update loading progress
+  useEffect(() => {
+    if (isLoading) {
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          // If we already have some data but are still loading, start from a higher base %
+          const baseProgress = (chartData.length > 0) ? 50 : 0;
+          const newProgress = Math.min(baseProgress + Math.random() * 5 + prev/10, 95);
+          return newProgress;
+        });
+      }, 500);
+      
+      return () => clearInterval(progressInterval);
+    } else {
+      setLoadingProgress(100);
+    }
+  }, [isLoading, chartData.length]);
+
+  // Set error message when errors occur
+  useEffect(() => {
+    if (baseLapTimesError || comparisonLapTimesError) {
+      const errorMsg = (baseLapTimesError || comparisonLapTimesError)?.toString();
+      if (errorMsg?.includes('429')) {
+        setErrorMessage(`Rate limit exceeded. System will retry automatically (attempt ${retryCount}/15)`);
+      } else {
+        setErrorMessage(errorMsg || "Error loading lap time data");
+      }
+    } else {
+      setErrorMessage(null);
+    }
+  }, [baseLapTimesError, comparisonLapTimesError, retryCount]);
 
   // Process base year results to get drivers
   useEffect(() => {
@@ -169,6 +222,28 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
           processedData.push(lapData);
         }
         
+        // Check if we have partial data from either year
+        if ((baseRace.isPartialData || baseRace.incomplete) && 
+            (compRace.isPartialData || compRace.incomplete)) {
+          toast.warning("Partial lap data loaded for both years", {
+            description: "API rate limits prevented loading all laps. Some data may be missing.",
+            id: "partial-data-warning",
+            duration: 5000,
+          });
+        } else if (baseRace.isPartialData || baseRace.incomplete) {
+          toast.warning(`Partial lap data loaded for ${baseYear}`, {
+            description: "API rate limits prevented loading all laps. Some data may be missing.",
+            id: "partial-base-data-warning",
+            duration: 5000,
+          });
+        } else if (compRace.isPartialData || compRace.incomplete) {
+          toast.warning(`Partial lap data loaded for ${comparisonYear}`, {
+            description: "API rate limits prevented loading all laps. Some data may be missing.",
+            id: "partial-comp-data-warning",
+            duration: 5000,
+          });
+        }
+        
         setChartData(processedData);
       } catch (error) {
         console.error("Error processing lap time data:", error);
@@ -195,6 +270,10 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     );
   };
 
+  const toggleDisplayMode = () => {
+    setDisplayMode(prev => prev === 'absolute' ? 'gap' : 'absolute');
+  };
+
   const getRaceCircuitName = (results: any) => {
     if (!results?.data?.Circuit) return "Unknown Circuit";
     return results.data.Circuit.circuitName || results.data.raceName || "Unknown Circuit";
@@ -206,8 +285,22 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin mb-4" />
-        <p className="text-muted-foreground">Loading lap time data...</p>
+        <DataLoadingProgress 
+          isLoading={true}
+          progress={loadingProgress}
+          message={errorMessage}
+          isError={isError}
+          retryCount={retryCount}
+          maxRetries={15}
+        />
+        <div className="pt-6 text-center">
+          <p className="text-muted-foreground">
+            {loadingProgress < 50 ? "Loading lap time data..." : "Processing comparison data..."}
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            The F1 API has rate limits. Automatic retries are in progress if needed.
+          </p>
+        </div>
       </div>
     );
   }
@@ -225,6 +318,15 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   return (
     <div className="h-full">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={toggleDisplayMode}
+            className="px-3 py-1 text-xs font-medium rounded bg-gray-200 hover:bg-gray-300 transition-colors"
+          >
+            Show {displayMode === 'absolute' ? 'Gaps' : 'Absolute Times'}
+          </button>
+        </div>
+        
         <div className="flex flex-col md:flex-row gap-2 md:items-center">
           <Badge variant="outline" className="border-amber-500 py-1">
             {baseYear} - {baseCircuit}
@@ -235,6 +337,18 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
           </Badge>
         </div>
       </div>
+      
+      {/* Show partial data warning if applicable */}
+      {(baseLapTimes?.data?.Races?.[0]?.isPartialData || 
+        baseLapTimes?.data?.Races?.[0]?.incomplete ||
+        comparisonLapTimes?.data?.Races?.[0]?.isPartialData ||
+        comparisonLapTimes?.data?.Races?.[0]?.incomplete) && (
+        <DataLoadingProgress
+          isLoading={false}
+          message="Some lap data couldn't be loaded due to API rate limits. Charts may show gaps or inconsistencies."
+          isError={false}
+        />
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
@@ -338,6 +452,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
                   dot={{ r: 2, fill: `#f59e0b` }}
                   activeDot={{ r: 6 }}
+                  connectNulls={true}
                 />
               ))}
             
@@ -355,6 +470,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
                   dot={{ r: 2, fill: `#3b82f6` }}
                   activeDot={{ r: 6 }}
+                  connectNulls={true}
                 />
               ))}
           </LineChart>

@@ -54,8 +54,8 @@ export const usePositionChangeData = (year: number, round: string) => {
     if (isError && retryCount < 15) { // Increased max retry attempts to 15
       const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // More aggressive backoff up to 60 seconds
       
-      // More detailed progress feedback
-      setLoadingProgress((retryCount * 7));
+      // More detailed progress feedback with 2 decimal places
+      setLoadingProgress(parseFloat((retryCount * 7).toFixed(2)));
       setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
       
       const timer = setTimeout(() => {
@@ -72,7 +72,7 @@ export const usePositionChangeData = (year: number, round: string) => {
     } else if (!isError && !isLoading) {
       // Reset error state once data loads successfully
       setErrorMessage(null);
-      setLoadingProgress(100);
+      setLoadingProgress(100.00); // Make sure we show exactly 100.00%
     }
   }, [isError, retryCount, refetchLapTimes, failureCount, isLoading]);
 

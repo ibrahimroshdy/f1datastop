@@ -128,12 +128,10 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
               type="number"
               domain={[1, maxLap]}
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
-              xAxisId="lapTime"
             />
             <YAxis
               domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
               label={{ value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', angle: -90, position: 'insideLeft' }}
-              yAxisId="lapTime"
             />
             <Tooltip
               formatter={(value, name) => {
@@ -168,8 +166,6 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                 stroke="#c026d3" 
                 strokeDasharray="3 3" 
                 label={{ value: `Fastest Lap: ${fastestLapTime.time.toFixed(3)}s (${fastestLapTime.driver})`, position: 'right', fill: '#c026d3' }} 
-                xAxisId="lapTime"
-                yAxisId="lapTime"
               />
             )}
             {availableDrivers
@@ -185,8 +181,6 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                   dot={{ r: 3 }}
                   activeDot={{ r: 8 }}
                   connectNulls
-                  xAxisId="lapTime"
-                  yAxisId="lapTime"
                   isAnimationActive={false}
                   opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
                 />
