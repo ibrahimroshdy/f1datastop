@@ -166,6 +166,7 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                 strokeDasharray="3 3" 
                 label={{ value: `Fastest Lap: ${fastestLapTime.time.toFixed(3)}s (${fastestLapTime.driver})`, position: 'right', fill: '#c026d3' }} 
                 yAxisId="time"
+                xAxisId="lap"
               />
             )}
             {availableDrivers
