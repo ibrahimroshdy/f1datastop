@@ -708,8 +708,8 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
           <span className="font-medium text-slate-900 dark:text-slate-100">Fastest time: </span>
           <span className={`font-mono font-medium ${
             fastestLapTime.year === baseYear 
-              ? 'text-amber-600 dark:text-amber-400' 
-              : 'text-blue-600 dark:text-blue-400'
+              ? 'text-green-600 dark:text-green-400' 
+              : 'text-green-500 dark:text-green-300'
           }`}>
             {formatTimeDisplay(fastestLapTime.time)}
           </span>
