@@ -18,6 +18,7 @@ export const useDataLoadingState = (maxRetries: number = 15): DataLoadingState =
   const [retryCount, setRetryCount] = useState(0);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [currentFailureCount, setCurrentFailureCount] = useState(0);
 
   // Format progress to always have exactly 2 decimal places
   const formatProgress = (progress: number): string => {
@@ -26,6 +27,9 @@ export const useDataLoadingState = (maxRetries: number = 15): DataLoadingState =
 
   // Handle retry logic
   const handleRetry = (retryFn: () => void, isError: boolean, failureCount: number): (() => void) | void => {
+    // Update the current failure count whenever handleRetry is called
+    setCurrentFailureCount(failureCount);
+    
     if (isError && retryCount < maxRetries) {
       const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // Backoff up to 60 seconds
       
@@ -52,10 +56,10 @@ export const useDataLoadingState = (maxRetries: number = 15): DataLoadingState =
 
   // Update retry count when failure count changes
   useEffect(() => {
-    if (failureCount > retryCount) {
-      setRetryCount(failureCount);
+    if (currentFailureCount > retryCount) {
+      setRetryCount(currentFailureCount);
     }
-  }, [failureCount, retryCount]);
+  }, [currentFailureCount, retryCount]);
 
   return {
     isProcessingData,

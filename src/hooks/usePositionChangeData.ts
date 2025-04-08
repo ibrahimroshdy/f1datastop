@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -57,7 +56,7 @@ export const usePositionChangeData = (year: number, round: string) => {
 
   // Auto-retry on error with increased delay between retries
   useEffect(() => {
-    return handleRetry(refetchLapTimes, isError, failureCount);
+    return handleRetry(refetchLapTimes, isError, failureCount || 0);
   }, [isError, retryCount, refetchLapTimes, failureCount, handleRetry]);
 
   // Set only the first driver selected by default

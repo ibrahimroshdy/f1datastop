@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { toast } from "sonner";
@@ -56,7 +55,7 @@ export const useLapTimeData = (year: number, round: string, requestedDisplayMode
 
   // Handle retries
   useEffect(() => {
-    return handleRetry(refetchLapTimes, isError, failureCount);
+    return handleRetry(refetchLapTimes, isError, failureCount || 0);
   }, [isError, retryCount, refetchLapTimes, failureCount, handleRetry]);
 
   // Process race results data
