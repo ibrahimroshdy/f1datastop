@@ -8,7 +8,7 @@ import { Info, GitCompare, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import YearComparisonLapChart from "./YearComparisonLapChart";
 import YearComparisonPositionChart from "./YearComparisonPositionChart";
-import YearComparisonQualifyingChart from "./YearComparisonQualifyingChart";
+import YearComparisonQualifyingChart from "@/components/analytics/YearComparisonQualifyingChart";
 
 const YearComparisonAnalytics = () => {
   const [baseYear, setBaseYear] = useState<number>(new Date().getFullYear() - 1);

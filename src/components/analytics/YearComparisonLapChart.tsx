@@ -28,7 +28,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   const [selectedBaseDrivers, setSelectedBaseDrivers] = useState<string[]>([]);
   const [selectedComparisonDrivers, setSelectedComparisonDrivers] = useState<string[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
-  const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
   const [isProcessingData, setIsProcessingData] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -253,64 +252,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     }
   }, [baseLapTimes, comparisonLapTimes, baseDrivers, comparisonDrivers, baseYear, comparisonYear]);
   
-  // Apply display mode (absolute times or gaps)
-  useEffect(() => {
-    if (chartData.length === 0) return;
-    
-    if (displayMode === 'absolute') {
-      // Already using absolute times
-      return;
-    }
-    
-    // For gap mode, we need to find the fastest time for each lap and calculate the gaps
-    setIsProcessingData(true);
-    
-    try {
-      const processedData = chartData.map(lap => {
-        const newLap = { ...lap };
-        const lapNumber = lap.lap;
-        
-        // Find the fastest time for this lap across all drivers
-        let fastestTime = Number.MAX_VALUE;
-        
-        // Check all driver times for this lap
-        Object.keys(lap).forEach(key => {
-          if (key === 'lap') return;
-          if (key.includes('_raw')) return;
-          
-          const time = lap[key];
-          if (typeof time === 'number' && time > 0 && time < fastestTime) {
-            fastestTime = time;
-          }
-        });
-        
-        // If we found a valid fastest time, calculate gaps
-        if (fastestTime < Number.MAX_VALUE) {
-          // Calculate gap for each driver
-          Object.keys(lap).forEach(key => {
-            if (key === 'lap') return;
-            if (key.includes('_raw')) return;
-            
-            const time = lap[key];
-            if (typeof time === 'number' && time > 0) {
-              // Store the gap instead of absolute time
-              newLap[key] = time - fastestTime;
-            }
-          });
-        }
-        
-        return newLap;
-      });
-      
-      setChartData(processedData);
-    } catch (error) {
-      console.error("Error processing gap data:", error);
-      toast.error("Error calculating lap time gaps");
-    } finally {
-      setIsProcessingData(false);
-    }
-  }, [displayMode, chartData.length]);
-
   const toggleBaseDriver = (driverCode: string) => {
     setSelectedBaseDrivers(prev => 
       prev.includes(driverCode)
@@ -325,10 +266,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         ? prev.filter(d => d !== driverCode)
         : [...prev, driverCode]
     );
-  };
-
-  const toggleDisplayMode = () => {
-    setDisplayMode(prev => prev === 'absolute' ? 'gap' : 'absolute');
   };
 
   const getRaceCircuitName = (results: any) => {
@@ -375,15 +312,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   return (
     <div className="h-full">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={toggleDisplayMode}
-            className="px-3 py-1 text-xs font-medium rounded bg-gray-200 hover:bg-gray-300 transition-colors"
-          >
-            Show {displayMode === 'absolute' ? 'Gaps' : 'Absolute Times'}
-          </button>
-        </div>
-        
         <div className="flex flex-col md:flex-row gap-2 md:items-center">
           <Badge variant="outline" className="border-amber-500 py-1">
             {baseYear} - {baseCircuit}
@@ -467,12 +395,11 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             />
             <YAxis 
               label={{ 
-                value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', 
+                value: 'Lap Time (seconds)', 
                 angle: -90, 
                 position: 'insideLeft' 
               }}
               yAxisId="primary"
-              domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
             />
             <Tooltip 
               contentStyle={{ 
@@ -498,6 +425,12 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   const driver = comparisonDrivers.find(d => d.code === code);
                   return driver ? `${code} (${year})` : code;
                 }
+              }}
+              wrapperStyle={{ 
+                opacity: 1,
+                padding: '10px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '5px'
               }}
             />
             
