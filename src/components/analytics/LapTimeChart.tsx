@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from "@/utils/rechartsWrapper";
@@ -11,6 +10,7 @@ import { useLapTimeData } from "@/hooks/useLapTimeData";
 import DriverSelector from "./DriverSelector";
 import DisplayModeToggle from "./DisplayModeToggle";
 import DataLoadingProgress from "./DataLoadingProgress";
+import LapTimeLineChart from "./LapTimeLineChart";
 
 interface LapTimeChartProps {
   year: number;

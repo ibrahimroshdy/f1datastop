@@ -3,20 +3,14 @@ import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } 
 import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { formatTime } from "@/utils/lapTimeUtils";
-
-interface Driver {
-  driverId: string;
-  code: string;
-  name: string;
-  team: string;
-}
+import { Driver, FastestLapTime } from "@/types/lapTimeTypes";
 
 interface LapTimeLineChartProps {
   chartData: any[];
   availableDrivers: Driver[];
   selectedDrivers: string[];
   displayMode: 'absolute' | 'gap';
-  fastestLapTime: { time: number, driver: string } | null;
+  fastestLapTime: FastestLapTime | null;
   hoveredDriver: string | null;
 }
 
