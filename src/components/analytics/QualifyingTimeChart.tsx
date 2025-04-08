@@ -5,11 +5,12 @@ import {
   LineChart, 
   Line, 
   CartesianGrid, 
+  Tooltip, 
   Legend, 
-  ResponsiveContainer, 
-  Tooltip
+  ResponsiveContainer,
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis
 } from 'recharts';
-import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -152,19 +153,21 @@ const QualifyingTimeChart = ({ year, round }: QualifyingTimeChartProps) => {
             margin={{ top: 10, right: 30, left: 10, bottom: 30 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-            <XAxis 
+            <RechartsXAxis 
               dataKey="driver" 
               interval={0} 
               tick={{ fill: '#fff', fontSize: 12 }}
               angle={-45}
               textAnchor="end"
               height={70}
+              xAxisId="qualifying"
             />
-            <YAxis 
+            <RechartsYAxis 
               tickFormatter={(value) => formatTime(value)} 
               domain={['dataMin - 0.5', 'dataMax + 0.5']}
               tickCount={8}
               tick={{ fill: '#fff', fontSize: 12 }}
+              yAxisId="qualifying"
             />
             <Tooltip 
               formatter={(value, name) => [formatTime(value as number), name]}
@@ -186,6 +189,8 @@ const QualifyingTimeChart = ({ year, round }: QualifyingTimeChartProps) => {
                 strokeWidth={2}
                 connectNulls
                 dot={{ r: 4 }}
+                xAxisId="qualifying"
+                yAxisId="qualifying"
               />
             )}
             {selectedSessions.includes("Q2") && (
@@ -198,6 +203,8 @@ const QualifyingTimeChart = ({ year, round }: QualifyingTimeChartProps) => {
                 strokeWidth={2}
                 connectNulls
                 dot={{ r: 4 }}
+                xAxisId="qualifying"
+                yAxisId="qualifying"
               />
             )}
             {selectedSessions.includes("Q3") && (
@@ -210,6 +217,8 @@ const QualifyingTimeChart = ({ year, round }: QualifyingTimeChartProps) => {
                 strokeWidth={2}
                 connectNulls
                 dot={{ r: 4 }}
+                xAxisId="qualifying"
+                yAxisId="qualifying"
               />
             )}
           </LineChart>

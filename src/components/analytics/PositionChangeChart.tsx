@@ -1,7 +1,15 @@
 
 import React, { useState } from "react";
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
-import { XAxis, YAxis } from "@/utils/rechartsWrapper";
+import { 
+  ResponsiveContainer, 
+  LineChart, 
+  Line, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend,
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis
+} from "recharts";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -109,16 +117,18 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
             margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" opacity={0.3} />
-            <XAxis
+            <RechartsXAxis
               dataKey="lap"
               type="number"
               domain={[1, maxLap]}
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
+              xAxisId="position"
             />
-            <YAxis
+            <RechartsYAxis
               reversed
               domain={[1, 20]}
               label={{ value: 'Position', angle: -90, position: 'insideLeft' }}
+              yAxisId="position"
             />
             <Tooltip
               formatter={(value) => [`Position: ${value}`, '']}
@@ -151,6 +161,8 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
                   connectNulls
                   isAnimationActive={false}
                   opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
+                  xAxisId="position"
+                  yAxisId="position"
                 />
               ))}
           </LineChart>

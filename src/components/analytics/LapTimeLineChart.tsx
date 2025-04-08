@@ -1,6 +1,16 @@
+
 import React from 'react';
-import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
+import { 
+  LineChart, 
+  Line, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis,
+  ReferenceLine as RechartsReferenceLine
+} from "recharts";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { formatTime } from "@/utils/lapTimeUtils";
 
@@ -82,13 +92,14 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#eee" opacity={0.3} />
-          <XAxis 
+          <RechartsXAxis 
             dataKey="lap" 
             type="number"
             domain={[1, maxLap]}
             label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+            xAxisId="laptimeLineChart"
           />
-          <YAxis 
+          <RechartsYAxis 
             label={{ 
               value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', 
               angle: -90, 
@@ -96,6 +107,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
             }} 
             domain={yDomain}
             tickFormatter={(value) => displayMode === 'absolute' ? formatTime(value) : `+${value.toFixed(1)}`}
+            yAxisId="laptimeLineChart"
           />
           <Tooltip 
             contentStyle={{ 
@@ -131,10 +143,11 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
           />
           
           {fastestLapTime && displayMode === 'absolute' && (
-            <ReferenceLine 
+            <RechartsReferenceLine 
               y={fastestLapTime.time} 
               stroke="#c026d3" // Purple color
               strokeDasharray="3 3" 
+              yAxisId="laptimeLineChart"
               label={{ 
                 value: `Fastest Lap: ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`, 
                 position: 'right', 
@@ -158,6 +171,8 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 connectNulls
                 isAnimationActive={false}
                 opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
+                xAxisId="laptimeLineChart"
+                yAxisId="laptimeLineChart"
               />
             ))}
         </LineChart>
