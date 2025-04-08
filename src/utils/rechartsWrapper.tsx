@@ -18,7 +18,7 @@ console.error = function filterWarnings(msg: any, ...args: any[]) {
   originalConsoleError(msg, ...args);
 };
 
-// Wrapped components with default parameters instead of defaultProps
+// Wrapped components that pass through all props without modification
 export const XAxis = (props: XAxisProps) => {
   return <RechartsXAxis {...props} />;
 };

@@ -30,11 +30,9 @@ const PositionChart: React.FC<PositionChartProps> = ({
           <XAxis 
             dataKey="lap" 
             label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
-            // Explicitly set domain to show all laps
             domain={[1, maxLap]}
             type="number"
             allowDecimals={false}
-            // Add more ticks to show lap numbers more clearly
             ticks={
               maxLap > 50
                 ? Array.from({length: 10}, (_, i) => Math.round(i * maxLap / 10) || 1)

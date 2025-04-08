@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import YearComparisonAnalytics from "@/components/seasonComparison/YearComparisonAnalytics";
 
