@@ -98,7 +98,10 @@ export const signInWithTwitter = async (): Promise<void> => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'twitter',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          redirect_uri: `${window.location.origin}/auth/callback`
+        }
       }
     });
 
@@ -110,6 +113,7 @@ export const signInWithTwitter = async (): Promise<void> => {
     // The user will be redirected to Twitter for authentication
     // No need for success toast here as the page will redirect
     console.log("Redirecting to Twitter auth, origin:", window.location.origin);
+    console.log("Callback URL:", `${window.location.origin}/auth/callback`);
   } catch (error: any) {
     console.error("Error during Twitter sign in:", error);
     toast.error(`Twitter sign in failed: ${error.message}`);
