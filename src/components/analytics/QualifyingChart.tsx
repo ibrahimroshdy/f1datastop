@@ -265,18 +265,6 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
           </TableBody>
         </Table>
       </div>
-      
-      {fastestLapTime && (
-        <div className="mt-4 bg-slate-100 dark:bg-slate-800/50 p-2 rounded-md text-sm">
-          <span className="font-medium text-slate-900 dark:text-slate-100">Fastest time: </span>
-          <span className="font-mono font-medium text-green-600 dark:text-green-400">
-            {formatTimeDisplay(fastestLapTime.time)}
-          </span>
-          <span className="ml-2 text-slate-900 dark:text-slate-100">
-            by {fastestLapTime.driver} in {fastestLapTime.session}
-          </span>
-        </div>
-      )}
     </div>
   );
 };
