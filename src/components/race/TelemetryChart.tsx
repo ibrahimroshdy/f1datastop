@@ -8,15 +8,7 @@ import { useState } from "react";
 const TelemetryChart = () => {
   const [selectedDriver, setSelectedDriver] = useState("1");
 
-  // Mock telemetry data for a single lap - minimal data points, no DRS for simplification
-  const telemetryData = [
-    { distance: "0", speed: 84, throttle: 30, brake: 70, gear: 1 },
-    { distance: "500", speed: 280, throttle: 100, brake: 0, gear: 6 },
-    { distance: "1000", speed: 335, throttle: 100, brake: 0, gear: 8 },
-    { distance: "1500", speed: 120, throttle: 40, brake: 0, gear: 3 },
-    { distance: "2000", speed: 310, throttle: 100, brake: 0, gear: 8 },
-  ];
-
+  // Define drivers with colors
   const drivers = [
     { value: "1", label: "Verstappen", color: "#0600EF" },
     { value: "16", label: "Leclerc", color: "#DC0000" },
@@ -26,6 +18,7 @@ const TelemetryChart = () => {
     { value: "55", label: "Sainz", color: "#DC0000" },
   ];
 
+  // Get driver color
   const getDriverColor = (driverId: string) => {
     return drivers.find(d => d.value === driverId)?.color || "#FFFFFF";
   };
@@ -60,12 +53,10 @@ const TelemetryChart = () => {
         <div className="h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={telemetryData}
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#333" />
               <XAxis 
-                dataKey="distance" 
                 stroke="#888" 
               />
               <YAxis 
@@ -76,28 +67,6 @@ const TelemetryChart = () => {
                 labelStyle={{ color: "#fff" }}
               />
               <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="speed" 
-                stroke={getDriverColor(selectedDriver)} 
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 6 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="throttle" 
-                stroke="#4CAF50" 
-                strokeWidth={1.5}
-                dot={false}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="brake" 
-                stroke="#F44336" 
-                strokeWidth={1.5}
-                dot={false}
-              />
             </LineChart>
           </ResponsiveContainer>
         </div>

@@ -20,16 +20,16 @@ console.error = function filterWarnings(msg: any, ...args: any[]) {
 
 // Wrapped components with default parameters instead of defaultProps
 export const XAxis = (props: XAxisProps) => {
-  // Make sure to pass all props to the wrapped component
+  // Make sure xAxisId is explicitly passed if specified
   return <RechartsXAxis {...props} />;
 };
 
 export const YAxis = (props: YAxisProps) => {
-  // Make sure to pass all props to the wrapped component
+  // Make sure yAxisId is explicitly passed if specified
   return <RechartsYAxis {...props} />;
 };
 
 export const ReferenceLine = (props: ReferenceLineProps) => {
-  // Make sure to pass all props to the wrapped component
+  // Make sure all props are correctly passed
   return <RechartsReferenceLine {...props} />;
 };
