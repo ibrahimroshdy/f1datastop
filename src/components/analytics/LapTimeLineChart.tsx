@@ -95,7 +95,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
               position: 'insideLeft',
             }} 
             domain={yDomain}
-            tickFormatter={(value) => displayMode === 'absolute' ? formatTime(value) : `+${value.toFixed(1)}`}
+            tickFormatter={(value) => formatTime(value)}
           />
           <Tooltip 
             contentStyle={{ 
