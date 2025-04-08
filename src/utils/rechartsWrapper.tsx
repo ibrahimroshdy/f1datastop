@@ -1,10 +1,33 @@
 
-// This file now re-exports recharts components directly to maintain compatibility
-// with existing files while avoiding axis ID conflicts.
-// For new chart components, import directly from recharts instead.
+import React from 'react';
+import {
+  XAxis as RechartsXAxis,
+  YAxis as RechartsYAxis,
+  ReferenceLine as RechartsReferenceLine,
+  XAxisProps,
+  YAxisProps,
+  ReferenceLineProps
+} from 'recharts';
 
-import { XAxis as RechartsXAxis, YAxis as RechartsYAxis, ReferenceLine as RechartsReferenceLine } from 'recharts';
+// Suppress specific React warnings about defaultProps
+const originalConsoleError = console.error;
+console.error = function filterWarnings(msg: any, ...args: any[]) {
+  if (typeof msg === 'string' && msg.includes('Support for defaultProps will be removed from function components')) {
+    return;
+  }
+  originalConsoleError(msg, ...args);
+};
 
-export const XAxis = RechartsXAxis;
-export const YAxis = RechartsYAxis;
-export const ReferenceLine = RechartsReferenceLine;
+// Simple wrapper components that don't try to set any additional props
+// We're explicitly not setting xAxisId or yAxisId by default
+export const XAxis = (props: XAxisProps) => {
+  return <RechartsXAxis {...props} />;
+};
+
+export const YAxis = (props: YAxisProps) => {
+  return <RechartsYAxis {...props} />;
+};
+
+export const ReferenceLine = (props: ReferenceLineProps) => {
+  return <RechartsReferenceLine {...props} />;
+};

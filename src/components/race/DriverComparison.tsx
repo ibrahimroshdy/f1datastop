@@ -1,16 +1,8 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  BarChart, 
-  Bar, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  XAxis,
-  YAxis 
-} from "recharts";
+import { BarChart, Bar, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { XAxis, YAxis } from "@/utils/rechartsWrapper";
 import { useState } from "react";
 
 const DriverComparison = () => {
@@ -109,8 +101,8 @@ const DriverComparison = () => {
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="lap" stroke="#888" />
-                  <YAxis stroke="#888" domain={[72, 74]} />
+                  <XAxis dataKey="lap" stroke="#888" xAxisId="lap" />
+                  <YAxis stroke="#888" domain={[72, 74]} yAxisId="time" />
                   <Tooltip 
                     contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
                     labelStyle={{ color: "#fff" }}
@@ -121,11 +113,15 @@ const DriverComparison = () => {
                     name={getDriverName(driver1)}
                     dataKey="driver1Time" 
                     fill={getDriverColor(driver1)}
+                    xAxisId="lap"
+                    yAxisId="time"
                   />
                   <Bar 
                     name={getDriverName(driver2)}
                     dataKey="driver2Time" 
                     fill={getDriverColor(driver2)}
+                    xAxisId="lap"
+                    yAxisId="time"
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -141,8 +137,8 @@ const DriverComparison = () => {
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="name" stroke="#888" />
-                  <YAxis stroke="#888" />
+                  <XAxis dataKey="name" stroke="#888" xAxisId="sector" />
+                  <YAxis stroke="#888" yAxisId="time" />
                   <Tooltip 
                     contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
                     labelStyle={{ color: "#fff" }}
@@ -152,10 +148,14 @@ const DriverComparison = () => {
                   <Bar 
                     dataKey={getDriverName(driver1)} 
                     fill={getDriverColor(driver1)}
+                    xAxisId="sector"
+                    yAxisId="time"
                   />
                   <Bar 
                     dataKey={getDriverName(driver2)} 
                     fill={getDriverColor(driver2)}
+                    xAxisId="sector"
+                    yAxisId="time"
                   />
                 </BarChart>
               </ResponsiveContainer>

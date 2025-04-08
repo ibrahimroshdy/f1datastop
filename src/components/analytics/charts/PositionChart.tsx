@@ -1,15 +1,7 @@
 
 import React from "react";
-import { 
-  LineChart, 
-  Line, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  XAxis as RechartsXAxis,
-  YAxis as RechartsYAxis
-} from "recharts";
+import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 
 interface PositionChartProps {
@@ -35,7 +27,7 @@ const PositionChart: React.FC<PositionChartProps> = ({
           margin={{ top: 20, right: 30, left: 30, bottom: 20 }}
         >
           <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-          <RechartsXAxis 
+          <XAxis 
             dataKey="lap" 
             label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
             domain={[1, maxLap]}
@@ -46,14 +38,12 @@ const PositionChart: React.FC<PositionChartProps> = ({
                 ? Array.from({length: 10}, (_, i) => Math.round(i * maxLap / 10) || 1)
                 : Array.from({length: Math.min(maxLap, 20)}, (_, i) => i + 1)
             }
-            xAxisId="positionChart"
           />
-          <RechartsYAxis 
+          <YAxis 
             reversed 
             domain={[1, 20]} 
             label={{ value: 'Position', angle: -90, position: 'insideLeft' }} 
             ticks={[1, 5, 10, 15, 20]}
-            yAxisId="positionChart"
           />
           <Tooltip 
             contentStyle={{ 
@@ -94,8 +84,6 @@ const PositionChart: React.FC<PositionChartProps> = ({
                 connectNulls
                 isAnimationActive={false}
                 opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
-                xAxisId="positionChart"
-                yAxisId="positionChart"
               />
             ))}
         </LineChart>

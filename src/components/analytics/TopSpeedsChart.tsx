@@ -8,10 +8,9 @@ import {
   Tooltip, 
   Legend, 
   Cell, 
-  ResponsiveContainer,
-  XAxis,
-  YAxis 
+  ResponsiveContainer 
 } from "recharts";
+import { XAxis, YAxis } from "@/utils/rechartsWrapper";
 import { DRIVER_COLORS } from "@/constants/f1Colors";
 
 interface TopSpeedsChartProps {
@@ -40,14 +39,16 @@ const TopSpeedsChart = ({ data, isLoading }: TopSpeedsChartProps) => {
               margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="driver" />
-              <YAxis domain={['auto', 'auto']} />
+              <XAxis dataKey="driver" xAxisId="driver" />
+              <YAxis domain={['auto', 'auto']} yAxisId="speed" />
               <Tooltip formatter={(value) => [`${String(value)} km/h`, 'Top Speed']} />
               <Legend />
               <Bar 
                 dataKey="topSpeed" 
                 name="Speed (km/h)" 
                 fill="#3498db"
+                xAxisId="driver"
+                yAxisId="speed"
               >
                 {data?.slice(0, 10).map((entry, index) => (
                   <Cell 

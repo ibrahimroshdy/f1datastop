@@ -1,16 +1,8 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  LineChart, 
-  Line, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  XAxis,
-  YAxis
-} from "recharts";
+import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { XAxis, YAxis } from "@/utils/rechartsWrapper";
 import { useState } from "react";
 
 const TelemetryChart = () => {
@@ -91,9 +83,11 @@ const TelemetryChart = () => {
               <XAxis 
                 dataKey="distance" 
                 stroke="#888" 
+                xAxisId="telemetry"
               />
               <YAxis 
                 stroke="#888" 
+                yAxisId="telemetry"
               />
               <Tooltip 
                 contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
@@ -107,6 +101,8 @@ const TelemetryChart = () => {
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 6 }}
+                xAxisId="telemetry"
+                yAxisId="telemetry"
               />
               <Line 
                 type="monotone" 
@@ -114,6 +110,8 @@ const TelemetryChart = () => {
                 stroke="#4CAF50" 
                 strokeWidth={1.5}
                 dot={false}
+                xAxisId="telemetry"
+                yAxisId="telemetry"
               />
               <Line 
                 type="monotone" 
@@ -121,6 +119,8 @@ const TelemetryChart = () => {
                 stroke="#F44336" 
                 strokeWidth={1.5}
                 dot={false}
+                xAxisId="telemetry"
+                yAxisId="telemetry"
               />
               <Line 
                 type="monotone" 
@@ -128,6 +128,8 @@ const TelemetryChart = () => {
                 stroke="#E10600" 
                 strokeWidth={1.5}
                 dot={false}
+                xAxisId="telemetry"
+                yAxisId="telemetry"
               />
             </LineChart>
           </ResponsiveContainer>
