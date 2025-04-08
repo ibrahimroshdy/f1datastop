@@ -49,5 +49,6 @@ export const Line = (props: LineProps) => {
   const safeProps = { ...props };
   delete safeProps.xAxisId;
   delete safeProps.yAxisId;
+  // Use the RechartsLine directly to avoid typing issues
   return <RechartsLine {...safeProps} />;
 };
