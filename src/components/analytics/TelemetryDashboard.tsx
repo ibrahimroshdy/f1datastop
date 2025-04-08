@@ -46,7 +46,9 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     errorMessage,
     hasData,
     timeRange,
-    lapData
+    lapData,
+    loadDriverData,
+    driverLoadingState
   } = useTelemetryData(sessionKey || 0, selectedDrivers);
   
   // Check for 500 errors and update state
@@ -59,6 +61,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   // Handle driver selection
   const toggleDriverSelection = (driverNumber: number) => {
     setSelectedDrivers(prev => {
+      // If driver is already selected, remove them from selection
       if (prev.includes(driverNumber)) {
         return prev.filter(d => d !== driverNumber);
       } else {
@@ -67,6 +70,12 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
         if (newSelection.length > 3) {
           newSelection.shift(); // Remove the first driver
         }
+        
+        // Load data for the newly selected driver if it's not already loaded or loading
+        if (!telemetryData[driverNumber] && !driverLoadingState[driverNumber]) {
+          loadDriverData(driverNumber);
+        }
+        
         return newSelection;
       }
     });
@@ -265,28 +274,46 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
           </div>
         ) : (
           <>
-            <div className="mb-4 flex flex-wrap gap-2">
-              {availableDrivers.map(driver => (
-                <Button
-                  key={driver.driver_number}
-                  variant={selectedDrivers.includes(driver.driver_number) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => toggleDriverSelection(driver.driver_number)}
-                  className="flex items-center gap-1"
-                  style={{
-                    backgroundColor: selectedDrivers.includes(driver.driver_number) 
-                      ? driver.team_color 
-                      : 'transparent',
-                    color: selectedDrivers.includes(driver.driver_number) 
-                      ? (isColorLight(driver.team_color) ? 'black' : 'white') 
-                      : 'inherit',
-                    borderColor: driver.team_color
-                  }}
-                >
-                  <span className="font-mono">{driver.driver_number}</span>
-                  <span className="hidden sm:inline ml-1">{driver.name_acronym}</span>
-                </Button>
-              ))}
+            <div className="mb-4">
+              <div className="mb-2 text-sm text-muted-foreground">
+                Select a driver to load their telemetry data:
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableDrivers.map(driver => (
+                  <Button
+                    key={driver.driver_number}
+                    variant={selectedDrivers.includes(driver.driver_number) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => toggleDriverSelection(driver.driver_number)}
+                    className="flex items-center gap-1"
+                    style={{
+                      backgroundColor: selectedDrivers.includes(driver.driver_number) 
+                        ? driver.team_color 
+                        : 'transparent',
+                      color: selectedDrivers.includes(driver.driver_number) 
+                        ? (isColorLight(driver.team_color) ? 'black' : 'white') 
+                        : 'inherit',
+                      borderColor: driver.team_color
+                    }}
+                  >
+                    <span className="font-mono">{driver.driver_number}</span>
+                    <span className="hidden sm:inline ml-1">{driver.name_acronym}</span>
+                    {driver.isLoading && (
+                      <span className="ml-1">
+                        <div className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin border-current opacity-80" />
+                      </span>
+                    )}
+                    {driver.isDataLoaded && !driver.isLoading && (
+                      <span className="ml-1 text-xs">✓</span>
+                    )}
+                  </Button>
+                ))}
+              </div>
+              {selectedDrivers.length === 0 && (
+                <div className="mt-4 text-center text-sm text-muted-foreground">
+                  Click on a driver above to load their telemetry data
+                </div>
+              )}
             </div>
             
             <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
@@ -330,6 +357,11 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                           const driver = availableDrivers.find(d => d.driver_number === driverNumber);
                           if (!driver) return null;
                           
+                          // Skip rendering line if data is not loaded for this driver
+                          if (!telemetryData[driverNumber]) {
+                            return null;
+                          }
+                          
                           return (
                             <Line
                               key={driverNumber}
@@ -346,9 +378,23 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                         })}
                       </LineChart>
                     </ResponsiveContainer>
+                  ) : selectedDrivers.length > 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-muted-foreground">
+                          {selectedDrivers.some(d => driverLoadingState[d]) 
+                            ? "Loading telemetry data..." 
+                            : "No telemetry data available for selected driver(s)"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Try selecting a different driver or session
+                        </p>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-muted-foreground">No telemetry data available.</p>
+                      <p className="text-muted-foreground">Select a driver to view telemetry data</p>
                     </div>
                   )}
                 </div>

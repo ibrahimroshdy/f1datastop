@@ -34,7 +34,6 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [driverDataCache, setDriverDataCache] = useState<{[key: number]: TelemetryDataPoint[]}>({});
   const [driverLoadingState, setDriverLoadingState] = useState<{[key: number]: boolean}>({});
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   // Fetch drivers for the session
   const { 
@@ -49,66 +48,6 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     isLoading: isLapDataLoading, 
     error: lapDataError 
   } = useLapData(sessionKey);
-
-  // Create individual car data query for first selected driver
-  // We'll fetch more driver data on demand when user selects them
-  const carDataQuery = useCarData(
-    sessionKey, 
-    (selectedDrivers.length > 0 && !driverDataCache[selectedDrivers[0]] && !hasAttemptedFetch) 
-      ? selectedDrivers[0] 
-      : undefined
-  );
-
-  // Mark that we've attempted a fetch when the query is initiated
-  useEffect(() => {
-    if (carDataQuery.isLoading && !hasAttemptedFetch) {
-      setHasAttemptedFetch(true);
-    }
-  }, [carDataQuery.isLoading, hasAttemptedFetch]);
-
-  // Update driver loading states when a query is in progress
-  useEffect(() => {
-    if (selectedDrivers.length > 0) {
-      const driverNumber = selectedDrivers[0];
-      if (!driverDataCache[driverNumber] && !driverLoadingState[driverNumber] && carDataQuery.isLoading) {
-        setDriverLoadingState(prev => ({
-          ...prev,
-          [driverNumber]: true
-        }));
-      }
-    }
-  }, [selectedDrivers, driverDataCache, driverLoadingState, carDataQuery.isLoading]);
-
-  // Process and cache car data when it's loaded
-  useEffect(() => {
-    if (selectedDrivers.length > 0 && carDataQuery.data?.data && carDataQuery.data.data.length > 0) {
-      const driverNumber = selectedDrivers[0];
-      if (!driverDataCache[driverNumber]) {
-        const processedData = processOpenF1CarData(carDataQuery.data.data);
-        
-        // Update the cache
-        setDriverDataCache(prev => ({
-          ...prev,
-          [driverNumber]: processedData
-        }));
-        
-        // Mark the driver as loaded
-        setDriverLoadingState(prev => ({
-          ...prev,
-          [driverNumber]: false
-        }));
-        
-        // Update driver states in available drivers
-        setAvailableDrivers(prev => 
-          prev.map(d => 
-            d.driver_number === driverNumber 
-              ? { ...d, isLoading: false, isDataLoaded: true } 
-              : d
-          )
-        );
-      }
-    }
-  }, [selectedDrivers, carDataQuery.data, driverDataCache]);
 
   // Process available drivers
   useEffect(() => {
@@ -142,26 +81,28 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
 
   // Update loading progress
   useEffect(() => {
-    const isLoading = isDriversLoading || isLapDataLoading || carDataQuery.isLoading;
+    const isLoading = isDriversLoading || isLapDataLoading || Object.values(driverLoadingState).some(Boolean);
     
     if (isLoading) {
-      let totalQueries = 3; // drivers + lap data + currently loading car data
+      let totalQueries = 2; // drivers + lap data
+      let loadingDriversCount = Object.values(driverLoadingState).filter(Boolean).length;
+      totalQueries += loadingDriversCount || 0;
+      
       let completedQueries = 0;
       
       if (!isDriversLoading) completedQueries++;
       if (!isLapDataLoading) completedQueries++;
-      if (!carDataQuery.isLoading) completedQueries++;
       
       const progress = Math.round((completedQueries / totalQueries) * 100);
       setLoadingProgress(progress);
     } else {
       setLoadingProgress(100);
     }
-  }, [isDriversLoading, isLapDataLoading, carDataQuery.isLoading]);
+  }, [isDriversLoading, isLapDataLoading, driverLoadingState]);
 
   // Handle errors
   useEffect(() => {
-    const error = driversError || lapDataError || carDataQuery.error;
+    const error = driversError || lapDataError;
     
     if (error) {
       setErrorMessage("Error loading telemetry data. Please try again.");
@@ -172,32 +113,12 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     } else {
       setErrorMessage(null);
     }
-  }, [driversError, lapDataError, carDataQuery.error]);
-
-  // Add specific error handling for 500 server errors
-  useEffect(() => {
-    if (carDataQuery.error) {
-      const errorMessage = carDataQuery.error.toString();
-      setErrorMessage("Error loading telemetry data. Please try again.");
-      
-      if (errorMessage.includes('status 500')) {
-        console.warn(`OpenF1 API returned a 500 error for session ${sessionKey}. Data may not be available for this session.`);
-        setErrorMessage(`Server error (500) for session ${sessionKey}. Telemetry data may not be available.`);
-        toast.warning("Limited telemetry data available", {
-          description: "The data source returned a server error. This session may have limited or no telemetry data available.",
-          duration: 7000,
-        });
-        
-        // Clear driver loading states to prevent perpetual loading indicators
-        setDriverLoadingState({});
-      }
-    }
-  }, [carDataQuery.error, sessionKey]);
+  }, [driversError, lapDataError]);
 
   // Load driver data on demand
   const loadDriverData = async (driverNumber: number) => {
-    // Skip if already loaded or loading or if we've had a 500 error
-    if (driverDataCache[driverNumber] || driverLoadingState[driverNumber] || (carDataQuery.error && carDataQuery.error.toString().includes('500'))) {
+    // Skip if already loaded or loading
+    if (driverDataCache[driverNumber] || driverLoadingState[driverNumber]) {
       return;
     }
     
@@ -217,7 +138,7 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     );
     
     try {
-      // Fetch data directly instead of relying on the hook
+      // Fetch data for a specific driver only
       const result = await fetch(`/api/openf1/car_data?session_key=${sessionKey}&driver_number=${driverNumber}`, {
         mode: 'cors',
         headers: {
@@ -243,14 +164,30 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
               : d
           )
         );
+        
+        // Clear loading state
+        setDriverLoadingState(prev => ({
+          ...prev,
+          [driverNumber]: false
+        }));
       } else {
-        throw new Error(`Failed to fetch data for driver ${driverNumber}`);
+        throw new Error(`Failed to fetch data for driver ${driverNumber} with status ${result.status}`);
       }
     } catch (error) {
       console.error(`Error loading data for driver ${driverNumber}:`, error);
-      toast.error(`Error loading data for driver #${driverNumber}`, {
-        duration: 3000
-      });
+      
+      // Check if it's a timeout or 500 error
+      const errorStr = error.toString();
+      if (errorStr.includes('TimeoutError') || errorStr.includes('ReadTimeout') || errorStr.includes('status 500')) {
+        toast.warning(`Limited data available for driver #${driverNumber}`, {
+          description: "The data source timed out or returned an error. This session may have limited telemetry data.",
+          duration: 5000,
+        });
+      } else {
+        toast.error(`Error loading data for driver #${driverNumber}`, {
+          duration: 3000
+        });
+      }
       
       // Mark as not loading
       setDriverLoadingState(prev => ({
@@ -296,7 +233,7 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
 
   // Check if we have any data for selected drivers
   const hasData = selectedDrivers.some(driverNumber => !!driverDataCache[driverNumber]);
-  const isLoading = isDriversLoading || isLapDataLoading || carDataQuery.isLoading;
+  const isLoading = isDriversLoading || isLapDataLoading || Object.values(driverLoadingState).some(Boolean);
 
   return {
     telemetryData: driverDataCache,
