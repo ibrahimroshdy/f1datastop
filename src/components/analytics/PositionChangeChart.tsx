@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 import { XAxis, YAxis } from "@/utils/rechartsWrapper";
@@ -114,11 +113,13 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
               type="number"
               domain={[1, maxLap]}
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
+              xAxisId="lap"
             />
             <YAxis
               reversed
               domain={[1, 20]}
               label={{ value: 'Position', angle: -90, position: 'insideLeft' }}
+              yAxisId="position"
             />
             <Tooltip
               formatter={(value) => [`Position: ${value}`, '']}
@@ -150,6 +151,8 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
                   activeDot={{ r: 8 }}
                   connectNulls
                   isAnimationActive={false}
+                  xAxisId="lap"
+                  yAxisId="position"
                   opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
                 />
               ))}
