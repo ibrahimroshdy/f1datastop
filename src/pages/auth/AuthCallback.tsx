@@ -13,6 +13,7 @@ const AuthCallback = () => {
     const handleAuthCallback = async () => {
       try {
         console.log("Processing auth callback...");
+        
         // Get the session to check if authentication was successful
         const { data, error } = await supabase.auth.getSession();
 
@@ -24,7 +25,7 @@ const AuthCallback = () => {
         if (data?.session) {
           // Authentication successful
           console.log("Authentication successful, session found");
-          toast.success("Successfully signed in!");
+          toast.success("Successfully signed in with Twitter!");
           navigate("/");
         } else {
           // If no session found but no error, just redirect
@@ -34,7 +35,7 @@ const AuthCallback = () => {
       } catch (err: any) {
         console.error("Auth callback error:", err);
         setError(err.message || "An error occurred during authentication");
-        toast.error("Authentication error");
+        toast.error("Twitter authentication error");
       }
     };
 
@@ -62,7 +63,7 @@ const AuthCallback = () => {
     <div className="flex items-center justify-center min-h-screen bg-f1-black p-4">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-f1-red mx-auto"></div>
-        <p className="mt-4 text-white">Completing authentication...</p>
+        <p className="mt-4 text-white">Completing Twitter authentication...</p>
       </div>
     </div>
   );
