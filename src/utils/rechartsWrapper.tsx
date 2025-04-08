@@ -18,18 +18,21 @@ console.error = function filterWarnings(msg: any, ...args: any[]) {
   originalConsoleError(msg, ...args);
 };
 
-// Wrapped components with default parameters instead of defaultProps
+// Wrapped components with consistent props and without xAxisId/yAxisId
 export const XAxis = (props: XAxisProps) => {
-  // Make sure to pass all props to the wrapped component
-  return <RechartsXAxis {...props} />;
+  // Make sure to not pass any explicit axis IDs that might conflict
+  const { xAxisId, ...safeProps } = props;
+  return <RechartsXAxis {...safeProps} />;
 };
 
 export const YAxis = (props: YAxisProps) => {
-  // Make sure to pass all props to the wrapped component
-  return <RechartsYAxis {...props} />;
+  // Make sure to not pass any explicit axis IDs that might conflict
+  const { yAxisId, ...safeProps } = props;
+  return <RechartsYAxis {...safeProps} />;
 };
 
 export const ReferenceLine = (props: ReferenceLineProps) => {
-  // Make sure to pass all props to the wrapped component
-  return <RechartsReferenceLine {...props} />;
+  // Make sure to not pass any conflicting axis IDs
+  const { xAxisId, yAxisId, ...safeProps } = props;
+  return <RechartsReferenceLine {...safeProps} />;
 };

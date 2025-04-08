@@ -64,13 +64,8 @@ const TelemetryChart = () => {
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis 
-                dataKey="distance" 
-                stroke="#888" 
-              />
-              <YAxis 
-                stroke="#888" 
-              />
+              <XAxis dataKey="distance" stroke="#888" />
+              <YAxis stroke="#888" />
               <Tooltip 
                 contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
                 labelStyle={{ color: "#fff" }}

@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Clock3 } from "lucide-react";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface QualifyingAnalyticsProps {
   year: number;
@@ -18,6 +19,7 @@ const QualifyingAnalytics = ({ year, round }: QualifyingAnalyticsProps) => {
   const { data: qualifyingData, isLoading } = useRaceQualifying(year, round);
   const [displayMode, setDisplayMode] = useState<string>("q3");
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
+  const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
   
   useEffect(() => {
     // Reset selected drivers when data changes
@@ -63,11 +65,11 @@ const QualifyingAnalytics = ({ year, round }: QualifyingAnalyticsProps) => {
       return {
         code: driver.code || driver.familyName.substring(0, 3).toUpperCase(),
         name: `${driver.givenName} ${driver.familyName}`,
-        constructorId: constructor.constructorId.toLowerCase(),
-        color: TEAM_COLORS[constructor.constructorId.toLowerCase()] || "#ffffff",
-        driverId: driver.driverId
+        team: constructor.constructorId.toLowerCase(),
+        driverId: driver.driverId,
+        position: parseInt(result.position) || 0
       };
-    }).sort((a: any, b: any) => a.name.localeCompare(b.name));
+    }).sort((a: any, b: any) => a.position - b.position);
     
     // Process qualifying times
     const chartData = results.map((result: any) => {
@@ -86,7 +88,7 @@ const QualifyingAnalytics = ({ year, round }: QualifyingAnalyticsProps) => {
         q1: result.Q1 || "No Time",
         q2: result.Q2 || "No Time",
         q3: result.Q3 || "No Time",
-        constructorId: constructor.constructorId.toLowerCase(),
+        team: constructor.constructorId.toLowerCase(),
         color: TEAM_COLORS[constructor.constructorId.toLowerCase()] || "#ffffff"
       };
     }).sort((a: any, b: any) => a.position - b.position);
@@ -96,7 +98,7 @@ const QualifyingAnalytics = ({ year, round }: QualifyingAnalyticsProps) => {
   
   const { drivers, chartData } = processQualifyingData();
   
-  // Filter chart data based on selected drivers
+  // Filter chart data based on selected drivers or show all if none selected
   const filteredChartData = selectedDrivers.length > 0 
     ? chartData.filter((item: any) => selectedDrivers.includes(item.driverId))
     : chartData;
@@ -108,6 +110,15 @@ const QualifyingAnalytics = ({ year, round }: QualifyingAnalyticsProps) => {
       setSelectedDrivers([...selectedDrivers, driverId]);
     }
   };
+
+  const handleDriverHover = (driverId: string | null) => {
+    setHoveredDriver(driverId);
+  };
+  
+  // Compute visible drivers based on hover state
+  const visibleDrivers = hoveredDriver 
+    ? selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers
+    : selectedDrivers;
   
   const getMinMaxValues = () => {
     if (filteredChartData.length === 0) return { min: 0, max: 100 };
@@ -186,29 +197,44 @@ const QualifyingAnalytics = ({ year, round }: QualifyingAnalyticsProps) => {
             </SelectContent>
           </Select>
         </div>
-        
-        <div className="flex-1"></div>
-        
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-gray-400 mr-1">Filter Drivers:</span>
-          <div className="flex flex-wrap gap-1">
-            {drivers.map((driver: any) => (
-              <Badge 
-                key={driver.driverId}
-                variant={selectedDrivers.includes(driver.driverId) ? "default" : "outline"}
-                onClick={() => toggleDriverSelection(driver.driverId)}
-                className="cursor-pointer"
-                style={{ 
-                  backgroundColor: selectedDrivers.includes(driver.driverId) ? driver.color : 'transparent',
-                  borderColor: driver.color,
-                  color: selectedDrivers.includes(driver.driverId) ? "#000000" : driver.color
-                }}
-              >
-                {driver.code}
-              </Badge>
-            ))}
+      </div>
+
+      {/* Driver Selection Grid - styled like other charts */}
+      <div className="mb-4">
+        <ScrollArea className="h-auto max-h-[180px] border rounded-md border-gray-200 dark:border-gray-800 p-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+            {drivers.map((driver: any) => {
+              const isSelected = selectedDrivers.includes(driver.driverId);
+              const teamColor = TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666";
+              
+              return (
+                <button
+                  key={driver.driverId}
+                  className={`p-2 rounded text-xs flex flex-col transition-all duration-200 ${
+                    isSelected
+                      ? 'bg-gray-800 text-white'
+                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                  }`}
+                  onClick={() => toggleDriverSelection(driver.driverId)}
+                  onMouseEnter={() => handleDriverHover(driver.driverId)}
+                  onMouseLeave={() => handleDriverHover(null)}
+                  style={{
+                    borderLeft: `4px solid ${teamColor}`,
+                    opacity: isSelected || !hoveredDriver ? 1 : 0.7,
+                  }}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold">{driver.code}</span>
+                    <span className="text-[10px] opacity-70">P{driver.position}</span>
+                  </div>
+                  <div className="text-[10px]">
+                    {driver.name.split(' ').pop()}
+                  </div>
+                </button>
+              );
+            })}
           </div>
-        </div>
+        </ScrollArea>
       </div>
 
       <div className="flex-1 min-h-[400px]">
@@ -271,46 +297,6 @@ const QualifyingAnalytics = ({ year, round }: QualifyingAnalyticsProps) => {
             )}
           </LineChart>
         </ResponsiveContainer>
-      </div>
-      
-      <div className="mt-4">
-        <table className="min-w-full border-collapse">
-          <thead>
-            <tr className="border-b border-gray-700">
-              <th className="py-2 px-4 text-left text-sm">Pos</th>
-              <th className="py-2 px-4 text-left text-sm">Driver</th>
-              <th className="py-2 px-4 text-left text-sm">Q1</th>
-              <th className="py-2 px-4 text-left text-sm">Q2</th>
-              <th className="py-2 px-4 text-left text-sm">Q3</th>
-            </tr>
-          </thead>
-          <tbody>
-            {chartData.map((item: any) => (
-              <tr 
-                key={item.driverId}
-                className={`border-b border-gray-800 hover:bg-gray-900 ${
-                  selectedDrivers.includes(item.driverId) ? 'bg-gray-800' : ''
-                }`}
-                onClick={() => toggleDriverSelection(item.driverId)}
-                style={{ cursor: 'pointer' }}
-              >
-                <td className="py-2 px-4 text-sm">{item.position}</td>
-                <td className="py-2 px-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: item.color }}
-                    ></div>
-                    {item.driver}
-                  </div>
-                </td>
-                <td className="py-2 px-4 text-sm">{item.q1}</td>
-                <td className="py-2 px-4 text-sm">{item.q2}</td>
-                <td className="py-2 px-4 text-sm">{item.q3}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );
