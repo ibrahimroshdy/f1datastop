@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,11 +9,8 @@ import PositionChangeChart from "@/components/analytics/PositionChangeChart";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, ArrowUp, ArrowDown, Minus, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Info, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -59,19 +56,11 @@ const Analytics = () => {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-3xl font-bold">F1 Analytics</h1>
-          
-          <Link to="/season-comparison">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Info className="h-4 w-4" />
-              Season Comparison
-            </Button>
-          </Link>
         </div>
         
         <Tabs defaultValue="raceAnalytics" className="w-full">
-          <TabsList className="grid grid-cols-2 w-full">
+          <TabsList className="grid grid-cols-1 w-full">
             <TabsTrigger value="raceAnalytics">Race Analytics</TabsTrigger>
-            <TabsTrigger value="inDepthAnalytics">In-Depth Analytics</TabsTrigger>
           </TabsList>
           
           <TabsContent value="raceAnalytics" className="mt-6">
@@ -115,7 +104,6 @@ const Analytics = () => {
               <AlertDescription>
                 View lap-by-lap data including position changes and timing information. 
                 The system includes automatic retry with exponential backoff when rate limits (429 errors) are encountered.
-                If data loading fails, the chart will automatically retry up to 15 times with increasing delays.
               </AlertDescription>
             </Alert>
             
@@ -131,7 +119,6 @@ const Analytics = () => {
                     <CardTitle>Lap Time Analysis</CardTitle>
                     <CardDescription>
                       Compare lap-by-lap times between drivers during a race.
-                      The system will automatically retry with increasing delays between attempts if rate limits are encountered.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="h-[600px]">
@@ -151,7 +138,6 @@ const Analytics = () => {
                     <CardTitle>Position Changes</CardTitle>
                     <CardDescription>
                       Track how drivers' positions change throughout the race.
-                      The system will automatically retry with increasing delays between attempts if rate limits are encountered.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="h-[600px] p-4">
@@ -165,13 +151,6 @@ const Analytics = () => {
                 </Card>
               </TabsContent>
             </Tabs>
-          </TabsContent>
-          
-          <TabsContent value="inDepthAnalytics" className="mt-6">
-            <div className="text-center py-12">
-              <h3 className="text-xl font-semibold mb-2">In-Depth Analytics Coming Soon</h3>
-              <p className="text-muted-foreground">Advanced statistical analysis and performance metrics will be available in a future update.</p>
-            </div>
           </TabsContent>
         </Tabs>
       </div>

@@ -18,23 +18,13 @@ console.error = function filterWarnings(msg: any, ...args: any[]) {
   originalConsoleError(msg, ...args);
 };
 
-// Fixed wrapper components that explicitly set xAxisId and yAxisId if not provided
+// Simple wrapper components that don't try to set any additional props
 export const XAxis = (props: XAxisProps) => {
-  // Ensure xAxisId is set to a default value if not provided
-  const enhancedProps = {
-    ...props,
-    xAxisId: props.xAxisId || 0
-  };
-  return <RechartsXAxis {...enhancedProps} />;
+  return <RechartsXAxis {...props} />;
 };
 
 export const YAxis = (props: YAxisProps) => {
-  // Ensure yAxisId is set to a default value if not provided
-  const enhancedProps = {
-    ...props,
-    yAxisId: props.yAxisId || 0
-  };
-  return <RechartsYAxis {...enhancedProps} />;
+  return <RechartsYAxis {...props} />;
 };
 
 export const ReferenceLine = (props: ReferenceLineProps) => {

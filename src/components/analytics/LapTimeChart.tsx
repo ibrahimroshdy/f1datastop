@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
-import { XAxis, YAxis, ReferenceLine } from "@/utils/rechartsWrapper";
+import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -136,8 +136,6 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
             <Tooltip
               formatter={(value, name) => {
                 const driverCode = String(name);
-                const originalTime = displayMode === 'gap' ? chartData.find(d => d[`${driverCode}_original`])?.[`${driverCode}_original`] : value;
-                
                 if (displayMode === 'absolute') {
                   // Make sure value is a number before calling toFixed
                   return [typeof value === 'number' ? `${value.toFixed(3)}s` : `${value}`, driverCode];
