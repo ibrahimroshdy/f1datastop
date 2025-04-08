@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, ArrowLeft, Twitter } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import f1Logo from '@/assets/f1-logo.svg';
 
 const Signup = () => {
@@ -17,12 +17,11 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isTwitterLoading, setIsTwitterLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { signUp, signInWithTwitter } = useAuth();
+  const { signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,17 +40,6 @@ const Signup = () => {
       setError(error.message || "An error occurred during signup");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleTwitterSignIn = async () => {
-    setIsTwitterLoading(true);
-    try {
-      await signInWithTwitter();
-    } catch (error) {
-      console.error('Twitter signup error:', error);
-    } finally {
-      setIsTwitterLoading(false);
     }
   };
 
@@ -188,25 +176,6 @@ const Signup = () => {
                 {isLoading ? "Creating account..." : "Sign up"}
               </Button>
             </form>
-            
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-700"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <span className="px-3 bg-f1-dark text-gray-400 text-sm">Or continue with</span>
-              </div>
-            </div>
-            
-            <Button 
-              type="button"
-              className="w-full flex items-center justify-center space-x-2 bg-[#1DA1F2] hover:bg-[#0c85d0]"
-              onClick={handleTwitterSignIn}
-              disabled={isTwitterLoading}
-            >
-              <Twitter size={18} />
-              <span>{isTwitterLoading ? "Connecting..." : "Sign up with X (Twitter)"}</span>
-            </Button>
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-gray-400">

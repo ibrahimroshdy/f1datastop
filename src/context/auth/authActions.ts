@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -88,30 +89,6 @@ export const signIn = async (email: string, password: string): Promise<void> => 
     toast.success("Login successful!");
   } catch (error: any) {
     console.error("Error during sign in:", error);
-    throw error;
-  }
-};
-
-export const signInWithTwitter = async (): Promise<void> => {
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'twitter',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      }
-    });
-
-    if (error) {
-      toast.error(error.message);
-      throw error;
-    }
-
-    // The user will be redirected to Twitter for authentication
-    console.log("Redirecting to Twitter auth...");
-    console.log("Redirect URL:", `${window.location.origin}/auth/callback`);
-  } catch (error: any) {
-    console.error("Error during Twitter sign in:", error);
-    toast.error(`Twitter sign in failed: ${error.message}`);
     throw error;
   }
 };

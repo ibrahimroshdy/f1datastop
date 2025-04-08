@@ -9,8 +9,7 @@ import {
   signOut as signOutAction,
   deleteAccount as deleteAccountAction,
   updateProfile as updateProfileAction,
-  resetPassword as resetPasswordAction,
-  signInWithTwitter as signInWithTwitterAction
+  resetPassword as resetPasswordAction
 } from "./authActions";
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -32,11 +31,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string): Promise<void> => {
     await signInAction(email, password);
     navigate("/");
-  };
-
-  const signInWithTwitter = async (): Promise<void> => {
-    await signInWithTwitterAction();
-    // No navigation needed here as OAuth will redirect the user
   };
 
   const signOut = async (): Promise<void> => {
@@ -67,7 +61,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading,
     signUp,
     signIn,
-    signInWithTwitter,
     signOut,
     deleteAccount,
     updateProfile,
