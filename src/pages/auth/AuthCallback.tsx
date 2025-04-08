@@ -1,14 +1,25 @@
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const AuthCallback = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    // Extract error from URL if present
+    const queryParams = new URLSearchParams(location.search);
+    const errorDescription = queryParams.get('error_description');
+    
+    if (errorDescription) {
+      setError(errorDescription);
+      toast.error(`Authentication error: ${errorDescription}`);
+      return;
+    }
+
     // Handle the OAuth callback
     const handleAuthCallback = async () => {
       try {
@@ -40,7 +51,7 @@ const AuthCallback = () => {
     };
 
     handleAuthCallback();
-  }, [navigate]);
+  }, [navigate, location]);
 
   if (error) {
     return (
