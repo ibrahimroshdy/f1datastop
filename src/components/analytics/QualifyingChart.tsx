@@ -261,8 +261,12 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
             <Legend 
               formatter={formatLegendText}
               iconSize={10}
-              wrapperStyle={{ opacity: 1 }}  // Ensure legend is fully opaque
-              style={{ color: '#333', opacity: 1 }}
+              wrapperStyle={{ 
+                opacity: 1,
+                padding: '10px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '5px'
+              }}
             />
             
             {fastestLapTime && (

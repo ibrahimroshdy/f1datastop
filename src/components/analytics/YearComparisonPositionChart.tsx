@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis } from "@/utils/rechartsWrapper";
@@ -386,12 +385,17 @@ const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = 
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-            <XAxis dataKey="lap" label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} />
+            <XAxis 
+              dataKey="lap" 
+              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+              xAxisId="primary"
+            />
             <YAxis 
               reversed 
               domain={[1, 20]} 
               label={{ value: 'Position', angle: -90, position: 'insideLeft' }} 
               ticks={[1, 5, 10, 15, 20]}
+              yAxisId="primary"
             />
             <Tooltip 
               contentStyle={{ 
@@ -432,6 +436,8 @@ const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = 
                   dot={{ r: 2, fill: `#f59e0b` }}
                   activeDot={{ r: 6 }}
                   connectNulls={true}
+                  xAxisId="primary"
+                  yAxisId="primary"
                 />
               ))}
             
@@ -450,6 +456,8 @@ const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = 
                   dot={{ r: 2, fill: `#3b82f6` }}
                   activeDot={{ r: 6 }}
                   connectNulls={true}
+                  xAxisId="primary"
+                  yAxisId="primary"
                 />
               ))}
           </LineChart>

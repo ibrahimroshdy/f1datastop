@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from "@/utils/rechartsWrapper";
@@ -253,6 +252,64 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
       }
     }
   }, [baseLapTimes, comparisonLapTimes, baseDrivers, comparisonDrivers, baseYear, comparisonYear]);
+  
+  // Apply display mode (absolute times or gaps)
+  useEffect(() => {
+    if (chartData.length === 0) return;
+    
+    if (displayMode === 'absolute') {
+      // Already using absolute times
+      return;
+    }
+    
+    // For gap mode, we need to find the fastest time for each lap and calculate the gaps
+    setIsProcessingData(true);
+    
+    try {
+      const processedData = chartData.map(lap => {
+        const newLap = { ...lap };
+        const lapNumber = lap.lap;
+        
+        // Find the fastest time for this lap across all drivers
+        let fastestTime = Number.MAX_VALUE;
+        
+        // Check all driver times for this lap
+        Object.keys(lap).forEach(key => {
+          if (key === 'lap') return;
+          if (key.includes('_raw')) return;
+          
+          const time = lap[key];
+          if (typeof time === 'number' && time > 0 && time < fastestTime) {
+            fastestTime = time;
+          }
+        });
+        
+        // If we found a valid fastest time, calculate gaps
+        if (fastestTime < Number.MAX_VALUE) {
+          // Calculate gap for each driver
+          Object.keys(lap).forEach(key => {
+            if (key === 'lap') return;
+            if (key.includes('_raw')) return;
+            
+            const time = lap[key];
+            if (typeof time === 'number' && time > 0) {
+              // Store the gap instead of absolute time
+              newLap[key] = time - fastestTime;
+            }
+          });
+        }
+        
+        return newLap;
+      });
+      
+      setChartData(processedData);
+    } catch (error) {
+      console.error("Error processing gap data:", error);
+      toast.error("Error calculating lap time gaps");
+    } finally {
+      setIsProcessingData(false);
+    }
+  }, [displayMode, chartData.length]);
 
   const toggleBaseDriver = (driverCode: string) => {
     setSelectedBaseDrivers(prev => 
@@ -403,13 +460,19 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-            <XAxis dataKey="lap" label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} />
+            <XAxis 
+              dataKey="lap" 
+              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+              xAxisId="primary" 
+            />
             <YAxis 
               label={{ 
                 value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', 
                 angle: -90, 
                 position: 'insideLeft' 
               }}
+              yAxisId="primary"
+              domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
             />
             <Tooltip 
               contentStyle={{ 
@@ -453,6 +516,8 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   dot={{ r: 2, fill: `#f59e0b` }}
                   activeDot={{ r: 6 }}
                   connectNulls={true}
+                  xAxisId="primary"
+                  yAxisId="primary"
                 />
               ))}
             
@@ -471,6 +536,8 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   dot={{ r: 2, fill: `#3b82f6` }}
                   activeDot={{ r: 6 }}
                   connectNulls={true}
+                  xAxisId="primary"
+                  yAxisId="primary"
                 />
               ))}
           </LineChart>

@@ -6,10 +6,11 @@ import YearSelector from "@/components/common/YearSelector";
 import LapTimeChart from "@/components/analytics/LapTimeChart";
 import PositionChangeChart from "@/components/analytics/PositionChangeChart";
 import QualifyingChart from "@/components/analytics/QualifyingChart";
+import YearComparisonAnalytics from "@/components/analytics/YearComparisonAnalytics";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, Loader2 } from "lucide-react";
+import { Info, Loader2, GitCompare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Analytics = () => {
@@ -59,8 +60,9 @@ const Analytics = () => {
         </div>
         
         <Tabs defaultValue="raceAnalytics" className="w-full">
-          <TabsList className="grid grid-cols-1 w-full">
+          <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="raceAnalytics">Race Analytics</TabsTrigger>
+            <TabsTrigger value="seasonComparison">Season Comparison</TabsTrigger>
           </TabsList>
           
           <TabsContent value="raceAnalytics" className="mt-6">
@@ -171,6 +173,17 @@ const Analytics = () => {
                 </Card>
               </TabsContent>
             </Tabs>
+          </TabsContent>
+          
+          <TabsContent value="seasonComparison" className="mt-6">
+            <Alert className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
+              <GitCompare className="h-4 w-4" />
+              <AlertDescription>
+                Compare lap times, position changes, and qualifying data between different seasons to see how performance has evolved.
+              </AlertDescription>
+            </Alert>
+            
+            <YearComparisonAnalytics />
           </TabsContent>
         </Tabs>
       </div>

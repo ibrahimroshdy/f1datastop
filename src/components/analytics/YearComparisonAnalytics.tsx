@@ -8,6 +8,7 @@ import { Info, GitCompare, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import YearComparisonLapChart from "./YearComparisonLapChart";
 import YearComparisonPositionChart from "./YearComparisonPositionChart";
+import YearComparisonQualifyingChart from "./YearComparisonQualifyingChart";
 
 const YearComparisonAnalytics = () => {
   const [baseYear, setBaseYear] = useState<number>(new Date().getFullYear() - 1);
@@ -76,14 +77,6 @@ const YearComparisonAnalytics = () => {
 
   return (
     <div className="space-y-6">
-      <Alert className="bg-amber-50 text-amber-800 border-amber-200">
-        <GitCompare className="h-4 w-4" />
-        <AlertDescription>
-          Compare lap times and position changes from races in different seasons. 
-          Select a base year and a comparison year to see how performance has evolved.
-        </AlertDescription>
-      </Alert>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <Card>
           <CardHeader className="pb-2">
@@ -191,9 +184,10 @@ const YearComparisonAnalytics = () => {
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="lapTimes">Lap Time Comparison</TabsTrigger>
           <TabsTrigger value="positions">Position Change Comparison</TabsTrigger>
+          <TabsTrigger value="qualifying">Qualifying Comparison</TabsTrigger>
         </TabsList>
         
         <TabsContent value="lapTimes" className="space-y-4 mt-4">
@@ -225,6 +219,25 @@ const YearComparisonAnalytics = () => {
             </CardHeader>
             <CardContent className="h-[600px]">
               <YearComparisonPositionChart 
+                baseYear={baseYear}
+                baseRound={selectedRaceBase}
+                comparisonYear={comparisonYear}
+                comparisonRound={selectedRaceComparison}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="qualifying" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Qualifying Comparison</CardTitle>
+              <CardDescription>
+                Compare qualifying times (Q1, Q2, Q3) between drivers across different seasons.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-[600px]">
+              <YearComparisonQualifyingChart 
                 baseYear={baseYear}
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}

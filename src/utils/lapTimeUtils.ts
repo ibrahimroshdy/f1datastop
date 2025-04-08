@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for working with lap times
  */
@@ -22,14 +21,14 @@ export const convertLapTimeToSeconds = (lapTime: string): number => {
 };
 
 /**
- * Formats a time in seconds to a string (e.g. 90.456 to "1:30.456")
+ * Formats a time in seconds to a string (e.g. 90.456 to "1:30.46")
  */
 export const formatTime = (seconds: number): string => {
   if (!seconds) return "N/A";
   
   const mins = Math.floor(seconds / 60);
-  const secs = (seconds % 60).toFixed(3);
-  return `${mins}:${secs.padStart(6, '0')}`;
+  const secs = (seconds % 60).toFixed(2);
+  return `${mins}:${secs.padStart(5, '0')}`;
 };
 
 /**

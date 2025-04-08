@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -37,7 +36,7 @@ const DataLoadingProgress: React.FC<DataLoadingProgressProps> = ({
               </span>
             </div>
             <span className="text-xs text-muted-foreground">
-              {progress}%
+              {progress.toFixed(2)}%
             </span>
           </div>
           <Progress value={progress} className="h-1.5" />
