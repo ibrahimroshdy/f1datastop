@@ -43,12 +43,15 @@ export const ReferenceLine = (props: ReferenceLineProps) => {
   return <RechartsReferenceLine {...safeProps} />;
 };
 
-// Add a Line component wrapper to ensure consistent Line props
+// Fix the Line component wrapper to properly handle props and types
 export const Line = (props: LineProps) => {
-  // Make sure to not pass any conflicting axis IDs
-  const safeProps = { ...props };
-  delete safeProps.xAxisId;
-  delete safeProps.yAxisId;
-  // Use the RechartsLine directly to avoid typing issues
+  // Remove any axis IDs to prevent conflicts
+  const safeProps = { ...props } as LineProps;
+  
+  // Explicitly delete these properties to avoid type conflicts
+  if ('xAxisId' in safeProps) delete safeProps.xAxisId;
+  if ('yAxisId' in safeProps) delete safeProps.yAxisId;
+  
+  // Return the Recharts Line with safe props
   return <RechartsLine {...safeProps} />;
 };
