@@ -10,7 +10,6 @@ import { ProtectedRoute, PublicOnlyRoute } from "@/components/auth/ProtectedRout
 import Index from "./pages/Index";
 import RaceCalendar from "./pages/RaceCalendar";
 import Analytics from "./pages/Analytics";
-import SeasonComparison from "./pages/SeasonComparison";
 import Drivers from "./pages/Drivers";
 import Constructors from "./pages/Constructors";
 import NotFound from "./pages/NotFound";
@@ -53,7 +52,6 @@ const App = () => (
               {/* Protected routes with blur effect for non-authenticated users */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/analytics" element={<Analytics />} />
-                <Route path="/season-comparison" element={<SeasonComparison />} />
                 <Route path="/drivers" element={<Drivers />} />
                 <Route path="/constructors" element={<Constructors />} />
                 <Route path="/profile" element={<Profile />} />

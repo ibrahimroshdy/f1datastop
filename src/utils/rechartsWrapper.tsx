@@ -19,6 +19,7 @@ console.error = function filterWarnings(msg: any, ...args: any[]) {
 };
 
 // Simple wrapper components that don't try to set any additional props
+// We're explicitly not setting xAxisId or yAxisId by default
 export const XAxis = (props: XAxisProps) => {
   return <RechartsXAxis {...props} />;
 };
