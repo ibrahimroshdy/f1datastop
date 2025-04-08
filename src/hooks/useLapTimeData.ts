@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -66,7 +67,7 @@ export const useLapTimeData = (year: number, round: string, requestedDisplayMode
       return () => clearTimeout(timer);
     } else if (!isError && !isLoading) {
       setErrorMessage(null);
-      setLoadingProgress(100); // Make sure we show exactly 100%
+      setLoadingProgress(100.00); // Make sure we show exactly 100.00%
     }
   }, [isError, retryCount, refetchLapTimes, failureCount, isLoading]);
 

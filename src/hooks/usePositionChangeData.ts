@@ -51,8 +51,8 @@ export const usePositionChangeData = (year: number, round: string) => {
 
   // Auto-retry on error with increased delay between retries
   useEffect(() => {
-    if (isError && retryCount < 15) { // Increased max retry attempts to 15
-      const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // More aggressive backoff up to 60 seconds
+    if (isError && retryCount < 15) { // Up to 15 retry attempts
+      const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // Backoff up to 60 seconds
       
       // Format progress with exactly 2 decimal places
       setLoadingProgress(parseFloat((retryCount * 7).toFixed(2)));
