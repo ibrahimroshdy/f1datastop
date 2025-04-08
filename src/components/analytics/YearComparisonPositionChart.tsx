@@ -437,9 +437,23 @@ const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = 
                   dataKey={`${driver.code}_${baseYear}`}
                   name={`${driver.code}_${baseYear}`}
                   stroke={`#f59e0b`} // Amber color for base year
-                  strokeDasharray={driver.finishPosition === 1 ? "0" : "5 5"}
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
-                  dot={{ r: 2, fill: `#f59e0b` }}
+                  dot={(props) => {
+                    // Skip rendering if cx or cy are not valid numbers or if value doesn't exist
+                    if (!props.cx || !props.cy || isNaN(props.cx) || isNaN(props.cy) || 
+                        !props.payload[`${driver.code}_${baseYear}`]) {
+                      return null;
+                    }
+                    return (
+                      <circle
+                        cx={props.cx}
+                        cy={props.cy}
+                        r={3}
+                        fill={'#f59e0b'}
+                        opacity={0.8}
+                      />
+                    );
+                  }}
                   activeDot={{ r: 6 }}
                   connectNulls={true}
                   xAxisId="primary"
@@ -457,9 +471,23 @@ const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = 
                   dataKey={`${driver.code}_${comparisonYear}`}
                   name={`${driver.code}_${comparisonYear}`}
                   stroke={`#3b82f6`} // Blue color for comparison year
-                  strokeDasharray={driver.finishPosition === 1 ? "0" : "5 5"}
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
-                  dot={{ r: 2, fill: `#3b82f6` }}
+                  dot={(props) => {
+                    // Skip rendering if cx or cy are not valid numbers or if value doesn't exist
+                    if (!props.cx || !props.cy || isNaN(props.cx) || isNaN(props.cy) || 
+                        !props.payload[`${driver.code}_${comparisonYear}`]) {
+                      return null;
+                    }
+                    return (
+                      <circle
+                        cx={props.cx}
+                        cy={props.cy}
+                        r={3}
+                        fill={'#3b82f6'}
+                        opacity={0.8}
+                      />
+                    );
+                  }}
                   activeDot={{ r: 6 }}
                   connectNulls={true}
                   xAxisId="primary"

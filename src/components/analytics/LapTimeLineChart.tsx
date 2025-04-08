@@ -117,7 +117,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
               } else {
                 // Gap mode
                 return [
-                  `+${value.toFixed(3)}s (${originalTime})`,
+                  `+${value.toFixed(3)}s (${originalTime || formatTime(value)})`,
                   name
                 ];
               }

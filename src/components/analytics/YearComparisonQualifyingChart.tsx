@@ -74,6 +74,16 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
     }
   }, [baseQualifyingError, comparisonQualifyingError]);
 
+  // Format lap time from seconds to MM:SS.sss format
+  const formatLapTime = (seconds: number | null): string => {
+    if (!seconds) return "No time";
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    return `${minutes}:${remainingSeconds.toFixed(3).padStart(6, '0')}`;
+  };
+
   // Process qualifying times to seconds
   const convertLapTimeToSeconds = (timeStr: string): number | null => {
     if (!timeStr) return null;
@@ -540,6 +550,7 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
               domain={['auto', 'auto']}
               label={{ value: 'Lap Time (seconds)', position: 'insideBottom', dy: 10 }}
               xAxisId="primary"
+              tickFormatter={(value) => formatLapTime(value)}
             />
             <YAxis 
               dataKey="name"
@@ -553,7 +564,7 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
             <Tooltip 
               formatter={(value, name) => {
                 if (typeof value !== 'number') return [value, name];
-                return [`${value.toFixed(2)}s`, formatLegendText(name as string)];
+                return [formatLapTime(value), formatLegendText(name as string)];
               }}
               labelFormatter={(label) => {
                 const [driverCode, yearInfo] = label.split(' (');
@@ -583,7 +594,7 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
                 stroke="#c026d3" 
                 strokeDasharray="3 3" 
                 label={{ 
-                  value: `Fastest: ${fastestLapTime.time.toFixed(2)}s (${fastestLapTime.driver} ${fastestLapTime.session} ${fastestLapTime.year})`, 
+                  value: `Fastest: ${formatLapTime(fastestLapTime.time)} (${fastestLapTime.driver} ${fastestLapTime.session} ${fastestLapTime.year})`, 
                   position: 'top', 
                   fill: '#c026d3',
                   fontSize: 12

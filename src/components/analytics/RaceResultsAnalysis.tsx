@@ -263,7 +263,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                     <YAxis 
                       type="number"
                       domain={['dataMin - 0.5', 'dataMax + 0.5']}
-                      tickFormatter={(value) => value.toFixed(0)}
+                      tickFormatter={(value) => formatTime(value)}
                       label={{ value: 'Lap Time (s)', angle: -90, position: 'left' }}
                       yAxisId="qualifying"
                     />
@@ -287,6 +287,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       name="Q1" 
                       stroke="#8884d8" 
                       activeDot={{ r: 8 }}
+                      dot={{ r: 3, fill: "#8884d8" }}
                       connectNulls
                       xAxisId="qualifying"
                       yAxisId="qualifying"
@@ -297,6 +298,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       name="Q2" 
                       stroke="#82ca9d" 
                       activeDot={{ r: 8 }}
+                      dot={{ r: 3, fill: "#82ca9d" }}
                       connectNulls
                       xAxisId="qualifying"
                       yAxisId="qualifying"
@@ -307,6 +309,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
                       name="Q3" 
                       stroke="#ffc658" 
                       activeDot={{ r: 8 }}
+                      dot={{ r: 3, fill: "#ffc658" }}
                       connectNulls
                       xAxisId="qualifying"
                       yAxisId="qualifying"

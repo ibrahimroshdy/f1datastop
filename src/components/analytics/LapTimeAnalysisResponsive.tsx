@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -339,6 +338,13 @@ const LapTimeAnalysisResponsive = ({ year }: LapTimeAnalysisResponsiveProps) => 
                         domain={displayMode === 'absolute' ? ['dataMin - 1', 'dataMax + 1'] : [0, 'dataMax + 0.5']}
                         yAxisId="lapTime"
                         width={isMobile ? 30 : 60}
+                        tickFormatter={(value) => {
+                          if (displayMode === 'absolute') {
+                            return formatTime(value);
+                          } else {
+                            return `+${value.toFixed(1)}`;
+                          }
+                        }}
                       />
                       <Tooltip 
                         contentStyle={{ 
@@ -370,7 +376,7 @@ const LapTimeAnalysisResponsive = ({ year }: LapTimeAnalysisResponsiveProps) => 
                           y={fastestLap} 
                           stroke="red" 
                           strokeDasharray="3 3" 
-                          label={isMobile ? undefined : { value: 'Fastest Lap', position: 'right', fill: 'red' }} 
+                          label={isMobile ? undefined : { value: `Fastest Lap: ${formatTime(fastestLap)}`, position: 'right', fill: 'red' }} 
                           yAxisId="lapTime"
                           xAxisId="lapTime"
                         />
@@ -386,7 +392,7 @@ const LapTimeAnalysisResponsive = ({ year }: LapTimeAnalysisResponsiveProps) => 
                             name={driver.code}
                             stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
                             strokeWidth={2}
-                            dot={{ r: isMobile ? 2 : 3 }}
+                            dot={{ r: isMobile ? 2 : 3, fill: TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666" }}
                             activeDot={{ r: isMobile ? 5 : 8 }}
                             connectNulls
                             xAxisId="lapTime"

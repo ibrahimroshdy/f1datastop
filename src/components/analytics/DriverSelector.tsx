@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";

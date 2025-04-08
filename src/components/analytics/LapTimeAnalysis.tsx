@@ -290,6 +290,7 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
                     label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }} 
                     domain={['dataMin - 1', 'dataMax + 1']}
                     yAxisId="lapTime"
+                    tickFormatter={(value) => formatTime(value)}
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -311,7 +312,7 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
                       y={fastestLap} 
                       stroke="red" 
                       strokeDasharray="3 3" 
-                      label={{ value: 'Fastest Lap', position: 'right', fill: 'red' }} 
+                      label={{ value: `Fastest Lap: ${formatTime(fastestLap)}`, position: 'right', fill: 'red' }} 
                       yAxisId="lapTime"
                       xAxisId="lapTime"
                     />
@@ -327,7 +328,7 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
                         name={driver.code}
                         stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
                         strokeWidth={2}
-                        dot={{ r: 3 }}
+                        dot={{ r: 3, fill: TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666" }}
                         activeDot={{ r: 8 }}
                         connectNulls
                         xAxisId="lapTime"

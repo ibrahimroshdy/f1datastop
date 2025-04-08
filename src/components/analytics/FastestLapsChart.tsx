@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -51,6 +50,7 @@ const FastestLapsChart = ({ data, isLoading }: FastestLapsChartProps) => {
                 type="number" 
                 domain={['dataMin - 0.5', 'dataMax + 0.5']} 
                 xAxisId="lapTime"
+                tickFormatter={(value) => formatTime(value)}
               />
               <YAxis 
                 dataKey="driver" 

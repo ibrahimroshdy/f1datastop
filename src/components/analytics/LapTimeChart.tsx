@@ -156,13 +156,27 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
               domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
               label={{ value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', angle: -90, position: 'insideLeft' }}
               yAxisId="time"
+              tickFormatter={(value) => {
+                if (displayMode === 'absolute') {
+                  // Format as MM:SS.sss
+                  const mins = Math.floor(value / 60);
+                  const secs = (value % 60).toFixed(3);
+                  return `${mins}:${secs.padStart(6, '0')}`;
+                } else {
+                  // Format as +X.XXXs
+                  return `+${value.toFixed(3)}s`;
+                }
+              }}
             />
             <Tooltip
               formatter={(value, name) => {
                 const driverCode = String(name);
                 if (displayMode === 'absolute') {
-                  // Make sure value is a number before calling toFixed
-                  return [typeof value === 'number' ? `${value.toFixed(3)}s` : `${value}`, driverCode];
+                  // Format as MM:SS.sss
+                  if (typeof value !== 'number') return [`${value}`, driverCode];
+                  const mins = Math.floor(value / 60);
+                  const secs = (value % 60).toFixed(3);
+                  return [`${mins}:${secs.padStart(6, '0')}`, driverCode];
                 } else {
                   // Make sure value is a number before calling toFixed
                   return [typeof value === 'number' ? `+${value.toFixed(3)}s` : `+${value}`, driverCode];
@@ -187,7 +201,15 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                 y={fastestLapTime.time} 
                 stroke="#c026d3" 
                 strokeDasharray="3 3" 
-                label={{ value: `Fastest Lap: ${fastestLapTime.time.toFixed(3)}s (${fastestLapTime.driver})`, position: 'right', fill: '#c026d3' }} 
+                label={{ 
+                  value: `Fastest Lap: ${(() => {
+                    const mins = Math.floor(fastestLapTime.time / 60);
+                    const secs = (fastestLapTime.time % 60).toFixed(3);
+                    return `${mins}:${secs.padStart(6, '0')}`;
+                  })()} (${fastestLapTime.driver})`, 
+                  position: 'right', 
+                  fill: '#c026d3' 
+                }} 
                 yAxisId="time"
                 xAxisId="lap"
               />

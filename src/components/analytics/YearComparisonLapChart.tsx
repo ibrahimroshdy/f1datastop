@@ -236,14 +236,24 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             lapTimes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / lapTimes.length
           );
           
+          // Identify potential pit stop laps (significantly slower than average)
+          const pitStopThreshold = 3.0; // Higher threshold for pit stops
+          const potentialPitStops: number[] = [];
+          
           // Find outliers (laps that are significantly faster or slower)
-          const threshold = 1.75; // Lower for more outliers, higher for fewer
+          const threshold = 2.5; // Increased threshold to reduce false positives
           const outlierLaps: number[] = [];
           
           lapTimes.forEach((time, idx) => {
-            const zScore = Math.abs(time - mean) / stdDev;
-            if (zScore > threshold) {
-              outlierLaps.push(idx + 1); // +1 because lap numbers start at 1
+            const zScore = (time - mean) / stdDev;
+            
+            // If much slower than average, likely a pit stop, not a regular outlier
+            if (zScore > pitStopThreshold) {
+              potentialPitStops.push(idx + 1);
+            } 
+            // Only mark as outlier if not a potential pit stop
+            else if (Math.abs(zScore) > threshold) {
+              outlierLaps.push(idx + 1);
             }
           });
           
@@ -456,8 +466,22 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
               formatter={(value: any, name: string) => {
                 if (typeof value === 'number') {
                   const driverKey = name;
-                  const isOutlier = outlierLaps[driverKey]?.includes(Number(chartData.find(d => d[driverKey] === value)?.lap));
-                  return [`${formatTime(value)}${isOutlier ? ' ⚠️ Outlier' : ''}`, name];
+                  const lapNumber = Number(chartData.find(d => d[driverKey] === value)?.lap);
+                  const isOutlier = outlierLaps[driverKey]?.includes(lapNumber);
+                  
+                  // Check for abnormally slow lap (potential pit stop)
+                  const driverLapTimes = chartData
+                    .map(lap => lap[driverKey])
+                    .filter(time => typeof time === 'number');
+                  
+                  const avg = driverLapTimes.reduce((sum, val) => sum + val, 0) / driverLapTimes.length;
+                  const isPotentialPitStop = value > (avg * 1.2); // 20% slower than average
+                  
+                  const labelText = isOutlier 
+                    ? ' ⚠️ Outlier' 
+                    : (isPotentialPitStop ? ' 🔄 Possible Pit Stop' : '');
+                  
+                  return [`${formatTime(value)}${labelText}`, name];
                 }
                 return value;
               }}
@@ -494,15 +518,26 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   stroke={`#f59e0b`} // Amber color for base year
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
                   dot={(props) => {
+                    // Skip rendering if cx or cy are not valid numbers
+                    if (!props.cx || !props.cy || isNaN(props.cx) || isNaN(props.cy)) {
+                      return null;
+                    }
+                    
                     const isOutlier = outlierLaps[`${driver.code}_${baseYear}`]?.includes(props.payload.lap);
+                    // Only show custom dot if the value exists
+                    if (!props.payload[`${driver.code}_${baseYear}`]) {
+                      return null;
+                    }
+                    
                     return (
                       <circle
                         cx={props.cx}
                         cy={props.cy}
-                        r={isOutlier ? 5 : 2}
+                        r={isOutlier ? 4 : 2}
                         fill={isOutlier ? '#f97316' : '#f59e0b'}
                         stroke={isOutlier ? '#ffffff' : 'none'}
                         strokeWidth={isOutlier ? 1 : 0}
+                        opacity={isOutlier ? 1 : 0.8}
                       />
                     );
                   }}
@@ -525,15 +560,26 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   stroke={`#3b82f6`} // Blue color for comparison year
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
                   dot={(props) => {
+                    // Skip rendering if cx or cy are not valid numbers
+                    if (!props.cx || !props.cy || isNaN(props.cx) || isNaN(props.cy)) {
+                      return null;
+                    }
+                    
                     const isOutlier = outlierLaps[`${driver.code}_${comparisonYear}`]?.includes(props.payload.lap);
+                    // Only show custom dot if the value exists
+                    if (!props.payload[`${driver.code}_${comparisonYear}`]) {
+                      return null;
+                    }
+                    
                     return (
                       <circle
                         cx={props.cx}
                         cy={props.cy}
-                        r={isOutlier ? 5 : 2}
+                        r={isOutlier ? 4 : 2}
                         fill={isOutlier ? '#2563eb' : '#3b82f6'}
                         stroke={isOutlier ? '#ffffff' : 'none'}
                         strokeWidth={isOutlier ? 1 : 0}
+                        opacity={isOutlier ? 1 : 0.8}
                       />
                     );
                   }}
