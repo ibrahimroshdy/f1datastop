@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { useRaceSchedule, useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, GitCompare, Loader2 } from "lucide-react";
+import { Info, CompareIcon, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import YearComparisonLapChart from "./YearComparisonLapChart";
 import YearComparisonPositionChart from "./YearComparisonPositionChart";
@@ -16,6 +17,7 @@ const YearComparisonAnalytics = () => {
   const [selectedRaceComparison, setSelectedRaceComparison] = useState<string>("1");
   const [selectedTab, setSelectedTab] = useState<string>("lapTimes");
   
+  // Fetch race schedules for both years
   const { 
     data: baseRaceSchedule, 
     isLoading: isBaseScheduleLoading 
@@ -26,6 +28,7 @@ const YearComparisonAnalytics = () => {
     isLoading: isComparisonScheduleLoading 
   } = useRaceSchedule(comparisonYear);
 
+  // Handler for year changes
   const handleBaseYearChange = (value: string) => {
     const year = parseInt(value);
     setBaseYear(year);
@@ -38,6 +41,7 @@ const YearComparisonAnalytics = () => {
     setSelectedRaceComparison("1");
   };
 
+  // Handler for race selection
   const handleBaseRaceChange = (value: string) => {
     setSelectedRaceBase(value);
   };
@@ -46,6 +50,7 @@ const YearComparisonAnalytics = () => {
     setSelectedRaceComparison(value);
   };
 
+  // Remove emoji flags from race names
   const cleanRaceName = (raceName: string) => {
     if (!raceName) return "";
     
@@ -63,6 +68,7 @@ const YearComparisonAnalytics = () => {
     return raceName;
   };
 
+  // Generate year options
   const generateYearOptions = () => {
     const currentYear = new Date().getFullYear();
     const years = [];
@@ -77,7 +83,7 @@ const YearComparisonAnalytics = () => {
   return (
     <div className="space-y-6">
       <Alert className="bg-amber-50 text-amber-800 border-amber-200">
-        <GitCompare className="h-4 w-4" />
+        <CompareIcon className="h-4 w-4" />
         <AlertDescription>
           Compare lap times and position changes from races in different seasons. 
           Select a base year and a comparison year to see how performance has evolved.
@@ -85,6 +91,7 @@ const YearComparisonAnalytics = () => {
       </Alert>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Base Year Selection */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Base Year</CardTitle>
@@ -137,6 +144,7 @@ const YearComparisonAnalytics = () => {
           </CardContent>
         </Card>
 
+        {/* Comparison Year Selection */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Comparison Year</CardTitle>

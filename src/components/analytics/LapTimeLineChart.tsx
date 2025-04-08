@@ -1,17 +1,22 @@
-
 import React from 'react';
-import { LineChart, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { XAxis, YAxis, ReferenceLine, Line } from '@/utils/rechartsWrapper';
+import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { formatTime } from "@/utils/lapTimeUtils";
-import { Driver, FastestLapTime } from "@/types/lapTimeTypes";
+
+interface Driver {
+  driverId: string;
+  code: string;
+  name: string;
+  team: string;
+}
 
 interface LapTimeLineChartProps {
   chartData: any[];
   availableDrivers: Driver[];
   selectedDrivers: string[];
   displayMode: 'absolute' | 'gap';
-  fastestLapTime: FastestLapTime | null;
+  fastestLapTime: { time: number, driver: string } | null;
   hoveredDriver: string | null;
 }
 
@@ -82,6 +87,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
             type="number"
             domain={[1, maxLap]}
             label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+            xAxisId="lapTime"
           />
           <YAxis 
             label={{ 
@@ -90,7 +96,8 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
               position: 'insideLeft',
             }} 
             domain={yDomain}
-            tickFormatter={(value) => formatTime(value)}
+            yAxisId="lapTime"
+            tickFormatter={(value) => displayMode === 'absolute' ? formatTime(value) : `+${value.toFixed(1)}`}
           />
           <Tooltip 
             contentStyle={{ 
@@ -103,12 +110,16 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
               if (typeof value !== 'number') return [value, name];
               
               const driverCode = String(name).split(' ')[0];
-              const driver = availableDrivers.find(d => d.code === driverCode);
+              const originalTime = props.payload[`${driverCode}_raw`];
               
               if (displayMode === 'absolute') {
-                return [formatTime(value), driverCode];
+                return [formatTime(value), name];
               } else {
-                return [`+${value.toFixed(3)}s`, driverCode];
+                // Gap mode
+                return [
+                  `+${value.toFixed(3)}s (${originalTime})`,
+                  name
+                ];
               }
             }}
             labelFormatter={(label) => `Lap ${label}`}
@@ -117,16 +128,22 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
             formatter={(value) => {
               const driverCode = value.split(' ')[0];
               const driver = availableDrivers.find(d => d.code === driverCode);
-              return driver ? `${driver.code}` : driverCode;
+              return driver ? `${driverCode} (${driver.name.split(' ').pop()})` : driverCode;
             }}
           />
           
           {fastestLapTime && displayMode === 'absolute' && (
             <ReferenceLine 
               y={fastestLapTime.time} 
-              stroke="red" 
+              stroke="#c026d3" // Purple color
               strokeDasharray="3 3" 
-              label={{ value: `Fastest: ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`, position: 'right', fill: 'red' }} 
+              label={{ 
+                value: `Fastest Lap: ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`, 
+                position: 'right', 
+                fill: '#c026d3' 
+              }} 
+              xAxisId="lapTime"
+              yAxisId="lapTime"
             />
           )}
           
@@ -137,12 +154,15 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 key={driver.code}
                 type="monotone"
                 dataKey={driver.code}
-                name={`${driver.code}`}
+                name={`${driver.code} (${driver.name.split(' ').pop()})`}
                 stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
                 strokeWidth={hoveredDriver === driver.code ? 3 : 2}
-                dot={{ r: 2 }}
-                activeDot={{ r: 6 }}
-                connectNulls={true}
+                dot={{ r: 3 }}
+                activeDot={{ r: 8 }}
+                connectNulls
+                xAxisId="lapTime"
+                yAxisId="lapTime"
+                isAnimationActive={false}
                 opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
               />
             ))}

@@ -1,7 +1,7 @@
 
 import React from "react";
-import { LineChart, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { XAxis, YAxis, Line } from '@/utils/rechartsWrapper';
+import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 
 interface PositionChartProps {
@@ -30,9 +30,12 @@ const PositionChart: React.FC<PositionChartProps> = ({
           <XAxis 
             dataKey="lap" 
             label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+            xAxisId="position"
+            // Explicitly set domain to show all laps
             domain={[1, maxLap]}
             type="number"
             allowDecimals={false}
+            // Add more ticks to show lap numbers more clearly
             ticks={
               maxLap > 50
                 ? Array.from({length: 10}, (_, i) => Math.round(i * maxLap / 10) || 1)
@@ -43,6 +46,7 @@ const PositionChart: React.FC<PositionChartProps> = ({
             reversed 
             domain={[1, 20]} 
             label={{ value: 'Position', angle: -90, position: 'insideLeft' }} 
+            yAxisId="position"
             ticks={[1, 5, 10, 15, 20]}
           />
           <Tooltip 
@@ -82,6 +86,8 @@ const PositionChart: React.FC<PositionChartProps> = ({
                 dot={{ r: 1 }}
                 activeDot={{ r: 6 }}
                 connectNulls
+                xAxisId="position"
+                yAxisId="position"
                 isAnimationActive={false}
                 opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
               />

@@ -1,16 +1,15 @@
-
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 import { optimizeLapData } from "@/utils/dataLoadingUtils";
 import { toast } from "sonner";
 import { useState } from "react";
 
-// Helper function to create exponential backoff retry logic with jitter
+// Helper function to create exponential backoff retry logic with more aggressive backoff
 const createRetryConfig = (retryDelayBase = 2000, maxRetryAttempts = 5) => ({
   retry: maxRetryAttempts,
   retryDelay: (attemptIndex: number) => {
     // Enhanced exponential backoff with jitter to avoid thundering herd
-    // Add random jitter (80-120% of the base value) to prevent all clients retrying at the same time
+    // More aggressive delay with higher base value and exponential growth
     const delay = Math.min(retryDelayBase * (2 ** attemptIndex) * (0.8 + Math.random() * 0.4), 60000);
     
     if (attemptIndex > 0) {

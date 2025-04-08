@@ -6,14 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import YearSelector from "@/components/common/YearSelector";
 import LapTimeChart from "@/components/analytics/LapTimeChart";
 import PositionChangeChart from "@/components/analytics/PositionChangeChart";
-import QualifyingAnalytics from "@/components/analytics/QualifyingAnalytics"; 
-import YearComparisonAnalytics from "@/components/analytics/YearComparisonAnalytics";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, ArrowUp, ArrowDown, Minus, Loader2, GitCompare } from "lucide-react";
+import { Info, ArrowUp, ArrowDown, Minus, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import YearComparisonAnalytics from "@/components/analytics/YearComparisonAnalytics";
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -57,19 +56,16 @@ const Analytics = () => {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Race Analytics</h1>
-        </div>
+        <h1 className="text-3xl font-bold">F1 Analytics</h1>
         
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="lapTimes">Lap Times</TabsTrigger>
-            <TabsTrigger value="positions">Position Changes</TabsTrigger>
-            <TabsTrigger value="qualifying">Qualifying</TabsTrigger>
+        <Tabs defaultValue="raceAnalytics" className="w-full">
+          <TabsList className="grid grid-cols-3 w-full">
+            <TabsTrigger value="raceAnalytics">Race Analytics</TabsTrigger>
             <TabsTrigger value="seasonComparison">Season Comparison</TabsTrigger>
+            <TabsTrigger value="inDepthAnalytics">In-Depth Analytics</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="lapTimes" className="space-y-4 mt-4">
+          <TabsContent value="raceAnalytics" className="mt-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
               <div className="flex flex-col md:flex-row items-center gap-4">
                 <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
@@ -104,174 +100,73 @@ const Analytics = () => {
                 )}
               </div>
             </div>
-
+            
             <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
               <Info className="h-4 w-4" />
               <AlertDescription>
                 View lap-by-lap data including position changes and timing information. 
                 The system includes automatic retry with exponential backoff when rate limits (429 errors) are encountered.
-              </AlertDescription>
-            </Alert>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Lap Time Analysis</CardTitle>
-                <CardDescription>
-                  Compare lap-by-lap times between drivers during a race.
-                  The system will automatically retry with increasing delays between attempts if rate limits are encountered.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[600px]">
-                <LapTimeChart 
-                  year={selectedYear} 
-                  round={selectedRace} 
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="positions" className="space-y-4 mt-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-              <div className="flex flex-col md:flex-row items-center gap-4">
-                <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
-                
-                {isRaceScheduleLoading ? (
-                  <div className="w-[250px] flex items-center space-x-2">
-                    <Skeleton className="h-10 w-full" />
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <Select value={selectedRace} onValueChange={handleRaceChange}>
-                    <SelectTrigger className="w-[250px] bg-f1-black text-white border-gray-700">
-                      <SelectValue placeholder="Select race" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black border-gray-700 text-white">
-                      {isRaceScheduleLoading ? (
-                        <SelectItem value="loading">
-                          <div className="flex items-center">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Loading races...
-                          </div>
-                        </SelectItem>
-                      ) : (
-                        raceScheduleData?.data?.map((race: any) => (
-                          <SelectItem key={race.round} value={race.round}>
-                            {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </div>
-
-            <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Track how drivers' positions change throughout the race.
-                The system will automatically retry with increasing delays between attempts if rate limits are encountered.
-              </AlertDescription>
-            </Alert>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Position Changes</CardTitle>
-                <CardDescription>
-                  Track how drivers' positions change throughout the race.
-                  The system will automatically retry with increasing delays between attempts if rate limits are encountered.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[600px] p-4">
-                <PositionChangeChart 
-                  year={selectedYear} 
-                  round={selectedRace} 
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="qualifying" className="space-y-4 mt-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-              <div className="flex flex-col md:flex-row items-center gap-4">
-                <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
-                
-                {isRaceScheduleLoading ? (
-                  <div className="w-[250px] flex items-center space-x-2">
-                    <Skeleton className="h-10 w-full" />
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <Select value={selectedRace} onValueChange={handleRaceChange}>
-                    <SelectTrigger className="w-[250px] bg-f1-black text-white border-gray-700">
-                      <SelectValue placeholder="Select race" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black border-gray-700 text-white">
-                      {isRaceScheduleLoading ? (
-                        <SelectItem value="loading">
-                          <div className="flex items-center">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Loading races...
-                          </div>
-                        </SelectItem>
-                      ) : (
-                        raceScheduleData?.data?.map((race: any) => (
-                          <SelectItem key={race.round} value={race.round}>
-                            {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </div>
-
-            <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Compare qualifying times (Q1, Q2, Q3) between drivers.
-                The system will automatically retry with increasing delays between attempts if rate limits are encountered.
-              </AlertDescription>
-            </Alert>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Qualifying Analysis</CardTitle>
-                <CardDescription>
-                  Compare qualifying times (Q1, Q2, Q3) between drivers.
-                  The system will automatically retry with increasing delays between attempts if rate limits are encountered.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[600px] p-4">
-                <QualifyingAnalytics 
-                  year={selectedYear} 
-                  round={selectedRace} 
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="seasonComparison" className="space-y-4 mt-4">
-            <Alert className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
-              <GitCompare className="h-4 w-4" />
-              <AlertDescription>
-                Compare lap times and position changes from races in different seasons. 
-                Select a base year and a comparison year to see how performance has evolved.
+                If data loading fails, the chart will automatically retry up to 15 times with increasing delays.
               </AlertDescription>
             </Alert>
             
-            <Card>
-              <CardHeader>
-                <CardTitle>Season Comparison</CardTitle>
-                <CardDescription>
-                  Compare data across different F1 seasons to analyze performance evolution.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <YearComparisonAnalytics />
-              </CardContent>
-            </Card>
+            <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="lapTimes">Lap Times</TabsTrigger>
+                <TabsTrigger value="positions">Position Changes</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="lapTimes" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Lap Time Analysis</CardTitle>
+                    <CardDescription>
+                      Compare lap-by-lap times between drivers during a race.
+                      The system will automatically retry with increasing delays between attempts if rate limits are encountered.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[600px]">
+                    {selectedTab === "lapTimes" && (
+                      <LapTimeChart 
+                        year={selectedYear} 
+                        round={selectedRace} 
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="positions" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Position Changes</CardTitle>
+                    <CardDescription>
+                      Track how drivers' positions change throughout the race.
+                      The system will automatically retry with increasing delays between attempts if rate limits are encountered.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[600px] p-4">
+                    {selectedTab === "positions" && (
+                      <PositionChangeChart 
+                        year={selectedYear} 
+                        round={selectedRace} 
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+          
+          <TabsContent value="seasonComparison" className="mt-6">
+            <YearComparisonAnalytics />
+          </TabsContent>
+          
+          <TabsContent value="inDepthAnalytics" className="mt-6">
+            <div className="text-center py-12">
+              <h3 className="text-xl font-semibold mb-2">In-Depth Analytics Coming Soon</h3>
+              <p className="text-muted-foreground">Advanced statistical analysis and performance metrics will be available in a future update.</p>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

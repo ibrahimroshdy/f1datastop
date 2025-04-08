@@ -1,15 +1,15 @@
 
 import React, { useState } from "react";
-import { ResponsiveContainer, LineChart, CartesianGrid, Tooltip, Legend } from "recharts";
-import { XAxis, YAxis, ReferenceLine, Line } from "@/utils/rechartsWrapper";
+import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
+import { XAxis, YAxis, ReferenceLine } from "@/utils/rechartsWrapper";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { useLapTimeData } from "@/hooks/useLapTimeData";
 import DriverSelector from "./DriverSelector";
 import DisplayModeToggle from "./DisplayModeToggle";
-import DataLoadingProgress from "./DataLoadingProgress";
 
 interface LapTimeChartProps {
   year: number;
@@ -29,7 +29,6 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
     isError,
     loadingProgress,
     errorMessage,
-    retryCount,
     maxLap,
     fastestLapTime,
     handleDriverToggle,
@@ -44,22 +43,28 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
   // Render loading state with progress indicator
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <DataLoadingProgress 
-          isLoading={true}
-          progress={loadingProgress}
-          message={errorMessage}
-          isError={isError}
-          retryCount={retryCount}
-          maxRetries={15}
-        />
-        <div className="pt-6 text-center">
-          <p className="text-muted-foreground">
-            {loadingProgress < 50 ? "Loading lap time data..." : "Processing race data..."}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            The F1 API has rate limits. Automatic retries are in progress if needed.
-          </p>
+      <div className="h-full flex flex-col items-center justify-center space-y-4">
+        <Skeleton className="h-full w-full opacity-30" />
+        <div className="absolute flex flex-col items-center justify-center space-y-6 w-3/4 max-w-md">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <div className="w-full space-y-2">
+            <Progress 
+              value={loadingProgress} 
+              className="h-2 w-full" 
+              indicatorClassName={isError ? "bg-yellow-500" : "bg-blue-500"}
+            />
+            <p className="text-center text-muted-foreground text-sm">
+              {errorMessage || "Loading lap time data..."}
+            </p>
+            {isError && (
+              <Alert className="mt-4 bg-yellow-50 border-yellow-200 text-yellow-900">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-xs">
+                  System is automatically retrying... The F1 API has strict rate limits.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -123,19 +128,25 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
               type="number"
               domain={[1, maxLap]}
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
+              xAxisId="lapTime"
             />
             <YAxis
-              domain={['auto', 'auto']}
-              label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }}
+              domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
+              label={{ value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', angle: -90, position: 'insideLeft' }}
+              yAxisId="lapTime"
             />
             <Tooltip
               formatter={(value, name) => {
                 const driverCode = String(name);
+                const originalTime = displayMode === 'gap' ? chartData.find(d => d[`${driverCode}_original`])?.[`${driverCode}_original`] : value;
                 
-                if (typeof value === 'number') {
-                  return [`${value.toFixed(3)}s`, driverCode];
+                if (displayMode === 'absolute') {
+                  // Make sure value is a number before calling toFixed
+                  return [typeof value === 'number' ? `${value.toFixed(3)}s` : `${value}`, driverCode];
+                } else {
+                  // Make sure value is a number before calling toFixed
+                  return [typeof value === 'number' ? `+${value.toFixed(3)}s` : `+${value}`, driverCode];
                 }
-                return [value, driverCode];
               }}
               labelFormatter={(label) => `Lap ${label}`}
               contentStyle={{ 
@@ -151,12 +162,14 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                 return driver ? `${value} (${driver.name.split(' ').pop()})` : value;
               }}
             />
-            {fastestLapTime && (
+            {fastestLapTime && displayMode === 'absolute' && (
               <ReferenceLine 
                 y={fastestLapTime.time} 
                 stroke="#c026d3" 
                 strokeDasharray="3 3" 
                 label={{ value: `Fastest Lap: ${fastestLapTime.time.toFixed(3)}s (${fastestLapTime.driver})`, position: 'right', fill: '#c026d3' }} 
+                xAxisId="lapTime"
+                yAxisId="lapTime"
               />
             )}
             {availableDrivers
@@ -172,6 +185,8 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                   dot={{ r: 3 }}
                   activeDot={{ r: 8 }}
                   connectNulls
+                  xAxisId="lapTime"
+                  yAxisId="lapTime"
                   isAnimationActive={false}
                   opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
                 />

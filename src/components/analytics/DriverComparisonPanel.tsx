@@ -165,10 +165,12 @@ const DriverComparisonPanel = ({
                   <XAxis 
                     dataKey="lap" 
                     label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+                    xAxisId="driver"
                   />
                   <YAxis 
                     label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }} 
                     domain={['dataMin - 1', 'dataMax + 1']} 
+                    yAxisId="time"
                   />
                   <Tooltip formatter={(value) => {
                     if (typeof value === 'number') {
@@ -182,12 +184,16 @@ const DriverComparisonPanel = ({
                     dataKey={selectedDriver1} 
                     stroke={DRIVER_COLORS[selectedDriver1] || "#ff0000"} 
                     activeDot={{ r: 8 }} 
+                    xAxisId="driver"
+                    yAxisId="time"
                   />
                   <Line 
                     type="monotone" 
                     dataKey={selectedDriver2} 
                     stroke={DRIVER_COLORS[selectedDriver2] || "#0000ff"} 
                     activeDot={{ r: 8 }} 
+                    xAxisId="driver"
+                    yAxisId="time"
                   />
                 </LineChart>
               </ResponsiveContainer>

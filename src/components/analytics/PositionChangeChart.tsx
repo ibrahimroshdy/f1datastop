@@ -1,13 +1,14 @@
 
 import React, { useState } from "react";
-import { ResponsiveContainer, LineChart, CartesianGrid, Tooltip, Legend } from "recharts";
-import { XAxis, YAxis, Line } from "@/utils/rechartsWrapper";
+import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
+import { XAxis, YAxis } from "@/utils/rechartsWrapper";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { usePositionChangeData } from "@/hooks/usePositionChangeData";
 import DriverSelectionGrid from "./charts/DriverSelectionGrid";
-import DataLoadingProgress from "./DataLoadingProgress";
 
 interface PositionChangeChartProps {
   year: number;
@@ -26,7 +27,6 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
     loadingProgress,
     errorMessage,
     maxLap,
-    retryCount,
     handleDriverToggle,
     handleDriverHover,
     getPositionChangeSummary,
@@ -35,22 +35,28 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
   // Render loading state with progress indicator
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <DataLoadingProgress 
-          isLoading={true}
-          progress={loadingProgress}
-          message={errorMessage}
-          isError={isError}
-          retryCount={retryCount}
-          maxRetries={15}
-        />
-        <div className="pt-6 text-center">
-          <p className="text-muted-foreground">
-            {loadingProgress < 50 ? "Loading position data..." : "Processing race data..."}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            The F1 API has rate limits. Automatic retries are in progress if needed.
-          </p>
+      <div className="h-full flex flex-col items-center justify-center space-y-4">
+        <Skeleton className="h-full w-full opacity-30" />
+        <div className="absolute flex flex-col items-center justify-center space-y-6 w-3/4 max-w-md">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <div className="w-full space-y-2">
+            <Progress 
+              value={loadingProgress} 
+              className="h-2 w-full" 
+              indicatorClassName={isError ? "bg-yellow-500" : "bg-blue-500"}
+            />
+            <p className="text-center text-muted-foreground text-sm">
+              {errorMessage || "Loading position data..."}
+            </p>
+            {isError && (
+              <Alert className="mt-4 bg-yellow-50 border-yellow-200 text-yellow-900">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-xs">
+                  System is automatically retrying... The F1 API has strict rate limits.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -108,11 +114,13 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
               type="number"
               domain={[1, maxLap]}
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
+              xAxisId="position"
             />
             <YAxis
               reversed
               domain={[1, 20]}
               label={{ value: 'Position', angle: -90, position: 'insideLeft' }}
+              yAxisId="position"
             />
             <Tooltip
               formatter={(value) => [`Position: ${value}`, '']}
@@ -143,6 +151,8 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
                   dot={{ r: 3 }}
                   activeDot={{ r: 8 }}
                   connectNulls
+                  xAxisId="position"
+                  yAxisId="position"
                   isAnimationActive={false}
                   opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
                 />

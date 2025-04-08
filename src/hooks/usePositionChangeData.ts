@@ -1,7 +1,8 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
-import { useDataLoadingState } from "./useDataLoadingState";
+import { toast } from "sonner";
 
 export interface Driver {
   driverId: string;
@@ -24,6 +25,10 @@ export const usePositionChangeData = (year: number, round: string) => {
   const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [totalLaps, setTotalLaps] = useState<number>(0);
+  const [isProcessingData, setIsProcessingData] = useState<boolean>(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Use React Query hooks for data fetching
   const { 
@@ -38,26 +43,38 @@ export const usePositionChangeData = (year: number, round: string) => {
     error: lapTimesError,
     refetch: refetchLapTimes,
     isError,
-    failureCount = 0
+    failureCount
   } = useLapTimes(year, round, false); // Always fetch all laps
   
-  const {
-    isProcessingData,
-    loadingProgress,
-    errorMessage,
-    retryCount,
-    setIsProcessingData,
-    setErrorMessage,
-    handleRetry
-  } = useDataLoadingState(15);
-
   const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
 
   // Auto-retry on error with increased delay between retries
   useEffect(() => {
-    return handleRetry(refetchLapTimes, isError, failureCount || 0);
-  }, [isError, retryCount, refetchLapTimes, failureCount, handleRetry]);
+    if (isError && retryCount < 15) { // Increased max retry attempts to 15
+      const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // More aggressive backoff up to 60 seconds
+      
+      // More detailed progress feedback
+      setLoadingProgress((retryCount * 7));
+      setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
+      
+      const timer = setTimeout(() => {
+        toast.info(`Retrying position data... Attempt ${retryCount + 1}/15`, {
+          id: `position-retry-${retryCount}`,
+          duration: 3000,
+        });
+        
+        setRetryCount(prev => prev + 1);
+        refetchLapTimes();
+      }, delaySeconds * 1000);
+      
+      return () => clearTimeout(timer);
+    } else if (!isError && !isLoading) {
+      // Reset error state once data loads successfully
+      setErrorMessage(null);
+      setLoadingProgress(100);
+    }
+  }, [isError, retryCount, refetchLapTimes, failureCount, isLoading]);
 
   // Set only the first driver selected by default
   useEffect(() => {
@@ -89,18 +106,14 @@ export const usePositionChangeData = (year: number, round: string) => {
   useEffect(() => {
     if (lapTimesData?.data?.Races?.[0]?.Laps) {
       setIsProcessingData(true);
-      const processingMessage = "Processing position change data...";
-      setErrorMessage(processingMessage);
-      
       // Use setTimeout to allow UI to update before processing large dataset
       setTimeout(() => {
         const laps = lapTimesData.data.Races[0].Laps;
         setTotalLaps(laps.length);
         setIsProcessingData(false);
-        setErrorMessage(null);
       }, 0);
     }
-  }, [lapTimesData, setIsProcessingData, setErrorMessage]);
+  }, [lapTimesData]);
 
   const handleDriverToggle = (driverCode: string) => {
     setSelectedDrivers(prev => 
