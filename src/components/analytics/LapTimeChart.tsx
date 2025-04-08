@@ -130,21 +130,17 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
             />
             <YAxis
-              domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
-              label={{ value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', angle: -90, position: 'insideLeft' }}
+              domain={['auto', 'auto']}
+              label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }}
             />
             <Tooltip
               formatter={(value, name) => {
                 const driverCode = String(name);
-                const originalTime = displayMode === 'gap' ? chartData.find(d => d[`${driverCode}_original`])?.[`${driverCode}_original`] : value;
                 
-                if (displayMode === 'absolute') {
-                  // Make sure value is a number before calling toFixed
-                  return [typeof value === 'number' ? `${value.toFixed(3)}s` : `${value}`, driverCode];
-                } else {
-                  // Make sure value is a number before calling toFixed
-                  return [typeof value === 'number' ? `+${value.toFixed(3)}s` : `+${value}`, driverCode];
+                if (typeof value === 'number') {
+                  return [`${value.toFixed(3)}s`, driverCode];
                 }
+                return [value, driverCode];
               }}
               labelFormatter={(label) => `Lap ${label}`}
               contentStyle={{ 
@@ -160,7 +156,7 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                 return driver ? `${value} (${driver.name.split(' ').pop()})` : value;
               }}
             />
-            {fastestLapTime && displayMode === 'absolute' && (
+            {fastestLapTime && (
               <ReferenceLine 
                 y={fastestLapTime.time} 
                 stroke="#c026d3" 

@@ -32,5 +32,6 @@ export const YAxis = (props: YAxisProps) => {
 };
 
 export const ReferenceLine = (props: ReferenceLineProps) => {
-  return <RechartsReferenceLine {...props} />;
+  const { xAxisId, yAxisId, ...restProps } = props;
+  return <RechartsReferenceLine {...restProps} />;
 };
