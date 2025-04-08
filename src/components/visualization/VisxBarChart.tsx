@@ -8,7 +8,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { ParentSize } from '@visx/responsive';
 import { LegendOrdinal } from '@visx/legend';
 import { schemeSet3 } from 'd3-scale-chromatic';
-import { AnimatedBarGroup } from '@visx/react-spring';
 import { GridRows } from '@visx/grid';
 
 // Define data types
@@ -105,48 +104,46 @@ const VisxBarChart = () => {
               />
               
               <Group>
-                <AnimatedBarGroup
+                <BarGroup
                   data={data}
                   keys={keys}
                   height={height}
-                  x0={(d) => d.date}
+                  x0={d => d.date}
                   x0Scale={xScale}
                   x1Scale={barGroupScale}
                   yScale={yScale}
                   color={colorScale}
                 >
-                  {(barGroups) =>
-                    barGroups.map(barGroup => {
-                      return (
-                        <Group 
-                          key={`bar-group-${barGroup.index}-${barGroup.x0}`}
-                          left={barGroup.x0}
-                        >
-                          {barGroup.bars.map(bar => {
-                            const key = bar.key;
-                            const isHovered = hovered === key;
-                            return (
-                              <rect
-                                key={`bar-${barGroup.index}-${bar.index}-${bar.key}`}
-                                x={bar.x}
-                                y={bar.y}
-                                width={bar.width}
-                                height={bar.height}
-                                fill={bar.color}
-                                opacity={isHovered || !hovered ? 1 : 0.5}
-                                onMouseEnter={() => setHovered(bar.key)}
-                                onMouseLeave={() => setHovered(null)}
-                                onClick={() => handleBarClick(bar.key, bar.value)}
-                                className="cursor-pointer"
-                                rx={4}
-                              />
-                            );
-                          })}
-                        </Group>
-                      );
-                    })
+                  {barGroups => 
+                    barGroups.map(barGroup => (
+                      <Group 
+                        key={`bar-group-${barGroup.index}-${barGroup.x0}`}
+                        left={barGroup.x0}
+                      >
+                        {barGroup.bars.map(bar => {
+                          const key = bar.key;
+                          const isHovered = hovered === key;
+                          return (
+                            <rect
+                              key={`bar-${barGroup.index}-${bar.index}-${bar.key}`}
+                              x={bar.x}
+                              y={bar.y}
+                              width={bar.width}
+                              height={bar.height}
+                              fill={bar.color}
+                              opacity={isHovered || !hovered ? 1 : 0.5}
+                              onMouseEnter={() => setHovered(bar.key)}
+                              onMouseLeave={() => setHovered(null)}
+                              onClick={() => handleBarClick(bar.key, bar.value)}
+                              className="cursor-pointer"
+                              rx={4}
+                            />
+                          );
+                        })}
+                      </Group>
+                    ))
                   }
-                </AnimatedBarGroup>
+                </BarGroup>
               </Group>
               
               {/* X axis */}

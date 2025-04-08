@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Group } from '@visx/group';
 import { Pie } from '@visx/shape';
-import { animated, useTransition, to } from '@visx/react-spring';
 import { scaleOrdinal } from '@visx/scale';
 import { localPoint } from '@visx/event';
 import { ParentSize } from '@visx/responsive';
@@ -108,17 +107,7 @@ const VisxPieChart = () => {
                       const arcFill = arcData.color;
                       const arcPath = pie.path(arc) || '';
                       
-                      // Add animation transitions
-                      const transitions = useTransition(
-                        { ...arc, color: arcFill, opacity: isHovered || !hovered ? 1 : 0.7 },
-                        {
-                          from: { startAngle: 0, endAngle: 0, opacity: 0, color: arcFill },
-                          enter: { startAngle: arc.startAngle, endAngle: arc.endAngle, opacity: isHovered || !hovered ? 1 : 0.7, color: arcFill },
-                          update: { startAngle: arc.startAngle, endAngle: arc.endAngle, opacity: isHovered || !hovered ? 1 : 0.7, color: arcFill },
-                        }
-                      );
-                      
-                      return transitions((props, item) => (
+                      return (
                         <g
                           key={`arc-${arcData.label}`}
                           onMouseEnter={() => handleMouseOver(arcData.label)}
@@ -126,17 +115,17 @@ const VisxPieChart = () => {
                           onClick={() => handleClick(arcData.label, arcData.value)}
                           className="cursor-pointer"
                         >
-                          <animated.path
+                          <path
                             d={arcPath}
-                            fill={props.color}
-                            opacity={props.opacity}
+                            fill={arcFill}
+                            opacity={isHovered || !hovered ? 1 : 0.7}
                             stroke="white"
                             strokeWidth={isSelected || isHovered ? 2 : 0}
                             transform={isSelected || isHovered ? `scale(1.03)` : undefined}
                           />
                           
                           {hasSpaceForLabel && (
-                            <animated.g
+                            <g
                               opacity={isHovered ? 1 : 0.9}
                               transform={`translate(${centroidX * 0.75}, ${centroidY * 0.75})`}
                             >
@@ -148,10 +137,10 @@ const VisxPieChart = () => {
                               >
                                 {getPercentage(arcData.value)}
                               </text>
-                            </animated.g>
+                            </g>
                           )}
                         </g>
-                      ));
+                      );
                     });
                   }}
                 </Pie>

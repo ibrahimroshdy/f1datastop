@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
+import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { XAxis, YAxis } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 
 interface DriverComparisonPanelProps {
@@ -165,12 +165,10 @@ const DriverComparisonPanel = ({
                   <XAxis 
                     dataKey="lap" 
                     label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
-                    xAxisId="driver"
                   />
                   <YAxis 
                     label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }} 
                     domain={['dataMin - 1', 'dataMax + 1']} 
-                    yAxisId="time"
                   />
                   <Tooltip formatter={(value) => {
                     if (typeof value === 'number') {
@@ -184,16 +182,12 @@ const DriverComparisonPanel = ({
                     dataKey={selectedDriver1} 
                     stroke={DRIVER_COLORS[selectedDriver1] || "#ff0000"} 
                     activeDot={{ r: 8 }} 
-                    xAxisId="driver"
-                    yAxisId="time"
                   />
                   <Line 
                     type="monotone" 
                     dataKey={selectedDriver2} 
                     stroke={DRIVER_COLORS[selectedDriver2] || "#0000ff"} 
                     activeDot={{ r: 8 }} 
-                    xAxisId="driver"
-                    yAxisId="time"
                   />
                 </LineChart>
               </ResponsiveContainer>

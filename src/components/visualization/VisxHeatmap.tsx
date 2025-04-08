@@ -191,10 +191,11 @@ const VisxHeatmap = () => {
                 scale={scaleLinear({
                   domain: [0, maxValue],
                   range: [0, 200],
-                  interpolator: (t) => interpolateInferno(t),
+                  // Fixed the property name from 'interpolator' to 'interpolate'
+                  interpolate: interpolateInferno,
                 })}
                 steps={5}
-                labelFormat={(d) => Math.round(d).toString()}
+                labelFormat={(d) => Math.round(Number(d)).toString()}
                 shape="rect"
                 style={{
                   display: 'flex',
