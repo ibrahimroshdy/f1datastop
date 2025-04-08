@@ -17,7 +17,6 @@ import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
 import ResetPassword from "./pages/auth/ResetPassword";
-import AuthCallback from "./pages/auth/AuthCallback";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,9 +48,6 @@ const App = () => (
                 <Route path="/auth/signup" element={<Signup />} />
                 <Route path="/auth/reset-password" element={<ResetPassword />} />
               </Route>
-              
-              {/* OAuth callback route */}
-              <Route path="/auth/callback" element={<AuthCallback />} />
               
               {/* Protected routes with blur effect for non-authenticated users */}
               <Route element={<ProtectedRoute />}>
