@@ -15,7 +15,7 @@ export interface Driver {
 }
 
 export const useLapTimeData = (year: number, round: string, displayMode: 'absolute' | 'gap') => {
-  // Force absolute mode for now to avoid axis issues
+  // Force absolute mode to avoid axis issues
   displayMode = 'absolute';
   
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
@@ -67,7 +67,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
       return () => clearTimeout(timer);
     } else if (!isError && !isLoading) {
       setErrorMessage(null);
-      setLoadingProgress(100.00); // Make sure we show exactly 100.00%
+      setLoadingProgress(100); // Make sure we show exactly 100%
     }
   }, [isError, retryCount, refetchLapTimes, failureCount, isLoading]);
 

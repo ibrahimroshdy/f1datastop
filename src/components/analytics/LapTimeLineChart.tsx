@@ -108,16 +108,12 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
               if (typeof value !== 'number') return [value, name];
               
               const driverCode = String(name).split(' ')[0];
-              const originalTime = props.payload[`${driverCode}_raw`];
+              const driver = availableDrivers.find(d => d.code === driverCode);
               
               if (displayMode === 'absolute') {
-                return [formatTime(value), name];
+                return [formatTime(value), driverCode];
               } else {
-                // Gap mode
-                return [
-                  `+${value.toFixed(3)}s (${originalTime})`,
-                  name
-                ];
+                return [`+${value.toFixed(3)}s`, driverCode];
               }
             }}
             labelFormatter={(label) => `Lap ${label}`}
@@ -126,20 +122,16 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
             formatter={(value) => {
               const driverCode = value.split(' ')[0];
               const driver = availableDrivers.find(d => d.code === driverCode);
-              return driver ? `${driverCode} (${driver.name.split(' ').pop()})` : driverCode;
+              return driver ? `${driver.code}` : driverCode;
             }}
           />
           
           {fastestLapTime && displayMode === 'absolute' && (
             <ReferenceLine 
               y={fastestLapTime.time} 
-              stroke="#c026d3" // Purple color
+              stroke="red" 
               strokeDasharray="3 3" 
-              label={{ 
-                value: `Fastest Lap: ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`, 
-                position: 'right', 
-                fill: '#c026d3' 
-              }} 
+              label={{ value: `Fastest: ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`, position: 'right', fill: 'red' }} 
             />
           )}
           
@@ -150,13 +142,12 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 key={driver.code}
                 type="monotone"
                 dataKey={driver.code}
-                name={`${driver.code} (${driver.name.split(' ').pop()})`}
+                name={`${driver.code}`}
                 stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
                 strokeWidth={hoveredDriver === driver.code ? 3 : 2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 8 }}
-                connectNulls
-                isAnimationActive={false}
+                dot={{ r: 2 }}
+                activeDot={{ r: 6 }}
+                connectNulls={true}
                 opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
               />
             ))}

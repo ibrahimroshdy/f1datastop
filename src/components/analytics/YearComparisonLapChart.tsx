@@ -254,7 +254,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   };
 
   const toggleDisplayMode = () => {
-    setDisplayMode(prev => prev === 'absolute' ? 'gap' : 'absolute');
+    setDisplayMode('absolute');
   };
 
   const getRaceCircuitName = (results: any) => {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,7 +47,6 @@ const LapTimeAnalysisResponsive = ({ year }: LapTimeAnalysisResponsiveProps) => 
 
   useEffect(() => {
     if (availableDrivers.length > 0 && selectedDrivers.length === 0) {
-      // Auto-select top 3 drivers by default
       const top3Drivers = availableDrivers.slice(0, 3).map(driver => driver.code);
       setSelectedDrivers(top3Drivers);
     }
@@ -327,7 +325,6 @@ const LapTimeAnalysisResponsive = ({ year }: LapTimeAnalysisResponsiveProps) => 
                       <XAxis 
                         dataKey="lap" 
                         label={isMobile ? undefined : { value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
-                        xAxisId="lapTime"
                         tickCount={isMobile ? 5 : 10}
                       />
                       <YAxis 
@@ -337,7 +334,6 @@ const LapTimeAnalysisResponsive = ({ year }: LapTimeAnalysisResponsiveProps) => 
                           position: 'insideLeft' 
                         }} 
                         domain={displayMode === 'absolute' ? ['dataMin - 1', 'dataMax + 1'] : [0, 'dataMax + 0.5']}
-                        yAxisId="lapTime"
                         width={isMobile ? 30 : 60}
                       />
                       <Tooltip 
@@ -371,8 +367,6 @@ const LapTimeAnalysisResponsive = ({ year }: LapTimeAnalysisResponsiveProps) => 
                           stroke="red" 
                           strokeDasharray="3 3" 
                           label={isMobile ? undefined : { value: 'Fastest Lap', position: 'right', fill: 'red' }} 
-                          yAxisId="lapTime"
-                          xAxisId="lapTime"
                         />
                       )}
                       
@@ -389,8 +383,6 @@ const LapTimeAnalysisResponsive = ({ year }: LapTimeAnalysisResponsiveProps) => 
                             dot={{ r: isMobile ? 2 : 3 }}
                             activeDot={{ r: isMobile ? 5 : 8 }}
                             connectNulls
-                            xAxisId="lapTime"
-                            yAxisId="lapTime"
                           />
                         ))}
                     </LineChart>
