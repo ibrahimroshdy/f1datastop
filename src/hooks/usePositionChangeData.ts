@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
-import { toast } from "sonner";
+import { useDataLoadingState } from "./useDataLoadingState";
 
 export interface Driver {
   driverId: string;
@@ -25,10 +25,6 @@ export const usePositionChangeData = (year: number, round: string) => {
   const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [totalLaps, setTotalLaps] = useState<number>(0);
-  const [isProcessingData, setIsProcessingData] = useState<boolean>(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Use React Query hooks for data fetching
   const { 
@@ -43,38 +39,26 @@ export const usePositionChangeData = (year: number, round: string) => {
     error: lapTimesError,
     refetch: refetchLapTimes,
     isError,
-    failureCount
+    failureCount = 0
   } = useLapTimes(year, round, false); // Always fetch all laps
   
+  const {
+    isProcessingData,
+    loadingProgress,
+    errorMessage,
+    retryCount,
+    setIsProcessingData,
+    setErrorMessage,
+    handleRetry
+  } = useDataLoadingState(15);
+
   const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
 
   // Auto-retry on error with increased delay between retries
   useEffect(() => {
-    if (isError && retryCount < 15) { // Up to 15 retry attempts
-      const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // Backoff up to 60 seconds
-      
-      // Format progress with exactly 2 decimal places
-      setLoadingProgress(parseFloat((retryCount * 7).toFixed(2)));
-      setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
-      
-      const timer = setTimeout(() => {
-        toast.info(`Retrying position data... Attempt ${retryCount + 1}/15`, {
-          id: `position-retry-${retryCount}`,
-          duration: 3000,
-        });
-        
-        setRetryCount(prev => prev + 1);
-        refetchLapTimes();
-      }, delaySeconds * 1000);
-      
-      return () => clearTimeout(timer);
-    } else if (!isError && !isLoading) {
-      // Reset error state once data loads successfully
-      setErrorMessage(null);
-      setLoadingProgress(100.00); // Make sure we show exactly 100.00%
-    }
-  }, [isError, retryCount, refetchLapTimes, failureCount, isLoading]);
+    return handleRetry(refetchLapTimes, isError, failureCount);
+  }, [isError, retryCount, refetchLapTimes, failureCount, handleRetry]);
 
   // Set only the first driver selected by default
   useEffect(() => {
@@ -117,7 +101,7 @@ export const usePositionChangeData = (year: number, round: string) => {
         setErrorMessage(null);
       }, 0);
     }
-  }, [lapTimesData]);
+  }, [lapTimesData, setIsProcessingData, setErrorMessage]);
 
   const handleDriverToggle = (driverCode: string) => {
     setSelectedDrivers(prev => 

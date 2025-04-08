@@ -27,16 +27,6 @@ export const useLapTimeData = (year: number, round: string, requestedDisplayMode
   const [totalLaps, setTotalLaps] = useState<number>(0);
   
   const { 
-    isProcessingData,
-    loadingProgress,
-    errorMessage,
-    retryCount,
-    setIsProcessingData,
-    setErrorMessage,
-    handleRetry
-  } = useDataLoadingState(15); // Max 15 retries
-
-  const { 
     data: raceResultsData, 
     isLoading: isResultsLoading, 
     error: resultsError 
@@ -48,15 +38,25 @@ export const useLapTimeData = (year: number, round: string, requestedDisplayMode
     error: lapTimesError,
     refetch: refetchLapTimes,
     isError,
-    failureCount
+    failureCount = 0 // Provide default value to avoid undefined errors
   } = useLapTimes(year, round, false); // Always fetch all laps
+  
+  const { 
+    isProcessingData,
+    loadingProgress,
+    errorMessage,
+    retryCount,
+    setIsProcessingData,
+    setErrorMessage,
+    handleRetry
+  } = useDataLoadingState(15); // Max 15 retries
   
   const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
 
   // Handle retries
   useEffect(() => {
-    return handleRetry(refetchLapTimes, isError, failureCount || 0);
+    return handleRetry(refetchLapTimes, isError, failureCount);
   }, [isError, retryCount, refetchLapTimes, failureCount, handleRetry]);
 
   // Process race results data
@@ -121,7 +121,7 @@ export const useLapTimeData = (year: number, round: string, requestedDisplayMode
         setErrorMessage(null);
       }, 0);
     }
-  }, [lapTimesData, availableDrivers, fastestLapTime]);
+  }, [lapTimesData, availableDrivers, fastestLapTime, setIsProcessingData, setErrorMessage]);
 
   const handleDriverToggle = (driverCode: string) => {
     setSelectedDrivers(prev => 

@@ -1,16 +1,15 @@
+
 import React, { useState } from "react";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from "@/utils/rechartsWrapper";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useLapTimeData } from "@/hooks/useLapTimeData";
 import DriverSelector from "./DriverSelector";
 import DisplayModeToggle from "./DisplayModeToggle";
 import DataLoadingProgress from "./DataLoadingProgress";
-import LapTimeLineChart from "./LapTimeLineChart";
 
 interface LapTimeChartProps {
   year: number;
