@@ -27,6 +27,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   const [dataTimeWindow, setDataTimeWindow] = useState<number>(30); // 30 seconds window
   const [selectedTimeRange, setSelectedTimeRange] = useState<[number, number] | null>(null);
   const [isTabLoading, setIsTabLoading] = useState(false);
+  const [hasServerError, setHasServerError] = useState(false);
   
   // Get the OpenF1 session that matches this Ergast race
   const { 
@@ -47,6 +48,13 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     timeRange,
     lapData
   } = useTelemetryData(sessionKey || 0, selectedDrivers);
+  
+  // Check for 500 errors and update state
+  useEffect(() => {
+    if (errorMessage && errorMessage.includes("500")) {
+      setHasServerError(true);
+    }
+  }, [errorMessage]);
   
   // Handle driver selection
   const toggleDriverSelection = (driverNumber: number) => {
@@ -233,9 +241,18 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
               OpenF1 data is only available for recent races (2023 onwards).
             </p>
           </div>
-        ) : errorMessage ? (
+        ) : errorMessage || hasServerError ? (
           <div className="py-8 text-center">
-            <p className="text-muted-foreground">{errorMessage}</p>
+            <p className="text-muted-foreground">
+              {hasServerError 
+                ? "Telemetry data is temporarily unavailable for this session." 
+                : errorMessage}
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {hasServerError 
+                ? "The OpenF1 API may not have telemetry data for this particular session, or the service might be experiencing issues."
+                : "Please try again later or select a different race."}
+            </p>
             <Button 
               variant="outline" 
               size="sm" 

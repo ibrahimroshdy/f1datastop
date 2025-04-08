@@ -1,25 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, ArrowLeft, HelpCircle } from "lucide-react";
+import { AlertCircle, HelpCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import YearSelector from '@/components/common/YearSelector';
-import TelemetryDashboard from '@/components/analytics/TelemetryDashboard';
-import WeatherAnalysis from '@/components/analytics/WeatherAnalysis';
-import TeamRadio from '@/components/analytics/TeamRadio';
-import { Button } from '@/components/ui/button';
 import { SelectRace } from '@/components/common/SelectRace';
 import { useRaceSchedule } from '@/hooks/useF1Data';
 import { useSessionsByYear } from '@/hooks/useOpenF1Data';
 import MainLayout from '@/components/layout/MainLayout';
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy-load heavy components
+const TelemetryDashboard = lazy(() => import('@/components/analytics/TelemetryDashboard'));
+const WeatherAnalysis = lazy(() => import('@/components/analytics/WeatherAnalysis'));
+const TeamRadio = lazy(() => import('@/components/analytics/TeamRadio'));
+
+// Component for the tab content loading state
+const TabLoadingFallback = () => (
+  <div className="h-[400px] w-full flex flex-col items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+    <p className="text-muted-foreground">Loading data...</p>
+  </div>
+);
 
 const RaceAnalysisPage = () => {
   const { year = new Date().getFullYear(), round = "last" } = useParams();
   const navigate = useNavigate();
   const [selectedYear, setSelectedYear] = useState<number>(parseInt(year.toString()));
   const [selectedRound, setSelectedRound] = useState<string>(round);
-  const [activeTab, setActiveTab] = useState<string>("telemetry");
+  const [activeTab, setActiveTab] = useState<string>("weather");
   
   // Get race schedule from Ergast
   const { 
@@ -77,20 +87,20 @@ const RaceAnalysisPage = () => {
     setSelectedRound(round);
     navigate(`/race-analysis/${selectedYear}/${round}`);
   };
+
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+  
+  // Determine if we should show placeholder content during initial load
+  const isInitialLoading = isScheduleLoading || isOpenF1Loading;
   
   return (
     <MainLayout>
-      <div className="container py-4 space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="flex items-center" 
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h1 className="text-3xl font-bold">F1 Race Analytics</h1>
           
           <div className="flex items-center gap-2">
             <YearSelector 
@@ -107,97 +117,124 @@ const RaceAnalysisPage = () => {
         </div>
         
         <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">
-              {selectedRace?.raceName || "Race Analysis"}
-            </CardTitle>
-            <CardDescription>
-              {selectedRace?.Circuit?.circuitName}, {selectedRace?.date}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {selectedYear < 2023 && (
-              <Alert className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Limited data available</AlertTitle>
-                <AlertDescription>
-                  Enhanced telemetry and weather data from OpenF1 is only available for races from 2023 onwards.
-                  Limited Ergast data is still available for historical races.
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-              <TabsList className="grid grid-cols-3 w-full">
-                <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
-                <TabsTrigger value="weather">Weather</TabsTrigger>
-                <TabsTrigger value="radio">Team Radio</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="telemetry" className="space-y-4">
-                <TelemetryDashboard 
-                  year={selectedYear} 
-                  round={selectedRace?.round || "1"} 
-                />
+          {isInitialLoading ? (
+            <div className="p-6 space-y-4">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-48" />
+              <div className="mt-6 space-y-4">
+                <Skeleton className="h-[400px] w-full" />
+              </div>
+            </div>
+          ) : (
+            <>
+              <CardHeader>
+                <CardTitle className="text-2xl">
+                  {selectedRace?.raceName || "Race Analysis"}
+                </CardTitle>
+                <CardDescription>
+                  {selectedRace?.Circuit?.circuitName}, {selectedRace?.date}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {selectedYear < 2023 && (
+                  <Alert className="mb-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Limited data available</AlertTitle>
+                    <AlertDescription>
+                      Enhanced telemetry and weather data from OpenF1 is only available for races from 2023 onwards.
+                      Limited Ergast data is still available for historical races.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 
-                <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
-                  <div className="flex items-start gap-2">
-                    <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium mb-1">About Telemetry Data</p>
-                      <p className="text-muted-foreground">
-                        Telemetry data shows real-time car information including speed, RPM, throttle position, 
-                        brake pressure, gear selection, and DRS activation. This data allows you to analyze 
-                        driver techniques and car performance throughout the race.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="weather" className="space-y-4">
-                <WeatherAnalysis 
-                  year={selectedYear} 
-                  round={selectedRace?.round || "1"} 
-                />
-                
-                <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
-                  <div className="flex items-start gap-2">
-                    <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium mb-1">About Weather Data</p>
-                      <p className="text-muted-foreground">
-                        Weather conditions significantly impact race strategy and car performance. Track temperature 
-                        affects tire grip, while air temperature, humidity, and pressure influence engine performance. 
-                        Wind can create challenging conditions on certain parts of the track.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="radio" className="space-y-4">
-                <TeamRadio 
-                  year={selectedYear} 
-                  round={selectedRace?.round || "1"} 
-                />
-                
-                <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
-                  <div className="flex items-start gap-2">
-                    <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium mb-1">About Team Radio</p>
-                      <p className="text-muted-foreground">
-                        Team radio communications provide insight into race strategy, driver emotions, 
-                        and critical moments during the race. Engineers and drivers exchange information 
-                        about tire conditions, pit stop strategies, and race developments.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
+                  <TabsList className="grid grid-cols-3 w-full">
+                    <TabsTrigger value="weather">Weather</TabsTrigger>
+                    <TabsTrigger value="radio">Team Radio</TabsTrigger>
+                    <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
+                  </TabsList>
+                  
+                  <Suspense fallback={<TabLoadingFallback />}>
+                    {/* Only render the active tab to avoid unnecessary API requests and improve performance */}
+                    <TabsContent value="weather" className="space-y-4">
+                      {activeTab === "weather" && (
+                        <>
+                          <WeatherAnalysis 
+                            year={selectedYear} 
+                            round={selectedRace?.round || "1"} 
+                          />
+                          
+                          <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
+                            <div className="flex items-start gap-2">
+                              <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium mb-1">About Weather Data</p>
+                                <p className="text-muted-foreground">
+                                  Weather conditions significantly impact race strategy and car performance. Track temperature 
+                                  affects tire grip, while air temperature, humidity, and pressure influence engine performance. 
+                                  Wind can create challenging conditions on certain parts of the track.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </TabsContent>
+                    
+                    <TabsContent value="radio" className="space-y-4">
+                      {activeTab === "radio" && (
+                        <>
+                          <TeamRadio 
+                            year={selectedYear} 
+                            round={selectedRace?.round || "1"} 
+                          />
+                          
+                          <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
+                            <div className="flex items-start gap-2">
+                              <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium mb-1">About Team Radio</p>
+                                <p className="text-muted-foreground">
+                                  Team radio communications provide insight into race strategy, driver emotions, 
+                                  and critical moments during the race. Engineers and drivers exchange information 
+                                  about tire conditions, pit stop strategies, and race developments.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </TabsContent>
+                    
+                    <TabsContent value="telemetry" className="space-y-4">
+                      {activeTab === "telemetry" && (
+                        <>
+                          <TelemetryDashboard 
+                            year={selectedYear} 
+                            round={selectedRace?.round || "1"} 
+                          />
+                          
+                          <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
+                            <div className="flex items-start gap-2">
+                              <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium mb-1">About Telemetry Data</p>
+                                <p className="text-muted-foreground">
+                                  Telemetry data shows real-time car information including speed, RPM, throttle position, 
+                                  brake pressure, gear selection, and DRS activation. This data allows you to analyze 
+                                  driver techniques and car performance throughout the race.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </TabsContent>
+                  </Suspense>
+                </Tabs>
+              </CardContent>
+            </>
+          )}
         </Card>
       </div>
     </MainLayout>

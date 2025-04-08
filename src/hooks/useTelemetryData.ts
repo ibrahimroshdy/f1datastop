@@ -23,6 +23,8 @@ export interface Driver {
   team_name: string;
   team_color: string;
   name_acronym: string;
+  isLoading?: boolean;
+  isDataLoaded?: boolean;
 }
 
 export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] = []) => {
@@ -30,6 +32,9 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
   const [selectedTimeRange, setSelectedTimeRange] = useState<[number, number] | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [driverDataCache, setDriverDataCache] = useState<{[key: number]: TelemetryDataPoint[]}>({});
+  const [driverLoadingState, setDriverLoadingState] = useState<{[key: number]: boolean}>({});
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   // Fetch drivers for the session
   const { 
@@ -45,20 +50,65 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     error: lapDataError 
   } = useLapData(sessionKey);
 
-  // Create fixed-size array for car data queries
-  // Using individual hooks - max 3 drivers to keep performance manageable
-  const carDataQuery1 = useCarData(sessionKey, selectedDrivers[0] || 0);
-  const carDataQuery2 = useCarData(sessionKey, selectedDrivers[1] || 0);
-  const carDataQuery3 = useCarData(sessionKey, selectedDrivers[2] || 0);
+  // Create individual car data query for first selected driver
+  // We'll fetch more driver data on demand when user selects them
+  const carDataQuery = useCarData(
+    sessionKey, 
+    (selectedDrivers.length > 0 && !driverDataCache[selectedDrivers[0]] && !hasAttemptedFetch) 
+      ? selectedDrivers[0] 
+      : undefined
+  );
 
-  // Collect all car data queries into an array
-  const carDataQueries = useMemo(() => {
-    const queries = [];
-    if (selectedDrivers[0]) queries.push(carDataQuery1);
-    if (selectedDrivers[1]) queries.push(carDataQuery2);
-    if (selectedDrivers[2]) queries.push(carDataQuery3);
-    return queries;
-  }, [selectedDrivers, carDataQuery1, carDataQuery2, carDataQuery3]);
+  // Mark that we've attempted a fetch when the query is initiated
+  useEffect(() => {
+    if (carDataQuery.isLoading && !hasAttemptedFetch) {
+      setHasAttemptedFetch(true);
+    }
+  }, [carDataQuery.isLoading, hasAttemptedFetch]);
+
+  // Update driver loading states when a query is in progress
+  useEffect(() => {
+    if (selectedDrivers.length > 0) {
+      const driverNumber = selectedDrivers[0];
+      if (!driverDataCache[driverNumber] && !driverLoadingState[driverNumber] && carDataQuery.isLoading) {
+        setDriverLoadingState(prev => ({
+          ...prev,
+          [driverNumber]: true
+        }));
+      }
+    }
+  }, [selectedDrivers, driverDataCache, driverLoadingState, carDataQuery.isLoading]);
+
+  // Process and cache car data when it's loaded
+  useEffect(() => {
+    if (selectedDrivers.length > 0 && carDataQuery.data?.data && carDataQuery.data.data.length > 0) {
+      const driverNumber = selectedDrivers[0];
+      if (!driverDataCache[driverNumber]) {
+        const processedData = processOpenF1CarData(carDataQuery.data.data);
+        
+        // Update the cache
+        setDriverDataCache(prev => ({
+          ...prev,
+          [driverNumber]: processedData
+        }));
+        
+        // Mark the driver as loaded
+        setDriverLoadingState(prev => ({
+          ...prev,
+          [driverNumber]: false
+        }));
+        
+        // Update driver states in available drivers
+        setAvailableDrivers(prev => 
+          prev.map(d => 
+            d.driver_number === driverNumber 
+              ? { ...d, isLoading: false, isDataLoaded: true } 
+              : d
+          )
+        );
+      }
+    }
+  }, [selectedDrivers, carDataQuery.data, driverDataCache]);
 
   // Process available drivers
   useEffect(() => {
@@ -81,43 +131,37 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
         name: `${driver.first_name} ${driver.last_name}`,
         team_name: driver.team_name || "Unknown Team",
         team_color: teamColors[driver.team_name] || "#CCCCCC",
-        name_acronym: driver.name_acronym
+        name_acronym: driver.name_acronym,
+        isLoading: false,
+        isDataLoaded: false
       }));
 
       setAvailableDrivers(drivers);
-
-      // Auto-select the first driver if none selected
-      if (selectedDrivers.length === 0 && drivers.length > 0) {
-        // This is handled by the parent component
-      }
     }
-  }, [driversData, selectedDrivers]);
+  }, [driversData]);
 
   // Update loading progress
   useEffect(() => {
-    const isLoading = isDriversLoading || isLapDataLoading || carDataQueries.some(q => q.isLoading);
+    const isLoading = isDriversLoading || isLapDataLoading || carDataQuery.isLoading;
     
     if (isLoading) {
-      let totalQueries = 2 + carDataQueries.length; // drivers + lap data + car data queries
+      let totalQueries = 3; // drivers + lap data + currently loading car data
       let completedQueries = 0;
       
       if (!isDriversLoading) completedQueries++;
       if (!isLapDataLoading) completedQueries++;
-      
-      carDataQueries.forEach(query => {
-        if (!query.isLoading) completedQueries++;
-      });
+      if (!carDataQuery.isLoading) completedQueries++;
       
       const progress = Math.round((completedQueries / totalQueries) * 100);
       setLoadingProgress(progress);
     } else {
       setLoadingProgress(100);
     }
-  }, [isDriversLoading, isLapDataLoading, carDataQueries]);
+  }, [isDriversLoading, isLapDataLoading, carDataQuery.isLoading]);
 
   // Handle errors
   useEffect(() => {
-    const error = driversError || lapDataError || carDataQueries.some(q => q.error);
+    const error = driversError || lapDataError || carDataQuery.error;
     
     if (error) {
       setErrorMessage("Error loading telemetry data. Please try again.");
@@ -128,32 +172,114 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     } else {
       setErrorMessage(null);
     }
-  }, [driversError, lapDataError, carDataQueries]);
+  }, [driversError, lapDataError, carDataQuery.error]);
 
-  // Process telemetry data
-  const telemetryData = useMemo(() => {
-    const result: { [key: number]: TelemetryDataPoint[] } = {};
-    
-    carDataQueries.forEach((query, index) => {
-      if (query.data?.data && selectedDrivers[index]) {
-        const driverNumber = selectedDrivers[index];
-        const processedData = processOpenF1CarData(query.data.data);
-        result[driverNumber] = processedData;
+  // Add specific error handling for 500 server errors
+  useEffect(() => {
+    if (carDataQuery.error) {
+      const errorMessage = carDataQuery.error.toString();
+      setErrorMessage("Error loading telemetry data. Please try again.");
+      
+      if (errorMessage.includes('status 500')) {
+        console.warn(`OpenF1 API returned a 500 error for session ${sessionKey}. Data may not be available for this session.`);
+        setErrorMessage(`Server error (500) for session ${sessionKey}. Telemetry data may not be available.`);
+        toast.warning("Limited telemetry data available", {
+          description: "The data source returned a server error. This session may have limited or no telemetry data available.",
+          duration: 7000,
+        });
+        
+        // Clear driver loading states to prevent perpetual loading indicators
+        setDriverLoadingState({});
       }
-    });
+    }
+  }, [carDataQuery.error, sessionKey]);
+
+  // Load driver data on demand
+  const loadDriverData = async (driverNumber: number) => {
+    // Skip if already loaded or loading or if we've had a 500 error
+    if (driverDataCache[driverNumber] || driverLoadingState[driverNumber] || (carDataQuery.error && carDataQuery.error.toString().includes('500'))) {
+      return;
+    }
     
-    return result;
-  }, [carDataQueries, selectedDrivers]);
+    // Mark driver as loading
+    setDriverLoadingState(prev => ({
+      ...prev,
+      [driverNumber]: true
+    }));
+    
+    // Update driver states in available drivers
+    setAvailableDrivers(prev => 
+      prev.map(d => 
+        d.driver_number === driverNumber 
+          ? { ...d, isLoading: true } 
+          : d
+      )
+    );
+    
+    try {
+      // Fetch data directly instead of relying on the hook
+      const result = await fetch(`/api/openf1/car_data?session_key=${sessionKey}&driver_number=${driverNumber}`, {
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (result.ok) {
+        const data = await result.json();
+        const processedData = processOpenF1CarData(data);
+        
+        // Cache the data
+        setDriverDataCache(prev => ({
+          ...prev,
+          [driverNumber]: processedData
+        }));
+        
+        // Update driver states
+        setAvailableDrivers(prev => 
+          prev.map(d => 
+            d.driver_number === driverNumber 
+              ? { ...d, isLoading: false, isDataLoaded: true } 
+              : d
+          )
+        );
+      } else {
+        throw new Error(`Failed to fetch data for driver ${driverNumber}`);
+      }
+    } catch (error) {
+      console.error(`Error loading data for driver ${driverNumber}:`, error);
+      toast.error(`Error loading data for driver #${driverNumber}`, {
+        duration: 3000
+      });
+      
+      // Mark as not loading
+      setDriverLoadingState(prev => ({
+        ...prev,
+        [driverNumber]: false
+      }));
+      
+      // Update driver states
+      setAvailableDrivers(prev => 
+        prev.map(d => 
+          d.driver_number === driverNumber 
+            ? { ...d, isLoading: false } 
+            : d
+        )
+      );
+    }
+  };
 
   // Find time range for the session
   const timeRange = useMemo(() => {
     const allPoints: number[] = [];
     
-    Object.values(telemetryData).forEach(driverData => {
-      driverData.forEach(point => {
-        allPoints.push(point.time);
+    Object.entries(driverDataCache)
+      .filter(([driverNumber]) => selectedDrivers.includes(parseInt(driverNumber)))
+      .forEach(([_, driverData]) => {
+        driverData.forEach(point => {
+          allPoints.push(point.time);
+        });
       });
-    });
     
     if (allPoints.length === 0) return null;
     
@@ -161,24 +287,19 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     const maxTime = Math.max(...allPoints);
     
     return [minTime, maxTime] as [number, number];
-  }, [telemetryData]);
-
-  // Function to toggle a driver selection
-  const toggleDriverSelection = (driverNumber: number) => {
-    // This would be implemented in the parent component
-  };
+  }, [driverDataCache, selectedDrivers]);
 
   // Function to select a specific time range
   const setTimeRange = (range: [number, number] | null) => {
     setSelectedTimeRange(range);
   };
 
-  // Check if we have any data
-  const hasData = Object.keys(telemetryData).length > 0;
-  const isLoading = isDriversLoading || isLapDataLoading || carDataQueries.some(q => q.isLoading);
+  // Check if we have any data for selected drivers
+  const hasData = selectedDrivers.some(driverNumber => !!driverDataCache[driverNumber]);
+  const isLoading = isDriversLoading || isLapDataLoading || carDataQuery.isLoading;
 
   return {
-    telemetryData,
+    telemetryData: driverDataCache,
     availableDrivers,
     isLoading,
     loadingProgress,
@@ -187,6 +308,8 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     timeRange,
     selectedTimeRange,
     setTimeRange,
-    lapData: lapData?.data
+    lapData: lapData?.data,
+    loadDriverData,
+    driverLoadingState
   };
 }; 
