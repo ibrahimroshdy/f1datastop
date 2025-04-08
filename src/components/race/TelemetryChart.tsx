@@ -17,7 +17,7 @@ const TelemetryChart = () => {
     { distance: "400", speed: 240, throttle: 100, brake: 0, gear: 5, drs: 0 },
     { distance: "500", speed: 280, throttle: 100, brake: 0, gear: 6, drs: 0 },
     { distance: "600", speed: 310, throttle: 100, brake: 0, gear: 7, drs: 0 },
-    { distance: "700", speed: 320, throttle: 100, brake: 0, gear: 8, drs: 1 },
+    { distance: "700", speed: 320, throttle: 100, brake: 0, gear: 8, drs: 0 },
     { distance: "800", speed: 325, throttle: 100, brake: 0, gear: 8, drs: 1 },
     { distance: "900", speed: 330, throttle: 100, brake: 0, gear: 8, drs: 1 },
     { distance: "1000", speed: 335, throttle: 100, brake: 0, gear: 8, drs: 1 },
@@ -83,11 +83,9 @@ const TelemetryChart = () => {
               <XAxis 
                 dataKey="distance" 
                 stroke="#888" 
-                xAxisId="telemetry"
               />
               <YAxis 
                 stroke="#888" 
-                yAxisId="telemetry"
               />
               <Tooltip 
                 contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
@@ -101,8 +99,6 @@ const TelemetryChart = () => {
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 6 }}
-                xAxisId="telemetry"
-                yAxisId="telemetry"
               />
               <Line 
                 type="monotone" 
@@ -110,8 +106,6 @@ const TelemetryChart = () => {
                 stroke="#4CAF50" 
                 strokeWidth={1.5}
                 dot={false}
-                xAxisId="telemetry"
-                yAxisId="telemetry"
               />
               <Line 
                 type="monotone" 
@@ -119,8 +113,6 @@ const TelemetryChart = () => {
                 stroke="#F44336" 
                 strokeWidth={1.5}
                 dot={false}
-                xAxisId="telemetry"
-                yAxisId="telemetry"
               />
               <Line 
                 type="monotone" 
@@ -128,8 +120,6 @@ const TelemetryChart = () => {
                 stroke="#E10600" 
                 strokeWidth={1.5}
                 dot={false}
-                xAxisId="telemetry"
-                yAxisId="telemetry"
               />
             </LineChart>
           </ResponsiveContainer>

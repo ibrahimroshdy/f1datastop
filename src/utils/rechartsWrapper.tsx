@@ -20,18 +20,13 @@ console.error = function filterWarnings(msg: any, ...args: any[]) {
 
 // Wrapped components with default parameters instead of defaultProps
 export const XAxis = (props: XAxisProps) => {
-  // Ensure we're not passing any axis IDs that could cause conflicts
-  const { xAxisId, ...restProps } = props;
-  return <RechartsXAxis {...restProps} />;
+  return <RechartsXAxis {...props} />;
 };
 
 export const YAxis = (props: YAxisProps) => {
-  // Ensure we're not passing any axis IDs that could cause conflicts
-  const { yAxisId, ...restProps } = props;
-  return <RechartsYAxis {...restProps} />;
+  return <RechartsYAxis {...props} />;
 };
 
 export const ReferenceLine = (props: ReferenceLineProps) => {
-  const { xAxisId, yAxisId, ...restProps } = props;
-  return <RechartsReferenceLine {...restProps} />;
+  return <RechartsReferenceLine {...props} />;
 };
