@@ -1,13 +1,11 @@
 
 import React, { useState } from "react";
-import { ResponsiveContainer, LineChart, CartesianGrid, Tooltip, Legend } from "recharts";
-import { XAxis, YAxis, Line } from "@/utils/rechartsWrapper";
-import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { usePositionChangeData } from "@/hooks/usePositionChangeData";
 import DriverSelectionGrid from "./charts/DriverSelectionGrid";
 import DataLoadingProgress from "./DataLoadingProgress";
+import PositionVisxChart from "./charts/PositionVisxChart";
 
 interface PositionChangeChartProps {
   year: number;
@@ -96,60 +94,14 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
         getPositionChangeSummary={getPositionChangeSummary}
       />
       
-      <div className="h-[450px] mt-4 flex-grow">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#eee" opacity={0.3} />
-            <XAxis
-              dataKey="lap"
-              type="number"
-              domain={[1, maxLap]}
-              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
-            />
-            <YAxis
-              reversed
-              domain={[1, 20]}
-              label={{ value: 'Position', angle: -90, position: 'insideLeft' }}
-            />
-            <Tooltip
-              formatter={(value) => [`Position: ${value}`, '']}
-              labelFormatter={(label) => `Lap ${label}`}
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a',
-                borderColor: '#333',
-                borderRadius: '5px',
-                color: 'white'
-              }}
-            />
-            <Legend
-              formatter={(value) => {
-                const driver = availableDrivers.find(d => d.code === value);
-                return driver ? `${value} (${driver.name.split(' ').pop()})` : value;
-              }}
-            />
-            {availableDrivers
-              .filter(driver => visibleDrivers.includes(driver.code))
-              .map(driver => (
-                <Line
-                  key={driver.code}
-                  type="monotone"
-                  dataKey={driver.code}
-                  name={driver.code}
-                  stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
-                  strokeWidth={hoveredDriver === driver.code ? 3 : 2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 8 }}
-                  connectNulls
-                  isAnimationActive={false}
-                  opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
-                />
-              ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {/* Use the new visx chart instead of Recharts */}
+      <PositionVisxChart
+        chartData={chartData}
+        availableDrivers={availableDrivers}
+        visibleDrivers={visibleDrivers}
+        hoveredDriver={hoveredDriver}
+        maxLap={maxLap}
+      />
     </div>
   );
 };

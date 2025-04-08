@@ -17,6 +17,7 @@ import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
 import ResetPassword from "./pages/auth/ResetPassword";
+import LiveRace from "./pages/LiveRace";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,6 +56,7 @@ const App = () => (
                 <Route path="/drivers" element={<Drivers />} />
                 <Route path="/constructors" element={<Constructors />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/live" element={<LiveRace />} />
               </Route>
             </Routes>
           </TooltipProvider>
