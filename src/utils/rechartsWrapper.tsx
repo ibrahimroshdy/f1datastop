@@ -21,34 +21,59 @@ console.error = function filterWarnings(msg: any, ...args: any[]) {
 };
 
 // Wrapped components with consistent props and without xAxisId/yAxisId
-export const XAxis = (props: XAxisProps) => {
-  // Make sure to not pass any explicit axis IDs that might conflict
+export const XAxis: React.FC<XAxisProps> = (props) => {
+  // Create safe props, but don't remove xAxisId completely since it's needed for identification
   const safeProps = { ...props };
-  delete safeProps.xAxisId; // Remove xAxisId to prevent conflicts
+  
+  // We'll explicitly set it to undefined if it wasn't provided
+  if (!('xAxisId' in safeProps)) {
+    safeProps.xAxisId = undefined;
+  }
+  
   return <RechartsXAxis {...safeProps} />;
 };
 
-export const YAxis = (props: YAxisProps) => {
-  // Make sure to not pass any explicit axis IDs that might conflict
+export const YAxis: React.FC<YAxisProps> = (props) => {
+  // Create safe props, but don't remove yAxisId completely since it's needed for identification
   const safeProps = { ...props };
-  delete safeProps.yAxisId; // Remove yAxisId to prevent conflicts
+  
+  // We'll explicitly set it to undefined if it wasn't provided
+  if (!('yAxisId' in safeProps)) {
+    safeProps.yAxisId = undefined;
+  }
+  
   return <RechartsYAxis {...safeProps} />;
 };
 
-export const ReferenceLine = (props: ReferenceLineProps) => {
-  // Make sure to not pass any conflicting axis IDs
+export const ReferenceLine: React.FC<ReferenceLineProps> = (props) => {
+  // Create a new props object but don't remove axis IDs completely
   const safeProps = { ...props };
-  delete safeProps.xAxisId;
-  delete safeProps.yAxisId;
+  
+  // Only ensure they're undefined if not provided
+  if (!('xAxisId' in safeProps)) {
+    safeProps.xAxisId = undefined;
+  }
+  
+  if (!('yAxisId' in safeProps)) {
+    safeProps.yAxisId = undefined;
+  }
+  
   return <RechartsReferenceLine {...safeProps} />;
 };
 
-// The root of the issue is with this Line wrapper. Let's fix it by addressing the type issues.
-export const Line: React.FC<Omit<LineProps, 'xAxisId' | 'yAxisId'>> = (props) => {
-  // Create a new props object without xAxisId and yAxisId
-  // This syntax ensures we're correctly handling the types
-  const { xAxisId: _, yAxisId: __, ...safeProps } = props as any;
+// Fix the Line component wrapper
+export const Line: React.FC<LineProps> = (props) => {
+  // Create a safe copy of props
+  const safeProps = { ...props };
   
-  // Pass the cleaned props to RechartsLine
+  // Ensure axis IDs are undefined if not provided, rather than removing them
+  if (!('xAxisId' in safeProps)) {
+    safeProps.xAxisId = undefined;
+  }
+  
+  if (!('yAxisId' in safeProps)) {
+    safeProps.yAxisId = undefined;
+  }
+  
   return <RechartsLine {...safeProps} />;
 };
