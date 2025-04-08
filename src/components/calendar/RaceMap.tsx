@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import YearSelector from "@/components/common/YearSelector";
@@ -6,6 +5,7 @@ import F1MapContainer from "@/components/calendar/map/F1MapContainer";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Globe } from "lucide-react";
 import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const RaceMap = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -26,16 +26,13 @@ const RaceMap = () => {
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <Globe className="h-5 w-5" />
-          F1 Race Globe
-        </h2>
-        <YearSelector 
-          selectedYear={selectedYear} 
-          onYearChange={handleYearChange} 
-        />
-      </div>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="flex items-center gap-2">
+          <Globe className="h-6 w-6" />
+          Race Calendar
+        </CardTitle>
+        <YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />
+      </CardHeader>
 
       <div className="bg-gray-900/30 rounded-xl p-0.5 backdrop-blur-sm border border-gray-800">
         <F1MapContainer selectedYear={selectedYear} onYearChange={handleYearChange} />

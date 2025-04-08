@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Dialog, 
@@ -16,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Trophy, Flag, Clock } from "lucide-react";
+import { CountryFlag } from "@/utils/countryFlags";
 
 interface RaceDetailDialogProps {
   isOpen: boolean;
@@ -79,7 +79,12 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <span className="text-2xl mr-2">{race.Circuit?.Location?.country ? `${race.Circuit.Location.country} 🏁` : ''}</span>
+            {race.Circuit?.Location?.country && (
+              <CountryFlag 
+                country={race.Circuit.Location.country} 
+                className="mr-2"
+              />
+            )}
             {race.raceName}
           </DialogTitle>
           <DialogDescription>
