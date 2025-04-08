@@ -33,6 +33,7 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
     handleDriverToggle,
     handleDriverHover,
     getAverageTime,
+    retryCount,
   } = useLapTimeData(year, round, displayMode);
 
   const toggleDisplayMode = () => {
@@ -47,19 +48,41 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
         <div className="absolute flex flex-col items-center justify-center space-y-6 w-3/4 max-w-md">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
           <div className="w-full space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground mb-1">
+              <span>Loading lap times...</span>
+              <span>{loadingProgress}%</span>
+            </div>
             <Progress 
               value={loadingProgress} 
               className="h-2 w-full" 
               indicatorClassName={isError ? "bg-yellow-500" : "bg-blue-500"}
             />
-            <p className="text-center text-muted-foreground text-sm">
-              {errorMessage || "Loading lap time data..."}
-            </p>
+            <div className="mt-2 text-center text-sm">
+              {errorMessage ? (
+                <div className="text-amber-600 font-medium">{errorMessage}</div>
+              ) : (
+                <div className="text-muted-foreground">Loading lap time data for all drivers...</div>
+              )}
+              
+              {retryCount > 0 && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Rate limits encountered. Retry attempt {retryCount}/15.
+                </div>
+              )}
+              
+              {loadingProgress > 0 && loadingProgress < 100 && (
+                <div className="mt-2 px-3 py-2 bg-blue-50 dark:bg-blue-950 rounded-md text-xs text-blue-700 dark:text-blue-300 animate-pulse-red">
+                  This may take a moment. F1 data is being fetched in batches to avoid rate limits.
+                </div>
+              )}
+            </div>
+            
             {isError && (
               <Alert className="mt-4 bg-yellow-50 border-yellow-200 text-yellow-900">
                 <AlertTriangle className="h-4 w-4 text-yellow-600" />
                 <AlertDescription className="text-xs">
-                  System is automatically retrying... The F1 API has strict rate limits.
+                  System is automatically retrying with exponential backoff...
+                  <div className="mt-1 font-medium">The F1 API has strict rate limits.</div>
                 </AlertDescription>
               </Alert>
             )}

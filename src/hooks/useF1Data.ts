@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
 import { optimizeLapData } from "@/utils/dataLoadingUtils";
@@ -79,6 +78,13 @@ export const useRaceQualifying = (year: number, round: string) => {
 };
 
 export const useLapTimes = (year: number, round: string, firstDriverOnly: boolean = false) => {
+  const [loadingState, setLoadingState] = useState({
+    pagesLoaded: 0,
+    totalPages: 0,
+    progress: 0,
+    retryAttempts: {}
+  });
+
   return useQuery({
     queryKey: ["lapTimes", year, round, firstDriverOnly ? "firstDriverOnly" : "allDrivers"],
     queryFn: async () => {
@@ -88,8 +94,29 @@ export const useLapTimes = (year: number, round: string, firstDriverOnly: boolea
         
         // Instead of passing 'false' as a string, we should either pass a valid driver ID or omit it completely
         // to get all drivers' lap times
-        const data = await f1Service.getLapTimes(year, round, firstDriverOnly ? "true" : undefined);
-        return data;
+        const data = await f1Service.getLapTimes(year, round, firstDriverOnly ? "true" : undefined, 
+          // Add progress callback to update loading state
+          (progress, pagesLoaded, totalPages, retryInfo) => {
+            setLoadingState({
+              pagesLoaded,
+              totalPages,
+              progress: Math.round(progress * 100),
+              retryAttempts: retryInfo
+            });
+          }
+        );
+        
+        // Mark as fully loaded when complete
+        setLoadingState(prev => ({
+          ...prev,
+          progress: 100,
+          pagesLoaded: prev.totalPages
+        }));
+        
+        return {
+          ...data,
+          loadingState // Include loading state in the return
+        };
       } catch (error: any) {
         if (error?.status === 429) {
           toast.error("Rate limit exceeded. System will retry automatically.", {
@@ -104,6 +131,9 @@ export const useLapTimes = (year: number, round: string, firstDriverOnly: boolea
     enabled: !!year && !!round,
     ...lapTimesRetryConfig,
     gcTime: 1000 * 60 * 60 * 2, // 2 hours
+    meta: {
+      loadingState // Expose loading state in meta
+    }
   });
 };
 

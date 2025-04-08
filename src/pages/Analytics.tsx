@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import YearSelector from "@/components/common/YearSelector";
 import LapTimeChart from "@/components/analytics/LapTimeChart";
 import PositionChangeChart from "@/components/analytics/PositionChangeChart";
+import QualifyingChart from "@/components/analytics/QualifyingChart";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -108,15 +108,16 @@ const Analytics = () => {
             </Alert>
             
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="lapTimes">Lap Times</TabsTrigger>
-                <TabsTrigger value="positions">Position Changes</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="lapTimes">Race Times</TabsTrigger>
+                <TabsTrigger value="positions">Race Position Changes</TabsTrigger>
+                <TabsTrigger value="qualifying">Qualifying</TabsTrigger>
               </TabsList>
               
               <TabsContent value="lapTimes" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Lap Time Analysis</CardTitle>
+                    <CardTitle>Race Time Analysis</CardTitle>
                     <CardDescription>
                       Compare lap-by-lap times between drivers during a race.
                     </CardDescription>
@@ -135,7 +136,7 @@ const Analytics = () => {
               <TabsContent value="positions" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Position Changes</CardTitle>
+                    <CardTitle>Race Position Changes</CardTitle>
                     <CardDescription>
                       Track how drivers' positions change throughout the race.
                     </CardDescription>
@@ -143,6 +144,25 @@ const Analytics = () => {
                   <CardContent className="h-[600px] p-4">
                     {selectedTab === "positions" && (
                       <PositionChangeChart 
+                        year={selectedYear} 
+                        round={selectedRace} 
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="qualifying" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Qualifying Analysis</CardTitle>
+                    <CardDescription>
+                      Compare qualifying lap times across Q1, Q2, and Q3 sessions.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[600px] p-4">
+                    {selectedTab === "qualifying" && (
+                      <QualifyingChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -24,6 +23,11 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
   const [retryCount, setRetryCount] = useState(0);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [paginationStatus, setPaginationStatus] = useState({
+    pagesLoaded: 0,
+    totalPages: 0,
+    retryAttempts: {} as {[key: string]: number}
+  });
 
   // Use React Query hooks for data fetching
   const { 
@@ -38,20 +42,41 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     error: lapTimesError,
     refetch: refetchLapTimes,
     isError,
-    failureCount
+    failureCount,
+    isFetching
   } = useLapTimes(year, round, false); // Always fetch all laps
   
-  const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
+  const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData || isFetching;
   const error = resultsError || lapTimesError;
+
+  // Process loading status from the lapTimesData response
+  useEffect(() => {
+    if (lapTimesData?.loadingState) {
+      const { progress, pagesLoaded, totalPages, retryAttempts } = lapTimesData.loadingState;
+      setLoadingProgress(progress);
+      setPaginationStatus({
+        pagesLoaded,
+        totalPages,
+        retryAttempts: retryAttempts || {}
+      });
+    }
+  }, [lapTimesData]);
 
   // Auto-retry on error with increased delay between retries
   useEffect(() => {
     if (isError && retryCount < 15) { // Up to 15 retry attempts
       const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // Backoff up to 60 seconds
       
-      // Updated to show 2 decimal places
-      setLoadingProgress(parseFloat((retryCount * 7).toFixed(2)));
-      setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
+      // Calculate progress with retry factored in
+      const retryProgress = retryCount * 7; // Show some progress based on retry attempts
+      setLoadingProgress(parseFloat(Math.min(retryProgress, 95).toFixed(2)));
+      
+      // More detailed error message showing active retries
+      const activeRetries = Object.values(paginationStatus.retryAttempts).filter(count => count > 0).length;
+      setErrorMessage(
+        `Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...` +
+        (activeRetries > 0 ? ` (${activeRetries} active retries)` : '')
+      );
       
       const timer = setTimeout(() => {
         toast.info(`Retrying lap time data... Attempt ${retryCount + 1}/15`, {
@@ -66,9 +91,13 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
       return () => clearTimeout(timer);
     } else if (!isError && !isLoading) {
       setErrorMessage(null);
-      setLoadingProgress(100.00); // Make sure we show exactly 100.00%
+      
+      // Only show 100% when actually complete
+      if (paginationStatus.totalPages > 0 && paginationStatus.pagesLoaded >= paginationStatus.totalPages) {
+        setLoadingProgress(100);
+      }
     }
-  }, [isError, retryCount, refetchLapTimes, failureCount, isLoading]);
+  }, [isError, retryCount, refetchLapTimes, failureCount, isLoading, paginationStatus]);
 
   // Process race results to get available drivers
   useEffect(() => {
@@ -273,6 +302,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     totalLaps,
     maxLap,
     fastestLapTime,
+    paginationStatus,
     handleDriverToggle,
     handleDriverHover,
     getAverageTime,

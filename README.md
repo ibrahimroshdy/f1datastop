@@ -1,70 +1,196 @@
+# F1 DataStop
 
-# Welcome to your Lovable project
+![F1 DataStop](public/f1-cover.jpg)
 
-## Project info
+A modern React application for Formula 1 enthusiasts providing real-time race data, lap time analysis, position tracking, and comprehensive F1 insights.
 
-**URL**: https://lovable.dev/projects/824fa660-781a-4224-acb7-e9b726fb6efa
+## Overview
 
-## How can I edit this code?
+F1 DataStop is a data-rich analytics platform for Formula 1 fans that visualizes race performance, lap times, position changes, and other critical race metrics. The application uses the latest F1 data to deliver insights through interactive charts and immersive visualizations.
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript
+- **Build Tool**: Vite
+- **UI Framework**: shadcn/ui components
+- **Styling**: Tailwind CSS
+- **State Management**: React Query, Context API
+- **Routing**: React Router
+- **Data Visualization**: Recharts
+- **Backend**: Supabase
+- **Maps**: Mapbox GL
+- **3D Globe**: Three.js, Three-Globe
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/824fa660-781a-4224-acb7-e9b726fb6efa) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js (v16+)
+- npm or yarn
+- Supabase account (for database functionality)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
+1. Clone the repository:
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+git clone https://github.com/yourusername/f1datastop.git
+cd f1datastop
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Install dependencies:
+```sh
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. Set up environment variables:
+Create a `.env` file in the root directory with the following variables:
+```
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4. Start the development server:
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:8080`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Supabase Integration
 
-**Use GitHub Codespaces**
+F1 DataStop uses Supabase for data storage, authentication, and real-time updates.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Data Model
 
-## What technologies are used for this project?
+The application relies on several Supabase tables:
+- `races`: Information about F1 races
+- `drivers`: Driver information and statistics
+- `teams`: Team data
+- `lap_times`: Detailed lap time data
+- `position_data`: Race position tracking
+- `users`: User accounts and preferences
 
-This project is built with .
+### Authentication
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+The app implements Supabase authentication through the `AuthContext` provider:
+- Email/password login
+- Social login options
+- JWT token management
+- Protected routes
 
-## How can I deploy this project?
+### Connecting to Supabase
 
-Simply open [Lovable](https://lovable.dev/projects/824fa660-781a-4224-acb7-e9b726fb6efa) and click on Share -> Publish.
+The connection is managed in `src/integrations/supabase.ts`:
 
-## I want to use a custom domain - is that possible?
+```typescript
+import { createClient } from '@supabase/supabase-js';
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+```
+
+## Key Components
+
+### Analytics Components
+
+- **LapTimeChart**: Visualizes lap times for selected drivers
+- **PositionChangeChart**: Tracks position changes throughout a race
+- **DriverSelector**: Interactive component for selecting drivers to analyze
+- **DisplayModeToggle**: Toggles between absolute and gap time displays
+
+### Layout Components
+
+- **MainLayout**: Primary layout with navigation and content areas
+- **SideNav**: Navigation sidebar with links to different sections
+- **Header**: App header with authentication and user controls
+
+### Authentication Components
+
+- **ProtectedRoute**: Route wrapper that requires authentication
+- **LoginForm**: User login interface
+- **SignupForm**: New user registration
+
+## Project Structure
+
+```
+f1datastop/
+├── public/                  # Static assets
+├── src/
+│   ├── assets/              # Application assets
+│   │   ├── analytics/       # Data visualization components
+│   │   ├── auth/            # Authentication components
+│   │   ├── layout/          # Layout components
+│   │   └── ui/              # shadcn UI components
+│   ├── constants/           # Application constants
+│   ├── context/             # React context providers
+│   ├── hooks/               # Custom React hooks
+│   ├── integrations/        # Third-party integrations
+│   ├── lib/                 # Utility libraries
+│   ├── pages/               # Page components
+│   ├── services/            # API services
+│   └── utils/               # Utility functions
+├── supabase/                # Supabase configuration
+│   └── functions/           # Supabase Edge Functions
+└── ...
+```
+
+## Development Guidelines
+
+### Adding New Components
+
+1. Create the component in the appropriate directory
+2. Use TypeScript interfaces for props
+3. Follow the established styling patterns with Tailwind CSS
+4. Import from shadcn/ui for consistent design
+
+### Data Fetching Pattern
+
+The application uses React Query and custom hooks for data fetching:
+
+```typescript
+// Example hook for fetching race data
+export const useRaceData = (year: number, round: string) => {
+  return useQuery(['race', year, round], () => 
+    fetchRaceData(year, round)
+  );
+};
+```
+
+## Deployment
+
+### Building for Production
+
+```sh
+npm run build
+```
+
+The production-ready files will be in the `dist` directory.
+
+### Hosting
+
+The application is deployed on Lovable's hosting platform. To deploy:
+
+1. Visit the [Lovable Project](https://lovable.dev/projects/824fa660-781a-4224-acb7-e9b726fb6efa)
+2. Navigate to Share -> Publish
+
+For custom domain deployment, follow the Netlify instructions in the [Lovable docs](https://docs.lovable.dev/tips-tricks/custom-domain/).
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Formula 1 for the inspiration and data
+- The shadcn/ui team for the component library
+- Lovable for the hosting platform
