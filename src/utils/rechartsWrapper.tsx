@@ -43,15 +43,12 @@ export const ReferenceLine = (props: ReferenceLineProps) => {
   return <RechartsReferenceLine {...safeProps} />;
 };
 
-// Fix the Line component wrapper to properly handle props and types
-export const Line = (props: LineProps) => {
-  // Remove any axis IDs to prevent conflicts
-  const safeProps = { ...props } as LineProps;
+// The root of the issue is with this Line wrapper. Let's fix it by addressing the type issues.
+export const Line: React.FC<Omit<LineProps, 'xAxisId' | 'yAxisId'>> = (props) => {
+  // Create a new props object without xAxisId and yAxisId
+  // This syntax ensures we're correctly handling the types
+  const { xAxisId: _, yAxisId: __, ...safeProps } = props as any;
   
-  // Explicitly delete these properties to avoid type conflicts
-  if ('xAxisId' in safeProps) delete safeProps.xAxisId;
-  if ('yAxisId' in safeProps) delete safeProps.yAxisId;
-  
-  // Return the Recharts Line with safe props
+  // Pass the cleaned props to RechartsLine
   return <RechartsLine {...safeProps} />;
 };
