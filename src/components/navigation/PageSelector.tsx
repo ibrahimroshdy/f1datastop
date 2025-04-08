@@ -1,7 +1,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Calendar, BarChart, Users, Award, TrendingUp } from "lucide-react";
+import { Calendar, BarChart, Users, Award } from "lucide-react";
 
 interface PageOption {
   title: string;
@@ -40,13 +40,6 @@ const PageSelector = () => {
       icon: <Award className="h-6 w-6" />,
       href: "/constructors",
       color: "from-blue-500 to-blue-700",
-    },
-    {
-      title: "Visx Visualization",
-      description: "Explore beautiful data visualization with Airbnb's visx",
-      icon: <TrendingUp className="h-6 w-6" />,
-      href: "/visx-demo",
-      color: "from-pink-500 to-pink-700",
     },
   ];
 

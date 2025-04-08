@@ -17,7 +17,6 @@ import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
 import ResetPassword from "./pages/auth/ResetPassword";
-import VisxDemo from "./pages/VisxDemo";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,7 +40,6 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/calendar" element={<RaceCalendar />} />
-              <Route path="/visx-demo" element={<VisxDemo />} />
               <Route path="*" element={<NotFound />} />
               
               {/* Auth routes (only accessible if not logged in) */}
