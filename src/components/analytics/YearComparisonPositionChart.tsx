@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis } from "@/utils/rechartsWrapper";
@@ -386,7 +385,10 @@ const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = 
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-            <XAxis dataKey="lap" label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} />
+            <XAxis 
+              dataKey="lap" 
+              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+            />
             <YAxis 
               reversed 
               domain={[1, 20]} 

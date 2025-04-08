@@ -8,29 +8,13 @@ import { useState } from "react";
 const TelemetryChart = () => {
   const [selectedDriver, setSelectedDriver] = useState("1");
 
-  // Mock telemetry data for a single lap
+  // Mock telemetry data for a single lap - minimal data points, no DRS for simplification
   const telemetryData = [
-    { distance: "0", speed: 84, throttle: 30, brake: 70, gear: 1, drs: 0 },
-    { distance: "100", speed: 120, throttle: 100, brake: 0, gear: 2, drs: 0 },
-    { distance: "200", speed: 160, throttle: 100, brake: 0, gear: 3, drs: 0 },
-    { distance: "300", speed: 210, throttle: 100, brake: 0, gear: 4, drs: 0 },
-    { distance: "400", speed: 240, throttle: 100, brake: 0, gear: 5, drs: 0 },
-    { distance: "500", speed: 280, throttle: 100, brake: 0, gear: 6, drs: 0 },
-    { distance: "600", speed: 310, throttle: 100, brake: 0, gear: 7, drs: 0 },
-    { distance: "700", speed: 320, throttle: 100, brake: 0, gear: 8, drs: 0 },
-    { distance: "800", speed: 325, throttle: 100, brake: 0, gear: 8, drs: 1 },
-    { distance: "900", speed: 330, throttle: 100, brake: 0, gear: 8, drs: 1 },
-    { distance: "1000", speed: 335, throttle: 100, brake: 0, gear: 8, drs: 1 },
-    { distance: "1100", speed: 120, throttle: 0, brake: 100, gear: 3, drs: 0 },
-    { distance: "1200", speed: 80, throttle: 0, brake: 100, gear: 2, drs: 0 },
-    { distance: "1300", speed: 60, throttle: 0, brake: 90, gear: 1, drs: 0 },
-    { distance: "1400", speed: 70, throttle: 40, brake: 0, gear: 2, drs: 0 },
-    { distance: "1500", speed: 120, throttle: 100, brake: 0, gear: 3, drs: 0 },
-    { distance: "1600", speed: 180, throttle: 100, brake: 0, gear: 4, drs: 0 },
-    { distance: "1700", speed: 220, throttle: 100, brake: 0, gear: 5, drs: 0 },
-    { distance: "1800", speed: 260, throttle: 100, brake: 0, gear: 6, drs: 0 },
-    { distance: "1900", speed: 290, throttle: 100, brake: 0, gear: 7, drs: 0 },
-    { distance: "2000", speed: 310, throttle: 100, brake: 0, gear: 8, drs: 0 },
+    { distance: "0", speed: 84, throttle: 30, brake: 70, gear: 1 },
+    { distance: "500", speed: 280, throttle: 100, brake: 0, gear: 6 },
+    { distance: "1000", speed: 335, throttle: 100, brake: 0, gear: 8 },
+    { distance: "1500", speed: 120, throttle: 40, brake: 0, gear: 3 },
+    { distance: "2000", speed: 310, throttle: 100, brake: 0, gear: 8 },
   ];
 
   const drivers = [
@@ -111,13 +95,6 @@ const TelemetryChart = () => {
                 type="monotone" 
                 dataKey="brake" 
                 stroke="#F44336" 
-                strokeWidth={1.5}
-                dot={false}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="drs" 
-                stroke="#E10600" 
                 strokeWidth={1.5}
                 dot={false}
               />

@@ -385,7 +385,10 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-            <XAxis dataKey="lap" label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} />
+            <XAxis 
+              dataKey="lap" 
+              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+            />
             <YAxis 
               label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }}
               domain={['dataMin - 1', 'dataMax + 1']}
