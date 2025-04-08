@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from "@/utils/rechartsWrapper";
 import { useRaceQualifying, useRaceResults } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -252,51 +252,60 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
     }
   }, [comparisonQualifying, comparisonResults, comparisonYear, fastestLapTime]);
 
+  // Format data for a bar chart
+  const formatBarChartData = () => {
+    // Build an array where each item is one driver that should be shown
+    const selectedDriversArray = [
+      ...selectedBaseDrivers.map(code => {
+        const driver = baseDrivers.find(d => d.code === code);
+        return driver ? { ...driver, source: 'base' } : null;
+      }),
+      ...selectedComparisonDrivers.map(code => {
+        const driver = comparisonDrivers.find(d => d.code === code);
+        return driver ? { ...driver, source: 'comparison' } : null;
+      })
+    ].filter(Boolean).sort((a, b) => a.position - b.position);
+    
+    // Create data points for each selected driver
+    return selectedDriversArray.map(driver => {
+      const isBase = driver.source === 'base';
+      const year = isBase ? baseYear : comparisonYear;
+      const yearSuffix = isBase ? 'Base' : 'Comp';
+      
+      // Create the data point
+      const dataPoint: any = {
+        name: `${driver.code} (${year})`,
+        driverCode: driver.code,
+        position: driver.position,
+        team: driver.team,
+        year,
+        yearSuffix
+      };
+      
+      // Add qualifying session times if they're active
+      if (activeSessions.includes('all') || activeSessions.includes('Q1')) {
+        dataPoint[`Q1_${yearSuffix}`] = driver.q1Time;
+      }
+      
+      if (activeSessions.includes('all') || activeSessions.includes('Q2')) {
+        dataPoint[`Q2_${yearSuffix}`] = driver.q2Time;
+      }
+      
+      if (activeSessions.includes('all') || activeSessions.includes('Q3')) {
+        dataPoint[`Q3_${yearSuffix}`] = driver.q3Time;
+      }
+      
+      return dataPoint;
+    });
+  };
+
   // Process and combine qualifying data
   useEffect(() => {
     if (baseDrivers.length > 0 && comparisonDrivers.length > 0) {
       setIsProcessingData(true);
       
       try {
-        const positions = Array.from({ length: 20 }, (_, i) => i + 1);
-        const processedData = positions.map(pos => ({ position: pos }));
-        
-        // Process base year data
-        baseDrivers.forEach(driver => {
-          if (selectedBaseDrivers.includes(driver.code)) {
-            if ((activeSessions.includes('all') || activeSessions.includes('Q1')) && driver.q1Time) {
-              processedData[driver.position - 1][`${driver.code}_${baseYear}_Q1`] = driver.q1Time;
-            }
-            if ((activeSessions.includes('all') || activeSessions.includes('Q2')) && driver.q2Time) {
-              processedData[driver.position - 1][`${driver.code}_${baseYear}_Q2`] = driver.q2Time;
-            }
-            if ((activeSessions.includes('all') || activeSessions.includes('Q3')) && driver.q3Time) {
-              processedData[driver.position - 1][`${driver.code}_${baseYear}_Q3`] = driver.q3Time;
-            }
-          }
-        });
-        
-        // Process comparison year data
-        comparisonDrivers.forEach(driver => {
-          if (selectedComparisonDrivers.includes(driver.code)) {
-            if ((activeSessions.includes('all') || activeSessions.includes('Q1')) && driver.q1Time) {
-              processedData[driver.position - 1][`${driver.code}_${comparisonYear}_Q1`] = driver.q1Time;
-            }
-            if ((activeSessions.includes('all') || activeSessions.includes('Q2')) && driver.q2Time) {
-              processedData[driver.position - 1][`${driver.code}_${comparisonYear}_Q2`] = driver.q2Time;
-            }
-            if ((activeSessions.includes('all') || activeSessions.includes('Q3')) && driver.q3Time) {
-              processedData[driver.position - 1][`${driver.code}_${comparisonYear}_Q3`] = driver.q3Time;
-            }
-          }
-        });
-        
-        // Filter out positions with no data
-        const filteredData = processedData.filter(d => 
-          Object.keys(d).length > 1 // More than just the position property
-        );
-        
-        setChartData(filteredData);
+        setChartData(formatBarChartData());
       } catch (error) {
         console.error("Error processing qualifying data:", error);
         toast.error("Error processing qualifying data");
@@ -343,13 +352,24 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
     });
   };
 
-  const getSessionColor = (session: string) => {
+  const getSessionColor = (session: string, isBase: boolean) => {
+    let baseColor;
     switch (session) {
-      case 'Q1': return '#a855f7'; // Purple
-      case 'Q2': return '#3b82f6'; // Blue
-      case 'Q3': return '#22c55e'; // Green
-      default: return '#6b7280'; // Gray
+      case 'Q1': 
+        baseColor = '#a855f7'; // Purple
+        break;
+      case 'Q2': 
+        baseColor = '#3b82f6'; // Blue
+        break;
+      case 'Q3': 
+        baseColor = '#22c55e'; // Green
+        break;
+      default: 
+        baseColor = '#6b7280'; // Gray
     }
+    
+    // For comparison year, make colors slightly more muted
+    return isBase ? baseColor : `${baseColor}99`;
   };
   
   const getRaceCircuitName = (results: any) => {
@@ -360,26 +380,17 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
   const baseCircuit = getRaceCircuitName(baseResults);
   const comparisonCircuit = getRaceCircuitName(comparisonResults);
 
-  // Format legend text with driver name and session
+  // Format legend text
   const formatLegendText = (value: string) => {
     if (!value || !value.includes('_')) return value;
     
-    const parts = value.split('_');
-    if (parts.length !== 3) return value;
+    const [session, yearType] = value.split('_');
     
-    const [driverCode, year, session] = parts;
-    let driver;
+    const sessionName = session;
+    const year = yearType === 'Base' ? baseYear : comparisonYear;
+    const circuit = yearType === 'Base' ? baseCircuit : comparisonCircuit;
     
-    if (parseInt(year) === baseYear) {
-      driver = baseDrivers.find(d => d.code === driverCode);
-    } else {
-      driver = comparisonDrivers.find(d => d.code === driverCode);
-    }
-    
-    if (!driver) return `${driverCode} (${session})`;
-    
-    const lastName = driver.name.split(' ').pop() || '';
-    return `${driverCode} ${lastName} - ${session} (${year})`;
+    return `${sessionName} ${year} (${circuit})`;
   };
 
   if (isLoading) {
@@ -515,29 +526,39 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
       
       <div className="h-[400px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
+          <BarChart
             data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+            margin={{ top: 20, right: 40, left: 20, bottom: 20 }}
+            barGap={2}
+            barCategoryGap={20}
+            layout="vertical"
+            barSize={22}
           >
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" opacity={0.2} horizontal={true} vertical={false} />
             <XAxis 
-              dataKey="position" 
-              label={{ value: 'Grid Position', position: 'insideBottomRight', offset: -5 }}
-              domain={[0, 'dataMax']}
               type="number"
-              xAxisId="position"
+              domain={['auto', 'auto']}
+              label={{ value: 'Lap Time (seconds)', position: 'insideBottom', dy: 10 }}
+              xAxisId="primary"
             />
             <YAxis 
-              label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }}
-              domain={['auto', 'auto']}
-              yAxisId="time"
+              dataKey="name"
+              type="category"
+              tick={{ fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              width={100}
+              yAxisId="primary"
             />
             <Tooltip 
               formatter={(value, name) => {
                 if (typeof value !== 'number') return [value, name];
                 return [`${value.toFixed(2)}s`, formatLegendText(name as string)];
               }}
-              labelFormatter={(label) => `Position ${label}`}
+              labelFormatter={(label) => {
+                const [driverCode, yearInfo] = label.split(' (');
+                return `${driverCode} - Position ${chartData.find(d => d.name === label)?.position || '?'}`;
+              }}
               contentStyle={{ 
                 backgroundColor: '#1a1a1a',
                 borderColor: '#333',
@@ -558,148 +579,88 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
             
             {fastestLapTime && (
               <ReferenceLine 
-                y={fastestLapTime.time} 
+                x={fastestLapTime.time} 
                 stroke="#c026d3" 
                 strokeDasharray="3 3" 
                 label={{ 
                   value: `Fastest: ${fastestLapTime.time.toFixed(2)}s (${fastestLapTime.driver} ${fastestLapTime.session} ${fastestLapTime.year})`, 
-                  position: 'right', 
-                  fill: '#c026d3' 
+                  position: 'top', 
+                  fill: '#c026d3',
+                  fontSize: 12
                 }}
-                yAxisId="time"
-                xAxisId="position"
+                xAxisId="primary"
+                yAxisId="primary"
               />
             )}
             
-            {/* Base Year Q1 */}
-            {(activeSessions.includes('all') || activeSessions.includes('Q1')) && 
-              baseDrivers
-                .filter(driver => selectedBaseDrivers.includes(driver.code))
-                .map(driver => (
-                  <Line
-                    key={`${driver.code}_${baseYear}_Q1`}
-                    type="monotone"
-                    dataKey={`${driver.code}_${baseYear}_Q1`}
-                    name={`${driver.code}_${baseYear}_Q1`}
-                    stroke={getSessionColor('Q1')}
-                    strokeWidth={2}
-                    dot={{ r: 5, strokeWidth: 1, fill: 'white', stroke: getSessionColor('Q1') }}
-                    activeDot={{ r: 8 }}
-                    xAxisId="position"
-                    yAxisId="time"
-                    connectNulls
-                  />
-                ))
-            }
+            {/* Base Year Bars */}
+            {activeSessions.includes('all') || activeSessions.includes('Q1') ? (
+              <Bar 
+                dataKey="Q1_Base" 
+                name="Q1_Base" 
+                fill={getSessionColor('Q1', true)}
+                radius={[0, 4, 4, 0]}
+                xAxisId="primary"
+                yAxisId="primary"
+              />
+            ) : null}
             
-            {/* Base Year Q2 */}
-            {(activeSessions.includes('all') || activeSessions.includes('Q2')) && 
-              baseDrivers
-                .filter(driver => selectedBaseDrivers.includes(driver.code))
-                .map(driver => (
-                  <Line
-                    key={`${driver.code}_${baseYear}_Q2`}
-                    type="monotone"
-                    dataKey={`${driver.code}_${baseYear}_Q2`}
-                    name={`${driver.code}_${baseYear}_Q2`}
-                    stroke={getSessionColor('Q2')}
-                    strokeWidth={2}
-                    dot={{ r: 5, strokeWidth: 1, fill: 'white', stroke: getSessionColor('Q2') }}
-                    activeDot={{ r: 8 }}
-                    xAxisId="position"
-                    yAxisId="time"
-                    connectNulls
-                  />
-                ))
-            }
+            {activeSessions.includes('all') || activeSessions.includes('Q2') ? (
+              <Bar 
+                dataKey="Q2_Base" 
+                name="Q2_Base" 
+                fill={getSessionColor('Q2', true)}
+                radius={[0, 4, 4, 0]}
+                xAxisId="primary"
+                yAxisId="primary"
+              />
+            ) : null}
             
-            {/* Base Year Q3 */}
-            {(activeSessions.includes('all') || activeSessions.includes('Q3')) && 
-              baseDrivers
-                .filter(driver => selectedBaseDrivers.includes(driver.code))
-                .map(driver => (
-                  <Line
-                    key={`${driver.code}_${baseYear}_Q3`}
-                    type="monotone"
-                    dataKey={`${driver.code}_${baseYear}_Q3`}
-                    name={`${driver.code}_${baseYear}_Q3`}
-                    stroke={getSessionColor('Q3')}
-                    strokeWidth={2}
-                    dot={{ r: 5, strokeWidth: 1, fill: 'white', stroke: getSessionColor('Q3') }}
-                    activeDot={{ r: 8 }}
-                    xAxisId="position"
-                    yAxisId="time"
-                    connectNulls
-                  />
-                ))
-            }
+            {activeSessions.includes('all') || activeSessions.includes('Q3') ? (
+              <Bar 
+                dataKey="Q3_Base" 
+                name="Q3_Base" 
+                fill={getSessionColor('Q3', true)}
+                radius={[0, 4, 4, 0]}
+                xAxisId="primary"
+                yAxisId="primary"
+              />
+            ) : null}
             
-            {/* Comparison Year Q1 */}
-            {(activeSessions.includes('all') || activeSessions.includes('Q1')) && 
-              comparisonDrivers
-                .filter(driver => selectedComparisonDrivers.includes(driver.code))
-                .map(driver => (
-                  <Line
-                    key={`${driver.code}_${comparisonYear}_Q1`}
-                    type="monotone"
-                    dataKey={`${driver.code}_${comparisonYear}_Q1`}
-                    name={`${driver.code}_${comparisonYear}_Q1`}
-                    stroke={getSessionColor('Q1')}
-                    strokeDasharray="5 5"
-                    strokeWidth={2}
-                    dot={{ r: 5, strokeWidth: 1, fill: 'white', stroke: getSessionColor('Q1') }}
-                    activeDot={{ r: 8 }}
-                    xAxisId="position"
-                    yAxisId="time"
-                    connectNulls
-                  />
-                ))
-            }
+            {/* Comparison Year Bars */}
+            {activeSessions.includes('all') || activeSessions.includes('Q1') ? (
+              <Bar 
+                dataKey="Q1_Comp" 
+                name="Q1_Comp" 
+                fill={getSessionColor('Q1', false)}
+                radius={[0, 4, 4, 0]}
+                xAxisId="primary"
+                yAxisId="primary"
+              />
+            ) : null}
             
-            {/* Comparison Year Q2 */}
-            {(activeSessions.includes('all') || activeSessions.includes('Q2')) && 
-              comparisonDrivers
-                .filter(driver => selectedComparisonDrivers.includes(driver.code))
-                .map(driver => (
-                  <Line
-                    key={`${driver.code}_${comparisonYear}_Q2`}
-                    type="monotone"
-                    dataKey={`${driver.code}_${comparisonYear}_Q2`}
-                    name={`${driver.code}_${comparisonYear}_Q2`}
-                    stroke={getSessionColor('Q2')}
-                    strokeDasharray="5 5"
-                    strokeWidth={2}
-                    dot={{ r: 5, strokeWidth: 1, fill: 'white', stroke: getSessionColor('Q2') }}
-                    activeDot={{ r: 8 }}
-                    xAxisId="position"
-                    yAxisId="time"
-                    connectNulls
-                  />
-                ))
-            }
+            {activeSessions.includes('all') || activeSessions.includes('Q2') ? (
+              <Bar 
+                dataKey="Q2_Comp" 
+                name="Q2_Comp" 
+                fill={getSessionColor('Q2', false)}
+                radius={[0, 4, 4, 0]}
+                xAxisId="primary"
+                yAxisId="primary"
+              />
+            ) : null}
             
-            {/* Comparison Year Q3 */}
-            {(activeSessions.includes('all') || activeSessions.includes('Q3')) && 
-              comparisonDrivers
-                .filter(driver => selectedComparisonDrivers.includes(driver.code))
-                .map(driver => (
-                  <Line
-                    key={`${driver.code}_${comparisonYear}_Q3`}
-                    type="monotone"
-                    dataKey={`${driver.code}_${comparisonYear}_Q3`}
-                    name={`${driver.code}_${comparisonYear}_Q3`}
-                    stroke={getSessionColor('Q3')}
-                    strokeDasharray="5 5"
-                    strokeWidth={2}
-                    dot={{ r: 5, strokeWidth: 1, fill: 'white', stroke: getSessionColor('Q3') }}
-                    activeDot={{ r: 8 }}
-                    xAxisId="position"
-                    yAxisId="time"
-                    connectNulls
-                  />
-                ))
-            }
-          </LineChart>
+            {activeSessions.includes('all') || activeSessions.includes('Q3') ? (
+              <Bar 
+                dataKey="Q3_Comp" 
+                name="Q3_Comp" 
+                fill={getSessionColor('Q3', false)}
+                radius={[0, 4, 4, 0]}
+                xAxisId="primary"
+                yAxisId="primary"
+              />
+            ) : null}
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </div>

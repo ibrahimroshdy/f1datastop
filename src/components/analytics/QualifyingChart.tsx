@@ -1,5 +1,5 @@
 import React from "react";
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend, ReferenceLine, Label } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, CartesianGrid, Tooltip, Legend, ReferenceLine, Label } from "recharts";
 import { XAxis, YAxis } from "@/utils/rechartsWrapper";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,41 +54,39 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
     finishPosition: driver.position // Map position to finishPosition for compatibility
   }));
 
-  // Create a standard format for display (position => time)
-  const formatChartData = () => {
-    const { q1Data, q2Data, q3Data } = chartData;
-    const positions = Array.from({ length: 20 }, (_, i) => i + 1);
-    const formattedData = positions.map(pos => ({ position: pos }));
-    
-    // Add driver times to the corresponding positions
-    const addSessionData = (data: any[], sessionKey: string) => {
-      data.forEach(item => {
-        const idx = item.position - 1;
-        if (idx >= 0 && idx < formattedData.length) {
-          formattedData[idx][`${item.driver}_${sessionKey}`] = item.time;
-        }
-      });
-    };
-    
-    if (activeSessions.includes('all') || activeSessions.includes('Q1')) {
-      addSessionData(q1Data, 'Q1');
-    }
-    
-    if (activeSessions.includes('all') || activeSessions.includes('Q2')) {
-      addSessionData(q2Data, 'Q2');
-    }
-    
-    if (activeSessions.includes('all') || activeSessions.includes('Q3')) {
-      addSessionData(q3Data, 'Q3');
-    }
-    
-    return formattedData.filter(d => {
-      // Only return positions that have data for any of the selected drivers and sessions
-      return Object.keys(d).some(key => key !== 'position');
-    });
+  // Format data for a bar chart - group by driver rather than position
+  const formatBarChartData = () => {
+    // We'll create an array of objects, each representing a driver
+    return visibleDrivers.map(driverCode => {
+      const driver = availableDrivers.find(d => d.code === driverCode);
+      if (!driver) return null;
+      
+      // Create a data object for this driver with their qualifying times
+      const driverData: any = {
+        name: driverCode,
+        position: driver.position,
+        driverName: driver.name.split(' ').pop() || driver.name, // Last name
+        team: driver.team
+      };
+      
+      // Add session times if they should be visible
+      if (activeSessions.includes('all') || activeSessions.includes('Q1')) {
+        driverData.Q1 = driver.q1Time;
+      }
+      
+      if (activeSessions.includes('all') || activeSessions.includes('Q2')) {
+        driverData.Q2 = driver.q2Time;
+      }
+      
+      if (activeSessions.includes('all') || activeSessions.includes('Q3')) {
+        driverData.Q3 = driver.q3Time;
+      }
+      
+      return driverData;
+    }).filter(Boolean).sort((a, b) => a.position - b.position); // Sort by qualifying position
   };
   
-  const qualifyingChartData = formatChartData();
+  const qualifyingBarData = formatBarChartData();
 
   // Render loading state with progress indicator
   if (isLoading || isProcessingData) {
@@ -189,18 +187,6 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
     return `${value.toFixed(3)}s (${session})`;
   };
   
-  // Format legend text
-  const formatLegendText = (value: string) => {
-    if (!value || !value.includes('_')) return value;
-    
-    const [driverCode, session] = value.split('_');
-    const driver = availableDrivers.find(d => d.code === driverCode);
-    if (!driver) return driverCode;
-    
-    const lastName = driver.name.split(' ').pop() || '';
-    return `${driverCode} (${session}) - ${lastName}`;
-  };
-
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-col md:flex-row gap-4 justify-between mb-4">
@@ -222,35 +208,39 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
       
       <div className="h-[450px] mt-4 flex-grow">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={qualifyingChartData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          <BarChart
+            data={qualifyingBarData}
+            margin={{ top: 20, right: 40, left: 20, bottom: 20 }}
+            barCategoryGap="20%"
+            barSize={24}
+            layout="vertical"
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#eee" opacity={0.3} />
-            <XAxis
-              dataKey="position"
+            <CartesianGrid strokeDasharray="3 3" stroke="#eee" opacity={0.3} horizontal={true} vertical={false} />
+            <XAxis 
               type="number"
-              domain={[1, 20]}
-              label={{ value: 'Grid Position', position: 'insideBottomRight', offset: -10 }}
-              xAxisId="position"
+              domain={['auto', 'auto']}
+              label={{ value: 'Lap Time (seconds)', position: 'insideBottom', dy: 10 }}
+              xAxisId="primary"
             />
             <YAxis
-              domain={['auto', 'auto']}
-              label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }}
-              yAxisId="time"
+              dataKey="name"
+              type="category"
+              tickFormatter={(value) => `${value} (P${qualifyingBarData.find(d => d.name === value)?.position || '?'})`}
+              tick={{ fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              width={80}
+              yAxisId="primary"
             />
             <Tooltip
               formatter={(value: any, name: any) => {
-                // Safely extract driver code and session from the name
-                if (typeof name !== 'string') return [value, name];
-                
-                const parts = name.toString().split('_');
-                if (parts.length !== 2) return [value, name];
-                
-                const [driverCode, session] = parts;
-                return [formatTooltipValue(value, session), driverCode];
+                if (typeof value !== 'number') return [value, name];
+                return [formatTooltipValue(value, name), name];
               }}
-              labelFormatter={(label) => `Position ${label}`}
+              labelFormatter={(label) => {
+                const driver = availableDrivers.find(d => d.code === label);
+                return driver ? `${driver.name}` : label;
+              }}
               contentStyle={{ 
                 backgroundColor: '#1a1a1a',
                 borderColor: '#333',
@@ -259,7 +249,6 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
               }}
             />
             <Legend 
-              formatter={formatLegendText}
               iconSize={10}
               wrapperStyle={{ 
                 opacity: 1,
@@ -271,88 +260,57 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
             
             {fastestLapTime && (
               <ReferenceLine 
-                y={fastestLapTime.time} 
+                x={fastestLapTime.time} 
                 stroke="#c026d3" 
                 strokeDasharray="3 3" 
                 label={{ 
-                  value: `Fastest Lap: ${fastestLapTime.time.toFixed(3)}s (${fastestLapTime.driver} - ${fastestLapTime.session})`, 
-                  position: 'right', 
-                  fill: '#c026d3' 
-                }} 
-                yAxisId="time"
-                xAxisId="position"
+                  value: `Fastest: ${fastestLapTime.time.toFixed(3)}s (${fastestLapTime.driver} - ${fastestLapTime.session})`, 
+                  position: 'top', 
+                  fill: '#c026d3',
+                  fontSize: 12
+                }}
+                xAxisId="primary"
+                yAxisId="primary"
               />
             )}
             
-            {/* Create lines for each driver and session */}
-            {availableDrivers
-              .filter(driver => visibleDrivers.includes(driver.code))
-              .map(driver => {
-                const lines = [];
-                
-                if ((activeSessions.includes('all') || activeSessions.includes('Q1')) && driver.q1Time) {
-                  lines.push(
-                    <Line
-                      key={`${driver.code}_Q1`}
-                      type="monotone"
-                      dataKey={`${driver.code}_Q1`}
-                      name={`${driver.code}_Q1`}
-                      stroke={getSessionColor('Q1')}
-                      strokeWidth={hoveredDriver === driver.code ? 3 : 2}
-                      dot={{ r: 4, strokeWidth: 2, fill: 'white', stroke: getSessionColor('Q1') }}
-                      activeDot={{ r: 8 }}
-                      connectNulls
-                      isAnimationActive={false}
-                      xAxisId="position"
-                      yAxisId="time"
-                      opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
-                    />
-                  );
-                }
-                
-                if ((activeSessions.includes('all') || activeSessions.includes('Q2')) && driver.q2Time) {
-                  lines.push(
-                    <Line
-                      key={`${driver.code}_Q2`}
-                      type="monotone"
-                      dataKey={`${driver.code}_Q2`}
-                      name={`${driver.code}_Q2`}
-                      stroke={getSessionColor('Q2')}
-                      strokeWidth={hoveredDriver === driver.code ? 3 : 2}
-                      dot={{ r: 4, strokeWidth: 2, fill: 'white', stroke: getSessionColor('Q2') }}
-                      activeDot={{ r: 8 }}
-                      connectNulls
-                      isAnimationActive={false}
-                      xAxisId="position"
-                      yAxisId="time"
-                      opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
-                    />
-                  );
-                }
-                
-                if ((activeSessions.includes('all') || activeSessions.includes('Q3')) && driver.q3Time) {
-                  lines.push(
-                    <Line
-                      key={`${driver.code}_Q3`}
-                      type="monotone"
-                      dataKey={`${driver.code}_Q3`}
-                      name={`${driver.code}_Q3`}
-                      stroke={getSessionColor('Q3')}
-                      strokeWidth={hoveredDriver === driver.code ? 3 : 2}
-                      dot={{ r: 4, strokeWidth: 2, fill: 'white', stroke: getSessionColor('Q3') }}
-                      activeDot={{ r: 8 }}
-                      connectNulls
-                      isAnimationActive={false}
-                      xAxisId="position"
-                      yAxisId="time"
-                      opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
-                    />
-                  );
-                }
-                
-                return lines;
-              })}
-          </LineChart>
+            {/* Create bars for each qualifying session */}
+            {activeSessions.includes('all') || activeSessions.includes('Q1') ? (
+              <Bar 
+                dataKey="Q1" 
+                name="Q1" 
+                fill={getSessionColor('Q1')} 
+                opacity={hoveredDriver ? 0.7 : 1} 
+                radius={[0, 4, 4, 0]}
+                xAxisId="primary"
+                yAxisId="primary"
+              />
+            ) : null}
+            
+            {activeSessions.includes('all') || activeSessions.includes('Q2') ? (
+              <Bar 
+                dataKey="Q2" 
+                name="Q2" 
+                fill={getSessionColor('Q2')} 
+                opacity={hoveredDriver ? 0.7 : 1}
+                radius={[0, 4, 4, 0]}
+                xAxisId="primary"
+                yAxisId="primary"
+              />
+            ) : null}
+            
+            {activeSessions.includes('all') || activeSessions.includes('Q3') ? (
+              <Bar 
+                dataKey="Q3" 
+                name="Q3" 
+                fill={getSessionColor('Q3')} 
+                opacity={hoveredDriver ? 0.7 : 1}
+                radius={[0, 4, 4, 0]}
+                xAxisId="primary"
+                yAxisId="primary"
+              />
+            ) : null}
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </div>

@@ -32,6 +32,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [outlierLaps, setOutlierLaps] = useState<{[key: string]: number[]}>({});
   
   // Fetch results and lap times for base year
   const { 
@@ -187,6 +188,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         
         // Process lap time data
         const processedData = [];
+        const tempOutliers: {[key: string]: number[]} = {};
         
         for (let i = 0; i < maxLaps; i++) {
           const lapData: any = { lap: i + 1 };
@@ -220,6 +222,52 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
           processedData.push(lapData);
         }
         
+        // Detect lap time outliers for each driver
+        const detectOutliers = (driverKey: string, data: any[]) => {
+          const lapTimes = data
+            .map(lap => lap[driverKey])
+            .filter(time => typeof time === 'number');
+          
+          if (lapTimes.length < 5) return []; // Not enough data
+          
+          // Calculate mean and standard deviation
+          const mean = lapTimes.reduce((sum, val) => sum + val, 0) / lapTimes.length;
+          const stdDev = Math.sqrt(
+            lapTimes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / lapTimes.length
+          );
+          
+          // Find outliers (laps that are significantly faster or slower)
+          const threshold = 1.75; // Lower for more outliers, higher for fewer
+          const outlierLaps: number[] = [];
+          
+          lapTimes.forEach((time, idx) => {
+            const zScore = Math.abs(time - mean) / stdDev;
+            if (zScore > threshold) {
+              outlierLaps.push(idx + 1); // +1 because lap numbers start at 1
+            }
+          });
+          
+          return outlierLaps;
+        };
+        
+        // Process outliers for selected drivers
+        baseDrivers
+          .filter(driver => selectedBaseDrivers.includes(driver.code))
+          .forEach(driver => {
+            const driverKey = `${driver.code}_${baseYear}`;
+            tempOutliers[driverKey] = detectOutliers(driverKey, processedData);
+          });
+        
+        comparisonDrivers
+          .filter(driver => selectedComparisonDrivers.includes(driver.code))
+          .forEach(driver => {
+            const driverKey = `${driver.code}_${comparisonYear}`;
+            tempOutliers[driverKey] = detectOutliers(driverKey, processedData);
+          });
+        
+        setOutlierLaps(tempOutliers);
+        setChartData(processedData);
+        
         // Check if we have partial data from either year
         if ((baseRace.isPartialData || baseRace.incomplete) && 
             (compRace.isPartialData || compRace.incomplete)) {
@@ -241,8 +289,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             duration: 5000,
           });
         }
-        
-        setChartData(processedData);
       } catch (error) {
         console.error("Error processing lap time data:", error);
         toast.error("Error processing lap time data");
@@ -250,7 +296,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         setIsProcessingData(false);
       }
     }
-  }, [baseLapTimes, comparisonLapTimes, baseDrivers, comparisonDrivers, baseYear, comparisonYear]);
+  }, [baseLapTimes, comparisonLapTimes, baseDrivers, comparisonDrivers, baseYear, comparisonYear, selectedBaseDrivers, selectedComparisonDrivers]);
   
   const toggleBaseDriver = (driverCode: string) => {
     setSelectedBaseDrivers(prev => 
@@ -409,7 +455,9 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
               }}
               formatter={(value: any, name: string) => {
                 if (typeof value === 'number') {
-                  return formatTime(value);
+                  const driverKey = name;
+                  const isOutlier = outlierLaps[driverKey]?.includes(Number(chartData.find(d => d[driverKey] === value)?.lap));
+                  return [`${formatTime(value)}${isOutlier ? ' ⚠️ Outlier' : ''}`, name];
                 }
                 return value;
               }}
@@ -444,9 +492,20 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   dataKey={`${driver.code}_${baseYear}`}
                   name={`${driver.code}_${baseYear}`}
                   stroke={`#f59e0b`} // Amber color for base year
-                  strokeDasharray={driver.finishPosition === 1 ? "0" : "5 5"}
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
-                  dot={{ r: 2, fill: `#f59e0b` }}
+                  dot={(props) => {
+                    const isOutlier = outlierLaps[`${driver.code}_${baseYear}`]?.includes(props.payload.lap);
+                    return (
+                      <circle
+                        cx={props.cx}
+                        cy={props.cy}
+                        r={isOutlier ? 5 : 2}
+                        fill={isOutlier ? '#f97316' : '#f59e0b'}
+                        stroke={isOutlier ? '#ffffff' : 'none'}
+                        strokeWidth={isOutlier ? 1 : 0}
+                      />
+                    );
+                  }}
                   activeDot={{ r: 6 }}
                   connectNulls={true}
                   xAxisId="primary"
@@ -464,9 +523,20 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   dataKey={`${driver.code}_${comparisonYear}`}
                   name={`${driver.code}_${comparisonYear}`}
                   stroke={`#3b82f6`} // Blue color for comparison year
-                  strokeDasharray={driver.finishPosition === 1 ? "0" : "5 5"}
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
-                  dot={{ r: 2, fill: `#3b82f6` }}
+                  dot={(props) => {
+                    const isOutlier = outlierLaps[`${driver.code}_${comparisonYear}`]?.includes(props.payload.lap);
+                    return (
+                      <circle
+                        cx={props.cx}
+                        cy={props.cy}
+                        r={isOutlier ? 5 : 2}
+                        fill={isOutlier ? '#2563eb' : '#3b82f6'}
+                        stroke={isOutlier ? '#ffffff' : 'none'}
+                        strokeWidth={isOutlier ? 1 : 0}
+                      />
+                    );
+                  }}
                   activeDot={{ r: 6 }}
                   connectNulls={true}
                   xAxisId="primary"
