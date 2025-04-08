@@ -15,20 +15,21 @@ interface YearComparisonLapChartProps {
   baseRound: string;
   comparisonYear: number;
   comparisonRound: string;
+  displayMode: 'absolute' | 'gap';
 }
 
 const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   baseYear,
   baseRound,
   comparisonYear,
-  comparisonRound
+  comparisonRound,
+  displayMode
 }) => {
   const [baseDrivers, setBaseDrivers] = useState<any[]>([]);
   const [comparisonDrivers, setComparisonDrivers] = useState<any[]>([]);
   const [selectedBaseDrivers, setSelectedBaseDrivers] = useState<string[]>([]);
   const [selectedComparisonDrivers, setSelectedComparisonDrivers] = useState<string[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
-  const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
   const [isProcessingData, setIsProcessingData] = useState(false);
   
   // Fetch results and lap times for base year
@@ -194,10 +195,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
     );
   };
 
-  const toggleDisplayMode = () => {
-    setDisplayMode(prev => prev === 'absolute' ? 'gap' : 'absolute');
-  };
-
   const getRaceCircuitName = (results: any) => {
     if (!results?.data?.Circuit) return "Unknown Circuit";
     return results.data.Circuit.circuitName || results.data.raceName || "Unknown Circuit";
@@ -228,15 +225,6 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   return (
     <div className="h-full">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={toggleDisplayMode}
-            className="px-3 py-1 text-xs font-medium rounded bg-gray-200 hover:bg-gray-300 transition-colors"
-          >
-            Show {displayMode === 'absolute' ? 'Gaps' : 'Absolute Times'}
-          </button>
-        </div>
-        
         <div className="flex flex-col md:flex-row gap-2 md:items-center">
           <Badge variant="outline" className="border-amber-500 py-1">
             {baseYear} - {baseCircuit}

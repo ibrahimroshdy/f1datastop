@@ -14,13 +14,15 @@ interface YearComparisonPositionChartProps {
   baseRound: string;
   comparisonYear: number;
   comparisonRound: string;
+  displayMode: 'absolute' | 'gap';
 }
 
 const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = ({
   baseYear,
   baseRound,
   comparisonYear,
-  comparisonRound
+  comparisonRound,
+  displayMode
 }) => {
   const [baseDrivers, setBaseDrivers] = useState<any[]>([]);
   const [comparisonDrivers, setComparisonDrivers] = useState<any[]>([]);
