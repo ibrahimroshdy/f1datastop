@@ -15,6 +15,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Line } from "recharts";
 
 interface YearComparisonQualifyingChartProps {
   baseYear: number;
@@ -472,17 +473,9 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
         </div>
       </div>
       
-      <Tabs defaultValue="base" value={activeTab} onValueChange={(v) => setActiveTab(v as 'base' | 'comparison')}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="base">
-            <span className="text-amber-600">{baseYear} - {baseCircuit}</span>
-          </TabsTrigger>
-          <TabsTrigger value="comparison">
-            <span className="text-blue-600">{comparisonYear} - {comparisonCircuit}</span>
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="base">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Base Year Table */}
+        <div>
           <div className="mb-4">
             <h3 className="text-sm font-medium mb-2 text-amber-600">{baseYear} Drivers</h3>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -542,7 +535,12 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
                 {getVisibleBaseDrivers().map(driver => (
                   <TableRow 
                     key={`base-${driver.code}`}
-                    className={driver.code === (fastestLapTime?.driver || '') && driver.year === (fastestLapTime?.year || 0) ? "bg-amber-50 dark:bg-amber-950/20" : ""}
+                    className={`hover:bg-muted/50 ${
+                      driver.code === (fastestLapTime?.driver || '') && 
+                      driver.year === (fastestLapTime?.year || 0) 
+                        ? "bg-amber-500/10 dark:bg-amber-500/10" 
+                        : ""
+                    }`}
                     onClick={() => toggleBaseDriver(driver.code)}
                     style={{ cursor: "pointer" }}
                   >
@@ -588,9 +586,10 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
               </TableBody>
             </Table>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="comparison">
+        </div>
+
+        {/* Comparison Year Table */}
+        <div>
           <div className="mb-4">
             <h3 className="text-sm font-medium mb-2 text-blue-600">{comparisonYear} Drivers</h3>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -650,7 +649,12 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
                 {getVisibleComparisonDrivers().map(driver => (
                   <TableRow 
                     key={`comp-${driver.code}`}
-                    className={driver.code === (fastestLapTime?.driver || '') && driver.year === (fastestLapTime?.year || 0) ? "bg-blue-50 dark:bg-blue-950/20" : ""}
+                    className={`hover:bg-muted/50 ${
+                      driver.code === (fastestLapTime?.driver || '') && 
+                      driver.year === (fastestLapTime?.year || 0) 
+                        ? "bg-blue-500/10 dark:bg-blue-500/10" 
+                        : ""
+                    }`}
                     onClick={() => toggleComparisonDriver(driver.code)}
                     style={{ cursor: "pointer" }}
                   >
@@ -696,16 +700,22 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
               </TableBody>
             </Table>
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
       
       {fastestLapTime && (
-        <div className="mt-4 bg-slate-100 dark:bg-slate-800 p-2 rounded-md text-sm">
-          <span className="font-medium">Fastest time: </span>
-          <span className="font-mono font-medium text-purple-600 dark:text-purple-400">
+        <div className="mt-4 bg-slate-100 dark:bg-slate-800/50 p-2 rounded-md text-sm">
+          <span className="font-medium text-slate-900 dark:text-slate-100">Fastest time: </span>
+          <span className={`font-mono font-medium ${
+            fastestLapTime.year === baseYear 
+              ? 'text-amber-600 dark:text-amber-400' 
+              : 'text-blue-600 dark:text-blue-400'
+          }`}>
             {formatTimeDisplay(fastestLapTime.time)}
           </span>
-          <span className="ml-2">by {fastestLapTime.driver} in {fastestLapTime.session} {fastestLapTime.year}</span>
+          <span className="ml-2 text-slate-900 dark:text-slate-100">
+            by {fastestLapTime.driver} in {fastestLapTime.session} {fastestLapTime.year}
+          </span>
         </div>
       )}
     </div>

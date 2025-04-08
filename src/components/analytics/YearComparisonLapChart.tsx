@@ -534,15 +534,20 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                         key={`dot-${driver.code}-${baseYear}-${props.payload.lap}`}
                         cx={props.cx}
                         cy={props.cy}
-                        r={isOutlier ? 4 : 2}
+                        r={isOutlier ? 4 : 3}
                         fill={isOutlier ? '#f97316' : '#f59e0b'}
-                        stroke={isOutlier ? '#ffffff' : 'none'}
-                        strokeWidth={isOutlier ? 1 : 0}
-                        opacity={isOutlier ? 1 : 0.8}
+                        stroke="#ffffff"
+                        strokeWidth={1}
+                        opacity={1}
                       />
                     );
                   }}
-                  activeDot={{ r: 6 }}
+                  activeDot={{ 
+                    r: 6,
+                    fill: '#f59e0b',
+                    stroke: '#ffffff',
+                    strokeWidth: 2
+                  }}
                   connectNulls={true}
                   xAxisId="primary"
                   yAxisId="primary"
@@ -577,15 +582,20 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                         key={`dot-${driver.code}-${comparisonYear}-${props.payload.lap}`}
                         cx={props.cx}
                         cy={props.cy}
-                        r={isOutlier ? 4 : 2}
+                        r={isOutlier ? 4 : 3}
                         fill={isOutlier ? '#2563eb' : '#3b82f6'}
-                        stroke={isOutlier ? '#ffffff' : 'none'}
-                        strokeWidth={isOutlier ? 1 : 0}
-                        opacity={isOutlier ? 1 : 0.8}
+                        stroke="#ffffff"
+                        strokeWidth={1}
+                        opacity={1}
                       />
                     );
                   }}
-                  activeDot={{ r: 6 }}
+                  activeDot={{ 
+                    r: 6,
+                    fill: '#3b82f6',
+                    stroke: '#ffffff',
+                    strokeWidth: 2
+                  }}
                   connectNulls={true}
                   xAxisId="primary"
                   yAxisId="primary"
