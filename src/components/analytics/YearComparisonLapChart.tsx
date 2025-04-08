@@ -531,6 +531,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                     
                     return (
                       <circle
+                        key={`dot-${driver.code}-${baseYear}-${props.payload.lap}`}
                         cx={props.cx}
                         cy={props.cy}
                         r={isOutlier ? 4 : 2}
@@ -573,6 +574,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                     
                     return (
                       <circle
+                        key={`dot-${driver.code}-${comparisonYear}-${props.payload.lap}`}
                         cx={props.cx}
                         cy={props.cy}
                         r={isOutlier ? 4 : 2}

@@ -1,13 +1,18 @@
 import React from "react";
-import { ResponsiveContainer, BarChart, Bar, CartesianGrid, Tooltip, Legend, ReferenceLine, Label } from "recharts";
-import { XAxis, YAxis } from "@/utils/rechartsWrapper";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, Check } from "lucide-react";
 import { useQualifyingData, QualifyingSession } from "@/hooks/useQualifyingData";
-import DriverSelector from "./DriverSelector";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 import SessionToggle from "./SessionToggle";
 
 // Extend the interface to be compatible with the DriverSelector component
@@ -48,45 +53,41 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
     convertLapTimeToSeconds,
   } = useQualifyingData(year, round);
 
-  // Convert available drivers to be compatible with DriverSelector
-  const compatibleDrivers: CompatibleDriver[] = availableDrivers.map(driver => ({
-    ...driver,
-    finishPosition: driver.position // Map position to finishPosition for compatibility
-  }));
-
-  // Format data for a bar chart - group by driver rather than position
-  const formatBarChartData = () => {
-    // We'll create an array of objects, each representing a driver
-    return visibleDrivers.map(driverCode => {
-      const driver = availableDrivers.find(d => d.code === driverCode);
-      if (!driver) return null;
-      
-      // Create a data object for this driver with their qualifying times
-      const driverData: any = {
-        name: driverCode,
-        position: driver.position,
-        driverName: driver.name.split(' ').pop() || driver.name, // Last name
-        team: driver.team
-      };
-      
-      // Add session times if they should be visible
-      if (activeSessions.includes('all') || activeSessions.includes('Q1')) {
-        driverData.Q1 = driver.q1Time;
-      }
-      
-      if (activeSessions.includes('all') || activeSessions.includes('Q2')) {
-        driverData.Q2 = driver.q2Time;
-      }
-      
-      if (activeSessions.includes('all') || activeSessions.includes('Q3')) {
-        driverData.Q3 = driver.q3Time;
-      }
-      
-      return driverData;
-    }).filter(Boolean).sort((a, b) => a.position - b.position); // Sort by qualifying position
+  // Format time for display
+  const formatTimeDisplay = (seconds?: number): string => {
+    if (!seconds) return "-";
+    
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(3);
+    return `${mins}:${secs.padStart(6, '0')}`;
   };
-  
-  const qualifyingBarData = formatBarChartData();
+
+  // Get visible drivers sorted by position
+  const getVisibleDrivers = () => {
+    // If no drivers are explicitly selected, show all drivers
+    if (selectedDrivers.length === 0) {
+      return availableDrivers.sort((a, b) => a.position - b.position);
+    }
+    
+    return availableDrivers
+      .filter(driver => selectedDrivers.includes(driver.code))
+      .sort((a, b) => a.position - b.position);
+  };
+
+  // Highlight the fastest time in each session
+  const isFastestTime = (session: 'q1Time' | 'q2Time' | 'q3Time', time?: number): boolean => {
+    if (!time) return false;
+    
+    // Get all times for this session from drivers who participated
+    const times = availableDrivers
+      .map(driver => driver[session])
+      .filter(t => t !== undefined && t > 0) as number[];
+    
+    if (times.length === 0) return false;
+    
+    const fastestTime = Math.min(...times);
+    return time === fastestTime;
+  };
 
   // Render loading state with progress indicator
   if (isLoading || isProcessingData) {
@@ -147,46 +148,6 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
     );
   }
 
-  const getSessionColor = (session: QualifyingSession) => {
-    switch (session) {
-      case 'Q1': return '#a855f7'; // Purple
-      case 'Q2': return '#3b82f6'; // Blue
-      case 'Q3': return '#22c55e'; // Green
-      default: return '#6b7280'; // Gray
-    }
-  };
-
-  const getDriverAverageTime = (driverCode: string) => {
-    let totalTime = 0;
-    let timeCount = 0;
-
-    // Find all times for the driver across qualifying sessions
-    availableDrivers.forEach(driver => {
-      if (driver.code === driverCode) {
-        if (driver.q1Time) {
-          totalTime += driver.q1Time;
-          timeCount++;
-        }
-        if (driver.q2Time) {
-          totalTime += driver.q2Time;
-          timeCount++;
-        }
-        if (driver.q3Time) {
-          totalTime += driver.q3Time;
-          timeCount++;
-        }
-      }
-    });
-
-    return timeCount > 0 ? totalTime / timeCount : null;
-  };
-
-  // Tooltip formatting for numbers
-  const formatTooltipValue = (value: any, session: string) => {
-    if (typeof value !== 'number') return `${value}`;
-    return `${value.toFixed(3)}s (${session})`;
-  };
-  
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-col md:flex-row gap-4 justify-between mb-4">
@@ -196,123 +157,124 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
         />
       </div>
       
-      <DriverSelector 
-        availableDrivers={compatibleDrivers}
-        selectedDrivers={selectedDrivers}
-        onDriverToggle={handleDriverToggle}
-        onDriverHover={handleDriverHover}
-        displayMode="absolute"
-        fastestLapTime={fastestLapTime ? { time: fastestLapTime.time, driver: fastestLapTime.driver } : null}
-        getAverageTime={getDriverAverageTime}
-      />
-      
-      <div className="h-[450px] mt-4 flex-grow">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={qualifyingBarData}
-            margin={{ top: 20, right: 40, left: 20, bottom: 20 }}
-            barCategoryGap="20%"
-            barSize={24}
-            layout="vertical"
+      {/* Driver Selection Legend */}
+      <div className="mb-4">
+        <h3 className="text-sm font-medium mb-2">Drivers</h3>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {availableDrivers.map(driver => (
+            <button
+              key={driver.code}
+              onClick={() => handleDriverToggle(driver.code)}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                selectedDrivers.includes(driver.code)
+                  ? 'bg-gray-800 text-white'
+                  : selectedDrivers.length > 0
+                    ? 'bg-gray-200 text-gray-800'
+                    : 'bg-gray-700 text-white'
+              }`}
+              style={{
+                borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+              }}
+            >
+              {selectedDrivers.includes(driver.code) && <Check className="h-3 w-3" />}
+              <span>{driver.code}</span>
+            </button>
+          ))}
+        </div>
+        {selectedDrivers.length > 0 && (
+          <button 
+            onClick={() => availableDrivers.forEach(d => {
+              if (selectedDrivers.includes(d.code)) {
+                handleDriverToggle(d.code);
+              }
+            })}
+            className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#eee" opacity={0.3} horizontal={true} vertical={false} />
-            <XAxis 
-              type="number"
-              domain={['auto', 'auto']}
-              label={{ value: 'Lap Time (seconds)', position: 'insideBottom', dy: 10 }}
-              xAxisId="primary"
-            />
-            <YAxis
-              dataKey="name"
-              type="category"
-              tickFormatter={(value) => `${value} (P${qualifyingBarData.find(d => d.name === value)?.position || '?'})`}
-              tick={{ fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-              width={80}
-              yAxisId="primary"
-            />
-            <Tooltip
-              formatter={(value: any, name: any) => {
-                if (typeof value !== 'number') return [value, name];
-                return [formatTooltipValue(value, name), name];
-              }}
-              labelFormatter={(label) => {
-                const driver = availableDrivers.find(d => d.code === label);
-                return driver ? `${driver.name}` : label;
-              }}
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a',
-                borderColor: '#333',
-                borderRadius: '5px',
-                color: 'white'
-              }}
-            />
-            <Legend 
-              iconSize={10}
-              wrapperStyle={{ 
-                opacity: 1,
-                padding: '10px',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderRadius: '5px'
-              }}
-            />
-            
-            {fastestLapTime && (
-              <ReferenceLine 
-                x={fastestLapTime.time} 
-                stroke="#c026d3" 
-                strokeDasharray="3 3" 
-                label={{ 
-                  value: `Fastest: ${fastestLapTime.time.toFixed(3)}s (${fastestLapTime.driver} - ${fastestLapTime.session})`, 
-                  position: 'top', 
-                  fill: '#c026d3',
-                  fontSize: 12
-                }}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
-            )}
-            
-            {/* Create bars for each qualifying session */}
-            {activeSessions.includes('all') || activeSessions.includes('Q1') ? (
-              <Bar 
-                dataKey="Q1" 
-                name="Q1" 
-                fill={getSessionColor('Q1')} 
-                opacity={hoveredDriver ? 0.7 : 1} 
-                radius={[0, 4, 4, 0]}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
-            ) : null}
-            
-            {activeSessions.includes('all') || activeSessions.includes('Q2') ? (
-              <Bar 
-                dataKey="Q2" 
-                name="Q2" 
-                fill={getSessionColor('Q2')} 
-                opacity={hoveredDriver ? 0.7 : 1}
-                radius={[0, 4, 4, 0]}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
-            ) : null}
-            
-            {activeSessions.includes('all') || activeSessions.includes('Q3') ? (
-              <Bar 
-                dataKey="Q3" 
-                name="Q3" 
-                fill={getSessionColor('Q3')} 
-                opacity={hoveredDriver ? 0.7 : 1}
-                radius={[0, 4, 4, 0]}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
-            ) : null}
-          </BarChart>
-        </ResponsiveContainer>
+            Clear selection (show all)
+          </button>
+        )}
       </div>
+      
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16 text-center">Pos</TableHead>
+              <TableHead className="w-20">Driver</TableHead>
+              <TableHead className="w-32">Team</TableHead>
+              {(activeSessions.includes('all') || activeSessions.includes('Q1')) && (
+                <TableHead className="text-right">Q1 Time</TableHead>
+              )}
+              {(activeSessions.includes('all') || activeSessions.includes('Q2')) && (
+                <TableHead className="text-right">Q2 Time</TableHead>
+              )}
+              {(activeSessions.includes('all') || activeSessions.includes('Q3')) && (
+                <TableHead className="text-right">Q3 Time</TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {getVisibleDrivers().map(driver => (
+              <TableRow 
+                key={driver.code}
+                className={hoveredDriver === driver.code ? "bg-muted/50" : ""}
+                onMouseEnter={() => handleDriverHover?.(driver.code)}
+                onMouseLeave={() => handleDriverHover?.(null)}
+                onClick={() => handleDriverToggle(driver.code)}
+                style={{ cursor: "pointer" }}
+              >
+                <TableCell className="text-center font-medium">
+                  {driver.position}
+                </TableCell>
+                <TableCell>
+                  <div 
+                    className="flex items-center gap-2"
+                    style={{ borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}` }}
+                  >
+                    <span className="pl-2 font-medium">{driver.code}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground capitalize">
+                    {driver.team.replace('_', ' ')}
+                  </span>
+                </TableCell>
+                {(activeSessions.includes('all') || activeSessions.includes('Q1')) && (
+                  <TableCell 
+                    className={`text-right font-mono ${isFastestTime('q1Time', driver.q1Time) ? 'text-purple-500 font-bold' : ''}`}
+                  >
+                    {formatTimeDisplay(driver.q1Time)}
+                  </TableCell>
+                )}
+                {(activeSessions.includes('all') || activeSessions.includes('Q2')) && (
+                  <TableCell 
+                    className={`text-right font-mono ${isFastestTime('q2Time', driver.q2Time) ? 'text-blue-500 font-bold' : ''}`}
+                  >
+                    {formatTimeDisplay(driver.q2Time)}
+                  </TableCell>
+                )}
+                {(activeSessions.includes('all') || activeSessions.includes('Q3')) && (
+                  <TableCell 
+                    className={`text-right font-mono ${isFastestTime('q3Time', driver.q3Time) ? 'text-green-500 font-bold' : ''}`}
+                  >
+                    {formatTimeDisplay(driver.q3Time)}
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      
+      {fastestLapTime && (
+        <div className="mt-4 bg-slate-100 dark:bg-slate-800 p-2 rounded-md text-sm">
+          <span className="font-medium">Fastest time: </span>
+          <span className="font-mono font-medium text-purple-600 dark:text-purple-400">
+            {formatTimeDisplay(fastestLapTime.time)}
+          </span>
+          <span className="ml-2">by {fastestLapTime.driver} in {fastestLapTime.session}</span>
+        </div>
+      )}
     </div>
   );
 };

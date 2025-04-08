@@ -1,13 +1,20 @@
 import { useState, useEffect } from "react";
-import { BarChart, Bar, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { XAxis, YAxis, ReferenceLine } from "@/utils/rechartsWrapper";
 import { useRaceQualifying, useRaceResults } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Check } from "lucide-react";
 import { toast } from "sonner";
 import DataLoadingProgress from "./DataLoadingProgress";
 import { QualifyingSession } from "@/hooks/useQualifyingData";
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface YearComparisonQualifyingChartProps {
   baseYear: number;
@@ -27,10 +34,13 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
   const [selectedBaseDrivers, setSelectedBaseDrivers] = useState<string[]>([]);
   const [selectedComparisonDrivers, setSelectedComparisonDrivers] = useState<string[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [isProcessingData, setIsProcessingData] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [activeSessions, setActiveSessions] = useState<QualifyingSession[]>(['all']);
   const [fastestLapTime, setFastestLapTime] = useState<{ time: number, driver: string, session: string, year: number } | null>(null);
-  const [isProcessingData, setIsProcessingData] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'base' | 'comparison'>('base');
   
   // Fetch results and qualifying data for base year
   const { 
@@ -84,7 +94,7 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
     return `${minutes}:${remainingSeconds.toFixed(3).padStart(6, '0')}`;
   };
 
-  // Process qualifying times to seconds
+  // Process lap time string to seconds
   const convertLapTimeToSeconds = (timeStr: string): number | null => {
     if (!timeStr) return null;
     
@@ -141,6 +151,11 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
       });
       
       setBaseDrivers(drivers);
+      
+      // We need to set chartData to a non-empty value so the component doesn't show "No data available"
+      if (drivers.length > 0) {
+        setChartData([{ year: baseYear, dataLoaded: true }]);
+      }
       
       // Auto-select pole position driver by default
       if (drivers.length > 0) {
@@ -227,6 +242,13 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
       
       setComparisonDrivers(drivers);
       
+      // We need to set chartData to a non-empty value so the component doesn't show "No data available"
+      if (drivers.length > 0) {
+        setChartData(prevData => {
+          return prevData.length > 0 ? prevData : [{ year: comparisonYear, dataLoaded: true }];
+        });
+      }
+      
       // Auto-select pole position driver by default
       if (drivers.length > 0) {
         const poleDriver = drivers.find(d => d.position === 1);
@@ -272,68 +294,52 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
     }
   }, [comparisonQualifying, comparisonResults, comparisonYear, fastestLapTime]);
 
-  // Format data for a bar chart
-  const formatBarChartData = () => {
-    // Build an array where each item is one driver that should be shown
-    const selectedDriversArray = [
-      ...selectedBaseDrivers.map(code => {
-        const driver = baseDrivers.find(d => d.code === code);
-        return driver ? { ...driver, source: 'base' } : null;
-      }),
-      ...selectedComparisonDrivers.map(code => {
-        const driver = comparisonDrivers.find(d => d.code === code);
-        return driver ? { ...driver, source: 'comparison' } : null;
-      })
-    ].filter(Boolean).sort((a, b) => a.position - b.position);
+  // Format time for display
+  const formatTimeDisplay = (seconds?: number): string => {
+    if (!seconds) return "-";
     
-    // Create data points for each selected driver
-    return selectedDriversArray.map(driver => {
-      const isBase = driver.source === 'base';
-      const year = isBase ? baseYear : comparisonYear;
-      const yearSuffix = isBase ? 'Base' : 'Comp';
-      
-      // Create the data point
-      const dataPoint: any = {
-        name: `${driver.code} (${year})`,
-        driverCode: driver.code,
-        position: driver.position,
-        team: driver.team,
-        year,
-        yearSuffix
-      };
-      
-      // Add qualifying session times if they're active
-      if (activeSessions.includes('all') || activeSessions.includes('Q1')) {
-        dataPoint[`Q1_${yearSuffix}`] = driver.q1Time;
-      }
-      
-      if (activeSessions.includes('all') || activeSessions.includes('Q2')) {
-        dataPoint[`Q2_${yearSuffix}`] = driver.q2Time;
-      }
-      
-      if (activeSessions.includes('all') || activeSessions.includes('Q3')) {
-        dataPoint[`Q3_${yearSuffix}`] = driver.q3Time;
-      }
-      
-      return dataPoint;
-    });
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(3);
+    return `${mins}:${secs.padStart(6, '0')}`;
   };
 
-  // Process and combine qualifying data
-  useEffect(() => {
-    if (baseDrivers.length > 0 && comparisonDrivers.length > 0) {
-      setIsProcessingData(true);
-      
-      try {
-        setChartData(formatBarChartData());
-      } catch (error) {
-        console.error("Error processing qualifying data:", error);
-        toast.error("Error processing qualifying data");
-      } finally {
-        setIsProcessingData(false);
-      }
+  // Get visible drivers sorted by position
+  const getVisibleBaseDrivers = () => {
+    // If no drivers are explicitly selected, show all drivers
+    if (selectedBaseDrivers.length === 0) {
+      return baseDrivers.sort((a, b) => a.position - b.position);
     }
-  }, [baseDrivers, comparisonDrivers, selectedBaseDrivers, selectedComparisonDrivers, activeSessions, baseYear, comparisonYear]);
+    
+    return baseDrivers
+      .filter(driver => selectedBaseDrivers.includes(driver.code))
+      .sort((a, b) => a.position - b.position);
+  };
+
+  const getVisibleComparisonDrivers = () => {
+    // If no drivers are explicitly selected, show all drivers
+    if (selectedComparisonDrivers.length === 0) {
+      return comparisonDrivers.sort((a, b) => a.position - b.position);
+    }
+    
+    return comparisonDrivers
+      .filter(driver => selectedComparisonDrivers.includes(driver.code))
+      .sort((a, b) => a.position - b.position);
+  };
+
+  // Highlight the fastest time in each session
+  const isFastestTime = (drivers: any[], session: 'q1Time' | 'q2Time' | 'q3Time', time?: number): boolean => {
+    if (!time) return false;
+    
+    // Get all times for this session from drivers who participated
+    const times = drivers
+      .map(driver => driver[session])
+      .filter(t => t !== undefined && t > 0) as number[];
+    
+    if (times.length === 0) return false;
+    
+    const fastestTime = Math.min(...times);
+    return time === fastestTime;
+  };
 
   const toggleBaseDriver = (driverCode: string) => {
     setSelectedBaseDrivers(prev => 
@@ -371,26 +377,6 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
       }
     });
   };
-
-  const getSessionColor = (session: string, isBase: boolean) => {
-    let baseColor;
-    switch (session) {
-      case 'Q1': 
-        baseColor = '#a855f7'; // Purple
-        break;
-      case 'Q2': 
-        baseColor = '#3b82f6'; // Blue
-        break;
-      case 'Q3': 
-        baseColor = '#22c55e'; // Green
-        break;
-      default: 
-        baseColor = '#6b7280'; // Gray
-    }
-    
-    // For comparison year, make colors slightly more muted
-    return isBase ? baseColor : `${baseColor}99`;
-  };
   
   const getRaceCircuitName = (results: any) => {
     if (!results?.data?.Circuit) return "Unknown Circuit";
@@ -399,19 +385,6 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
 
   const baseCircuit = getRaceCircuitName(baseResults);
   const comparisonCircuit = getRaceCircuitName(comparisonResults);
-
-  // Format legend text
-  const formatLegendText = (value: string) => {
-    if (!value || !value.includes('_')) return value;
-    
-    const [session, yearType] = value.split('_');
-    
-    const sessionName = session;
-    const year = yearType === 'Base' ? baseYear : comparisonYear;
-    const circuit = yearType === 'Base' ? baseCircuit : comparisonCircuit;
-    
-    return `${sessionName} ${year} (${circuit})`;
-  };
 
   if (isLoading) {
     return (
@@ -431,7 +404,8 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
     );
   }
 
-  if (chartData.length === 0) {
+  // Check for data by looking at the baseDrivers and comparisonDrivers arrays instead of chartData
+  if (baseDrivers.length === 0 && comparisonDrivers.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <AlertCircle className="h-8 w-8 mb-4" />
@@ -444,6 +418,16 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
   return (
     <div className="h-full">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
+        <div className="flex flex-col md:flex-row gap-2 md:items-center">
+          <Badge variant="outline" className="border-amber-500 py-1">
+            {baseYear} - {baseCircuit}
+          </Badge>
+          <span className="hidden md:inline">vs</span>
+          <Badge variant="outline" className="border-blue-500 py-1">
+            {comparisonYear} - {comparisonCircuit}
+          </Badge>
+        </div>
+        
         <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800 p-3 rounded-lg">
           <button
             onClick={() => toggleSession('all')}
@@ -486,228 +470,244 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
             Q3
           </button>
         </div>
-        
-        <div className="flex flex-col md:flex-row gap-2 md:items-center">
-          <Badge variant="outline" className="border-amber-500 py-1">
-            {baseYear} - {baseCircuit}
-          </Badge>
-          <span className="hidden md:inline">vs</span>
-          <Badge variant="outline" className="border-blue-500 py-1">
-            {comparisonYear} - {comparisonCircuit}
-          </Badge>
-        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div>
-          <h4 className="text-sm font-semibold mb-2 text-amber-600">{baseYear} Drivers</h4>
-          <div className="flex flex-wrap gap-2">
-            {baseDrivers.map(driver => (
-              <button
-                key={`base-${driver.code}`}
-                onClick={() => toggleBaseDriver(driver.code)}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                  selectedBaseDrivers.includes(driver.code)
-                    ? 'bg-amber-700 text-white'
-                    : 'bg-gray-200 text-gray-800'
-                }`}
-                style={{
-                  borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
-                }}
-              >
-                {driver.code}
-              </button>
-            ))}
-          </div>
-        </div>
+      <Tabs defaultValue="base" value={activeTab} onValueChange={(v) => setActiveTab(v as 'base' | 'comparison')}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="base">
+            <span className="text-amber-600">{baseYear} - {baseCircuit}</span>
+          </TabsTrigger>
+          <TabsTrigger value="comparison">
+            <span className="text-blue-600">{comparisonYear} - {comparisonCircuit}</span>
+          </TabsTrigger>
+        </TabsList>
         
-        <div>
-          <h4 className="text-sm font-semibold mb-2 text-blue-600">{comparisonYear} Drivers</h4>
-          <div className="flex flex-wrap gap-2">
-            {comparisonDrivers.map(driver => (
-              <button
-                key={`comp-${driver.code}`}
-                onClick={() => toggleComparisonDriver(driver.code)}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                  selectedComparisonDrivers.includes(driver.code)
-                    ? 'bg-blue-700 text-white'
-                    : 'bg-gray-200 text-gray-800'
-                }`}
-                style={{
-                  borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
-                }}
-              >
-                {driver.code}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      
-      <div className="h-[400px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{ top: 20, right: 40, left: 20, bottom: 20 }}
-            barGap={2}
-            barCategoryGap={20}
-            layout="vertical"
-            barSize={22}
-          >
-            <CartesianGrid strokeDasharray="3 3" opacity={0.2} horizontal={true} vertical={false} />
-            <XAxis 
-              type="number"
-              domain={['auto', 'auto']}
-              label={{ value: 'Lap Time (seconds)', position: 'insideBottom', dy: 10 }}
-              xAxisId="primary"
-              tickFormatter={(value) => formatLapTime(value)}
-            />
-            <YAxis 
-              dataKey="name"
-              type="category"
-              tick={{ fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-              width={100}
-              yAxisId="primary"
-            />
-            <Tooltip 
-              formatter={(value, name) => {
-                if (typeof value !== 'number') return [value, name];
-                
-                // Determine which driver and session the value corresponds to
-                const [session, yearType] = (name as string).split('_');
-                const isBaseYear = yearType === 'Base';
-                
-                // Find the driver data
-                const chartItem = chartData.find(item => {
-                  const itemYearType = item.yearSuffix;
-                  return itemYearType === yearType && item[`${session}_${yearType}`] === value;
-                });
-                
-                if (chartItem) {
-                  // Use original time string if available
-                  const originalTimeProperty = `${session.toLowerCase()}String`;
-                  const driverData = isBaseYear 
-                    ? baseDrivers.find(d => d.code === chartItem.driverCode)
-                    : comparisonDrivers.find(d => d.code === chartItem.driverCode);
-                    
-                  if (driverData && driverData[originalTimeProperty]) {
-                    return [driverData[originalTimeProperty], formatLegendText(name as string)];
+        <TabsContent value="base">
+          <div className="mb-4">
+            <h3 className="text-sm font-medium mb-2 text-amber-600">{baseYear} Drivers</h3>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {baseDrivers.map(driver => (
+                <button
+                  key={`base-${driver.code}`}
+                  onClick={() => toggleBaseDriver(driver.code)}
+                  className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                    selectedBaseDrivers.includes(driver.code)
+                      ? 'bg-amber-700 text-white'
+                      : selectedBaseDrivers.length > 0
+                        ? 'bg-gray-200 text-gray-800'
+                        : 'bg-amber-700/80 text-white'
+                  }`}
+                  style={{
+                    borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+                  }}
+                >
+                  {selectedBaseDrivers.includes(driver.code) && <Check className="h-3 w-3" />}
+                  <span>{driver.code}</span>
+                </button>
+              ))}
+            </div>
+            {selectedBaseDrivers.length > 0 && (
+              <button 
+                onClick={() => baseDrivers.forEach(d => {
+                  if (selectedBaseDrivers.includes(d.code)) {
+                    toggleBaseDriver(d.code);
                   }
-                }
-                
-                // Fallback to formatted time if original string not found
-                return [formatLapTime(value), formatLegendText(name as string)];
-              }}
-              labelFormatter={(label) => {
-                const [driverCode, yearInfo] = label.split(' (');
-                return `${driverCode} - Position ${chartData.find(d => d.name === label)?.position || '?'}`;
-              }}
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a',
-                borderColor: '#333',
-                borderRadius: '5px',
-                color: 'white'
-              }}
-            />
-            <Legend 
-              formatter={formatLegendText} 
-              iconSize={10}
-              wrapperStyle={{ 
-                opacity: 1,
-                padding: '10px',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderRadius: '5px'
-              }}
-            />
-            
-            {fastestLapTime && (
-              <ReferenceLine 
-                x={fastestLapTime.time} 
-                stroke="#c026d3" 
-                strokeDasharray="3 3" 
-                label={{ 
-                  value: `Fastest: ${formatLapTime(fastestLapTime.time)} (${fastestLapTime.driver} ${fastestLapTime.session} ${fastestLapTime.year})`, 
-                  position: 'top', 
-                  fill: '#c026d3',
-                  fontSize: 12
-                }}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
+                })}
+                className="text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 underline"
+              >
+                Clear selection (show all)
+              </button>
             )}
-            
-            {/* Base Year Bars */}
-            {activeSessions.includes('all') || activeSessions.includes('Q1') ? (
-              <Bar 
-                dataKey="Q1_Base" 
-                name="Q1_Base" 
-                fill={getSessionColor('Q1', true)}
-                radius={[0, 4, 4, 0]}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
-            ) : null}
-            
-            {activeSessions.includes('all') || activeSessions.includes('Q2') ? (
-              <Bar 
-                dataKey="Q2_Base" 
-                name="Q2_Base" 
-                fill={getSessionColor('Q2', true)}
-                radius={[0, 4, 4, 0]}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
-            ) : null}
-            
-            {activeSessions.includes('all') || activeSessions.includes('Q3') ? (
-              <Bar 
-                dataKey="Q3_Base" 
-                name="Q3_Base" 
-                fill={getSessionColor('Q3', true)}
-                radius={[0, 4, 4, 0]}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
-            ) : null}
-            
-            {/* Comparison Year Bars */}
-            {activeSessions.includes('all') || activeSessions.includes('Q1') ? (
-              <Bar 
-                dataKey="Q1_Comp" 
-                name="Q1_Comp" 
-                fill={getSessionColor('Q1', false)}
-                radius={[0, 4, 4, 0]}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
-            ) : null}
-            
-            {activeSessions.includes('all') || activeSessions.includes('Q2') ? (
-              <Bar 
-                dataKey="Q2_Comp" 
-                name="Q2_Comp" 
-                fill={getSessionColor('Q2', false)}
-                radius={[0, 4, 4, 0]}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
-            ) : null}
-            
-            {activeSessions.includes('all') || activeSessions.includes('Q3') ? (
-              <Bar 
-                dataKey="Q3_Comp" 
-                name="Q3_Comp" 
-                fill={getSessionColor('Q3', false)}
-                radius={[0, 4, 4, 0]}
-                xAxisId="primary"
-                yAxisId="primary"
-              />
-            ) : null}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16 text-center">Pos</TableHead>
+                  <TableHead className="w-20">Driver</TableHead>
+                  <TableHead className="w-32">Team</TableHead>
+                  {(activeSessions.includes('all') || activeSessions.includes('Q1')) && (
+                    <TableHead className="text-right">Q1 Time</TableHead>
+                  )}
+                  {(activeSessions.includes('all') || activeSessions.includes('Q2')) && (
+                    <TableHead className="text-right">Q2 Time</TableHead>
+                  )}
+                  {(activeSessions.includes('all') || activeSessions.includes('Q3')) && (
+                    <TableHead className="text-right">Q3 Time</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {getVisibleBaseDrivers().map(driver => (
+                  <TableRow 
+                    key={`base-${driver.code}`}
+                    className={driver.code === (fastestLapTime?.driver || '') && driver.year === (fastestLapTime?.year || 0) ? "bg-amber-50 dark:bg-amber-950/20" : ""}
+                    onClick={() => toggleBaseDriver(driver.code)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <TableCell className="text-center font-medium">
+                      {driver.position}
+                    </TableCell>
+                    <TableCell>
+                      <div 
+                        className="flex items-center gap-2"
+                        style={{ borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}` }}
+                      >
+                        <span className="pl-2 font-medium">{driver.code}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground capitalize">
+                        {driver.team.replace('_', ' ')}
+                      </span>
+                    </TableCell>
+                    {(activeSessions.includes('all') || activeSessions.includes('Q1')) && (
+                      <TableCell 
+                        className={`text-right font-mono ${isFastestTime(baseDrivers, 'q1Time', driver.q1Time) ? 'text-purple-500 font-bold' : ''}`}
+                      >
+                        {formatTimeDisplay(driver.q1Time)}
+                      </TableCell>
+                    )}
+                    {(activeSessions.includes('all') || activeSessions.includes('Q2')) && (
+                      <TableCell 
+                        className={`text-right font-mono ${isFastestTime(baseDrivers, 'q2Time', driver.q2Time) ? 'text-blue-500 font-bold' : ''}`}
+                      >
+                        {formatTimeDisplay(driver.q2Time)}
+                      </TableCell>
+                    )}
+                    {(activeSessions.includes('all') || activeSessions.includes('Q3')) && (
+                      <TableCell 
+                        className={`text-right font-mono ${isFastestTime(baseDrivers, 'q3Time', driver.q3Time) ? 'text-green-500 font-bold' : ''}`}
+                      >
+                        {formatTimeDisplay(driver.q3Time)}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="comparison">
+          <div className="mb-4">
+            <h3 className="text-sm font-medium mb-2 text-blue-600">{comparisonYear} Drivers</h3>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {comparisonDrivers.map(driver => (
+                <button
+                  key={`comp-${driver.code}`}
+                  onClick={() => toggleComparisonDriver(driver.code)}
+                  className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                    selectedComparisonDrivers.includes(driver.code)
+                      ? 'bg-blue-700 text-white'
+                      : selectedComparisonDrivers.length > 0
+                        ? 'bg-gray-200 text-gray-800'
+                        : 'bg-blue-700/80 text-white'
+                  }`}
+                  style={{
+                    borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+                  }}
+                >
+                  {selectedComparisonDrivers.includes(driver.code) && <Check className="h-3 w-3" />}
+                  <span>{driver.code}</span>
+                </button>
+              ))}
+            </div>
+            {selectedComparisonDrivers.length > 0 && (
+              <button 
+                onClick={() => comparisonDrivers.forEach(d => {
+                  if (selectedComparisonDrivers.includes(d.code)) {
+                    toggleComparisonDriver(d.code);
+                  }
+                })}
+                className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+              >
+                Clear selection (show all)
+              </button>
+            )}
+          </div>
+          
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16 text-center">Pos</TableHead>
+                  <TableHead className="w-20">Driver</TableHead>
+                  <TableHead className="w-32">Team</TableHead>
+                  {(activeSessions.includes('all') || activeSessions.includes('Q1')) && (
+                    <TableHead className="text-right">Q1 Time</TableHead>
+                  )}
+                  {(activeSessions.includes('all') || activeSessions.includes('Q2')) && (
+                    <TableHead className="text-right">Q2 Time</TableHead>
+                  )}
+                  {(activeSessions.includes('all') || activeSessions.includes('Q3')) && (
+                    <TableHead className="text-right">Q3 Time</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {getVisibleComparisonDrivers().map(driver => (
+                  <TableRow 
+                    key={`comp-${driver.code}`}
+                    className={driver.code === (fastestLapTime?.driver || '') && driver.year === (fastestLapTime?.year || 0) ? "bg-blue-50 dark:bg-blue-950/20" : ""}
+                    onClick={() => toggleComparisonDriver(driver.code)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <TableCell className="text-center font-medium">
+                      {driver.position}
+                    </TableCell>
+                    <TableCell>
+                      <div 
+                        className="flex items-center gap-2"
+                        style={{ borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}` }}
+                      >
+                        <span className="pl-2 font-medium">{driver.code}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground capitalize">
+                        {driver.team.replace('_', ' ')}
+                      </span>
+                    </TableCell>
+                    {(activeSessions.includes('all') || activeSessions.includes('Q1')) && (
+                      <TableCell 
+                        className={`text-right font-mono ${isFastestTime(comparisonDrivers, 'q1Time', driver.q1Time) ? 'text-purple-500 font-bold' : ''}`}
+                      >
+                        {formatTimeDisplay(driver.q1Time)}
+                      </TableCell>
+                    )}
+                    {(activeSessions.includes('all') || activeSessions.includes('Q2')) && (
+                      <TableCell 
+                        className={`text-right font-mono ${isFastestTime(comparisonDrivers, 'q2Time', driver.q2Time) ? 'text-blue-500 font-bold' : ''}`}
+                      >
+                        {formatTimeDisplay(driver.q2Time)}
+                      </TableCell>
+                    )}
+                    {(activeSessions.includes('all') || activeSessions.includes('Q3')) && (
+                      <TableCell 
+                        className={`text-right font-mono ${isFastestTime(comparisonDrivers, 'q3Time', driver.q3Time) ? 'text-green-500 font-bold' : ''}`}
+                      >
+                        {formatTimeDisplay(driver.q3Time)}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+      </Tabs>
+      
+      {fastestLapTime && (
+        <div className="mt-4 bg-slate-100 dark:bg-slate-800 p-2 rounded-md text-sm">
+          <span className="font-medium">Fastest time: </span>
+          <span className="font-mono font-medium text-purple-600 dark:text-purple-400">
+            {formatTimeDisplay(fastestLapTime.time)}
+          </span>
+          <span className="ml-2">by {fastestLapTime.driver} in {fastestLapTime.session} {fastestLapTime.year}</span>
+        </div>
+      )}
     </div>
   );
 };
