@@ -1,4 +1,3 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -9,6 +8,15 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      // Proxy API requests to openF1
+      '/api/openf1': {
+        target: 'https://api.openf1.org/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/openf1/, ''),
+        secure: false, // Accept self-signed certificates if needed
+      }
+    }
   },
   plugins: [
     react(),

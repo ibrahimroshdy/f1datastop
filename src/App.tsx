@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +16,7 @@ import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
 import ResetPassword from "./pages/auth/ResetPassword";
+import RaceAnalysisPage from "./pages/RaceAnalysisPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +52,7 @@ const App = () => (
               {/* Protected routes with blur effect for non-authenticated users */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/analytics" element={<Analytics />} />
+                <Route path="/race-analysis/:year/:round" element={<RaceAnalysisPage />} />
                 <Route path="/drivers" element={<Drivers />} />
                 <Route path="/constructors" element={<Constructors />} />
                 <Route path="/profile" element={<Profile />} />

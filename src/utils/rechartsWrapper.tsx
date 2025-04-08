@@ -1,12 +1,8 @@
-
 import React from 'react';
 import {
   XAxis as RechartsXAxis,
   YAxis as RechartsYAxis,
-  ReferenceLine as RechartsReferenceLine,
-  XAxisProps,
-  YAxisProps,
-  ReferenceLineProps
+  ReferenceLine as RechartsReferenceLine
 } from 'recharts';
 
 // Suppress specific React warnings about defaultProps
@@ -18,16 +14,8 @@ console.error = function filterWarnings(msg: any, ...args: any[]) {
   originalConsoleError(msg, ...args);
 };
 
-// Simple wrapper components that don't try to set any additional props
-// We're explicitly not setting xAxisId or yAxisId by default
-export const XAxis = (props: XAxisProps) => {
-  return <RechartsXAxis {...props} />;
-};
-
-export const YAxis = (props: YAxisProps) => {
-  return <RechartsYAxis {...props} />;
-};
-
-export const ReferenceLine = (props: ReferenceLineProps) => {
-  return <RechartsReferenceLine {...props} />;
-};
+// Simple wrapper components
+// Just re-export the original components
+export const XAxis = RechartsXAxis;
+export const YAxis = RechartsYAxis; 
+export const ReferenceLine = RechartsReferenceLine;

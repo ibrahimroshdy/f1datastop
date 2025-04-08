@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { 
@@ -9,7 +8,8 @@ import {
   X,
   Award,
   User,
-  LogIn
+  LogIn,
+  LineChart
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -33,6 +33,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
 
   const protectedNavigation = [
     { name: "Analytics", href: "/analytics", icon: BarChart },
+    { name: "Race Analysis (beta)", href: "/race-analysis/last/last", icon: LineChart },
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Constructors", href: "/constructors", icon: Award },
   ];
