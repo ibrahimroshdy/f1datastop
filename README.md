@@ -189,7 +189,7 @@ For custom domain deployment, follow the Netlify instructions in the [Lovable do
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
+## Acknowledgments 
 
 - Formula 1 for the inspiration and data
 - The shadcn/ui team for the component library
