@@ -1,12 +1,15 @@
 
 import React, { useState } from "react";
+import { ResponsiveContainer, LineChart, CartesianGrid, Tooltip, Legend } from "recharts";
+import { XAxis, YAxis, ReferenceLine, Line } from "@/utils/rechartsWrapper";
+import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useLapTimeData } from "@/hooks/useLapTimeData";
 import DriverSelector from "./DriverSelector";
 import DisplayModeToggle from "./DisplayModeToggle";
 import DataLoadingProgress from "./DataLoadingProgress";
-import LapTimeVisxChart from "./charts/LapTimeVisxChart";
 
 interface LapTimeChartProps {
   year: number;
@@ -108,15 +111,74 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
         getAverageTime={getAverageTime}
       />
       
-      {/* Use the new visx chart instead of Recharts */}
-      <LapTimeVisxChart
-        chartData={chartData}
-        availableDrivers={availableDrivers}
-        selectedDrivers={selectedDrivers}
-        displayMode={displayMode}
-        fastestLapTime={fastestLapTime}
-        hoveredDriver={hoveredDriver}
-      />
+      <div className="h-[450px] mt-4 flex-grow">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={chartData}
+            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#eee" opacity={0.3} />
+            <XAxis
+              dataKey="lap"
+              type="number"
+              domain={[1, maxLap]}
+              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
+            />
+            <YAxis
+              domain={['auto', 'auto']}
+              label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }}
+            />
+            <Tooltip
+              formatter={(value, name) => {
+                const driverCode = String(name);
+                
+                if (typeof value === 'number') {
+                  return [`${value.toFixed(3)}s`, driverCode];
+                }
+                return [value, driverCode];
+              }}
+              labelFormatter={(label) => `Lap ${label}`}
+              contentStyle={{ 
+                backgroundColor: '#1a1a1a',
+                borderColor: '#333',
+                borderRadius: '5px',
+                color: 'white'
+              }}
+            />
+            <Legend
+              formatter={(value) => {
+                const driver = availableDrivers.find(d => d.code === value);
+                return driver ? `${value} (${driver.name.split(' ').pop()})` : value;
+              }}
+            />
+            {fastestLapTime && (
+              <ReferenceLine 
+                y={fastestLapTime.time} 
+                stroke="#c026d3" 
+                strokeDasharray="3 3" 
+                label={{ value: `Fastest Lap: ${fastestLapTime.time.toFixed(3)}s (${fastestLapTime.driver})`, position: 'right', fill: '#c026d3' }} 
+              />
+            )}
+            {availableDrivers
+              .filter(driver => visibleDrivers.includes(driver.code))
+              .map(driver => (
+                <Line
+                  key={driver.code}
+                  type="monotone"
+                  dataKey={driver.code}
+                  name={driver.code}
+                  stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
+                  strokeWidth={hoveredDriver === driver.code ? 3 : 2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 8 }}
+                  connectNulls
+                  isAnimationActive={false}
+                  opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
+                />
+              ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };
