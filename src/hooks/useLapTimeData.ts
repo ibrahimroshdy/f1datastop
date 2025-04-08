@@ -14,9 +14,9 @@ export interface Driver {
   hasFastestLap?: boolean;
 }
 
-export const useLapTimeData = (year: number, round: string, displayMode: 'absolute' | 'gap') => {
+export const useLapTimeData = (year: number, round: string, requestedDisplayMode: 'absolute' | 'gap') => {
   // Force absolute mode to avoid axis issues
-  displayMode = 'absolute';
+  const displayMode = 'absolute';
   
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
@@ -250,6 +250,94 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     ? Math.max(...chartData.map(lap => lap.lap)) 
     : totalLaps;
 
+  // Add back the other useEffect blocks that were removed
+  useEffect(() => {
+    if (raceResultsData?.data?.Results && raceResultsData.data.Results.length > 0) {
+      const drivers = raceResultsData.data.Results.map((result: any) => {
+        const hasFastestLap = result.FastestLap?.rank === "1";
+        const fastestLapTime = hasFastestLap ? 
+          convertLapTimeToSeconds(result.FastestLap?.Time?.time) : null;
+        
+        return {
+          driverId: result.Driver.driverId,
+          code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
+          name: `${result.Driver.givenName} ${result.Driver.familyName}`,
+          team: result.Constructor?.constructorId || "unknown",
+          finishPosition: parseInt(result.position) || 0,
+          hasFastestLap,
+          fastestLapTime
+        };
+      });
+      
+      setAvailableDrivers(drivers);
+      
+      if (drivers.length > 0) {
+        const winner = drivers.find(d => d.finishPosition === 1);
+        if (winner) {
+          setSelectedDrivers([winner.code]);
+        } else {
+          setSelectedDrivers([drivers[0].code]);
+        }
+      }
+
+      let fastestDriver = null;
+      let fastestTime = Number.MAX_VALUE;
+
+      drivers.forEach(driver => {
+        if (driver.hasFastestLap && driver.fastestLapTime && driver.fastestLapTime < fastestTime) {
+          fastestTime = driver.fastestLapTime;
+          fastestDriver = driver.code;
+        }
+      });
+
+      if (fastestDriver) {
+        setFastestLapTime({ 
+          time: fastestTime,
+          driver: fastestDriver
+        });
+      }
+    }
+  }, [raceResultsData]);
+
+  useEffect(() => {
+    if (lapTimesData?.data?.Races?.[0]?.Laps) {
+      setIsProcessingData(true);
+      const processingMessage = "Processing lap time data...";
+      setErrorMessage(processingMessage);
+      
+      setTimeout(() => {
+        const laps = lapTimesData.data.Races[0].Laps;
+        setTotalLaps(laps.length);
+        
+        if (!fastestLapTime) {
+          let fastestTime = Number.MAX_VALUE;
+          let fastestDriver = '';
+          
+          laps.forEach((lap: any) => {
+            lap.Timings.forEach((timing: any) => {
+              const lapTime = convertLapTimeToSeconds(timing.time);
+              if (lapTime < fastestTime) {
+                fastestTime = lapTime;
+                const driver = availableDrivers.find(d => d.driverId === timing.driverId);
+                fastestDriver = driver?.code || timing.driverId;
+              }
+            });
+          });
+          
+          if (fastestDriver) {
+            setFastestLapTime({
+              time: fastestTime,
+              driver: fastestDriver
+            });
+          }
+        }
+        
+        setIsProcessingData(false);
+        setErrorMessage(null);
+      }, 0);
+    }
+  }, [lapTimesData, availableDrivers, fastestLapTime]);
+
   return {
     chartData,
     availableDrivers,
@@ -270,5 +358,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     handleDriverHover,
     getAverageTime,
     convertLapTimeToSeconds,
+    // Always return absolute displayMode regardless of what was requested
+    displayMode 
   };
 };

@@ -11,13 +11,13 @@ const DisplayModeToggle: React.FC<DisplayModeToggleProps> = ({ displayMode, onTo
   // Completely disable the gap mode functionality to avoid axis issues
   return (
     <Button 
-      onClick={onToggle}
+      onClick={() => {}} // No-op function to prevent any toggle
       variant="outline"
-      className="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300 font-medium text-sm"
+      className="px-3 py-1 rounded-md bg-gray-100 text-gray-800 border-gray-300 font-medium text-sm cursor-not-allowed opacity-60"
       size="sm"
-      disabled={true} // Completely disable the toggle for now
+      disabled={true}
     >
-      Show Absolute Times
+      Show Absolute Times Only
     </Button>
   );
 };
