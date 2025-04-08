@@ -12,7 +12,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, ArrowUp, ArrowDown, Minus, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import YearComparisonAnalytics from "@/components/analytics/YearComparisonAnalytics";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -56,12 +57,20 @@ const Analytics = () => {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">F1 Analytics</h1>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h1 className="text-3xl font-bold">F1 Analytics</h1>
+          
+          <Link to="/season-comparison">
+            <Button variant="outline" className="flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              Season Comparison
+            </Button>
+          </Link>
+        </div>
         
         <Tabs defaultValue="raceAnalytics" className="w-full">
-          <TabsList className="grid grid-cols-3 w-full">
+          <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="raceAnalytics">Race Analytics</TabsTrigger>
-            <TabsTrigger value="seasonComparison">Season Comparison</TabsTrigger>
             <TabsTrigger value="inDepthAnalytics">In-Depth Analytics</TabsTrigger>
           </TabsList>
           
@@ -156,10 +165,6 @@ const Analytics = () => {
                 </Card>
               </TabsContent>
             </Tabs>
-          </TabsContent>
-          
-          <TabsContent value="seasonComparison" className="mt-6">
-            <YearComparisonAnalytics />
           </TabsContent>
           
           <TabsContent value="inDepthAnalytics" className="mt-6">

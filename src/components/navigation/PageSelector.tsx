@@ -1,7 +1,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Calendar, BarChart, Users, Award } from "lucide-react";
+import { Calendar, BarChart, Users, Award, ArrowLeftRight } from "lucide-react";
 
 interface PageOption {
   title: string;
@@ -28,6 +28,13 @@ const PageSelector = () => {
       color: "from-purple-500 to-purple-700",
     },
     {
+      title: "Season Comparison",
+      description: "Compare performance across different F1 seasons",
+      icon: <ArrowLeftRight className="h-6 w-6" />,
+      href: "/season-comparison",
+      color: "from-amber-500 to-amber-700",
+    },
+    {
       title: "Drivers",
       description: "View detailed information on all F1 drivers",
       icon: <Users className="h-6 w-6" />,
@@ -44,7 +51,7 @@ const PageSelector = () => {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 mt-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 mt-6">
       {pages.map((page) => (
         <Link key={page.title} to={page.href}>
           <Card className="h-full transition-all duration-300 hover:bg-gray-800 hover:translate-y-[-4px] border-gray-800 cursor-pointer overflow-hidden shadow-md rounded-xl group">
