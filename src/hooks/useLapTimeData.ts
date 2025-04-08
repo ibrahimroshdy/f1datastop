@@ -56,8 +56,8 @@ export const useLapTimeData = (year: number, round: string, requestedDisplayMode
 
   // Handle retries
   useEffect(() => {
-    return handleRetry(refetchLapTimes, isError, failureCount);
-  }, [isError, retryCount, refetchLapTimes, failureCount]);
+    return handleRetry(refetchLapTimes, isError, failureCount || 0);
+  }, [isError, retryCount, refetchLapTimes, failureCount, handleRetry]);
 
   // Process race results data
   useEffect(() => {
