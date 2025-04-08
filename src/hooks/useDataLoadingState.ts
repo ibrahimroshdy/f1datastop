@@ -10,7 +10,7 @@ interface DataLoadingState {
   setIsProcessingData: (isProcessing: boolean) => void;
   setErrorMessage: (message: string | null) => void;
   formatProgress: (progress: number) => string;
-  handleRetry: (retryFn: () => void, isError: boolean, failureCount: number) => void;
+  handleRetry: (retryFn: () => void, isError: boolean, failureCount: number) => (() => void) | void;
 }
 
 export const useDataLoadingState = (maxRetries: number = 15): DataLoadingState => {
@@ -25,7 +25,7 @@ export const useDataLoadingState = (maxRetries: number = 15): DataLoadingState =
   };
 
   // Handle retry logic
-  const handleRetry = (retryFn: () => void, isError: boolean, failureCount: number) => {
+  const handleRetry = (retryFn: () => void, isError: boolean, failureCount: number): (() => void) | void => {
     if (isError && retryCount < maxRetries) {
       const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // Backoff up to 60 seconds
       
