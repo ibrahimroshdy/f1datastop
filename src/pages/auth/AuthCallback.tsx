@@ -12,19 +12,23 @@ const AuthCallback = () => {
     // Handle the OAuth callback
     const handleAuthCallback = async () => {
       try {
-        // The hash fragment contains the access token
+        console.log("Processing auth callback...");
+        // Get the session to check if authentication was successful
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
+          console.error("Auth session error:", error);
           throw error;
         }
 
         if (data?.session) {
           // Authentication successful
+          console.log("Authentication successful, session found");
           toast.success("Successfully signed in!");
           navigate("/");
         } else {
           // If no session found but no error, just redirect
+          console.log("No session found, redirecting to login");
           navigate("/auth/login");
         }
       } catch (err: any) {

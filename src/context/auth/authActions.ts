@@ -109,6 +109,7 @@ export const signInWithTwitter = async (): Promise<void> => {
 
     // The user will be redirected to Twitter for authentication
     // No need for success toast here as the page will redirect
+    console.log("Redirecting to Twitter auth, origin:", window.location.origin);
   } catch (error: any) {
     console.error("Error during Twitter sign in:", error);
     toast.error(`Twitter sign in failed: ${error.message}`);
