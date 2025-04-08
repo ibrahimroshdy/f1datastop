@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
@@ -128,10 +127,12 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
               type="number"
               domain={[1, maxLap]}
               label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
+              xAxisId="lap"
             />
             <YAxis
               domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
               label={{ value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', angle: -90, position: 'insideLeft' }}
+              yAxisId="time"
             />
             <Tooltip
               formatter={(value, name) => {
@@ -164,6 +165,7 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                 stroke="#c026d3" 
                 strokeDasharray="3 3" 
                 label={{ value: `Fastest Lap: ${fastestLapTime.time.toFixed(3)}s (${fastestLapTime.driver})`, position: 'right', fill: '#c026d3' }} 
+                yAxisId="time"
               />
             )}
             {availableDrivers
@@ -180,6 +182,8 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                   activeDot={{ r: 8 }}
                   connectNulls
                   isAnimationActive={false}
+                  xAxisId="lap"
+                  yAxisId="time"
                   opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
                 />
               ))}
