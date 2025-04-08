@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import YearSelector from "@/components/common/YearSelector";
 import LapTimeChart from "@/components/analytics/LapTimeChart";
 import PositionChangeChart from "@/components/analytics/PositionChangeChart";
+import QualifyingAnalytics from "@/components/analytics/QualifyingAnalytics"; // Add import
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -111,9 +112,10 @@ const Analytics = () => {
             </Alert>
             
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="lapTimes">Lap Times</TabsTrigger>
                 <TabsTrigger value="positions">Position Changes</TabsTrigger>
+                <TabsTrigger value="qualifying">Qualifying</TabsTrigger>
               </TabsList>
               
               <TabsContent value="lapTimes" className="space-y-4 mt-4">
@@ -148,6 +150,26 @@ const Analytics = () => {
                   <CardContent className="h-[600px] p-4">
                     {selectedTab === "positions" && (
                       <PositionChangeChart 
+                        year={selectedYear} 
+                        round={selectedRace} 
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="qualifying" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Qualifying Analysis</CardTitle>
+                    <CardDescription>
+                      Compare qualifying times (Q1, Q2, Q3) between drivers.
+                      The system will automatically retry with increasing delays between attempts if rate limits are encountered.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[600px] p-4">
+                    {selectedTab === "qualifying" && (
+                      <QualifyingAnalytics 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
