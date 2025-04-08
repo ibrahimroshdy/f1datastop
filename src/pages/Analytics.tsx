@@ -6,6 +6,7 @@ import YearSelector from "@/components/common/YearSelector";
 import LapTimeChart from "@/components/analytics/LapTimeChart";
 import PositionChangeChart from "@/components/analytics/PositionChangeChart";
 import QualifyingChart from "@/components/analytics/QualifyingChart";
+import PitStopTable from "@/components/analytics/PitStopTable";
 import YearComparisonAnalytics from "@/components/analytics/YearComparisonAnalytics";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -110,10 +111,11 @@ const Analytics = () => {
             </Alert>
             
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="lapTimes">Race Times</TabsTrigger>
                 <TabsTrigger value="positions">Race Position Changes</TabsTrigger>
                 <TabsTrigger value="qualifying">Qualifying</TabsTrigger>
+                <TabsTrigger value="pitstops">Pit Stops</TabsTrigger>
               </TabsList>
               
               <TabsContent value="lapTimes" className="space-y-4 mt-4">
@@ -165,6 +167,25 @@ const Analytics = () => {
                   <CardContent className="h-[600px] p-4">
                     {selectedTab === "qualifying" && (
                       <QualifyingChart 
+                        year={selectedYear} 
+                        round={selectedRace} 
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="pitstops" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pit Stop Analysis</CardTitle>
+                    <CardDescription>
+                      Detailed pit stop timings and strategies for each driver.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[600px] p-4">
+                    {selectedTab === "pitstops" && (
+                      <PitStopTable 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
