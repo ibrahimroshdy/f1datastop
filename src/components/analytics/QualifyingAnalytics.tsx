@@ -1,11 +1,10 @@
 
 import { useState, useEffect } from "react";
-import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { XAxis, YAxis } from "@/utils/rechartsWrapper";
+import { LineChart, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { XAxis, YAxis, Line } from "@/utils/rechartsWrapper";
 import { useRaceQualifying } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Clock3 } from "lucide-react";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { ScrollArea } from "@/components/ui/scroll-area";

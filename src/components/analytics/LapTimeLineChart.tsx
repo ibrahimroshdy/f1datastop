@@ -1,6 +1,7 @@
+
 import React from 'react';
-import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
+import { LineChart, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { XAxis, YAxis, ReferenceLine, Line } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { formatTime } from "@/utils/lapTimeUtils";
 import { Driver, FastestLapTime } from "@/types/lapTimeTypes";

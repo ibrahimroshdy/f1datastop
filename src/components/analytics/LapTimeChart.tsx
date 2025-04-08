@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
-import { XAxis, YAxis, ReferenceLine } from "@/utils/rechartsWrapper";
+import { ResponsiveContainer, LineChart, CartesianGrid, Tooltip, Legend } from "recharts";
+import { XAxis, YAxis, ReferenceLine, Line } from "@/utils/rechartsWrapper";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";

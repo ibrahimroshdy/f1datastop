@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
-import { XAxis, YAxis } from "@/utils/rechartsWrapper";
+import { ResponsiveContainer, LineChart, CartesianGrid, Tooltip, Legend } from "recharts";
+import { XAxis, YAxis, Line } from "@/utils/rechartsWrapper";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";

@@ -1,7 +1,7 @@
 
 import React from "react";
-import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { XAxis, YAxis } from '@/utils/rechartsWrapper';
+import { LineChart, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { XAxis, YAxis, Line } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 
 interface PositionChartProps {
