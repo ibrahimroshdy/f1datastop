@@ -1,7 +1,6 @@
 # F1 DataStop
 
-![F1 DataStop](public/f1-cover.jpg)
-
+<img src="public/lovable-uploads/4b2c0df9-6dc4-4759-bfe3-fb274f378741.png" alt="F1 DataStop" width="250" height="200">
 A modern React application for Formula 1 enthusiasts providing real-time race data, lap time analysis, position tracking, and comprehensive F1 insights.
 
 ## Overview
