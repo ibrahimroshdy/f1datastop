@@ -17,7 +17,14 @@ import {
   Settings,
   Trophy,
   LogOut,
-  Menu
+  Menu,
+  CalendarDays,
+  Activity,
+  BarChart4,
+  UserRound,
+  Car,
+  Newspaper,
+  Users2
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -28,6 +35,9 @@ interface SidebarProps {
   open: boolean;
   setOpen: (open: boolean) => void;
 }
+
+// Function to determine the current year (hardcoded to 2025 for now)
+const getCurrentYear = () => 2025;
 
 const Sidebar = ({ open, setOpen }: SidebarProps) => {
   const location = useLocation();
@@ -40,7 +50,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
   ];
 
   const protectedNavigation = [
-    { name: "Race Info", href: "/race-analysis/2024/last", icon: LineChart },
+    { name: "Race Info", href: `/race-analysis/${getCurrentYear()}/last`, icon: LineChart },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Constructors", href: "/constructors", icon: Trophy },

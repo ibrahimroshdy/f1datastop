@@ -24,8 +24,12 @@ const TabLoadingFallback = () => (
   </div>
 );
 
+// Function to determine the default year (current year is 2025)
+const getCurrentYear = () => 2025; // Hard-coding 2025 as the current year
+
 const RaceAnalysisPage = () => {
-  const { year = new Date().getFullYear(), round = "last" } = useParams();
+  // Use getCurrentYear() to always default to the current real-world year (2025)
+  const { year = getCurrentYear(), round = "last" } = useParams();
   const navigate = useNavigate();
   const [selectedYear, setSelectedYear] = useState<number>(parseInt(year.toString()));
   const [selectedRound, setSelectedRound] = useState<string>(round);

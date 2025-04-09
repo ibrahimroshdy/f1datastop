@@ -1,7 +1,9 @@
 import { toast } from "sonner";
 
-// Use the proxy in development
-const BASE_URL = "/api/openf1";
+// Use different base URLs for development vs production
+const BASE_URL = import.meta.env.PROD 
+  ? "https://api.openf1.org/v1" 
+  : "/api/openf1";
 
 // Helper function for throttled fetching
 async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3): Promise<Response> {
@@ -96,6 +98,14 @@ export const getSessionsByYear = async (year: number) => {
       throw new Error(`API request failed with status ${response.status}`);
     }
     
+    // Check if the response content-type is json
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const textResponse = await response.text();
+      console.error(`Expected JSON but got ${contentType}. Response:`, textResponse.substring(0, 200) + '...');
+      throw new Error(`API returned non-JSON response with content-type: ${contentType}`);
+    }
+    
     const data = await response.json();
     return { 
       data, 
@@ -103,6 +113,15 @@ export const getSessionsByYear = async (year: number) => {
     };
   } catch (error) {
     console.error(`Failed to fetch sessions for year ${year}:`, error);
+    
+    // Check if it's the current year or future year
+    const currentYear = new Date().getFullYear();
+    if (year >= currentYear) {
+      toast.error(`The ${year} season data may not be available yet in the OpenF1 API`);
+    } else {
+      toast.error(`Failed to fetch ${year} season data`);
+    }
+    
     return { data: [], error };
   }
 };

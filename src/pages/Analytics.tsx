@@ -14,8 +14,19 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, Loader2, GitCompare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Function to determine the most appropriate default year
+const getDefaultYear = () => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth(); // 0-based (0 = January)
+  
+  // If we're in the early months of the year (before April), 
+  // use previous year as default as current season might have too few races
+  return (currentMonth < 3) ? currentYear - 1 : currentYear;
+};
+
 const Analytics = () => {
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number>(getDefaultYear());
   const [selectedTab, setSelectedTab] = useState<string>("lapTimes");
   const [selectedRace, setSelectedRace] = useState<string>("1");
   

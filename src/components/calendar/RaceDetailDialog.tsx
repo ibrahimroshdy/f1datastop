@@ -14,8 +14,12 @@ import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Trophy, Flag, Clock } from "lucide-react";
+import { Trophy, Flag, Clock, LineChart } from "lucide-react";
 import { CountryFlag } from "@/utils/countryFlags";
+import { Link } from "react-router-dom";
+
+// Function to determine the current year (hardcoded to 2025 for now)
+const getCurrentYear = () => 2025;
 
 interface RaceDetailDialogProps {
   isOpen: boolean;
@@ -190,6 +194,15 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                   {getSessionStatusBadge(race.date)}
                 </div>
               </div>
+            </div>
+            
+            <div className="mt-4 flex justify-end">
+              <Link to={`/race-analysis/${getCurrentYear()}/${race.round}`}>
+                <Button className="bg-f1-red hover:bg-f1-red/90">
+                  <LineChart className="h-4 w-4 mr-2" />
+                  View Detailed Analysis
+                </Button>
+              </Link>
             </div>
           </TabsContent>
           

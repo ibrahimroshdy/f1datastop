@@ -10,9 +10,24 @@ import YearComparisonLapChart from "./YearComparisonLapChart";
 import YearComparisonPositionChart from "./YearComparisonPositionChart";
 import YearComparisonQualifyingChart from "@/components/analytics/YearComparisonQualifyingChart";
 
+// Function to determine the most appropriate default years
+const getDefaultYears = () => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth(); // 0-based (0 = January)
+  
+  // If we're in the early months of the year (before April), 
+  // use previous years as default as current season might have too few races
+  const latestCompleteYear = (currentMonth < 3) ? currentYear - 2 : currentYear - 1;
+  const comparisonYear = (currentMonth < 3) ? currentYear - 1 : currentYear;
+  
+  return { baseYear: latestCompleteYear, comparisonYear };
+};
+
 const YearComparisonAnalytics = () => {
-  const [baseYear, setBaseYear] = useState<number>(new Date().getFullYear() - 1);
-  const [comparisonYear, setComparisonYear] = useState<number>(new Date().getFullYear());
+  const { baseYear: defaultBaseYear, comparisonYear: defaultComparisonYear } = getDefaultYears();
+  const [baseYear, setBaseYear] = useState<number>(defaultBaseYear);
+  const [comparisonYear, setComparisonYear] = useState<number>(defaultComparisonYear);
   const [selectedRaceBase, setSelectedRaceBase] = useState<string>("1");
   const [selectedRaceComparison, setSelectedRaceComparison] = useState<string>("1");
   const [selectedTab, setSelectedTab] = useState<string>("lapTimes");
