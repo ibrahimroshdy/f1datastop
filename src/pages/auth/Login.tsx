@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
@@ -58,6 +57,23 @@ const Login = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Return to Dashboard
           </Link>
+        </div>
+        
+        {/* Product Hunt badge - moved to top */}
+        <div className="mb-6 flex justify-center">
+          <a 
+            href="https://www.producthunt.com/posts/f1-datastop?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-f1&#0045;datastop" 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            <img 
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=950747&theme=light&t=1744238501973" 
+              alt="F1 DataStop - Live formula 1 news and race data | Product Hunt" 
+              style={{ width: "200px", height: "43px" }} 
+              width="200" 
+              height="43" 
+            />
+          </a>
         </div>
         
         <div className="mb-6 flex justify-center">

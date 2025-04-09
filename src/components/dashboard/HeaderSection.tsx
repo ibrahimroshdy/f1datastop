@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { formatDistance } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -80,7 +79,23 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
           <h1 className="md:text-4xl tracking-tight flex items-center gap-2 text-2xl font-normal">
             Formula 1 Season {new Date().getFullYear()}
           </h1>
-          <p className="text-gray-400 mt-1">Live race data, standings and schedule</p>
+          <div className="flex items-center mt-1">
+            <p className="text-gray-400">Live race data, standings and schedule</p>
+            <a 
+              href="https://www.producthunt.com/posts/f1-datastop?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-f1&#0045;datastop" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="ml-3"
+            >
+              <img 
+                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=950747&theme=light&t=1744238501973" 
+                alt="F1 DataStop on Product Hunt" 
+                style={{ width: "120px", height: "26px" }} 
+                width="120" 
+                height="26" 
+              />
+            </a>
+          </div>
         </div>
         {nextRace && <div className="mt-4 md:mt-0 bg-gray-800 rounded-lg px-4 py-2 flex items-center gap-2">
             <span className="text-xl">{getCountryFlag(nextRace.Circuit.Location.country)}</span>
