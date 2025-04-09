@@ -417,7 +417,7 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
   }
 
   return (
-    <div className="h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
         <div className="flex flex-col md:flex-row gap-2 md:items-center">
           <Badge variant="outline" className="border-amber-500 py-1">
@@ -473,10 +473,10 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 overflow-hidden">
         {/* Base Year Table */}
-        <div>
-          <div className="mb-4">
+        <div className="border rounded-lg overflow-hidden flex flex-col">
+          <div className="mb-2 p-4 pb-0 flex-shrink-0">
             <h3 className="text-sm font-medium mb-2 text-amber-600">{baseYear} Drivers</h3>
             <div className="flex flex-wrap gap-2 mb-2">
               {baseDrivers.map(driver => (
@@ -513,9 +513,9 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
             )}
           </div>
           
-          <div className="overflow-x-auto">
+          <div className="overflow-auto flex-1 min-h-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   <TableHead className="w-16 text-center">Pos</TableHead>
                   <TableHead className="w-20">Driver</TableHead>
@@ -589,8 +589,8 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
         </div>
 
         {/* Comparison Year Table */}
-        <div>
-          <div className="mb-4">
+        <div className="border rounded-lg overflow-hidden flex flex-col">
+          <div className="mb-2 p-4 pb-0 flex-shrink-0">
             <h3 className="text-sm font-medium mb-2 text-blue-600">{comparisonYear} Drivers</h3>
             <div className="flex flex-wrap gap-2 mb-2">
               {comparisonDrivers.map(driver => (
@@ -627,9 +627,9 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
             )}
           </div>
           
-          <div className="overflow-x-auto">
+          <div className="overflow-auto flex-1 min-h-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   <TableHead className="w-16 text-center">Pos</TableHead>
                   <TableHead className="w-20">Driver</TableHead>

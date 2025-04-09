@@ -8,6 +8,9 @@ import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { getRaceResults, getLapTimes } from "@/services/f1Service";
 import { toast } from "sonner";
+import LapTimeLineChart from "./LapTimeLineChart";
+import { Button } from "@/components/ui/button";
+import { BarChart2, LineChart as LucideLineChart } from "lucide-react";
 
 interface LapTimeAnalysisProps {
   year: number;
@@ -22,6 +25,8 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
   const [error, setError] = useState<string | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<any[]>([]);
   const [fastestLap, setFastestLap] = useState<number | null>(null);
+  const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
+  const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
 
   useEffect(() => {
     if (raceScheduleData?.data && raceScheduleData.data.length > 0 && !selectedRace) {
@@ -186,163 +191,176 @@ const LapTimeAnalysis = ({ year }: LapTimeAnalysisProps) => {
     return race ? removeFlag(race.raceName) : "Unknown Race";
   };
 
-  const getSelectedDriversData = () => {
-    const selectedData = lapTimeData
-      .filter(driver => selectedDrivers.includes(driver.driver));
-    
-    if (selectedData.length === 0) return [];
-    
-    const maxLaps = Math.max(
-      ...selectedData.map(driver => driver.laps.length)
+  const getSelectedDriversData = (selectedDrivers: string[]) => {
+    if (!lapTimeData || !selectedDrivers.length) return [];
+
+    // Filter data to include only selected drivers
+    const selectedData = lapTimeData.filter(lap => 
+      selectedDrivers.includes(lap.driver)
     );
+
+    // Calculate max laps from selected data
+    const maxLaps = Math.max(...selectedData.map(lap => lap.lap));
     
-    const chartData = Array.from({ length: maxLaps }, (_, i) => ({
-      lap: i + 1
-    }));
-    
-    selectedData.forEach(driver => {
-      driver.laps.forEach((lap: any) => {
-        if (lap.lap <= chartData.length) {
-          chartData[lap.lap - 1][driver.driver] = lap.time;
+    const chartData = [];
+
+    // Create an array with one entry per lap
+    for (let lap = 1; lap <= maxLaps; lap++) {
+      const lapInfo: any = { lap };
+      
+      // Add data for each selected driver
+      selectedDrivers.forEach(driverCode => {
+        const driverLapData = selectedData.find(d => 
+          d.driver === driverCode && d.lap === lap
+        );
+        
+        if (driverLapData) {
+          const rawTime = driverLapData.time;
+          // Add raw time value for analysis 
+          lapInfo[`${driverCode}_raw`] = formatTime(rawTime);
+          
+          // If display mode is 'gap', calculate time difference from fastest lap
+          if (displayMode === 'gap' && fastestLap) {
+            const gapTime = rawTime - fastestLap;
+            lapInfo[driverCode] = gapTime;
+          } else {
+            lapInfo[driverCode] = rawTime;
+          }
+          
+          // Add metadata for outlier detection
+          lapInfo[`${driverCode}_isRaw`] = true;
         }
       });
-    });
-    
+      
+      chartData.push(lapInfo);
+    }
+
     return chartData;
   };
 
   return (
-    <Card>
+    <Card className="relative">
       <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div>
-            <CardTitle>Lap Time Comparison</CardTitle>
-            <CardDescription>Compare lap times between drivers</CardDescription>
+            <CardTitle className="text-2xl">Lap Time Analysis</CardTitle>
+            <CardDescription>
+              {isScheduleLoading
+                ? "Loading race data..."
+                : `${getRaceName()} - ${year}`}
+            </CardDescription>
           </div>
-          <Select 
-            value={selectedRace} 
-            onValueChange={handleRaceChange}
-            disabled={isScheduleLoading || isLoading}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select a race" />
-            </SelectTrigger>
-            <SelectContent>
-              {isScheduleLoading ? (
-                <SelectItem value="loading">Loading...</SelectItem>
-              ) : (
-                raceScheduleData?.data?.map((race) => (
-                  <SelectItem key={race.round} value={race.round}>
-                    {race.raceName && removeFlag(race.raceName)}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2 items-center">
+            <Select
+              value={selectedRace}
+              onValueChange={handleRaceChange}
+              disabled={isScheduleLoading}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select a race" />
+              </SelectTrigger>
+              <SelectContent>
+                {raceScheduleData?.data
+                  ?.sort((a, b) => parseInt(a.round) - parseInt(b.round))
+                  .map((race) => (
+                    <SelectItem key={race.round} value={race.round}>
+                      {race.round}: {removeFlag(race.raceName)}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <div className="bg-muted rounded-md p-1 flex gap-1">
+              <Button
+                variant={displayMode === 'absolute' ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setDisplayMode('absolute')}
+                className="h-8 w-8 p-0"
+                title="Show absolute lap times"
+              >
+                <BarChart2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={displayMode === 'gap' ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setDisplayMode('gap')}
+                className="h-8 w-8 p-0"
+                title="Show gaps to fastest lap"
+              >
+                <LucideLineChart className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <Skeleton className="h-[400px] w-full" />
-        ) : error || lapTimeData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[400px] text-center">
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-[450px] w-full" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-[450px]">
+            <p className="text-red-500 mb-2">Error: {error}</p>
             <p className="text-muted-foreground">
-              {error || `No lap time data available for ${getRaceName()}`}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              This could be because the race hasn't occurred yet or lap time data wasn't recorded.
+              Try selecting a different race
             </p>
           </div>
         ) : (
-          <div>
+          <>
             <div className="mb-4 flex flex-wrap gap-2">
-              {availableDrivers.map(driver => (
-                <button
+              {availableDrivers.map((driver) => (
+                <Button
                   key={driver.code}
-                  className={`px-2 py-1 rounded text-xs font-medium ${
-                    selectedDrivers.includes(driver.code)
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-gray-200 text-gray-800'
-                  }`}
+                  variant={selectedDrivers.includes(driver.code) ? "default" : "outline"}
+                  size="sm"
                   onClick={() => handleDriverToggle(driver.code)}
+                  className="flex items-center gap-1"
                   style={{
-                    borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+                    backgroundColor: selectedDrivers.includes(driver.code) 
+                      ? (TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666")
+                      : 'transparent',
+                    color: selectedDrivers.includes(driver.code) && isColorLight(TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666")
+                      ? 'black' 
+                      : selectedDrivers.includes(driver.code) ? 'white' : 'inherit',
+                    borderColor: TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"
                   }}
+                  onMouseEnter={() => setHoveredDriver(driver.code)}
+                  onMouseLeave={() => setHoveredDriver(null)}
                 >
-                  {driver.code}
-                </button>
+                  <span className="text-xs">{driver.code}</span>
+                </Button>
               ))}
             </div>
-            
-            <div className="h-[400px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={getSelectedDriversData()}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                  <XAxis 
-                    dataKey="lap" 
-                    label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
-                    xAxisId="lapTime"
-                  />
-                  <YAxis 
-                    label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }} 
-                    domain={['dataMin - 1', 'dataMax + 1']}
-                    yAxisId="lapTime"
-                    tickFormatter={(value) => formatTime(value)}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1a1a1a',
-                      borderColor: '#333',
-                      borderRadius: '5px'
-                    }}
-                    formatter={(value, name) => {
-                      if (typeof value === 'number') {
-                        return [formatTime(value), name];
-                      }
-                      return [value, name];
-                    }}
-                  />
-                  <Legend />
-                  
-                  {fastestLap && (
-                    <ReferenceLine 
-                      y={fastestLap} 
-                      stroke="red" 
-                      strokeDasharray="3 3" 
-                      label={{ value: `Fastest Lap: ${formatTime(fastestLap)}`, position: 'right', fill: 'red' }} 
-                      yAxisId="lapTime"
-                      xAxisId="lapTime"
-                    />
-                  )}
-                  
-                  {availableDrivers
-                    .filter(driver => selectedDrivers.includes(driver.code))
-                    .map(driver => (
-                      <Line
-                        key={driver.code}
-                        type="monotone"
-                        dataKey={driver.code}
-                        name={driver.code}
-                        stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666" }}
-                        activeDot={{ r: 8 }}
-                        connectNulls
-                        xAxisId="lapTime"
-                        yAxisId="lapTime"
-                      />
-                    ))}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+            <LapTimeLineChart
+              chartData={getSelectedDriversData(selectedDrivers)}
+              availableDrivers={availableDrivers}
+              selectedDrivers={selectedDrivers}
+              displayMode={displayMode}
+              fastestLapTime={fastestLap ? { time: fastestLap, driver: availableDrivers.find(d => d.fastLap?.time === fastestLap)?.code || "Unknown" } : null}
+              hoveredDriver={hoveredDriver}
+            />
+          </>
         )}
       </CardContent>
     </Card>
   );
+};
+
+// Helper function to determine if a color is light for text contrast
+const isColorLight = (color: string): boolean => {
+  if (!color || color === 'transparent') return false;
+  
+  // If it's a hex color
+  if (color.startsWith('#')) {
+    const hex = color.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 155;
+  }
+  
+  return false;
 };
 
 export default LapTimeAnalysis;

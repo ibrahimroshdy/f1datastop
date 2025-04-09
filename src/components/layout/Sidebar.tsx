@@ -9,7 +9,15 @@ import {
   Award,
   User,
   LogIn,
-  LineChart
+  LineChart,
+  BarChart3,
+  Calendar as CalendarIcon,
+  ChartPieIcon,
+  LayoutDashboard,
+  Settings,
+  Trophy,
+  LogOut,
+  Menu
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,15 +35,15 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
   const { user } = useAuth();
 
   const mainNavigation = [
-    { name: "Dashboard", href: "/", icon: Home },
-    { name: "Race Calendar", href: "/calendar", icon: Calendar },
+    { name: "Dashboard", href: "/", icon: LayoutDashboard },
+    { name: "Race Calendar", href: "/calendar", icon: CalendarIcon },
   ];
 
   const protectedNavigation = [
-    { name: "Analytics", href: "/analytics", icon: BarChart },
-    { name: "Race Analysis (beta)", href: "/race-analysis/last/last", icon: LineChart },
+    { name: "Race Analysis", href: "/race-analysis/2024/last", icon: LineChart },
+    { name: "Analytics", href: "/analytics", icon: BarChart3 },
     { name: "Drivers", href: "/drivers", icon: Users },
-    { name: "Constructors", href: "/constructors", icon: Award },
+    { name: "Constructors", href: "/constructors", icon: Trophy },
   ];
 
   const authNavigation = user 

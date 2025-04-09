@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
@@ -36,6 +36,63 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
       </div>
     );
   }
+
+  // Detect outliers for each driver
+  const detectOutliers = (driverCode: string, data: any[]): { outlierLaps: number[], pitStopLaps: number[] } => {
+    const lapTimes = data
+      .filter(lap => lap && typeof lap[driverCode] === 'number')
+      .map(lap => lap[driverCode]);
+    
+    if (lapTimes.length < 4) return { outlierLaps: [], pitStopLaps: [] }; // Not enough data
+    
+    // Calculate mean and standard deviation
+    const mean = lapTimes.reduce((sum, val) => sum + val, 0) / lapTimes.length;
+    const stdDev = Math.sqrt(
+      lapTimes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / lapTimes.length
+    );
+    
+    // Identify potential outliers (significantly faster or slower)
+    const outlierThreshold = 1.5; // More sensitive threshold for outliers
+    const pitStopThreshold = 2.0; // Lower threshold to catch more pit stops
+    
+    // Find lap numbers with outlier values
+    const outlierLaps: number[] = [];
+    const pitStopLaps: number[] = [];
+    
+    data.forEach(lap => {
+      if (!lap || typeof lap[driverCode] !== 'number' || !lap.lap) return;
+      
+      const lapTime = lap[driverCode];
+      const zScore = (lapTime - mean) / stdDev;
+      
+      // If much slower than average, likely a pit stop
+      if (zScore > pitStopThreshold) {
+        pitStopLaps.push(lap.lap);
+      } 
+      // Abnormally fast laps or slightly slow laps are also outliers
+      else if (zScore < -outlierThreshold || (zScore > outlierThreshold && zScore <= pitStopThreshold)) {
+        outlierLaps.push(lap.lap);
+      }
+    });
+    
+    return { outlierLaps, pitStopLaps };
+  };
+
+  // Initialize outliers map for each driver
+  const [outlierLapsMap, setOutlierLapsMap] = useState<Record<string, { outlierLaps: number[], pitStopLaps: number[] }>>({});
+
+  // Process outliers when data changes
+  useEffect(() => {
+    if (!chartData.length || !selectedDrivers.length) return;
+    
+    const newOutlierMap: Record<string, { outlierLaps: number[], pitStopLaps: number[] }> = {};
+    
+    selectedDrivers.forEach(driver => {
+      newOutlierMap[driver] = detectOutliers(driver, chartData);
+    });
+    
+    setOutlierLapsMap(newOutlierMap);
+  }, [chartData, selectedDrivers]);
 
   // Calculate min and max for domain to keep the chart smooth
   const calculateYDomain = () => {
@@ -111,14 +168,26 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
               
               const driverCode = String(name).split(' ')[0];
               const originalTime = props.payload[`${driverCode}_raw`];
+              const lapNumber = props.payload.lap;
+              
+              // Check if this is an outlier or pit stop
+              const isOutlier = outlierLapsMap[driverCode]?.outlierLaps.includes(lapNumber);
+              const isPitStop = outlierLapsMap[driverCode]?.pitStopLaps.includes(lapNumber);
+              
+              let labelText = '';
+              if (isPitStop) {
+                labelText = ' 🔄 Pit Stop';
+              } else if (isOutlier) {
+                labelText = ' ⚠️ Outlier';
+              }
               
               if (displayMode === 'absolute') {
-                return [formatTime(value), name];
+                return [`${formatTime(value)}${labelText}`, driverCode];
               } else {
                 // Gap mode
                 return [
-                  `+${value.toFixed(3)}s (${originalTime || formatTime(value)})`,
-                  name
+                  `+${value.toFixed(3)}s${labelText} (${originalTime || formatTime(value)})`,
+                  driverCode
                 ];
               }
             }}
@@ -157,8 +226,60 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
                 name={`${driver.code} (${driver.name.split(' ').pop()})`}
                 stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
                 strokeWidth={hoveredDriver === driver.code ? 3 : 2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 8 }}
+                dot={(props) => {
+                  // Skip rendering if cx or cy are not valid numbers
+                  if (!props.cx || !props.cy || isNaN(props.cx) || isNaN(props.cy)) {
+                    return null;
+                  }
+                  
+                  // Only show dot if the value exists
+                  if (!props.payload[driver.code]) {
+                    return null;
+                  }
+                  
+                  const isPitStop = outlierLapsMap[driver.code]?.pitStopLaps.includes(props.payload.lap);
+                  const isOutlier = outlierLapsMap[driver.code]?.outlierLaps.includes(props.payload.lap);
+                  const teamColor = TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666";
+                  
+                  if (isPitStop) {
+                    // Pit stop marker - larger triangle pointing down
+                    return (
+                      <path 
+                        d={`M${props.cx-6},${props.cy-4} L${props.cx+6},${props.cy-4} L${props.cx},${props.cy+6} Z`} 
+                        fill={teamColor}
+                        stroke="#ffffff"
+                        strokeWidth={1.5}
+                      />
+                    );
+                  } else if (isOutlier) {
+                    // Outlier marker - diamond shape
+                    return (
+                      <path
+                        d={`M${props.cx},${props.cy-5} L${props.cx+5},${props.cy} L${props.cx},${props.cy+5} L${props.cx-5},${props.cy} Z`}
+                        fill={teamColor}
+                        stroke="#ffffff"
+                        strokeWidth={1.5}
+                      />
+                    );
+                  }
+                  
+                  // Regular dot
+                  return (
+                    <circle
+                      cx={props.cx}
+                      cy={props.cy}
+                      r={3}
+                      fill={teamColor}
+                      stroke="#ffffff"
+                      strokeWidth={1}
+                    />
+                  );
+                }}
+                activeDot={{ 
+                  r: 6,
+                  stroke: "#ffffff",
+                  strokeWidth: 2
+                }}
                 connectNulls
                 isAnimationActive={false}
                 xAxisId="lap"

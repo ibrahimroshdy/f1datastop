@@ -60,6 +60,10 @@ const Analytics = () => {
           <h1 className="text-3xl font-bold">F1 Analytics</h1>
         </div>
         
+        <p className="text-sm text-muted-foreground -mt-4 mb-4">
+          View comprehensive race data including lap times, position changes, qualifying, and pit stops.
+        </p>
+        
         <Tabs defaultValue="raceAnalytics" className="w-full">
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="raceAnalytics">Race Analytics</TabsTrigger>
@@ -101,14 +105,6 @@ const Analytics = () => {
                 )}
               </div>
             </div>
-            
-            <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200">
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                View lap-by-lap data including position changes and timing information. 
-                The system includes automatic retry with exponential backoff when rate limits (429 errors) are encountered.
-              </AlertDescription>
-            </Alert>
             
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
               <TabsList className="grid w-full grid-cols-4">
