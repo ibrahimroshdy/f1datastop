@@ -40,7 +40,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
   ];
 
   const protectedNavigation = [
-    { name: "Race Analysis", href: "/race-analysis/2024/last", icon: LineChart },
+    { name: "Race Info", href: "/race-analysis/2024/last", icon: LineChart },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Constructors", href: "/constructors", icon: Trophy },

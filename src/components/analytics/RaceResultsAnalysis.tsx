@@ -141,7 +141,7 @@ const RaceResultsAnalysis = ({ year }: RaceResultsAnalysisProps) => {
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div>
-            <CardTitle>Race Analysis</CardTitle>
+            <CardTitle>Race Info</CardTitle>
             <CardDescription>
               {selectedRace ? getRaceName() : "Select a race to view analysis"}
             </CardDescription>
