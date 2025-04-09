@@ -35,17 +35,17 @@ const RaceAnalysisPage = () => {
   const [selectedRound, setSelectedRound] = useState<string>(round);
   const [activeTab, setActiveTab] = useState<string>("weather");
   
-  // Get race schedule from Ergast
-  const { 
-    data: scheduleData, 
-    isLoading: isScheduleLoading 
-  } = useRaceSchedule(selectedYear);
-  
-  // Get OpenF1 sessions for this year
+  // Get OpenF1 sessions for this year (primary data source)
   const {
     data: openF1SessionsData,
     isLoading: isOpenF1Loading
   } = useSessionsByYear(selectedYear);
+  
+  // Get race schedule from Ergast (backup for legacy data only)
+  const { 
+    data: scheduleData, 
+    isLoading: isScheduleLoading 
+  } = useRaceSchedule(selectedYear);
   
   const hasOpenF1Data = React.useMemo(() => {
     if (!openF1SessionsData?.data || openF1SessionsData.data.length === 0) return false;
@@ -59,26 +59,75 @@ const RaceAnalysisPage = () => {
     return meetings.size > 0;
   }, [openF1SessionsData]);
   
-  // Find the race from the schedule
-  const selectedRace = React.useMemo(() => {
-    if (isScheduleLoading || !scheduleData?.data) return null;
-    const races = scheduleData.data;
+  // Find the selected meeting/race
+  const selectedMeeting = React.useMemo(() => {
+    if (isOpenF1Loading || !openF1SessionsData?.data) return null;
+    
+    // Group sessions by meeting for easier processing
+    const meetingGroups: { [key: string]: any[] } = {};
+    openF1SessionsData.data.forEach(session => {
+      const key = session.meeting_key.toString();
+      if (!meetingGroups[key]) {
+        meetingGroups[key] = [];
+      }
+      meetingGroups[key].push(session);
+    });
+    
+    // Sort by date
+    const sortedMeetings = Object.values(meetingGroups)
+      .map(sessions => sessions[0])
+      .sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
     
     if (selectedRound === "last") {
-      // Find the last completed race
+      // Find the last completed meeting
       const now = new Date();
-      const completedRaces = races.filter(race => new Date(race.date) < now);
-      return completedRaces[completedRaces.length - 1] || races[0];
-    } else if (selectedRound === "next") {
-      // Find the next upcoming race
+      const completedMeetings = sortedMeetings.filter(meeting => 
+        new Date(meeting.date_end) < now
+      );
+      
+      return completedMeetings.length > 0 
+        ? completedMeetings[completedMeetings.length - 1]
+        : (sortedMeetings.length > 0 ? sortedMeetings[0] : null);
+    } 
+    else if (selectedRound === "next") {
+      // Find the next upcoming meeting
       const now = new Date();
-      const upcomingRaces = races.filter(race => new Date(race.date) > now);
-      return upcomingRaces[0] || races[races.length - 1];
-    } else {
-      // Find the race with the specified round
-      return races.find(race => race.round === selectedRound) || races[0];
+      const upcomingMeetings = sortedMeetings.filter(meeting => 
+        new Date(meeting.date_start) > now
+      );
+      
+      return upcomingMeetings.length > 0
+        ? upcomingMeetings[0]
+        : (sortedMeetings.length > 0 ? sortedMeetings[sortedMeetings.length - 1] : null);
+    } 
+    else {
+      // Find the meeting with the matching key
+      const meetingKey = parseInt(selectedRound);
+      if (!isNaN(meetingKey)) {
+        const matchingSessions = meetingGroups[meetingKey.toString()];
+        if (matchingSessions && matchingSessions.length > 0) {
+          // Prioritize race sessions
+          const raceSession = matchingSessions.find(s => s.session_type === "Race");
+          return raceSession || matchingSessions[0];
+        }
+      }
+      
+      // If no match found, return the first meeting as fallback
+      return sortedMeetings.length > 0 ? sortedMeetings[0] : null;
     }
-  }, [scheduleData, selectedRound, isScheduleLoading]);
+  }, [openF1SessionsData, selectedRound, isOpenF1Loading]);
+  
+  // Format the session date for display
+  const formattedDate = React.useMemo(() => {
+    if (!selectedMeeting) return "";
+    
+    const date = new Date(selectedMeeting.date_start);
+    return date.toLocaleDateString(undefined, { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric'
+    });
+  }, [selectedMeeting]);
   
   // Handle year change
   const handleYearChange = (year: number) => {
@@ -133,10 +182,10 @@ const RaceAnalysisPage = () => {
             <>
               <CardHeader>
                 <CardTitle className="text-2xl">
-                  {selectedRace?.raceName || "Race Info"}
+                  {selectedMeeting ? `${selectedMeeting.country_name} Grand Prix` : "Race Info"}
                 </CardTitle>
                 <CardDescription>
-                  {selectedRace?.Circuit?.circuitName}, {selectedRace?.date}
+                  {selectedMeeting?.location}, {formattedDate}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -165,7 +214,7 @@ const RaceAnalysisPage = () => {
                         <>
                           <WeatherAnalysis 
                             year={selectedYear} 
-                            round={selectedRace?.round || "1"} 
+                            round={selectedRound} 
                           />
                           
                           <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
@@ -190,7 +239,7 @@ const RaceAnalysisPage = () => {
                         <>
                           <TeamRadio 
                             year={selectedYear} 
-                            round={selectedRace?.round || "1"} 
+                            round={selectedRound} 
                           />
                           
                           <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
@@ -215,7 +264,7 @@ const RaceAnalysisPage = () => {
                         <>
                           <TelemetryDashboard 
                             year={selectedYear} 
-                            round={selectedRace?.round || "1"} 
+                            round={selectedRound} 
                           />
                           
                           <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">

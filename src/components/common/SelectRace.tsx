@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRaceSchedule } from '@/hooks/useF1Data';
+import { useSessionsByYear } from '@/hooks/useOpenF1Data';
 import {
   Select,
   SelectContent,
@@ -15,17 +15,32 @@ interface SelectRaceProps {
   onRoundChange: (round: string) => void;
 }
 
+// Define interfaces for our race options
+interface SpecialRaceOption {
+  round: string;
+  name: string;
+}
+
+interface MeetingRaceOption {
+  round: string;
+  name: string;
+  fullName: string;
+}
+
+type RaceOption = SpecialRaceOption | MeetingRaceOption;
+
 export const SelectRace: React.FC<SelectRaceProps> = ({ year, selectedRound, onRoundChange }) => {
-  const { data: scheduleData, isLoading } = useRaceSchedule(year);
+  // Get sessions directly from OpenF1 API
+  const { data: sessionsData, isLoading } = useSessionsByYear(year);
   
   if (isLoading) {
-    return <Skeleton className="h-10 w-[160px]" />;
+    return <Skeleton className="h-10 w-[200px]" />;
   }
   
-  if (!scheduleData?.data || scheduleData.data.length === 0) {
+  if (!sessionsData?.data || sessionsData.data.length === 0) {
     return (
       <Select value="1" onValueChange={onRoundChange} disabled>
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-[200px]">
           <SelectValue placeholder="No races found" />
         </SelectTrigger>
         <SelectContent>
@@ -35,27 +50,54 @@ export const SelectRace: React.FC<SelectRaceProps> = ({ year, selectedRound, onR
     );
   }
   
-  const races = scheduleData.data;
+  // Group sessions by meeting_key to get unique race venues
+  const meetings = new Map();
   
-  // Add special options and sort races by round number
-  const raceOptions = [
+  sessionsData.data.forEach(session => {
+    const key = session.meeting_key.toString();
+    
+    // Prioritize Race session type for each meeting
+    if (session.session_type === "Race") {
+      meetings.set(key, session);
+    } else if (!meetings.has(key)) {
+      meetings.set(key, session);
+    }
+  });
+  
+  // Convert to array and sort chronologically
+  const meetingsArray = Array.from(meetings.values())
+    .sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
+  
+  // Add special options and create race options
+  const specialOptions: SpecialRaceOption[] = [
     { round: "last", name: "Latest Race" },
-    { round: "next", name: "Next Race" },
-    ...races.map(race => ({
-      round: race.round,
-      name: race.raceName
-    }))
+    { round: "next", name: "Next Race" }
   ];
+  
+  const meetingOptions: MeetingRaceOption[] = meetingsArray.map(meeting => {
+    // Format name as "Japanese Grand Prix - Suzuka" (without emoji)
+    const name = `${meeting.country_name} Grand Prix`;
+    const circuitName = meeting.circuit_short_name;
+    
+    return {
+      round: meeting.meeting_key.toString(),
+      name: name,
+      fullName: circuitName ? `${name} - ${circuitName}` : name
+    };
+  });
+  
+  // Combine the options
+  const raceOptions: RaceOption[] = [...specialOptions, ...meetingOptions];
   
   return (
     <Select value={selectedRound} onValueChange={onRoundChange}>
-      <SelectTrigger className="w-[160px]">
+      <SelectTrigger className="w-[200px]">
         <SelectValue placeholder="Select race" />
       </SelectTrigger>
       <SelectContent>
         {raceOptions.map(race => (
           <SelectItem key={race.round} value={race.round}>
-            {race.name}
+            {'fullName' in race ? race.fullName : race.name}
           </SelectItem>
         ))}
       </SelectContent>

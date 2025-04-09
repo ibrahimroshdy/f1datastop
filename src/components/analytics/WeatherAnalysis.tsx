@@ -22,7 +22,8 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState("temperature");
   
-  // Get the OpenF1 session that matches this Ergast race
+  // Get the OpenF1 session directly
+  // Note: round is now expected to be either a meeting_key or special value like "last"/"next"
   const { 
     data: sessionData, 
     isLoading: isSessionLoading 
@@ -140,12 +141,19 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
               {weatherError?.toString() || "No OpenF1 weather data available for this race."}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Weather data is only available for recent races (2023 onwards).
+              {year >= 2025 ? 
+                "2025 season data is not yet fully available in the OpenF1 API. Please check back later or select a previous season." :
+                "Weather data is only available for recent races (2023 onwards)."}
             </p>
           </div>
         ) : hasNoData ? (
           <div className="py-8 text-center">
             <p className="text-muted-foreground">No weather data available for this session.</p>
+            {year >= 2025 && (
+              <p className="text-sm text-muted-foreground mt-2">
+                2025 season data is still being collected and may not be complete.
+              </p>
+            )}
           </div>
         ) : (
           <>

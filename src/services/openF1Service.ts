@@ -159,6 +159,8 @@ export const getCarData = async (session_key: number, driver_number?: number) =>
       url += `&driver_number=${driver_number}`;
     }
     
+    // Note: we explicitly avoid adding limit parameter as it causes issues with the API
+    
     const response = await throttledFetch(url);
     
     if (!response.ok) {
