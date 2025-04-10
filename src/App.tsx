@@ -22,6 +22,7 @@ import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
 import ResetPassword from "./pages/auth/ResetPassword";
 import RaceAnalysisPage from "./pages/RaceAnalysisPage";
+import Privacy from "./pages/Privacy";
 
 // Create a simple Auth callback handler component
 const AuthCallback = () => {
@@ -130,6 +131,7 @@ const App = () => (
                     <Route path="/" element={<Index />} />
                     <Route path="/calendar" element={<RaceCalendar />} />
                     <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="/privacy" element={<Privacy />} />
                     <Route path="*" element={<NotFound />} />
                     
                     {/* Auth routes (only accessible if not logged in) */}
