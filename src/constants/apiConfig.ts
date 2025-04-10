@@ -6,6 +6,7 @@
 // Supabase Function URLs
 export const SUPABASE_FUNCTIONS = {
   NOTIFY_SLACK: "https://envqfquhkcbnitwlzepx.functions.supabase.co/notify-slack",
+  VERIFY_CAPTCHA: "https://envqfquhkcbnitwlzepx.functions.supabase.co/verify-captcha",
 };
 
 // F1 API Base URLs
@@ -17,6 +18,11 @@ export const F1_API = {
 // Third-party API Configuration
 export const THIRD_PARTY_APIS = {
   WEATHER: "https://api.open-meteo.com/v1",
+};
+
+// Google reCAPTCHA configuration
+export const RECAPTCHA = {
+  SITE_KEY: "6LcYyxIrAAAAAEwZXGJ14TO5fztt52s1lgP6qie1", // User's actual site key
 };
 
 // API Request Configuration

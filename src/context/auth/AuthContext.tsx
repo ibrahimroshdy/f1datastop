@@ -23,9 +23,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     password: string,
     username: string,
     firstName: string,
-    lastName: string
+    lastName: string,
+    captchaToken?: string
   ): Promise<void> => {
-    await signUpAction(email, password, username, firstName, lastName);
+    await signUpAction(email, password, username, firstName, lastName, captchaToken);
   };
 
   const signIn = async (email: string, password: string): Promise<void> => {

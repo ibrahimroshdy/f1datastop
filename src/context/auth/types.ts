@@ -5,7 +5,7 @@ export interface AuthContextProps {
   session: Session | null;
   profile: any | null; // Profile data from our profiles table
   isLoading: boolean;
-  signUp: (email: string, password: string, username: string, firstName: string, lastName: string) => Promise<void>;
+  signUp: (email: string, password: string, username: string, firstName: string, lastName: string, captchaToken?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithX: () => Promise<void>;
   signOut: () => Promise<void>;

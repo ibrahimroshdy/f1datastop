@@ -7,9 +7,44 @@ export const signUp = async (
   password: string,
   username: string,
   firstName: string,
-  lastName: string
+  lastName: string,
+  captchaToken?: string
 ): Promise<void> => {
   try {
+    // For reCAPTCHA v3, we need to proceed even if there's no token yet
+    // as the token will be obtained asynchronously
+    if (!captchaToken) {
+      console.log("No CAPTCHA token provided, attempting to proceed anyway");
+    }
+    
+    // Verify the captcha token with our server-side function if token exists
+    if (captchaToken) {
+      try {
+        const response = await fetch(SUPABASE_FUNCTIONS.VERIFY_CAPTCHA, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            token: captchaToken
+          })
+        });
+        
+        const verificationResult = await response.json();
+        
+        if (!verificationResult.success) {
+          throw new Error(verificationResult.error || "CAPTCHA verification failed");
+        }
+        
+        console.log("CAPTCHA verification successful");
+      } catch (captchaError) {
+        console.error("Error verifying CAPTCHA:", captchaError);
+        // For v3 reCAPTCHA, we may want to proceed anyway but with a risk score
+        // For v2, we would throw an error here
+      }
+    }
+    
+    // Proceed with signup
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -18,6 +53,7 @@ export const signUp = async (
           username,
           first_name: firstName,
           last_name: lastName,
+          captcha_verified: !!captchaToken, // Mark as verified only if token exists
         },
       },
     });

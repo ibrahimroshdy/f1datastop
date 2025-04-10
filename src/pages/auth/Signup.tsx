@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, ArrowLeft, Twitter } from 'lucide-react';
+import ReCaptcha from '@/components/auth/ReCaptcha';
+import { RECAPTCHA } from '@/constants/apiConfig';
 import f1Logo from '@/assets/f1-logo.svg';
 
 const Signup = () => {
@@ -15,6 +17,7 @@ const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -30,11 +33,17 @@ const Signup = () => {
       return;
     }
     
+    // Validate captcha for email signup
+    if (!captchaToken) {
+      setError("Please complete the CAPTCHA verification");
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     
     try {
-      await signUp(email, password, username, firstName, lastName);
+      await signUp(email, password, username, firstName, lastName, captchaToken);
     } catch (error: any) {
       setError(error.message || "An error occurred during signup");
     } finally {
@@ -44,6 +53,13 @@ const Signup = () => {
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
+  
+  const handleCaptchaChange = (token: string) => {
+    setCaptchaToken(token);
+    if (error === "Please complete the CAPTCHA verification") {
+      setError(null);
+    }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-f1-black p-4">
@@ -178,6 +194,15 @@ const Signup = () => {
                 </div>
               </div>
               
+              {/* Google reCAPTCHA - invisible but present in DOM */}
+              <div className="h-0 overflow-hidden">
+                <ReCaptcha 
+                  onChange={handleCaptchaChange}
+                  version="v3"
+                  hideBadge={true}
+                />
+              </div>
+              
               {error && (
                 <div className="p-3 rounded-md bg-red-900/50 border border-red-800 text-white text-sm">
                   {error}
@@ -191,6 +216,29 @@ const Signup = () => {
               >
                 {isLoading ? "Creating account..." : "Sign up"}
               </Button>
+              
+              {/* reCAPTCHA privacy notice */}
+              <div className="text-xs text-gray-500 mt-2 text-center">
+                This site is protected by reCAPTCHA and the Google{" "}
+                <a 
+                  href="https://policies.google.com/privacy"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-gray-300 underline"
+                >
+                  Privacy Policy
+                </a>{" "}
+                and{" "}
+                <a 
+                  href="https://policies.google.com/terms"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-gray-300 underline"
+                >
+                  Terms of Service
+                </a>{" "}
+                apply.
+              </div>
 
               {/* X/Twitter Signup Button */}
               <div className="relative flex items-center justify-center mt-4">
