@@ -11,6 +11,7 @@ import { supabase } from "./integrations/supabase/client";
 import { notifySlackAboutTwitterSignin } from "./context/auth/authActions";
 import AnalyticsProvider from "./integrations/google-analytics/AnalyticsProvider";
 import ClarityProvider from "./integrations/clarity/ClarityProvider";
+import initConsoleFilters from "./utils/errorFilter";
 import Index from "./pages/Index";
 import RaceCalendar from "./pages/RaceCalendar";
 import Analytics from "./pages/Analytics";
@@ -23,6 +24,11 @@ import Profile from "./pages/auth/Profile";
 import ResetPassword from "./pages/auth/ResetPassword";
 import RaceAnalysisPage from "./pages/RaceAnalysisPage";
 import Privacy from "./pages/Privacy";
+
+// Initialize console filters to reduce noise
+if (typeof window !== 'undefined') {
+  initConsoleFilters();
+}
 
 // Create a simple Auth callback handler component
 const AuthCallback = () => {

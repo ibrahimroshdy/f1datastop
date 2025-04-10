@@ -1,50 +1,66 @@
 /**
- * Utility functions for Microsoft Clarity heatmap tracking
- * These functions are designed to work with the queuing system in ClarityProvider
+ * Utility functions for Microsoft Clarity
  */
+import clarityPackage from '@microsoft/clarity';
 
-// Flag to enable/disable Clarity tracking
-let clarityEnabled = true;
-// Flag to track if we're in verbose logging mode
-const verboseLogging = false;
+// Extend Window interface to include clarity
+declare global {
+  interface Window {
+    clarity?: any;
+    clarityQueue?: any[];
+  }
+}
+
+// Flag to prevent excessive logging
+const PRODUCTION = process.env.NODE_ENV === 'production';
 
 /**
- * Check if Clarity is fully initialized
+ * Check if Clarity is properly available in the window
  */
-const isFullyClarityAvailable = (): boolean => {
-  return typeof window !== 'undefined' && 
-         typeof window.clarity === 'function' && 
-         clarityEnabled;
+const isClarityAvailable = (): boolean => {
+  return typeof window !== 'undefined' && typeof window.clarity === 'function';
 };
 
 /**
- * Check if at least the Clarity stub is available (for queueing)
+ * Process any queued commands that might have been stored
+ * before Clarity was fully initialized
  */
-const isClarityStubAvailable = (): boolean => {
-  return typeof window !== 'undefined' && 
-         typeof window.clarity === 'function';
-};
-
-/**
- * Safely execute a Clarity function, handling errors gracefully
- * Works with the queueing system in ClarityProvider
- */
-const safeExecute = (fn: string, ...args: any[]): void => {
-  // Skip if Clarity is explicitly disabled
-  if (!clarityEnabled) return;
+const processQueuedCommands = () => {
+  if (typeof window === 'undefined' || !window.clarityQueue) return;
   
   try {
-    // Even if just the stub is available, it will queue the command
-    if (isClarityStubAvailable()) {
-      window.clarity(fn, ...args);
-      
-      if (verboseLogging && process.env.NODE_ENV === 'development') {
-        console.log(`[Clarity] ${isFullyClarityAvailable() ? 'Executed' : 'Queued'} event: ${fn}`);
+    const queue = window.clarityQueue;
+    
+    // Process each command in the queue
+    while (queue.length > 0) {
+      const args = queue.shift();
+      if (args && window.clarity) {
+        window.clarity.apply(window, args);
       }
     }
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`[Clarity] Error with ${fn}:`, error);
+    // Silently fail in production
+    if (!PRODUCTION) {
+      console.error('[Clarity] Error processing queued commands');
+    }
+  }
+};
+
+/**
+ * Initialize Clarity safely if not already initialized
+ */
+export const initClarity = (projectId: string): void => {
+  try {
+    if (!isClarityAvailable()) {
+      clarityPackage.init(projectId);
+      
+      // Process any queued commands
+      setTimeout(processQueuedCommands, 500);
+    }
+  } catch (error) {
+    // Silently fail in production
+    if (!PRODUCTION) {
+      console.error('[Clarity] Error during initialization');
     }
   }
 };
@@ -56,7 +72,24 @@ const safeExecute = (fn: string, ...args: any[]): void => {
  */
 export const setTag = (key: string, value: string): void => {
   if (!key || value === undefined) return;
-  safeExecute('set', key, value);
+  
+  try {
+    // Try to use the global window.clarity if available
+    if (isClarityAvailable()) {
+      window.clarity('set', key, value);
+    } else if (window.clarity) {
+      // If window.clarity exists but might not be fully initialized
+      window.clarity('set', key, value);
+    } else {
+      // Fallback to the npm package method
+      clarityPackage.setTag(key, value);
+    }
+  } catch (error) {
+    // Silently fail in production
+    if (!PRODUCTION) {
+      console.error(`[Clarity] Error setting tag`);
+    }
+  }
 };
 
 /**
@@ -74,19 +107,32 @@ export const identifyUser = (
 ): void => {
   if (!userId) return;
   
-  safeExecute('identify', userId);
-  
-  // Set additional user information as tags if provided
-  if (userInfo?.name) {
-    setTag('user_name', userInfo.name);
-  }
-  
-  if (userInfo?.email) {
-    setTag('user_email', userInfo.email);
-  }
-  
-  if (userInfo?.role) {
-    setTag('user_role', userInfo.role);
+  try {
+    if (isClarityAvailable()) {
+      window.clarity('identify', userId);
+    } else if (window.clarity) {
+      window.clarity('identify', userId);
+    } else {
+      clarityPackage.identify(userId);
+    }
+    
+    // Set additional user information as tags if provided
+    if (userInfo?.name) {
+      setTag('user_name', userInfo.name);
+    }
+    
+    if (userInfo?.email) {
+      setTag('user_email', userInfo.email);
+    }
+    
+    if (userInfo?.role) {
+      setTag('user_role', userInfo.role);
+    }
+  } catch (error) {
+    // Silently fail in production
+    if (!PRODUCTION) {
+      console.error('[Clarity] Error identifying user');
+    }
   }
 };
 
@@ -96,7 +142,21 @@ export const identifyUser = (
  */
 export const trackEvent = (eventName: string): void => {
   if (!eventName) return;
-  safeExecute('event', eventName);
+  
+  try {
+    if (isClarityAvailable()) {
+      window.clarity('event', eventName);
+    } else if (window.clarity) {
+      window.clarity('event', eventName);
+    } else {
+      clarityPackage.event(eventName);
+    }
+  } catch (error) {
+    // Silently fail in production
+    if (!PRODUCTION) {
+      console.error(`[Clarity] Error tracking event`);
+    }
+  }
 };
 
 /**
