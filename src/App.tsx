@@ -29,25 +29,13 @@ const AuthCallback = () => {
     // Handle the OAuth callback
     const handleAuthCallback = async () => {
       try {
-        // For OAuth 1.0a, the callback will include oauth_token and oauth_verifier
-        const urlParams = new URLSearchParams(window.location.search);
-        const oauthToken = urlParams.get('oauth_token');
-        const oauthVerifier = urlParams.get('oauth_verifier');
-        
-        if (!oauthToken || !oauthVerifier) {
-          console.log("Missing OAuth parameters:", { oauthToken, oauthVerifier });
-          setMessage("Authentication parameters missing or invalid");
-          setTimeout(() => window.location.href = '/auth/login', 2000);
-          return;
-        }
-        
-        setMessage("Verifying authentication...");
+        // Just process the authentication without expecting specific parameters
+        setMessage("Authenticating with Twitter...");
         
         // Supabase handles the token exchange internally when getting the session
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error("Authentication error:", error);
           setMessage("Authentication failed. Please try again.");
           setTimeout(() => window.location.href = '/auth/login', 2000);
         } else if (data.session) {
@@ -66,7 +54,6 @@ const AuthCallback = () => {
                 await notifySlackAboutTwitterSignin(user);
               } catch (notifyError) {
                 // Don't fail the auth flow if notification fails
-                console.error("Error notifying Slack about Twitter login:", notifyError);
               }
             }
           }
@@ -74,13 +61,18 @@ const AuthCallback = () => {
           setTimeout(() => window.location.href = '/', 1000);
         } else {
           setMessage("Authentication in progress...");
-          // If no session yet, try refreshing
+          // If no session yet, try checking again in a moment
           setTimeout(() => {
-            window.location.reload();
-          }, 2000);
+            supabase.auth.getSession().then(({ data }) => {
+              if (data.session) {
+                window.location.href = '/';
+              } else {
+                window.location.href = '/auth/login';
+              }
+            });
+          }, 3000);
         }
       } catch (err) {
-        console.error("Error in auth callback:", err);
         setMessage("An unexpected error occurred. Please try again.");
         setTimeout(() => window.location.href = '/auth/login', 2000);
       }

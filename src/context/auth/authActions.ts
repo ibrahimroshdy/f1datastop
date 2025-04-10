@@ -99,8 +99,7 @@ export const signInWithX = async (): Promise<void> => {
       provider: 'twitter',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        // OAuth 1.0a doesn't use scopes in the same way as OAuth 2.0
-        // Remove the scopes parameter
+        skipBrowserRedirect: false, // Ensure browser redirection happens
       },
     });
 
@@ -196,7 +195,15 @@ export const updateProfile = async (
 // New function to notify Slack about Twitter sign-ins
 export const notifySlackAboutTwitterSignin = async (user: any): Promise<void> => {
   try {
-    console.log("Sending Twitter signin notification to Slack...");
+    // Extract Twitter profile info from user metadata
+    const twitterHandle = user.user_metadata?.user_name || 
+                          user.user_metadata?.preferred_username || 
+                          user.user_metadata?.name?.replace(/\s+/g, '');
+                          
+    const fullName = user.user_metadata?.full_name || 
+                    user.user_metadata?.name || 
+                    twitterHandle || 
+                    'Twitter User';
     
     // Use a direct POST request to the Edge Function URL
     const functionURL = "https://envqfquhkcbnitwlzepx.functions.supabase.co/notify-slack";
@@ -204,31 +211,22 @@ export const notifySlackAboutTwitterSignin = async (user: any): Promise<void> =>
     const response = await fetch(functionURL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        type: "twitter_signup",
+        type: "signup",  // Edge function expects "signup" type
         userData: {
-          id: user.id,
-          email: user.email,
-          twitterHandle: user.user_metadata?.user_name || user.user_metadata?.preferred_username,
-          fullName: user.user_metadata?.full_name || user.user_metadata?.name,
-          provider: "twitter"
-        },
-      }),
+          firstName: fullName.split(' ')[0] || '',
+          lastName: fullName.split(' ').slice(1).join(' ') || '',
+          username: twitterHandle || fullName.replace(/\s+/g, ''),
+          email: user.email || `${twitterHandle || 'twitter_user'}@twitter.com`
+        }
+      })
     });
     
-    const notifyResult = await response.json();
-    console.log("Slack notification for Twitter signup:", notifyResult);
-    
-    if (!response.ok) {
-      console.error("Error in Twitter signup Slack notification:", notifyResult);
-    } else {
-      console.log("Twitter signup Slack notification sent successfully");
-    }
+    // No need to log the results
+    await response.json();
   } catch (slackError) {
-    // Don't fail the signup if the slack notification fails, just log it
-    console.error("Failed to send Twitter signup Slack notification:", slackError);
+    // Don't fail the signup if the slack notification fails
   }
 };
