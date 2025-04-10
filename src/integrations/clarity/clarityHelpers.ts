@@ -1,83 +1,51 @@
 /**
  * Utility functions for Microsoft Clarity heatmap tracking
+ * These functions are designed to work with the queuing system in ClarityProvider
  */
 
-// Queue to store events while Clarity is loading
-const eventQueue: Array<{ fn: string, args: any[] }> = [];
 // Flag to enable/disable Clarity tracking
 let clarityEnabled = true;
 // Flag to track if we're in verbose logging mode
 const verboseLogging = false;
 
 /**
- * Check if Clarity is available and initialized properly
+ * Check if Clarity is fully initialized
  */
-const isClarityAvailable = (): boolean => {
+const isFullyClarityAvailable = (): boolean => {
   return typeof window !== 'undefined' && 
          typeof window.clarity === 'function' && 
          clarityEnabled;
 };
 
 /**
- * Process any queued events once Clarity becomes available
+ * Check if at least the Clarity stub is available (for queueing)
  */
-const processQueue = () => {
-  if (!isClarityAvailable() || eventQueue.length === 0) return;
-  
-  try {
-    // Process all queued events
-    while (eventQueue.length > 0) {
-      const event = eventQueue.shift();
-      if (event) {
-        window.clarity(event.fn, ...event.args);
-      }
-    }
-  } catch (error) {
-    // If processing fails, disable Clarity to prevent further errors
-    clarityEnabled = false;
-    console.error('[Clarity] Error processing queue, disabling Clarity:', error);
-  }
+const isClarityStubAvailable = (): boolean => {
+  return typeof window !== 'undefined' && 
+         typeof window.clarity === 'function';
 };
-
-// Check queue periodically
-if (typeof window !== 'undefined') {
-  // Process queue when Clarity loads
-  const intervalId = setInterval(() => {
-    if (isClarityAvailable()) {
-      processQueue();
-      // Keep checking but less frequently once Clarity is available
-      clearInterval(intervalId);
-      setInterval(processQueue, 5000);
-    }
-  }, 1000);
-}
 
 /**
  * Safely execute a Clarity function, handling errors gracefully
- * Queues the event if Clarity is not yet available
+ * Works with the queueing system in ClarityProvider
  */
 const safeExecute = (fn: string, ...args: any[]): void => {
   // Skip if Clarity is explicitly disabled
   if (!clarityEnabled) return;
   
-  // If Clarity is not available, queue the event
-  if (!isClarityAvailable()) {
-    eventQueue.push({ fn, args });
-    if (verboseLogging && process.env.NODE_ENV === 'development') {
-      console.log(`[Clarity] Queued event: ${fn}`);
-    }
-    return;
-  }
-  
   try {
-    window.clarity(fn, ...args);
+    // Even if just the stub is available, it will queue the command
+    if (isClarityStubAvailable()) {
+      window.clarity(fn, ...args);
+      
+      if (verboseLogging && process.env.NODE_ENV === 'development') {
+        console.log(`[Clarity] ${isFullyClarityAvailable() ? 'Executed' : 'Queued'} event: ${fn}`);
+      }
+    }
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
-      console.error(`[Clarity] Error executing ${fn}:`, error);
+      console.error(`[Clarity] Error with ${fn}:`, error);
     }
-    
-    // Queue the event to try again later
-    eventQueue.push({ fn, args });
   }
 };
 
