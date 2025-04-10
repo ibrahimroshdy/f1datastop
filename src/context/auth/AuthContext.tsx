@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContextProps } from "./types";
@@ -9,7 +8,8 @@ import {
   signOut as signOutAction,
   deleteAccount as deleteAccountAction,
   updateProfile as updateProfileAction,
-  resetPassword as resetPasswordAction
+  resetPassword as resetPasswordAction,
+  signInWithX as signInWithXAction
 } from "./authActions";
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -54,6 +54,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await resetPasswordAction(email);
   };
 
+  const signInWithX = async (): Promise<void> => {
+    await signInWithXAction();
+  };
+
   const contextValue: AuthContextProps = {
     user,
     session,
@@ -61,6 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading,
     signUp,
     signIn,
+    signInWithX,
     signOut,
     deleteAccount,
     updateProfile,

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -89,6 +88,32 @@ export const signIn = async (email: string, password: string): Promise<void> => 
     toast.success("Login successful!");
   } catch (error: any) {
     console.error("Error during sign in:", error);
+    throw error;
+  }
+};
+
+export const signInWithX = async (): Promise<void> => {
+  try {
+    // Using OAuth 1.0a for X/Twitter authentication
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'twitter',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        // OAuth 1.0a doesn't use scopes in the same way as OAuth 2.0
+        // Remove the scopes parameter
+      },
+    });
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    // The user will be redirected to Twitter for authentication
+    // No success message needed here as the page will redirect
+  } catch (error: any) {
+    console.error("Error during X/Twitter sign in:", error);
+    toast.error("Failed to connect with X/Twitter");
     throw error;
   }
 };

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Twitter } from 'lucide-react';
 import f1Logo from '@/assets/f1-logo.svg';
 
 const Signup = () => {
@@ -20,7 +20,7 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { signUp } = useAuth();
+  const { signUp, signInWithX } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,6 +190,22 @@ const Signup = () => {
                 disabled={isLoading}
               >
                 {isLoading ? "Creating account..." : "Sign up"}
+              </Button>
+
+              {/* X/Twitter Signup Button */}
+              <div className="relative flex items-center justify-center mt-4">
+                <div className="absolute border-t border-gray-600 w-full"></div>
+                <span className="relative bg-f1-dark px-2 text-xs text-gray-400">OR</span>
+              </div>
+
+              <Button
+                type="button"
+                className="w-full mt-4 bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center"
+                onClick={() => signInWithX()}
+                disabled={isLoading}
+              >
+                <Twitter className="mr-2 h-4 w-4" />
+                Sign up with X
               </Button>
             </form>
           </CardContent>
