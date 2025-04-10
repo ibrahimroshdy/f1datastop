@@ -5,25 +5,19 @@
 
 // Messages to filter in console errors/warnings
 const ERROR_FILTERS = [
-  '[Clarity]',
-  'Firebase Analytics not initialized',
+  // Only filter errors, not successful messages
   'Cannot read properties of undefined (reading',
   'message port closed',
-  '[GA4 Error]',
   'Uncaught TypeError: Cannot read properties of undefined (reading \'unshift\')',
   'The message port closed before a response was received',
-  'r25ms3yolv', // Hide project ID from logs
-  'clarity.ms', // Filter out any clarity domain references
-  'www.clarity.ms', // Filter out any clarity domain references
-  'clarity_', // Filter anything related to clarity variables
-  'unshift', // Specifically filter unshift errors
-  'Error sending message to extension', // Common extension errors
-  'message port', // Filter message port errors
-  'Failed to execute \'postMessage\' on \'MessagePort\'', // Filter specific message port errors
-  'Prevented unshift on non-array', // Filter our custom warnings
-  'Prevented null error for', // Filter our custom warnings
-  'AAAA-BBBB-CCCC' // Filter any generic project ID pattern
+  'Error sending message to extension',
+  'Failed to execute \'postMessage\' on \'MessagePort\'',
+  'Prevented unshift on non-array',
+  'Prevented null error for'
 ];
+
+// Project ID to redact from logs (don't filter the entire message)
+const PROJECT_ID = 'r25ms3yolv';
 
 /**
  * Initialize console filters to silence common errors/warnings
@@ -32,11 +26,8 @@ const ERROR_FILTERS = [
 export const initConsoleFilters = (): void => {
   if (typeof window === 'undefined') return;
   
-  // Only apply in non-development environments
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[ErrorFilter] Not filtering console in development mode');
-    return;
-  }
+  // Allow both development and production logging to see if it's working
+  // Only redact sensitive information
   
   // Store original console methods
   const originalError = console.error;
@@ -47,10 +38,16 @@ export const initConsoleFilters = (): void => {
   console.error = function(msg: any, ...args: any[]) {
     // Filter out common errors
     if (typeof msg === 'string') {
+      // Check for specific error patterns that we want to suppress
       for (const filter of ERROR_FILTERS) {
         if (msg.includes(filter)) {
-          return; // Silently drop the error
+          return; // Silently drop these specific errors
         }
+      }
+      
+      // Redact project ID but still show the message
+      if (msg.includes(PROJECT_ID)) {
+        msg = msg.replace(new RegExp(PROJECT_ID, 'g'), '[CLARITY-ID]');
       }
     }
     
@@ -60,36 +57,28 @@ export const initConsoleFilters = (): void => {
   
   // Override console.warn
   console.warn = function(msg: any, ...args: any[]) {
-    // Filter out common warnings
-    if (typeof msg === 'string') {
-      for (const filter of ERROR_FILTERS) {
-        if (msg.includes(filter)) {
-          return; // Silently drop the warning
-        }
-      }
+    // Don't completely filter warnings, just redact sensitive info
+    if (typeof msg === 'string' && msg.includes(PROJECT_ID)) {
+      msg = msg.replace(new RegExp(PROJECT_ID, 'g'), '[CLARITY-ID]');
     }
     
-    // Log everything else
+    // Log all warnings
     originalWarn.apply(console, [msg, ...args]);
   };
   
-  // Override console.log to filter out certain messages
+  // Override console.log to redact sensitive info but show success messages
   console.log = function(msg: any, ...args: any[]) {
-    // Filter out logs containing sensitive info
-    if (typeof msg === 'string') {
-      for (const filter of ERROR_FILTERS) {
-        if (msg.includes(filter)) {
-          return; // Silently drop the log
-        }
-      }
+    // Only redact project ID
+    if (typeof msg === 'string' && msg.includes(PROJECT_ID)) {
+      msg = msg.replace(new RegExp(PROJECT_ID, 'g'), '[CLARITY-ID]');
     }
     
-    // Log everything else
+    // Log all messages (important for seeing success)
     originalLog.apply(console, [msg, ...args]);
   };
   
-  // Log that filters have been applied (without project IDs)
-  originalLog.apply(console, ['[ErrorFilter] Console filters applied']);
+  // Log that filters have been applied
+  originalLog.apply(console, ['[ErrorFilter] Console filters applied - monitoring Clarity status']);
 };
 
 export default initConsoleFilters; 

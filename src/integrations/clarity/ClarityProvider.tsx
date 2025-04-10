@@ -12,6 +12,7 @@ declare global {
     clarityQueue?: any[];
     clarity_c?: any[];
     __CLARITY_SAFETY_INTERVAL__?: number;
+    testClarity?: () => boolean;
   }
 }
 
@@ -27,9 +28,8 @@ const ClarityProvider = ({ children, projectId }: ClarityProviderProps) => {
     // Skip if already initialized
     if (isInitialized || hasError) return;
 
-    // Prevent excessive logging in development
-    const isDev = process.env.NODE_ENV === 'development';
-    const logInfo = isDev ? (msg: string) => {} : () => {};
+    // Always log for debugging
+    console.log('[Clarity] Starting initialization...');
     
     try {
       // IMPORTANT: Ensure all Clarity globals are defined BEFORE loading the script
@@ -38,6 +38,7 @@ const ClarityProvider = ({ children, projectId }: ClarityProviderProps) => {
       safetyScript.type = 'text/javascript';
       safetyScript.innerHTML = `
         // Define all possible arrays that Clarity might need
+        console.log('[Clarity] Setting up safety handlers...');
         window.clarityQueue = window.clarityQueue || [];
         window.clarity_c = window.clarity_c || [];
         
@@ -111,6 +112,7 @@ const ClarityProvider = ({ children, projectId }: ClarityProviderProps) => {
             ensureArrayMethods();
             // Store calls to be processed once real clarity loads
             (window.clarityQueue = window.clarityQueue || []).push(arguments);
+            console.log('[Clarity] Command queued for later:', arguments[0]);
           } catch (e) {
             console.warn('[Clarity] Queue error prevented');
           }
@@ -127,6 +129,8 @@ const ClarityProvider = ({ children, projectId }: ClarityProviderProps) => {
             }
           }
         }, true);
+        
+        console.log('[Clarity] Safety handlers initialized successfully');
       `;
       
       // Add this script BEFORE any other scripts
@@ -135,6 +139,8 @@ const ClarityProvider = ({ children, projectId }: ClarityProviderProps) => {
       } else {
         document.head.appendChild(safetyScript);
       }
+      
+      console.log('[Clarity] Loading main script...');
       
       // Load the Clarity script with a version parameter to avoid caching
       const script = document.createElement('script');
@@ -148,6 +154,7 @@ const ClarityProvider = ({ children, projectId }: ClarityProviderProps) => {
       // Add global error handler for script errors
       const handleScriptError = (event: ErrorEvent) => {
         if (event.filename && event.filename.includes('clarity')) {
+          console.error('[Clarity] Script error:', event.message);
           // Prevent the error from propagating
           event.preventDefault();
           setHasError(true); // Mark as errored to avoid retrying
@@ -159,6 +166,7 @@ const ClarityProvider = ({ children, projectId }: ClarityProviderProps) => {
           event.message.includes('unshift') || 
           event.message.includes('message port closed')
         )) {
+          console.warn('[Clarity] Non-critical error ignored:', event.message);
           event.preventDefault();
           return true;
         }
@@ -171,19 +179,46 @@ const ClarityProvider = ({ children, projectId }: ClarityProviderProps) => {
       script.onload = () => {
         // Successfully loaded
         setIsInitialized(true);
-        logInfo('Clarity initialized successfully');
+        console.log('[Clarity] Script loaded successfully!');
         
         // Initialize Clarity using our helper (as a backup)
         try {
           initClarity(projectId);
+          
+          // Set a custom tag to verify tracking is working
+          if (window.clarity) {
+            window.clarity('set', 'clarity_verification', 'true');
+            console.log('[Clarity] Set verification tag to confirm tracking is active');
+          }
+          
+          // Add a way to test if Clarity is collecting data
+          window.testClarity = function() {
+            try {
+              if (window.clarity) {
+                window.clarity('event', 'test_event');
+                window.clarity('set', 'test_tag', 'test_value');
+                console.log('[Clarity] Test event sent successfully!');
+                console.log('[Clarity] Clarity is installed and working correctly');
+                return true;
+              } else {
+                console.error('[Clarity] Clarity object not found');
+                return false;
+              }
+            } catch (e) {
+              console.error('[Clarity] Test failed:', e);
+              return false;
+            }
+          };
+          
+          console.log('[Clarity] You can run window.testClarity() in the console to verify Clarity is working');
         } catch (err) {
-          // Silently fail
+          console.error('[Clarity] Error during initialization:', err);
         }
       };
       
-      script.onerror = () => {
+      script.onerror = (error) => {
         setHasError(true);
-        console.error('[Clarity] Failed to load script');
+        console.error('[Clarity] Failed to load script:', error);
         window.removeEventListener('error', handleScriptError, true);
       };
       
@@ -206,10 +241,12 @@ const ClarityProvider = ({ children, projectId }: ClarityProviderProps) => {
           clearInterval(window.__CLARITY_SAFETY_INTERVAL__);
           delete window.__CLARITY_SAFETY_INTERVAL__;
         }
+        
+        window.removeEventListener('error', handleScriptError, true);
       };
     } catch (error) {
       setHasError(true);
-      console.error('[Clarity] Error during initialization');
+      console.error('[Clarity] Error during initialization:', error);
     }
   }, [projectId, isInitialized, hasError]);
 

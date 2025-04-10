@@ -190,4 +190,61 @@ export const trackF1Event = (
   }
   
   trackEvent(`f1_${category}_${action}`);
+};
+
+/**
+ * Check if Clarity is correctly installed and functioning
+ * @returns An object with status information
+ */
+export const checkClarityStatus = (): {
+  isAvailable: boolean;
+  isLoaded: boolean;
+  hasQueue: boolean;
+  queueLength: number;
+  isFullyFunctional: boolean;
+  isNpmPackageAvailable: boolean;
+} => {
+  if (typeof window === 'undefined') {
+    return {
+      isAvailable: false,
+      isLoaded: false,
+      hasQueue: false,
+      queueLength: 0,
+      isFullyFunctional: false,
+      isNpmPackageAvailable: false
+    };
+  }
+  
+  const clarityExists = typeof window.clarity === 'function';
+  const queueExists = Array.isArray(window.clarityQueue);
+  const queueLength = queueExists ? window.clarityQueue.length : 0;
+  const npmPackageAvailable = typeof clarityPackage !== 'undefined';
+  
+  console.log('[Clarity Status Check]', {
+    clarityExists,
+    queueExists,
+    queueLength,
+    npmPackageAvailable
+  });
+  
+  // Test if Clarity is fully functional by trying to set a tag
+  let isFullyFunctional = false;
+  if (clarityExists) {
+    try {
+      window.clarity('set', 'status_check', 'true');
+      isFullyFunctional = true;
+      console.log('[Clarity] Successfully set status_check tag - tracking is working!');
+    } catch (error) {
+      console.error('[Clarity] Failed to set tag:', error);
+    }
+  }
+  
+  return {
+    isAvailable: clarityExists,
+    isLoaded: clarityExists,
+    hasQueue: queueExists,
+    queueLength,
+    isFullyFunctional,
+    isNpmPackageAvailable: npmPackageAvailable
+  };
 }; 

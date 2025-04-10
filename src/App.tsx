@@ -11,6 +11,7 @@ import { supabase } from "./integrations/supabase/client";
 import { notifySlackAboutTwitterSignin } from "./context/auth/authActions";
 import AnalyticsProvider from "./integrations/google-analytics/AnalyticsProvider";
 import ClarityProvider from "./integrations/clarity/ClarityProvider";
+import ClarityStatus from "./components/dev/ClarityStatus";
 import initConsoleFilters from "./utils/errorFilter";
 import Index from "./pages/Index";
 import RaceCalendar from "./pages/RaceCalendar";
@@ -29,6 +30,9 @@ import Privacy from "./pages/Privacy";
 if (typeof window !== 'undefined') {
   initConsoleFilters();
 }
+
+// Clarity project ID - make it a constant to ensure consistency
+const CLARITY_PROJECT_ID = 'r25ms3yolv';
 
 // Create a simple Auth callback handler component
 const AuthCallback = () => {
@@ -128,10 +132,14 @@ const App = () => (
         <AuthProvider>
           <TooltipProvider>
             <ErrorBoundaryWrapper>
-              <ClarityProvider projectId="r25ms3yolv">
+              <ClarityProvider projectId={CLARITY_PROJECT_ID}>
                 <AnalyticsProvider>
                   <Toaster />
                   <Sonner />
+                  {/* Only show ClarityStatus in development */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <ClarityStatus projectId={CLARITY_PROJECT_ID} />
+                  )}
                   <Routes>
                     {/* Public Routes */}
                     <Route path="/" element={<Index />} />
