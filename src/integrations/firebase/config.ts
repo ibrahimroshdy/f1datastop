@@ -13,20 +13,38 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-1Y6GKNVD2J'
 };
 
+// Check if we have a valid API key (non-placeholder)
+const hasValidApiKey = () => {
+  const apiKey = firebaseConfig.apiKey;
+  return apiKey && apiKey !== 'AIzaSyDzh-EESKJn0HfNBRBH2F4e6N83Qb9bw0A';
+};
+
 // Initialize Firebase
-export const app = initializeApp(firebaseConfig);
+export const app = hasValidApiKey() ? initializeApp(firebaseConfig) : null;
 
 // Initialize Analytics
 export const initAnalytics = () => {
-  // Only initialize analytics in browser environments
-  if (typeof window !== 'undefined') {
+  // Only initialize analytics in browser environments and if we have a valid API key
+  if (typeof window !== 'undefined' && app) {
     try {
-      return getAnalytics(app);
+      const analytics = getAnalytics(app);
+      
+      // Configure analytics settings if needed
+      // Note: We're not using setConsent as it requires specific implementation
+      
+      return analytics;
     } catch (error) {
       console.error('Failed to initialize Firebase Analytics:', error);
       return null;
     }
   }
+  
+  // Return null when not in browser or no valid API key
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Firebase Analytics not initialized: ' + 
+      (!app ? 'Missing valid API key' : 'Not in browser environment'));
+  }
+  
   return null;
 };
 

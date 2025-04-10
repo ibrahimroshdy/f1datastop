@@ -94,6 +94,16 @@ const AuthCallback = () => {
   );
 };
 
+// Error boundary for analytics providers
+const ErrorBoundaryWrapper = ({ children }: { children: React.ReactNode }) => {
+  try {
+    return <>{children}</>;
+  } catch (error) {
+    console.error('Error in analytics providers:', error);
+    return <>{children}</>;
+  }
+};
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -110,35 +120,37 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <TooltipProvider>
-            <ClarityProvider projectId="r25ms3yolv">
-              <AnalyticsProvider>
-                <Toaster />
-                <Sonner />
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/" element={<Index />} />
-                  <Route path="/calendar" element={<RaceCalendar />} />
-                  <Route path="/auth/callback" element={<AuthCallback />} />
-                  <Route path="*" element={<NotFound />} />
-                  
-                  {/* Auth routes (only accessible if not logged in) */}
-                  <Route element={<PublicOnlyRoute />}>
-                    <Route path="/auth/login" element={<Login />} />
-                    <Route path="/auth/signup" element={<Signup />} />
-                    <Route path="/auth/reset-password" element={<ResetPassword />} />
-                  </Route>
-                  
-                  {/* Protected routes with blur effect for non-authenticated users */}
-                  <Route element={<ProtectedRoute />}>
-                    <Route path="/analytics" element={<Analytics />} />
-                    <Route path="/race-analysis/:year/:round" element={<RaceAnalysisPage />} />
-                    <Route path="/drivers" element={<Drivers />} />
-                    <Route path="/constructors" element={<Constructors />} />
-                    <Route path="/profile" element={<Profile />} />
-                  </Route>
-                </Routes>
-              </AnalyticsProvider>
-            </ClarityProvider>
+            <ErrorBoundaryWrapper>
+              <ClarityProvider projectId="r25ms3yolv">
+                <AnalyticsProvider>
+                  <Toaster />
+                  <Sonner />
+                  <Routes>
+                    {/* Public Routes */}
+                    <Route path="/" element={<Index />} />
+                    <Route path="/calendar" element={<RaceCalendar />} />
+                    <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="*" element={<NotFound />} />
+                    
+                    {/* Auth routes (only accessible if not logged in) */}
+                    <Route element={<PublicOnlyRoute />}>
+                      <Route path="/auth/login" element={<Login />} />
+                      <Route path="/auth/signup" element={<Signup />} />
+                      <Route path="/auth/reset-password" element={<ResetPassword />} />
+                    </Route>
+                    
+                    {/* Protected routes with blur effect for non-authenticated users */}
+                    <Route element={<ProtectedRoute />}>
+                      <Route path="/analytics" element={<Analytics />} />
+                      <Route path="/race-analysis/:year/:round" element={<RaceAnalysisPage />} />
+                      <Route path="/drivers" element={<Drivers />} />
+                      <Route path="/constructors" element={<Constructors />} />
+                      <Route path="/profile" element={<Profile />} />
+                    </Route>
+                  </Routes>
+                </AnalyticsProvider>
+              </ClarityProvider>
+            </ErrorBoundaryWrapper>
           </TooltipProvider>
         </AuthProvider>
       </BrowserRouter>

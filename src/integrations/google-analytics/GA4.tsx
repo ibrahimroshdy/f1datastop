@@ -22,10 +22,19 @@ declare global {
 
 // Initialize Google Analytics
 export const initializeGA = () => {
+  // Skip if already initialized
+  if (window.gtag) return;
+  
   // Create script for Google Analytics
   const gtagScript = document.createElement('script');
   gtagScript.async = true;
   gtagScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  
+  // Handle script load errors
+  gtagScript.onerror = () => {
+    console.error('[GA4] Failed to load Google Analytics script');
+  };
+  
   document.head.appendChild(gtagScript);
 
   // Initialize the dataLayer
@@ -54,13 +63,20 @@ const getUserId = (): string | undefined => {
 
 // Helper function to track page views
 export const trackPageView = (url: string) => {
-  if (!window.gtag) return;
-  window.gtag('event', 'page_view', {
-    page_path: url,
-    page_location: window.location.href,
-    page_title: document.title,
-    send_to: GA_MEASUREMENT_ID
-  });
+  if (!window.gtag) {
+    initializeGA(); // Initialize if not done yet
+  }
+  
+  try {
+    window.gtag('event', 'page_view', {
+      page_path: url,
+      page_location: window.location.href,
+      page_title: document.title,
+      send_to: GA_MEASUREMENT_ID
+    });
+  } catch (error) {
+    console.error('[GA4] Error tracking page view:', error);
+  }
 };
 
 // Helper function to track events
@@ -68,26 +84,34 @@ export const trackEvent = (
   eventName: string, 
   eventParams?: Record<string, any>
 ) => {
-  if (!window.gtag) return;
-  
-  // Log event in development environment
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[GA4 Event]', eventName, eventParams);
+  if (!window.gtag) {
+    initializeGA(); // Initialize if not done yet
   }
   
-  // Include timestamp if not provided
-  const params = {
-    ...eventParams,
-    timestamp: eventParams?.timestamp || new Date().toISOString(),
-    send_to: GA_MEASUREMENT_ID
-  };
-  
-  window.gtag('event', eventName, params);
+  try {
+    // Log event in development environment
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[GA4 Direct Event]', eventName, eventParams);
+    }
+    
+    // Include timestamp if not provided
+    const params = {
+      ...eventParams,
+      timestamp: eventParams?.timestamp || new Date().toISOString(),
+      send_to: GA_MEASUREMENT_ID
+    };
+    
+    window.gtag('event', eventName, params);
+  } catch (error) {
+    console.error('[GA4] Error tracking event:', error);
+  }
 };
 
 // Set user ID when known
 export const setUserId = (userId: string) => {
-  if (!window.gtag) return;
+  if (!window.gtag) {
+    initializeGA(); // Initialize if not done yet
+  }
   
   try {
     // Store in localStorage for future visits
@@ -104,7 +128,7 @@ export const setUserId = (userId: string) => {
       }
     });
   } catch (e) {
-    console.error('Error setting user ID', e);
+    console.error('[GA4] Error setting user ID', e);
   }
 };
 
@@ -114,14 +138,16 @@ const GoogleAnalytics = () => {
   
   useEffect(() => {
     // Initialize GA on first render
-    if (!window.gtag) {
+    if (typeof window !== 'undefined' && !window.gtag) {
       initializeGA();
     }
   }, []);
   
   useEffect(() => {
     // Track page views on route change
-    trackPageView(location.pathname + location.search);
+    if (typeof window !== 'undefined') {
+      trackPageView(location.pathname + location.search);
+    }
   }, [location]);
   
   return null; // This component doesn't render anything

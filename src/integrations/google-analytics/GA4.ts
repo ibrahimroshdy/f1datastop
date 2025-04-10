@@ -1,6 +1,9 @@
 import { getAnalytics, logEvent, isSupported } from 'firebase/analytics';
 import { app } from '../firebase/config';
 
+// Flag to always use direct gtag.js without Firebase
+let useDirectGtag = true;
+
 /**
  * Track an event in Google Analytics
  * @param eventName The name of the event to track
@@ -8,20 +11,50 @@ import { app } from '../firebase/config';
  */
 export const trackEvent = async (eventName: string, eventParams?: Record<string, any>): Promise<void> => {
   try {
+    // Always use direct gtag implementation for now
+    // This avoids Firebase initialization errors
+    if (useDirectGtag) {
+      if (typeof window !== 'undefined' && window.gtag) {
+        window.gtag('event', eventName, eventParams);
+        
+        // Only log in development if it's not a common event
+        if (process.env.NODE_ENV === 'development' && 
+            !eventName.includes('page_engagement') && 
+            !eventName.includes('time_on_page') && 
+            !eventName.includes('scroll_depth')) {
+          console.log('[GA4 Direct Event]', eventName);
+        }
+      }
+      return;
+    }
+
+    // The following code is disabled by default but kept for reference
+    // in case you want to re-enable Firebase Analytics later
+    
+    // Check if app is available (if not, we have no valid Firebase config)
+    if (!app) {
+      return;
+    }
+
     // Check if analytics is supported in this environment
     if (await isSupported()) {
       const analytics = getAnalytics(app);
       logEvent(analytics, eventName, eventParams);
-      
-      // Log to console in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[GA4 Event]', eventName, eventParams);
-      }
     }
   } catch (error) {
-    // Silent fail in production, log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[GA4 Error]', error);
+    // Switch to direct gtag permanently after any error
+    useDirectGtag = true;
+    
+    // Try direct gtag as fallback (silently)
+    if (typeof window !== 'undefined' && window.gtag) {
+      try {
+        window.gtag('event', eventName, eventParams);
+      } catch (e) {
+        // Silent fail in production
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[GA4] Failed to track event via gtag:', e);
+        }
+      }
     }
   }
 };
