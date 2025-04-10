@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SUPABASE_FUNCTIONS } from "@/constants/apiConfig";
 
 export const signUp = async (
   email: string,
@@ -28,13 +29,8 @@ export const signUp = async (
 
     // Notify Slack about the new signup
     try {
-      console.log("Sending signup notification to Slack...");
-      console.log("Signup data:", { email, username, firstName, lastName });
-      
       // Use a direct POST request to the Edge Function URL instead of invoke
-      const functionURL = "https://envqfquhkcbnitwlzepx.supabase.co/functions/v1/notify-slack";
-      
-      const response = await fetch(functionURL, {
+      const response = await fetch(SUPABASE_FUNCTIONS.NOTIFY_SLACK, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,12 +48,9 @@ export const signUp = async (
       });
       
       const notifyResult = await response.json();
-      console.log("Slack notification direct response:", notifyResult);
       
       if (!response.ok) {
         console.error("Error in Slack notification direct response:", notifyResult);
-      } else {
-        console.log("Slack notification sent successfully via direct call");
       }
     } catch (slackError) {
       // Don't fail the signup if the slack notification fails, just log it
@@ -195,31 +188,21 @@ export const updateProfile = async (
 // New function to notify Slack about Twitter sign-ins
 export const notifySlackAboutTwitterSignin = async (user: any): Promise<void> => {
   try {
-    // Extract Twitter profile info from user metadata
-    const twitterHandle = user.user_metadata?.user_name || 
-                          user.user_metadata?.preferred_username || 
-                          user.user_metadata?.name?.replace(/\s+/g, '');
-                          
-    const fullName = user.user_metadata?.full_name || 
-                    user.user_metadata?.name || 
-                    twitterHandle || 
-                    'Twitter User';
-    
-    // Use a direct POST request to the Edge Function URL
-    const functionURL = "https://envqfquhkcbnitwlzepx.functions.supabase.co/notify-slack";
-    
-    const response = await fetch(functionURL, {
+    // Format the data according to what the Edge Function expects
+    const response = await fetch(SUPABASE_FUNCTIONS.NOTIFY_SLACK, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        type: "signup",  // Edge function expects "signup" type
+        type: "signup",
         userData: {
-          firstName: fullName.split(' ')[0] || '',
-          lastName: fullName.split(' ').slice(1).join(' ') || '',
-          username: twitterHandle || fullName.replace(/\s+/g, ''),
-          email: user.email || `${twitterHandle || 'twitter_user'}@twitter.com`
+          // Pass the entire user object with metadata
+          ...user,
+          // These fields are expected by your Edge Function
+          email: user.email || `${user.user_metadata?.preferred_username || 'twitter_user'}@twitter.com`,
+          username: user.user_metadata?.preferred_username || user.user_metadata?.user_name,
+          provider: "twitter"
         }
       })
     });
