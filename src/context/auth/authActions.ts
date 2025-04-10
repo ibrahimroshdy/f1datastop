@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SUPABASE_FUNCTIONS } from "@/constants/apiConfig";
+import { trackLogin, trackSignup } from '@/integrations/google-analytics/GA4';
 
 export const signUp = async (
   email: string,
@@ -63,6 +64,9 @@ export const signUp = async (
       throw error;
     }
 
+    // Track successful signup with email method
+    trackSignup('email');
+
     // Notify Slack about the new signup
     try {
       // Use a direct POST request to the Edge Function URL instead of invoke
@@ -104,7 +108,6 @@ export const signUp = async (
 
 export const signIn = async (email: string, password: string): Promise<void> => {
   try {
-    // Direct login with email
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -115,37 +118,35 @@ export const signIn = async (email: string, password: string): Promise<void> => 
       throw error;
     }
 
-    toast.success("Login successful!");
+    // Track successful login with email method
+    trackLogin('email');
+    
+    toast.success('Logged in successfully');
   } catch (error: any) {
-    console.error("Error during sign in:", error);
+    // Just rethrow for the UI to handle
     throw error;
   }
 };
 
 export const signInWithX = async (): Promise<void> => {
   try {
-    // Using OAuth 1.0a for X/Twitter authentication
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'twitter',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        skipBrowserRedirect: false, // Ensure browser redirection happens
-      },
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
     });
 
     if (error) {
       toast.error(error.message);
       throw error;
     }
-
-    // The user will be redirected to Twitter for authentication
-    // No success message needed here as the page will redirect
     
-    // Note: We can't notify Slack here because the user hasn't authenticated yet
-    // The notification will be sent from the AuthCallback component
+    // Track login attempt with Twitter
+    // Note: full tracking will happen after redirect
+    trackLogin('twitter');
   } catch (error: any) {
-    console.error("Error during X/Twitter sign in:", error);
-    toast.error("Failed to connect with X/Twitter");
+    toast.error(error.message || "Failed to sign in with Twitter");
     throw error;
   }
 };

@@ -1,6 +1,7 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { trackEvent } from '@/integrations/google-analytics/GA4';
+import useAnalytics from '@/hooks/useAnalytics';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 const Profile = () => {
   const { user, profile, updateProfile, deleteAccount, signOut } = useAuth();
+  const analytics = useAnalytics();
   
   const [formData, setFormData] = useState({
     username: profile?.username || '',
@@ -19,6 +21,14 @@ const Profile = () => {
   });
   
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Track profile page view
+  useEffect(() => {
+    trackEvent('profile_view', {
+      user_type: user?.app_metadata?.provider || 'email',
+      is_completed: !!user?.user_metadata?.first_name
+    });
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -35,6 +45,11 @@ const Profile = () => {
         first_name: formData.first_name,
         last_name: formData.last_name
       });
+      
+      // Track profile update event
+      analytics.trackInteraction('profile_update', 'click', {
+        fields_updated: ['first_name', 'last_name', 'username']
+      });
     } catch (error) {
       console.error('Error updating profile:', error);
     } finally {
@@ -48,6 +63,17 @@ const Profile = () => {
       return `${profile.first_name.charAt(0)}${profile.last_name.charAt(0)}`.toUpperCase();
     }
     return user?.email?.charAt(0).toUpperCase() || '?';
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      await deleteAccount();
+      
+      // Track account deletion event
+      analytics.trackInteraction('account_deletion', 'click');
+    } catch (error) {
+      console.error('Error deleting account:', error);
+    }
   };
 
   return (
@@ -87,7 +113,7 @@ const Profile = () => {
                       <AlertDialogCancel className="bg-gray-800 hover:bg-gray-700">Cancel</AlertDialogCancel>
                       <AlertDialogAction 
                         className="bg-red-600 hover:bg-red-700" 
-                        onClick={deleteAccount}
+                        onClick={handleDeleteAccount}
                       >
                         Delete Account
                       </AlertDialogAction>

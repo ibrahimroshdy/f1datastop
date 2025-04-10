@@ -9,6 +9,7 @@ import { ProtectedRoute, PublicOnlyRoute } from "@/components/auth/ProtectedRout
 import { useState, useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
 import { notifySlackAboutTwitterSignin } from "./context/auth/authActions";
+import AnalyticsProvider from "./integrations/google-analytics/AnalyticsProvider";
 import Index from "./pages/Index";
 import RaceCalendar from "./pages/RaceCalendar";
 import Analytics from "./pages/Analytics";
@@ -108,31 +109,33 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/calendar" element={<RaceCalendar />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="*" element={<NotFound />} />
-              
-              {/* Auth routes (only accessible if not logged in) */}
-              <Route element={<PublicOnlyRoute />}>
-                <Route path="/auth/login" element={<Login />} />
-                <Route path="/auth/signup" element={<Signup />} />
-                <Route path="/auth/reset-password" element={<ResetPassword />} />
-              </Route>
-              
-              {/* Protected routes with blur effect for non-authenticated users */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/race-analysis/:year/:round" element={<RaceAnalysisPage />} />
-                <Route path="/drivers" element={<Drivers />} />
-                <Route path="/constructors" element={<Constructors />} />
-                <Route path="/profile" element={<Profile />} />
-              </Route>
-            </Routes>
+            <AnalyticsProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/calendar" element={<RaceCalendar />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="*" element={<NotFound />} />
+                
+                {/* Auth routes (only accessible if not logged in) */}
+                <Route element={<PublicOnlyRoute />}>
+                  <Route path="/auth/login" element={<Login />} />
+                  <Route path="/auth/signup" element={<Signup />} />
+                  <Route path="/auth/reset-password" element={<ResetPassword />} />
+                </Route>
+                
+                {/* Protected routes with blur effect for non-authenticated users */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/race-analysis/:year/:round" element={<RaceAnalysisPage />} />
+                  <Route path="/drivers" element={<Drivers />} />
+                  <Route path="/constructors" element={<Constructors />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
+              </Routes>
+            </AnalyticsProvider>
           </TooltipProvider>
         </AuthProvider>
       </BrowserRouter>

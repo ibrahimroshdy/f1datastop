@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Trophy } from "lucide-react";
@@ -12,6 +11,7 @@ import ConstructorStandingsCard from "@/components/dashboard/ConstructorStanding
 import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
 import RaceScheduleContent from "@/components/dashboard/RaceScheduleContent";
 import ConstructorStandingsContent from "@/components/dashboard/ConstructorStandingsContent";
+import useAnalytics from '@/hooks/useAnalytics';
 
 const Index = () => {
   const {
@@ -34,16 +34,36 @@ const Index = () => {
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading;
   const [isOffline, setIsOffline] = useState(false);
 
+  const analytics = useAnalytics();
+
   useEffect(() => {
     if (driverStandings?.error || constructorStandings?.error || raceSchedule?.error || lastRaceResults?.error) {
       setIsOffline(true);
     }
   }, [driverStandings, constructorStandings, raceSchedule, lastRaceResults]);
 
+  useEffect(() => {
+    analytics.trackContentView(
+      'home_dashboard', 
+      'page', 
+      'F1 DataStop Homepage'
+    );
+  }, [analytics]);
+
   const nextRace = raceSchedule?.data?.find(race => {
     const raceDate = new Date(race.date + "T" + (race.time || "00:00:00Z"));
     return raceDate > new Date();
   });
+
+  const handleRaceClick = (raceId: string, raceName: string) => {
+    analytics.trackF1Event('race_selection', raceName, {
+      race_id: raceId
+    });
+  };
+
+  const handleFeatureClick = (featureName: string) => {
+    analytics.trackInteraction(`feature_${featureName}`, 'click');
+  };
 
   return (
     <MainLayout>
@@ -83,20 +103,34 @@ const Index = () => {
             
             <Tabs defaultValue="schedule">
               <TabsList className="bg-gray-800">
-                <TabsTrigger value="schedule" className="data-[state=active]:bg-f1-red">Race Schedule</TabsTrigger>
-                <TabsTrigger value="constructors" className="data-[state=active]:bg-f1-red">Constructor Standings</TabsTrigger>
+                <TabsTrigger 
+                  value="schedule" 
+                  className="data-[state=active]:bg-f1-red"
+                  onClick={() => handleFeatureClick('schedule_tab')}
+                >
+                  Race Schedule
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="constructors" 
+                  className="data-[state=active]:bg-f1-red"
+                  onClick={() => handleFeatureClick('constructors_tab')}
+                >
+                  Constructor Standings
+                </TabsTrigger>
               </TabsList>
+              
               <TabsContent value="schedule" className="bg-gray-900 rounded-lg border border-gray-800 p-4 mt-4">
                 <RaceScheduleContent 
                   raceSchedule={raceSchedule} 
                   nextRace={nextRace} 
-                  getCountryFlag={getCountryFlag} 
+                  getCountryFlag={getCountryFlag}
                 />
               </TabsContent>
+              
               <TabsContent value="constructors" className="bg-gray-900 rounded-lg border border-gray-800 p-4 mt-4">
                 <ConstructorStandingsContent 
                   constructorStandings={constructorStandings} 
-                  getTeamColor={getTeamColor} 
+                  getTeamColor={getTeamColor}
                 />
               </TabsContent>
             </Tabs>
