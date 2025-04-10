@@ -43,6 +43,7 @@ export const signUp = async (
             username,
             firstName,
             lastName,
+            provider: "email"
           },
         }),
       });
