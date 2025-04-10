@@ -188,28 +188,47 @@ export const updateProfile = async (
 // New function to notify Slack about Twitter sign-ins
 export const notifySlackAboutTwitterSignin = async (user: any): Promise<void> => {
   try {
+    // Extract necessary data from the user object
+    const twitterUsername = user.user_metadata?.preferred_username || 
+                          user.user_metadata?.user_name || 
+                          user.user_metadata?.name || 
+                          'twitter_user';
+    
+    const fullName = user.user_metadata?.full_name || 
+                    user.user_metadata?.name || 
+                    twitterUsername;
+    
+    const firstName = fullName.split(' ')[0] || '';
+    const lastName = fullName.split(' ').slice(1).join(' ') || '';
+    
     // Format the data according to what the Edge Function expects
+    const payload = {
+      type: "signup",
+      userData: {
+        firstName,
+        lastName,
+        username: twitterUsername,
+        email: user.email || `${twitterUsername}@twitter.com`,
+        provider: "twitter"
+      }
+    };
+    
+    // Send POST request with properly formatted JSON
     const response = await fetch(SUPABASE_FUNCTIONS.NOTIFY_SLACK, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        type: "signup",
-        userData: {
-          // Pass the entire user object with metadata
-          ...user,
-          // These fields are expected by your Edge Function
-          email: user.email || `${user.user_metadata?.preferred_username || 'twitter_user'}@twitter.com`,
-          username: user.user_metadata?.preferred_username || user.user_metadata?.user_name,
-          provider: "twitter"
-        }
-      })
+      body: JSON.stringify(payload)
     });
     
-    // No need to log the results
-    await response.json();
+    // Check for successful response
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Slack notification failed:", errorText);
+    }
   } catch (slackError) {
     // Don't fail the signup if the slack notification fails
+    console.error("Twitter notification error:", slackError);
   }
 };
