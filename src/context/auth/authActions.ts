@@ -111,6 +111,9 @@ export const signInWithX = async (): Promise<void> => {
 
     // The user will be redirected to Twitter for authentication
     // No success message needed here as the page will redirect
+    
+    // Note: We can't notify Slack here because the user hasn't authenticated yet
+    // The notification will be sent from the AuthCallback component
   } catch (error: any) {
     console.error("Error during X/Twitter sign in:", error);
     toast.error("Failed to connect with X/Twitter");
@@ -187,5 +190,45 @@ export const updateProfile = async (
   } catch (error: any) {
     console.error("Error updating profile:", error);
     throw error;
+  }
+};
+
+// New function to notify Slack about Twitter sign-ins
+export const notifySlackAboutTwitterSignin = async (user: any): Promise<void> => {
+  try {
+    console.log("Sending Twitter signin notification to Slack...");
+    
+    // Use a direct POST request to the Edge Function URL
+    const functionURL = "https://envqfquhkcbnitwlzepx.functions.supabase.co/notify-slack";
+    
+    const response = await fetch(functionURL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`
+      },
+      body: JSON.stringify({
+        type: "twitter_signup",
+        userData: {
+          id: user.id,
+          email: user.email,
+          twitterHandle: user.user_metadata?.user_name || user.user_metadata?.preferred_username,
+          fullName: user.user_metadata?.full_name || user.user_metadata?.name,
+          provider: "twitter"
+        },
+      }),
+    });
+    
+    const notifyResult = await response.json();
+    console.log("Slack notification for Twitter signup:", notifyResult);
+    
+    if (!response.ok) {
+      console.error("Error in Twitter signup Slack notification:", notifyResult);
+    } else {
+      console.log("Twitter signup Slack notification sent successfully");
+    }
+  } catch (slackError) {
+    // Don't fail the signup if the slack notification fails, just log it
+    console.error("Failed to send Twitter signup Slack notification:", slackError);
   }
 };

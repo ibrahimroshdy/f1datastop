@@ -8,6 +8,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ProtectedRoute, PublicOnlyRoute } from "@/components/auth/ProtectedRoute";
 import { useState, useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
+import { notifySlackAboutTwitterSignin } from "./context/auth/authActions";
 import Index from "./pages/Index";
 import RaceCalendar from "./pages/RaceCalendar";
 import Analytics from "./pages/Analytics";
@@ -51,6 +52,25 @@ const AuthCallback = () => {
           setTimeout(() => window.location.href = '/auth/login', 2000);
         } else if (data.session) {
           setMessage("Authentication successful! Redirecting...");
+          
+          // Get the user data to check if this is a Twitter authentication
+          const { data: userData } = await supabase.auth.getUser();
+          
+          if (userData && userData.user) {
+            const user = userData.user;
+            const provider = user.app_metadata?.provider;
+            
+            // If this is a Twitter login, notify Slack
+            if (provider === 'twitter') {
+              try {
+                await notifySlackAboutTwitterSignin(user);
+              } catch (notifyError) {
+                // Don't fail the auth flow if notification fails
+                console.error("Error notifying Slack about Twitter login:", notifyError);
+              }
+            }
+          }
+          
           setTimeout(() => window.location.href = '/', 1000);
         } else {
           setMessage("Authentication in progress...");
