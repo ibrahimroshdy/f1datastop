@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { handleAuthStateChange } from "./authActions"; 
 
 export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -16,7 +16,11 @@ export const useAuthState = () => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
+        // Update Google Analytics user ID when auth state changes
         if (currentSession?.user) {
+          // Track the auth state change in analytics
+          handleAuthStateChange(currentSession);
+          
           // Use setTimeout to avoid potential deadlocks with Supabase client
           setTimeout(() => {
             fetchProfile(currentSession.user.id);
@@ -38,6 +42,8 @@ export const useAuthState = () => {
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
+        // Set the user ID in Google Analytics for existing sessions
+        handleAuthStateChange(currentSession);
         fetchProfile(currentSession.user.id);
       }
       

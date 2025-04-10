@@ -2,6 +2,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SUPABASE_FUNCTIONS } from "@/constants/apiConfig";
 import { trackLogin, trackSignup } from '@/integrations/google-analytics/GA4';
+import { identifyUser, trackEvent as trackClarityEvent } from '@/integrations/clarity/clarityHelpers';
+
+// Add tracking for user ID
+const setUserIdForAnalytics = (userId: string, userData?: { email?: string, name?: string, role?: string }) => {
+  // Set user ID in localStorage for GA4 to pick up
+  try {
+    localStorage.setItem('userId', userId);
+  } catch (e) {
+    console.error('Error setting user ID in localStorage', e);
+  }
+  
+  // Identify the user in Clarity
+  if (userData) {
+    identifyUser(userId, {
+      email: userData.email,
+      name: userData.name,
+      role: userData.role
+    });
+  } else {
+    identifyUser(userId);
+  }
+  
+  // Track user identification event in GA4
+  trackEvent('user_identified', {
+    user_id: userId,
+    method: 'auth_state_change',
+    user_properties: {
+      authenticated: true
+    }
+  });
+};
 
 export const signUp = async (
   email: string,
@@ -64,6 +95,19 @@ export const signUp = async (
       throw error;
     }
 
+    // Set user ID for analytics if available
+    if (data.user?.id) {
+      const fullName = `${firstName} ${lastName}`.trim();
+      setUserIdForAnalytics(data.user.id, {
+        email: email,
+        name: fullName,
+        role: 'user'
+      });
+      
+      // Track signup event in Clarity
+      trackClarityEvent('user_signup');
+    }
+
     // Track successful signup with email method
     trackSignup('email');
 
@@ -118,6 +162,16 @@ export const signIn = async (email: string, password: string): Promise<void> => 
       throw error;
     }
 
+    // Set user ID for analytics tracking
+    if (data.user?.id) {
+      setUserIdForAnalytics(data.user.id, {
+        email: data.user.email
+      });
+      
+      // Track login event in Clarity
+      trackClarityEvent('user_login');
+    }
+
     // Track successful login with email method
     trackLogin('email');
     
@@ -169,12 +223,62 @@ export const resetPassword = async (email: string): Promise<void> => {
   }
 };
 
+// Handle auth state change to ensure analytics tracking is set correctly
+export const handleAuthStateChange = async (session: any) => {
+  if (session?.user?.id) {
+    // Get user profile data if available
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('username, first_name, last_name')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (data) {
+        const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.username;
+        
+        // Set user ID for analytics when session is established or changed
+        setUserIdForAnalytics(session.user.id, {
+          email: session.user.email,
+          name: fullName,
+          role: 'user'
+        });
+        
+        return;
+      }
+    } catch (error) {
+      console.error('Error fetching user profile for analytics:', error);
+    }
+    
+    // Fallback if profile fetch fails
+    setUserIdForAnalytics(session.user.id, {
+      email: session.user.email
+    });
+  }
+};
+
+// Ensure user ID is cleared on signout
 export const signOut = async () => {
   try {
+    // Track signout event
+    trackEvent('user_signed_out', {
+      timestamp: new Date().toISOString()
+    });
+    
+    // Track in Clarity
+    trackClarityEvent('user_logout');
+    
     const { error } = await supabase.auth.signOut();
     if (error) {
       toast.error(error.message);
       throw error;
+    }
+    
+    // Clear user ID from analytics
+    try {
+      localStorage.removeItem('userId');
+    } catch (e) {
+      console.error('Error clearing user ID from localStorage', e);
     }
     
     toast.success("Signed out successfully");
@@ -269,4 +373,12 @@ export const notifySlackAboutTwitterSignin = async (user: any): Promise<void> =>
     // Don't fail the signup if the slack notification fails
     console.error("Twitter notification error:", slackError);
   }
+};
+
+// Add new tracking event helper
+export const trackEvent = (eventName: string, eventParams?: Record<string, any>) => {
+  // Re-export for convenience
+  import('@/integrations/google-analytics/GA4').then(module => {
+    module.trackEvent(eventName, eventParams);
+  });
 };

@@ -12,6 +12,7 @@ import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
 import RaceScheduleContent from "@/components/dashboard/RaceScheduleContent";
 import ConstructorStandingsContent from "@/components/dashboard/ConstructorStandingsContent";
 import useAnalytics from '@/hooks/useAnalytics';
+import useClarity from '@/hooks/useClarity';
 
 const Index = () => {
   const {
@@ -35,6 +36,7 @@ const Index = () => {
   const [isOffline, setIsOffline] = useState(false);
 
   const analytics = useAnalytics();
+  const clarity = useClarity();
 
   useEffect(() => {
     if (driverStandings?.error || constructorStandings?.error || raceSchedule?.error || lastRaceResults?.error) {
@@ -44,25 +46,34 @@ const Index = () => {
 
   useEffect(() => {
     analytics.trackContentView(
-      'home_dashboard', 
-      'page', 
-      'F1 DataStop Homepage'
+      'homepage',
+      'page',
+      'F1 DataStop Homepage',
+      { sponsor_visible: true }
     );
-  }, [analytics]);
+    
+    clarity.setTag('page_type', 'homepage');
+    clarity.setTag('page_version', 'v1');
+  }, [analytics, clarity]);
 
   const nextRace = raceSchedule?.data?.find(race => {
     const raceDate = new Date(race.date + "T" + (race.time || "00:00:00Z"));
     return raceDate > new Date();
   });
 
-  const handleRaceClick = (raceId: string, raceName: string) => {
+  const handleRaceSelect = (raceName: string, round: string) => {
     analytics.trackF1Event('race_selection', raceName, {
-      race_id: raceId
+      round,
+      season: new Date().getFullYear()
     });
+    
+    clarity.trackF1Event('race', 'selection', raceName);
   };
 
-  const handleFeatureClick = (featureName: string) => {
+  const handleFeatureCardClick = (featureName: string) => {
     analytics.trackInteraction(`feature_${featureName}`, 'click');
+    
+    clarity.trackInteraction(`feature_${featureName}`);
   };
 
   return (
@@ -106,14 +117,14 @@ const Index = () => {
                 <TabsTrigger 
                   value="schedule" 
                   className="data-[state=active]:bg-f1-red"
-                  onClick={() => handleFeatureClick('schedule_tab')}
+                  onClick={() => handleFeatureCardClick('schedule_tab')}
                 >
                   Race Schedule
                 </TabsTrigger>
                 <TabsTrigger 
                   value="constructors" 
                   className="data-[state=active]:bg-f1-red"
-                  onClick={() => handleFeatureClick('constructors_tab')}
+                  onClick={() => handleFeatureCardClick('constructors_tab')}
                 >
                   Constructor Standings
                 </TabsTrigger>

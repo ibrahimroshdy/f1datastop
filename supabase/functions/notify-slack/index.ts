@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -13,6 +12,7 @@ interface NotifySlackRequest {
     username?: string;
     firstName?: string;
     lastName?: string;
+    provider?: string;
   };
 }
 
@@ -56,6 +56,17 @@ serve(async (req) => {
     // Get the current timestamp
     const timestamp = new Date().toISOString();
     
+    // Get the auth provider (default to "email" if not provided)
+    const provider = userData.provider || "email";
+    console.log("Auth provider:", provider);
+    
+    // Create custom header text based on provider
+    const headerText = provider === "twitter" 
+      ? "🐦 New Twitter/X User Signup!" 
+      : provider === "google" 
+        ? "🔍 New Google User Signup!" 
+        : "✉️ New Email User Signup!";
+    
     // Format the user name for display
     const userName = userData.firstName && userData.lastName
       ? `${userData.firstName} ${userData.lastName}`
@@ -70,7 +81,7 @@ serve(async (req) => {
           type: "header",
           text: {
             type: "plain_text",
-            text: "🎉 New User Signup!",
+            text: headerText,
             emoji: true,
           },
         },
@@ -94,6 +105,15 @@ serve(async (req) => {
               type: "mrkdwn",
               text: `*Email:*\n${userData.email}`,
             },
+            {
+              type: "mrkdwn",
+              text: `*Auth Provider:*\n${provider}`,
+            },
+          ],
+        },
+        {
+          type: "section",
+          fields: [
             {
               type: "mrkdwn",
               text: `*Time:*\n${new Date(timestamp).toLocaleString()}`,
