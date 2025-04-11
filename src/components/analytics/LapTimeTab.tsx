@@ -842,7 +842,7 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                                 )}
                               </TableCell>
                               <TableCell>
-                                <span className="text-sm font-medium" style={{
+                                <span className="text-sm font-medium uppercase tracking-wider font-mono" style={{
                                   color: driver?.team_color || 'inherit'
                                 }}>
                                   {driver?.team_name || 'Unknown'}
