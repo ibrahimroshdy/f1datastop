@@ -159,6 +159,18 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
     })) as Driver[];
   }, [driversData]);
   
+  // Create a driverData object to show checkmarks in DriverSelectionPanel
+  const driverData = React.useMemo(() => {
+    const result: { [key: number]: any } = {};
+    
+    // Mark selected drivers as having data
+    selectedDrivers.forEach(driverNum => {
+      result[driverNum] = { length: 1 }; // Minimal data to trigger the checkmark
+    });
+    
+    return result;
+  }, [selectedDrivers]);
+  
   const isLoading = isSessionLoading || isDriversLoading || isRadioLoading;
   const hasError = !!radioError || (!isLoading && !effectiveSessionKey);
   const hasNoData = !isLoading && (!radioData?.data || radioData.data.length === 0);
@@ -201,6 +213,7 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
                 selectedDrivers={selectedDrivers}
                 onToggleDriver={toggleDriverSelection}
                 multiSelect={false}
+                driverData={driverData}
               />
             </div>
             

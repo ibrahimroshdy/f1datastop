@@ -276,6 +276,18 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
     );
   }, [lapData, selectedDrivers]);
   
+  // Create a driverData object to show checkmarks in DriverSelectionPanel
+  const driverData = React.useMemo(() => {
+    const result: { [key: number]: any } = {};
+    
+    // Mark selected drivers as having data
+    selectedDrivers.forEach(driverNum => {
+      result[driverNum] = { length: 1 }; // Minimal data to trigger the checkmark
+    });
+    
+    return result;
+  }, [selectedDrivers]);
+  
   // Get a driver's information by number
   const getDriverInfo = (driverNumber: number) => {
     // Ensure the driver number is treated as a number
@@ -542,6 +554,7 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                 selectedDrivers={selectedDrivers}
                 onToggleDriver={toggleDriverSelection}
                 multiSelect={true}
+                driverData={driverData}
               />
               {selectedDrivers.length === 0 && mappedDrivers.length > 0 && (
                 <div className="mt-2 text-xs text-muted-foreground text-center">

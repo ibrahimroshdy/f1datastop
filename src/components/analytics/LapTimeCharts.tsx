@@ -127,6 +127,18 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
     );
   }, [lapData, selectedDrivers]);
   
+  // Create a driverData object to show checkmarks in DriverSelectionPanel
+  const driverData = React.useMemo(() => {
+    const result: { [key: number]: any } = {};
+    
+    // Mark selected drivers as having data
+    selectedDrivers.forEach(driverNum => {
+      result[driverNum] = { length: 1 }; // Minimal data to trigger the checkmark
+    });
+    
+    return result;
+  }, [selectedDrivers]);
+  
   // Calculate fastest lap time
   const fastestLap = React.useMemo(() => {
     if (!filteredLapData.length) return null;
@@ -218,6 +230,7 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
                 selectedDrivers={selectedDrivers}
                 onToggleDriver={toggleDriverSelection}
                 multiSelect={true}
+                driverData={driverData}
               />
               {selectedDrivers.length === 0 && mappedDrivers.length > 0 && (
                 <div className="mt-2 text-xs text-muted-foreground text-center">
