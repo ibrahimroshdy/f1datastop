@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useCarData, useDrivers, useLapData } from "@/hooks/useOpenF1Data";
 import { processOpenF1CarData } from "@/utils/apiAdapters";
 import { toast } from "sonner";
+import * as openF1Service from "@/services/openF1Service";
 
 // Create a global cache for telemetry data to persist across component remounts
 // This dramatically improves performance for large datasets
@@ -211,36 +212,14 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     try {
       console.log(`Fetching telemetry data for driver ${driverNumber}`);
       
-      // Fetch data for a specific driver only - DON'T add limit param as it causes issues
-      const result = await fetch(`/api/openf1/car_data?session_key=${sessionKey}&driver_number=${driverNumber}`, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
+      // Use openF1Service instead of direct fetch to leverage existing error handling
+      const result = await openF1Service.getCarData(sessionKey, driverNumber);
       
-      if (!result.ok) {
-        console.error(`HTTP error for driver ${driverNumber}:`, result.status);
-        throw new Error(`HTTP error ${result.status} when fetching driver ${driverNumber} data`);
+      if (result.error) {
+        throw new Error(`Error fetching data for driver ${driverNumber}: ${result.error}`);
       }
       
-      // First get the response as text to validate it's actually JSON
-      const responseText = await result.text();
-      
-      // Check if it looks like HTML (typically error pages start with <!DOCTYPE or <html)
-      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
-        console.error(`HTML response for driver ${driverNumber}:`, responseText.substring(0, 100));
-        throw new Error(`Server returned HTML instead of JSON for driver ${driverNumber}`);
-      }
-      
-      // Try to parse the JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error(`JSON parse error for driver ${driverNumber}:`, parseError);
-        throw new Error(`Invalid JSON response for driver ${driverNumber}`);
-      }
+      const data = result.data;
       
       // Check if the response is actually empty (empty array)
       if (!data || !Array.isArray(data) || data.length === 0) {
