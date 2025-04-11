@@ -201,7 +201,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             </div>
             
             <div className="mt-4 flex justify-end">
-              <Link to={`/race-analysis/${getCurrentYear()}/${race.round}`}>
+              <Link to={`/race-info/${getCurrentYear()}/${race.round}`}>
                 <Button className="bg-f1-red hover:bg-f1-red/90">
                   <LineChart className="h-4 w-4 mr-2" />
                   View Detailed Analysis

@@ -50,7 +50,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
   ];
 
   const protectedNavigation = [
-    { name: "Race Info", href: `/race-analysis/${getCurrentYear()}/last`, icon: LineChart },
+    { name: "Race Info", href: `/race-info/${getCurrentYear()}/last`, icon: LineChart },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Constructors", href: "/constructors", icon: Trophy },

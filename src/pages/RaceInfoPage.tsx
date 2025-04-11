@@ -40,7 +40,7 @@ const TabLoadingFallback = () => (
 // Function to determine the default year (current year is 2025)
 const getCurrentYear = () => 2025; // Hard-coding 2025 as the current year
 
-const RaceAnalysisPage = () => {
+const RaceInfoPage = () => {
   // Use getCurrentYear() to always default to the current real-world year (2025)
   const { year = getCurrentYear(), round = "last" } = useParams();
   const navigate = useNavigate();
@@ -191,14 +191,14 @@ const RaceAnalysisPage = () => {
   // Handle year change
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
-    navigate(`/race-analysis/${year}/${selectedRound}`);
+    navigate(`/race-info/${year}/${selectedRound}`);
   };
   
   // Handle race change
   const handleRaceChange = (round: string) => {
     setSelectedRound(round);
     setSelectedSessionKey(null); // Reset selected session when changing race
-    navigate(`/race-analysis/${selectedYear}/${round}`);
+    navigate(`/race-info/${selectedYear}/${round}`);
   };
 
   // Handle tab change
@@ -430,4 +430,4 @@ const RaceAnalysisPage = () => {
   );
 };
 
-export default RaceAnalysisPage; 
+export default RaceInfoPage; 
