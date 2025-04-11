@@ -4,10 +4,12 @@ import { Thermometer, Cloud, Droplets, Wind } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useOpenF1SessionFromErgast } from "@/hooks/useOpenF1Data";
+import { useOpenF1SessionFromErgast, useDrivers } from "@/hooks/useOpenF1Data";
 import { useWeatherData } from "@/hooks/useOpenF1Data";
 import { processOpenF1WeatherData } from "@/utils/apiAdapters";
 import { Line, LineChart, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
+import DriverSelectionPanel from './DriverSelectionPanel';
+import { Driver } from '@/hooks/useTelemetryData';
 
 interface WeatherAnalysisProps {
   year: number;
@@ -20,6 +22,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   round,
   sessionType = "Race"
 }) => {
+  const [selectedDrivers, setSelectedDrivers] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState("temperature");
   
   // Get the OpenF1 session directly
@@ -37,6 +40,51 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     isLoading: isWeatherLoading,
     error: weatherError
   } = useWeatherData(sessionKey || 0);
+  
+  // Also fetch driver data for consistent UI (for future lap-by-lap weather correlation)
+  const {
+    data: driversData,
+    isLoading: isDriversLoading
+  } = useDrivers(sessionKey || 0);
+  
+  // Map API drivers to our Driver interface
+  const mappedDrivers = React.useMemo(() => {
+    if (!driversData?.data) return [];
+    
+    const teamColors: { [key: string]: string } = {
+      "Red Bull Racing": "#0600EF",
+      "Ferrari": "#DC0000",
+      "Mercedes": "#00D2BE",
+      "McLaren": "#FF8700",
+      "Aston Martin": "#006F62",
+      "Alpine": "#0090FF", 
+      "Williams": "#005AFF",
+      "RB": "#1E41FF",
+      "Haas F1 Team": "#FFFFFF",
+      "Kick Sauber": "#900000"
+    };
+    
+    return driversData.data.map((driver: any) => ({
+      driver_number: driver.driver_number,
+      name: `${driver.first_name} ${driver.last_name}`,
+      team_name: driver.team_name || "Unknown Team",
+      team_color: teamColors[driver.team_name] || "#CCCCCC",
+      name_acronym: driver.name_acronym,
+      isLoading: false,
+      isDataLoaded: false
+    })) as Driver[];
+  }, [driversData]);
+  
+  // Handle driver selection (this is for future use in lap-by-lap weather correlation)
+  const toggleDriverSelection = (driverNumber: number) => {
+    setSelectedDrivers(prev => {
+      if (prev.includes(driverNumber)) {
+        return prev.filter(d => d !== driverNumber);
+      } else {
+        return [...prev, driverNumber];
+      }
+    });
+  };
   
   // Process weather data
   const processedData = React.useMemo(() => {
@@ -197,6 +245,21 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   <Wind className="h-4 w-4 text-emerald-500" />
                 </div>
               </div>
+            </div>
+            
+            {/* Driver selection panel - hidden for now, but will be enabled in a future update */}
+            <div className="hidden mb-6">
+              <div className="mb-2 text-sm text-muted-foreground">
+                Select drivers to view lap-by-lap weather data:
+              </div>
+              {mappedDrivers.length > 0 && (
+                <DriverSelectionPanel 
+                  drivers={mappedDrivers}
+                  selectedDrivers={selectedDrivers}
+                  onToggleDriver={toggleDriverSelection}
+                  multiSelect={true}
+                />
+              )}
             </div>
             
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

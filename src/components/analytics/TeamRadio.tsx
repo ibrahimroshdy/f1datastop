@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useOpenF1SessionFromErgast, useTeamRadio, useDrivers } from "@/hooks/useOpenF1Data";
 import { format } from 'date-fns';
+import DriverSelectionPanel from './DriverSelectionPanel';
+import { Driver } from '@/hooks/useTelemetryData';
 
 interface TeamRadioProps {
   year: number;
@@ -122,6 +124,21 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
     "Kick Sauber": "#900000"
   };
   
+  // Map API drivers to our Driver interface
+  const mappedDrivers = React.useMemo(() => {
+    if (!driversData?.data) return [];
+    
+    return driversData.data.map((driver: any) => ({
+      driver_number: driver.driver_number,
+      name: `${driver.first_name} ${driver.last_name}`,
+      team_name: driver.team_name || "Unknown Team",
+      team_color: teamColors[driver.team_name] || "#CCCCCC",
+      name_acronym: driver.name_acronym,
+      isLoading: false,
+      isDataLoaded: false
+    })) as Driver[];
+  }, [driversData]);
+  
   const isLoading = isSessionLoading || isDriversLoading || isRadioLoading;
   const hasError = !!radioError || (!isLoading && !sessionKey);
   const hasNoData = !isLoading && (!radioData?.data || radioData.data.length === 0);
@@ -164,28 +181,13 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
           </div>
         ) : (
           <>
-            <div className="mb-4 flex flex-wrap gap-2 shrink-0">
-              {driversData?.data?.map(driver => (
-                <Button
-                  key={driver.driver_number}
-                  variant={selectedDrivers.includes(driver.driver_number) ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => toggleDriverSelection(driver.driver_number)}
-                  className="flex items-center gap-1"
-                  style={{
-                    backgroundColor: selectedDrivers.includes(driver.driver_number) 
-                      ? teamColors[driver.team_name] || "#CCCCCC" 
-                      : 'transparent',
-                    color: selectedDrivers.includes(driver.driver_number) 
-                      ? (isColorLight(teamColors[driver.team_name] || "#CCCCCC") ? 'black' : 'white') 
-                      : 'inherit',
-                    borderColor: teamColors[driver.team_name] || "#CCCCCC"
-                  }}
-                >
-                  <span className="font-mono">{driver.driver_number}</span>
-                  <span className="hidden sm:inline ml-1">{driver.name_acronym}</span>
-                </Button>
-              ))}
+            <div className="mb-4 shrink-0">
+              <DriverSelectionPanel 
+                drivers={mappedDrivers}
+                selectedDrivers={selectedDrivers}
+                onToggleDriver={toggleDriverSelection}
+                multiSelect={false}
+              />
             </div>
             
             {hasNoData ? (

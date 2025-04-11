@@ -29,6 +29,7 @@ export interface Driver {
   name_acronym: string;
   isLoading?: boolean;
   isDataLoaded?: boolean;
+  hasError?: boolean;
 }
 
 export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] = []) => {
@@ -203,198 +204,200 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
         }
       });
       
-      if (result.ok) {
-        const data = await result.json();
+      if (!result.ok) {
+        throw new Error(`HTTP error! status: ${result.status}`);
+      }
+      
+      // First get the response as text to validate it's actually JSON
+      const responseText = await result.text();
+      
+      // Check if it looks like HTML (typically error pages start with <!DOCTYPE or <html)
+      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+        throw new Error(`Server returned HTML instead of JSON for driver ${driverNumber}`);
+      }
+      
+      // Try to parse the JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error(`Error parsing JSON for driver ${driverNumber}:`, parseError);
+        throw new Error(`Invalid JSON response for driver ${driverNumber}`);
+      }
+      
+      // Check if the response is actually empty (empty array)
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        throw new Error(`No telemetry data available for driver ${driverNumber}`);
+      }
+      
+      // Additional validation: Ensure the data contains valid telemetry points
+      // This prevents issues with malformed data causing rendering problems
+      const validData = data.filter(item => 
+        item && 
+        typeof item.date === 'string' && 
+        typeof item.speed === 'number' && 
+        typeof item.rpm === 'number' && 
+        typeof item.throttle === 'number' && 
+        typeof item.brake === 'number' && 
+        typeof item.n_gear === 'number' && 
+        typeof item.drs === 'number'
+      );
+      
+      // If no valid points are found after filtering, throw error
+      if (validData.length === 0) {
+        throw new Error(`Invalid telemetry data format for driver ${driverNumber}`);
+      }
+      
+      // Very large datasets need special handling
+      let dataToProcess = validData;
+      const dataSizeMB = JSON.stringify(dataToProcess).length / (1024 * 1024);
+      
+      // For extremely large datasets, use aggressive intelligent downsampling
+      // Target sizes:
+      // - < 1000 points for small datasets
+      // - 500-800 points for medium datasets 
+      // - 250-500 points for large datasets (> 5MB)
+      
+      // Adaptive sampling logic based on size
+      let targetPoints = 1000;
+      
+      if (dataToProcess.length > 20000 || dataSizeMB > 10) {
+        // Very large dataset (like driver 10)
+        targetPoints = 250; 
+      } else if (dataToProcess.length > 10000 || dataSizeMB > 5) {
+        // Large dataset
+        targetPoints = 500;
+      } else if (dataToProcess.length > 5000) {
+        // Medium dataset
+        targetPoints = 800;
+      }
+      
+      if (dataToProcess.length > targetPoints) {
+        // Advanced sampling that preserves more data in dynamic segments
+        // and less in stable segments to maintain important features
         
-        // Check if the response is actually empty (empty array)
-        if (!data || !Array.isArray(data) || data.length === 0) {
-          throw new Error(`No telemetry data available for driver ${driverNumber}`);
-        }
+        const samplingRate = Math.ceil(dataToProcess.length / targetPoints);
         
-        // Additional validation: Ensure the data contains valid telemetry points
-        // This prevents issues with malformed data causing rendering problems
-        const validData = data.filter(item => 
-          item && 
-          typeof item.date === 'string' && 
-          typeof item.speed === 'number' && 
-          typeof item.rpm === 'number' && 
-          typeof item.throttle === 'number' && 
-          typeof item.brake === 'number' && 
-          typeof item.n_gear === 'number' && 
-          typeof item.drs === 'number'
-        );
-        
-        // If no valid points are found after filtering, throw error
-        if (validData.length === 0) {
-          throw new Error(`Invalid telemetry data format for driver ${driverNumber}`);
-        }
-        
-        // Very large datasets need special handling
-        let dataToProcess = validData;
-        const dataSizeMB = JSON.stringify(dataToProcess).length / (1024 * 1024);
-        
-        // For extremely large datasets, use aggressive intelligent downsampling
-        // Target sizes:
-        // - < 1000 points for small datasets
-        // - 500-800 points for medium datasets 
-        // - 250-500 points for large datasets (> 5MB)
-        
-        // Adaptive sampling logic based on size
-        let targetPoints = 1000;
-        
-        if (dataToProcess.length > 20000 || dataSizeMB > 10) {
-          // Very large dataset (like driver 10)
-          targetPoints = 250; 
-        } else if (dataToProcess.length > 10000 || dataSizeMB > 5) {
-          // Large dataset
-          targetPoints = 500;
-        } else if (dataToProcess.length > 5000) {
-          // Medium dataset
-          targetPoints = 800;
-        }
-        
-        if (dataToProcess.length > targetPoints) {
-          // Advanced sampling that preserves more data in dynamic segments
-          // and less in stable segments to maintain important features
+        if (samplingRate <= 2) {
+          // Simple evenly-spaced sampling for small reductions
+          dataToProcess = dataToProcess.filter((_, index) => index % samplingRate === 0);
+        } else {
+          // Intelligent sampling for larger reductions
+          const sampledData = [];
+          let prevSpeed = -1;
+          let prevRPM = -1;
+          let prevThrottle = -1;
+          let prevBrake = -1;
+          let prevGear = -1;
+          let prevDrs = -1;
+          let consecutiveSkips = 0;
+          const MAX_CONSECUTIVE_SKIPS = Math.min(samplingRate * 2, 10); // Never skip more than 10 points in a row
           
-          const samplingRate = Math.ceil(dataToProcess.length / targetPoints);
-          
-          if (samplingRate <= 2) {
-            // Simple evenly-spaced sampling for small reductions
-            dataToProcess = dataToProcess.filter((_, index) => index % samplingRate === 0);
-          } else {
-            // Intelligent sampling for larger reductions
-            const sampledData = [];
-            let prevSpeed = -1;
-            let prevRPM = -1;
-            let prevThrottle = -1;
-            let prevBrake = -1;
-            let prevGear = -1;
-            let prevDrs = -1;
-            let consecutiveSkips = 0;
-            const MAX_CONSECUTIVE_SKIPS = Math.min(samplingRate * 2, 10); // Never skip more than 10 points in a row
+          for (let i = 0; i < dataToProcess.length; i++) {
+            const point = dataToProcess[i];
             
-            for (let i = 0; i < dataToProcess.length; i++) {
-              const point = dataToProcess[i];
+            // Force include points at regular intervals to ensure we don't get too sparse
+            const forceInclude = i % samplingRate === 0 || consecutiveSkips >= MAX_CONSECUTIVE_SKIPS;
+            
+            // Check if this point represents a significant change
+            const speedDelta = Math.abs(point.speed - prevSpeed);
+            const rpmDelta = Math.abs(point.rpm - prevRPM);
+            const throttleDelta = Math.abs(point.throttle - prevThrottle);
+            const brakeDelta = Math.abs(point.brake - prevBrake);
+            const gearChanged = point.n_gear !== prevGear;
+            const drsChanged = point.drs !== prevDrs;
+            
+            // Include points with significant changes or forced inclusion
+            const significantChange = 
+              speedDelta > 10 || 
+              rpmDelta > 1000 || 
+              throttleDelta > 20 || 
+              brakeDelta > 20 || 
+              gearChanged || 
+              drsChanged;
               
-              // Force include points at regular intervals to ensure we don't get too sparse
-              const forceInclude = i % samplingRate === 0 || consecutiveSkips >= MAX_CONSECUTIVE_SKIPS;
+            if (forceInclude || significantChange) {
+              sampledData.push(point);
               
-              // Check if this point represents a significant change
-              const speedDelta = Math.abs(point.speed - prevSpeed);
-              const rpmDelta = Math.abs(point.rpm - prevRPM);
-              const throttleDelta = Math.abs(point.throttle - prevThrottle);
-              const brakeDelta = Math.abs(point.brake - prevBrake);
-              const gearChanged = point.n_gear !== prevGear;
-              const drsChanged = point.drs !== prevDrs;
+              // Update previous values
+              prevSpeed = point.speed;
+              prevRPM = point.rpm;
+              prevThrottle = point.throttle;
+              prevBrake = point.brake;
+              prevGear = point.n_gear;
+              prevDrs = point.drs;
               
-              // Include points with significant changes or forced inclusion
-              const significantChange = 
-                speedDelta > 10 || 
-                rpmDelta > 1000 || 
-                throttleDelta > 20 || 
-                brakeDelta > 20 || 
-                gearChanged || 
-                drsChanged;
-                
-              if (forceInclude || significantChange) {
-                sampledData.push(point);
-                
-                // Update previous values
-                prevSpeed = point.speed;
-                prevRPM = point.rpm;
-                prevThrottle = point.throttle;
-                prevBrake = point.brake;
-                prevGear = point.n_gear;
-                prevDrs = point.drs;
-                
-                // Reset consecutive skips
-                consecutiveSkips = 0;
-              } else {
-                consecutiveSkips++;
-              }
+              // Reset consecutive skips
+              consecutiveSkips = 0;
+            } else {
+              consecutiveSkips++;
             }
-            
-            // Always include the last point
-            if (sampledData.length > 0 && 
-                sampledData[sampledData.length - 1] !== dataToProcess[dataToProcess.length - 1]) {
-              sampledData.push(dataToProcess[dataToProcess.length - 1]);
-            }
-            
-            dataToProcess = sampledData;
           }
+          
+          // Always include the last point
+          if (sampledData.length > 0 && 
+              sampledData[sampledData.length - 1] !== dataToProcess[dataToProcess.length - 1]) {
+            sampledData.push(dataToProcess[dataToProcess.length - 1]);
+          }
+          
+          dataToProcess = sampledData;
         }
-        
-        // Process the data
-        const processedData = processOpenF1CarData(dataToProcess);
-        
-        // Verify processed data is valid
-        if (!processedData || processedData.length === 0) {
-          throw new Error(`Processing resulted in empty data for driver ${driverNumber}`);
-        }
-        
-        // Store in the global cache
-        globalTelemetryCache[cacheKey] = processedData;
-        
-        // Cache the data locally as well
-        setDriverDataCache(prev => ({
-          ...prev,
-          [driverNumber]: processedData
-        }));
-        
-        // Update driver states
-        setAvailableDrivers(prev => 
-          prev.map(d => 
-            d.driver_number === driverNumber 
-              ? { ...d, isLoading: false, isDataLoaded: true } 
-              : d
-          )
-        );
-        
-        // Clear loading state
-        setDriverLoadingState(prev => ({
-          ...prev,
-          [driverNumber]: false
-        }));
-      } else {
-        throw new Error(`Failed to fetch data for driver ${driverNumber} with status ${result.status}`);
-      }
-    } catch (error: any) {
-      console.error(`Error loading data for driver ${driverNumber}:`, error);
-      
-      // Check if it's a timeout or 500 error
-      const errorStr = error.toString();
-      if (errorStr.includes('TimeoutError') || errorStr.includes('ReadTimeout') || errorStr.includes('status 500')) {
-        toast.warning(`Limited data available for driver #${driverNumber}`, {
-          description: "The data source timed out or returned an error. This session may have limited telemetry data.",
-          duration: 5000,
-        });
-      } else if (errorStr.includes('No telemetry data available') || errorStr.includes('Invalid telemetry data format')) {
-        // Handle both empty array and invalid data format cases
-        toast.warning(`No valid telemetry data for driver #${driverNumber}`, {
-          description: "This driver doesn't have valid telemetry data available for this session.",
-          duration: 5000,
-        });
-      } else {
-        toast.error(`Error loading data for driver #${driverNumber}`, {
-          duration: 3000
-        });
       }
       
-      // Mark as not loading
-      setDriverLoadingState(prev => ({
+      // Process the data
+      const processedData = processOpenF1CarData(dataToProcess);
+      
+      // Verify processed data is valid
+      if (!processedData || processedData.length === 0) {
+        throw new Error(`Processing resulted in empty data for driver ${driverNumber}`);
+      }
+      
+      // Store in the global cache
+      globalTelemetryCache[cacheKey] = processedData;
+      
+      // Cache the data locally as well
+      setDriverDataCache(prev => ({
         ...prev,
-        [driverNumber]: false
+        [driverNumber]: processedData
       }));
       
       // Update driver states
       setAvailableDrivers(prev => 
         prev.map(d => 
           d.driver_number === driverNumber 
-            ? { ...d, isLoading: false } 
+            ? { ...d, isLoading: false, isDataLoaded: true } 
             : d
         )
       );
+      
+      // Clear loading state
+      setDriverLoadingState(prev => ({
+        ...prev,
+        [driverNumber]: false
+      }));
+    } catch (error: any) {
+      console.error(`Error loading data for driver ${driverNumber}:`, error);
+      
+      // Update driver state to show error
+      setAvailableDrivers(prev => 
+        prev.map(d => 
+          d.driver_number === driverNumber 
+            ? { ...d, isLoading: false, isDataLoaded: false, hasError: true } 
+            : d
+        )
+      );
+      
+      // Clear loading state
+      setDriverLoadingState(prev => ({
+        ...prev,
+        [driverNumber]: false
+      }));
+      
+      // Show toast notification for improved UX
+      toast.error(`Couldn't load telemetry data for driver ${driverNumber}`, {
+        description: error.message || "Please try selecting a different driver",
+        duration: 5000
+      });
     }
   };
 

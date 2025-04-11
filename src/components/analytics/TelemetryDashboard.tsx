@@ -7,10 +7,11 @@ import { useTelemetryData, TelemetryDataPoint, Driver } from "@/hooks/useTelemet
 import { useOpenF1SessionFromErgast } from "@/hooks/useOpenF1Data";
 import { Line, LineChart, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Gauge, RefreshCw } from "lucide-react";
+import { Gauge, RefreshCw, Loader2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatTime } from "@/utils/lapTimeUtils";
 import { Avatar } from "@/components/ui/avatar";
+import DriverSelectionPanel from "./DriverSelectionPanel";
 
 interface TelemetryDashboardProps {
   year: number;
@@ -59,6 +60,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   const [selectedTimeRange, setSelectedTimeRange] = useState<[number, number] | null>(null);
   const [isTabLoading, setIsTabLoading] = useState(false);
   const [hasServerError, setHasServerError] = useState(false);
+  const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   
   // Get the OpenF1 session directly
   // Note: round is now expected to be either a meeting_key or special value like "last"/"next"
@@ -72,7 +74,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   // Get telemetry data for this session
   const {
     telemetryData,
-    availableDrivers,
+    availableDrivers: originalAvailableDrivers,
     isLoading,
     loadingProgress,
     errorMessage,
@@ -105,7 +107,21 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
         
         // Load data for the newly selected driver if it's not already loaded or loading
         if (!telemetryData[driverNum] && !driverLoadingState[driverNum]) {
-          loadDriverData(driverNum);
+          try {
+            loadDriverData(driverNum).catch(error => {
+              console.error(`Failed to load data for driver ${driverNum}:`, error);
+              // Update the driver to show they have an error state
+              setAvailableDrivers(prev => 
+                prev.map(d => 
+                  d.driver_number === driverNum 
+                    ? { ...d, isLoading: false, isDataLoaded: false, hasError: true } 
+                    : d
+                )
+              );
+            });
+          } catch (error) {
+            console.error(`Error initiating data load for driver ${driverNum}:`, error);
+          }
         }
         
         return newSelection;
@@ -115,10 +131,10 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   
   // Auto-select first driver when available
   useEffect(() => {
-    if (availableDrivers.length > 0 && selectedDrivers.length === 0) {
-      setSelectedDrivers([availableDrivers[0].driver_number]);
+    if (originalAvailableDrivers.length > 0 && selectedDrivers.length === 0) {
+      setSelectedDrivers([originalAvailableDrivers[0].driver_number]);
     }
-  }, [availableDrivers, selectedDrivers]);
+  }, [originalAvailableDrivers, selectedDrivers]);
   
   // Helper function to find closest data point in time
   const findClosestDataPoint = (data: TelemetryDataPoint[], targetTime: number): TelemetryDataPoint | null => {
@@ -314,7 +330,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
       }
       
       driversToProcess.forEach(driverNum => {
-        const driver = availableDrivers.find(d => d.driver_number === driverNum);
+        const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
         if (driver) {
           activeDriverData[driverNum] = { 
             data: telemetryData[driverNum],
@@ -417,7 +433,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
       // Get available drivers with data
       selectedDrivers.forEach(driverNum => {
         if (telemetryData[driverNum] && telemetryData[driverNum].length > 0) {
-          const driver = availableDrivers.find(d => d.driver_number === driverNum);
+          const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
           if (driver) {
             driverMap[driverNum] = {
               acronym: driver.name_acronym,
@@ -652,7 +668,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
           
           // Check if all selected drivers have data
           selectedDrivers.forEach(driverNum => {
-            const driver = availableDrivers.find(d => d.driver_number === driverNum);
+            const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
             if (driver) {
               const driverKey = driver.name_acronym;
               const pointsWithData = data.filter(p => p[driverKey] !== undefined);
@@ -674,7 +690,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
         
         // Check if all selected drivers have data
         selectedDrivers.forEach(driverNum => {
-          const driver = availableDrivers.find(d => d.driver_number === driverNum);
+          const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
           if (driver) {
             const driverKey = driver.name_acronym;
             const pointsWithData = data.filter(p => p[driverKey] !== undefined);
@@ -687,7 +703,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     } catch (error) {
       return [];
     }
-  }, [telemetryData, availableDrivers, selectedDrivers, activeTab, timeRange, selectedTimeRange, hasData]);
+  }, [telemetryData, originalAvailableDrivers, selectedDrivers, activeTab, timeRange, selectedTimeRange, hasData]);
 
   return (
     <Card className="relative">
@@ -755,44 +771,19 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
               Retry
             </Button>
           </div>
-        ) : availableDrivers.length > 0 ? (
+        ) : originalAvailableDrivers.length > 0 ? (
           <>
             {/* Driver selection area - shown whenever drivers are available */}
             <div className="mb-6">
               <div className="mb-2 text-sm text-muted-foreground">
                 Select a driver to load their telemetry data:
               </div>
-              <div className="flex flex-wrap gap-2">
-                {availableDrivers.map(driver => (
-                  <Button
-                    key={driver.driver_number}
-                    variant={selectedDrivers.includes(driver.driver_number) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => toggleDriverSelection(driver.driver_number)}
-                    className="flex items-center gap-1"
-                    style={{
-                      backgroundColor: selectedDrivers.includes(driver.driver_number) 
-                        ? driver.team_color 
-                        : 'transparent',
-                      color: selectedDrivers.includes(driver.driver_number) 
-                        ? (isColorLight(driver.team_color) ? 'black' : 'white') 
-                        : 'inherit',
-                      borderColor: driver.team_color
-                    }}
-                  >
-                    <span className="font-mono">{driver.driver_number}</span>
-                    <span className="hidden sm:inline ml-1">{driver.name_acronym}</span>
-                    {driverLoadingState[driver.driver_number] && (
-                      <span className="ml-1">
-                        <div className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin border-current opacity-80" />
-                      </span>
-                    )}
-                    {telemetryData[driver.driver_number] && !driverLoadingState[driver.driver_number] && (
-                      <span className="ml-1 text-xs">✓</span>
-                    )}
-                  </Button>
-                ))}
-              </div>
+              <DriverSelectionPanel 
+                drivers={originalAvailableDrivers}
+                selectedDrivers={selectedDrivers}
+                onToggleDriver={toggleDriverSelection}
+                multiSelect={true}
+              />
               {selectedDrivers.length === 0 && (
                 <div className="mt-4 text-center text-sm text-muted-foreground">
                   Click on a driver above to load their telemetry data
@@ -930,7 +921,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                           
                           {/* Render lines for each driver */}
                           {selectedDrivers.map(driverNum => {
-                            const driver = availableDrivers.find(d => d.driver_number === driverNum);
+                            const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
                             if (!driver) return null;
                             
                             const driverKey = driver.name_acronym;
@@ -966,7 +957,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                   gap: '20px'
                                 }}>
                                   {selectedDrivers.map(driverNum => {
-                                    const driver = availableDrivers.find(d => d.driver_number === driverNum);
+                                    const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
                                     if (!driver) return null;
                                     
                                     return (
