@@ -307,7 +307,7 @@ const RaceInfoPage = () => {
                     <TabsTrigger value="weather">Weather</TabsTrigger>
                     <TabsTrigger value="radio">Team Radio</TabsTrigger>
                     <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
-                    <TabsTrigger value="lap-time">Lap Times</TabsTrigger>
+                    <TabsTrigger value="lap-time">Laptimes Table</TabsTrigger>
                   </TabsList>
                   
                   <Suspense fallback={<TabLoadingFallback />}>
@@ -407,11 +407,11 @@ const RaceInfoPage = () => {
                             <div className="flex items-start gap-2">
                               <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                               <div>
-                                <p className="font-medium mb-1">About Lap Times</p>
+                                <p className="font-medium mb-1">About Laptimes Table</p>
                                 <p className="text-muted-foreground">
-                                  Lap time analysis shows how drivers perform over the course of a session. The data includes overall 
-                                  lap times and individual sector times, highlighting personal bests and session records.
-                                  This allows you to see where drivers gain or lose time on track and their consistency over a stint.
+                                  The laptimes table displays detailed lap and sector times for each driver. Purple highlights indicate 
+                                  the fastest time overall, while green shows the fastest time for each driver. Use the "Show Fastest Times" 
+                                  button to filter and view only the laps with the fastest sector times for each driver.
                                 </p>
                               </div>
                             </div>
