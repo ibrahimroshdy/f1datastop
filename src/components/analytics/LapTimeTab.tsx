@@ -99,32 +99,58 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
     refetch: refetchLapData
   } = useLapData(effectiveSessionKey);
   
+  // Debug lap data to see driver numbers
+  useEffect(() => {
+    if (lapData?.data && lapData.data.length > 0) {
+      console.log("First few lap entries:", lapData.data.slice(0, 5).map((lap: any) => ({
+        driver: lap.driver_number,
+        lap: lap.lap_number,
+        time: lap.lap_duration
+      })));
+    }
+  }, [lapData]);
+  
   // Map API drivers to our Driver interface
   const mappedDrivers = React.useMemo(() => {
     if (!driversData?.data) return [];
     
     const teamColors: { [key: string]: string } = {
-      "Red Bull Racing": "#0600EF",
-      "Ferrari": "#DC0000",
-      "Mercedes": "#00D2BE",
-      "McLaren": "#FF8700",
-      "Aston Martin": "#006F62",
-      "Alpine": "#0090FF", 
-      "Williams": "#005AFF",
-      "RB": "#1E41FF",
-      "Haas F1 Team": "#FFFFFF",
-      "Kick Sauber": "#900000"
+      "Red Bull Racing": "rgb(6, 0, 239)", // Brighter blue
+      "Ferrari": "rgb(255, 0, 0)", // Pure red
+      "Mercedes": "rgb(0, 210, 190)", // Turquoise
+      "McLaren": "rgb(255, 135, 0)", // Orange
+      "Aston Martin": "rgb(0, 111, 98)", // Racing green
+      "Alpine": "rgb(0, 144, 255)", // Blue
+      "Williams": "rgb(0, 90, 255)", // Williams blue
+      "RB": "rgb(30, 65, 255)", // RB blue
+      "Haas F1 Team": "rgb(255, 255, 255)", // White 
+      "Kick Sauber": "rgb(201, 45, 75)" // Darker red
     };
     
-    return driversData.data.map((driver: any) => ({
-      driver_number: driver.driver_number,
-      name: `${driver.first_name} ${driver.last_name}`,
-      team_name: driver.team_name || "Unknown Team",
-      team_color: teamColors[driver.team_name] || "#CCCCCC",
-      name_acronym: driver.name_acronym,
-      isLoading: false,
-      isDataLoaded: false
-    })) as Driver[];
+    // Map drivers and assign team colors
+    const mapped = driversData.data.map((driver: any) => {
+      // Make sure we have a valid team color, defaulting to a distinct gray if not found
+      const teamColor = teamColors[driver.team_name] || "rgb(153, 153, 153)";
+      
+      return {
+        driver_number: driver.driver_number,
+        name: `${driver.first_name} ${driver.last_name}`,
+        team_name: driver.team_name || "Unknown Team",
+        team_color: teamColor,
+        name_acronym: driver.name_acronym,
+        isLoading: false,
+        isDataLoaded: false
+      };
+    }) as Driver[];
+    
+    // Debug log to see what driver numbers we're getting
+    console.log("Mapped drivers:", mapped.map(d => ({ 
+      number: d.driver_number, 
+      team: d.team_name, 
+      color: d.team_color 
+    })));
+    
+    return mapped;
   }, [driversData]);
   
   // Handle driver selection
@@ -252,8 +278,9 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
   
   // Get a driver's information by number
   const getDriverInfo = (driverNumber: number) => {
-    if (!driversData?.data) return null;
-    return driversData.data.find((d: any) => d.driver_number === driverNumber) || null;
+    // Ensure the driver number is treated as a number
+    const driverNum = typeof driverNumber === 'string' ? parseInt(driverNumber) : driverNumber;
+    return mappedDrivers.find(d => d.driver_number === driverNum) || null;
   };
   
   // Calculate whether a given sector is the fastest for a driver
@@ -554,11 +581,18 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                           </div>
                           <div className="flex items-center gap-2">
                             <div 
-                              className="w-3 h-3 rounded-md" 
+                              className="w-5 h-5 rounded-full flex items-center justify-center"
                               style={{
-                                backgroundColor: getDriverInfo(absoluteFastestLap.driver)?.team_color || 'gray'
+                                backgroundColor: getDriverInfo(absoluteFastestLap.driver)?.team_color || 'rgb(204, 204, 204)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)'
                               }}
-                            ></div>
+                            >
+                              <span className="text-[10px] font-bold" style={{
+                                color: getDriverInfo(absoluteFastestLap.driver)?.team_color === "rgb(255, 255, 255)" ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)'
+                              }}>
+                                {absoluteFastestLap.driver}
+                              </span>
+                            </div>
                             <span className="font-bold" style={{
                               color: getDriverInfo(absoluteFastestLap.driver)?.team_color || 'inherit'
                             }}>
@@ -598,11 +632,18 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                           </div>
                           <div className="flex items-center gap-2">
                             <div 
-                              className="w-3 h-3 rounded-md" 
+                              className="w-5 h-5 rounded-full flex items-center justify-center"
                               style={{
-                                backgroundColor: getDriverInfo(fastestSectors.sector1.driver)?.team_color || 'gray'
+                                backgroundColor: getDriverInfo(fastestSectors.sector1.driver)?.team_color || 'rgb(204, 204, 204)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)'
                               }}
-                            ></div>
+                            >
+                              <span className="text-[10px] font-bold" style={{
+                                color: getDriverInfo(fastestSectors.sector1.driver)?.team_color === "rgb(255, 255, 255)" ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)'
+                              }}>
+                                {fastestSectors.sector1.driver}
+                              </span>
+                            </div>
                             <span className="font-bold" style={{
                               color: getDriverInfo(fastestSectors.sector1.driver)?.team_color || 'inherit'
                             }}>
@@ -625,11 +666,18 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                           </div>
                           <div className="flex items-center gap-2">
                             <div 
-                              className="w-3 h-3 rounded-md" 
+                              className="w-5 h-5 rounded-full flex items-center justify-center"
                               style={{
-                                backgroundColor: getDriverInfo(fastestSectors.sector2.driver)?.team_color || 'gray'
+                                backgroundColor: getDriverInfo(fastestSectors.sector2.driver)?.team_color || 'rgb(204, 204, 204)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)'
                               }}
-                            ></div>
+                            >
+                              <span className="text-[10px] font-bold" style={{
+                                color: getDriverInfo(fastestSectors.sector2.driver)?.team_color === "rgb(255, 255, 255)" ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)'
+                              }}>
+                                {fastestSectors.sector2.driver}
+                              </span>
+                            </div>
                             <span className="font-bold" style={{
                               color: getDriverInfo(fastestSectors.sector2.driver)?.team_color || 'inherit'
                             }}>
@@ -652,11 +700,18 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                           </div>
                           <div className="flex items-center gap-2">
                             <div 
-                              className="w-3 h-3 rounded-md" 
+                              className="w-5 h-5 rounded-full flex items-center justify-center"
                               style={{
-                                backgroundColor: getDriverInfo(fastestSectors.sector3.driver)?.team_color || 'gray'
+                                backgroundColor: getDriverInfo(fastestSectors.sector3.driver)?.team_color || 'rgb(204, 204, 204)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)'
                               }}
-                            ></div>
+                            >
+                              <span className="text-[10px] font-bold" style={{
+                                color: getDriverInfo(fastestSectors.sector3.driver)?.team_color === "rgb(255, 255, 255)" ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)'
+                              }}>
+                                {fastestSectors.sector3.driver}
+                              </span>
+                            </div>
                             <span className="font-bold" style={{
                               color: getDriverInfo(fastestSectors.sector3.driver)?.team_color || 'inherit'
                             }}>
@@ -688,6 +743,13 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                         >
                           <div className="flex items-center">
                             Driver {getSortIndicator('driver')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="w-[120px] hidden md:table-cell"
+                        >
+                          <div className="flex items-center">
+                            Constructor
                           </div>
                         </TableHead>
                         <TableHead 
@@ -759,7 +821,11 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                           const isS3FastestOverall = isFastestSector(lap.driver_number, 3, lap.duration_sector_3);
                           
                           return (
-                            <TableRow key={index} className={lap.is_pit_out_lap ? 'opacity-60' : ''}>
+                            <TableRow key={index} className={`
+                              ${lap.is_pit_out_lap ? 'opacity-60' : ''}
+                              ${isAbsoluteFastestLap ? 'bg-purple-400/5' : ''}
+                              ${(isS1FastestOverall || isS2FastestOverall || isS3FastestOverall) && !isAbsoluteFastestLap ? 'bg-purple-400/5' : ''}
+                            `}>
                               <TableCell>
                                 {lap.lap_number}
                                 {lap.is_pit_out_lap && (
@@ -769,15 +835,35 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                               <TableCell>
                                 <div className="flex items-center gap-2">
                                   <div 
-                                    className="w-3 h-3 rounded-md" 
+                                    className="w-5 h-5 rounded-full flex items-center justify-center"
                                     style={{
-                                      backgroundColor: driver?.team_color || 'gray'
+                                      backgroundColor: driver?.team_color || 'rgb(204, 204, 204)',
+                                      border: '1px solid rgba(255, 255, 255, 0.1)'
                                     }}
-                                  ></div>
+                                  >
+                                    <span className="text-[10px] font-bold" style={{
+                                      color: driver?.team_color === "rgb(255, 255, 255)" ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)'
+                                    }}>
+                                      {driver?.driver_number}
+                                    </span>
+                                  </div>
                                   <span className="font-medium" style={{
                                     color: driver?.team_color || 'inherit'
                                   }}>
                                     {driver?.name_acronym || lap.driver_number}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell">
+                                <div className="flex items-center gap-2">
+                                  <div 
+                                    className="w-2 h-4 rounded-sm"
+                                    style={{
+                                      backgroundColor: driver?.team_color || 'rgb(204, 204, 204)'
+                                    }}
+                                  ></div>
+                                  <span className="text-sm font-medium">
+                                    {driver?.team_name || 'Unknown'}
                                   </span>
                                 </div>
                               </TableCell>
@@ -834,14 +920,17 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                 {/* Legend */}
                 <div className="mt-4 text-xs text-muted-foreground">
                   <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      <span className="text-purple-400">■</span> Session fastest
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-purple-400 flex items-center justify-center"></div>
+                      <span>Session fastest</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-green-400">■</span> Driver fastest
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-green-400 flex items-center justify-center"></div>
+                      <span>Driver fastest</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="opacity-60">■</span> Pit out lap
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-gray-500 opacity-60 flex items-center justify-center"></div>
+                      <span>Pit out lap</span>
                     </div>
                   </div>
                 </div>
