@@ -211,7 +211,7 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     try {
       console.log(`Fetching telemetry data for driver ${driverNumber}`);
       
-      // Fetch data for a specific driver using the f1datastop.com proxy API
+      // Fetch data for a specific driver only - DON'T add limit param as it causes issues
       const result = await fetch(`/api/openf1/car_data?session_key=${sessionKey}&driver_number=${driverNumber}`, {
         mode: 'cors',
         headers: {
