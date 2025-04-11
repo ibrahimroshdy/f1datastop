@@ -1,9 +1,7 @@
 import { toast } from "sonner";
 
-// Use different base URLs for development vs production
-const BASE_URL = import.meta.env.PROD 
-  ? "https://api.openf1.org/v1" 
-  : "/api/openf1";
+// Always use the proxy API endpoint
+const BASE_URL = "/api/openf1";
 
 // Helper function for throttled fetching
 async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3): Promise<Response> {
