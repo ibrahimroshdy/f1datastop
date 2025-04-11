@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Driver } from "@/hooks/useTelemetryData";
 
 interface DriverSelectionPanelProps {
@@ -9,6 +9,7 @@ interface DriverSelectionPanelProps {
   onToggleDriver: (driverNumber: number) => void;
   multiSelect?: boolean;
   className?: string;
+  driverData?: {[key: number]: any[]};
 }
 
 const DriverSelectionPanel: React.FC<DriverSelectionPanelProps> = ({
@@ -16,8 +17,14 @@ const DriverSelectionPanel: React.FC<DriverSelectionPanelProps> = ({
   selectedDrivers,
   onToggleDriver,
   multiSelect = true,
-  className = ""
+  className = "",
+  driverData = {}
 }) => {
+  // Function to check if a driver has data
+  const hasData = (driverNumber: number) => {
+    return driverData[driverNumber] && driverData[driverNumber].length > 0;
+  };
+
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>
       {drivers.map((driver) => (
@@ -28,10 +35,13 @@ const DriverSelectionPanel: React.FC<DriverSelectionPanelProps> = ({
               ? "bg-white text-gray-900"
               : driver.hasError
               ? "bg-red-800/50 hover:bg-red-800/70 text-white"
+              : hasData(driver.driver_number) 
+              ? "bg-gray-800 hover:bg-gray-700 text-white border-green-500 border-opacity-50"
               : "bg-gray-800 hover:bg-gray-700 text-white"
           }`}
           onClick={() => onToggleDriver(driver.driver_number)}
           style={{}}
+          title={driver.hasError ? "Failed to load data" : hasData(driver.driver_number) ? "Data available" : "No data loaded yet"}
         >
           <div 
             className="w-2.5 h-2.5 rounded-full" 
@@ -44,6 +54,9 @@ const DriverSelectionPanel: React.FC<DriverSelectionPanelProps> = ({
           )}
           {driver.hasError && (
             <AlertCircle className="h-3 w-3 text-red-400 ml-1" />
+          )}
+          {!driver.isLoading && !driver.hasError && hasData(driver.driver_number) && (
+            <CheckCircle2 className="h-3 w-3 text-green-400 ml-1" />
           )}
         </Button>
       ))}

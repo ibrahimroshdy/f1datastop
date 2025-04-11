@@ -196,6 +196,8 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     );
     
     try {
+      console.log(`Fetching telemetry data for driver ${driverNumber}`);
+      
       // Fetch data for a specific driver only - DON'T add limit param as it causes issues
       const result = await fetch(`/api/openf1/car_data?session_key=${sessionKey}&driver_number=${driverNumber}`, {
         mode: 'cors',
@@ -205,7 +207,8 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
       });
       
       if (!result.ok) {
-        throw new Error(`HTTP error! status: ${result.status}`);
+        console.error(`HTTP error for driver ${driverNumber}:`, result.status);
+        throw new Error(`HTTP error ${result.status} when fetching driver ${driverNumber} data`);
       }
       
       // First get the response as text to validate it's actually JSON
@@ -213,6 +216,7 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
       
       // Check if it looks like HTML (typically error pages start with <!DOCTYPE or <html)
       if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+        console.error(`HTML response for driver ${driverNumber}:`, responseText.substring(0, 100));
         throw new Error(`Server returned HTML instead of JSON for driver ${driverNumber}`);
       }
       
@@ -221,14 +225,17 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
       try {
         data = JSON.parse(responseText);
       } catch (parseError) {
-        console.error(`Error parsing JSON for driver ${driverNumber}:`, parseError);
+        console.error(`JSON parse error for driver ${driverNumber}:`, parseError);
         throw new Error(`Invalid JSON response for driver ${driverNumber}`);
       }
       
       // Check if the response is actually empty (empty array)
       if (!data || !Array.isArray(data) || data.length === 0) {
+        console.error(`Empty data array for driver ${driverNumber}`);
         throw new Error(`No telemetry data available for driver ${driverNumber}`);
       }
+      
+      console.log(`Received ${data.length} data points for driver ${driverNumber}`);
       
       // Additional validation: Ensure the data contains valid telemetry points
       // This prevents issues with malformed data causing rendering problems
@@ -245,8 +252,11 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
       
       // If no valid points are found after filtering, throw error
       if (validData.length === 0) {
+        console.error(`No valid data points for driver ${driverNumber} after filtering`);
         throw new Error(`Invalid telemetry data format for driver ${driverNumber}`);
       }
+      
+      console.log(`${validData.length} valid data points for driver ${driverNumber}`);
       
       // Very large datasets need special handling
       let dataToProcess = validData;

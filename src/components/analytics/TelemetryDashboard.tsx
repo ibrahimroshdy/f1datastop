@@ -129,12 +129,35 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     });
   };
   
-  // Auto-select first driver when available
+  // Update the auto-select logic to log issues with driver 1
   useEffect(() => {
     if (originalAvailableDrivers.length > 0 && selectedDrivers.length === 0) {
-      setSelectedDrivers([originalAvailableDrivers[0].driver_number]);
+      // Check specific drivers that should be auto-selected
+      const driverToCheck = 1; // VER
+      const driverExists = originalAvailableDrivers.find(d => d.driver_number === driverToCheck);
+      
+      if (driverExists) {
+        console.log(`Auto-selecting driver ${driverToCheck} (${driverExists.name_acronym})`);
+        setSelectedDrivers([driverToCheck]);
+        
+        // Pre-load this driver's data
+        if (!telemetryData[driverToCheck] && !driverLoadingState[driverToCheck]) {
+          console.log(`Pre-loading data for driver ${driverToCheck}`);
+          loadDriverData(driverToCheck).catch(error => {
+            console.error(`Failed to load data for driver ${driverToCheck}:`, error);
+          });
+        } else if (telemetryData[driverToCheck]) {
+          console.log(`Data already loaded for driver ${driverToCheck}, points:`, telemetryData[driverToCheck].length);
+        } else if (driverLoadingState[driverToCheck]) {
+          console.log(`Driver ${driverToCheck} data is currently loading`);
+        }
+      } else {
+        // If driver 1 doesn't exist, select the first available driver
+        console.log(`Driver ${driverToCheck} not found, selecting first available driver:`, originalAvailableDrivers[0]);
+        setSelectedDrivers([originalAvailableDrivers[0].driver_number]);
+      }
     }
-  }, [originalAvailableDrivers, selectedDrivers]);
+  }, [originalAvailableDrivers, selectedDrivers, telemetryData, driverLoadingState, loadDriverData]);
   
   // Helper function to find closest data point in time
   const findClosestDataPoint = (data: TelemetryDataPoint[], targetTime: number): TelemetryDataPoint | null => {
@@ -231,7 +254,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
       case "gear":
         return { unit: "", label: "Gear", domain: [0, 8] };
       case "drs":
-        return { unit: "", label: "DRS Activated", domain: [0, 1] };
+        return { unit: "", label: "DRS", domain: [0, 1.2] };
       default:
         return { unit: "", label: "", domain: [0, 100] };
     }
@@ -249,384 +272,20 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     }, 500);
   };
   
-  // Helper function to create a data point at a specific time
-  const createDataPointAtTime = (time: number, activeDriverData: {[key: string]: { data: TelemetryDataPoint[], driver: Driver }}) => {
-    const dataPoint: any = { time };
-    let hasValidData = false;
-    
-    // Process each active driver's data
-    Object.values(activeDriverData).forEach(({ data, driver }) => {
-      if (!data || !Array.isArray(data) || data.length === 0) return;
-      
-      try {
-        const closestPoint = findClosestDataPointEfficient(data, time, 5000);
-        
-        if (closestPoint) {
-          const driverKey = driver.name_acronym;
-          
-          // Get value based on current tab
-          let dataValue: number | null = null;
-          
-          switch (activeTab) {
-            case "speed": 
-              dataValue = typeof closestPoint.speed === 'number' ? closestPoint.speed : null;
-              break;
-            case "rpm": 
-              dataValue = typeof closestPoint.rpm === 'number' ? closestPoint.rpm : null;
-              break;
-            case "throttle": 
-              dataValue = typeof closestPoint.throttle === 'number' ? closestPoint.throttle : null;
-              break;
-            case "brake": 
-              dataValue = typeof closestPoint.brake === 'number' ? closestPoint.brake : null;
-              break;
-            case "gear": 
-              dataValue = typeof closestPoint.gear === 'number' ? closestPoint.gear : null;
-              break;
-            case "drs": 
-              dataValue = typeof closestPoint.drs === 'number' ? (closestPoint.drs > 0 ? 1 : 0) : null;
-              break;
-          }
-          
-          if (dataValue !== null) {
-            dataPoint[driverKey] = dataValue;
-            dataPoint[`${driverKey}_color`] = driver.team_color;
-            hasValidData = true;
-          }
-        }
-      } catch (error) {
-        console.error(`Error processing data point for driver ${driver.driver_number}:`, error);
-      }
-    });
-    
-    return hasValidData ? dataPoint : null;
-  };
-  
-  // Define the generateChartData function BEFORE it's used
-  // Extracted function to generate chart data with different time steps
-  const generateChartData = (startTime: number, endTime: number, timeStep: number, maxPoints: number) => {
-    console.time(`generateChartData with step ${timeStep}ms`);
-    try {
-      // Create combined dataset with all drivers - pre-allocate array size
-      const combinedData: any[] = new Array(Math.min(maxPoints, 300));
-      
-      // Performance optimization: Pre-filter the driver data to avoid loops
-      const activeDriverData: {[key: string]: {
-        data: TelemetryDataPoint[], 
-        driver: Driver
-      }} = {};
-      
-      // Only process selected drivers that have data
-      const driversToProcess = selectedDrivers.filter(
-        driverNum => !!telemetryData[driverNum] && telemetryData[driverNum].length > 0
-      );
-      
-      console.log(`Processing ${driversToProcess.length} drivers with data`);
-      
-      // Skip processing if no drivers have data
-      if (driversToProcess.length === 0) {
-        console.timeEnd(`generateChartData with step ${timeStep}ms`);
-        return [];
-      }
-      
-      driversToProcess.forEach(driverNum => {
-        const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
-        if (driver) {
-          activeDriverData[driverNum] = { 
-            data: telemetryData[driverNum],
-            driver 
-          };
-        }
-      });
-      
-      // Count of active drivers for more efficient processing
-      const activeDriverCount = Object.keys(activeDriverData).length;
-      
-      // If no drivers to show, return empty array
-      if (activeDriverCount === 0) {
-        console.timeEnd(`generateChartData with step ${timeStep}ms`);
-        return [];
-      }
-      
-      // Performance optimization: Only sample the timepoints we need for the chart
-      let index = 0;
-      
-      // Don't use Date.now() for time range calculation - just use the provided times
-      // This was causing issues with historical data
-      const actualStartTime = startTime;
-      
-      for (let time = actualStartTime; time <= endTime && index < maxPoints; time += timeStep) {
-        const dataPoint: any = { time };
-        let hasValidData = false;
-        
-        // Process each active driver's data
-        Object.values(activeDriverData).forEach(({ data, driver }) => {
-          // Skip if data isn't valid
-          if (!data || !Array.isArray(data) || data.length === 0) return;
-          
-          try {
-            const closestPoint = findClosestDataPointEfficient(data, time, 5000);
-            
-            if (closestPoint) {
-              const driverKey = driver.name_acronym;
-              
-              // Validate data and set it immediately - simplify processing
-              let dataValue: number | null = null;
-              
-              switch (activeTab) {
-                case "speed": 
-                  dataValue = typeof closestPoint.speed === 'number' ? closestPoint.speed : null;
-                  break;
-                case "rpm": 
-                  dataValue = typeof closestPoint.rpm === 'number' ? closestPoint.rpm : null;
-                  break;
-                case "throttle": 
-                  dataValue = typeof closestPoint.throttle === 'number' ? closestPoint.throttle : null;
-                  break;
-                case "brake": 
-                  dataValue = typeof closestPoint.brake === 'number' ? closestPoint.brake : null;
-                  break;
-                case "gear": 
-                  dataValue = typeof closestPoint.gear === 'number' ? closestPoint.gear : null;
-                  break;
-                case "drs": 
-                  dataValue = typeof closestPoint.drs === 'number' ? (closestPoint.drs > 0 ? 1 : 0) : null;
-                  break;
-              }
-              
-              if (dataValue !== null) {
-                dataPoint[driverKey] = dataValue;
-                dataPoint[`${driverKey}_color`] = driver.team_color;
-                hasValidData = true;
-              }
-            }
-          } catch (error) {
-            console.error(`Error processing data point for driver ${driver.driver_number}:`, error);
-          }
-        });
-        
-        // Only add points that have valid data
-        if (hasValidData) {
-          combinedData[index++] = dataPoint;
-        }
-      }
-      
-      // Remove any undefined entries
-      const finalData = combinedData.filter(Boolean);
-      console.log(`Generated ${finalData.length} chart data points`);
-      return finalData;
-    } catch (error) {
-      console.error('Error in generateChartData:', error);
-      return [];
-    } finally {
-      console.timeEnd(`generateChartData with step ${timeStep}ms`);
-    }
-  };
-  
-  // Replace the entire generateFullSessionChartData function with a simpler version
-  const generateFullSessionChartData = (startTime: number, endTime: number, timeStep: number, maxPoints: number) => {
-    try {
-      // Start with a very simple approach
-      const result = [];
-      const driverMap = {};
-      
-      // Get available drivers with data
-      selectedDrivers.forEach(driverNum => {
-        if (telemetryData[driverNum] && telemetryData[driverNum].length > 0) {
-          const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
-          if (driver) {
-            driverMap[driverNum] = {
-              acronym: driver.name_acronym,
-              color: driver.team_color,
-              data: telemetryData[driverNum]
-            };
-          }
-        }
-      });
-      
-      // If no drivers have data, return empty
-      if (Object.keys(driverMap).length === 0) {
-        return [];
-      }
-      
-      // Create time points at regular intervals
-      const timePoints = [];
-      const totalPoints = Math.min(1500, maxPoints); // Increase from 500 to 1500 points for higher resolution
-      const actualTimeStep = Math.max(1000, Math.ceil((endTime - startTime) / totalPoints));
-      
-      for (let t = startTime; t <= endTime; t += actualTimeStep) {
-        timePoints.push(t);
-      }
-      
-      // Make sure we include the end time
-      if (timePoints[timePoints.length - 1] !== endTime) {
-        timePoints.push(endTime);
-      }
-      
-      // For each time point, gather data from all drivers
-      timePoints.forEach(time => {
-        const point = { time };
-        let hasData = false;
-        
-        // Get data for each driver at this time point
-        Object.values(driverMap).forEach((driver: any) => {
-          // Find the closest data point (within 10 seconds)
-          const driverData = driver.data;
-          if (!driverData || driverData.length === 0) return;
-          
-          let closest = null;
-          let minDiff = 10000; // 10 seconds max difference
-          
-          for (let i = 0; i < driverData.length; i++) {
-            const diff = Math.abs(driverData[i].time - time);
-            if (diff < minDiff) {
-              minDiff = diff;
-              closest = driverData[i];
-            }
-          }
-          
-          if (closest) {
-            // Get the value based on selected tab
-            let value = null;
-            
-            switch (activeTab) {
-              case "speed": value = closest.speed; break;
-              case "rpm": value = closest.rpm; break;
-              case "throttle": value = closest.throttle; break;
-              case "brake": value = closest.brake; break;
-              case "gear": value = closest.gear; break;
-              case "drs": value = closest.drs > 0 ? 1 : 0; break;
-            }
-            
-            if (value !== null && value !== undefined) {
-              point[driver.acronym] = value;
-              hasData = true;
-            }
-          }
-        });
-        
-        if (hasData) {
-          result.push(point);
-        }
-      });
-      
-      return result;
-    } catch (error) {
-      console.error('Error generating chart data:', error);
-      return [];
-    }
-  };
-  
-  // A more aggressive version of createDataPointAtTime that tries harder to find data
-  const createEmergencyDataPoint = (time: number, activeDriverData: {[key: string]: { data: TelemetryDataPoint[], driver: Driver }}) => {
-    const dataPoint: any = { time };
-    let hasValidData = false;
-    
-    // Process each active driver's data
-    Object.values(activeDriverData).forEach(({ data, driver }) => {
-      if (!data || !Array.isArray(data) || data.length === 0) return;
-      
-      try {
-        // Use a much wider time window (10 seconds) to find points
-        const timeWindow = 10000;
-        
-        // Try to find a point within this wider window
-        const closestPoint = findClosestPointWithinWindow(data, time, timeWindow);
-        
-        if (closestPoint) {
-          const driverKey = driver.name_acronym;
-          
-          // Get value based on current tab
-          let dataValue: number | null = null;
-          
-          switch (activeTab) {
-            case "speed": 
-              dataValue = typeof closestPoint.speed === 'number' ? closestPoint.speed : null;
-              break;
-            case "rpm": 
-              dataValue = typeof closestPoint.rpm === 'number' ? closestPoint.rpm : null;
-              break;
-            case "throttle": 
-              dataValue = typeof closestPoint.throttle === 'number' ? closestPoint.throttle : null;
-              break;
-            case "brake": 
-              dataValue = typeof closestPoint.brake === 'number' ? closestPoint.brake : null;
-              break;
-            case "gear": 
-              dataValue = typeof closestPoint.gear === 'number' ? closestPoint.gear : null;
-              break;
-            case "drs": 
-              dataValue = typeof closestPoint.drs === 'number' ? (closestPoint.drs > 0 ? 1 : 0) : null;
-              break;
-          }
-          
-          if (dataValue !== null) {
-            dataPoint[driverKey] = dataValue;
-            dataPoint[`${driverKey}_color`] = driver.team_color;
-            hasValidData = true;
-          }
-        }
-      } catch (error) {
-        console.error(`Error processing emergency data point for driver ${driver.driver_number}:`, error);
-      }
-    });
-    
-    return hasValidData ? dataPoint : null;
-  };
-  
-  // Helper to find a point within a specific time window
-  const findClosestPointWithinWindow = (data: TelemetryDataPoint[], targetTime: number, timeWindow: number): TelemetryDataPoint | null => {
-    if (!data || data.length === 0) return null;
-    
-    // For very large datasets, we can't afford to scan the entire array
-    // Try to use binary search first to find the approximate position
-    const firstTime = data[0].time;
-    const lastTime = data[data.length - 1].time;
-    
-    // Safety check for invalid time range
-    if (isNaN(firstTime) || isNaN(lastTime) || firstTime >= lastTime) {
-      return null;
-    }
-    
-    // Check if target time is within the data range
-    if (targetTime < firstTime - timeWindow || targetTime > lastTime + timeWindow) {
-      return null;
-    }
-    
-    // Estimate index using linear interpolation
-    const timeRange = lastTime - firstTime;
-    const index = Math.floor((targetTime - firstTime) * (data.length - 1) / timeRange);
-    const safeIndex = Math.max(0, Math.min(index, data.length - 1));
-    
-    // Look for the closest point within the time window
-    let closestPoint = null;
-    let closestDistance = timeWindow + 1; // Start with something larger than our window
-    
-    // Search in both directions from the estimated index
-    for (let i = safeIndex; i < data.length; i++) {
-      const distance = Math.abs(data[i].time - targetTime);
-      if (distance > closestDistance) break; // We're moving away from the target
-      if (distance <= timeWindow && distance < closestDistance) {
-        closestDistance = distance;
-        closestPoint = data[i];
-      }
-    }
-    
-    for (let i = safeIndex - 1; i >= 0; i--) {
-      const distance = Math.abs(data[i].time - targetTime);
-      if (distance > closestDistance) break; // We're moving away from the target
-      if (distance <= timeWindow && distance < closestDistance) {
-        closestDistance = distance;
-        closestPoint = data[i];
-      }
-    }
-    
-    return closestPoint;
-  };
-  
-  // Process data for the selected metric and time range
+  // Fix issue with multiple drivers by making sure chart data includes all drivers
   const chartData = React.useMemo(() => {
-    if (!hasData || !timeRange) return [];
+    if (!hasData || !timeRange) {
+      console.log("No data or timeRange available");
+      
+      // Debugging: Log the status of each selected driver's data
+      selectedDrivers.forEach(driverNum => {
+        const driverData = telemetryData[driverNum];
+        console.log(`Driver ${driverNum} data status:`, 
+          driverData ? `${driverData.length} points available` : 'No data available');
+      });
+      
+      return [];
+    }
     
     try {
       // Use selected time range if available, otherwise use the full range
@@ -634,76 +293,242 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
       
       // Safety check for invalid time ranges that might cause loops
       if (!startTime || !endTime || isNaN(startTime) || isNaN(endTime) || startTime >= endTime) {
+        console.log("Invalid time range:", startTime, endTime);
         return [];
       }
       
-      // EXTREME Performance optimization: Use a much larger time step to reduce data points
-      // For car telemetry, we don't need millisecond precision in the chart
-      const timeStep = 2000; // 2 second time step - extreme performance improvement
+      // Create separate array of points for each driver
+      const driverDataPoints: {[key: string]: any[]} = {};
       
-      // Pre-compute the number of data points to allocate array
-      const timeDiff = endTime - startTime;
-      // Add protection against extremely large time ranges
-      if (timeDiff <= 0 || timeDiff > 24 * 60 * 60 * 1000) {
+      // Get available drivers with data
+      const driversWithData = selectedDrivers.filter(driverNum => 
+        telemetryData[driverNum] && 
+        telemetryData[driverNum].length > 0
+      );
+      
+      if (driversWithData.length === 0) {
+        console.log("No drivers with data");
         return [];
       }
       
-      const numPoints = Math.ceil(timeDiff / timeStep);
+      console.log(`Processing ${driversWithData.length} drivers with data`);
       
-      // Increased point limit: Use a maximum of 500 points for the full session
-      const MAX_CHART_POINTS = 500;
-      
-      // If we'd generate too many points, use a calculated time step that will give us exactly MAX_CHART_POINTS
-      if (numPoints > MAX_CHART_POINTS) {
-        // Calculate a time step that will evenly distribute MAX_CHART_POINTS across the entire session
-        const calculatedTimeStep = Math.ceil(timeDiff / MAX_CHART_POINTS);
+      // For each driver, process their data with smoothing
+      driversWithData.forEach(driverNum => {
+        const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
+        if (!driver) return;
         
-        // Generate data with special handling to ensure first and last points are included
-        const data = generateFullSessionChartData(startTime, endTime, calculatedTimeStep, MAX_CHART_POINTS);
+        const driverKey = driver.name_acronym;
+        const data = telemetryData[driverNum];
         
-        // Debug the generated data for multiple drivers
-        if (selectedDrivers.length > 1) {
-          const samplePoint = data.length > 0 ? data[0] : null;
-          console.log('Sample data point:', samplePoint);
+        // Filter to points within the selected time range
+        const filteredData = data.filter(
+          point => point.time >= startTime && point.time <= endTime
+        );
+        
+        // Apply intelligent sampling to reduce noise while preserving important features
+        // This gives us smoother lines while maintaining critical telemetry patterns
+        const smoothedData = [];
+        
+        // For extremely smooth charts, we need a completely different approach with much more aggressive sampling
+        // Use a fixed interval skip of 75 points to get a sparse but smooth representation
+        const EXTREME_SKIP_RATE = 75;
+        
+        // We'll sample very sparsely but ensure we include critical points
+        // Always include the first and last points
+        if (filteredData.length > 0) {
+          smoothedData.push(filteredData[0]);
           
-          // Check if all selected drivers have data
-          selectedDrivers.forEach(driverNum => {
-            const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
-            if (driver) {
-              const driverKey = driver.name_acronym;
-              const pointsWithData = data.filter(p => p[driverKey] !== undefined);
-              console.log(`Driver ${driverKey} has data in ${pointsWithData.length}/${data.length} points`);
+          // Sample the middle using the skip rate
+          for (let i = EXTREME_SKIP_RATE; i < filteredData.length - EXTREME_SKIP_RATE; i += EXTREME_SKIP_RATE) {
+            // Include a point every 75 points
+            if (i < filteredData.length) {
+              smoothedData.push(filteredData[i]);
             }
-          });
+          }
+          
+          // Always include the last point to close the graph properly
+          if (filteredData.length > 1) {
+            smoothedData.push(filteredData[filteredData.length - 1]);
+          }
+          
+          // For DRS and gear changes, we need to preserve those state changes
+          if (activeTab === "drs" || activeTab === "gear") {
+            // Scan for important state changes that would be missed by the extreme skipping
+            for (let i = 1; i < filteredData.length - 1; i++) {
+              // Skip points we've already included through regular sampling
+              if (i % EXTREME_SKIP_RATE === 0) continue;
+              
+              // Check if this point represents a state change
+              const prevVal = activeTab === "drs" ? filteredData[i-1].drs : filteredData[i-1].gear;
+              const currVal = activeTab === "drs" ? filteredData[i].drs : filteredData[i].gear;
+              const nextVal = activeTab === "drs" ? filteredData[i+1].drs : filteredData[i+1].gear;
+              
+              // If this is a transition point (state change), include it
+              if (prevVal !== currVal || currVal !== nextVal) {
+                smoothedData.push(filteredData[i]);
+              }
+            }
+            
+            // Sort the data points by time
+            smoothedData.sort((a, b) => a.time - b.time);
+          }
+          
+          console.log(`Ultra smoothed data for ${driverKey}: ${filteredData.length} → ${smoothedData.length} points (${Math.round(smoothedData.length/filteredData.length*100)}%)`);
+        } else {
+          console.log(`No filtered data for ${driverKey} in the selected time range`);
         }
         
-        return data;
+        // Add these points to the driver's data
+        driverDataPoints[driverKey] = smoothedData.map(point => {
+          const dataPoint: any = { time: point.time };
+          
+          // Add the specific metric data based on active tab
+          switch (activeTab) {
+            case "speed": dataPoint[driverKey] = point.speed; break;
+            case "rpm": dataPoint[driverKey] = point.rpm; break;
+            case "throttle": dataPoint[driverKey] = point.throttle; break;
+            case "brake": dataPoint[driverKey] = point.brake; break;
+            case "gear": dataPoint[driverKey] = point.gear; break;
+            case "drs": dataPoint[driverKey] = point.drs; break;
+          }
+          
+          // Add team color for this driver
+          dataPoint[`${driverKey}_color`] = driver.team_color;
+          
+          return dataPoint;
+        });
+      });
+      
+      // Find the driver with the most data points to use as reference
+      let referenceDriver = "";
+      let maxPoints = 0;
+      
+      Object.entries(driverDataPoints).forEach(([driver, points]) => {
+        if (points.length > maxPoints) {
+          referenceDriver = driver;
+          maxPoints = points.length;
+        }
+      });
+      
+      console.log(`Using ${referenceDriver} as reference with ${maxPoints} points`);
+      
+      // If no reference driver found or no data points, return empty array
+      if (!referenceDriver || maxPoints === 0) {
+        return [];
       }
       
-      // For small data sets, use the normal time step
-      const data = generateChartData(startTime, endTime, timeStep, numPoints);
+      // Create a merged timeline that includes all drivers' time points
+      const allTimePoints = new Set<number>();
       
-      // Debug the generated data for multiple drivers
-      if (selectedDrivers.length > 1) {
-        const samplePoint = data.length > 0 ? data[0] : null;
-        console.log('Sample data point:', samplePoint);
+      // Collect all time points from all drivers
+      Object.values(driverDataPoints).forEach(points => {
+        points.forEach(point => {
+          allTimePoints.add(point.time);
+        });
+      });
+      
+      // Convert to array and sort
+      const timePoints = Array.from(allTimePoints).sort((a, b) => a - b);
+      
+      // Build the final chart data with all drivers
+      const result = timePoints.map(time => {
+        const point: any = { time };
         
-        // Check if all selected drivers have data
-        selectedDrivers.forEach(driverNum => {
-          const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
-          if (driver) {
-            const driverKey = driver.name_acronym;
-            const pointsWithData = data.filter(p => p[driverKey] !== undefined);
-            console.log(`Driver ${driverKey} has data in ${pointsWithData.length}/${data.length} points`);
+        Object.entries(driverDataPoints).forEach(([driver, points]) => {
+          // Find the closest point in time for this driver
+          const exactPoint = points.find(p => p.time === time);
+          
+          if (exactPoint) {
+            // If we have an exact match for this time point, use it
+            point[driver] = exactPoint[driver];
+            point[`${driver}_color`] = exactPoint[`${driver}_color`];
+          } else {
+            // Find the closest points before and after
+            const pointsBefore = points.filter(p => p.time < time).sort((a, b) => b.time - a.time);
+            const pointsAfter = points.filter(p => p.time > time).sort((a, b) => a.time - b.time);
+            
+            const before = pointsBefore.length > 0 ? pointsBefore[0] : null;
+            const after = pointsAfter.length > 0 ? pointsAfter[0] : null;
+            
+            // If we have points on both sides, interpolate
+            if (before && after) {
+              const beforeVal = before[driver];
+              const afterVal = after[driver];
+              const beforeTime = before.time;
+              const afterTime = after.time;
+              
+              // Linear interpolation
+              const ratio = (time - beforeTime) / (afterTime - beforeTime);
+              const interpolatedValue = beforeVal + ratio * (afterVal - beforeVal);
+              
+              point[driver] = interpolatedValue;
+              point[`${driver}_color`] = before[`${driver}_color`];
+            } else if (before) {
+              // Use the last point before
+              point[driver] = before[driver];
+              point[`${driver}_color`] = before[`${driver}_color`];
+            } else if (after) {
+              // Use the first point after
+              point[driver] = after[driver];
+              point[`${driver}_color`] = after[`${driver}_color`];
+            }
           }
         });
-      }
+        
+        return point;
+      });
       
-      return data;
+      console.log(`Generated ${result.length} chart data points for ${Object.keys(driverDataPoints).length} drivers`);
+      return result;
     } catch (error) {
+      console.error('Error generating chart data:', error);
       return [];
     }
   }, [telemetryData, originalAvailableDrivers, selectedDrivers, activeTab, timeRange, selectedTimeRange, hasData]);
+
+  // Add a function to find the first driver with available data
+  const findFirstDriverWithData = () => {
+    // Prioritize these drivers in this order
+    const priorityDrivers = [1, 44, 55, 4, 18, 11, 63];
+    
+    // Try to find drivers with data in priority order
+    for (const driverNum of priorityDrivers) {
+      if (telemetryData[driverNum] && telemetryData[driverNum].length > 0) {
+        return driverNum;
+      }
+    }
+    
+    // If none of the priority drivers have data, check all drivers
+    for (const driverNum in telemetryData) {
+      if (telemetryData[driverNum] && telemetryData[driverNum].length > 0) {
+        return parseInt(driverNum);
+      }
+    }
+    
+    // If no driver has data, return the first available driver
+    if (originalAvailableDrivers.length > 0) {
+      return originalAvailableDrivers[0].driver_number;
+    }
+    
+      return null;
+    }
+    
+  // Add an effect to check if the selected driver has data available
+  useEffect(() => {
+    // Only run this if we have selected drivers but no data is showing
+    if (selectedDrivers.length > 0 && !hasData && !isLoading) {
+      console.log("Selected drivers don't have data yet:", selectedDrivers);
+      
+      // Find a driver with data available
+      const driverWithData = findFirstDriverWithData();
+      
+      if (driverWithData && !selectedDrivers.includes(driverWithData)) {
+        console.log(`Switching to driver ${driverWithData} which has data available`);
+        setSelectedDrivers([driverWithData]);
+      }
+    }
+  }, [selectedDrivers, hasData, isLoading, telemetryData]);
 
   return (
     <Card className="relative">
@@ -783,6 +608,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                 selectedDrivers={selectedDrivers}
                 onToggleDriver={toggleDriverSelection}
                 multiSelect={true}
+                driverData={telemetryData}
               />
               {selectedDrivers.length === 0 && (
                 <div className="mt-4 text-center text-sm text-muted-foreground">
@@ -845,6 +671,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
                           <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
+                          
                           <XAxis 
                             dataKey="time" 
                             tickFormatter={formatTimeForAxis}
@@ -852,12 +679,18 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                             tick={{ fontSize: 11 }}
                             interval="preserveEnd"
                           />
+                          
                           <YAxis 
                             domain={domain} 
                             unit={unit} 
                             width={50} 
                             tick={{ fontSize: 11 }}
                             tickCount={5}
+                            // For DRS, format the ticks to show "On" and "Off" instead of 0 and 1
+                            tickFormatter={activeTab === "drs" 
+                              ? (value) => value === 0 ? "Off" : value === 1 ? "On" : ""
+                              : undefined
+                            }
                           />
                           
                           {/* Fixed lap indicators with proper date conversion */}
@@ -891,9 +724,41 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                           }
                           
                           <Tooltip 
-                            formatter={(value: any, name: string) => [`${value} ${unit}`, name]}
-                            labelFormatter={(time) => {
-                              const date = new Date(time as number);
+                            formatter={(value: any, name: string, props: any) => {
+                              // Extract driver name from the dataKey (name parameter)
+                              const driverKey = name;
+                              // Find the driver to get their team color for styling
+                              const driver = originalAvailableDrivers.find(d => d.name_acronym === driverKey);
+                              
+                              // Format value based on the current tab
+                              let formattedValue = `${value}`;
+                              switch (activeTab) {
+                                case "speed":
+                                  formattedValue = `${value} km/h`;
+                                  break;
+                                case "rpm":
+                                  formattedValue = `${value} RPM`;
+                                  break;
+                                case "throttle":
+                                case "brake":
+                                  formattedValue = `${value}%`;
+                                  break;
+                                case "gear":
+                                  formattedValue = `Gear ${value}`;
+                                  break;
+                                case "drs":
+                                  formattedValue = value === 1 ? "DRS Enabled" : "DRS Disabled";
+                                  break;
+                              }
+                              
+                              // Return formatted value with driver number
+                              return [
+                                formattedValue,
+                                driver ? `${driverKey} (#${driver.driver_number})` : driverKey
+                              ];
+                            }}
+                            labelFormatter={(label) => {
+                              const date = new Date(label as number);
                               // Find the lap for this time
                               let lapInfo = "";
                               if (lapData && lapData.length > 0 && selectedDrivers.length > 0) {
@@ -902,7 +767,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                   if (!lap.date_start || !lap.date_end) return false;
                                   const startTime = new Date(lap.date_start).getTime();
                                   const endTime = new Date(lap.date_end).getTime();
-                                  return time >= startTime && time <= endTime;
+                                  return label >= startTime && label <= endTime;
                                 });
                                 
                                 if (currentLap) {
@@ -915,8 +780,16 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                             contentStyle={{
                               backgroundColor: '#1a1a1a',
                               borderColor: '#333',
-                              borderRadius: '5px'
+                              borderRadius: '5px',
+                              padding: '8px'
                             }}
+                            itemStyle={{
+                              padding: '4px 0'
+                            }}
+                            wrapperStyle={{
+                              zIndex: 1000
+                            }}
+                            isAnimationActive={false}
                           />
                           
                           {/* Render lines for each driver */}
@@ -926,16 +799,49 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                             
                             const driverKey = driver.name_acronym;
                             
+                            // For extremely smooth rendering in other categories, apply curve smoothing
+                            if (activeTab !== "drs" && activeTab !== "gear") {
+                              // Replace the stepAfter type with monotone for smoother curves
+                              return (
+                                <Line
+                                  key={driverNum}
+                                  type="monotone"
+                                  dataKey={driverKey}
+                                  name={driverKey}
+                                  stroke={driver.team_color}
+                                  strokeWidth={3}
+                                  dot={false}
+                                  activeDot={{ 
+                                    r: 6, 
+                                    stroke: driver.team_color, 
+                                    strokeWidth: 2, 
+                                    fill: '#fff',
+                                    strokeOpacity: 0.8,
+                                    fillOpacity: 0.8
+                                  }}
+                                  connectNulls={true}
+                                  isAnimationActive={false}
+                                />
+                              );
+                            }
+                            
                             return (
                               <Line
                                 key={driverNum}
-                                type="monotone"
+                                type="stepAfter"
                                 dataKey={driverKey}
                                 name={driverKey}
                                 stroke={driver.team_color}
-                                strokeWidth={2.5}
+                                strokeWidth={3}
                                 dot={false}
-                                activeDot={{ r: 5, stroke: driver.team_color, strokeWidth: 2, fill: '#fff' }}
+                                activeDot={{ 
+                                  r: 6, 
+                                  stroke: driver.team_color, 
+                                  strokeWidth: 2, 
+                                  fill: '#fff',
+                                  strokeOpacity: 0.8,
+                                  fillOpacity: 0.8
+                                }}
                                 connectNulls={true}
                                 isAnimationActive={false}
                               />
