@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,42 @@ import { Badge } from "@/components/ui/badge";
 import { formatTime } from "@/utils/lapTimeUtils";
 import { Avatar } from "@/components/ui/avatar";
 import DriverSelectionPanel from "./DriverSelectionPanel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface SessionOption {
+  session_key: number;
+  session_name: string;
+  session_type: string;
+  date_start: string;
+  date_end: string;
+  meeting_key: number;
+  location: string;
+  circuit_short_name: string;
+}
 
 interface TelemetryDashboardProps {
   year: number;
   round: string;
   sessionType?: string;
+  sessionKey?: number;
+}
+
+// Define interface for the session data structure
+interface SessionData {
+  session_key: number;
+  session_name: string;
+  session_type: string;
+  date_start: string;
+  date_end: string;
+  meeting_key: number;
+  location: string;
+  circuit_short_name: string;
+  country_name: string;
+  year: number;
+}
+
+interface SessionResponse {
+  data: SessionData | null;
 }
 
 // Helper function to determine if a color is light or dark
@@ -52,7 +83,8 @@ const isColorLight = (color: string) => {
 const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({ 
   year, 
   round, 
-  sessionType = "Race" 
+  sessionType = "Race",
+  sessionKey: externalSessionKey
 }) => {
   const [selectedDrivers, setSelectedDrivers] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState("speed");
@@ -62,16 +94,52 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   const [hasServerError, setHasServerError] = useState(false);
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   
-  // Get the OpenF1 session directly
-  // Note: round is now expected to be either a meeting_key or special value like "last"/"next"
+  // After the useState declarations, add this hook to reset data when session changes
+  useEffect(() => {
+    // Reset selected drivers when the session changes
+    setSelectedDrivers([]);
+    setHasServerError(false);
+    
+    console.log("Session changed in TelemetryDashboard to:", externalSessionKey);
+    
+    // Clear session details cache when session changes
+    setSessionDetails(null);
+  }, [externalSessionKey]);
+  
+  // Use the session key from props if provided, otherwise use the hook
   const { 
     data: sessionData, 
     isLoading: isSessionLoading 
-  } = useOpenF1SessionFromErgast(year, round, sessionType);
+  } = useOpenF1SessionFromErgast(
+    externalSessionKey ? 0 : year, 
+    externalSessionKey ? "" : round, 
+    externalSessionKey ? "" : sessionType
+  );
   
-  const sessionKey = sessionData?.data?.session_key;
+  // Determine the effective session key
+  const effectiveSessionKey = externalSessionKey || sessionData?.data?.session_key || 0;
   
-  // Get telemetry data for this session
+  // Use manual fetch only when we need to get session details for display
+  const [sessionDetails, setSessionDetails] = useState<any>(null);
+  useEffect(() => {
+    // Only fetch session details if we have an external session key and no details yet
+    if (externalSessionKey && !sessionDetails) {
+      const fetchSessionDetails = async () => {
+        try {
+          const response = await fetch(`/api/openf1/sessions?session_key=${externalSessionKey}`);
+          const data = await response.json();
+          if (data && data[0]) {
+            setSessionDetails({ data: data[0] });
+          }
+        } catch (error) {
+          console.error("Error fetching session details:", error);
+        }
+      };
+      
+      fetchSessionDetails();
+    }
+  }, [externalSessionKey, sessionDetails]);
+  
   const {
     telemetryData,
     availableDrivers: originalAvailableDrivers,
@@ -83,10 +151,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     lapData,
     loadDriverData,
     driverLoadingState
-  } = useTelemetryData(sessionKey || 0, selectedDrivers);
-  
-  // IMPORTANT: Do not add 'limit' parameter to any OpenF1 car_data API calls
-  // The OpenF1 API has an issue where adding a limit parameter causes it to return no data
+  } = useTelemetryData(effectiveSessionKey, selectedDrivers);
   
   // Check for 500 errors and update state
   useEffect(() => {
@@ -538,12 +603,6 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
             <Gauge className="h-5 w-5" />
             Telemetry Analysis
           </CardTitle>
-          {sessionData?.data && (
-            <Badge variant="outline" className="ml-2">
-              {sessionData.data.session_type || "Race"}
-              {sessionData.data.session_name && ` - ${sessionData.data.session_name}`}
-            </Badge>
-          )}
         </div>
         
         {isLoading && (
@@ -563,7 +622,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
             <Skeleton className="h-8 w-full" />
             <Skeleton className="h-[300px] w-full" />
           </div>
-        ) : !sessionKey ? (
+        ) : !effectiveSessionKey ? (
           <div className="py-8 text-center">
             <p className="text-muted-foreground">No OpenF1 data available for this race.</p>
             <p className="text-sm text-muted-foreground mt-2">
@@ -734,17 +793,17 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                               let formattedValue = `${value}`;
                               switch (activeTab) {
                                 case "speed":
-                                  formattedValue = `${value} km/h`;
+                                  formattedValue = `${parseFloat(value).toFixed(2)} km/h`;
                                   break;
                                 case "rpm":
-                                  formattedValue = `${value} RPM`;
+                                  formattedValue = `${parseFloat(value).toFixed(0)} RPM`;
                                   break;
                                 case "throttle":
                                 case "brake":
-                                  formattedValue = `${value}%`;
+                                  formattedValue = `${parseFloat(value).toFixed(2)}%`;
                                   break;
                                 case "gear":
-                                  formattedValue = `Gear ${value}`;
+                                  formattedValue = `Gear ${parseFloat(value).toFixed(0)}`;
                                   break;
                                 case "drs":
                                   formattedValue = value === 1 ? "DRS Enabled" : "DRS Disabled";
@@ -793,14 +852,57 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                           />
                           
                           {/* Render lines for each driver */}
-                          {selectedDrivers.map(driverNum => {
+                          {selectedDrivers.map((driverNum, index) => {
                             const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
                             if (!driver) return null;
                             
                             const driverKey = driver.name_acronym;
                             
+                            // Check if this is a duplicate team color
+                            const teamColorCount = selectedDrivers.filter(d => {
+                              const driverInfo = originalAvailableDrivers.find(od => od.driver_number === d);
+                              return driverInfo && driverInfo.team_color === driver.team_color;
+                            }).length;
+                            
+                            // Find the index of this driver among those with the same team color
+                            const sameColorIndex = selectedDrivers
+                              .filter(d => {
+                                const driverInfo = originalAvailableDrivers.find(od => od.driver_number === d);
+                                return driverInfo && driverInfo.team_color === driver.team_color;
+                              })
+                              .indexOf(driverNum);
+                            
+                            // Use dotted line for the second driver with the same team color
+                            const useDottedLine = teamColorCount > 1 && sameColorIndex > 0;
+                            
+                            // Special case for DRS - use step chart for clearer on/off visualization
+                            if (activeTab === "drs") {
+                              return (
+                                <Line
+                                  key={driverNum}
+                                  type="stepAfter"
+                                  dataKey={driverKey}
+                                  name={driverKey}
+                                  stroke={driver.team_color}
+                                  strokeWidth={3}
+                                  dot={false}
+                                  strokeDasharray={useDottedLine ? "5 5" : ""}
+                                  activeDot={{ 
+                                    r: 6, 
+                                    stroke: driver.team_color, 
+                                    strokeWidth: 2, 
+                                    fill: '#fff',
+                                    strokeOpacity: 0.8,
+                                    fillOpacity: 0.8
+                                  }}
+                                  connectNulls={true}
+                                  isAnimationActive={false}
+                                />
+                              );
+                            }
+                            
                             // For extremely smooth rendering in other categories, apply curve smoothing
-                            if (activeTab !== "drs" && activeTab !== "gear") {
+                            if (activeTab !== "gear") {
                               // Replace the stepAfter type with monotone for smoother curves
                               return (
                                 <Line
@@ -810,6 +912,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                   name={driverKey}
                                   stroke={driver.team_color}
                                   strokeWidth={3}
+                                  strokeDasharray={useDottedLine ? "5 5" : ""}
                                   dot={false}
                                   activeDot={{ 
                                     r: 6, 
@@ -833,6 +936,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                 name={driverKey}
                                 stroke={driver.team_color}
                                 strokeWidth={3}
+                                strokeDasharray={useDottedLine ? "5 5" : ""}
                                 dot={false}
                                 activeDot={{ 
                                   r: 6, 

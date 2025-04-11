@@ -74,6 +74,7 @@ export const useLapData = (sessionKey: number, driverNumber?: number) => {
     },
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
+    refetchOnWindowFocus: false, // Prevent refetching when window regains focus
     ...defaultRetryConfig,
   });
 
@@ -100,6 +101,7 @@ export const useCarData = (sessionKey: number, driverNumber?: number) => {
     },
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
+    refetchOnWindowFocus: false, // Prevent refetching when window regains focus
     ...defaultRetryConfig,
   });
 
@@ -116,6 +118,7 @@ export const useWeatherData = (sessionKey: number) => {
     queryFn: () => openF1Service.getWeatherData(sessionKey),
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!sessionKey,
+    refetchOnWindowFocus: false, // Prevent refetching when window regains focus
     ...defaultRetryConfig,
   });
 };
@@ -127,6 +130,7 @@ export const useDrivers = (sessionKey: number, driverNumber?: number) => {
     queryFn: () => openF1Service.getDrivers(sessionKey, driverNumber),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
+    refetchOnWindowFocus: false, // Prevent refetching when window regains focus
     ...defaultRetryConfig,
   });
 };
@@ -138,6 +142,7 @@ export const useTeamRadio = (sessionKey: number, driverNumber?: number) => {
     queryFn: () => openF1Service.getTeamRadio(sessionKey, driverNumber),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
+    refetchOnWindowFocus: false, // Prevent refetching when window regains focus
     ...defaultRetryConfig,
   });
 };

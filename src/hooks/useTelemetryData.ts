@@ -40,6 +40,19 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
   const [driverDataCache, setDriverDataCache] = useState<{[key: number]: TelemetryDataPoint[]}>({});
   const [driverLoadingState, setDriverLoadingState] = useState<{[key: number]: boolean}>({});
 
+  // Reset cached data when session changes
+  useEffect(() => {
+    console.log("Session key changed in useTelemetryData:", sessionKey);
+    
+    // Clear the driver data cache when the session changes
+    setDriverDataCache({});
+    setDriverLoadingState({});
+    setErrorMessage(null);
+    setLoadingProgress(0);
+    
+    // Don't clear global cache as it might be needed for session comparison
+  }, [sessionKey]);
+
   // Fetch drivers for the session
   const { 
     data: driversData, 

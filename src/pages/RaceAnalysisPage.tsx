@@ -10,11 +10,24 @@ import { useRaceSchedule } from '@/hooks/useF1Data';
 import { useSessionsByYear } from '@/hooks/useOpenF1Data';
 import MainLayout from '@/components/layout/MainLayout';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+
+// Add interface for session data
+interface SessionOption {
+  session_key: number;
+  session_name: string;
+  session_type: string;
+  date_start: string;
+  date_end: string;
+  meeting_key: number;
+}
 
 // Lazy-load heavy components
 const TelemetryDashboard = lazy(() => import('@/components/analytics/TelemetryDashboard'));
 const WeatherAnalysis = lazy(() => import('@/components/analytics/WeatherAnalysis'));
 const TeamRadio = lazy(() => import('@/components/analytics/TeamRadio'));
+const LapTimeTab = lazy(() => import('@/components/analytics/LapTimeTab'));
 
 // Component for the tab content loading state
 const TabLoadingFallback = () => (
@@ -34,6 +47,10 @@ const RaceAnalysisPage = () => {
   const [selectedYear, setSelectedYear] = useState<number>(parseInt(year.toString()));
   const [selectedRound, setSelectedRound] = useState<string>(round);
   const [activeTab, setActiveTab] = useState<string>("weather");
+  
+  // Add state for the selected session
+  const [selectedSessionKey, setSelectedSessionKey] = useState<number | null>(null);
+  const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
   
   // Get OpenF1 sessions for this year (primary data source)
   const {
@@ -129,6 +146,48 @@ const RaceAnalysisPage = () => {
     });
   }, [selectedMeeting]);
   
+  // Get all available sessions for the selected meeting
+  React.useEffect(() => {
+    if (!openF1SessionsData?.data || !selectedMeeting) {
+      setAvailableSessions([]);
+      return;
+    }
+    
+    // Filter sessions for the current meeting
+    const meetingKey = selectedMeeting.meeting_key;
+    const sessions = openF1SessionsData.data.filter(
+      (session: any) => session.meeting_key === meetingKey
+    );
+    
+    // Sort sessions by date
+    const sortedSessions = [...sessions].sort(
+      (a: any, b: any) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime()
+    );
+    
+    setAvailableSessions(sortedSessions);
+    
+    // Set the selected session to the first one or the Race session if available
+    if (sortedSessions.length > 0) {
+      const raceSession = sortedSessions.find((s: any) => s.session_type === "Race");
+      const defaultSession = raceSession || sortedSessions[0];
+      
+      if (!selectedSessionKey || !sortedSessions.some((s: any) => s.session_key === selectedSessionKey)) {
+        setSelectedSessionKey(defaultSession.session_key);
+      }
+    } else {
+      setSelectedSessionKey(null);
+    }
+  }, [openF1SessionsData, selectedMeeting, selectedSessionKey]);
+  
+  // Get the selected session details
+  const selectedSession = React.useMemo(() => {
+    if (!availableSessions.length) return null;
+    
+    return selectedSessionKey 
+      ? availableSessions.find(s => s.session_key === selectedSessionKey) 
+      : availableSessions[0];
+  }, [availableSessions, selectedSessionKey]);
+  
   // Handle year change
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
@@ -138,12 +197,27 @@ const RaceAnalysisPage = () => {
   // Handle race change
   const handleRaceChange = (round: string) => {
     setSelectedRound(round);
+    setSelectedSessionKey(null); // Reset selected session when changing race
     navigate(`/race-analysis/${selectedYear}/${round}`);
   };
 
   // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+  };
+  
+  // Handle session change
+  const handleSessionChange = (value: string) => {
+    console.log("Changing session to:", value);
+    
+    // Force a re-render of all components by first clearing the session key
+    setSelectedSessionKey(null);
+    
+    // Then after a short delay, set the new session key
+    // This ensures the components detect the change and reload their data
+    setTimeout(() => {
+      setSelectedSessionKey(Number(value));
+    }, 50);
   };
   
   // Determine if we should show placeholder content during initial load
@@ -181,12 +255,40 @@ const RaceAnalysisPage = () => {
           ) : (
             <>
               <CardHeader>
-                <CardTitle className="text-2xl">
-                  {selectedMeeting ? `${selectedMeeting.country_name} Grand Prix` : "Race Info"}
-                </CardTitle>
-                <CardDescription>
-                  {selectedMeeting?.location}, {formattedDate}
-                </CardDescription>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+                  <div>
+                    <CardTitle className="text-2xl">
+                      {selectedMeeting ? `${selectedMeeting.country_name} Grand Prix` : "Race Info"}
+                    </CardTitle>
+                    <CardDescription>
+                      {selectedMeeting?.location}, {formattedDate}
+                    </CardDescription>
+                  </div>
+                  
+                  {/* Session selector dropdown - remove the extra badge */}
+                  {availableSessions.length > 1 && (
+                    <div className="mt-4 md:mt-0">
+                      <Select 
+                        value={selectedSessionKey?.toString() || ""} 
+                        onValueChange={handleSessionChange}
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Select Session" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableSessions.map((session) => (
+                            <SelectItem 
+                              key={session.session_key} 
+                              value={session.session_key.toString()}
+                            >
+                              {session.session_type}: {session.session_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {selectedYear < 2023 && (
@@ -201,10 +303,11 @@ const RaceAnalysisPage = () => {
                 )}
                 
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
-                  <TabsList className="grid grid-cols-3 w-full">
+                  <TabsList className="grid grid-cols-4 w-full">
                     <TabsTrigger value="weather">Weather</TabsTrigger>
                     <TabsTrigger value="radio">Team Radio</TabsTrigger>
                     <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
+                    <TabsTrigger value="lap-time">Lap Times</TabsTrigger>
                   </TabsList>
                   
                   <Suspense fallback={<TabLoadingFallback />}>
@@ -214,7 +317,9 @@ const RaceAnalysisPage = () => {
                         <>
                           <WeatherAnalysis 
                             year={selectedYear} 
-                            round={selectedRound} 
+                            round={selectedRound}
+                            sessionType={selectedSession?.session_type || undefined}
+                            sessionKey={selectedSessionKey || undefined}
                           />
                           
                           <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
@@ -239,7 +344,9 @@ const RaceAnalysisPage = () => {
                         <>
                           <TeamRadio 
                             year={selectedYear} 
-                            round={selectedRound} 
+                            round={selectedRound}
+                            sessionType={selectedSession?.session_type || undefined}
+                            sessionKey={selectedSessionKey || undefined}
                           />
                           
                           <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
@@ -264,7 +371,9 @@ const RaceAnalysisPage = () => {
                         <>
                           <TelemetryDashboard 
                             year={selectedYear} 
-                            round={selectedRound} 
+                            round={selectedRound}
+                            sessionType={selectedSession?.session_type || undefined}
+                            sessionKey={selectedSessionKey || undefined}
                           />
                           
                           <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
@@ -276,6 +385,33 @@ const RaceAnalysisPage = () => {
                                   Telemetry data shows real-time car information including speed, RPM, throttle position, 
                                   brake pressure, gear selection, and DRS activation. This data allows you to analyze 
                                   driver techniques and car performance throughout the race.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </TabsContent>
+                    
+                    <TabsContent value="lap-time" className="space-y-4">
+                      {activeTab === "lap-time" && (
+                        <>
+                          <LapTimeTab 
+                            year={selectedYear} 
+                            round={selectedRound}
+                            sessionType={selectedSession?.session_type || undefined}
+                            sessionKey={selectedSessionKey || undefined}
+                          />
+                          
+                          <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
+                            <div className="flex items-start gap-2">
+                              <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium mb-1">About Lap Times</p>
+                                <p className="text-muted-foreground">
+                                  Lap time analysis shows how drivers perform over the course of a session. The data includes overall 
+                                  lap times and individual sector times, highlighting personal bests and session records.
+                                  This allows you to see where drivers gain or lose time on track and their consistency over a stint.
                                 </p>
                               </div>
                             </div>

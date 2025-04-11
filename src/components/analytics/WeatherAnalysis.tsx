@@ -15,37 +15,51 @@ interface WeatherAnalysisProps {
   year: number;
   round: string;
   sessionType?: string;
+  sessionKey?: number;
 }
 
 const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   year,
   round,
-  sessionType = "Race"
+  sessionType = "Race",
+  sessionKey: externalSessionKey
 }) => {
   const [selectedDrivers, setSelectedDrivers] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState("temperature");
   
-  // Get the OpenF1 session directly
-  // Note: round is now expected to be either a meeting_key or special value like "last"/"next"
+  // After the useState declarations, add this hook to reset state when session changes  
+  useEffect(() => {
+    // Reset drivers and ensure UI updates when session changes
+    setSelectedDrivers([]);
+    
+    console.log("Session changed in WeatherAnalysis to:", externalSessionKey);
+  }, [externalSessionKey]);
+  
+  // Get the OpenF1 session directly only if we don't have an external session key
   const { 
     data: sessionData, 
     isLoading: isSessionLoading 
-  } = useOpenF1SessionFromErgast(year, round, sessionType);
+  } = useOpenF1SessionFromErgast(
+    externalSessionKey ? 0 : year, 
+    externalSessionKey ? "" : round, 
+    externalSessionKey ? "" : sessionType
+  );
   
-  const sessionKey = sessionData?.data?.session_key;
+  // Use the external session key if provided, otherwise use the one from the hook
+  const effectiveSessionKey = externalSessionKey || sessionData?.data?.session_key || 0;
   
   // Get weather data for this session
   const {
     data: weatherData,
     isLoading: isWeatherLoading,
     error: weatherError
-  } = useWeatherData(sessionKey || 0);
+  } = useWeatherData(effectiveSessionKey);
   
   // Also fetch driver data for consistent UI (for future lap-by-lap weather correlation)
   const {
     data: driversData,
     isLoading: isDriversLoading
-  } = useDrivers(sessionKey || 0);
+  } = useDrivers(effectiveSessionKey);
   
   // Map API drivers to our Driver interface
   const mappedDrivers = React.useMemo(() => {
@@ -158,7 +172,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   
   const isLoading = isSessionLoading || isWeatherLoading;
   const hasNoData = !isLoading && (!weatherData?.data || weatherData.data.length === 0);
-  const hasError = !!weatherError || (!isLoading && !sessionKey);
+  const hasError = !!weatherError || (!isLoading && !effectiveSessionKey);
   
   return (
     <Card>
@@ -168,12 +182,6 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
             <Thermometer className="h-5 w-5" />
             Weather Analysis
           </CardTitle>
-          {sessionData?.data && (
-            <Badge variant="outline" className="ml-2">
-              {sessionData.data.session_type || "Race"}
-              {sessionData.data.session_name && ` - ${sessionData.data.session_name}`}
-            </Badge>
-          )}
         </div>
       </CardHeader>
       

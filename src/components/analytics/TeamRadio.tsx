@@ -14,32 +14,52 @@ interface TeamRadioProps {
   year: number;
   round: string;
   sessionType?: string;
+  sessionKey?: number;
 }
 
 const TeamRadio: React.FC<TeamRadioProps> = ({
   year,
   round,
-  sessionType = "Race"
+  sessionType = "Race",
+  sessionKey: externalSessionKey
 }) => {
   const [selectedDrivers, setSelectedDrivers] = useState<number[]>([]);
   const [currentRadio, setCurrentRadio] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  // Get the OpenF1 session directly
-  // Note: round is now expected to be either a meeting_key or special value like "last"/"next"
+  // After the useState declarations, add this hook to reset state when session changes
+  useEffect(() => {
+    // Reset selected drivers and audio playback when session changes
+    setSelectedDrivers([]);
+    setCurrentRadio(null);
+    setIsPlaying(false);
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    
+    console.log("Session changed in TeamRadio to:", externalSessionKey);
+  }, [externalSessionKey]);
+  
+  // Get the OpenF1 session directly only if we don't have an external session key
   const { 
     data: sessionData, 
     isLoading: isSessionLoading 
-  } = useOpenF1SessionFromErgast(year, round, sessionType);
+  } = useOpenF1SessionFromErgast(
+    externalSessionKey ? 0 : year, 
+    externalSessionKey ? "" : round, 
+    externalSessionKey ? "" : sessionType
+  );
   
-  const sessionKey = sessionData?.data?.session_key;
+  // Use the external session key if provided, otherwise use the one from the hook
+  const effectiveSessionKey = externalSessionKey || sessionData?.data?.session_key || 0;
   
   // Get drivers for the session
   const {
     data: driversData,
     isLoading: isDriversLoading
-  } = useDrivers(sessionKey || 0);
+  } = useDrivers(effectiveSessionKey);
   
   // Get team radio for selected drivers
   const {
@@ -48,7 +68,7 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
     error: radioError,
     refetch: refetchRadio
   } = useTeamRadio(
-    sessionKey || 0, 
+    effectiveSessionKey, 
     selectedDrivers.length === 0 ? undefined : selectedDrivers[0]
   );
   
@@ -140,7 +160,7 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
   }, [driversData]);
   
   const isLoading = isSessionLoading || isDriversLoading || isRadioLoading;
-  const hasError = !!radioError || (!isLoading && !sessionKey);
+  const hasError = !!radioError || (!isLoading && !effectiveSessionKey);
   const hasNoData = !isLoading && (!radioData?.data || radioData.data.length === 0);
   
   return (
@@ -151,12 +171,6 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
             <Headphones className="h-5 w-5" />
             Team Radio
           </CardTitle>
-          {sessionData?.data && (
-            <Badge variant="outline" className="ml-2">
-              {sessionData.data.session_type || "Race"}
-              {sessionData.data.session_name && ` - ${sessionData.data.session_name}`}
-            </Badge>
-          )}
         </div>
       </CardHeader>
       
