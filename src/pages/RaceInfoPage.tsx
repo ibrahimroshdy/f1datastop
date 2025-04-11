@@ -28,6 +28,7 @@ const TelemetryDashboard = lazy(() => import('@/components/analytics/TelemetryDa
 const WeatherAnalysis = lazy(() => import('@/components/analytics/WeatherAnalysis'));
 const TeamRadio = lazy(() => import('@/components/analytics/TeamRadio'));
 const LapTimeTab = lazy(() => import('@/components/analytics/LapTimeTab'));
+const LapTimeCharts = lazy(() => import('@/components/analytics/LapTimeCharts'));
 
 // Component for the tab content loading state
 const TabLoadingFallback = () => (
@@ -303,11 +304,12 @@ const RaceInfoPage = () => {
                 )}
                 
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
-                  <TabsList className="grid grid-cols-4 w-full">
+                  <TabsList className="grid grid-cols-5 w-full">
                     <TabsTrigger value="weather">Weather</TabsTrigger>
                     <TabsTrigger value="radio">Team Radio</TabsTrigger>
                     <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
                     <TabsTrigger value="lap-time">Laptimes Table</TabsTrigger>
+                    <TabsTrigger value="lap-charts">Laptimes Charts</TabsTrigger>
                   </TabsList>
                   
                   <Suspense fallback={<TabLoadingFallback />}>
@@ -412,6 +414,34 @@ const RaceInfoPage = () => {
                                   The laptimes table displays detailed lap and sector times for each driver. Purple highlights indicate 
                                   the fastest time overall, while green shows the fastest time for each driver. Use the "Show Fastest Times" 
                                   button to filter and view only the laps with the fastest sector times for each driver.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="lap-charts" className="space-y-4">
+                      {activeTab === "lap-charts" && (
+                        <>
+                          <LapTimeCharts 
+                            year={selectedYear} 
+                            round={selectedRound}
+                            sessionType={selectedSession?.session_type || undefined}
+                            sessionKey={selectedSessionKey || undefined}
+                          />
+                          
+                          <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
+                            <div className="flex items-start gap-2">
+                              <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium mb-1">About Laptimes Charts</p>
+                                <p className="text-muted-foreground">
+                                  The laptimes charts provide a visual representation of driver performance throughout the race.
+                                  Compare lap times across multiple drivers with the first selected driver shown as a solid line
+                                  and others as dashed lines. This helps identify performance trends, consistency, and the
+                                  impact of race events on lap times.
                                 </p>
                               </div>
                             </div>
