@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
 import { notifySlackAboutTwitterSignin } from "./context/auth/authActions";
 import AnalyticsProvider from "./integrations/google-analytics/AnalyticsProvider";
-import ClarityProvider from "./integrations/clarity/ClarityProvider";
+import { ClarityProvider } from './integrations/clarity/ClarityProvider';
 import ClarityStatus from "./components/dev/ClarityStatus";
 import initConsoleFilters from "./utils/errorFilter";
 import Index from "./pages/Index";
