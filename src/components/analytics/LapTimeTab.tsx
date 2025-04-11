@@ -18,7 +18,7 @@ interface LapTimeTabProps {
 }
 
 // Sorting types
-type SortColumn = 'lap' | 'driver' | 'time' | 's1' | 's2' | 's3';
+type SortColumn = 'lap' | 'driver' | 'time' | 's1' | 's2' | 's3' | 'constructor';
 type SortDirection = 'asc' | 'desc';
 
 const LapTimeTab: React.FC<LapTimeTabProps> = ({
@@ -418,6 +418,14 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
         case 'driver':
           return (a.driver_number - b.driver_number) * dirMult;
           
+        case 'constructor':
+          // Get driver info for team name comparison
+          const aDriver = getDriverInfo(a.driver_number);
+          const bDriver = getDriverInfo(b.driver_number);
+          const aTeam = aDriver?.team_name || '';
+          const bTeam = bDriver?.team_name || '';
+          return aTeam.localeCompare(bTeam) * dirMult;
+          
         case 'time':
           // Calculate total lap times if needed
           const aTime = a.lap_duration || 
@@ -739,17 +747,18 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                         </TableHead>
                         <TableHead 
                           className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => handleSort('constructor')}
+                        >
+                          <div className="flex items-center">
+                            Constructor {getSortIndicator('constructor')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => handleSort('driver')}
                         >
                           <div className="flex items-center">
                             Driver {getSortIndicator('driver')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="w-[120px] hidden md:table-cell"
-                        >
-                          <div className="flex items-center">
-                            Constructor
                           </div>
                         </TableHead>
                         <TableHead 
@@ -833,6 +842,13 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                                 )}
                               </TableCell>
                               <TableCell>
+                                <span className="text-sm font-medium" style={{
+                                  color: driver?.team_color || 'inherit'
+                                }}>
+                                  {driver?.team_name || 'Unknown'}
+                                </span>
+                              </TableCell>
+                              <TableCell>
                                 <div className="flex items-center gap-2">
                                   <div 
                                     className="w-5 h-5 rounded-full flex items-center justify-center"
@@ -851,19 +867,6 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                                     color: driver?.team_color || 'inherit'
                                   }}>
                                     {driver?.name_acronym || lap.driver_number}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="hidden md:table-cell">
-                                <div className="flex items-center gap-2">
-                                  <div 
-                                    className="w-2 h-4 rounded-sm"
-                                    style={{
-                                      backgroundColor: driver?.team_color || 'rgb(204, 204, 204)'
-                                    }}
-                                  ></div>
-                                  <span className="text-sm font-medium">
-                                    {driver?.team_name || 'Unknown'}
                                   </span>
                                 </div>
                               </TableCell>
