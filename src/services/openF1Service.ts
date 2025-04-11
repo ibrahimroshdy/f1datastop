@@ -44,6 +44,33 @@ async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3): P
   }
 }
 
+// Helper function to check response format
+async function validateJsonResponse(response: Response, context: string): Promise<any> {
+  // First check if the response content-type is json
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    // Get the response as text to provide better error details
+    const textResponse = await response.text();
+    
+    // Check if it's an HTML response
+    if (textResponse.trim().startsWith('<!DOCTYPE') || textResponse.trim().startsWith('<html')) {
+      console.error(`Server returned HTML instead of JSON for ${context}. First 100 chars:`, textResponse.substring(0, 100));
+      throw new Error(`Server returned HTML instead of JSON for ${context}`);
+    }
+    
+    // Try to parse as JSON anyway, in case the content-type header is wrong
+    try {
+      return JSON.parse(textResponse);
+    } catch (e) {
+      console.error(`Invalid response format for ${context}. Expected JSON, got:`, textResponse.substring(0, 200));
+      throw new Error(`API returned non-JSON response with content-type: ${contentType}`);
+    }
+  }
+  
+  // If content-type is json, parse it normally
+  return await response.json();
+}
+
 // Get session key from meeting key and session type
 export const getSession = async (meeting_key: number, session_type?: string) => {
   try {
@@ -58,7 +85,10 @@ export const getSession = async (meeting_key: number, session_type?: string) => 
       throw new Error(`API request failed with status ${response.status}`);
     }
     
-    const data = await response.json();
+    const contextInfo = session_type 
+      ? `sessions for meeting ${meeting_key} and type ${session_type}`
+      : `sessions for meeting ${meeting_key}`;
+    const data = await validateJsonResponse(response, contextInfo);
     return { 
       data, 
       error: null 
@@ -78,7 +108,7 @@ export const getLatestSession = async () => {
       throw new Error(`API request failed with status ${response.status}`);
     }
     
-    const data = await response.json();
+    const data = await validateJsonResponse(response, "latest session");
     return { 
       data: data[0] || {}, 
       error: null 
@@ -98,15 +128,7 @@ export const getSessionsByYear = async (year: number) => {
       throw new Error(`API request failed with status ${response.status}`);
     }
     
-    // Check if the response content-type is json
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const textResponse = await response.text();
-      console.error(`Expected JSON but got ${contentType}. Response:`, textResponse.substring(0, 200) + '...');
-      throw new Error(`API returned non-JSON response with content-type: ${contentType}`);
-    }
-    
-    const data = await response.json();
+    const data = await validateJsonResponse(response, `sessions for year ${year}`);
     return { 
       data, 
       error: null 
@@ -140,7 +162,8 @@ export const getLapData = async (session_key: number, driver_number?: number) =>
       throw new Error(`API request failed with status ${response.status}`);
     }
     
-    const data = await response.json();
+    const context = driver_number ? `lap data for driver ${driver_number}` : `lap data for session ${session_key}`;
+    const data = await validateJsonResponse(response, context);
     return { 
       data, 
       error: null 
@@ -167,13 +190,16 @@ export const getCarData = async (session_key: number, driver_number?: number) =>
       throw new Error(`API request failed with status ${response.status}`);
     }
     
-    const data = await response.json();
+    // Use the context-aware validation function
+    const context = driver_number ? `driver ${driver_number}` : `session ${session_key}`;
+    const data = await validateJsonResponse(response, context);
+    
     return { 
       data, 
       error: null 
     };
-  } catch (error) {
-    console.error(`Failed to fetch car data for session ${session_key}:`, error);
+  } catch (error: any) {
+    console.error(`Failed to fetch car data for session ${session_key}${driver_number ? `, driver ${driver_number}` : ''}:`, error);
     return { data: [], error };
   }
 };
@@ -187,7 +213,7 @@ export const getWeatherData = async (session_key: number) => {
       throw new Error(`API request failed with status ${response.status}`);
     }
     
-    const data = await response.json();
+    const data = await validateJsonResponse(response, `weather data for session ${session_key}`);
     return { 
       data, 
       error: null 
@@ -212,7 +238,8 @@ export const getDrivers = async (session_key: number, driver_number?: number) =>
       throw new Error(`API request failed with status ${response.status}`);
     }
     
-    const data = await response.json();
+    const context = driver_number ? `driver info for driver ${driver_number}` : `driver info for session ${session_key}`;
+    const data = await validateJsonResponse(response, context);
     return { 
       data, 
       error: null 
@@ -237,7 +264,8 @@ export const getTeamRadio = async (session_key: number, driver_number?: number) 
       throw new Error(`API request failed with status ${response.status}`);
     }
     
-    const data = await response.json();
+    const context = driver_number ? `team radio for driver ${driver_number}` : `team radio for session ${session_key}`;
+    const data = await validateJsonResponse(response, context);
     return { 
       data, 
       error: null 
@@ -262,7 +290,8 @@ export const getPositionData = async (session_key: number, driver_number?: numbe
       throw new Error(`API request failed with status ${response.status}`);
     }
     
-    const data = await response.json();
+    const context = driver_number ? `position data for driver ${driver_number}` : `position data for session ${session_key}`;
+    const data = await validateJsonResponse(response, context);
     return { 
       data, 
       error: null 

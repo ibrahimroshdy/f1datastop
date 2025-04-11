@@ -124,11 +124,20 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
     const error = driversError || lapDataError;
     
     if (error) {
-      setErrorMessage("Error loading telemetry data. Please try again.");
-      toast.error("Failed to load telemetry data", {
-        description: "There was an error fetching the telemetry data. Please try again later.",
-        duration: 5000,
-      });
+      // Check if the error is related to HTML response
+      if (error.message && error.message.includes('HTML instead of JSON')) {
+        setErrorMessage("The API is returning HTML instead of data. This typically happens when the F1 API is experiencing issues. Please try again later.");
+        toast.error("F1 API service issue", {
+          description: "The F1 data service is returning HTML instead of data. This is typically a temporary server issue. Please try again later.",
+          duration: 5000,
+        });
+      } else {
+        setErrorMessage("Error loading telemetry data. Please try again.");
+        toast.error("Failed to load telemetry data", {
+          description: "There was an error fetching the telemetry data. Please try again later.",
+          duration: 5000,
+        });
+      }
     } else {
       setErrorMessage(null);
     }
@@ -216,6 +225,11 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
       const result = await openF1Service.getCarData(sessionKey, driverNumber);
       
       if (result.error) {
+        // Specific handling for HTML responses
+        if (result.error.message && result.error.message.includes('HTML instead of JSON')) {
+          console.error(`Server returned HTML instead of JSON for driver ${driverNumber}`);
+          throw new Error(`The API returned an HTML page instead of data. This typically happens when the F1 API is experiencing issues. Please try again later.`);
+        }
         throw new Error(`Error fetching data for driver ${driverNumber}: ${result.error}`);
       }
       

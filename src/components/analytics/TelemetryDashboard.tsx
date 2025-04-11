@@ -127,12 +127,45 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
       const fetchSessionDetails = async () => {
         try {
           const response = await fetch(`/api/openf1/sessions?session_key=${externalSessionKey}`);
-          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+          }
+          
+          // Check for HTML response
+          const contentType = response.headers.get('content-type');
+          let data;
+          
+          if (!contentType || !contentType.includes('application/json')) {
+            // Get the response as text for debugging
+            const textResponse = await response.text();
+            console.error('API returned non-JSON response:', contentType, textResponse.substring(0, 100) + '...');
+            
+            // If it looks like HTML, handle it specially
+            if (textResponse.trim().startsWith('<!DOCTYPE') || textResponse.trim().startsWith('<html')) {
+              console.error('Server returned HTML instead of JSON');
+              setHasServerError(true);
+              throw new Error('Server returned HTML instead of JSON');
+            }
+            
+            // Try to parse as JSON anyway, in case the content-type header is wrong
+            try {
+              data = JSON.parse(textResponse);
+            } catch (e) {
+              console.error('Failed to parse response as JSON:', e);
+              throw new Error('Invalid response format from API');
+            }
+          } else {
+            // Normal JSON parsing
+            data = await response.json();
+          }
+          
           if (data && data[0]) {
             setSessionDetails({ data: data[0] });
           }
         } catch (error) {
           console.error("Error fetching session details:", error);
+          setHasServerError(true);
         }
       };
       
@@ -155,8 +188,13 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   
   // Check for 500 errors and update state
   useEffect(() => {
-    if (errorMessage && errorMessage.includes("500")) {
-      setHasServerError(true);
+    if (errorMessage) {
+      if (errorMessage.includes("500")) {
+        setHasServerError(true);
+      } else if (errorMessage.includes("HTML instead of") || errorMessage.includes("HTML instead of data")) {
+        setHasServerError(true);
+        console.error("API returned HTML instead of JSON data:", errorMessage);
+      }
     }
   }, [errorMessage]);
   
@@ -175,14 +213,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
           try {
             loadDriverData(driverNum).catch(error => {
               console.error(`Failed to load data for driver ${driverNum}:`, error);
-              // Update the driver to show they have an error state
-              setAvailableDrivers(prev => 
-                prev.map(d => 
-                  d.driver_number === driverNum 
-                    ? { ...d, isLoading: false, isDataLoaded: false, hasError: true } 
-                    : d
-                )
-              );
+              // No need to update driver state here as the loadDriverData function already handles errors
             });
           } catch (error) {
             console.error(`Error initiating data load for driver ${driverNum}:`, error);
@@ -194,32 +225,65 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     });
   };
   
-  // Update the auto-select logic to log issues with driver 1
+  // Create driverData object for the driver selection panel
+  const normalizedDriverData = React.useMemo(() => {
+    // Create a data structure that matches what DriverSelectionPanel expects
+    const result: { [key: number]: any } = {};
+    
+    // Add data for drivers with telemetry data
+    Object.entries(telemetryData).forEach(([driverNum, data]) => {
+      if (data && data.length > 0) {
+        result[parseInt(driverNum)] = data;
+      }
+    });
+    
+    // Also add data for selected drivers (even if they have errors)
+    selectedDrivers.forEach(driverNum => {
+      if (!result[driverNum]) {
+        result[driverNum] = { length: 1 }; // Minimal data to trigger the checkmark
+      }
+    });
+    
+    return result;
+  }, [telemetryData, selectedDrivers]);
+  
+  // Update the auto-select logic
   useEffect(() => {
     if (originalAvailableDrivers.length > 0 && selectedDrivers.length === 0) {
-      // Check specific drivers that should be auto-selected
-      const driverToCheck = 1; // VER
-      const driverExists = originalAvailableDrivers.find(d => d.driver_number === driverToCheck);
+      // Check specific drivers that should be auto-selected, in order of preference
+      const priorityDrivers = [1, 44, 4, 14, 55]; // VER, HAM, NOR, ALO, SAI
       
-      if (driverExists) {
-        console.log(`Auto-selecting driver ${driverToCheck} (${driverExists.name_acronym})`);
-        setSelectedDrivers([driverToCheck]);
-        
-        // Pre-load this driver's data
-        if (!telemetryData[driverToCheck] && !driverLoadingState[driverToCheck]) {
-          console.log(`Pre-loading data for driver ${driverToCheck}`);
-          loadDriverData(driverToCheck).catch(error => {
-            console.error(`Failed to load data for driver ${driverToCheck}:`, error);
-          });
-        } else if (telemetryData[driverToCheck]) {
-          console.log(`Data already loaded for driver ${driverToCheck}, points:`, telemetryData[driverToCheck].length);
-        } else if (driverLoadingState[driverToCheck]) {
-          console.log(`Driver ${driverToCheck} data is currently loading`);
+      for (const driverToCheck of priorityDrivers) {
+        const driverExists = originalAvailableDrivers.find(d => d.driver_number === driverToCheck);
+        if (driverExists) {
+          console.log(`Auto-selecting driver ${driverToCheck} (${driverExists.name_acronym})`);
+          setSelectedDrivers([driverToCheck]);
+          
+          // Pre-load this driver's data
+          if (!telemetryData[driverToCheck] && !driverLoadingState[driverToCheck]) {
+            console.log(`Pre-loading data for driver ${driverToCheck}`);
+            loadDriverData(driverToCheck).catch(error => {
+              console.error(`Failed to load data for driver ${driverToCheck}:`, error);
+              // If first driver fails, try the next one in the list
+              if (priorityDrivers.indexOf(driverToCheck) < priorityDrivers.length - 1) {
+                const nextDriver = priorityDrivers[priorityDrivers.indexOf(driverToCheck) + 1];
+                const driverExists = originalAvailableDrivers.find(d => d.driver_number === nextDriver);
+                if (driverExists) {
+                  setSelectedDrivers([nextDriver]);
+                }
+              }
+            });
+          }
+          
+          return; // Exit early once we find a valid driver
         }
-      } else {
-        // If driver 1 doesn't exist, select the first available driver
-        console.log(`Driver ${driverToCheck} not found, selecting first available driver:`, originalAvailableDrivers[0]);
-        setSelectedDrivers([originalAvailableDrivers[0].driver_number]);
+      }
+      
+      // If none of the priority drivers are found, select the first available driver
+      if (originalAvailableDrivers.length > 0) {
+        const firstDriver = originalAvailableDrivers[0];
+        console.log(`No priority drivers found, selecting first available driver:`, firstDriver);
+        setSelectedDrivers([firstDriver.driver_number]);
       }
     }
   }, [originalAvailableDrivers, selectedDrivers, telemetryData, driverLoadingState, loadDriverData]);
@@ -635,14 +699,18 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
           <div className="py-8 text-center">
             <p className="text-muted-foreground">
               {hasServerError 
-                ? "Telemetry data is temporarily unavailable for this session." 
+                ? errorMessage && errorMessage.includes("HTML instead of") 
+                  ? "The F1 API is temporarily unavailable for this session. Please try again later."
+                  : "Telemetry data is temporarily unavailable for this session." 
                 : errorMessage}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
               {year >= 2025 ? 
                 "2025 season data is still being collected and not all sessions have complete telemetry information. Some driver data may be available while detailed telemetry is still pending. If you see drivers listed but no telemetry charts, this is likely why." :
                 hasServerError 
-                  ? "The OpenF1 API may not have telemetry data for this particular session, or the service might be experiencing issues."
+                  ? errorMessage && errorMessage.includes("HTML instead of")
+                    ? "The F1 data service API is returning HTML pages instead of data. This is typically a temporary server-side issue with the F1 API provider."
+                    : "The OpenF1 API may not have telemetry data for this particular session, or the service might be experiencing issues."
                   : "Please try again later or select a different race."}
             </p>
             <Button 
@@ -667,7 +735,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                 selectedDrivers={selectedDrivers}
                 onToggleDriver={toggleDriverSelection}
                 multiSelect={true}
-                driverData={telemetryData}
+                driverData={normalizedDriverData}
               />
               {selectedDrivers.length === 0 && (
                 <div className="mt-4 text-center text-sm text-muted-foreground">
