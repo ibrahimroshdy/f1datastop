@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,16 +32,22 @@ const RaceCalendar = () => {
   };
   
   const getRaceStatus = (race: any) => {
-    const raceDate = parseISO(race.date);
+    // Parse the race date and time if available
+    const raceDateTime = race.time 
+      ? parseISO(`${race.date}T${race.time}`) 
+      : parseISO(`${race.date}T00:00:00Z`);
     
-    if (raceDate < currentDate) {
+    if (raceDateTime < currentDate) {
       return "completed";
     }
     
     // Check if it's the next race
-    const nextRaceIndex = raceSchedule?.data?.findIndex((r: any) => 
-      parseISO(r.date) > currentDate
-    );
+    const nextRaceIndex = raceSchedule?.data?.findIndex((r: any) => {
+      const rDateTime = r.time 
+        ? parseISO(`${r.date}T${r.time}`) 
+        : parseISO(`${r.date}T00:00:00Z`);
+      return rDateTime > currentDate;
+    });
     
     if (nextRaceIndex !== undefined && nextRaceIndex >= 0) {
       const nextRace = raceSchedule?.data?.[nextRaceIndex];

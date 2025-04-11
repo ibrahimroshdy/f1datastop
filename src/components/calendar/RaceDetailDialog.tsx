@@ -57,11 +57,15 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     }
   };
   
-  const getSessionStatusBadge = (date: string) => {
-    const sessionDate = new Date(date);
+  const getSessionStatusBadge = (date: string, time?: string) => {
+    // Create a complete date-time object
+    const sessionDateTime = time 
+      ? parseISO(`${date}T${time}`) 
+      : parseISO(`${date}T00:00:00Z`);
+    
     const now = new Date();
     
-    if (sessionDate < now) {
+    if (sessionDateTime < now) {
       return <Badge className="bg-green-600">Completed</Badge>;
     } else {
       return <Badge variant="outline">Upcoming</Badge>;
@@ -132,7 +136,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                       <p className="font-medium">Practice 1</p>
                       <p className="text-sm text-muted-foreground">{getSessionDate(race.FirstPractice)}</p>
                     </div>
-                    {getSessionStatusBadge(race.FirstPractice.date)}
+                    {getSessionStatusBadge(race.FirstPractice.date, race.FirstPractice.time)}
                   </div>
                 )}
                 
@@ -142,7 +146,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                       <p className="font-medium">Practice 2</p>
                       <p className="text-sm text-muted-foreground">{getSessionDate(race.SecondPractice)}</p>
                     </div>
-                    {getSessionStatusBadge(race.SecondPractice.date)}
+                    {getSessionStatusBadge(race.SecondPractice.date, race.SecondPractice.time)}
                   </div>
                 )}
                 
@@ -152,7 +156,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                       <p className="font-medium">Practice 3</p>
                       <p className="text-sm text-muted-foreground">{getSessionDate(race.ThirdPractice)}</p>
                     </div>
-                    {getSessionStatusBadge(race.ThirdPractice.date)}
+                    {getSessionStatusBadge(race.ThirdPractice.date, race.ThirdPractice.time)}
                   </div>
                 )}
                 
@@ -162,7 +166,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                       <p className="font-medium">Sprint Qualifying</p>
                       <p className="text-sm text-muted-foreground">{getSessionDate(race.SprintQualifying)}</p>
                     </div>
-                    {getSessionStatusBadge(race.SprintQualifying.date)}
+                    {getSessionStatusBadge(race.SprintQualifying.date, race.SprintQualifying.time)}
                   </div>
                 )}
                 
@@ -172,7 +176,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                       <p className="font-medium">Sprint Race</p>
                       <p className="text-sm text-muted-foreground">{getSessionDate(race.Sprint)}</p>
                     </div>
-                    {getSessionStatusBadge(race.Sprint.date)}
+                    {getSessionStatusBadge(race.Sprint.date, race.Sprint.time)}
                   </div>
                 )}
                 
@@ -182,7 +186,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                       <p className="font-medium">Qualifying</p>
                       <p className="text-sm text-muted-foreground">{getSessionDate(race.Qualifying)}</p>
                     </div>
-                    {getSessionStatusBadge(race.Qualifying.date)}
+                    {getSessionStatusBadge(race.Qualifying.date, race.Qualifying.time)}
                   </div>
                 )}
                 
@@ -191,7 +195,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                     <p className="font-medium">Race</p>
                     <p className="text-sm text-muted-foreground">{getSessionDate(race)}</p>
                   </div>
-                  {getSessionStatusBadge(race.date)}
+                  {getSessionStatusBadge(race.date, race.time)}
                 </div>
               </div>
             </div>
