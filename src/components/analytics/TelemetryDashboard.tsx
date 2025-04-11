@@ -119,60 +119,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   // Determine the effective session key
   const effectiveSessionKey = externalSessionKey || sessionData?.data?.session_key || 0;
   
-  // Use manual fetch only when we need to get session details for display
-  const [sessionDetails, setSessionDetails] = useState<any>(null);
-  useEffect(() => {
-    // Only fetch session details if we have an external session key and no details yet
-    if (externalSessionKey && !sessionDetails) {
-      const fetchSessionDetails = async () => {
-        try {
-          const response = await fetch(`/api/openf1/sessions?session_key=${externalSessionKey}`);
-          
-          if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-          }
-          
-          // Check for HTML response
-          const contentType = response.headers.get('content-type');
-          let data;
-          
-          if (!contentType || !contentType.includes('application/json')) {
-            // Get the response as text for debugging
-            const textResponse = await response.text();
-            console.error('API returned non-JSON response:', contentType, textResponse.substring(0, 100) + '...');
-            
-            // If it looks like HTML, handle it specially
-            if (textResponse.trim().startsWith('<!DOCTYPE') || textResponse.trim().startsWith('<html')) {
-              console.error('Server returned HTML instead of JSON');
-              setHasServerError(true);
-              throw new Error('Server returned HTML instead of JSON');
-            }
-            
-            // Try to parse as JSON anyway, in case the content-type header is wrong
-            try {
-              data = JSON.parse(textResponse);
-            } catch (e) {
-              console.error('Failed to parse response as JSON:', e);
-              throw new Error('Invalid response format from API');
-            }
-          } else {
-            // Normal JSON parsing
-            data = await response.json();
-          }
-          
-          if (data && data[0]) {
-            setSessionDetails({ data: data[0] });
-          }
-        } catch (error) {
-          console.error("Error fetching session details:", error);
-          setHasServerError(true);
-        }
-      };
-      
-      fetchSessionDetails();
-    }
-  }, [externalSessionKey, sessionDetails]);
-  
+  // Use telemetryData hook before session details fetch
   const {
     telemetryData,
     availableDrivers: originalAvailableDrivers,
@@ -186,17 +133,111 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     driverLoadingState
   } = useTelemetryData(effectiveSessionKey, selectedDrivers);
   
-  // Check for 500 errors and update state
+  // Check for 500 errors and update state, but only if we don't have data
   useEffect(() => {
     if (errorMessage) {
-      if (errorMessage.includes("500")) {
-        setHasServerError(true);
-      } else if (errorMessage.includes("HTML instead of") || errorMessage.includes("HTML instead of data")) {
-        setHasServerError(true);
-        console.error("API returned HTML instead of JSON data:", errorMessage);
+      // Only set server error if we don't have any data to display
+      if (!hasData && Object.keys(telemetryData).length === 0) {
+        if (errorMessage.includes("500")) {
+          setHasServerError(true);
+        } else if (errorMessage.includes("HTML instead of") || errorMessage.includes("HTML instead of data")) {
+          setHasServerError(true);
+          console.error("API returned HTML instead of JSON data:", errorMessage);
+        }
+      } else {
+        // If we have data, don't show the error
+        console.log("Ignoring error message because we already have data to display:", errorMessage);
+        setHasServerError(false);
       }
+    } else {
+      setHasServerError(false);
     }
-  }, [errorMessage]);
+  }, [errorMessage, hasData, telemetryData]);
+
+  // Additional check to ensure we don't show errors if data is loaded
+  useEffect(() => {
+    if (hasData && Object.keys(telemetryData).length > 0) {
+      setHasServerError(false);
+    }
+  }, [hasData, telemetryData]);
+  
+  // Use manual fetch only when we need to get session details for display
+  const [sessionDetails, setSessionDetails] = useState<any>(null);
+  useEffect(() => {
+    // Only fetch session details if we have an external session key and no details yet
+    if (externalSessionKey && !sessionDetails) {
+      const fetchSessionDetails = async () => {
+        try {
+          const response = await fetch(`/api/openf1/sessions?session_key=${externalSessionKey}`);
+          
+          if (!response.ok) {
+            // Only set server error for critical response status codes
+            if (response.status >= 500) {
+              console.error(`API request failed with status ${response.status}`);
+              setHasServerError(true);
+              throw new Error(`API request failed with status ${response.status}`);
+            } else {
+              console.warn(`API request returned status ${response.status}, will try to parse response anyway`);
+            }
+          }
+          
+          // Check for HTML response
+          const contentType = response.headers.get('content-type');
+          let data;
+          
+          if (!contentType || !contentType.includes('application/json')) {
+            // Get the response as text for debugging
+            const textResponse = await response.text();
+            console.error('API returned non-JSON response:', contentType, textResponse.substring(0, 100) + '...');
+            
+            // If it looks like HTML, handle it specially - but don't set server error if we can recover
+            if (textResponse.trim().startsWith('<!DOCTYPE') || textResponse.trim().startsWith('<html')) {
+              console.error('Server returned HTML instead of JSON - attempting to recover');
+              
+              // Only set server error if this is going to be a problem
+              if (!hasData && Object.keys(telemetryData).length === 0) {
+                setHasServerError(true);
+              }
+              
+              // Try to continue without these details - don't throw
+              return;
+            }
+            
+            // Try to parse as JSON anyway, in case the content-type header is wrong
+            try {
+              data = JSON.parse(textResponse);
+            } catch (e) {
+              console.error('Failed to parse response as JSON:', e);
+              
+              // Only set server error if we don't have data to show
+              if (!hasData && Object.keys(telemetryData).length === 0) {
+                setHasServerError(true);
+              }
+              
+              // Try to continue without these details - don't throw
+              return;
+            }
+          } else {
+            // Normal JSON parsing
+            data = await response.json();
+          }
+          
+          if (data && data[0]) {
+            setSessionDetails({ data: data[0] });
+          }
+        } catch (error) {
+          console.error("Error fetching session details:", error);
+          
+          // Only set server error if we don't have data to show
+          if (!hasData && Object.keys(telemetryData).length === 0) {
+            setHasServerError(true);
+          }
+        }
+      };
+      
+      fetchSessionDetails();
+    }
+  }, [externalSessionKey, sessionDetails, hasData, telemetryData]);
   
   // Handle driver selection
   const toggleDriverSelection = (driverNum: number) => {
@@ -659,6 +700,38 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     }
   }, [selectedDrivers, hasData, isLoading, telemetryData]);
 
+  // Add debugging logs for production issue tracking
+  useEffect(() => {
+    // Verbose logging to help debug the production issue
+    const debugInfo = {
+      domain: window.location.hostname,
+      hasDrivers: originalAvailableDrivers.length > 0,
+      selectedDrivers,
+      hasData,
+      hasServerError,
+      errorMessage,
+      loadingProgress,
+      telemetryDataKeys: Object.keys(telemetryData),
+      dataPointCounts: Object.entries(telemetryData).map(([driver, points]) => ({
+        driver, 
+        points: Array.isArray(points) ? points.length : 0
+      }))
+    };
+    
+    console.log('[TelemetryDashboard] State:', debugInfo);
+    
+    // When loaded data, log success
+    if (hasData && Object.keys(telemetryData).length > 0) {
+      console.log('[TelemetryDashboard] Successfully loaded telemetry data:', 
+        Object.keys(telemetryData).length, 'drivers with data');
+    }
+    
+    // If there's an unexpected error state, log detailed info
+    if (hasServerError && hasData) {
+      console.warn('[TelemetryDashboard] Unexpected state: both hasServerError and hasData are true');
+    }
+  }, [hasData, hasServerError, originalAvailableDrivers.length, selectedDrivers, errorMessage, telemetryData]);
+
   return (
     <Card className="relative">
       <CardHeader className="space-y-1 pb-2">
@@ -695,37 +768,9 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                 "OpenF1 data is only available for recent races (2023 onwards)."}
             </p>
           </div>
-        ) : errorMessage || hasServerError ? (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">
-              {hasServerError 
-                ? errorMessage && errorMessage.includes("HTML instead of") 
-                  ? "The F1 API is temporarily unavailable for this session. Please try again later."
-                  : "Telemetry data is temporarily unavailable for this session." 
-                : errorMessage}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {year >= 2025 ? 
-                "2025 season data is still being collected and not all sessions have complete telemetry information. Some driver data may be available while detailed telemetry is still pending. If you see drivers listed but no telemetry charts, this is likely why." :
-                hasServerError 
-                  ? errorMessage && errorMessage.includes("HTML instead of")
-                    ? "The F1 data service API is returning HTML pages instead of data. This is typically a temporary server-side issue with the F1 API provider."
-                    : "The OpenF1 API may not have telemetry data for this particular session, or the service might be experiencing issues."
-                  : "Please try again later or select a different race."}
-            </p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-4"
-              onClick={() => window.location.reload()}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          </div>
-        ) : originalAvailableDrivers.length > 0 ? (
+        ) : hasData && originalAvailableDrivers.length > 0 ? (
           <>
-            {/* Driver selection area - shown whenever drivers are available */}
+            {/* Driver selection area - shown whenever data is available */}
             <div className="mb-6">
               <div className="mb-2 text-sm text-muted-foreground">
                 Select a driver to load their telemetry data:
@@ -743,33 +788,6 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                 </div>
               )}
             </div>
-            
-            {/* Show this when no data is available for selected drivers */}
-            {!hasData && (
-              <div className="py-8 text-center">
-                <p className="text-muted-foreground">
-                  No telemetry data found for selected drivers.
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {year >= 2025 ? (
-                    <>
-                      2025 season data is still being collected and not all sessions have complete telemetry information.
-                      <br />
-                      <span className="text-xs mt-2 block">
-                        While driver information is available, detailed telemetry data may not be present yet for this session. 
-                        You can try selecting different drivers or check the Laps tab, as sometimes lap timing data is available 
-                        even when detailed telemetry isn't. Data is continuously being updated, so please check back later.
-                      </span>
-                    </>
-                  ) : (
-                    "The OpenF1 API doesn't have telemetry data for the selected drivers in this session."
-                  )}
-                </p>
-                <div className="mt-4 text-sm text-muted-foreground">
-                  Try selecting a different driver or race session.
-                </div>
-              </div>
-            )}
             
             {/* Only show the chart area when we have data */}
             {hasData && (
@@ -1077,6 +1095,52 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
               </Tabs>
             )}
           </>
+        ) : errorMessage || hasServerError ? (
+          <div className="py-8 text-center">
+            <p className="text-muted-foreground">
+              {hasServerError 
+                ? errorMessage && errorMessage.includes("HTML instead of") 
+                  ? "The F1 API is temporarily unavailable for this session. Please try again later."
+                  : "Telemetry data is temporarily unavailable for this session." 
+                : errorMessage}
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {year >= 2025 ? 
+                "2025 season data is still being collected and not all sessions have complete telemetry information. Some driver data may be available while detailed telemetry is still pending. If you see drivers listed but no telemetry charts, this is likely why." :
+                hasServerError 
+                  ? errorMessage && errorMessage.includes("HTML instead of")
+                    ? "The F1 data service API is returning HTML pages instead of data. This is typically a temporary server-side issue with the F1 API provider."
+                    : "The OpenF1 API may not have telemetry data for this particular session, or the service might be experiencing issues."
+                  : "Please try again later or select a different race."}
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        ) : originalAvailableDrivers.length > 0 ? (
+          <div className="mb-6">
+            <div className="mb-2 text-sm text-muted-foreground">
+              Select a driver to load their telemetry data:
+            </div>
+            <DriverSelectionPanel 
+              drivers={originalAvailableDrivers}
+              selectedDrivers={selectedDrivers}
+              onToggleDriver={toggleDriverSelection}
+              multiSelect={true}
+              driverData={normalizedDriverData}
+            />
+            <div className="mt-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Click on a driver above to load their telemetry data
+              </p>
+            </div>
+          </div>
         ) : (
           <div className="py-8 text-center">
             <p className="text-muted-foreground">No driver data available for this race.</p>
