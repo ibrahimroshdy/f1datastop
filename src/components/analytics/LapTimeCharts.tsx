@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend, XAxis, YAxis } from "recharts";
+import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend, XAxis, YAxis, ReferenceLine } from "recharts";
 import { AlertCircle, Clock, RefreshCw, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -127,6 +127,31 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
     );
   }, [lapData, selectedDrivers]);
   
+  // Calculate fastest lap time
+  const fastestLap = React.useMemo(() => {
+    if (!filteredLapData.length) return null;
+    
+    let fastest: { time: number, driver: number, lap: number } | null = null;
+    
+    filteredLapData.forEach((lap: any) => {
+      // Skip pit out laps
+      if (lap.is_pit_out_lap) return;
+      
+      // Skip invalid lap times
+      if (!lap.lap_duration) return;
+      
+      if (!fastest || lap.lap_duration < fastest.time) {
+        fastest = {
+          time: lap.lap_duration,
+          driver: lap.driver_number,
+          lap: lap.lap_number
+        };
+      }
+    });
+    
+    return fastest;
+  }, [filteredLapData]);
+  
   // Prepare chart data
   const chartData = React.useMemo(() => {
     // Group laps by lap number
@@ -244,6 +269,26 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
                         return `${mins}:${secs.padStart(6, '0')}`;
                       }}
                     />
+                    
+                    {/* Add reference line for fastest lap */}
+                    {fastestLap && (
+                      <ReferenceLine 
+                        y={fastestLap.time}
+                        stroke="rgb(160, 0, 200)" 
+                        strokeDasharray="5 5" 
+                        strokeWidth={2}
+                        label={{ 
+                          value: `Fastest: ${(() => {
+                            const mins = Math.floor(fastestLap.time / 60);
+                            const secs = (fastestLap.time % 60).toFixed(3);
+                            return `${mins}:${secs.padStart(6, '0')}`;
+                          })()} (${getDriverInfo(fastestLap.driver)?.name_acronym || fastestLap.driver})`, 
+                          fill: "rgb(160, 0, 200)",
+                          position: "insideBottomRight"
+                        }}
+                      />
+                    )}
+                    
                     <Tooltip 
                       formatter={(value: any, name: string) => {
                         // Get driver number from the name (format: driver_XX)
