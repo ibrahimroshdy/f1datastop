@@ -279,22 +279,30 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     // Create a data structure that matches what DriverSelectionPanel expects
     const result: { [key: number]: any } = {};
     
-    // Add data for drivers with telemetry data
-    Object.entries(telemetryData).forEach(([driverNum, data]) => {
-      if (data && data.length > 0) {
-        result[parseInt(driverNum)] = data;
-      }
-    });
-    
-    // Also add data for selected drivers (even if they have errors)
+    // Only add data for currently selected drivers
     selectedDrivers.forEach(driverNum => {
-      if (!result[driverNum]) {
+      // If the driver has data, use it
+      if (telemetryData[driverNum] && telemetryData[driverNum].length > 0) {
+        result[driverNum] = telemetryData[driverNum];
+      } else {
+        // Otherwise add minimal data to indicate it's selected
         result[driverNum] = { length: 1 }; // Minimal data to trigger the checkmark
       }
     });
     
+    // Also include drivers that are currently loading
+    Object.keys(driverLoadingState).forEach(driverNumStr => {
+      const driverNum = parseInt(driverNumStr);
+      const isLoading = driverLoadingState[driverNum];
+      
+      // If the driver is currently loading and not already in results
+      if (isLoading && !result[driverNum]) {
+        result[driverNum] = { length: 1, loading: true };
+      }
+    });
+    
     return result;
-  }, [telemetryData, selectedDrivers]);
+  }, [telemetryData, selectedDrivers, driverLoadingState]);
   
   // Update the auto-select logic
   useEffect(() => {
