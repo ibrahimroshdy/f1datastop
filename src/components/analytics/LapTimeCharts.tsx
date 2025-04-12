@@ -329,7 +329,19 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
                         // Get driver number from the name (format: driver_XX)
                         const driverNumber = value.split('_')[1];
                         const driver = getDriverInfo(parseInt(driverNumber));
-                        return driver?.name || `Driver ${driverNumber}`;
+                        
+                        // Determine if this is the first or second driver of the team
+                        const teamDrivers = mappedDrivers
+                          .filter(d => d.team_name === driver?.team_name)
+                          .sort((a, b) => a.driver_number - b.driver_number);
+                        
+                        const isFirstDriver = teamDrivers.length > 0 && 
+                          teamDrivers[0].driver_number === parseInt(driverNumber);
+                        
+                        // Add a symbol to indicate line style (solid or dotted)
+                        const lineStyleIndicator = isFirstDriver ? "―" : "- -";
+                        
+                        return `${lineStyleIndicator} ${driver?.name || `Driver ${driverNumber}`}`;
                       }}
                     />
                     
