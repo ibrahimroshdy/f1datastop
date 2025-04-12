@@ -88,22 +88,6 @@ const isColorLight = (color: string) => {
   return yiq >= 128; // Consider colors with brightness >= 128 as light
 };
 
-// Add this helper function near the top of the file, after other helper functions
-const getHeatMapColor = (value: number) => {
-  // Create a gradient from dark red (lower) to vibrant orange-red (middle) to brighter red (higher)
-  const r = Math.round(180 + (value * 75)); // 180-255 range for red
-  
-  // For green, we want a bell curve - higher in the middle, lower at ends
-  // This creates an orange tint in the middle of the range
-  const bellCurve = 4 * value * (1 - value);
-  const g = Math.round(20 + (bellCurve * 80)); // Peak at ~80 in the middle
-  
-  // Blue stays very low throughout
-  const b = Math.round(20 + (value * 20)); // 20-40 range
-  
-  return `rgb(${r}, ${g}, ${b})`;
-}
-
 const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({ 
   year, 
   round, 
@@ -903,8 +887,34 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
           <>
             {/* Driver selection area - shown whenever data is available */}
             <div className="mb-6">
-              <div className="mb-2 text-sm text-muted-foreground">
-                Select a driver to load their telemetry data:
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-sm text-muted-foreground">
+                  Select a driver to load their telemetry data:
+                </div>
+                {activeTab === "speed" && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      // Select all available drivers
+                      const allDriverNumbers = originalAvailableDrivers.map(d => d.driver_number);
+                      
+                      // Load data for any drivers that don't have it yet
+                      allDriverNumbers.forEach(driverNum => {
+                        if (!telemetryData[driverNum] && !driverLoadingState[driverNum]) {
+                          loadDriverData(driverNum).catch(error => {
+                            console.error(`Failed to load data for driver ${driverNum}:`, error);
+                          });
+                        }
+                      });
+                      
+                      setSelectedDrivers(allDriverNumbers);
+                    }}
+                    className="ml-2"
+                  >
+                    Select All Drivers
+                  </Button>
+                )}
               </div>
               <DriverSelectionPanel 
                 drivers={originalAvailableDrivers}
@@ -935,21 +945,12 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                 <TabsContent value={activeTab} className="space-y-4">
                   {activeTab === "speed" && driverTopSpeeds && sortedDriversBySpeed.length > 0 ? (
                     // Speed traps heatmap
-                    <div className="w-full bg-[#0f172a] p-6 rounded-lg">
-                      <div className="flex justify-between items-center mb-5">
-                        <div className="text-xl font-bold text-white">Top 15 speed traps per driver</div>
-                        <div className="flex items-center space-x-1">
-                          <div className="flex h-6 items-center gap-2">
-                            <div className="w-20 h-4 bg-gradient-to-r from-red-400/40 via-orange-500/80 to-red-700/100 rounded-sm" />
-                            <div className="text-xs text-muted-foreground flex justify-between w-full gap-2">
-                              <span className="text-gray-400">Lower</span>
-                              <span className="text-gray-400">Higher speed</span>
-                            </div>
-                          </div>
-                        </div>
+                    <div className="w-full">
+                      <div className="mb-3">
+                        <div className="text-xl font-bold">Top 15 speed traps per driver</div>
                       </div>
                       
-                      <div className="min-w-full">
+                      <div className="min-w-full grid gap-0">
                         {sortedDriversBySpeed.map(driverNum => {
                           const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
                           if (!driver || !driverTopSpeeds[driverNum]) return null;
@@ -969,39 +970,46 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                               {/* Speed cells as continuous heatmap */}
                               <div className="flex h-8 w-full">
                                 {driverSpeeds.map((speedData, index) => {
-                                  // Get min and max speeds for this driver to create relative gradient
-                                  const minSpeed = driverSpeeds[driverSpeeds.length - 1].speed;
-                                  const maxSpeed = driverSpeeds[0].speed;
+                                  // Calculate relative speed percentage within this driver's range
+                                  const driverMaxSpeed = driverSpeeds[0].speed;
+                                  const driverMinSpeed = driverSpeeds[driverSpeeds.length - 1].speed;
+                                  const speedRange = driverMaxSpeed - driverMinSpeed;
+                                  // Calculate percentage within the driver's own range
+                                  const percentage = speedRange > 0 
+                                    ? (speedData.speed - driverMinSpeed) / speedRange 
+                                    : 1;
                                   
-                                  // Calculate color intensity based on position within THIS driver's range
-                                  const speedRange = maxSpeed - minSpeed;
-                                  const relativePercentage = speedRange > 0 
-                                    ? (speedData.speed - minSpeed) / speedRange 
-                                    : 1; // If all speeds are the same, use full intensity
+                                  // Generate a gradient from light orange/red to dark red
+                                  // Higher percentage = darker/more intense red
+                                  const r = Math.round(220 - (percentage * 80)); // 220 down to 140
+                                  const g = Math.round(60 - (percentage * 40));  // 60 down to 20
+                                  const b = Math.round(40 - (percentage * 20));  // 40 down to 20
                                   
-                                  // Use a red to orange-red gradient for better visualization
-                                  const color = getHeatMapColor(relativePercentage);
+                                  // Format display time if lap info isn't available
+                                  const timeString = new Date(speedData.time).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false
+                                  });
                                   
                                   return (
                                     <div 
                                       key={index}
                                       className="relative flex items-center justify-center h-full text-sm font-medium group"
                                       style={{ 
-                                        backgroundColor: color,
+                                        backgroundColor: `rgb(${r}, ${g}, ${b})`,
                                         flex: 1,
-                                        color: relativePercentage > 0.3 ? 'white' : '#aaa'
+                                        color: 'white'
                                       }}
                                     >
                                       {Math.round(speedData.speed)}
-                                      <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity absolute top-[-70px] left-1/2 transform -translate-x-1/2 z-50">
-                                        <div className="bg-black/90 backdrop-blur-sm text-white px-3 py-2 rounded-md shadow-lg text-sm min-w-[130px]">
-                                          <div className="font-bold mb-1">{driver.name_acronym}</div>
-                                          <div className="flex justify-between gap-2">
-                                            <span>Lap {speedData.lap || "N/A"}</span>
-                                            <span>{speedData.speed.toFixed(1)} km/h</span>
-                                          </div>
-                                          <div className="absolute left-1/2 transform -translate-x-1/2 top-full border-x-8 border-x-transparent border-t-8 border-t-black/90"></div>
-                                        </div>
+                                      <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-black/90 text-white text-xs px-2 py-1 rounded pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                                        {speedData.speed.toFixed(1)} km/h
+                                        {speedData.lap 
+                                          ? ` | Lap ${speedData.lap}` 
+                                          : ` | ${timeString}`
+                                        }
                                       </div>
                                     </div>
                                   );
@@ -1013,9 +1021,13 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                       </div>
                       
                       {/* Speed range indicator */}
-                      <div className="flex justify-between mt-4 text-xs text-gray-400 px-[80px]">
-                        <div>{Math.round(Math.min(...Object.values(driverTopSpeeds).map(speeds => speeds[speeds.length-1].speed)))} km/h</div>
-                        <div>{Math.round(Math.max(...Object.values(driverTopSpeeds).map(speeds => speeds[0].speed)))} km/h</div>
+                      <div className="flex justify-between mt-4 text-xs items-center px-[80px]">
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-4 bg-gradient-to-r from-[#dc3c2a] to-[#8c1d18] rounded-sm" />
+                          <div className="text-muted-foreground">
+                            Lower → Higher speed (per driver)
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : (
