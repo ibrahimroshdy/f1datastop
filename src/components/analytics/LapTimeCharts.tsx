@@ -334,11 +334,20 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
                     />
                     
                     {/* Render lines for each selected driver */}
-                    {selectedDrivers.map((driverNumber, index) => {
+                    {selectedDrivers.map((driverNumber) => {
                       const driver = getDriverInfo(driverNumber);
                       
-                      // First driver gets solid line, rest get dashed lines
-                      const strokeDasharray = index === 0 ? "0" : "5 5";
+                      // Get team drivers to determine if this is first or second driver
+                      const teamDrivers = mappedDrivers
+                        .filter(d => d.team_name === driver?.team_name)
+                        .sort((a, b) => a.driver_number - b.driver_number);
+                      
+                      // Determine if this is the first or second driver of the team
+                      const isFirstDriver = teamDrivers.length > 0 && 
+                        teamDrivers[0].driver_number === driverNumber;
+                      
+                      // First driver gets solid line, second driver gets dashed line
+                      const strokeDasharray = isFirstDriver ? "0" : "5 5";
                       
                       return (
                         <Line
@@ -369,7 +378,7 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-8 h-2 bg-gray-400" style={{ borderStyle: 'dashed' }}></div>
-                  <span>Other Drivers (Dashed)</span>
+                  <span>Second Driver (Dashed)</span>
                 </div>
               </div>
             </div>
