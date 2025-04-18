@@ -208,6 +208,9 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
         ) : (
           <>
             <div className="mb-4 shrink-0">
+              <div className="mb-2 text-sm text-muted-foreground">
+                Select a driver to view their team radio:
+              </div>
               <DriverSelectionPanel 
                 drivers={mappedDrivers}
                 selectedDrivers={selectedDrivers}

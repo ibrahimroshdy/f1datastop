@@ -1,4 +1,3 @@
-
 import React from "react";
 import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
@@ -65,7 +64,7 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
                 key={driver.code}
                 className={`p-2 rounded text-xs flex flex-col transition-all duration-200 ${
                   selectedDrivers.includes(driver.code)
-                    ? 'bg-gray-800 text-white'
+                    ? 'bg-gray-800 text-white outline outline-2 outline-gray-400'
                     : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                 }`}
                 onClick={() => onDriverToggle(driver.code)}

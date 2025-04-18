@@ -32,7 +32,7 @@ const DriverSelectionPanel: React.FC<DriverSelectionPanelProps> = ({
           key={driver.driver_number}
           className={`px-3 py-1 h-auto rounded-md font-semibold text-sm leading-tight flex items-center gap-1.5 ${
             selectedDrivers.includes(driver.driver_number)
-              ? "bg-white text-gray-900"
+              ? "bg-white text-gray-900 outline outline-2 outline-gray-400"
               : driver.hasError
               ? "bg-red-800/50 hover:bg-red-800/70 text-white"
               : hasData(driver.driver_number) 
