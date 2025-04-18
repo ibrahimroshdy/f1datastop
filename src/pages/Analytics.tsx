@@ -118,12 +118,30 @@ const Analytics = () => {
             </div>
             
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="lapTimes">Race Times</TabsTrigger>
-                <TabsTrigger value="positions">Race Position Changes</TabsTrigger>
-                <TabsTrigger value="qualifying">Qualifying</TabsTrigger>
-                <TabsTrigger value="pitstops">Pit Stops</TabsTrigger>
-              </TabsList>
+              {/* Tabs for larger screens */}
+              <div className="hidden md:block">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="lapTimes">Race Times</TabsTrigger>
+                  <TabsTrigger value="positions">Race Position Changes</TabsTrigger>
+                  <TabsTrigger value="qualifying">Qualifying</TabsTrigger>
+                  <TabsTrigger value="pitstops">Pit Stops</TabsTrigger>
+                </TabsList>
+              </div>
+
+              {/* Dropdown for mobile screens */}
+              <div className="block md:hidden mb-4">
+                <Select value={selectedTab} onValueChange={setSelectedTab}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select analysis" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="lapTimes">Race Times</SelectItem>
+                    <SelectItem value="positions">Race Position Changes</SelectItem>
+                    <SelectItem value="qualifying">Qualifying</SelectItem>
+                    <SelectItem value="pitstops">Pit Stops</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               
               <TabsContent value="lapTimes" className="space-y-4 mt-4">
                 <Card>

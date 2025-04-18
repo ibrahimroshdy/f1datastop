@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { 
@@ -28,21 +29,24 @@ import {
   Caravan
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsMediumOrSmaller } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
 import f1Logo from "@/assets/f1-logo.svg";
+import MobileNavigation from "@/components/layout/MobileNavigation";
 
 interface SidebarProps {
-  open: boolean;
-  setOpen: (open: boolean) => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
 }
 
 // Function to determine the current year (hardcoded to 2025 for now)
 const getCurrentYear = () => 2025;
 
-const Sidebar = ({ open, setOpen }: SidebarProps) => {
-  const location = useLocation();
+const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
+  const { pathname } = useLocation();
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const isMediumOrSmaller = useIsMediumOrSmaller();
   const { user } = useAuth();
 
   const mainNavigation = [
@@ -61,119 +65,158 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
     ? [{ name: "Profile", href: "/profile", icon: User }]
     : [{ name: "Login / Signup", href: "/auth/login", icon: LogIn }];
 
-  // Close sidebar when a navigation item is clicked on mobile
+  // Close sidebar when clicking outside on mobile/medium
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        sidebarOpen &&
+        isMediumOrSmaller &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node)
+      ) {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [sidebarOpen, setSidebarOpen, isMediumOrSmaller]);
+
+  // Handle navigation item click
   const handleNavClick = () => {
-    if (isMobile) {
-      setOpen(false);
+    // Close sidebar on mobile/medium when navigating
+    if (isMediumOrSmaller) {
+      setSidebarOpen(false);
     }
   };
 
   return (
     <>
-      {/* Mobile overlay */}
-      {isMobile && open && (
-        <div 
-          className="fixed inset-0 bg-black/80 z-40 transition-opacity duration-300"
-          onClick={() => setOpen(false)}
-          aria-hidden="true"
+      {/* Backdrop for mobile/medium sidebar */}
+      {sidebarOpen && isMediumOrSmaller && (
+        <div
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
         />
       )}
-      
-      {/* Sidebar */}
-      <aside
+
+      {/* Main sidebar */}
+      <div
+        ref={sidebarRef}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar transition-transform duration-300 ease-in-out border-r border-sidebar-border",
-          isMobile && !open && "-translate-x-full",
-          !isMobile && !open && "-translate-x-48",
-          !isMobile && "relative"
+          "fixed inset-y-0 left-0 z-50 w-72 border-r bg-sidebar transform transition-transform duration-200 ease-in-out md:transition-none",
+          isMediumOrSmaller && !sidebarOpen ? "-translate-x-full" : "translate-x-0",
+          !isMediumOrSmaller && "md:relative md:top-0"
         )}
       >
-        {/* Logo and close button */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
-          <Link to="/" className="flex items-center gap-2" onClick={handleNavClick}>
-            <img src={f1Logo} alt="F1 DataStop" className="w-8 h-8" />
-            <span className={cn("font-bold tracking-tight transition-opacity text-foreground", 
-              !open && !isMobile && "opacity-0"
-            )}>
-              F1 DataStop
-            </span>
+        {/* Logo and brand */}
+        <div className="flex h-16 items-center border-b px-6">
+          <Link to="/" className="flex items-center gap-2">
+            <img src={f1Logo} alt="F1 DataStop" className="w-10 h-10" />
+            <span className="font-bold text-xl tracking-tight">F1 DataStop</span>
           </Link>
-          {isMobile && (
-            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="text-muted-foreground">
-              <X className="h-5 w-5" />
-            </Button>
-          )}
         </div>
 
-        {/* Navigation */}
-        <nav className="flex flex-col gap-1 px-2 py-4">
-          {/* Main Navigation */}
-          {mainNavigation.map((item) => (
-            <Link
-              key={item.name}
-              to={item.href}
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
-                location.pathname === item.href
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent",
-                !open && !isMobile && "justify-center"
-              )}
-            >
-              <item.icon className="h-5 w-5 shrink-0" />
-              <span className={cn("truncate", !open && !isMobile && "hidden")}>
-                {item.name}
-              </span>
-            </Link>
-          ))}
+        {/* Desktop navigation */}
+        <div className="hidden md:block space-y-4 py-4">
+          <div className="px-3 py-2">
+            <div className="space-y-1">
+              {mainNavigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={handleNavClick}
+                  className={cn(
+                    "flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                    pathname === item.href ? "bg-red-200/70 text-red-900 dark:bg-red-900/30 dark:text-red-200" : "transparent"
+                  )}
+                >
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+          </div>
 
-          {/* Protected Navigation */}
-          {protectedNavigation.map((item) => (
-            <Link
-              key={item.name}
-              to={item.href}
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
-                location.pathname === item.href
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent",
-                !open && !isMobile && "justify-center"
-              )}
-            >
-              <item.icon className="h-5 w-5 shrink-0" />
-              <span className={cn("truncate", !open && !isMobile && "hidden")}>
-                {item.name}
-              </span>
-            </Link>
-          ))}
+          {/* Protected navigation section */}
+          <div className="px-3 py-2">
+            <h2 className="mb-2 px-4 text-xs font-semibold tracking-tight text-muted-foreground">
+              F1 Information
+            </h2>
+            <div className="space-y-1">
+              {protectedNavigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={handleNavClick}
+                  className={cn(
+                    "flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                    pathname === item.href ? "bg-red-200/70 text-red-900 dark:bg-red-900/30 dark:text-red-200" : "transparent"
+                  )}
+                >
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+          </div>
 
-          {/* Separator */}
-          <div className="h-px bg-sidebar-border my-2 mx-3" />
+          {/* Authentication navigation section */}
+          <div className="px-3 py-2">
+            <h2 className="mb-2 px-4 text-xs font-semibold tracking-tight text-muted-foreground">
+              Account
+            </h2>
+            <div className="space-y-1">
+              {authNavigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  onClick={handleNavClick}
+                  className={cn(
+                    "flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
+                    pathname === item.href ? "bg-red-200/70 text-red-900 dark:bg-red-900/30 dark:text-red-200" : "transparent"
+                  )}
+                >
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
 
-          {/* Auth Navigation */}
-          {authNavigation.map((item) => (
-            <Link
-              key={item.name}
-              to={item.href}
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
-                location.pathname === item.href
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent",
-                !open && !isMobile && "justify-center"
-              )}
-            >
-              <item.icon className="h-5 w-5 shrink-0" />
-              <span className={cn("truncate", !open && !isMobile && "hidden")}>
-                {item.name}
-              </span>
-            </Link>
-          ))}
-        </nav>
-      </aside>
+        {/* Mobile navigation */}
+        <div className="md:hidden">
+          <MobileNavigation
+            items={mainNavigation}
+            onNavClick={handleNavClick}
+          />
+          
+          {/* Protected navigation for mobile */}
+          <div className="px-3 py-2">
+            <h2 className="mb-2 px-4 text-xs font-semibold tracking-tight text-muted-foreground">
+              F1 Information
+            </h2>
+          </div>
+          <MobileNavigation
+            items={protectedNavigation}
+            onNavClick={handleNavClick}
+          />
+          
+          {/* Auth navigation for mobile */}
+          <div className="px-3 py-2">
+            <h2 className="mb-2 px-4 text-xs font-semibold tracking-tight text-muted-foreground">
+              Account
+            </h2>
+          </div>
+          <MobileNavigation
+            items={authNavigation}
+            onNavClick={handleNavClick}
+          />
+        </div>
+      </div>
     </>
   );
 };

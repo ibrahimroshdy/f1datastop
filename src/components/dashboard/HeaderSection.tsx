@@ -139,16 +139,16 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
         </div>
         {nextRace && 
           <div 
-            className="mt-4 md:mt-0 bg-card rounded-lg px-4 py-2 flex items-center gap-2 border border-border hover:shadow-lg hover:scale-105 hover:bg-card/90 cursor-pointer transition-all duration-300 transform hover:border-primary"
+            className="mt-4 md:mt-0 bg-card rounded-lg px-3 md:px-4 py-2 flex items-center gap-2 border border-border hover:shadow-md md:hover:scale-102 hover:bg-card/90 cursor-pointer transition-all duration-300 transform hover:border-primary text-sm md:text-base"
             onClick={openRaceDetails}
           >
-            <span className="text-xl">{getCountryFlag(nextRace.Circuit.Location.country)}</span>
+            <span className="text-lg md:text-xl">{getCountryFlag(nextRace.Circuit.Location.country)}</span>
             <div>
-              <div className="flex items-center gap-2">
-                <Badge className="bg-primary text-primary-foreground border-0">NEXT RACE</Badge>
-                <span className="font-medium text-foreground">{removeFlag(nextRace.raceName)}</span>
+              <div className="flex items-center gap-1 md:gap-2">
+                <Badge className="bg-primary text-primary-foreground border-0 text-xs">NEXT RACE</Badge>
+                <span className="font-medium text-foreground truncate max-w-[150px] md:max-w-full">{removeFlag(nextRace.raceName)}</span>
               </div>
-              <div className="text-sm text-muted-foreground flex gap-2">
+              <div className="text-xs md:text-sm text-muted-foreground flex gap-1 md:gap-2">
                 <span><span className="font-semibold">{countdown.days}</span><span className="font-normal">d</span></span>
                 <span><span className="font-semibold">{countdown.hours}</span><span className="font-normal">h</span></span>
                 <span><span className="font-semibold">{countdown.minutes}</span><span className="font-normal">m</span></span>

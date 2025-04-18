@@ -589,9 +589,9 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                     <span className="text-purple-400">Session Fastest:</span>
                     <span className="bg-purple-400/20 rounded-sm px-1 py-0.5 text-[10px] text-purple-400 uppercase">Purple Times</span>
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {/* Best lap */}
-                    <div className="bg-background/40 p-3 rounded-md" style={{
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                    {/* Best lap - full width on mobile, 2 cols on sm, 1 col on md */}
+                    <div className="bg-background/40 p-3 rounded-md col-span-1 sm:col-span-1 md:col-span-1" style={{
                       borderLeft: absoluteFastestLap ? `4px solid ${getDriverInfo(absoluteFastestLap.driver)?.team_color || 'gray'}` : ''
                     }}>
                       <div className="text-xs text-muted-foreground mb-1">Fastest Lap</div>
@@ -624,8 +624,8 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                       )}
                     </div>
                     
-                    {/* Best theoretical lap */}
-                    <div className="bg-background/40 p-3 rounded-md" style={{
+                    {/* Best theoretical lap - full width on mobile, 2 cols on sm, 1 col on md */}
+                    <div className="bg-background/40 p-3 rounded-md col-span-1 sm:col-span-1 md:col-span-1" style={{
                       borderLeft: `4px solid ${fastestSectors.sector1?.driver ? getDriverInfo(fastestSectors.sector1?.driver)?.team_color || 'gray' : 'gray'}`
                     }}>
                       <div className="text-xs text-muted-foreground mb-1">Theoretical Best</div>
@@ -641,8 +641,8 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                       )}
                     </div>
                     
-                    {/* Best S1 */}
-                    <div className="bg-background/40 p-3 rounded-md" style={{
+                    {/* Best S1 - full width on mobile, 1 col on sm */}
+                    <div className="bg-background/40 p-3 rounded-md col-span-1 sm:col-span-1 md:col-span-1" style={{
                       borderLeft: fastestSectors.sector1 ? `4px solid ${getDriverInfo(fastestSectors.sector1.driver)?.team_color || 'gray'}` : ''
                     }}>
                       <div className="text-xs text-muted-foreground mb-1">Sector 1</div>
@@ -675,8 +675,8 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                       )}
                     </div>
                     
-                    {/* Best S2 */}
-                    <div className="bg-background/40 p-3 rounded-md" style={{
+                    {/* Best S2 - full width on mobile, 1 col on sm */}
+                    <div className="bg-background/40 p-3 rounded-md col-span-1 sm:col-span-1 md:col-span-1" style={{
                       borderLeft: fastestSectors.sector2 ? `4px solid ${getDriverInfo(fastestSectors.sector2.driver)?.team_color || 'gray'}` : ''
                     }}>
                       <div className="text-xs text-muted-foreground mb-1">Sector 2</div>
@@ -709,8 +709,8 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
                       )}
                     </div>
                     
-                    {/* Best S3 - Only on small screens, adds an extra row */}
-                    <div className="bg-background/40 p-3 rounded-md md:hidden" style={{
+                    {/* Best S3 - always visible, but with different layouts */}
+                    <div className="bg-background/40 p-3 rounded-md col-span-1 sm:col-span-2 md:col-span-1" style={{
                       borderLeft: fastestSectors.sector3 ? `4px solid ${getDriverInfo(fastestSectors.sector3.driver)?.team_color || 'gray'}` : ''
                     }}>
                       <div className="text-xs text-muted-foreground mb-1">Sector 3</div>

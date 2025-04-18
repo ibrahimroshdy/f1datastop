@@ -7,6 +7,19 @@ import { AlertCircle, ArrowDownIcon, ArrowUpIcon, ArrowUpDown } from "lucide-rea
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { getPitStops, getRaceResults } from "@/services/f1Service";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Import team logos
+import ferrariLogo from "@/assets/constructor-logos/ferrari.png";
+import rbLogo from "@/assets/constructor-logos/rb.png";
+import redbullLogo from "@/assets/constructor-logos/redbull.png";
+import mclarenLogo from "@/assets/constructor-logos/mclaren.png";
+import sauberLogo from "@/assets/constructor-logos/sauber.png";
+import mercedesLogo from "@/assets/constructor-logos/mercedes.png";
+import astonmartinLogo from "@/assets/constructor-logos/astonmartin.png";
+import williamsLogo from "@/assets/constructor-logos/williams.png";
+import haasLogo from "@/assets/constructor-logos/haas.png";
+import alpineLogo from "@/assets/constructor-logos/alpine.png";
 
 interface PitStopTableProps {
   year: number;
@@ -34,6 +47,22 @@ interface DriverInfo {
 
 // Define sort keys for type safety
 type SortKey = 'driver' | 'team' | 'stops' | 'totalTime';
+
+// Add team logo mapping before the component
+const TEAM_LOGOS: Record<string, string> = {
+  ferrari: ferrariLogo,
+  rb: rbLogo,
+  red_bull: redbullLogo,
+  redbull: redbullLogo,
+  mclaren: mclarenLogo,
+  sauber: sauberLogo,
+  mercedes: mercedesLogo,
+  aston_martin: astonmartinLogo,
+  astonmartin: astonmartinLogo,
+  williams: williamsLogo,
+  haas: haasLogo,
+  alpine: alpineLogo
+};
 
 const PitStopTable = ({ year, round }: PitStopTableProps) => {
   const [pitStopData, setPitStopData] = useState<DriverPitStop[]>([]);
@@ -248,10 +277,10 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
                 </div>
               </TableHead>
               <TableHead 
-                className="w-[120px] bg-background sticky top-0 cursor-pointer hover:bg-accent/50"
+                className="w-[120px] bg-background sticky top-0 cursor-pointer hover:bg-accent/50 text-center"
                 onClick={() => handleSort('team')}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center">
                   Team
                   {sortConfig.key === 'team' ? (
                     sortConfig.direction === 'asc' ? (
@@ -304,14 +333,35 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
           <TableBody>
             {sortedData.map((driver) => (
               <TableRow key={driver.driverId}>
-                <TableCell className="font-medium">{driver.code}</TableCell>
                 <TableCell>
                   <div 
                     className="flex items-center gap-2"
                     style={{ borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}` }}
                   >
-                    <span className="pl-2 capitalize">{driver.team.replace('_', ' ')}</span>
+                    <span className="pl-2 font-medium">{driver.code}</span>
                   </div>
+                </TableCell>
+                <TableCell>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center justify-center w-full">
+                          {TEAM_LOGOS[driver.team] ? (
+                            <img 
+                              src={TEAM_LOGOS[driver.team]} 
+                              alt={driver.team} 
+                              className="h-5 object-contain"
+                            />
+                          ) : (
+                            <span className="capitalize">{driver.team.replace('_', ' ')}</span>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="capitalize">{driver.team.replace('_', ' ')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableCell>
                 <TableCell className="text-right">{driver.stops.length}</TableCell>
                 <TableCell className="text-right font-mono">

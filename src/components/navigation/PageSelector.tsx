@@ -53,19 +53,19 @@ const PageSelector = () => {
   ];
 
   return (
-    <div className="grid grid-cols-5 gap-2 mt-4">
+    <div className="grid grid-cols-5 gap-3 mt-4">
       {pages.map((page) => (
         <Link key={page.title} to={page.href}>
           <Card className="h-full transition-all duration-300 hover:bg-accent hover:translate-y-[-4px] border-border cursor-pointer overflow-hidden shadow-md rounded-xl group">
             <div className={`h-1.5 bg-gradient-to-r ${page.color}`}></div>
-            <CardContent className="p-2.5">
-              <div className="flex items-center justify-center md:justify-start">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left">
                 <div className="p-1.5 rounded-md bg-secondary text-secondary-foreground group-hover:bg-f1-red transition-colors shrink-0">
                   {page.icon}
                 </div>
-                <div className="hidden md:block ml-2 min-w-0">
+                <div className="mt-2 md:mt-0 md:ml-2 min-w-0">
                   <h3 className="font-medium text-sm text-foreground truncate">{page.title}</h3>
-                  <p className="text-xs text-muted-foreground line-clamp-1">{page.description}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{page.description}</p>
                 </div>
               </div>
             </CardContent>

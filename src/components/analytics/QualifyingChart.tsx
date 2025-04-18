@@ -3,7 +3,7 @@ import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Loader2, Check } from "lucide-react";
+import { AlertTriangle, Loader2, Check, ArrowUpDown, ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import { useQualifyingData, QualifyingSession } from "@/hooks/useQualifyingData";
 import { 
   Table,
@@ -14,6 +14,35 @@ import {
   TableRow
 } from "@/components/ui/table";
 import SessionToggle from "./SessionToggle";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Import team logos
+import ferrariLogo from "@/assets/constructor-logos/ferrari.png";
+import rbLogo from "@/assets/constructor-logos/rb.png";
+import redbullLogo from "@/assets/constructor-logos/redbull.png";
+import mclarenLogo from "@/assets/constructor-logos/mclaren.png";
+import sauberLogo from "@/assets/constructor-logos/sauber.png";
+import mercedesLogo from "@/assets/constructor-logos/mercedes.png";
+import astonmartinLogo from "@/assets/constructor-logos/astonmartin.png";
+import williamsLogo from "@/assets/constructor-logos/williams.png";
+import haasLogo from "@/assets/constructor-logos/haas.png";
+import alpineLogo from "@/assets/constructor-logos/alpine.png";
+
+// Add team logo mapping before the component
+const TEAM_LOGOS: Record<string, string> = {
+  ferrari: ferrariLogo,
+  rb: rbLogo,
+  red_bull: redbullLogo,
+  redbull: redbullLogo,
+  mclaren: mclarenLogo,
+  sauber: sauberLogo,
+  mercedes: mercedesLogo,
+  aston_martin: astonmartinLogo,
+  astonmartin: astonmartinLogo,
+  williams: williamsLogo,
+  haas: haasLogo,
+  alpine: alpineLogo
+};
 
 // Extend the interface to be compatible with the DriverSelector component
 interface CompatibleDriver {
@@ -28,12 +57,22 @@ interface CompatibleDriver {
   q3Time?: number;
 }
 
+// Add the sort type to the component
 interface QualifyingChartProps {
   year: number;
   round: string;
 }
 
+// Define sort keys type
+type SortKey = 'position' | 'driver' | 'team' | 'q1Time' | 'q2Time' | 'q3Time';
+
 const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
+  // Add sorting state
+  const [sortConfig, setSortConfig] = React.useState<{ key: SortKey; direction: 'asc' | 'desc' }>({
+    key: 'position',
+    direction: 'asc'
+  });
+
   const {
     availableDrivers,
     selectedDrivers,
@@ -62,16 +101,78 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
     return `${mins}:${secs.padStart(6, '0')}`;
   };
 
-  // Get visible drivers sorted by position
+  // Get visible drivers sorted by the current sort config
   const getVisibleDrivers = () => {
-    // If no drivers are explicitly selected, show all drivers
-    if (selectedDrivers.length === 0) {
-      return availableDrivers.sort((a, b) => a.position - b.position);
-    }
+    let driversToShow = selectedDrivers.length === 0 
+      ? [...availableDrivers]
+      : availableDrivers.filter(driver => selectedDrivers.includes(driver.code));
     
-    return availableDrivers
-      .filter(driver => selectedDrivers.includes(driver.code))
-      .sort((a, b) => a.position - b.position);
+    // Sort drivers based on sortConfig
+    return driversToShow.sort((a, b) => {
+      let aValue: string | number | undefined;
+      let bValue: string | number | undefined;
+
+      switch (sortConfig.key) {
+        case 'position':
+          aValue = a.position;
+          bValue = b.position;
+          break;
+        case 'driver':
+          aValue = a.code;
+          bValue = b.code;
+          break;
+        case 'team':
+          aValue = a.team;
+          bValue = b.team;
+          break;
+        case 'q1Time':
+          aValue = a.q1Time && a.q1Time > 0 ? a.q1Time : undefined;
+          bValue = b.q1Time && b.q1Time > 0 ? b.q1Time : undefined;
+          break;
+        case 'q2Time':
+          aValue = a.q2Time && a.q2Time > 0 ? a.q2Time : undefined;
+          bValue = b.q2Time && b.q2Time > 0 ? b.q2Time : undefined;
+          break;
+        case 'q3Time':
+          aValue = a.q3Time && a.q3Time > 0 ? a.q3Time : undefined;
+          bValue = b.q3Time && b.q3Time > 0 ? b.q3Time : undefined;
+          break;
+        default:
+          aValue = a.position;
+          bValue = b.position;
+      }
+
+      // Handle undefined values (put them at the end)
+      if (aValue === undefined && bValue === undefined) return 0;
+      if (aValue === undefined) return 1;
+      if (bValue === undefined) return -1;
+
+      // Sort based on direction
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'asc' 
+          ? aValue.localeCompare(bValue) 
+          : bValue.localeCompare(aValue);
+      } else {
+        const numA = typeof aValue === 'number' ? aValue : 0;
+        const numB = typeof bValue === 'number' ? bValue : 0;
+        return sortConfig.direction === 'asc' ? numA - numB : numB - numA;
+      }
+    });
+  };
+
+  // Handle column header click for sorting
+  const handleSort = (key: SortKey) => {
+    setSortConfig(current => {
+      // If clicking the same column, toggle direction
+      if (current.key === key) {
+        return {
+          key,
+          direction: current.direction === 'asc' ? 'desc' : 'asc'
+        };
+      }
+      // If clicking a new column, sort ascending by default
+      return { key, direction: 'asc' };
+    });
   };
 
   // Highlight the fastest time in each session
@@ -195,21 +296,117 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
         )}
       </div>
       
-      <div className="overflow-x-auto">
+      <div className="overflow-auto flex-1">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16 text-center">Pos</TableHead>
-              <TableHead className="w-20">Driver</TableHead>
-              <TableHead className="w-32">Team</TableHead>
+              <TableHead 
+                className="w-16 text-center sticky top-0 bg-background cursor-pointer hover:bg-accent/50"
+                onClick={() => handleSort('position')}
+              >
+                <div className="flex items-center justify-center">
+                  Pos
+                  {sortConfig.key === 'position' ? (
+                    sortConfig.direction === 'asc' ? (
+                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="w-20 sticky top-0 bg-background cursor-pointer hover:bg-accent/50"
+                onClick={() => handleSort('driver')}
+              >
+                <div className="flex items-center">
+                  Driver
+                  {sortConfig.key === 'driver' ? (
+                    sortConfig.direction === 'asc' ? (
+                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="w-32 sticky top-0 bg-background cursor-pointer hover:bg-accent/50 text-center"
+                onClick={() => handleSort('team')}
+              >
+                <div className="flex items-center justify-center">
+                  Team
+                  {sortConfig.key === 'team' ? (
+                    sortConfig.direction === 'asc' ? (
+                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
               {(activeSessions.includes('all') || activeSessions.includes('Q1')) && (
-                <TableHead className="text-right">Q1 Time</TableHead>
+                <TableHead 
+                  className="text-right sticky top-0 bg-background cursor-pointer hover:bg-accent/50"
+                  onClick={() => handleSort('q1Time')}
+                >
+                  <div className="flex items-center justify-end">
+                    Q1 Time
+                    {sortConfig.key === 'q1Time' ? (
+                      sortConfig.direction === 'asc' ? (
+                        <ArrowUpIcon className="h-4 w-4 ml-1" />
+                      ) : (
+                        <ArrowDownIcon className="h-4 w-4 ml-1" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                    )}
+                  </div>
+                </TableHead>
               )}
               {(activeSessions.includes('all') || activeSessions.includes('Q2')) && (
-                <TableHead className="text-right">Q2 Time</TableHead>
+                <TableHead 
+                  className="text-right sticky top-0 bg-background cursor-pointer hover:bg-accent/50"
+                  onClick={() => handleSort('q2Time')}
+                >
+                  <div className="flex items-center justify-end">
+                    Q2 Time
+                    {sortConfig.key === 'q2Time' ? (
+                      sortConfig.direction === 'asc' ? (
+                        <ArrowUpIcon className="h-4 w-4 ml-1" />
+                      ) : (
+                        <ArrowDownIcon className="h-4 w-4 ml-1" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                    )}
+                  </div>
+                </TableHead>
               )}
               {(activeSessions.includes('all') || activeSessions.includes('Q3')) && (
-                <TableHead className="text-right">Q3 Time</TableHead>
+                <TableHead 
+                  className="text-right sticky top-0 bg-background cursor-pointer hover:bg-accent/50"
+                  onClick={() => handleSort('q3Time')}
+                >
+                  <div className="flex items-center justify-end">
+                    Q3 Time
+                    {sortConfig.key === 'q3Time' ? (
+                      sortConfig.direction === 'asc' ? (
+                        <ArrowUpIcon className="h-4 w-4 ml-1" />
+                      ) : (
+                        <ArrowDownIcon className="h-4 w-4 ml-1" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                    )}
+                  </div>
+                </TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -235,9 +432,28 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-muted-foreground capitalize">
-                    {driver.team.replace('_', ' ')}
-                  </span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center justify-center w-full">
+                          {TEAM_LOGOS[driver.team] ? (
+                            <img 
+                              src={TEAM_LOGOS[driver.team]} 
+                              alt={driver.team} 
+                              className="h-5 object-contain"
+                            />
+                          ) : (
+                            <span className="text-sm text-muted-foreground capitalize">
+                              {driver.team.replace('_', ' ')}
+                            </span>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="capitalize">{driver.team.replace('_', ' ')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableCell>
                 {(activeSessions.includes('all') || activeSessions.includes('Q1')) && (
                   <TableCell 
