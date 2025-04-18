@@ -1044,8 +1044,8 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                 const driverColor = driverInfo?.team_color || "#ffcc00";
                                 const driverName = driverInfo?.name_acronym || 
                                   (maxSpeedInfo.driverNumber ? `#${maxSpeedInfo.driverNumber}` : "");
-                                
-                                return (
+                                  
+                                  return (
                                   <ReferenceLine 
                                     y={maxSpeedInfo.speed}
                                     stroke={driverColor}
@@ -1100,7 +1100,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                         backgroundColor: driver?.team_color || 'gray',
                                       }} />
                                       <span>{driverInfo}</span>
-                                    </div>
+                                      </div>
                                   ];
                                 }}
                                 labelFormatter={(label) => {
@@ -1184,8 +1184,8 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                     connectNulls={true}
                                     isAnimationActive={false}
                                   />
-                                );
-                              })}
+                                  );
+                                })}
                               
                               {/* Custom legend showing driver info */}
                               <Legend 
@@ -1211,10 +1211,10 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                                 ({driver.driver_number})
                                               </span>
                                             </span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                                   );
                                 }}
                               />
@@ -1332,15 +1332,15 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                 // Format value based on the current tab
                                 let formattedValue: string;
                                 if (activeTab === "speed") {
-                                  formattedValue = `${parseFloat(value).toFixed(2)} km/h`;
+                                    formattedValue = `${parseFloat(value).toFixed(2)} km/h`;
                                 } else if (activeTab === "rpm") {
-                                  formattedValue = `${parseFloat(value).toFixed(0)} RPM`;
+                                    formattedValue = `${parseFloat(value).toFixed(0)} RPM`;
                                 } else if (activeTab === "throttle" || activeTab === "brake") {
-                                  formattedValue = `${parseFloat(value).toFixed(2)}%`;
+                                    formattedValue = `${parseFloat(value).toFixed(2)}%`;
                                 } else if (activeTab === "gear") {
-                                  formattedValue = `Gear ${parseFloat(value).toFixed(0)}`;
+                                    formattedValue = `Gear ${parseFloat(value).toFixed(0)}`;
                                 } else if (activeTab === "drs") {
-                                  formattedValue = value === 1 ? "DRS Enabled" : "DRS Disabled";
+                                    formattedValue = value === 1 ? "DRS Enabled" : "DRS Disabled";
                                 } else {
                                   formattedValue = `${value}`;
                                 }

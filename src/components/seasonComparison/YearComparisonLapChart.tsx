@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import DataLoadingProgress from "../analytics/DataLoadingProgress";
+import { useTheme } from "@/context/ThemeContext";
 
 interface YearComparisonLapChartProps {
   baseYear: number;
@@ -34,6 +35,7 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const { theme } = useTheme();
   
   // Fetch results and lap times for base year
   const { 
@@ -400,8 +402,9 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             />
             <Tooltip 
               contentStyle={{ 
-                backgroundColor: '#1a1a1a',
-                borderColor: '#333',
+                backgroundColor: theme === 'dark' ? '#1a1a1a' : '#ffffff',
+                borderColor: theme === 'dark' ? '#333' : '#e2e8f0',
+                color: theme === 'dark' ? '#ffffff' : '#1a202c',
                 borderRadius: '5px'
               }}
               formatter={(value: any, name: string) => {

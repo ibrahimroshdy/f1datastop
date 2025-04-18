@@ -59,13 +59,13 @@ const PageSelector = () => {
           <Card className="h-full transition-all duration-300 hover:bg-accent hover:translate-y-[-4px] border-border cursor-pointer overflow-hidden shadow-md rounded-xl group">
             <div className={`h-1.5 bg-gradient-to-r ${page.color}`}></div>
             <CardContent className="p-3 md:p-4">
-              <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left">
+              <div className="flex flex-col items-center text-center">
                 <div className="p-1.5 rounded-md bg-secondary text-secondary-foreground group-hover:bg-f1-red transition-colors shrink-0">
                   {page.icon}
                 </div>
-                <div className="mt-2 md:mt-0 md:ml-2 min-w-0">
+                <div className="mt-2 min-w-0 hidden sm:block">
                   <h3 className="font-medium text-sm text-foreground truncate">{page.title}</h3>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{page.description}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 hidden md:block">{page.description}</p>
                 </div>
               </div>
             </CardContent>
