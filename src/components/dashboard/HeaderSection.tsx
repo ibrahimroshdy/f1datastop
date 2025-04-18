@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle } from "lucide-react";
 import PageSelector from "@/components/navigation/PageSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import CountryFlag from "@/components/common/CountryFlag";
 
 interface HeaderSectionProps {
   nextRace: any;
@@ -142,7 +143,7 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
             className="mt-4 md:mt-0 bg-card rounded-lg px-3 md:px-4 py-2 flex items-center gap-2 border border-border hover:shadow-md md:hover:scale-102 hover:bg-card/90 cursor-pointer transition-all duration-300 transform hover:border-primary text-sm md:text-base"
             onClick={openRaceDetails}
           >
-            <span className="text-lg md:text-xl">{getCountryFlag(nextRace.Circuit.Location.country)}</span>
+            <CountryFlag country={nextRace.Circuit.Location.country} size={24} svg={true} />
             <div>
               <div className="flex items-center gap-1 md:gap-2">
                 <Badge className="bg-primary text-primary-foreground border-0 text-xs">NEXT RACE</Badge>

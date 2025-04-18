@@ -15,8 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Trophy, Flag, Clock, LineChart } from "lucide-react";
-import { CountryFlag } from "@/utils/countryFlags";
 import { Link } from "react-router-dom";
+import CountryFlag from "@/components/common/CountryFlag";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 
 // Function to determine the current year (hardcoded to 2025 for now)
 const getCurrentYear = () => 2025;
@@ -90,10 +91,11 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             {race.Circuit?.Location?.country && (
               <CountryFlag 
                 country={race.Circuit.Location.country} 
-                className="mr-2"
+                size={24}
+                svg={true}
               />
             )}
-            {race.raceName}
+            {getRaceNameWithoutEmoji(race.raceName)}
           </DialogTitle>
           <DialogDescription>
             Round {race.round} of the {race.season} Formula 1 Season

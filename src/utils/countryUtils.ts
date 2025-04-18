@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for handling country flags and race name formatting
  */
@@ -65,9 +64,27 @@ export const getCountryFlag = (country: string): string => {
  * Get clean race name (without emoji if present)
  */
 export const getRaceNameWithoutEmoji = (raceName: string): string => {
-  if (raceName && raceName.includes(' ') && raceName.indexOf(' ') <= 3) {
-    return raceName.substring(raceName.indexOf(' ') + 1);
+  // More robust emoji removal - this will remove any emoji flag at the beginning
+  // Emoji flags are represented by two regional indicator symbols (each 2 bytes)
+  if (raceName && raceName.length > 2) {
+    // Check if the first character is a regional indicator symbol (part of an emoji flag)
+    const firstChar = raceName.codePointAt(0);
+    const secondChar = raceName.codePointAt(2);
+    
+    // Regional indicator symbols are in range 0x1F1E6-0x1F1FF
+    if (firstChar && secondChar && 
+        firstChar >= 0x1F1E6 && firstChar <= 0x1F1FF &&
+        secondChar >= 0x1F1E6 && secondChar <= 0x1F1FF) {
+      // Skip the emoji flag (4 bytes / 2 chars) and any leading space
+      return raceName.substring(4).trim();
+    }
+    
+    // If raceName starts with an emoji and has a space, remove everything before the first space
+    if (raceName.includes(' ') && raceName.indexOf(' ') <= 5) {
+      return raceName.substring(raceName.indexOf(' ') + 1).trim();
+    }
   }
+  
   return raceName;
 };
 

@@ -1,7 +1,7 @@
 import { useNextRace } from "@/hooks/useF1Data";
 import { CalendarDays } from "lucide-react";
 import { format } from "date-fns";
-import { getRaceNameWithoutEmoji, getCountryFlag } from "@/utils/countryUtils";
+import CountryFlag from "@/components/common/CountryFlag";
 
 const NextRaceInfo = () => {
   const { data: nextRaceData, isLoading } = useNextRace();
@@ -24,19 +24,22 @@ const NextRaceInfo = () => {
   };
 
   let raceName = "";
-  let flag = "";
+  let country = "";
   
   if (nextRace) {
-    raceName = getRaceNameWithoutEmoji(nextRace.raceName);
-    flag = getCountryFlag(nextRace.Circuit?.Location?.country || "");
+    raceName = nextRace.raceName;
+    country = nextRace.Circuit?.Location?.country || "";
   }
 
   return (
     <div className="hidden md:flex items-center gap-2 text-sm bg-card rounded-lg px-3 py-1.5">
       <CalendarDays size={16} className="text-primary" />
-      <div>
-        <span className="font-medium text-foreground">Next Race:</span>{' '}
-        <span className="text-card-foreground">{flag} {raceName}</span>{' '}
+      <div className="flex items-center flex-nowrap whitespace-nowrap">
+        <span className="font-medium text-foreground">Next Race:</span>
+        <span className="inline-flex items-center gap-1 mx-1">
+          <CountryFlag country={country} size={16} svg={true} />
+          <span>{raceName}</span>
+        </span>
         {nextRace.date && nextRace.time && (
           <span className="text-muted-foreground">
             {formatDateString(nextRace.date, nextRace.time)}

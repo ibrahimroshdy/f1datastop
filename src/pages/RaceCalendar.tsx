@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import YearSelector from "@/components/common/YearSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
-import { getCountryFlag, getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { Calendar as CalendarIcon } from "lucide-react";
+import CountryFlag from "@/components/common/CountryFlag";
 
 const RaceCalendar = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -84,7 +85,6 @@ const RaceCalendar = () => {
                 const status = getRaceStatus(race);
                 const raceDate = parseISO(race.date);
                 const country = race.Circuit?.Location?.country || "";
-                const flag = getCountryFlag(country);
                 const raceName = getRaceNameWithoutEmoji(race.raceName);
                 const circuitName = race.Circuit?.circuitName || "Unknown Circuit";
                 
@@ -100,7 +100,7 @@ const RaceCalendar = () => {
                       <div className="flex flex-col gap-2">
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-2">
-                            <div className="text-2xl">{flag}</div>
+                            <CountryFlag country={country} size={24} svg={true} />
                             <h3 className="font-bold text-lg">{raceName}</h3>
                           </div>
                           <Badge 

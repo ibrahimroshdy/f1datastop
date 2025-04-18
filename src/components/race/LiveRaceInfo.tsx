@@ -1,10 +1,10 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/context/SessionContext";
 import { useNextRace, useRaceStatus, useWeatherData } from "@/hooks/useF1Data";
 import { Loader2 } from "lucide-react";
-import { getCountryFlag, getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import CountryFlag from "@/components/common/CountryFlag";
 
 const LiveRaceInfo = () => {
   const { activeSessionId } = useSession();
@@ -28,15 +28,14 @@ const LiveRaceInfo = () => {
   const raceStatus = raceStatusData?.data?.[0] || null;
   const weather = weatherData?.data?.[0] || null;
   
-  let flag = "🏁";
+  let country = "";
   let raceName = "Upcoming Race";
   let trackName = "Circuit";
   
   if (nextRace) {
     // Get country from location data
     const location = nextRace.Circuit?.Location?.locality || "";
-    const country = nextRace.Circuit?.Location?.country || "";
-    flag = getCountryFlag(country || location);
+    country = nextRace.Circuit?.Location?.country || location;
     raceName = getRaceNameWithoutEmoji(nextRace.raceName || nextRace.meeting_name || "");
     trackName = nextRace.Circuit?.circuitName || nextRace.location || "Circuit";
   }
@@ -53,15 +52,17 @@ const LiveRaceInfo = () => {
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">{flag}</span>
-              <h2 className="text-xl font-bold">{raceName}</h2>
+              <CountryFlag country={country} size={24} svg={true} />
+              <div>
+                <h3 className="font-bold text-lg">{raceName}</h3>
+                <p className="text-sm text-gray-500">{trackName}</p>
+              </div>
               {nextRace?.session_status === "Ongoing" ? (
                 <Badge variant="outline" className="bg-f1-red text-white border-0">LIVE</Badge>
               ) : (
                 <Badge variant="outline" className="bg-blue-600 text-white border-0">UPCOMING</Badge>
               )}
             </div>
-            <p className="text-sm text-gray-400">{trackName}</p>
           </div>
           
           <div className="flex gap-6 text-sm">

@@ -1,10 +1,10 @@
-
 import { format, parseISO } from "date-fns";
 import { Race } from "@/components/calendar/map/types";
-import { getCountryFlag } from "@/utils/countryUtils";
 import { X, Calendar, Map, Info, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import CountryFlag from "@/components/common/CountryFlag";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 
 interface SelectedRaceInfoProps {
   race: Race;
@@ -61,14 +61,20 @@ const SelectedRaceInfo = ({ race, onClose }: SelectedRaceInfoProps) => {
   
   return (
     <div className="absolute bottom-0 right-0 w-full md:w-auto md:right-4 md:bottom-4 md:max-w-sm bg-black/90 backdrop-blur-sm rounded-lg p-5 border border-gray-700 shadow-xl z-20 overflow-hidden">
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="text-white font-bold text-lg flex items-center">
-          {getCountryFlag(race.Circuit.Location.country)} {race.raceName}
-        </h3>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <CountryFlag 
+            country={race.Circuit.Location.country} 
+            size={24}
+            svg={true}
+          />
+          <h2 className="text-lg font-bold text-white">
+            {getRaceNameWithoutEmoji(race.raceName)}
+          </h2>
+        </div>
         <button 
           onClick={onClose}
-          className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-gray-800"
-          aria-label="Close race information"
+          className="text-gray-400 hover:text-white transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
