@@ -24,7 +24,8 @@ import {
   UserRound,
   Car,
   Newspaper,
-  Users2
+  Users2,
+  Caravan
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -53,7 +54,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
     { name: "Race Info", href: `/race-info/${getCurrentYear()}/last`, icon: LineChart },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
     { name: "Drivers", href: "/drivers", icon: Users },
-    { name: "Constructors", href: "/constructors", icon: Trophy },
+    { name: "Constructors", href: "/constructors", icon: Caravan },
   ];
 
   const authNavigation = user 

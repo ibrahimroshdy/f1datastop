@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Trophy, Users } from "lucide-react";
+import { Loader2, Trophy, Users, ChartColumn } from "lucide-react";
 import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults, useLastRacePitStops } from "@/hooks/useF1Data";
 import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -80,7 +80,7 @@ const Index = () => {
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
                     <CardTitle className="flex items-center gap-2">
-                      <Trophy className="h-5 w-5 text-primary" />
+                      <Users className="h-5 w-5 text-primary" />
                       Driver Standings
                     </CardTitle>
                     <button 

@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Calendar, BarChart, Users, Award } from "lucide-react";
+import { Calendar, BarChart3, Users, Caravan } from "lucide-react";
 
 interface PageOption {
   title: string;
@@ -22,7 +22,7 @@ const PageSelector = () => {
     {
       title: "Analytics",
       description: "Visualize detailed F1 performance data",
-      icon: <BarChart className="h-6 w-6" />,
+      icon: <BarChart3 className="h-6 w-6" />,
       href: "/analytics",
       color: "from-purple-500 to-purple-700",
     },
@@ -36,7 +36,7 @@ const PageSelector = () => {
     {
       title: "Constructors",
       description: "Explore the F1 constructor teams and their performance",
-      icon: <Award className="h-6 w-6" />,
+      icon: <Caravan className="h-6 w-6" />,
       href: "/constructors",
       color: "from-blue-500 to-blue-700",
     },

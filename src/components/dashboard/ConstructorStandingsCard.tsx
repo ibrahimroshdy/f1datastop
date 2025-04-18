@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Building2, Users } from "lucide-react";
+import { Caravan, Users } from "lucide-react";
 import { useState } from "react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -53,7 +53,7 @@ const ConstructorStandingsCard = ({ constructorStandings, getTeamColor }: Constr
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
+            <Caravan className="h-5 w-5 text-primary" />
             Constructor Standings
           </CardTitle>
           <button 
