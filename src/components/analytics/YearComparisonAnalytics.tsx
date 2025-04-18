@@ -201,11 +201,11 @@ const YearComparisonAnalytics = () => {
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         {/* Tabs for medium and large screens, hidden on small screens */}
         <div className="hidden sm:block">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="lapTimes">Lap Time Comparison</TabsTrigger>
-            <TabsTrigger value="positions">Position Change Comparison</TabsTrigger>
-            <TabsTrigger value="qualifying">Qualifying Comparison</TabsTrigger>
-          </TabsList>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="lapTimes">Lap Time Comparison</TabsTrigger>
+          <TabsTrigger value="positions">Position Change Comparison</TabsTrigger>
+          <TabsTrigger value="qualifying">Qualifying Comparison</TabsTrigger>
+        </TabsList>
         </div>
         
         {/* Dropdown for mobile screens only */}

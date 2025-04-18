@@ -9,6 +9,7 @@ import DriverStandingsTable from "@/components/dashboard/DriverStandingsTable";
 import ConstructorStandingsCard from "@/components/dashboard/ConstructorStandingsCard";
 import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
 import FastestPitStopCard from "@/components/dashboard/FastestPitStopCard";
+import QualifyingResultsCard from "@/components/dashboard/QualifyingResultsCard";
 import useAnalytics from '@/hooks/useAnalytics';
 import useClarity from '@/hooks/useClarity';
 
@@ -104,7 +105,9 @@ const Index = () => {
               <ConstructorStandingsCard constructorStandings={constructorStandings} getTeamColor={getTeamColor} />
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <QualifyingResultsCard />
+              
               <LastRaceResultsCard 
                 lastRaceResults={lastRaceResults} 
                 isResultsLoading={isResultsLoading} 
