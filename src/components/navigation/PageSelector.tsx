@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Calendar, BarChart3, Users, Caravan } from "lucide-react";
+import { Calendar, BarChart3, Users, Caravan, LineChart } from "lucide-react";
 
 interface PageOption {
   title: string;
@@ -10,52 +10,62 @@ interface PageOption {
   color: string;
 }
 
+// Function to determine the current year (hardcoded to 2025 for now)
+const getCurrentYear = () => 2025;
+
 const PageSelector = () => {
   const pages: PageOption[] = [
     {
       title: "Race Calendar",
       description: "Explore the complete F1 race schedule",
-      icon: <Calendar className="h-6 w-6" />,
+      icon: <Calendar className="h-5 w-5" />,
       href: "/calendar",
       color: "from-green-500 to-green-700",
     },
     {
+      title: "Race Info",
+      description: "Detailed information about races and results",
+      icon: <LineChart className="h-5 w-5" />,
+      href: `/race-info/${getCurrentYear()}/last`,
+      color: "from-red-500 to-red-700",
+    },
+    {
       title: "Analytics",
       description: "Visualize detailed F1 performance data",
-      icon: <BarChart3 className="h-6 w-6" />,
+      icon: <BarChart3 className="h-5 w-5" />,
       href: "/analytics",
       color: "from-purple-500 to-purple-700",
     },
     {
       title: "Drivers",
       description: "View detailed information on all F1 drivers",
-      icon: <Users className="h-6 w-6" />,
+      icon: <Users className="h-5 w-5" />,
       href: "/drivers",
       color: "from-orange-500 to-orange-700",
     },
     {
       title: "Constructors",
       description: "Explore the F1 constructor teams and their performance",
-      icon: <Caravan className="h-6 w-6" />,
+      icon: <Caravan className="h-5 w-5" />,
       href: "/constructors",
       color: "from-blue-500 to-blue-700",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mt-6">
+    <div className="grid grid-cols-5 gap-2 mt-4">
       {pages.map((page) => (
         <Link key={page.title} to={page.href}>
           <Card className="h-full transition-all duration-300 hover:bg-accent hover:translate-y-[-4px] border-border cursor-pointer overflow-hidden shadow-md rounded-xl group">
-            <div className={`h-2 bg-gradient-to-r ${page.color}`}></div>
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-start space-x-4">
-                <div className="p-2 rounded-md bg-secondary text-secondary-foreground group-hover:bg-f1-red transition-colors">
+            <div className={`h-1.5 bg-gradient-to-r ${page.color}`}></div>
+            <CardContent className="p-2.5">
+              <div className="flex items-center justify-center md:justify-start">
+                <div className="p-1.5 rounded-md bg-secondary text-secondary-foreground group-hover:bg-f1-red transition-colors shrink-0">
                   {page.icon}
                 </div>
-                <div>
-                  <h3 className="font-medium text-base sm:text-lg text-foreground">{page.title}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{page.description}</p>
+                <div className="hidden md:block ml-2 min-w-0">
+                  <h3 className="font-medium text-sm text-foreground truncate">{page.title}</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-1">{page.description}</p>
                 </div>
               </div>
             </CardContent>

@@ -168,7 +168,7 @@ const Profile = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Profile Overview */}
           <div className="md:col-span-1">
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border h-full flex flex-col">
               <CardHeader className="flex flex-col items-center">
                 <Avatar className="w-24 h-24 mb-2 bg-primary text-primary-foreground text-2xl">
                   <AvatarFallback>{getInitials()}</AvatarFallback>
@@ -179,7 +179,7 @@ const Profile = () => {
                   <div className="mt-1">{user?.email}</div>
                 </CardDescription>
               </CardHeader>
-              <CardFooter className="flex justify-center space-x-2">
+              <CardFooter className="flex justify-center space-x-2 mt-auto">
                 <Button variant="outline" onClick={signOut}>Sign Out</Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -209,15 +209,15 @@ const Profile = () => {
           
           {/* Edit Profile Form */}
           <div className="md:col-span-2">
-            <Card className="bg-card border-border">
+            <Card className="bg-card border-border h-full flex flex-col">
               <CardHeader>
                 <CardTitle>Edit Profile</CardTitle>
                 <CardDescription>
                   Update your personal information
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
+              <CardContent className="flex-1">
+                <form onSubmit={handleSubmit} className="space-y-4 h-full flex flex-col">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
                     <Input
@@ -250,7 +250,7 @@ const Profile = () => {
                       />
                     </div>
                   </div>
-                  <div className="pt-2">
+                  <div className="pt-2 mt-auto">
                     <Button 
                       type="submit" 
                       className="bg-f1-red hover:bg-red-700"
