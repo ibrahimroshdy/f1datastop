@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, createBrowserRouter, RouterProvider, Navigate, Outlet } from "react-router-dom";
 import { SessionProvider } from "@/context/SessionContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -26,6 +26,7 @@ import Profile from "./pages/auth/Profile";
 import ResetPassword from "./pages/auth/ResetPassword";
 import RaceInfoPage from "./pages/RaceInfoPage";
 import Privacy from "./pages/Privacy";
+import React, { Suspense } from "react";
 
 // Initialize console filters to reduce noise
 if (typeof window !== 'undefined') {
@@ -149,6 +150,26 @@ const App = () => (
                       <Route path="/auth/callback" element={<AuthCallback />} />
                       <Route path="/privacy" element={<Privacy />} />
                       <Route path="*" element={<NotFound />} />
+                      
+                      {/* Embed Routes */}
+                      <Route 
+                        path="/embed" 
+                        element={<Suspense fallback={<div>Loading...</div>}>
+                          {React.createElement(React.lazy(() => import('./pages/embed')))}
+                        </Suspense>} 
+                      />
+                      <Route 
+                        path="/embed/driver-standings" 
+                        element={<Suspense fallback={<div>Loading...</div>}>
+                          {React.createElement(React.lazy(() => import('./pages/embed/driver-standings')))}
+                        </Suspense>} 
+                      />
+                      <Route 
+                        path="/embed/constructor-standings" 
+                        element={<Suspense fallback={<div>Loading...</div>}>
+                          {React.createElement(React.lazy(() => import('./pages/embed/constructor-standings')))}
+                        </Suspense>} 
+                      />
                       
                       {/* Auth routes (only accessible if not logged in) */}
                       <Route element={<PublicOnlyRoute />}>
