@@ -60,7 +60,7 @@ const PageSelector = () => {
             <div className={`h-1.5 bg-gradient-to-r ${page.color}`}></div>
             <CardContent className="p-3 md:p-4">
               <div className="flex flex-col items-center text-center">
-                <div className="p-1.5 rounded-md bg-secondary text-secondary-foreground group-hover:bg-f1-red transition-colors shrink-0">
+                <div className="p-1.5 rounded-md bg-secondary text-secondary-foreground group-hover:bg-f1-red/80 dark:group-hover:bg-f1-red transition-colors shrink-0">
                   {page.icon}
                 </div>
                 <div className="mt-2 min-w-0 hidden sm:block">

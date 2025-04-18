@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { formatDistance } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CalendarDays } from "lucide-react";
 import PageSelector from "@/components/navigation/PageSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import CountryFlag from "@/components/common/CountryFlag";
@@ -115,8 +115,8 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
 
   return (
     <header className="mb-8">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-        <div>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full">
+        <div className="w-full md:w-auto">
           <h1 className="md:text-4xl tracking-tight flex items-center gap-2 text-2xl font-normal">
             Formula 1 Season {new Date().getFullYear()}
           </h1>
@@ -140,20 +140,21 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
         </div>
         {nextRace && 
           <div 
-            className="mt-4 md:mt-0 bg-card rounded-lg px-3 md:px-4 py-2 flex items-center gap-2 border border-border hover:shadow-md md:hover:scale-102 hover:bg-card/90 cursor-pointer transition-all duration-300 transform hover:border-primary text-sm md:text-base"
+            className="mt-4 md:mt-0 bg-card rounded-lg px-3 md:px-4 py-2 flex items-center gap-2 border border-border hover:shadow-md md:hover:scale-102 hover:bg-card/90 cursor-pointer transition-all duration-300 transform hover:border-primary text-sm md:text-base w-full md:w-auto justify-between"
             onClick={openRaceDetails}
           >
-            <CountryFlag country={nextRace.Circuit.Location.country} size={24} svg={true} />
-            <div>
-              <div className="flex items-center gap-1 md:gap-2">
-                <Badge className="bg-primary text-primary-foreground border-0 text-xs">NEXT RACE</Badge>
-                <span className="font-medium text-foreground truncate max-w-[150px] md:max-w-full">{removeFlag(nextRace.raceName)}</span>
-              </div>
-              <div className="text-xs md:text-sm text-muted-foreground flex gap-1 md:gap-2">
-                <span><span className="font-semibold">{countdown.days}</span><span className="font-normal">d</span></span>
-                <span><span className="font-semibold">{countdown.hours}</span><span className="font-normal">h</span></span>
-                <span><span className="font-semibold">{countdown.minutes}</span><span className="font-normal">m</span></span>
-                <span><span className="font-semibold">{countdown.seconds}</span><span className="font-normal">s</span></span>
+            <div className="w-full">
+              <div className="flex items-center justify-between gap-1 md:gap-2">
+                <div className="flex items-center gap-1">
+                  <CountryFlag country={nextRace.Circuit.Location.country} size={20} svg={true} />
+                  <span className="font-medium text-foreground max-w-full">{removeFlag(nextRace.raceName)}</span>
+                </div>
+                <div className="text-[10px] md:text-xs text-muted-foreground flex gap-1">
+                  <span><span className={`font-semibold ${countdown.days < 3 ? "text-[#ef4444]" : ""}`}>{countdown.days}</span><span className={`font-normal ${countdown.days < 3 ? "text-[#ef4444]" : ""}`}>d</span></span>
+                  <span><span className={`font-semibold ${countdown.days < 3 ? "text-[#ef4444]" : ""}`}>{countdown.hours}</span><span className={`font-normal ${countdown.days < 3 ? "text-[#ef4444]" : ""}`}>h</span></span>
+                  <span><span className={`font-semibold ${countdown.days < 3 ? "text-[#ef4444]" : ""}`}>{countdown.minutes}</span><span className={`font-normal ${countdown.days < 3 ? "text-[#ef4444]" : ""}`}>m</span></span>
+                  <span><span className={`font-semibold ${countdown.days < 3 ? "text-[#ef4444]" : ""}`}>{countdown.seconds}</span><span className={`font-normal ${countdown.days < 3 ? "text-[#ef4444]" : ""}`}>s</span></span>
+                </div>
               </div>
             </div>
           </div>
