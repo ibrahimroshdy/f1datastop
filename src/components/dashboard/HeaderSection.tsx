@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle } from "lucide-react";
 import PageSelector from "@/components/navigation/PageSelector";
+import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 
 interface HeaderSectionProps {
   nextRace: any;
@@ -11,6 +12,37 @@ interface HeaderSectionProps {
 }
 
 const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  
+  useEffect(() => {
+    if (!nextRace) return;
+    
+    const calculateTimeLeft = () => {
+      const raceDate = new Date(nextRace.date + "T" + (nextRace.time || "00:00:00Z"));
+      const now = new Date();
+      const difference = raceDate.getTime() - now.getTime();
+      
+      if (difference <= 0) {
+        return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+      }
+      
+      return {
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((difference / (1000 * 60)) % 60),
+        seconds: Math.floor((difference / 1000) % 60)
+      };
+    };
+    
+    setCountdown(calculateTimeLeft());
+    const timer = setInterval(() => {
+      setCountdown(calculateTimeLeft());
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [nextRace]);
+  
   const getCountryFlag = (location: string) => {
     const countryFlags: Record<string, string> = {
       "Monte Carlo": "🇲🇨",
@@ -71,6 +103,14 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
       })
     };
   };
+  
+  const openRaceDetails = () => {
+    setIsDialogOpen(true);
+  };
+  
+  const closeRaceDetails = () => {
+    setIsDialogOpen(false);
+  };
 
   return (
     <header className="mb-8">
@@ -80,7 +120,7 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
             Formula 1 Season {new Date().getFullYear()}
           </h1>
           <div className="flex items-center mt-1">
-            <p className="text-gray-400">Live race data, standings and schedule</p>
+            <p className="text-muted-foreground">Live race data, standings and schedule</p>
             <a 
               href="https://www.producthunt.com/posts/f1-datastop?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-f1&#0045;datastop" 
               target="_blank" 
@@ -97,18 +137,26 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
             </a>
           </div>
         </div>
-        {nextRace && <div className="mt-4 md:mt-0 bg-gray-800 rounded-lg px-4 py-2 flex items-center gap-2">
+        {nextRace && 
+          <div 
+            className="mt-4 md:mt-0 bg-card rounded-lg px-4 py-2 flex items-center gap-2 border border-border hover:shadow-lg hover:scale-105 hover:bg-card/90 cursor-pointer transition-all duration-300 transform hover:border-primary"
+            onClick={openRaceDetails}
+          >
             <span className="text-xl">{getCountryFlag(nextRace.Circuit.Location.country)}</span>
             <div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-f1-red text-white border-0">NEXT RACE</Badge>
-                <span className="font-medium">{removeFlag(nextRace.raceName)}</span>
+                <Badge className="bg-primary text-primary-foreground border-0">NEXT RACE</Badge>
+                <span className="font-medium text-foreground">{removeFlag(nextRace.raceName)}</span>
               </div>
-              <div className="text-sm text-gray-400">
-                {formatRaceDate(nextRace.date, nextRace.time || "").fromNow}
+              <div className="text-sm text-muted-foreground flex gap-2">
+                <span><span className="font-semibold">{countdown.days}</span><span className="font-normal">d</span></span>
+                <span><span className="font-semibold">{countdown.hours}</span><span className="font-normal">h</span></span>
+                <span><span className="font-semibold">{countdown.minutes}</span><span className="font-normal">m</span></span>
+                <span><span className="font-semibold">{countdown.seconds}</span><span className="font-normal">s</span></span>
               </div>
             </div>
-          </div>}
+          </div>
+        }
       </div>
       
       <PageSelector />
@@ -120,6 +168,14 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
             Unable to connect to the F1 API. Showing offline data instead. Some information might not be up to date.
           </AlertDescription>
         </Alert>}
+        
+      {nextRace && 
+        <RaceDetailDialog 
+          isOpen={isDialogOpen} 
+          onClose={closeRaceDetails} 
+          race={nextRace} 
+        />
+      }
     </header>
   );
 };

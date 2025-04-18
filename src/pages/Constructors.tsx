@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -137,7 +136,7 @@ const Constructors = () => {
                         <p className="text-sm text-muted-foreground">{constructor.Constructor.nationality}</p>
                       </div>
                     </div>
-                    <Badge variant="outline" className="bg-f1-dark">P{constructor.position}</Badge>
+                    <Badge variant="outline" className="bg-secondary text-secondary-foreground">P{constructor.position}</Badge>
                   </CardHeader>
                   
                   <CardContent>
@@ -156,7 +155,7 @@ const Constructors = () => {
                       <h4 className="font-medium mb-2">Drivers</h4>
                       <div className="space-y-2">
                         {teamDrivers.map((driver: any) => (
-                          <div key={driver.Driver.driverId} className="flex items-center gap-2 p-2 rounded-md bg-gray-800/50">
+                          <div key={driver.Driver.driverId} className="flex items-center gap-2 p-2 rounded-md bg-accent/30">
                             <div className="w-1 h-full rounded-full" style={{ backgroundColor: teamColor }}></div>
                             <div>
                               <p className="font-medium">{driver.Driver.givenName} {driver.Driver.familyName}</p>

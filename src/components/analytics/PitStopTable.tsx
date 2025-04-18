@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowDownIcon, ArrowUpIcon, ArrowUpDown } from "lucide-react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { getPitStops, getRaceResults } from "@/services/f1Service";
 import { toast } from "sonner";
@@ -32,11 +32,20 @@ interface DriverInfo {
   team: string;
 }
 
+// Define sort keys for type safety
+type SortKey = 'driver' | 'team' | 'stops' | 'totalTime';
+
 const PitStopTable = ({ year, round }: PitStopTableProps) => {
   const [pitStopData, setPitStopData] = useState<DriverPitStop[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [circuitName, setCircuitName] = useState<string>("Loading...");
+  
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>({
+    key: 'totalTime',
+    direction: 'asc'
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,14 +111,8 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
           });
         });
 
-        // Convert map to array and sort by total pit time
-        const processedData = Array.from(driversMap.values())
-          .sort((a, b) => {
-            const aTotalTime = a.stops.reduce((sum, stop) => sum + stop.duration, 0);
-            const bTotalTime = b.stops.reduce((sum, stop) => sum + stop.duration, 0);
-            return aTotalTime - bTotalTime;
-          });
-
+        // Convert map to array
+        const processedData = Array.from(driversMap.values());
         setPitStopData(processedData);
       } catch (err: any) {
         console.error("Error fetching pit stop data:", err);
@@ -124,6 +127,64 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
       fetchData();
     }
   }, [year, round]);
+
+  // Calculate total time for a driver
+  const getTotalTime = (driver: DriverPitStop) => {
+    return driver.stops.reduce((sum, stop) => sum + stop.duration, 0);
+  };
+
+  // Sort the data based on the current sort configuration
+  const sortedData = [...pitStopData].sort((a, b) => {
+    let aValue: string | number;
+    let bValue: string | number;
+
+    switch (sortConfig.key) {
+      case 'driver':
+        aValue = a.code;
+        bValue = b.code;
+        break;
+      case 'team':
+        aValue = a.team;
+        bValue = b.team;
+        break;
+      case 'stops':
+        aValue = a.stops.length;
+        bValue = b.stops.length;
+        break;
+      case 'totalTime':
+        aValue = getTotalTime(a);
+        bValue = getTotalTime(b);
+        break;
+      default:
+        aValue = getTotalTime(a);
+        bValue = getTotalTime(b);
+    }
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortConfig.direction === 'asc' 
+        ? aValue.localeCompare(bValue) 
+        : bValue.localeCompare(aValue);
+    } else {
+      const numA = typeof aValue === 'number' ? aValue : 0;
+      const numB = typeof bValue === 'number' ? bValue : 0;
+      return sortConfig.direction === 'asc' ? numA - numB : numB - numA;
+    }
+  });
+
+  // Handle column header click for sorting
+  const handleSort = (key: SortKey) => {
+    setSortConfig(current => {
+      // If clicking the same column, toggle direction
+      if (current.key === key) {
+        return {
+          key,
+          direction: current.direction === 'asc' ? 'desc' : 'asc'
+        };
+      }
+      // If clicking a new column, sort ascending by default
+      return { key, direction: 'asc' };
+    });
+  };
 
   if (isLoading) {
     return (
@@ -169,15 +230,79 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px] bg-background sticky top-0">Driver</TableHead>
-              <TableHead className="w-[120px] bg-background sticky top-0">Team</TableHead>
-              <TableHead className="w-[80px] text-right bg-background sticky top-0">Stops</TableHead>
-              <TableHead className="w-[120px] text-right bg-background sticky top-0">Total Time</TableHead>
+              <TableHead 
+                className="w-[100px] bg-background sticky top-0 cursor-pointer hover:bg-accent/50"
+                onClick={() => handleSort('driver')}
+              >
+                <div className="flex items-center justify-between">
+                  Driver
+                  {sortConfig.key === 'driver' ? (
+                    sortConfig.direction === 'asc' ? (
+                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="w-[120px] bg-background sticky top-0 cursor-pointer hover:bg-accent/50"
+                onClick={() => handleSort('team')}
+              >
+                <div className="flex items-center justify-between">
+                  Team
+                  {sortConfig.key === 'team' ? (
+                    sortConfig.direction === 'asc' ? (
+                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="w-[80px] text-right bg-background sticky top-0 cursor-pointer hover:bg-accent/50"
+                onClick={() => handleSort('stops')}
+              >
+                <div className="flex items-center justify-end">
+                  Stops
+                  {sortConfig.key === 'stops' ? (
+                    sortConfig.direction === 'asc' ? (
+                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="w-[120px] text-right bg-background sticky top-0 cursor-pointer hover:bg-accent/50"
+                onClick={() => handleSort('totalTime')}
+              >
+                <div className="flex items-center justify-end">
+                  Total Time
+                  {sortConfig.key === 'totalTime' ? (
+                    sortConfig.direction === 'asc' ? (
+                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                  )}
+                </div>
+              </TableHead>
               <TableHead className="bg-background sticky top-0">Stop Details</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pitStopData.map((driver) => (
+            {sortedData.map((driver) => (
               <TableRow key={driver.driverId}>
                 <TableCell className="font-medium">{driver.code}</TableCell>
                 <TableCell>
@@ -190,7 +315,7 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
                 </TableCell>
                 <TableCell className="text-right">{driver.stops.length}</TableCell>
                 <TableCell className="text-right font-mono">
-                  {driver.stops.reduce((sum, stop) => sum + stop.duration, 0).toFixed(3)}s
+                  {getTotalTime(driver).toFixed(3)}s
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-2">

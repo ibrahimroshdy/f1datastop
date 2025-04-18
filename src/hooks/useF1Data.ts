@@ -151,8 +151,46 @@ export const useLastRaceResults = (year?: number) => {
   return useQuery({
     queryKey: ["lastRaceResults", year],
     queryFn: () => f1Service.getLastRaceResults(year),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    ...defaultRetryConfig,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useLastRacePitStops = (year?: number) => {
+  // First get the race schedule to find the last completed race
+  const { data: raceScheduleData } = useRaceSchedule(year);
+  const { data: lastRaceData } = useLastRaceResults(year);
+  
+  return useQuery({
+    queryKey: ["lastRacePitStops", year],
+    queryFn: async () => {
+      if (!raceScheduleData?.data || !lastRaceData?.data) {
+        return { data: { Races: [] }, error: "No race data available" };
+      }
+      
+      // Find the last completed race from the schedule
+      const races = raceScheduleData.data;
+      const now = new Date();
+      const completedRaces = races.filter((race: any) => new Date(race.date) < now);
+      
+      if (completedRaces.length === 0) {
+        return { data: { Races: [] }, error: "No completed races found" };
+      }
+      
+      // Get the last completed race
+      const lastRace = completedRaces[completedRaces.length - 1];
+      
+      // Now we have the season and round information
+      if (lastRace.season && lastRace.round) {
+        return f1Service.getPitStops(
+          parseInt(lastRace.season), 
+          lastRace.round
+        );
+      }
+      
+      return { data: { Races: [] }, error: "Could not determine race information" };
+    },
+    enabled: !!raceScheduleData?.data && !!lastRaceData?.data,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 

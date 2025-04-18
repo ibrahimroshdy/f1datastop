@@ -16,7 +16,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   }, [isMobile]);
 
   return (
-    <div className="flex h-screen bg-f1-black text-white overflow-hidden">
+    <div className="flex h-screen bg-background text-foreground overflow-hidden">
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />

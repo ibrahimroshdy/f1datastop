@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Calendar, BarChart, Users, Award } from "lucide-react";
@@ -47,16 +46,16 @@ const PageSelector = () => {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 mt-6">
       {pages.map((page) => (
         <Link key={page.title} to={page.href}>
-          <Card className="h-full transition-all duration-300 hover:bg-gray-800 hover:translate-y-[-4px] border-gray-800 cursor-pointer overflow-hidden shadow-md rounded-xl group">
+          <Card className="h-full transition-all duration-300 hover:bg-accent hover:translate-y-[-4px] border-border cursor-pointer overflow-hidden shadow-md rounded-xl group">
             <div className={`h-2 bg-gradient-to-r ${page.color}`}></div>
             <CardContent className="p-4 sm:p-5">
               <div className="flex items-start space-x-4">
-                <div className="p-2 rounded-md bg-gray-800 text-white group-hover:bg-f1-red transition-colors">
+                <div className="p-2 rounded-md bg-secondary text-secondary-foreground group-hover:bg-f1-red transition-colors">
                   {page.icon}
                 </div>
                 <div>
-                  <h3 className="font-medium text-base sm:text-lg">{page.title}</h3>
-                  <p className="text-xs sm:text-sm text-gray-400 line-clamp-2">{page.description}</p>
+                  <h3 className="font-medium text-base sm:text-lg text-foreground">{page.title}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{page.description}</p>
                 </div>
               </div>
             </CardContent>

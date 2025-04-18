@@ -1,4 +1,3 @@
-
 import { Share2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,7 +34,7 @@ const ShareButton = () => {
   return (
     <button 
       onClick={handleShare}
-      className="text-gray-400 hover:text-white transition-colors"
+      className="text-muted-foreground hover:text-foreground transition-colors"
       aria-label="Share F1 DataStop"
     >
       <Share2 size={20} />

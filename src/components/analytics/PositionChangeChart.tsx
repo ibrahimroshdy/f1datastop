@@ -122,7 +122,7 @@ const PositionChangeChart: React.FC<PositionChangeChartProps> = ({ year, round }
               yAxisId="position"
             />
             <Tooltip
-              formatter={(value) => [`Position: ${value}`, '']}
+              formatter={(value, name) => [`Position: ${value}`, name]}
               labelFormatter={(label) => `Lap ${label}`}
               contentStyle={{ 
                 backgroundColor: '#1a1a1a',

@@ -1,4 +1,3 @@
-
 import { useNextRace } from "@/hooks/useF1Data";
 import { CalendarDays } from "lucide-react";
 import { format } from "date-fns";
@@ -33,13 +32,13 @@ const NextRaceInfo = () => {
   }
 
   return (
-    <div className="hidden md:flex items-center gap-2 text-sm bg-gray-800 rounded-lg px-3 py-1.5">
-      <CalendarDays size={16} className="text-f1-red" />
+    <div className="hidden md:flex items-center gap-2 text-sm bg-card rounded-lg px-3 py-1.5">
+      <CalendarDays size={16} className="text-primary" />
       <div>
-        <span className="font-medium">Next Race:</span>{' '}
-        <span className="text-gray-300">{flag} {raceName}</span>{' '}
+        <span className="font-medium text-foreground">Next Race:</span>{' '}
+        <span className="text-card-foreground">{flag} {raceName}</span>{' '}
         {nextRace.date && nextRace.time && (
-          <span className="text-gray-400">
+          <span className="text-muted-foreground">
             {formatDateString(nextRace.date, nextRace.time)}
           </span>
         )}

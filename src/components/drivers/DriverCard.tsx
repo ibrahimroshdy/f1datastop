@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +58,7 @@ const DriverCard = ({ driver }: DriverCardProps) => {
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="bg-f1-dark">P{driver.position}</Badge>
+          <Badge variant="outline" className="bg-card">P{driver.position}</Badge>
         </CardHeader>
         <CardContent className="pb-2">
           <div className="grid grid-cols-2 gap-2 text-sm">
@@ -155,7 +154,7 @@ const DriverCard = ({ driver }: DriverCardProps) => {
                   href={driver.Driver.url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="block mt-2 text-f1-red hover:underline"
+                  className="block mt-2 text-primary hover:underline"
                 >
                   View Wikipedia Profile
                 </a>

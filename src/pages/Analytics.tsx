@@ -93,10 +93,10 @@ const Analytics = () => {
                   </div>
                 ) : (
                   <Select value={selectedRace} onValueChange={handleRaceChange}>
-                    <SelectTrigger className="w-[250px] bg-f1-black text-white border-gray-700">
+                    <SelectTrigger className="w-[250px]">
                       <SelectValue placeholder="Select race" />
                     </SelectTrigger>
-                    <SelectContent className="bg-black border-gray-700 text-white">
+                    <SelectContent>
                       {isRaceScheduleLoading ? (
                         <SelectItem value="loading">
                           <div className="flex items-center">

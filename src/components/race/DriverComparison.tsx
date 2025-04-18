@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -53,10 +52,10 @@ const DriverComparison = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
             <div className="flex items-center gap-2">
               <Select value={driver1} onValueChange={setDriver1}>
-                <SelectTrigger className="w-[180px] bg-f1-dark border-gray-800">
+                <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select driver 1" />
                 </SelectTrigger>
-                <SelectContent className="bg-f1-dark border-gray-800">
+                <SelectContent>
                   {drivers.map((driver) => (
                     <SelectItem key={driver.value} value={driver.value}>
                       <div className="flex items-center gap-2">
@@ -69,14 +68,14 @@ const DriverComparison = () => {
               </Select>
             </div>
             
-            <span className="hidden sm:block text-gray-400">vs</span>
+            <span className="hidden sm:block text-muted-foreground">vs</span>
             
             <div className="flex items-center gap-2">
               <Select value={driver2} onValueChange={setDriver2}>
-                <SelectTrigger className="w-[180px] bg-f1-dark border-gray-800">
+                <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select driver 2" />
                 </SelectTrigger>
-                <SelectContent className="bg-f1-dark border-gray-800">
+                <SelectContent>
                   {drivers.map((driver) => (
                     <SelectItem key={driver.value} value={driver.value}>
                       <div className="flex items-center gap-2">
@@ -93,19 +92,19 @@ const DriverComparison = () => {
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-400">Last 7 Laps Comparison</h4>
+            <h4 className="text-sm font-medium text-muted-foreground">Last 7 Laps Comparison</h4>
             <div className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={lapTimeData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="lap" stroke="#888" xAxisId="lap" />
-                  <YAxis stroke="#888" domain={[72, 74]} yAxisId="time" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="lap" stroke="var(--muted-foreground)" xAxisId="lap" />
+                  <YAxis stroke="var(--muted-foreground)" domain={[72, 74]} yAxisId="time" />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
-                    labelStyle={{ color: "#fff" }}
+                    contentStyle={{ backgroundColor: "var(--background)", borderColor: "var(--border)" }}
+                    labelStyle={{ color: "var(--foreground)" }}
                     formatter={(value) => [`${value}s`]}
                   />
                   <Legend />
@@ -129,19 +128,19 @@ const DriverComparison = () => {
           </div>
           
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-400">Latest Lap Sector Times</h4>
+            <h4 className="text-sm font-medium text-muted-foreground">Latest Lap Sector Times</h4>
             <div className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={sectorTimeData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="name" stroke="#888" xAxisId="sector" />
-                  <YAxis stroke="#888" yAxisId="time" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" stroke="var(--muted-foreground)" xAxisId="sector" />
+                  <YAxis stroke="var(--muted-foreground)" yAxisId="time" />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
-                    labelStyle={{ color: "#fff" }}
+                    contentStyle={{ backgroundColor: "var(--background)", borderColor: "var(--border)" }}
+                    labelStyle={{ color: "var(--foreground)" }}
                     formatter={(value) => [`${value}s`]}
                   />
                   <Legend />

@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
@@ -248,9 +247,9 @@ const LiveTimingTable = () => {
   };
 
   return (
-    <div className="race-card border border-gray-800 rounded-lg overflow-x-auto">
+    <div className="race-card border border-border rounded-lg overflow-x-auto">
       <Table>
-        <TableHeader className="bg-f1-dark">
+        <TableHeader className="bg-secondary">
           <TableRow>
             <TableHead className="w-12">Pos</TableHead>
             <TableHead className="w-12">#</TableHead>
@@ -265,7 +264,7 @@ const LiveTimingTable = () => {
         </TableHeader>
         <TableBody>
           {drivers.map((driver) => (
-            <TableRow key={driver.pos} className="hover:bg-gray-800/50 border-t border-gray-800">
+            <TableRow key={driver.pos} className="hover:bg-muted/50 border-t border-border">
               <TableCell className="font-medium">{driver.pos}</TableCell>
               <TableCell>
                 <div className={`w-6 h-6 ${driver.color} rounded-sm flex items-center justify-center text-xs font-bold`}>

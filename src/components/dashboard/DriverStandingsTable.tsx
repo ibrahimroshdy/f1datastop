@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 import { Users } from "lucide-react";
@@ -15,10 +14,10 @@ const DriverStandingsTable = ({ driverStandings, getTeamColor }: DriverStandings
   return (
     <div>
       <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg font-medium">Driver Standings</h3>
+        <h3 className="text-lg font-medium text-foreground">Driver Standings</h3>
         <button 
           onClick={() => setShowAllDrivers(!showAllDrivers)} 
-          className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
+          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
         >
           <Users className="h-4 w-4" />
           {showAllDrivers ? 'Show Top 10' : 'Show All Drivers'}
@@ -27,7 +26,7 @@ const DriverStandingsTable = ({ driverStandings, getTeamColor }: DriverStandings
 
       <Table>
         <TableHeader>
-          <TableRow className="border-gray-800">
+          <TableRow className="border-border">
             <TableHead className="w-12">Pos</TableHead>
             <TableHead>Driver</TableHead>
             <TableHead>Team</TableHead>
@@ -36,7 +35,7 @@ const DriverStandingsTable = ({ driverStandings, getTeamColor }: DriverStandings
         </TableHeader>
         <TableBody>
           {driversToShow?.map(driver => (
-            <TableRow key={driver.position} className="border-gray-800">
+            <TableRow key={driver.position} className="border-border">
               <TableCell className="font-medium">{driver.position}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">

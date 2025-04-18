@@ -81,24 +81,24 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-f1-dark border-r border-gray-800 transition-transform duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar transition-transform duration-300 ease-in-out border-r border-sidebar-border",
           isMobile && !open && "-translate-x-full",
           !isMobile && !open && "-translate-x-48",
           !isMobile && "relative"
         )}
       >
         {/* Logo and close button */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
+        <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
           <Link to="/" className="flex items-center gap-2" onClick={handleNavClick}>
             <img src={f1Logo} alt="F1 DataStop" className="w-8 h-8" />
-            <span className={cn("font-bold tracking-tight transition-opacity", 
+            <span className={cn("font-bold tracking-tight transition-opacity text-foreground", 
               !open && !isMobile && "opacity-0"
             )}>
               F1 DataStop
             </span>
           </Link>
           {isMobile && (
-            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="text-gray-400">
+            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="text-muted-foreground">
               <X className="h-5 w-5" />
             </Button>
           )}
@@ -115,8 +115,8 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
                 location.pathname === item.href
-                  ? "bg-f1-red text-white font-medium"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800",
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent",
                 !open && !isMobile && "justify-center"
               )}
             >
@@ -136,8 +136,8 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
                 location.pathname === item.href
-                  ? "bg-f1-red text-white font-medium"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800",
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent",
                 !open && !isMobile && "justify-center"
               )}
             >
@@ -149,7 +149,7 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
           ))}
 
           {/* Separator */}
-          <div className="h-px bg-gray-800 my-2 mx-3" />
+          <div className="h-px bg-sidebar-border my-2 mx-3" />
 
           {/* Auth Navigation */}
           {authNavigation.map((item) => (
@@ -160,8 +160,8 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md transition-all",
                 location.pathname === item.href
-                  ? "bg-f1-red text-white font-medium"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800",
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent",
                 !open && !isMobile && "justify-center"
               )}
             >

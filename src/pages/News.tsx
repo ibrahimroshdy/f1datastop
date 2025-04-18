@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { useF1News } from "@/hooks/useF1Data";
@@ -52,7 +51,7 @@ const News = () => {
                 </div>
                 <CardHeader>
                   <div className="flex justify-between items-center">
-                    <Badge variant="outline" className="bg-f1-dark">
+                    <Badge variant="outline" className="bg-secondary text-secondary-foreground">
                       {article.source.name}
                     </Badge>
                     {article.publishedAt && (

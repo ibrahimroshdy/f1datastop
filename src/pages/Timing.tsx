@@ -1,4 +1,3 @@
-
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLastRaceResults } from "@/hooks/useF1Data";
@@ -63,7 +62,7 @@ const Timing = () => {
                           : (result.status === "Finished" 
                             ? result.Time?.time 
                             : (
-                              <Badge variant="outline" className="bg-gray-800">
+                              <Badge variant="outline" className="bg-secondary text-secondary-foreground">
                                 {result.status}
                               </Badge>
                             )
