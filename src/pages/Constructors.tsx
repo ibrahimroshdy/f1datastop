@@ -9,6 +9,19 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import YearSelector from "@/components/common/YearSelector";
 import { TEAM_COLORS } from "@/constants/f1Colors";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Import team logos
+import ferrariLogo from "@/assets/constructor-logos/ferrari.png";
+import mclarenLogo from "@/assets/constructor-logos/mclaren.png";
+import mercedesLogo from "@/assets/constructor-logos/mercedes.png";
+import rbLogo from "@/assets/constructor-logos/rb.png";
+import redbullLogo from "@/assets/constructor-logos/redbull.png";
+import sauberLogo from "@/assets/constructor-logos/sauber.png";
+import astonmartinLogo from "@/assets/constructor-logos/astonmartin.png";
+import williamsLogo from "@/assets/constructor-logos/williams.png";
+import haasLogo from "@/assets/constructor-logos/haas.png";
+import alpineLogo from "@/assets/constructor-logos/alpine.png";
 
 const Constructors = () => {
   const currentYear = new Date().getFullYear();
@@ -43,9 +56,30 @@ const Constructors = () => {
     return constructor.position === "1";
   };
   
-  // Helper function to get team logo URL
+  // Helper function to get team logo based on constructorId
   const getTeamLogoUrl = (constructorId: string) => {
-    return `https://raw.githubusercontent.com/npranav10/F1-Dashboard/main/public/img/teams/${constructorId}.png`;
+    const teamLogos: Record<string, string> = {
+      "ferrari": ferrariLogo,
+      "mclaren": mclarenLogo,
+      "mercedes": mercedesLogo,
+      "rb": rbLogo,
+      "red_bull": redbullLogo,
+      "sauber": sauberLogo,
+      "aston_martin": astonmartinLogo,
+      "williams": williamsLogo,
+      "haas": haasLogo,
+      "alpine": alpineLogo,
+      // Special cases for earlier years
+      "alphatauri": rbLogo,
+      "alpha_tauri": rbLogo,
+      "toro_rosso": rbLogo,
+      "renault": alpineLogo,
+      "racing_point": astonmartinLogo,
+      "force_india": astonmartinLogo,
+      "alfa": sauberLogo
+    };
+    
+    return teamLogos[constructorId] || "";
   };
 
   // Helper function to remove emoji flags from race names
@@ -115,15 +149,25 @@ const Constructors = () => {
                 >
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 rounded-full flex items-center justify-center" style={{ backgroundColor: teamColor }}>
-                        <AvatarImage 
-                          src={getTeamLogoUrl(constructor.Constructor.constructorId)}
-                          alt={constructor.Constructor.name}
-                        />
-                        <AvatarFallback style={{ backgroundColor: teamColor }} className="text-white font-bold">
-                          {constructor.Constructor.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Avatar className="h-14 w-14 rounded-md flex items-center justify-center overflow-hidden border-2" style={{ backgroundColor: 'white', borderColor: teamColor }}>
+                              <AvatarImage 
+                                src={getTeamLogoUrl(constructor.Constructor.constructorId)}
+                                alt={constructor.Constructor.name}
+                                className="object-contain p-1.5"
+                              />
+                              <AvatarFallback style={{ backgroundColor: teamColor }} className="text-white font-bold text-lg">
+                                {constructor.Constructor.name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{constructor.Constructor.name}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       <div>
                         <div className="flex items-center gap-2">
                           <CardTitle className="text-xl">

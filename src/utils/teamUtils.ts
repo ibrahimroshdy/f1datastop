@@ -1,4 +1,3 @@
-
 export const getTeamColor = (constructorId: string) => {
   const teamColors: Record<string, string> = {
     "red_bull": "bg-redbull",
@@ -30,6 +29,8 @@ export const getCountryFlag = (location: string) => {
     "Barcelona": "🇪🇸",
     "Spielberg": "🇦🇹",
     "Silverstone": "🇬🇧",
+    "UK": "🇬🇧", 
+    "United Kingdom": "🇬🇧",
     "Budapest": "🇭🇺",
     "Spa": "🇧🇪",
     "Zandvoort": "🇳🇱",
@@ -41,7 +42,10 @@ export const getCountryFlag = (location: string) => {
     "Mexico City": "🇲🇽",
     "Sao Paulo": "🇧🇷",
     "Las Vegas": "🇺🇸",
-    "Yas Marina": "🇦🇪"
+    "Yas Marina": "🇦🇪",
+    "Abu Dhabi": "🇦🇪",
+    "UAE": "🇦🇪",
+    "United Arab Emirates": "🇦🇪"
   };
   for (const [key, value] of Object.entries(countryFlags)) {
     if (location?.includes(key)) {

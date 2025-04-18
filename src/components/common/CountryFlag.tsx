@@ -11,6 +11,8 @@ const countryToCode: { [key: string]: string } = {
   "Brazil": "BR",
   "Canada": "CA",
   "China": "CN",
+  "Denmark": "DK",
+  "Finland": "FI",
   "France": "FR",
   "Germany": "DE",
   "Hungary": "HU",
@@ -19,17 +21,28 @@ const countryToCode: { [key: string]: string } = {
   "Mexico": "MX",
   "Monaco": "MC",
   "Netherlands": "NL",
+  "Poland": "PL",
   "Portugal": "PT",
   "Qatar": "QA",
   "Russia": "RU",
   "Saudi Arabia": "SA",
   "Singapore": "SG",
+  "South Africa": "ZA",
   "Spain": "ES",
+  "Sweden": "SE",
+  "Switzerland": "CH",
+  "Thailand": "TH",
   "Turkey": "TR",
+  "UK": "GB",
+  "U.K.": "GB",
+  "UAE": "AE",
+  "U.A.E.": "AE",
   "United Arab Emirates": "AE",
   "United Kingdom": "GB",
   "United States": "US",
   "USA": "US",
+  "Venezuela": "VE",
+  "Vietnam": "VN",
   "Miami": "US",
   "Vegas": "US",
   "Las Vegas": "US",
@@ -75,14 +88,27 @@ interface CountryFlagProps {
  * Get the ISO country code for a country name
  */
 export const getCountryCode = (country: string): string | null => {
+  if (!country) return null;
+  
+  // Normalize the country name to handle case sensitivity
+  const normalizedCountry = country.trim();
+  
   // Direct lookup
-  if (countryToCode[country]) {
-    return countryToCode[country];
+  if (countryToCode[normalizedCountry]) {
+    return countryToCode[normalizedCountry];
+  }
+  
+  // Try case-insensitive lookup
+  const lowerCountry = normalizedCountry.toLowerCase();
+  for (const [key, code] of Object.entries(countryToCode)) {
+    if (key.toLowerCase() === lowerCountry) {
+      return code;
+    }
   }
   
   // Try to find a partial match for compound names
   for (const [key, code] of Object.entries(countryToCode)) {
-    if (country.includes(key)) {
+    if (normalizedCountry.includes(key) || key.includes(normalizedCountry)) {
       return code;
     }
   }
