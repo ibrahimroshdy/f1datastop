@@ -120,8 +120,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
         </div>
 
         {/* Desktop navigation */}
-        <div className="hidden md:block space-y-4 py-4">
-          <div className="px-3 py-2">
+        <div className="hidden md:block space-y-2 py-2">
+          <div className="px-3 py-1">
             <div className="space-y-1">
               {mainNavigation.map((item) => (
                 <Link
@@ -141,8 +141,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           </div>
 
           {/* Protected navigation section */}
-          <div className="px-3 py-2">
-            <h2 className="mb-2 px-4 text-xs font-semibold tracking-tight text-muted-foreground">
+          <div className="px-3 py-1">
+            <h2 className="px-4 text-xs font-semibold tracking-tight text-muted-foreground">
               F1 Information
             </h2>
             <div className="space-y-1">
@@ -164,8 +164,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           </div>
 
           {/* Authentication navigation section */}
-          <div className="px-3 py-2">
-            <h2 className="mb-2 px-4 text-xs font-semibold tracking-tight text-muted-foreground">
+          <div className="px-3 py-1">
+            <h2 className="px-4 text-xs font-semibold tracking-tight text-muted-foreground">
               Account
             </h2>
             <div className="space-y-1">
@@ -195,8 +195,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           />
           
           {/* Protected navigation for mobile */}
-          <div className="px-3 py-2">
-            <h2 className="mb-2 px-4 text-xs font-semibold tracking-tight text-muted-foreground">
+          <div className="px-3 py-1">
+            <h2 className="px-4 text-xs font-semibold tracking-tight text-muted-foreground">
               F1 Information
             </h2>
           </div>
@@ -206,8 +206,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
           />
           
           {/* Auth navigation for mobile */}
-          <div className="px-3 py-2">
-            <h2 className="mb-2 px-4 text-xs font-semibold tracking-tight text-muted-foreground">
+          <div className="px-3 py-1">
+            <h2 className="px-4 text-xs font-semibold tracking-tight text-muted-foreground">
               Account
             </h2>
           </div>

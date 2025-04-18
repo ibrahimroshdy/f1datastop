@@ -18,8 +18,8 @@ const MobileNavigation = ({ items, onNavClick }: MobileNavigationProps) => {
   const { pathname } = useLocation();
 
   return (
-    <div className="space-y-4 py-4">
-      <div className="px-3 py-2">
+    <div className="space-y-1 pt-0">
+      <div className="px-3">
         <div className="space-y-1">
           {items.map((item) => (
             <Link
