@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { trackEvent } from '@/integrations/google-analytics/GA4';
 import useAnalytics from '@/hooks/useAnalytics';
+import { useDeveloper } from '@/context/DeveloperContext';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
   const { user, profile, updateProfile, deleteAccount, signOut } = useAuth();
+  const { incrementProfileClickCount, profileClickCount } = useDeveloper();
   const analytics = useAnalytics();
   const { toast } = useToast();
   
@@ -152,6 +154,11 @@ const Profile = () => {
     }
   };
 
+  const handleProfileHeaderClick = () => {
+    incrementProfileClickCount();
+    // Uncomment for debugging: console.log('Profile click count:', profileClickCount + 1);
+  };
+
   if (initialLoad || loading) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -169,11 +176,11 @@ const Profile = () => {
           {/* Profile Overview */}
           <div className="md:col-span-1">
             <Card className="bg-card border-border h-full flex flex-col">
-              <CardHeader className="flex flex-col items-center">
-                <Avatar className="w-24 h-24 mb-2 bg-primary text-primary-foreground text-2xl">
+              <CardHeader className="flex flex-col items-center" onClick={handleProfileHeaderClick}>
+                <Avatar className="w-24 h-24 mb-2 bg-primary text-primary-foreground text-2xl cursor-pointer">
                   <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
-                <CardTitle>{profile?.first_name} {profile?.last_name}</CardTitle>
+                <CardTitle className="cursor-pointer">{profile?.first_name} {profile?.last_name}</CardTitle>
                 <CardDescription className="text-center">
                   @{profile?.username}
                   <div className="mt-1">{user?.email}</div>

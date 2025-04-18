@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, createBrowserRouter, RouterProvider, Navi
 import { SessionProvider } from "@/context/SessionContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { DeveloperProvider } from "@/context/DeveloperContext";
 import { ProtectedRoute, PublicOnlyRoute } from "@/components/auth/ProtectedRoute";
 import { useState, useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
@@ -19,6 +20,7 @@ import RaceCalendar from "./pages/RaceCalendar";
 import Analytics from "./pages/Analytics";
 import Drivers from "./pages/Drivers";
 import Constructors from "./pages/Constructors";
+import Developers from "./pages/Developers";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
@@ -133,64 +135,67 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <ThemeProvider>
-            <TooltipProvider>
-              <ErrorBoundaryWrapper>
-                <ClarityProvider projectId={CLARITY_PROJECT_ID}>
-                  <AnalyticsProvider>
-                    <Toaster />
-                    <Sonner />
-                    {/* Only show ClarityStatus in development */}
-                    {process.env.NODE_ENV === 'development' && (
-                      <ClarityStatus projectId={CLARITY_PROJECT_ID} />
-                    )}
-                    <Routes>
-                      {/* Public Routes */}
-                      <Route path="/" element={<Index />} />
-                      <Route path="/calendar" element={<RaceCalendar />} />
-                      <Route path="/auth/callback" element={<AuthCallback />} />
-                      <Route path="/privacy" element={<Privacy />} />
-                      <Route path="*" element={<NotFound />} />
-                      
-                      {/* Embed Routes */}
-                      <Route 
-                        path="/embed" 
-                        element={<Suspense fallback={<div>Loading...</div>}>
-                          {React.createElement(React.lazy(() => import('./pages/embed')))}
-                        </Suspense>} 
-                      />
-                      <Route 
-                        path="/embed/driver-standings" 
-                        element={<Suspense fallback={<div>Loading...</div>}>
-                          {React.createElement(React.lazy(() => import('./pages/embed/driver-standings')))}
-                        </Suspense>} 
-                      />
-                      <Route 
-                        path="/embed/constructor-standings" 
-                        element={<Suspense fallback={<div>Loading...</div>}>
-                          {React.createElement(React.lazy(() => import('./pages/embed/constructor-standings')))}
-                        </Suspense>} 
-                      />
-                      
-                      {/* Auth routes (only accessible if not logged in) */}
-                      <Route element={<PublicOnlyRoute />}>
-                        <Route path="/auth/login" element={<Login />} />
-                        <Route path="/auth/signup" element={<Signup />} />
-                        <Route path="/auth/reset-password" element={<ResetPassword />} />
-                      </Route>
-                      
-                      {/* Protected routes with blur effect for non-authenticated users */}
-                      <Route element={<ProtectedRoute />}>
-                        <Route path="/analytics" element={<Analytics />} />
-                        <Route path="/race-info/:year/:round" element={<RaceInfoPage />} />
-                        <Route path="/drivers" element={<Drivers />} />
-                        <Route path="/constructors" element={<Constructors />} />
-                        <Route path="/profile" element={<Profile />} />
-                      </Route>
-                    </Routes>
-                  </AnalyticsProvider>
-                </ClarityProvider>
-              </ErrorBoundaryWrapper>
-            </TooltipProvider>
+            <DeveloperProvider>
+              <TooltipProvider>
+                <ErrorBoundaryWrapper>
+                  <ClarityProvider projectId={CLARITY_PROJECT_ID}>
+                    <AnalyticsProvider>
+                      <Toaster />
+                      <Sonner />
+                      {/* Only show ClarityStatus in development */}
+                      {process.env.NODE_ENV === 'development' && (
+                        <ClarityStatus projectId={CLARITY_PROJECT_ID} />
+                      )}
+                      <Routes>
+                        {/* Public Routes */}
+                        <Route path="/" element={<Index />} />
+                        <Route path="/calendar" element={<RaceCalendar />} />
+                        <Route path="/auth/callback" element={<AuthCallback />} />
+                        <Route path="/privacy" element={<Privacy />} />
+                        <Route path="*" element={<NotFound />} />
+                        
+                        {/* Embed Routes */}
+                        <Route 
+                          path="/embed" 
+                          element={<Suspense fallback={<div>Loading...</div>}>
+                            {React.createElement(React.lazy(() => import('./pages/embed')))}
+                          </Suspense>} 
+                        />
+                        <Route 
+                          path="/embed/driver-standings" 
+                          element={<Suspense fallback={<div>Loading...</div>}>
+                            {React.createElement(React.lazy(() => import('./pages/embed/driver-standings')))}
+                          </Suspense>} 
+                        />
+                        <Route 
+                          path="/embed/constructor-standings" 
+                          element={<Suspense fallback={<div>Loading...</div>}>
+                            {React.createElement(React.lazy(() => import('./pages/embed/constructor-standings')))}
+                          </Suspense>} 
+                        />
+                        
+                        {/* Auth routes (only accessible if not logged in) */}
+                        <Route element={<PublicOnlyRoute />}>
+                          <Route path="/auth/login" element={<Login />} />
+                          <Route path="/auth/signup" element={<Signup />} />
+                          <Route path="/auth/reset-password" element={<ResetPassword />} />
+                        </Route>
+                        
+                        {/* Protected routes with blur effect for non-authenticated users */}
+                        <Route element={<ProtectedRoute />}>
+                          <Route path="/analytics" element={<Analytics />} />
+                          <Route path="/race-info/:year/:round" element={<RaceInfoPage />} />
+                          <Route path="/drivers" element={<Drivers />} />
+                          <Route path="/constructors" element={<Constructors />} />
+                          <Route path="/profile" element={<Profile />} />
+                          <Route path="/developers" element={<Developers />} />
+                        </Route>
+                      </Routes>
+                    </AnalyticsProvider>
+                  </ClarityProvider>
+                </ErrorBoundaryWrapper>
+              </TooltipProvider>
+            </DeveloperProvider>
           </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>

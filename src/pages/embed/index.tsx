@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useTheme } from '@/context/ThemeContext';
 
 const EmbedInfoPage: React.FC = () => {
   const [domain, setDomain] = useState('https://f1datastop.com');
   const [copied, setCopied] = useState<string | null>(null);
+  const { theme } = useTheme();
+  const isDarkTheme = theme === 'dark';
 
   useEffect(() => {
     // Set document title and meta tags
@@ -39,17 +42,17 @@ const EmbedInfoPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white font-sans">
+    <div className={`max-w-4xl mx-auto p-6 font-sans ${isDarkTheme ? 'bg-background text-foreground' : 'bg-background text-foreground'}`}>
       <header className="mb-8">
         <h1 className="text-3xl font-bold mb-2">F1 DataStop Embeddable Components</h1>
-        <p className="text-gray-600">Easily embed Formula 1 data on your website or blog</p>
+        <p className="text-muted-foreground">Easily embed Formula 1 data on your website or blog</p>
       </header>
       
       <section className="mb-12">
         <h2 className="text-2xl font-semibold mb-4">Available Embeds</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="border rounded-lg overflow-hidden">
-            <div className="bg-gray-100 p-4 border-b">
+          <div className="border border-border rounded-lg overflow-hidden">
+            <div className="bg-muted p-4 border-b border-border">
               <h3 className="text-xl font-medium">Driver Standings</h3>
             </div>
             <div className="p-4">
@@ -57,7 +60,7 @@ const EmbedInfoPage: React.FC = () => {
               <div className="flex justify-between items-center">
                 <a 
                   href="/embed/driver-standings?season=2023" 
-                  className="text-blue-600 hover:underline"
+                  className="text-primary hover:underline"
                   target="_blank"
                 >
                   View Demo
@@ -65,12 +68,12 @@ const EmbedInfoPage: React.FC = () => {
                 <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">Popular</span>
               </div>
               <div className="mt-4 relative">
-                <div className="bg-gray-100 rounded p-3 text-sm font-mono overflow-x-auto">
+                <div className="bg-muted rounded p-3 text-sm font-mono overflow-x-auto">
                   {`<iframe src="${domain}/embed/driver-standings?season=2023&theme=light&font=Inter" width="100%" height="500px" frameborder="0"></iframe>`}
                 </div>
                 <button 
                   onClick={() => copyToClipboard('driver', `<iframe src="${domain}/embed/driver-standings?season=2023&theme=light&font=Inter" width="100%" height="500px" frameborder="0"></iframe>`)}
-                  className="absolute right-2 top-2 bg-blue-600 text-white px-2 py-1 rounded text-xs"
+                  className="absolute right-2 top-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs"
                 >
                   {copied === 'driver' ? 'Copied!' : 'Copy'}
                 </button>
@@ -78,8 +81,8 @@ const EmbedInfoPage: React.FC = () => {
             </div>
           </div>
           
-          <div className="border rounded-lg overflow-hidden">
-            <div className="bg-gray-100 p-4 border-b">
+          <div className="border border-border rounded-lg overflow-hidden">
+            <div className="bg-muted p-4 border-b border-border">
               <h3 className="text-xl font-medium">Constructor Standings</h3>
             </div>
             <div className="p-4">
@@ -87,20 +90,20 @@ const EmbedInfoPage: React.FC = () => {
               <div className="flex justify-between items-center">
                 <a 
                   href="/embed/constructor-standings?season=2023&theme=dark" 
-                  className="text-blue-600 hover:underline"
+                  className="text-primary hover:underline"
                   target="_blank"
                 >
                   View Demo
                 </a>
-                <span className="px-3 py-1 bg-gray-100 text-gray-800 text-sm rounded-full">Clean</span>
+                <span className="px-3 py-1 bg-muted text-muted-foreground text-sm rounded-full">Clean</span>
               </div>
               <div className="mt-4 relative">
-                <div className="bg-gray-100 rounded p-3 text-sm font-mono overflow-x-auto">
+                <div className="bg-muted rounded p-3 text-sm font-mono overflow-x-auto">
                   {`<iframe src="${domain}/embed/constructor-standings?season=2023&theme=dark&font=Roboto" width="100%" height="400px" frameborder="0"></iframe>`}
                 </div>
                 <button 
                   onClick={() => copyToClipboard('constructor', `<iframe src="${domain}/embed/constructor-standings?season=2023&theme=dark&font=Roboto" width="100%" height="400px" frameborder="0"></iframe>`)}
-                  className="absolute right-2 top-2 bg-blue-600 text-white px-2 py-1 rounded text-xs"
+                  className="absolute right-2 top-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs"
                 >
                   {copied === 'constructor' ? 'Copied!' : 'Copy'}
                 </button>
@@ -112,10 +115,10 @@ const EmbedInfoPage: React.FC = () => {
       
       <section className="mb-12">
         <h2 className="text-2xl font-semibold mb-4">Customize Your Embed</h2>
-        <div className="bg-gray-50 p-6 rounded-lg">
+        <div className="bg-muted p-6 rounded-lg border border-border">
           <h3 className="text-lg font-medium mb-3">URL Parameters</h3>
           <table className="w-full mb-6">
-            <thead className="bg-gray-100">
+            <thead className="bg-muted border-b border-border">
               <tr>
                 <th className="text-left py-2 px-4 font-medium">Parameter</th>
                 <th className="text-left py-2 px-4 font-medium">Description</th>
@@ -123,7 +126,7 @@ const EmbedInfoPage: React.FC = () => {
                 <th className="text-left py-2 px-4 font-medium">Default</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-border">
               <tr>
                 <td className="py-2 px-4 font-mono text-sm">season</td>
                 <td className="py-2 px-4">F1 season year</td>
@@ -149,7 +152,7 @@ const EmbedInfoPage: React.FC = () => {
       
       <section className="mb-8">
         <h2 className="text-2xl font-semibold mb-4">Implementation Tips</h2>
-        <ul className="list-disc list-inside space-y-2 ml-4 text-gray-700">
+        <ul className="list-disc list-inside space-y-2 ml-4 text-muted-foreground">
           <li>Set the iframe width to <span className="font-mono">100%</span> for responsive design</li>
           <li>Set appropriate heights (e.g., 500px for driver standings, 400px for constructor standings)</li>
           <li>For custom fonts, use URL-encoded values (e.g., <span className="font-mono">Roboto,%20sans-serif</span>)</li>
@@ -158,13 +161,13 @@ const EmbedInfoPage: React.FC = () => {
         </ul>
       </section>
       
-      <footer className="mt-12 pt-6 border-t text-center text-gray-600 text-sm">
+      <footer className="mt-12 pt-6 border-t border-border text-center text-muted-foreground text-sm">
         <p>© {new Date().getFullYear()} F1 DataStop. All rights reserved.</p>
         <p className="mt-1">Data sourced from the Ergast Developer API.</p>
         <p className="mt-1">
           <a 
             href="/" 
-            className="text-blue-600 hover:underline"
+            className="text-primary hover:underline"
           >
             Back to Main Site
           </a>

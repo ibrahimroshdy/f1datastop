@@ -31,6 +31,7 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import { useIsMobile, useIsMediumOrSmaller } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
+import { useDeveloper } from "@/context/DeveloperContext";
 import f1Logo from "@/assets/f1-logo.svg";
 import MobileNavigation from "@/components/layout/MobileNavigation";
 
@@ -48,6 +49,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const isMobile = useIsMobile();
   const isMediumOrSmaller = useIsMediumOrSmaller();
   const { user } = useAuth();
+  const { isDeveloperMode } = useDeveloper();
 
   const mainNavigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -61,8 +63,14 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
     { name: "Constructors", href: "/constructors", icon: Caravan },
   ];
 
+  // Create a new array for auth navigation based on user status and developer mode
   const authNavigation = user 
-    ? [{ name: "Profile", href: "/profile", icon: User }]
+    ? isDeveloperMode
+      ? [
+          { name: "Profile", href: "/profile", icon: User },
+          { name: "Developers PitStop", href: "/developers", icon: Settings }
+        ]
+      : [{ name: "Profile", href: "/profile", icon: User }]
     : [{ name: "Login / Signup", href: "/auth/login", icon: LogIn }];
 
   // Close sidebar when clicking outside on mobile/medium
@@ -176,7 +184,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   onClick={handleNavClick}
                   className={cn(
                     "flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
-                    pathname === item.href ? "bg-red-200/70 text-red-900 dark:bg-red-900/30 dark:text-red-200" : "transparent"
+                    pathname === item.href ? "bg-red-200/70 text-red-900 dark:bg-red-900/30 dark:text-red-200" : "transparent",
+                    item.name === "Developers PitStop" ? "text-amber-600 dark:text-amber-400" : ""
                   )}
                 >
                   <item.icon className="mr-2 h-4 w-4" />

@@ -1,0 +1,144 @@
+import React from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import { useDeveloper } from '@/context/DeveloperContext';
+import MainLayout from '@/components/layout/MainLayout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Settings, Code, Terminal, Database, Globe, ExternalLink, LayoutTemplate, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const Developers = () => {
+  const { isDeveloperMode } = useDeveloper();
+
+  // Redirect if not in developer mode
+  if (!isDeveloperMode) {
+    return <Navigate to="/" replace />;
+  }
+
+  const developerTools = [
+    {
+      name: 'Embeddable Components',
+      description: 'Embed F1 DataStop components on external websites',
+      icon: LayoutTemplate,
+      href: '/embed',
+      external: true,
+      available: true
+    },
+    {
+      name: 'API Documentation',
+      description: 'Explore the F1 DataStop API',
+      icon: Code,
+      href: '/developers/api',
+      external: false,
+      available: false
+    },
+    {
+      name: 'Database Schema',
+      description: 'View database structure and relationships',
+      icon: Database,
+      href: '/developers/schema',
+      external: false,
+      available: false
+    },
+    {
+      name: 'Console',
+      description: 'Advanced debugging tools',
+      icon: Terminal,
+      href: '/developers/console',
+      external: false,
+      available: false
+    },
+    {
+      name: 'Configuration',
+      description: 'Adjust developer settings',
+      icon: Settings,
+      href: '/developers/config',
+      external: false,
+      available: false
+    }
+  ];
+
+  return (
+    <MainLayout>
+      <div className="container max-w-6xl py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Developers PitStop 🛠️</h1>
+            <p className="text-muted-foreground mt-1">
+              Advanced tools and settings for developers
+            </p>
+          </div>
+          <div className="px-3 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 rounded-full text-sm font-medium">
+            Developer Mode
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {developerTools.map((tool) => (
+            <Card 
+              key={tool.name} 
+              className={cn(
+                "transition-shadow duration-200",
+                tool.available ? "hover:shadow-md" : "opacity-70"
+              )}
+            >
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between">
+                  <div className="p-2 bg-muted rounded-md">
+                    {tool.available ? (
+                      <tool.icon className="h-5 w-5" />
+                    ) : (
+                      <Clock className="h-5 w-5" />
+                    )}
+                  </div>
+                  
+                  {tool.external && tool.available && (
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
+                <CardTitle className="text-xl mt-2">{tool.name}</CardTitle>
+                <CardDescription>{tool.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {tool.available ? (
+                  tool.external ? (
+                    <a 
+                      href={tool.href} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline inline-flex items-center"
+                    >
+                      Open in new tab
+                      <ExternalLink className="ml-1 h-3 w-3" />
+                    </a>
+                  ) : (
+                    <Link 
+                      to={tool.href} 
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Open tool
+                    </Link>
+                  )
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    Coming soon
+                  </span>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="mt-8 bg-muted p-4 rounded-md">
+          <div className="text-sm text-muted-foreground">
+            <p>
+              <strong>Note:</strong> The developer tools are intended for advanced users. 
+              Use with caution as some actions may affect the application behavior.
+            </p>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
+  );
+};
+
+export default Developers; 
