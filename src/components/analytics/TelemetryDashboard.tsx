@@ -969,91 +969,264 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                 </TabsList>
                 
                 <TabsContent value={activeTab} className="space-y-4">
-                  {activeTab === "speed" && driverTopSpeeds && sortedDriversBySpeed.length > 0 ? (
-                    // Speed traps heatmap
+                  {activeTab === "speed" && hasData && selectedDrivers.length > 0 ? (
+                    // Speed telemetry chart
                     <div className="w-full">
                       <div className="mb-3">
-                        <div className="text-xl font-bold">Top 15 speed traps per driver</div>
+                        <div className="text-xl font-bold">Speed comparison for selected drivers</div>
                       </div>
                       
-                      <div className="min-w-full grid gap-0">
-                        {sortedDriversBySpeed.map(driverNum => {
-                          const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
-                          if (!driver || !driverTopSpeeds[driverNum]) return null;
-                          
-                          const driverSpeeds = driverTopSpeeds[driverNum];
-                          
-                          return (
-                            <div key={driverNum} className="grid grid-cols-[80px_1fr] mb-[1px]">
-                              {/* Driver name/team */}
-                              <div 
-                                className="flex items-center justify-end pr-3 font-semibold text-sm h-8" 
-                                style={{ color: driver.team_color }}
-                              >
-                                {driver.name_acronym}
-                              </div>
+                      <div className="h-[400px] w-full relative">
+                        {isTabLoading ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                            <div className="text-center">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                              <p className="text-sm text-muted-foreground">Processing speed data...</p>
+                            </div>
+                          </div>
+                        ) : null}
+                        
+                        {chartData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
+                              <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} />
                               
-                              {/* Speed cells as continuous heatmap */}
-                              <div className="flex h-8 w-full">
-                                {driverSpeeds.map((speedData, index) => {
-                                  // Calculate relative speed percentage within this driver's range
-                                  const driverMaxSpeed = driverSpeeds[0].speed;
-                                  const driverMinSpeed = driverSpeeds[driverSpeeds.length - 1].speed;
-                                  const speedRange = driverMaxSpeed - driverMinSpeed;
-                                  // Calculate percentage within the driver's own range
-                                  const percentage = speedRange > 0 
-                                    ? (speedData.speed - driverMinSpeed) / speedRange 
-                                    : 1;
+                              <XAxis 
+                                dataKey="time" 
+                                tickFormatter={formatTimeForAxis}
+                                minTickGap={80}
+                                tick={{ fontSize: 11 }}
+                                interval="preserveEnd"
+                              />
+                              
+                              <YAxis 
+                                domain={[0, 'auto']}
+                                unit={unit} 
+                                width={50} 
+                                tick={{ fontSize: 11 }}
+                                tickCount={5}
+                              />
+                              
+                              {/* Fixed lap indicators with proper date conversion */}
+                              {lapData && lapData.length > 0 && selectedDrivers.length > 0 &&
+                                lapData
+                                  .filter(lap => {
+                                    if (!lap.date_start) return false;
+                                    const time = new Date(lap.date_start).getTime();
+                                    return lap.driver_number === selectedDrivers[0] && 
+                                        lap.lap_number > 0 && 
+                                        !isNaN(time);
+                                  })
+                                  .map(lap => {
+                                    const time = new Date(lap.date_start).getTime();
+                                    return (
+                                      <ReferenceLine
+                                        key={`lap-${lap.lap_number}`}
+                                        x={time}
+                                        stroke="#666"
+                                        strokeWidth={1}
+                                        strokeDasharray="3 3"
+                                        label={{
+                                          value: `Lap ${lap.lap_number}`,
+                                          position: 'insideTopRight',
+                                          fill: '#fff',
+                                          fontSize: 11
+                                        }}
+                                      />
+                                    );
+                                  })
+                              }
+                              
+                              {/* Show max speed reference line */}
+                              {maxSpeedInfo && (() => {
+                                const driverInfo = maxSpeedInfo.driverNumber ? 
+                                  originalAvailableDrivers.find(d => d.driver_number === maxSpeedInfo.driverNumber) : null;
+                                const driverColor = driverInfo?.team_color || "#ffcc00";
+                                const driverName = driverInfo?.name_acronym || 
+                                  (maxSpeedInfo.driverNumber ? `#${maxSpeedInfo.driverNumber}` : "");
+                                
+                                return (
+                                  <ReferenceLine 
+                                    y={maxSpeedInfo.speed}
+                                    stroke={driverColor}
+                                    strokeWidth={2}
+                                    strokeDasharray="5 5"
+                                    label={{ 
+                                      value: `Max: ${maxSpeedInfo.speed.toFixed(1)} km/h (${driverName})`, 
+                                      position: 'right',
+                                      fill: driverColor,
+                                      fontSize: 12,
+                                      fontWeight: 'bold'
+                                    }}
+                                  />
+                                );
+                              })()}
+                              
+                              <Tooltip 
+                                formatter={(value: any, name: string, props: any) => {
+                                  // Extract driver name from the dataKey (name parameter)
+                                  const driverKey = name;
+                                  // Find the driver to get their team color for styling
+                                  const driver = originalAvailableDrivers.find(d => d.name_acronym === driverKey);
                                   
-                                  // Generate a gradient from light orange/red to dark red
-                                  // Higher percentage = darker/more intense red
-                                  const r = Math.round(220 - (percentage * 80)); // 220 down to 140
-                                  const g = Math.round(60 - (percentage * 40));  // 60 down to 20
-                                  const b = Math.round(40 - (percentage * 20));  // 40 down to 20
+                                  // Format value based on the current tab
+                                  let formattedValue: string;
+                                  if (activeTab === "speed") {
+                                    formattedValue = `${parseFloat(value).toFixed(2)} km/h`;
+                                  } else if (activeTab === "rpm") {
+                                    formattedValue = `${parseFloat(value).toFixed(0)} RPM`;
+                                  } else if (activeTab === "throttle" || activeTab === "brake") {
+                                    formattedValue = `${parseFloat(value).toFixed(2)}%`;
+                                  } else if (activeTab === "gear") {
+                                    formattedValue = `Gear ${parseFloat(value).toFixed(0)}`;
+                                  } else if (activeTab === "drs") {
+                                    formattedValue = value === 1 ? "DRS Enabled" : "DRS Disabled";
+                                  } else {
+                                    formattedValue = `${value}`;
+                                  }
                                   
-                                  // Format display time if lap info isn't available
-                                  const timeString = new Date(speedData.time).toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    second: '2-digit',
-                                    hour12: false
-                                  });
+                                  // Return a div with styled content including a color indicator
+                                  const driverInfo = driver ? `${driverKey} (#${driver.driver_number})` : driverKey;
+                                  
+                                  return [
+                                    // Return value without custom formatting - will use tooltip's default
+                                    formattedValue,
+                                    // Create a div with a color indicator for the driver
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <div style={{ 
+                                        width: '8px', 
+                                        height: '8px', 
+                                        borderRadius: '50%', 
+                                        backgroundColor: driver?.team_color || 'gray',
+                                      }} />
+                                      <span>{driverInfo}</span>
+                                    </div>
+                                  ];
+                                }}
+                                labelFormatter={(label) => {
+                                  const date = new Date(label as number);
+                                  // Find the lap for this time
+                                  let lapInfo = "";
+                                  if (lapData && lapData.length > 0 && selectedDrivers.length > 0) {
+                                    const driverLaps = lapData.filter(lap => lap.driver_number === selectedDrivers[0]);
+                                    const currentLap = driverLaps.find(lap => {
+                                      if (!lap.date_start || !lap.date_end) return false;
+                                      const startTime = new Date(lap.date_start).getTime();
+                                      const endTime = new Date(lap.date_end).getTime();
+                                      return label >= startTime && label <= endTime;
+                                    });
+                                    
+                                    if (currentLap) {
+                                      const lapTime = formatTime(currentLap.lap_time);
+                                      lapInfo = ` (Lap ${currentLap.lap_number}: ${lapTime})`;
+                                    }
+                                  }
+                                  return `${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}${lapInfo}`;
+                                }}
+                                contentStyle={{
+                                  backgroundColor: 'var(--tooltip-bg, rgba(0, 0, 0, 0.85))',
+                                  borderColor: 'var(--tooltip-border, #333)',
+                                  borderRadius: '5px',
+                                  padding: '8px',
+                                  color: 'var(--tooltip-text, #fff)'
+                                }}
+                                itemStyle={{
+                                  padding: '4px 0'
+                                }}
+                                wrapperStyle={{
+                                  zIndex: 1000
+                                }}
+                                isAnimationActive={false}
+                              />
+                              
+                              {/* Render lines for each driver */}
+                              {selectedDrivers.map((driverNum, index) => {
+                                const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
+                                if (!driver) return null;
+                                
+                                const driverKey = driver.name_acronym;
+                                
+                                // Check if this is a duplicate team color
+                                const teamColorCount = selectedDrivers.filter(d => {
+                                  const driverInfo = originalAvailableDrivers.find(od => od.driver_number === d);
+                                  return driverInfo && driverInfo.team_color === driver.team_color;
+                                }).length;
+                                
+                                // Find the index of this driver among those with the same team color
+                                const sameColorIndex = selectedDrivers
+                                  .filter(d => {
+                                    const driverInfo = originalAvailableDrivers.find(od => od.driver_number === d);
+                                    return driverInfo && driverInfo.team_color === driver.team_color;
+                                  })
+                                  .indexOf(driverNum);
+                                
+                                // Use dotted line for the second driver with the same team color
+                                const useDottedLine = teamColorCount > 1 && sameColorIndex > 0;
+                                
+                                return (
+                                  <Line
+                                    key={driverNum}
+                                    type="monotone"
+                                    dataKey={driverKey}
+                                    name={driverKey}
+                                    stroke={driver.team_color}
+                                    strokeWidth={3}
+                                    strokeDasharray={useDottedLine ? "5 5" : ""}
+                                    dot={false}
+                                    activeDot={{ 
+                                      r: 6, 
+                                      stroke: driver.team_color, 
+                                      strokeWidth: 2, 
+                                      fill: '#fff',
+                                      strokeOpacity: 0.8,
+                                      fillOpacity: 0.8
+                                    }}
+                                    connectNulls={true}
+                                    isAnimationActive={false}
+                                  />
+                                );
+                              })}
+                              
+                              {/* Custom legend showing driver info */}
+                              <Legend 
+                                content={(props) => {
+                                  const { payload } = props;
+                                  if (!payload || payload.length === 0) return null;
                                   
                                   return (
-                                    <div 
-                                      key={index}
-                                      className="relative flex items-center justify-center h-full text-sm font-medium group"
-                                      style={{ 
-                                        backgroundColor: `rgb(${r}, ${g}, ${b})`,
-                                        flex: 1,
-                                        color: 'white'
-                                      }}
-                                    >
-                                      {Math.round(speedData.speed)}
-                                      <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-black/90 text-white text-xs px-2 py-1 rounded pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                        {speedData.speed.toFixed(1)} km/h
-                                        {speedData.lap 
-                                          ? ` | Lap ${speedData.lap}` 
-                                          : ` | ${timeString}`
-                                        }
-                                      </div>
+                                    <div className="flex justify-center items-center mt-3 gap-5 flex-wrap">
+                                      {selectedDrivers.map(driverNum => {
+                                        const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
+                                        if (!driver) return null;
+                                        
+                                        return (
+                                          <div key={driverNum} className="flex items-center gap-1.5">
+                                            <div 
+                                              className="w-4 h-1 rounded-sm" 
+                                              style={{ backgroundColor: driver.team_color }}
+                                            />
+                                            <span className="text-xs text-foreground font-medium">
+                                              {driver.name_acronym}
+                                              <span className="text-muted-foreground ml-1">
+                                                ({driver.driver_number})
+                                              </span>
+                                            </span>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      
-                      {/* Speed range indicator */}
-                      <div className="flex justify-between mt-4 text-xs items-center px-[80px]">
-                        <div className="flex items-center gap-2">
-                          <div className="w-24 h-4 bg-gradient-to-r from-[#dc3c2a] to-[#8c1d18] rounded-sm" />
-                          <div className="text-muted-foreground">
-                            Lower → Higher speed (per driver)
+                                }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center">
+                            <p className="text-muted-foreground text-sm">
+                              Select a driver to view speed telemetry data
+                            </p>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -1157,30 +1330,37 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                 const driver = originalAvailableDrivers.find(d => d.name_acronym === driverKey);
                                 
                                 // Format value based on the current tab
-                                let formattedValue = `${value}`;
-                                switch (activeTab) {
-                                  case "speed":
-                                    formattedValue = `${parseFloat(value).toFixed(2)} km/h`;
-                                    break;
-                                  case "rpm":
-                                    formattedValue = `${parseFloat(value).toFixed(0)} RPM`;
-                                    break;
-                                  case "throttle":
-                                  case "brake":
-                                    formattedValue = `${parseFloat(value).toFixed(2)}%`;
-                                    break;
-                                  case "gear":
-                                    formattedValue = `Gear ${parseFloat(value).toFixed(0)}`;
-                                    break;
-                                  case "drs":
-                                    formattedValue = value === 1 ? "DRS Enabled" : "DRS Disabled";
-                                    break;
+                                let formattedValue: string;
+                                if (activeTab === "speed") {
+                                  formattedValue = `${parseFloat(value).toFixed(2)} km/h`;
+                                } else if (activeTab === "rpm") {
+                                  formattedValue = `${parseFloat(value).toFixed(0)} RPM`;
+                                } else if (activeTab === "throttle" || activeTab === "brake") {
+                                  formattedValue = `${parseFloat(value).toFixed(2)}%`;
+                                } else if (activeTab === "gear") {
+                                  formattedValue = `Gear ${parseFloat(value).toFixed(0)}`;
+                                } else if (activeTab === "drs") {
+                                  formattedValue = value === 1 ? "DRS Enabled" : "DRS Disabled";
+                                } else {
+                                  formattedValue = `${value}`;
                                 }
                                 
-                                // Return formatted value with driver number
+                                // Return a div with styled content including a color indicator
+                                const driverInfo = driver ? `${driverKey} (#${driver.driver_number})` : driverKey;
+                                
                                 return [
+                                  // Return value without custom formatting - will use tooltip's default
                                   formattedValue,
-                                  driver ? `${driverKey} (#${driver.driver_number})` : driverKey
+                                  // Create a div with a color indicator for the driver
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <div style={{ 
+                                      width: '8px', 
+                                      height: '8px', 
+                                      borderRadius: '50%', 
+                                      backgroundColor: driver?.team_color || 'gray',
+                                    }} />
+                                    <span>{driverInfo}</span>
+                                  </div>
                                 ];
                               }}
                               labelFormatter={(label) => {
@@ -1204,10 +1384,11 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                 return `${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}${lapInfo}`;
                               }}
                               contentStyle={{
-                                backgroundColor: '#1a1a1a',
-                                borderColor: '#333',
+                                backgroundColor: 'var(--tooltip-bg, rgba(0, 0, 0, 0.85))',
+                                borderColor: 'var(--tooltip-border, #333)',
                                 borderRadius: '5px',
-                                padding: '8px'
+                                padding: '8px',
+                                color: 'var(--tooltip-text, #fff)'
                               }}
                               itemStyle={{
                                 padding: '4px 0'
@@ -1326,34 +1507,22 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                                 if (!payload || payload.length === 0) return null;
                                 
                                 return (
-                                  <div style={{ 
-                                    display: 'flex', 
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    marginTop: '10px',
-                                    gap: '20px'
-                                  }}>
+                                  <div className="flex justify-center items-center mt-3 gap-5 flex-wrap">
                                     {selectedDrivers.map(driverNum => {
                                       const driver = originalAvailableDrivers.find(d => d.driver_number === driverNum);
                                       if (!driver) return null;
                                       
                                       return (
-                                        <div key={driverNum} style={{ 
-                                          display: 'flex', 
-                                          alignItems: 'center',
-                                          gap: '5px'
-                                        }}>
-                                          <div style={{ 
-                                            width: '16px', 
-                                            height: '3px', 
-                                            backgroundColor: driver.team_color,
-                                            borderRadius: '1px'
-                                          }} />
-                                          <span style={{ 
-                                            fontSize: '12px',
-                                            color: driver.team_color
-                                          }}>
-                                            {driver.name_acronym} ({driver.driver_number})
+                                        <div key={driverNum} className="flex items-center gap-1.5">
+                                          <div 
+                                            className="w-4 h-1 rounded-sm" 
+                                            style={{ backgroundColor: driver.team_color }}
+                                          />
+                                          <span className="text-xs text-foreground font-medium">
+                                            {driver.name_acronym}
+                                            <span className="text-muted-foreground ml-1">
+                                              ({driver.driver_number})
+                                            </span>
                                           </span>
                                         </div>
                                       );
