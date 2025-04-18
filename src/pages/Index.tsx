@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Trophy } from "lucide-react";
+import { Loader2, Trophy, Users } from "lucide-react";
 import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults, useLastRacePitStops } from "@/hooks/useF1Data";
 import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
@@ -36,6 +36,7 @@ const Index = () => {
 
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading || isPitStopsLoading;
   const [isOffline, setIsOffline] = useState(false);
+  const [showAllDrivers, setShowAllDrivers] = useState(false);
 
   const analytics = useAnalytics();
   const clarity = useClarity();
@@ -82,10 +83,21 @@ const Index = () => {
                       <Trophy className="h-5 w-5 text-primary" />
                       Driver Standings
                     </CardTitle>
+                    <button 
+                      onClick={() => setShowAllDrivers(!showAllDrivers)} 
+                      className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+                    >
+                      <Users className="h-4 w-4" />
+                      {showAllDrivers ? 'Show Top 10' : 'Show All Drivers'}
+                    </button>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <DriverStandingsTable driverStandings={driverStandings} getTeamColor={getTeamColor} />
+                <CardContent className="pt-0">
+                  <DriverStandingsTable 
+                    driverStandings={driverStandings} 
+                    getTeamColor={getTeamColor}
+                    showAllDrivers={showAllDrivers}
+                  />
                 </CardContent>
               </Card>
               
