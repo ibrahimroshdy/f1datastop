@@ -151,6 +151,7 @@ const LapTimeLineChart: React.FC<LapTimeLineChartProps> = ({
               value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', 
               angle: -90, 
               position: 'insideLeft',
+              dx: -30
             }} 
             domain={yDomain}
             tickFormatter={(value) => displayMode === 'absolute' ? formatTime(value) : `+${value.toFixed(1)}`}

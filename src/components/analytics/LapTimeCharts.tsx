@@ -25,10 +25,18 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
 }) => {
   // State for selected drivers
   const [selectedDrivers, setSelectedDrivers] = useState<number[]>([]);
+  // State for display mode (absolute lap times or relative to fastest)
+  const [displayMode, setDisplayMode] = useState<'absolute' | 'relative'>('absolute');
+  // State for showing fastest lap reference line
+  const [showFastestLap, setShowFastestLap] = useState<boolean>(true);
+  // State for when user is hovering over fastest lap button/line
+  const [highlightFastestLap, setHighlightFastestLap] = useState<boolean>(false);
   
   // Reset state when session changes
   useEffect(() => {
     setSelectedDrivers([]);
+    setShowFastestLap(true);
+    setHighlightFastestLap(false);
     console.log("Session changed in LapTimeCharts to:", externalSessionKey);
   }, [externalSessionKey]);
   
@@ -237,6 +245,27 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
                   No drivers selected. Please select drivers to view their lap times.
                 </div>
               )}
+              
+              {/* Fastest lap toggle button */}
+              {fastestLap && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1.5 transition-colors ${
+                      showFastestLap 
+                        ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200' 
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                    }`}
+                    onClick={() => setShowFastestLap(prev => !prev)}
+                    onMouseEnter={() => setHighlightFastestLap(true)}
+                    onMouseLeave={() => setHighlightFastestLap(false)}
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    <span>
+                      {showFastestLap ? 'Hide' : 'Show'} Fastest Lap Line
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
             
             {hasNoData ? (
@@ -274,31 +303,41 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
                       label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -5 }}
                     />
                     <YAxis
-                      label={{ value: 'Lap Time (seconds)', angle: -90, position: 'insideLeft' }}
+                      domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
+                      label={{ value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', angle: -90, position: 'insideLeft', dx: -35 }}
+                      yAxisId="time"
                       tickFormatter={(value) => {
-                        // Format as MM:SS.sss
-                        const mins = Math.floor(value / 60);
-                        const secs = (value % 60).toFixed(3);
-                        return `${mins}:${secs.padStart(6, '0')}`;
+                        if (displayMode === 'absolute') {
+                          // Format as MM:SS.sss
+                          const mins = Math.floor(value / 60);
+                          const secs = (value % 60).toFixed(3);
+                          return `${mins}:${secs.padStart(6, '0')}`;
+                        } else {
+                          // Format as +X.XXXs
+                          return `+${value.toFixed(3)}s`;
+                        }
                       }}
                     />
                     
                     {/* Add reference line for fastest lap */}
-                    {fastestLap && (
+                    {fastestLap && showFastestLap && (
                       <ReferenceLine 
                         y={fastestLap.time}
                         stroke="rgb(160, 0, 200)" 
                         strokeDasharray="5 5" 
-                        strokeWidth={2}
+                        strokeWidth={highlightFastestLap ? 3 : 2}
+                        yAxisId="time"
                         label={{ 
                           value: `Fastest: ${(() => {
                             const mins = Math.floor(fastestLap.time / 60);
                             const secs = (fastestLap.time % 60).toFixed(3);
                             return `${mins}:${secs.padStart(6, '0')}`;
                           })()} (${getDriverInfo(fastestLap.driver)?.name_acronym || fastestLap.driver})`, 
-                          fill: "rgb(160, 0, 200)",
+                          fill: highlightFastestLap ? "rgb(200, 0, 255)" : "rgb(160, 0, 200)",
                           position: "insideBottomRight"
                         }}
+                        onMouseEnter={() => setHighlightFastestLap(true)}
+                        onMouseLeave={() => setHighlightFastestLap(false)}
                       />
                     )}
                     
@@ -361,6 +400,12 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
                       // First driver gets solid line, second driver gets dashed line
                       const strokeDasharray = isFirstDriver ? "0" : "5 5";
                       
+                      // Fade other drivers when highlighting fastest lap
+                      const isFastestLapDriver = fastestLap && driverNumber === fastestLap.driver;
+                      const opacity = highlightFastestLap 
+                        ? (isFastestLapDriver ? 1 : 0.15) 
+                        : 1;
+                      
                       return (
                         <Line
                           key={driverNumber}
@@ -368,11 +413,13 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
                           dataKey={`driver_${driverNumber}`}
                           name={`driver_${driverNumber}`}
                           stroke={driver?.team_color || 'rgb(204, 204, 204)'}
-                          strokeWidth={2}
+                          strokeWidth={highlightFastestLap && isFastestLapDriver ? 3 : 2}
                           dot={{ r: 3, strokeWidth: 1 }}
                           activeDot={{ r: 8, strokeWidth: 1 }}
                           strokeDasharray={strokeDasharray}
                           connectNulls
+                          yAxisId="time"
+                          opacity={opacity}
                         />
                       );
                     })}
@@ -380,20 +427,6 @@ const LapTimeCharts: React.FC<LapTimeChartsProps> = ({
                 </ResponsiveContainer>
               </div>
             )}
-            
-            {/* Legend */}
-            <div className="mt-4 text-xs text-muted-foreground">
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-8 h-2 bg-gray-400" style={{ borderStyle: 'solid' }}></div>
-                  <span>First Driver (Solid)</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-8 h-2 bg-gray-400" style={{ borderStyle: 'dashed' }}></div>
-                  <span>Second Driver (Dashed)</span>
-                </div>
-              </div>
-            </div>
           </>
         )}
       </CardContent>

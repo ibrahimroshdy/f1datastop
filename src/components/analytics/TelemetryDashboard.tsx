@@ -941,7 +941,25 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
             {/* Only show the chart area when we have data */}
             {hasData && (
               <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-                <TabsList className="grid grid-cols-3 sm:grid-cols-6">
+                {/* Dropdown for mobile view */}
+                <div className="sm:hidden w-full mb-4">
+                  <Select value={activeTab} onValueChange={handleTabChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select metric" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="speed">Speed</SelectItem>
+                      <SelectItem value="rpm">RPM</SelectItem>
+                      <SelectItem value="throttle">Throttle</SelectItem>
+                      <SelectItem value="brake">Brake</SelectItem>
+                      <SelectItem value="gear">Gear</SelectItem>
+                      <SelectItem value="drs">DRS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Regular tabs for larger screens */}
+                <TabsList className="hidden sm:grid sm:grid-cols-6">
                   <TabsTrigger value="speed">Speed</TabsTrigger>
                   <TabsTrigger value="rpm">RPM</TabsTrigger>
                   <TabsTrigger value="throttle">Throttle</TabsTrigger>

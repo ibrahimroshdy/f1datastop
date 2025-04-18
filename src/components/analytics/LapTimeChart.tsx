@@ -154,7 +154,7 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
             />
             <YAxis
               domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
-              label={{ value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', angle: -90, position: 'insideLeft' }}
+              label={{ value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', angle: -90, position: 'insideLeft', dx: -35 }}
               yAxisId="time"
               tickFormatter={(value) => {
                 if (displayMode === 'absolute') {

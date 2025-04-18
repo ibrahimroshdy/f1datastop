@@ -304,7 +304,24 @@ const RaceInfoPage = () => {
                 )}
                 
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
-                  <TabsList className="grid grid-cols-5 w-full">
+                  {/* Dropdown for mobile view */}
+                  <div className="md:hidden w-full mb-4">
+                    <Select value={activeTab} onValueChange={handleTabChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select view" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weather">Weather</SelectItem>
+                        <SelectItem value="radio">Team Radio</SelectItem>
+                        <SelectItem value="telemetry">Telemetry</SelectItem>
+                        <SelectItem value="lap-time">Laptimes Table</SelectItem>
+                        <SelectItem value="lap-charts">Laptimes Charts</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Regular tabs for larger screens */}
+                  <TabsList className="hidden md:grid grid-cols-5 w-full">
                     <TabsTrigger value="weather">Weather</TabsTrigger>
                     <TabsTrigger value="radio">Team Radio</TabsTrigger>
                     <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
