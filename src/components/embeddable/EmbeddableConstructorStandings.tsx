@@ -192,7 +192,7 @@ const EmbeddableConstructorStandings: React.FC<EmbeddableConstructorStandingsPro
               color: theme === 'dark' ? '#e05151' : '#cc3333'
             }}
           >
-            F1 DataStop
+            F1DataStop
           </a> 
           {' · '} 
           <a 
