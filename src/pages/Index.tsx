@@ -111,11 +111,7 @@ const Index = () => {
                 getTeamColor={getTeamColor} 
               />
               
-              <FastestPitStopCard
-                pitStopData={lastRacePitStops}
-                isLoading={isPitStopsLoading}
-                getTeamColor={getTeamColor}
-              />
+              <FastestPitStopCard />
             </div>
           </div>
         )}

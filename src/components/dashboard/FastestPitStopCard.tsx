@@ -5,19 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Timer } from "lucide-react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
-import { useLastRaceResults } from "@/hooks/useF1Data";
-
-interface FastestPitStopCardProps {
-  pitStopData: any;
-  isLoading: boolean;
-  getTeamColor?: (teamId: string) => string;
-}
+import { useLastRaceResults, useLastRacePitStops } from "@/hooks/useF1Data";
 
 interface FastestStop {
   driver: {
     code: string;
     name: string;
     team: string;
+    constructor: string;
   };
   lap: number;
   time: string;
@@ -85,20 +80,25 @@ const DRIVER_TEAM_MAPPING: Record<string, string> = {
   "hadjar": "haas"
 };
 
-function getDriverFastestPitStop(raceData: any, pitStopData: any): FastestStop[] {
+function processDriverFastestPitStops(raceData: any, pitStopData: any): FastestStop[] {
   // Extract pit stops data from the correct structure
-  // First try the standard structure
-  let pitStops = pitStopData?.data?.Races?.[0]?.PitStops;
+  // Try multiple possible data structures
   
-  // If not found, try the MRData structure
-  if (!pitStops && pitStopData?.MRData?.RaceTable?.Races?.[0]?.PitStops) {
-    pitStops = pitStopData.MRData.RaceTable.Races[0].PitStops;
+  // 1. Try direct MRData structure (from API response)
+  let pitStops = pitStopData?.MRData?.RaceTable?.Races?.[0]?.PitStops;
+  
+  // 2. Try nested under data.MRData structure
+  if (!pitStops || !pitStops.length) {
+    pitStops = pitStopData?.data?.MRData?.RaceTable?.Races?.[0]?.PitStops;
   }
   
-  // If not found, try another common structure where MRData might be nested under data
-  if (!pitStops && pitStopData?.data?.MRData?.RaceTable?.Races?.[0]?.PitStops) {
-    pitStops = pitStopData.data.MRData.RaceTable.Races[0].PitStops;
+  // 3. Try old structure with data.Races
+  if (!pitStops || !pitStops.length) {
+    pitStops = pitStopData?.data?.Races?.[0]?.PitStops;
   }
+  
+  // Log the pit stop data structure for debugging
+  console.log("Pit stop data structure:", JSON.stringify(pitStopData, null, 2).substring(0, 500) + "...");
   
   // Check if we have the pit stops data
   if (!pitStops || !pitStops.length) {
@@ -108,15 +108,18 @@ function getDriverFastestPitStop(raceData: any, pitStopData: any): FastestStop[]
 
   // Create a map to store driver information from race results
   const driverInfo = new Map();
+  const constructorNames = new Map();
   
   // Try to get driver info from race results if available
-  if (raceData?.data?.Results) {
-    raceData.data.Results.forEach((result: any) => {
+  if (raceData?.data?.results) {
+    raceData.data.results.forEach((result: any) => {
       driverInfo.set(result.Driver.driverId, {
         code: result.Driver.code,
         name: `${result.Driver.givenName} ${result.Driver.familyName}`,
-        team: result.Constructor?.constructorId || "unknown"
+        team: result.Constructor.constructorId,
+        constructor: result.Constructor.name
       });
+      constructorNames.set(result.Constructor.constructorId, result.Constructor.name);
     });
   }
 
@@ -139,7 +142,8 @@ function getDriverFastestPitStop(raceData: any, pitStopData: any): FastestStop[]
       driver = {
         code,
         name: driverId.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-        team
+        team,
+        constructor: team.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
       };
     }
     
@@ -162,45 +166,36 @@ function getDriverFastestPitStop(raceData: any, pitStopData: any): FastestStop[]
     .slice(0, 5); // Get top 5
 }
 
-const FastestPitStopCard = ({ pitStopData, isLoading }: FastestPitStopCardProps) => {
+const FastestPitStopCard = () => {
   const [fastestPitStops, setFastestPitStops] = useState<FastestStop[]>([]);
   const [error, setError] = useState<string | null>(null);
   
-  // We still need race results for driver information
+  // Get race results and pit stops from the hooks
   const lastRaceResult = useLastRaceResults();
+  const lastRacePitStops = useLastRacePitStops();
 
   useEffect(() => {
-    if (pitStopData) {
+    if (lastRaceResult.data && lastRacePitStops.data) {
       try {
-        const pitStops = getDriverFastestPitStop(lastRaceResult.data, pitStopData);
+        const pitStops = processDriverFastestPitStops(lastRaceResult.data, lastRacePitStops.data);
         
         if (pitStops.length > 0) {
           setFastestPitStops(pitStops);
           setError(null);
         } else {
-          // Check if we have pit stop data directly before setting error
-          const hasPitStops = 
-            !!pitStopData?.data?.Races?.[0]?.PitStops ||
-            !!pitStopData?.MRData?.RaceTable?.Races?.[0]?.PitStops ||
-            !!pitStopData?.data?.MRData?.RaceTable?.Races?.[0]?.PitStops;
-
-          if (!hasPitStops) {
-            setError("No pit stop data available");
-          } else {
-            setError("Error processing pit stop data");
-          }
+          setError("No pit stop data available");
         }
       } catch (err) {
         console.error("Error processing pit stop data:", err);
         setError("Error processing pit stop data");
       }
-    } else if (!isLoading) {
+    } else if (!lastRaceResult.isLoading && !lastRacePitStops.isLoading) {
       setError("No pit stop data available");
     }
-  }, [pitStopData, lastRaceResult.data, isLoading]);
+  }, [lastRaceResult.data, lastRacePitStops.data, lastRaceResult.isLoading, lastRacePitStops.isLoading]);
 
-  // Combined loading state from both the prop and the race results query
-  const combinedLoading = isLoading || lastRaceResult.isLoading;
+  // Combined loading state from both queries
+  const isLoading = lastRaceResult.isLoading || lastRacePitStops.isLoading;
 
   return (
     <Card className="h-full overflow-hidden">
@@ -214,7 +209,7 @@ const FastestPitStopCard = ({ pitStopData, isLoading }: FastestPitStopCardProps)
         </CardDescription>
       </CardHeader>
       <CardContent className="px-2">
-        {combinedLoading ? (
+        {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} className="h-10 w-full" />
@@ -240,7 +235,7 @@ const FastestPitStopCard = ({ pitStopData, isLoading }: FastestPitStopCardProps)
                   <div style={getTeamColorStyle(stop.driver.team)}>
                     <div className="font-semibold">{stop.driver.code}</div>
                     <div className="text-xs text-muted-foreground capitalize">
-                      {stop.driver.team.replace('_', ' ')}
+                      {stop.driver.constructor}
                     </div>
                   </div>
                 </div>
