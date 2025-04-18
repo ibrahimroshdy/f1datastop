@@ -9,6 +9,7 @@ import { Eye, EyeOff, ArrowLeft, Twitter } from 'lucide-react';
 import ReCaptcha from '@/components/auth/ReCaptcha';
 import { RECAPTCHA } from '@/constants/apiConfig';
 import f1Logo from '@/assets/f1-logo.svg';
+import { useTheme } from '@/context/ThemeContext';
 
 const Signup = () => {
   const [firstName, setFirstName] = useState('');
@@ -24,6 +25,7 @@ const Signup = () => {
   const [error, setError] = useState<string | null>(null);
   
   const { signUp, signInWithX } = useAuth();
+  const { theme } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,12 +64,12 @@ const Signup = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-f1-black p-4">
+    <div className={`flex items-center justify-center min-h-screen p-4 ${theme === 'dark' ? 'bg-f1-black' : 'bg-gray-100'}`}>
       <div className="w-full max-w-md">
         <div className="mb-6">
           <Link 
             to="/" 
-            className="inline-flex items-center text-gray-400 hover:text-white transition-colors"
+            className={`inline-flex items-center ${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Return to Dashboard
@@ -82,7 +84,7 @@ const Signup = () => {
             rel="noopener noreferrer"
           >
             <img 
-              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=950747&theme=light&t=1744238501973" 
+              src={`https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=950747&theme=${theme}&t=1744238501973`}
               alt="F1 DataStop - Live formula 1 news and race data | Product Hunt" 
               style={{ width: "200px", height: "43px" }} 
               width="200" 
@@ -95,10 +97,10 @@ const Signup = () => {
           <img src={f1Logo} alt="F1 DataStop" className="w-20 h-20" />
         </div>
         
-        <Card className="w-full bg-f1-dark border-gray-800">
+        <Card className={`w-full ${theme === 'dark' ? 'bg-f1-dark border-gray-800' : 'bg-white border-gray-200'}`}>
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-            <CardDescription>
+            <CardDescription className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
               Enter your information to create an account
             </CardDescription>
           </CardHeader>
@@ -113,7 +115,7 @@ const Signup = () => {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
-                    className="bg-gray-800 border-gray-700"
+                    className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}
                   />
                 </div>
                 <div className="space-y-2">
@@ -124,7 +126,7 @@ const Signup = () => {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
-                    className="bg-gray-800 border-gray-700"
+                    className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}
                   />
                 </div>
               </div>
@@ -136,7 +138,7 @@ const Signup = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="bg-gray-800 border-gray-700"
+                  className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}
                 />
               </div>
               <div className="space-y-2">
@@ -148,7 +150,7 @@ const Signup = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-gray-800 border-gray-700"
+                  className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}
                 />
               </div>
               <div className="space-y-2">
@@ -161,12 +163,12 @@ const Signup = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="bg-gray-800 border-gray-700 pr-10"
+                    className={`pr-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}`}
                   />
                   <button
                     type="button"
                     onClick={togglePasswordVisibility}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200"
+                    className={`absolute inset-y-0 right-0 pr-3 flex items-center ${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -182,12 +184,12 @@ const Signup = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    className="bg-gray-800 border-gray-700 pr-10"
+                    className={`pr-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}`}
                   />
                   <button
                     type="button"
                     onClick={toggleConfirmPasswordVisibility}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200"
+                    className={`absolute inset-y-0 right-0 pr-3 flex items-center ${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
                   >
                     {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -218,13 +220,13 @@ const Signup = () => {
               </Button>
               
               {/* reCAPTCHA privacy notice */}
-              <div className="text-xs text-gray-500 mt-2 text-center">
+              <div className={`text-xs mt-2 text-center ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
                 This site is protected by reCAPTCHA and the Google{" "}
                 <a 
                   href="https://policies.google.com/privacy"
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-gray-300 underline"
+                  className={theme === 'dark' ? 'text-gray-400 hover:text-gray-300 underline' : 'text-gray-600 hover:text-gray-800 underline'}
                 >
                   Privacy Policy
                 </a>{" "}
@@ -233,7 +235,7 @@ const Signup = () => {
                   href="https://policies.google.com/terms"
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-gray-300 underline"
+                  className={theme === 'dark' ? 'text-gray-400 hover:text-gray-300 underline' : 'text-gray-600 hover:text-gray-800 underline'}
                 >
                   Terms of Service
                 </a>{" "}
@@ -242,13 +244,13 @@ const Signup = () => {
 
               {/* X/Twitter Signup Button */}
               <div className="relative flex items-center justify-center mt-4">
-                <div className="absolute border-t border-gray-600 w-full"></div>
-                <span className="relative bg-f1-dark px-2 text-xs text-gray-400">OR</span>
+                <div className={`absolute border-t ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'} w-full`}></div>
+                <span className={`relative ${theme === 'dark' ? 'bg-f1-dark text-gray-400' : 'bg-white text-gray-500'} px-2 text-xs`}>OR</span>
               </div>
 
               <Button
                 type="button"
-                className="w-full mt-4 bg-gray-800 hover:bg-gray-700 text-white flex items-center justify-center"
+                className={`w-full mt-4 text-white flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-700 hover:bg-gray-600'}`}
                 onClick={() => signInWithX()}
                 disabled={isLoading}
               >
@@ -258,7 +260,7 @@ const Signup = () => {
             </form>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <p className="text-sm text-gray-400">
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
               Already have an account?{" "}
               <Link to="/auth/login" className="text-f1-red hover:underline">
                 Sign in
