@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -8,18 +8,18 @@ import { TEAM_COLORS } from "@/constants/f1Colors";
 import { getPitStops, getRaceResults } from "@/services/f1Service";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import TeamLogo from "@/components/common/TeamLogo";
 
-// Import team logos
-import ferrariLogo from "@/assets/constructor-logos/ferrari.png";
-import rbLogo from "@/assets/constructor-logos/rb.png";
-import redbullLogo from "@/assets/constructor-logos/redbull.png";
-import mclarenLogo from "@/assets/constructor-logos/mclaren.png";
-import sauberLogo from "@/assets/constructor-logos/sauber.png";
-import mercedesLogo from "@/assets/constructor-logos/mercedes.png";
-import astonmartinLogo from "@/assets/constructor-logos/astonmartin.png";
-import williamsLogo from "@/assets/constructor-logos/williams.png";
-import haasLogo from "@/assets/constructor-logos/haas.png";
-import alpineLogo from "@/assets/constructor-logos/alpine.png";
+// Helper function to format milliseconds into a readable format
+const formatMilliseconds = (ms: number): string => {
+  const totalSeconds = ms / 1000;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  
+  return minutes > 0 
+    ? `${minutes}:${seconds.toFixed(3).padStart(6, '0')}` 
+    : seconds.toFixed(3);
+};
 
 interface PitStopTableProps {
   year: number;
@@ -28,15 +28,19 @@ interface PitStopTableProps {
 
 interface DriverPitStop {
   driverId: string;
-  code: string;
-  name: string;
+  driver: string;
+  stops: number;
+  lap?: number;
+  timeOfDay?: string;
+  time?: string; // pit stop duration
+  formattedTime?: string;
+  totalTime: number;
   team: string;
-  stops: {
+  pitStops: Array<{
     lap: number;
     time: string;
-    duration: number;
-    totalDuration: number;
-  }[];
+    formattedTime: string;
+  }>;
 }
 
 interface DriverInfo {
@@ -46,23 +50,7 @@ interface DriverInfo {
 }
 
 // Define sort keys for type safety
-type SortKey = 'driver' | 'team' | 'stops' | 'totalTime';
-
-// Add team logo mapping before the component
-const TEAM_LOGOS: Record<string, string> = {
-  ferrari: ferrariLogo,
-  rb: rbLogo,
-  red_bull: redbullLogo,
-  redbull: redbullLogo,
-  mclaren: mclarenLogo,
-  sauber: sauberLogo,
-  mercedes: mercedesLogo,
-  aston_martin: astonmartinLogo,
-  astonmartin: astonmartinLogo,
-  williams: williamsLogo,
-  haas: haasLogo,
-  alpine: alpineLogo
-};
+type SortKey = 'stop' | 'driver' | 'lap' | 'time' | 'totalTime' | 'team';
 
 const PitStopTable = ({ year, round }: PitStopTableProps) => {
   const [pitStopData, setPitStopData] = useState<DriverPitStop[]>([]);
@@ -88,6 +76,9 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
           throw new Error("No race results available");
         }
 
+        // Set circuit name
+        setCircuitName(resultsResponse.data.Circuit?.circuitName || resultsResponse.data.raceName || "Unknown Circuit");
+
         // Create a map of driver information
         const driverInfo = new Map<string, DriverInfo>(
           resultsResponse.data.Results.map((result: any) => [
@@ -100,9 +91,6 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
           ])
         );
 
-        // Set circuit name
-        setCircuitName(resultsResponse.data.Circuit?.circuitName || resultsResponse.data.raceName || "Unknown Circuit");
-
         // Then get pit stop data
         const pitStopsResponse = await getPitStops(year, round);
         if (!pitStopsResponse?.data?.Races?.[0]?.PitStops) {
@@ -111,33 +99,44 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
 
         // Process pit stop data
         const pitStops = pitStopsResponse.data.Races[0].PitStops;
-        const driversMap = new Map<string, DriverPitStop>();
-
+        
+        // Group pit stops by driver
+        const driversMap = new Map();
+        
         pitStops.forEach((stop: any) => {
           const driverId = stop.driverId;
           const driver = driverInfo.get(driverId);
           
           if (!driver) return;
-
+          
+          // Convert duration to seconds
+          const duration = parseFloat(stop.duration);
+          
+          // If this is the first time we're seeing this driver
           if (!driversMap.has(driverId)) {
             driversMap.set(driverId, {
               driverId,
-              code: driver.code,
-              name: driver.name,
+              driver: driver.code,
+              stops: 1,
+              totalTime: duration,
               team: driver.team,
-              stops: []
+              pitStops: [{
+                lap: parseInt(stop.lap),
+                time: stop.duration,
+                formattedTime: stop.duration,
+              }]
+            });
+          } else {
+            // Update existing driver data
+            const driverData = driversMap.get(driverId);
+            driverData.stops += 1;
+            driverData.totalTime += duration;
+            driverData.pitStops.push({
+              lap: parseInt(stop.lap),
+              time: stop.duration,
+              formattedTime: stop.duration,
             });
           }
-
-          const driverData = driversMap.get(driverId)!;
-          const duration = parseFloat(stop.duration);
-          
-          driverData.stops.push({
-            lap: parseInt(stop.lap),
-            time: stop.time.split('T')[1], // Extract time part only
-            duration,
-            totalDuration: driverData.stops.reduce((sum, s) => sum + s.duration, duration)
-          });
         });
 
         // Convert map to array
@@ -157,48 +156,45 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
     }
   }, [year, round]);
 
-  // Calculate total time for a driver
-  const getTotalTime = (driver: DriverPitStop) => {
-    return driver.stops.reduce((sum, stop) => sum + stop.duration, 0);
-  };
-
   // Sort the data based on the current sort configuration
-  const sortedData = [...pitStopData].sort((a, b) => {
-    let aValue: string | number;
-    let bValue: string | number;
+  const sortedData = useMemo(() => {
+    return [...pitStopData].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
 
-    switch (sortConfig.key) {
-      case 'driver':
-        aValue = a.code;
-        bValue = b.code;
-        break;
-      case 'team':
-        aValue = a.team;
-        bValue = b.team;
-        break;
-      case 'stops':
-        aValue = a.stops.length;
-        bValue = b.stops.length;
-        break;
-      case 'totalTime':
-        aValue = getTotalTime(a);
-        bValue = getTotalTime(b);
-        break;
-      default:
-        aValue = getTotalTime(a);
-        bValue = getTotalTime(b);
-    }
+      switch (sortConfig.key) {
+        case 'driver':
+          aValue = a.driver;
+          bValue = b.driver;
+          break;
+        case 'team':
+          aValue = a.team;
+          bValue = b.team;
+          break;
+        case 'stop':
+          aValue = a.stops;
+          bValue = b.stops;
+          break;
+        case 'totalTime':
+          aValue = a.totalTime;
+          bValue = b.totalTime;
+          break;
+        default:
+          aValue = a.totalTime;
+          bValue = b.totalTime;
+      }
 
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortConfig.direction === 'asc' 
-        ? aValue.localeCompare(bValue) 
-        : bValue.localeCompare(aValue);
-    } else {
-      const numA = typeof aValue === 'number' ? aValue : 0;
-      const numB = typeof bValue === 'number' ? bValue : 0;
-      return sortConfig.direction === 'asc' ? numA - numB : numB - numA;
-    }
-  });
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'asc' 
+          ? aValue.localeCompare(bValue) 
+          : bValue.localeCompare(aValue);
+      } else {
+        const numA = typeof aValue === 'number' ? aValue : 0;
+        const numB = typeof bValue === 'number' ? bValue : 0;
+        return sortConfig.direction === 'asc' ? numA - numB : numB - numA;
+      }
+    });
+  }, [pitStopData, sortConfig]);
 
   // Handle column header click for sorting
   const handleSort = (key: SortKey) => {
@@ -250,7 +246,7 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
   return (
     <div className="h-full">
       <div className="mb-4">
-        <h2 className="text-2xl font-bold tracking-tight">Pit Stop Details</h2>
+        <h2 className="text-xl font-bold tracking-tight">Pit Stop Details</h2>
         <Badge variant="outline" className="mt-2">
           {circuitName}
         </Badge>
@@ -295,11 +291,11 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
               </TableHead>
               <TableHead 
                 className="w-[80px] text-right bg-background sticky top-0 cursor-pointer hover:bg-accent/50"
-                onClick={() => handleSort('stops')}
+                onClick={() => handleSort('stop')}
               >
                 <div className="flex items-center justify-end">
                   Stops
-                  {sortConfig.key === 'stops' ? (
+                  {sortConfig.key === 'stop' ? (
                     sortConfig.direction === 'asc' ? (
                       <ArrowUpIcon className="h-4 w-4 ml-1" />
                     ) : (
@@ -338,7 +334,7 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
                     className="flex items-center gap-2"
                     style={{ borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}` }}
                   >
-                    <span className="pl-2 font-medium">{driver.code}</span>
+                    <span className="pl-2 font-medium">{driver.driver}</span>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -346,15 +342,7 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center justify-center w-full">
-                          {TEAM_LOGOS[driver.team] ? (
-                            <img 
-                              src={TEAM_LOGOS[driver.team]} 
-                              alt={driver.team} 
-                              className="h-5 object-contain"
-                            />
-                          ) : (
-                            <span className="capitalize">{driver.team.replace('_', ' ')}</span>
-                          )}
+                          <TeamLogo constructorId={driver.team} size="sm" />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -363,19 +351,19 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
                     </Tooltip>
                   </TooltipProvider>
                 </TableCell>
-                <TableCell className="text-right">{driver.stops.length}</TableCell>
+                <TableCell className="text-right">{driver.stops}</TableCell>
                 <TableCell className="text-right font-mono">
-                  {getTotalTime(driver).toFixed(3)}s
+                  {driver.totalTime.toFixed(3)}s
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-2">
-                    {driver.stops.map((stop, index) => (
+                    {driver.pitStops.map((stop, index) => (
                       <Badge 
                         key={`${driver.driverId}-stop-${index}`}
                         variant="outline"
                         className="whitespace-nowrap"
                       >
-                        Lap {stop.lap}: {stop.duration.toFixed(3)}s
+                        Lap {stop.lap}: {stop.formattedTime}s
                       </Badge>
                     ))}
                   </div>

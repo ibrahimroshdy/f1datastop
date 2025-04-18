@@ -15,34 +15,7 @@ import {
 } from "@/components/ui/table";
 import SessionToggle from "./SessionToggle";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
-// Import team logos
-import ferrariLogo from "@/assets/constructor-logos/ferrari.png";
-import rbLogo from "@/assets/constructor-logos/rb.png";
-import redbullLogo from "@/assets/constructor-logos/redbull.png";
-import mclarenLogo from "@/assets/constructor-logos/mclaren.png";
-import sauberLogo from "@/assets/constructor-logos/sauber.png";
-import mercedesLogo from "@/assets/constructor-logos/mercedes.png";
-import astonmartinLogo from "@/assets/constructor-logos/astonmartin.png";
-import williamsLogo from "@/assets/constructor-logos/williams.png";
-import haasLogo from "@/assets/constructor-logos/haas.png";
-import alpineLogo from "@/assets/constructor-logos/alpine.png";
-
-// Add team logo mapping before the component
-const TEAM_LOGOS: Record<string, string> = {
-  ferrari: ferrariLogo,
-  rb: rbLogo,
-  red_bull: redbullLogo,
-  redbull: redbullLogo,
-  mclaren: mclarenLogo,
-  sauber: sauberLogo,
-  mercedes: mercedesLogo,
-  aston_martin: astonmartinLogo,
-  astonmartin: astonmartinLogo,
-  williams: williamsLogo,
-  haas: haasLogo,
-  alpine: alpineLogo
-};
+import TeamLogo from "@/components/common/TeamLogo";
 
 // Extend the interface to be compatible with the DriverSelector component
 interface CompatibleDriver {
@@ -436,17 +409,7 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="flex items-center justify-center w-full">
-                          {TEAM_LOGOS[driver.team] ? (
-                            <img 
-                              src={TEAM_LOGOS[driver.team]} 
-                              alt={driver.team} 
-                              className="h-5 object-contain"
-                            />
-                          ) : (
-                            <span className="text-sm text-muted-foreground capitalize">
-                              {driver.team.replace('_', ' ')}
-                            </span>
-                          )}
+                          <TeamLogo constructorId={driver.team} size="sm" />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>

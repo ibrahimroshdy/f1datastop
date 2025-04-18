@@ -199,11 +199,28 @@ const YearComparisonAnalytics = () => {
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="lapTimes">Lap Time Comparison</TabsTrigger>
-          <TabsTrigger value="positions">Position Change Comparison</TabsTrigger>
-          <TabsTrigger value="qualifying">Qualifying Comparison</TabsTrigger>
-        </TabsList>
+        {/* Tabs for medium and large screens, hidden on small screens */}
+        <div className="hidden sm:block">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="lapTimes">Lap Time Comparison</TabsTrigger>
+            <TabsTrigger value="positions">Position Change Comparison</TabsTrigger>
+            <TabsTrigger value="qualifying">Qualifying Comparison</TabsTrigger>
+          </TabsList>
+        </div>
+        
+        {/* Dropdown for mobile screens only */}
+        <div className="sm:hidden mb-4">
+          <Select value={selectedTab} onValueChange={setSelectedTab}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select comparison view" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="lapTimes">Lap Time Comparison</SelectItem>
+              <SelectItem value="positions">Position Change Comparison</SelectItem>
+              <SelectItem value="qualifying">Qualifying Comparison</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         
         <TabsContent value="lapTimes" className="space-y-4 mt-4">
           <Card>

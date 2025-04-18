@@ -1,18 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
-// Import team logos
-import mclarenLogo from "@/assets/constructor-logos/mclaren.png";
-import mercedesLogo from "@/assets/constructor-logos/mercedes.png";
-import redbullLogo from "@/assets/constructor-logos/redbull.png";
-import ferrariLogo from "@/assets/constructor-logos/ferrari.png";
-import haasLogo from "@/assets/constructor-logos/haas.png";
-import williamsLogo from "@/assets/constructor-logos/williams.png";
-import astonmartinLogo from "@/assets/constructor-logos/astonmartin.png";
-import rbLogo from "@/assets/constructor-logos/rb.png";
-import alpineLogo from "@/assets/constructor-logos/alpine.png";
-import sauberLogo from "@/assets/constructor-logos/sauber.png";
+import TeamLogo from "@/components/common/TeamLogo";
 
 interface DriverStandingsTableProps {
   driverStandings: any;
@@ -41,44 +30,11 @@ const getTeamColorStyle = (teamId: string) => {
   };
 };
 
-// Function to get team logo based on constructor ID
-const getTeamLogo = (constructorId: string) => {
-  const normalizedId = constructorId.toLowerCase();
-  
-  switch (normalizedId) {
-    case "mclaren":
-      return mclarenLogo;
-    case "mercedes":
-      return mercedesLogo;
-    case "red_bull":
-      return redbullLogo;
-    case "ferrari":
-      return ferrariLogo;
-    case "haas":
-      return haasLogo;
-    case "williams":
-      return williamsLogo;
-    case "aston_martin":
-      return astonmartinLogo;
-    case "alphatauri":
-    case "rb":
-      return rbLogo;
-    case "alpine":
-      return alpineLogo;
-    case "alfa":
-    case "sauber":
-      return sauberLogo;
-    default:
-      // Return a default logo or placeholder
-      return null;
-  }
-};
-
 const DriverStandingsTable = ({ driverStandings, getTeamColor, showAllDrivers }: DriverStandingsTableProps) => {
   const driversToShow = showAllDrivers ? driverStandings?.data : driverStandings?.data?.slice(0, 10);
 
   return (
-    <div>
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="border-border">
@@ -104,15 +60,11 @@ const DriverStandingsTable = ({ driverStandings, getTeamColor, showAllDrivers }:
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center justify-center w-full h-12">
-                        {getTeamLogo(driver.Constructors[0].constructorId) ? (
-                          <img 
-                            src={getTeamLogo(driver.Constructors[0].constructorId)} 
-                            alt={driver.Constructors[0].name} 
-                            className="h-8 w-auto object-contain mx-auto"
-                          />
-                        ) : (
-                          <span className="text-base">{driver.Constructors[0].name}</span>
-                        )}
+                        <TeamLogo 
+                          constructorId={driver.Constructors[0].constructorId}
+                          alt={driver.Constructors[0].name}
+                          size="md"
+                        />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -130,5 +82,4 @@ const DriverStandingsTable = ({ driverStandings, getTeamColor, showAllDrivers }:
   );
 };
 
-export { DriverStandingsTable, getTeamLogo };
 export default DriverStandingsTable;

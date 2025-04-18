@@ -1,27 +1,18 @@
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { useConstructorStandings, useDriverStandings } from "@/hooks/useF1Data";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import YearSelector from "@/components/common/YearSelector";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useConstructorStandings, useDriverStandings } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
-// Import team logos
-import ferrariLogo from "@/assets/constructor-logos/ferrari.png";
-import mclarenLogo from "@/assets/constructor-logos/mclaren.png";
-import mercedesLogo from "@/assets/constructor-logos/mercedes.png";
-import rbLogo from "@/assets/constructor-logos/rb.png";
-import redbullLogo from "@/assets/constructor-logos/redbull.png";
-import sauberLogo from "@/assets/constructor-logos/sauber.png";
-import astonmartinLogo from "@/assets/constructor-logos/astonmartin.png";
-import williamsLogo from "@/assets/constructor-logos/williams.png";
-import haasLogo from "@/assets/constructor-logos/haas.png";
-import alpineLogo from "@/assets/constructor-logos/alpine.png";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import TeamLogo from "@/components/common/TeamLogo";
+import YearSelector from "@/components/common/YearSelector";
 
 const Constructors = () => {
   const currentYear = new Date().getFullYear();
@@ -56,32 +47,6 @@ const Constructors = () => {
     return constructor.position === "1";
   };
   
-  // Helper function to get team logo based on constructorId
-  const getTeamLogoUrl = (constructorId: string) => {
-    const teamLogos: Record<string, string> = {
-      "ferrari": ferrariLogo,
-      "mclaren": mclarenLogo,
-      "mercedes": mercedesLogo,
-      "rb": rbLogo,
-      "red_bull": redbullLogo,
-      "sauber": sauberLogo,
-      "aston_martin": astonmartinLogo,
-      "williams": williamsLogo,
-      "haas": haasLogo,
-      "alpine": alpineLogo,
-      // Special cases for earlier years
-      "alphatauri": rbLogo,
-      "alpha_tauri": rbLogo,
-      "toro_rosso": rbLogo,
-      "renault": alpineLogo,
-      "racing_point": astonmartinLogo,
-      "force_india": astonmartinLogo,
-      "alfa": sauberLogo
-    };
-    
-    return teamLogos[constructorId] || "";
-  };
-
   // Helper function to remove emoji flags from race names
   const removeFlag = (raceName: string) => {
     if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
@@ -153,14 +118,14 @@ const Constructors = () => {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Avatar className="h-14 w-14 rounded-md flex items-center justify-center overflow-hidden border-2" style={{ backgroundColor: 'white', borderColor: teamColor }}>
-                              <AvatarImage 
-                                src={getTeamLogoUrl(constructor.Constructor.constructorId)}
-                                alt={constructor.Constructor.name}
-                                className="object-contain p-1.5"
-                              />
-                              <AvatarFallback style={{ backgroundColor: teamColor }} className="text-white font-bold text-lg">
-                                {constructor.Constructor.name.charAt(0)}
-                              </AvatarFallback>
+                              <div className="w-full h-full flex items-center justify-center">
+                                <TeamLogo 
+                                  constructorId={constructor.Constructor.constructorId}
+                                  alt={constructor.Constructor.name}
+                                  className="max-h-10 max-w-10"
+                                  noBackground={true}
+                                />
+                              </div>
                             </Avatar>
                           </TooltipTrigger>
                           <TooltipContent>
