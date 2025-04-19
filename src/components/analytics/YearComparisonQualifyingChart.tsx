@@ -294,11 +294,6 @@ const QualifyingChartView = ({
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis 
                 dataKey="driverCode" 
-                label={{ 
-                  value: 'Driver', 
-                  position: 'insideBottom', 
-                  offset: 0 
-                }}
                 tick={(props) => {
                   const { x, y, payload } = props;
                   return (
@@ -460,7 +455,7 @@ const QualifyingChartView = ({
                   strokeDasharray="5 5"
                   ifOverflow="extendDomain"
                   label={{
-                    value: `Fastest: ${fastestDriver.formattedTime}`,
+                    value: `Fastest: ${fastestDriver.formattedTime} (${fastestDriver.name}, ${selectedChartSession.toUpperCase()}, ${fastestDriver.year})`,
                     fill: '#a855f7',
                     fontSize: 10,
                     fontWeight: 'bold',
