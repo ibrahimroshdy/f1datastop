@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Flag } from "lucide-react";
+import { AlertTriangle, Flag, Clock } from "lucide-react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { useLastRaceResults, useRaceSchedule } from "@/hooks/useF1Data";
 import { getRaceQualifying } from "@/services/f1Service";
@@ -53,49 +53,70 @@ const QualifyingResultsCard = () => {
   const [countryCode, setCountryCode] = useState<string>("");
   const [lastRace, setLastRace] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPendingData, setIsPendingData] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Get last race results to identify the last race round and year
   const lastRaceResult = useLastRaceResults();
   const { data: raceScheduleData } = useRaceSchedule();
 
   useEffect(() => {
-    const fetchQualifyingData = async () => {
+    const fetchQualifyingData = async (targetRace: any, fallbackToOlder: boolean = false) => {
       setIsLoading(true);
       setError(null);
+      setIsPendingData(false);
       
       try {
-        if (!raceScheduleData?.data || !lastRaceResult.data) {
+        if (!targetRace) {
           throw new Error("Race data not available");
         }
         
-        // Find the last completed race from the schedule
-        const races = raceScheduleData.data;
-        const now = new Date();
-        const completedRaces = races.filter((race: any) => new Date(race.date) < now);
-        
-        if (completedRaces.length === 0) {
-          throw new Error("No completed races found");
-        }
-        
-        // Get the last completed race
-        const lastRace = completedRaces[completedRaces.length - 1];
+        console.log(`Fetching qualifying data for ${targetRace.season} Round ${targetRace.round} - ${targetRace.raceName}`);
         
         // Set circuit name and country
-        setCircuitName(getRaceNameWithoutEmoji(lastRace.raceName) || "");
-        const country = lastRace.Circuit?.Location?.country || "";
+        setCircuitName(getRaceNameWithoutEmoji(targetRace.raceName) || "");
+        const country = targetRace.Circuit?.Location?.country || "";
         setCountryName(country);
         setCountryCode(getCountryCode(country) || "");
-        setLastRace(lastRace);
+        setLastRace(targetRace);
         
-        // Fetch qualifying data for the last race
-        const year = parseInt(lastRace.season);
-        const round = lastRace.round;
+        // Fetch qualifying data
+        const year = parseInt(targetRace.season);
+        const round = targetRace.round;
         
         const qualifyingData = await getRaceQualifying(year, round);
         
         if (!qualifyingData?.data?.QualifyingResults || qualifyingData.data.QualifyingResults.length === 0) {
-          throw new Error("No qualifying data available");
+          if (fallbackToOlder) {
+            throw new Error("No qualifying data available for any recent races");
+          }
+          
+          // Check if this is the most recent race with qualifying expected to be completed
+          const now = new Date();
+          const qualifyingDate = new Date(targetRace.qualifyingDate);
+          const timeSinceQuali = now.getTime() - qualifyingDate.getTime();
+          const hoursSinceQuali = timeSinceQuali / (1000 * 60 * 60);
+          
+          // If qualifying was very recent (within 3 hours), data might still be uploading
+          if (hoursSinceQuali < 3 && retryCount < 3) {
+            setRetryCount(prev => prev + 1);
+            setIsPendingData(true);
+            setError("Qualifying data is not yet available, results will appear soon");
+            setIsLoading(false);
+            
+            // Retry after 1 minute
+            setTimeout(() => {
+              fetchQualifyingData(targetRace, false);
+            }, 60000);
+            return;
+          }
+          
+          // If we've retried or it's been longer, try previous race with qualifying
+          throw new Error("Recent qualifying data not available yet");
         }
+        
+        // Reset retry count on success
+        setRetryCount(0);
         
         // Process qualifying data
         const processedResults = qualifyingData.data.QualifyingResults.map((result: any) => {
@@ -126,13 +147,74 @@ const QualifyingResultsCard = () => {
         setIsLoading(false);
       } catch (error: any) {
         console.error("Error fetching qualifying data:", error);
+        
+        // If this is the first try and we failed, attempt to get previous qualifying
+        if (!fallbackToOlder && raceScheduleData?.data && raceScheduleData.data.length > 0) {
+          const races = raceScheduleData.data;
+          const now = new Date();
+          
+          // Find races with completed qualifying
+          const racesWithQualifyingStatus = races.map((race: any) => {
+            const raceDate = new Date(race.date);
+            const qualifyingDate = new Date(raceDate);
+            qualifyingDate.setDate(raceDate.getDate() - 1);
+            
+            return {
+              ...race,
+              qualifyingDate,
+              hasQualifyingOccurred: qualifyingDate < now
+            };
+          });
+          
+          const racesWithCompletedQualifying = racesWithQualifyingStatus.filter(
+            (race: any) => race.hasQualifyingOccurred
+          );
+          
+          // Try the second most recent race if available
+          if (racesWithCompletedQualifying.length > 1) {
+            const previousQualifying = racesWithCompletedQualifying[racesWithCompletedQualifying.length - 2];
+            console.log("Falling back to previous qualifying:", previousQualifying.raceName);
+            fetchQualifyingData(previousQualifying, true);
+            return;
+          }
+        }
+        
         setError(error.message || "Failed to load qualifying data");
         setIsLoading(false);
       }
     };
     
-    if (lastRaceResult.data && raceScheduleData?.data) {
-      fetchQualifyingData();
+    if (raceScheduleData?.data) {
+      const races = raceScheduleData.data;
+      const now = new Date();
+      
+      // Process races to determine if qualifying has occurred
+      const racesWithQualifyingStatus = races.map((race: any) => {
+        const raceDate = new Date(race.date);
+        // Estimate qualifying date as 1 day before race
+        const qualifyingDate = new Date(raceDate);
+        qualifyingDate.setDate(raceDate.getDate() - 1);
+        
+        return {
+          ...race,
+          qualifyingDate,
+          hasQualifyingOccurred: qualifyingDate < now
+        };
+      });
+      
+      // Filter races where qualifying has already occurred
+      const racesWithCompletedQualifying = racesWithQualifyingStatus.filter(
+        (race: any) => race.hasQualifyingOccurred
+      );
+      
+      if (racesWithCompletedQualifying.length === 0) {
+        setError("No completed qualifying sessions found");
+        setIsLoading(false);
+      } else {
+        // Get the most recent qualifying
+        const lastQualifyingRace = racesWithCompletedQualifying[racesWithCompletedQualifying.length - 1];
+        fetchQualifyingData(lastQualifyingRace);
+      }
     }
   }, [lastRaceResult.data, raceScheduleData]);
 
@@ -168,9 +250,12 @@ const QualifyingResultsCard = () => {
               ))}
             </div>
           ) : error ? (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
+            <Alert variant={isPendingData ? "default" : "destructive"} className={isPendingData ? "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800" : ""}>
+              {isPendingData ? 
+                <Clock className="h-4 w-4 animate-pulse" /> : 
+                <AlertTriangle className="h-4 w-4" />
+              }
+              <AlertTitle>{isPendingData ? "Processing" : "Error"}</AlertTitle>
               <AlertDescription>
                 {error}
               </AlertDescription>
