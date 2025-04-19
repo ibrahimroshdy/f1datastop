@@ -11,7 +11,7 @@ import YearComparisonAnalytics from "@/components/analytics/YearComparisonAnalyt
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, Loader2, GitCompare } from "lucide-react";
+import { Info, Loader2, GitCompare, Clock, TrendingUp, Timer, Flag, Wrench } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Function to determine the most appropriate default year
@@ -82,49 +82,72 @@ const Analytics = () => {
           </TabsList>
           
           <TabsContent value="raceAnalytics" className="mt-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-              <div className="flex flex-col md:flex-row items-center gap-4">
-                <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
-                
-                {isRaceScheduleLoading ? (
-                  <div className="w-[250px] flex items-center space-x-2">
-                    <Skeleton className="h-10 w-full" />
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <Select value={selectedRace} onValueChange={handleRaceChange}>
-                    <SelectTrigger className="w-[250px]">
-                      <SelectValue placeholder="Select race" />
-                    </SelectTrigger>
-                    <SelectContent>
+            <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Analyze detailed race data including lap times, position changes, qualifying performance, and pit stop strategies for any race in the selected season.
+              </AlertDescription>
+            </Alert>
+
+            <Card className="mb-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Race Selection</CardTitle>
+                <CardDescription>Select the season and race to analyze</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-4">
+                    <div className="w-full xs:w-auto">
+                      <label className="text-sm font-medium mb-1 block">Year</label>
+                      <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
+                    </div>
+                    <div className="w-full xs:w-auto flex-1">
+                      <label className="text-sm font-medium mb-1 block">Race</label>
                       {isRaceScheduleLoading ? (
-                        <SelectItem value="loading">
-                          <div className="flex items-center">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Loading races...
-                          </div>
-                        </SelectItem>
+                        <div className="w-full flex items-center space-x-2">
+                          <Skeleton className="h-10 w-full" />
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
                       ) : (
-                        raceScheduleData?.data?.map((race: any) => (
-                          <SelectItem key={race.round} value={race.round}>
-                            {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
-                          </SelectItem>
-                        ))
+                        <Select value={selectedRace} onValueChange={handleRaceChange}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select race" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {raceScheduleData?.data?.map((race: any) => (
+                              <SelectItem key={race.round} value={race.round}>
+                                {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       )}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
               {/* Tabs for larger screens */}
               <div className="hidden md:block">
                 <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="lapTimes">Race Times</TabsTrigger>
-                  <TabsTrigger value="positions">Race Position Changes</TabsTrigger>
-                  <TabsTrigger value="qualifying">Qualifying</TabsTrigger>
-                  <TabsTrigger value="pitstops">Pit Stops</TabsTrigger>
+                  <TabsTrigger value="lapTimes" className="flex gap-2 items-center">
+                    <Clock className="h-4 w-4" />
+                    <span>Race Times</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="positions" className="flex gap-2 items-center">
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Race Position Changes</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="qualifying" className="flex gap-2 items-center">
+                    <Flag className="h-4 w-4" />
+                    <span>Qualifying</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="pitstops" className="flex gap-2 items-center">
+                    <Wrench className="h-4 w-4" />
+                    <span>Pit Stops</span>
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -135,10 +158,30 @@ const Analytics = () => {
                     <SelectValue placeholder="Select analysis" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="lapTimes">Race Times</SelectItem>
-                    <SelectItem value="positions">Race Position Changes</SelectItem>
-                    <SelectItem value="qualifying">Qualifying</SelectItem>
-                    <SelectItem value="pitstops">Pit Stops</SelectItem>
+                    <SelectItem value="lapTimes">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span>Race Times</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="positions">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" />
+                        <span>Race Position Changes</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="qualifying">
+                      <div className="flex items-center gap-2">
+                        <Flag className="h-4 w-4" />
+                        <span>Qualifying</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="pitstops">
+                      <div className="flex items-center gap-2">
+                        <Wrench className="h-4 w-4" />
+                        <span>Pit Stops</span>
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
