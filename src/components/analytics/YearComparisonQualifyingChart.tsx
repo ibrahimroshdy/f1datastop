@@ -371,8 +371,12 @@ const QualifyingChartView = ({
               <Legend 
                 formatter={(value) => {
                   return value === `${baseYear}` ? 
-                    <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{baseYear} Season</span> : 
-                    <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>{comparisonYear} Season</span>;
+                    <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>
+                      <span className="hover:underline cursor-pointer inline-block transition-all duration-150 transform hover:scale-105">{baseYear} Season</span>
+                    </span> : 
+                    <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>
+                      <span className="hover:underline cursor-pointer inline-block transition-all duration-150 transform hover:scale-105">{comparisonYear} Season</span>
+                    </span>;
                 }}
                 layout="horizontal"
                 align="center"
@@ -413,15 +417,6 @@ const QualifyingChartView = ({
                       });
                     }
                   }
-                }}
-                onMouseEnter={(e: any) => {
-                  const target = e.currentTarget;
-                  target.style.cursor = 'pointer';
-                  target.style.opacity = '0.8';
-                }}
-                onMouseLeave={(e: any) => {
-                  const target = e.currentTarget;
-                  target.style.opacity = '1';
                 }}
               />
               
