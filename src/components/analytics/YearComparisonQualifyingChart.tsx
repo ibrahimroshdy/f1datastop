@@ -283,21 +283,21 @@ const QualifyingChartView = ({
           </div>
         </div>
       ) : (
-        <div className="h-[500px] border rounded-lg p-4 overflow-hidden">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-[400px] w-full">
+          <ResponsiveContainer width="100%" height="80%">
             <BarChart
               data={groupedChartData}
-              margin={{ top: 20, right: 50, left: 20, bottom: 80 }}
+              margin={{ top: 10, right: 30, left: 40, bottom: 10 }}
               barGap={0}
-              barCategoryGap={12}
+              barCategoryGap={10}
             >
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis 
                 dataKey="driverCode" 
                 label={{ 
                   value: 'Driver', 
-                  position: 'insideBottomRight', 
-                  offset: -10 
+                  position: 'insideBottom', 
+                  offset: 0 
                 }}
                 tick={(props) => {
                   const { x, y, payload } = props;
@@ -306,11 +306,11 @@ const QualifyingChartView = ({
                       <text 
                         x={0} 
                         y={0} 
-                        dy={10} 
+                        dy={8} 
                         textAnchor="end" 
                         fill="#888888"
                         transform="rotate(-45)"
-                        fontSize={12}
+                        fontSize={10}
                         fontWeight="bold"
                       >
                         {payload.value}
@@ -318,13 +318,14 @@ const QualifyingChartView = ({
                     </g>
                   );
                 }}
-                height={60}
+                height={30}
               />
               <YAxis 
                 domain={['auto', 'auto']}
                 tickFormatter={(seconds) => {
                   return formatTimeDisplay(seconds);
                 }}
+                width={70}
               />
               <Tooltip 
                 cursor={{ 
@@ -359,10 +360,12 @@ const QualifyingChartView = ({
                   color: theme === 'dark' ? '#fff' : '#1a202c',
                   borderRadius: '6px',
                   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                  padding: '8px 12px'
+                  padding: '6px 10px',
+                  fontSize: '12px'
                 }}
                 wrapperStyle={{
-                  zIndex: 100
+                  zIndex: 100,
+                  overflow: 'visible'
                 }}
               />
               <Legend 
@@ -371,7 +374,15 @@ const QualifyingChartView = ({
                     <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{baseYear} Season</span> : 
                     <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>{comparisonYear} Season</span>;
                 }}
-                wrapperStyle={{ paddingTop: 20 }}
+                layout="horizontal"
+                align="center"
+                verticalAlign="bottom"
+                wrapperStyle={{ 
+                  position: 'relative', 
+                  marginTop: 0, 
+                  paddingTop: 5,
+                  bottom: 'auto'
+                }}
                 onClick={(data) => {
                   if (data.value === `${baseYear}`) {
                     if (selectedBaseDrivers.length > 0) {
@@ -403,6 +414,15 @@ const QualifyingChartView = ({
                     }
                   }
                 }}
+                onMouseEnter={(e: any) => {
+                  const target = e.currentTarget;
+                  target.style.cursor = 'pointer';
+                  target.style.opacity = '0.8';
+                }}
+                onMouseLeave={(e: any) => {
+                  const target = e.currentTarget;
+                  target.style.opacity = '1';
+                }}
               />
               
               <Bar 
@@ -413,7 +433,7 @@ const QualifyingChartView = ({
                 stroke="#ed8a00"
                 strokeWidth={1}
                 minPointSize={3}
-                barSize={20}
+                barSize={16}
                 activeBar={{ 
                   stroke: '#d97706', 
                   strokeWidth: 2,
@@ -428,7 +448,7 @@ const QualifyingChartView = ({
                 stroke="#2563eb"
                 strokeWidth={1}
                 minPointSize={3}
-                barSize={20}
+                barSize={16}
                 activeBar={{ 
                   stroke: '#1d4ed8',
                   strokeWidth: 2,
@@ -441,15 +461,15 @@ const QualifyingChartView = ({
                 <ReferenceLine 
                   y={fastestTime} 
                   stroke="#a855f7" 
-                  strokeWidth={3}
+                  strokeWidth={2}
                   strokeDasharray="5 5"
                   ifOverflow="extendDomain"
                   label={{
-                    value: `Fastest: ${fastestDriver.formattedTime} (P${fastestDriver.position} - ${fastestDriver.name}, ${selectedChartSession.toUpperCase()}, ${fastestDriver.year})`,
+                    value: `Fastest: ${fastestDriver.formattedTime}`,
                     fill: '#a855f7',
-                    fontSize: 12,
+                    fontSize: 10,
                     fontWeight: 'bold',
-                    position: 'insideBottomRight'
+                    position: 'insideTopRight'
                   }}
                 />
               )}
@@ -457,13 +477,6 @@ const QualifyingChartView = ({
           </ResponsiveContainer>
         </div>
       )}
-      
-      <Alert className="mt-4 text-sm bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
-        <Timer className="h-4 w-4" />
-        <AlertDescription>
-          Chart shows {selectedChartSession.toUpperCase()} times for the selected drivers. Fastest time is marked with a purple dotted line.
-        </AlertDescription>
-      </Alert>
     </div>
   );
 };
