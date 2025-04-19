@@ -265,9 +265,9 @@ const Analytics = () => {
           </TabsContent>
           
           <TabsContent value="seasonComparison" className="mt-6">
-            <Alert className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
-              <GitCompare className="h-4 w-4" />
-              <AlertDescription>
+            <Alert className="mb-4 bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800">
+              <GitCompare className="h-4 w-4 mr-2 flex-shrink-0" />
+              <AlertDescription className="pl-0">
                 Compare lap times, position changes, and qualifying data between different seasons to see how performance has evolved.
               </AlertDescription>
             </Alert>
