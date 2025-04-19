@@ -54,6 +54,7 @@ export default function EmbeddableDriverStandings({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [driverStandings, setDriverStandings] = useState<DriverStanding[]>([]);
+  const [currentRound, setCurrentRound] = useState<string | null>(null);
 
   useEffect(() => {
     // Log props to help debugging
@@ -84,6 +85,8 @@ export default function EmbeddableDriverStandings({
     try {
       // Use the f1Service pattern from the codebase
       const BASE_URL = "https://api.jolpi.ca/ergast";
+      
+      // Fetch without specifying a round to get the latest data
       const response = await fetch(`${BASE_URL}/f1/${season}/driverStandings.json`, {
         mode: 'cors',
         headers: {
@@ -96,22 +99,35 @@ export default function EmbeddableDriverStandings({
       }
       
       const data = await response.json();
-      const apiDriverStandings = data.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
+      const standingsList = data.MRData?.StandingsTable?.StandingsLists?.[0];
+      const apiDriverStandings = standingsList?.DriverStandings || [];
+      
+      // Store the current round for display
+      if (standingsList?.round) {
+        setCurrentRound(standingsList.round);
+      }
       
       // Transform the API data format to our component format
-      const formattedDriverStandings: DriverStanding[] = apiDriverStandings.map((standing: ApiDriverStanding) => ({
-        position: parseInt(standing.position),
-        driver: {
-          code: standing.Driver.code,
-          firstName: standing.Driver.givenName,
-          lastName: standing.Driver.familyName,
-        },
-        team: {
-          name: standing.Constructors[0]?.name || 'Unknown Team',
-          color: getTeamColor(standing.Constructors[0]?.constructorId || 'default'),
-        },
-        points: parseFloat(standing.points),
-      }));
+      const formattedDriverStandings: DriverStanding[] = apiDriverStandings.map((standing: ApiDriverStanding) => {
+        // Get the last constructor in the array (the current team)
+        const currentConstructor = standing.Constructors.length > 0 
+          ? standing.Constructors[standing.Constructors.length - 1] 
+          : null;
+          
+        return {
+          position: parseInt(standing.position),
+          driver: {
+            code: standing.Driver.code,
+            firstName: standing.Driver.givenName,
+            lastName: standing.Driver.familyName,
+          },
+          team: {
+            name: currentConstructor?.name || 'Unknown Team',
+            color: getTeamColor(currentConstructor?.constructorId || 'default'),
+          },
+          points: parseFloat(standing.points),
+        };
+      });
       
       setDriverStandings(formattedDriverStandings);
     } catch (err) {
@@ -166,6 +182,10 @@ export default function EmbeddableDriverStandings({
         </div>
       ) : (
         <div className="overflow-x-auto h-full w-full flex-grow">
+          <div className="px-3 py-2 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">{season} Driver Standings</h2>
+            {currentRound && <span className="text-xs opacity-75">Round {currentRound}</span>}
+          </div>
           <table className="min-w-full divide-y" style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead className={cn(themeClasses.headerBg)}>
               <tr>

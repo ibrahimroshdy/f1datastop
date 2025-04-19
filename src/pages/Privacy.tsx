@@ -77,7 +77,7 @@ const Privacy = () => {
           If you have any questions about this Privacy Policy or our data practices, please contact us at:
           <br />
           <br />
-          <strong>Email:</strong> privacy@f1datastop.com
+          <strong>Email:</strong> admin@f1datastop.com
         </p>
       </div>
     </div>
