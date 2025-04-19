@@ -154,47 +154,51 @@ const QualifyingChartView = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Qualifying Chart Comparison</h2>
-        <div className="text-sm text-muted-foreground">
-          <span>{baseYear} ({baseCircuit})</span> vs <span>{comparisonYear} ({comparisonCircuit})</span>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
+        <div className="flex flex-col md:flex-row gap-2 md:items-center">
+          <Badge variant="outline" className="border-amber-500 py-1">
+            {baseYear} - {baseCircuit}
+          </Badge>
+          <span className="hidden md:inline">vs</span>
+          <Badge variant="outline" className="border-blue-500 py-1">
+            {comparisonYear} - {comparisonCircuit}
+          </Badge>
+        </div>
+        
+        <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800 p-3 rounded-lg">
+          <button
+            onClick={() => handleChartSessionChange('q1')}
+            className={`flex-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+              selectedChartSession === 'q1'
+                ? 'bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800'
+                : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400'
+            }`}
+          >
+            Q1
+          </button>
+          <button
+            onClick={() => handleChartSessionChange('q2')}
+            className={`flex-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+              selectedChartSession === 'q2'
+                ? 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
+                : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400'
+            }`}
+          >
+            Q2
+          </button>
+          <button
+            onClick={() => handleChartSessionChange('q3')}
+            className={`flex-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+              selectedChartSession === 'q3'
+                ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
+                : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400'
+            }`}
+          >
+            Q3
+          </button>
         </div>
       </div>
       
-      {/* Session selector with improved styling */}
-      <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800 p-3 rounded-lg mb-4">
-        <button
-          onClick={() => handleChartSessionChange('q1')}
-          className={`flex-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-            selectedChartSession === 'q1'
-              ? 'bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800'
-              : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400'
-          }`}
-        >
-          Q1
-        </button>
-        <button
-          onClick={() => handleChartSessionChange('q2')}
-          className={`flex-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-            selectedChartSession === 'q2'
-              ? 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
-              : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400'
-          }`}
-        >
-          Q2
-        </button>
-        <button
-          onClick={() => handleChartSessionChange('q3')}
-          className={`flex-1 px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-            selectedChartSession === 'q3'
-              ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
-              : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400'
-          }`}
-        >
-          Q3
-        </button>
-      </div>
-
       {/* Driver selection UI */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
