@@ -433,7 +433,21 @@ const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = 
                   stroke={`#f59e0b`} // Amber color for base year
                   strokeDasharray={driver.finishPosition === 1 ? "0" : "5 5"}
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
-                  dot={{ r: 2, fill: `#f59e0b` }}
+                  dot={(props) => {
+                    if (!props.cx || !props.cy || isNaN(props.cx) || isNaN(props.cy) || 
+                        !props.payload[`${driver.code}_${baseYear}`]) {
+                      return null;
+                    }
+                    return (
+                      <circle
+                        key={`dot-${driver.code}-${baseYear}-${props.index}`}
+                        cx={props.cx}
+                        cy={props.cy}
+                        r={2}
+                        fill={`#f59e0b`}
+                      />
+                    );
+                  }}
                   activeDot={{ r: 6 }}
                   connectNulls={true}
                 />
@@ -451,7 +465,21 @@ const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = 
                   stroke={`#3b82f6`} // Blue color for comparison year
                   strokeDasharray={driver.finishPosition === 1 ? "0" : "5 5"}
                   strokeWidth={driver.finishPosition === 1 ? 3 : 2}
-                  dot={{ r: 2, fill: `#3b82f6` }}
+                  dot={(props) => {
+                    if (!props.cx || !props.cy || isNaN(props.cx) || isNaN(props.cy) || 
+                        !props.payload[`${driver.code}_${comparisonYear}`]) {
+                      return null;
+                    }
+                    return (
+                      <circle
+                        key={`dot-${driver.code}-${comparisonYear}-${props.index}`}
+                        cx={props.cx}
+                        cy={props.cy}
+                        r={2}
+                        fill={`#3b82f6`}
+                      />
+                    );
+                  }}
                   activeDot={{ r: 6 }}
                   connectNulls={true}
                 />

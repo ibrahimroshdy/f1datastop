@@ -449,6 +449,7 @@ const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = 
                     }
                     return (
                       <circle
+                        key={`dot-${driver.code}-${baseYear}-${props.index}`}
                         cx={props.cx}
                         cy={props.cy}
                         r={3}
@@ -483,6 +484,7 @@ const YearComparisonPositionChart: React.FC<YearComparisonPositionChartProps> = 
                     }
                     return (
                       <circle
+                        key={`dot-${driver.code}-${comparisonYear}-${props.index}`}
                         cx={props.cx}
                         cy={props.cy}
                         r={3}

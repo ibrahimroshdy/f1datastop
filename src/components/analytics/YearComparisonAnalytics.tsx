@@ -4,11 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, GitCompare, Loader2 } from "lucide-react";
+import { Info, GitCompare, Loader2, BarChart3, Table2, Clock, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import YearComparisonLapChart from "./YearComparisonLapChart";
 import YearComparisonPositionChart from "./YearComparisonPositionChart";
-import YearComparisonQualifyingChart from "@/components/analytics/YearComparisonQualifyingChart";
+import YearComparisonQualifyingChart from "./YearComparisonQualifyingChart";
 
 // Function to determine the most appropriate default years
 const getDefaultYears = () => {
@@ -201,10 +201,23 @@ const YearComparisonAnalytics = () => {
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         {/* Tabs for medium and large screens, hidden on small screens */}
         <div className="hidden sm:block">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="lapTimes">Lap Time Comparison</TabsTrigger>
-          <TabsTrigger value="positions">Position Change Comparison</TabsTrigger>
-          <TabsTrigger value="qualifying">Qualifying Comparison</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="lapTimes">
+            <Clock className="h-4 w-4 mr-2" />
+            Lap Times
+          </TabsTrigger>
+          <TabsTrigger value="positions">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Position Changes
+          </TabsTrigger>
+          <TabsTrigger value="qualifyingTable">
+            <Table2 className="h-4 w-4 mr-2" />
+            Qualifying Table
+          </TabsTrigger>
+          <TabsTrigger value="qualifyingChart">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Qualifying Chart
+          </TabsTrigger>
         </TabsList>
         </div>
         
@@ -217,7 +230,8 @@ const YearComparisonAnalytics = () => {
             <SelectContent>
               <SelectItem value="lapTimes">Lap Time Comparison</SelectItem>
               <SelectItem value="positions">Position Change Comparison</SelectItem>
-              <SelectItem value="qualifying">Qualifying Comparison</SelectItem>
+              <SelectItem value="qualifyingTable">Qualifying Table</SelectItem>
+              <SelectItem value="qualifyingChart">Qualifying Chart</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -260,12 +274,12 @@ const YearComparisonAnalytics = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="qualifying" className="space-y-4 mt-4">
+        <TabsContent value="qualifyingTable" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Qualifying Comparison</CardTitle>
+              <CardTitle>Qualifying Time Comparison</CardTitle>
               <CardDescription>
-                Compare qualifying times (Q1, Q2, Q3) between drivers across different seasons.
+                Compare qualifying times (Q1, Q2, Q3) between drivers across different seasons in a detailed table format.
               </CardDescription>
             </CardHeader>
             <CardContent className="h-[600px]">
@@ -274,6 +288,26 @@ const YearComparisonAnalytics = () => {
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}
                 comparisonRound={selectedRaceComparison}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="qualifyingChart" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Qualifying Chart Comparison</CardTitle>
+              <CardDescription>
+                Compare qualifying performance between two seasons with interactive bar charts showing Q1, Q2, and Q3 times.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-[600px]">
+              <YearComparisonQualifyingChart 
+                baseYear={baseYear}
+                baseRound={selectedRaceBase}
+                comparisonYear={comparisonYear}
+                comparisonRound={selectedRaceComparison}
+                chartView={true}
               />
             </CardContent>
           </Card>

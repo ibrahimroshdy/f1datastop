@@ -1,14 +1,14 @@
-
 import { useState } from "react";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, ArrowLeftRight, Loader2 } from "lucide-react";
+import { Info, ArrowLeftRight, Loader2, BarChart3, Table2, Clock, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import YearComparisonLapChart from "./YearComparisonLapChart";
 import YearComparisonPositionChart from "./YearComparisonPositionChart";
+import YearComparisonQualifyingChart from "@/components/seasonComparison/YearComparisonQualifyingChart";
 import DisplayModeToggle from "./DisplayModeToggle";
 
 const YearComparisonAnalytics = () => {
@@ -18,6 +18,7 @@ const YearComparisonAnalytics = () => {
   const [selectedRaceComparison, setSelectedRaceComparison] = useState<string>("1");
   const [selectedTab, setSelectedTab] = useState<string>("lapTimes");
   const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
+  const [sessionType, setSessionType] = useState<'race' | 'qualifying'>('race');
   
   const { 
     data: baseRaceSchedule, 
@@ -53,6 +54,10 @@ const YearComparisonAnalytics = () => {
     setDisplayMode(prev => prev === 'absolute' ? 'gap' : 'absolute');
   };
 
+  const handleSessionTypeChange = (value: string) => {
+    setSessionType(value as 'race' | 'qualifying');
+  };
+
   const cleanRaceName = (raceName: string) => {
     if (!raceName) return "";
     
@@ -81,12 +86,23 @@ const YearComparisonAnalytics = () => {
 
   const yearOptions = generateYearOptions();
 
+  // Check if the selected race name contains "Unknown" which indicates data might not be available
+  const getCircuitName = (scheduleData: any, round: string) => {
+    if (!scheduleData?.data) return "";
+    const race = scheduleData.data.find((r: any) => r.round === round);
+    return race?.Circuit?.circuitName || cleanRaceName(race?.raceName || "");
+  };
+
+  const baseCircuitName = getCircuitName(baseRaceSchedule, selectedRaceBase);
+  const comparisonCircuitName = getCircuitName(comparisonRaceSchedule, selectedRaceComparison);
+  const hasUnknownCircuit = baseCircuitName.includes("Unknown") || comparisonCircuitName.includes("Unknown");
+
   return (
     <div className="space-y-6">
       <Alert className="bg-amber-50 text-amber-800 border-amber-200">
         <ArrowLeftRight className="h-4 w-4" />
         <AlertDescription>
-          Compare lap times and position changes from races in different seasons. 
+          Compare lap times, position changes, and qualifying data from different seasons. 
           Select a base year and a comparison year to see how performance has evolved.
         </AlertDescription>
       </Alert>
@@ -197,32 +213,79 @@ const YearComparisonAnalytics = () => {
         </Card>
       </div>
 
-      <div className="flex justify-end mb-4">
+      {hasUnknownCircuit && (
+        <Alert className="mb-4 bg-yellow-50 text-yellow-800 border-yellow-200">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            One or more of your selected races appears to be upcoming. Some data might not be available yet.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex flex-wrap justify-between mb-4 gap-4">
+        <div className="w-full md:w-auto">
+          <Select value={sessionType} onValueChange={handleSessionTypeChange}>
+            <SelectTrigger className="min-w-[180px]">
+              <SelectValue placeholder="Session Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="race">Race Data</SelectItem>
+              <SelectItem value="qualifying">Qualifying Data</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <DisplayModeToggle displayMode={displayMode} onToggle={toggleDisplayMode} />
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="lapTimes">Lap Time Comparison</TabsTrigger>
-          <TabsTrigger value="positions">Position Change Comparison</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="lapTimes">
+            <Clock className="h-4 w-4 mr-2" />
+            {sessionType === 'race' ? 'Lap Times' : 'Qualifying Times'}
+          </TabsTrigger>
+          <TabsTrigger value="positions">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            {sessionType === 'race' ? 'Position Changes' : 'Grid Positions'}
+          </TabsTrigger>
+          <TabsTrigger value="qualifyingTable">
+            <Table2 className="h-4 w-4 mr-2" />
+            Qualifying Table
+          </TabsTrigger>
+          <TabsTrigger value="qualifyingChart">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Qualifying Chart
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="lapTimes" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Lap Time Comparison</CardTitle>
+              <CardTitle>
+                {sessionType === 'race' ? 'Lap Time Comparison' : 'Qualifying Time Comparison'}
+              </CardTitle>
               <CardDescription>
-                Compare lap times between two different seasons at the same track or different tracks.
+                {sessionType === 'race' 
+                  ? 'Compare lap times between two different seasons at the same track or different tracks.'
+                  : 'Compare qualifying times (Q1, Q2, Q3) between drivers across different seasons.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="h-[600px]">
-              <YearComparisonLapChart 
-                baseYear={baseYear}
-                baseRound={selectedRaceBase}
-                comparisonYear={comparisonYear}
-                comparisonRound={selectedRaceComparison}
-                displayMode={displayMode}
-              />
+              {sessionType === 'race' ? (
+                <YearComparisonLapChart 
+                  baseYear={baseYear}
+                  baseRound={selectedRaceBase}
+                  comparisonYear={comparisonYear}
+                  comparisonRound={selectedRaceComparison}
+                  displayMode={displayMode}
+                />
+              ) : (
+                <YearComparisonQualifyingChart 
+                  baseYear={baseYear}
+                  baseRound={selectedRaceBase}
+                  comparisonYear={comparisonYear}
+                  comparisonRound={selectedRaceComparison}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -230,18 +293,71 @@ const YearComparisonAnalytics = () => {
         <TabsContent value="positions" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Position Change Comparison</CardTitle>
+              <CardTitle>
+                {sessionType === 'race' ? 'Position Change Comparison' : 'Grid Position Comparison'}
+              </CardTitle>
               <CardDescription>
-                Compare how positions changed throughout races in different seasons.
+                {sessionType === 'race'
+                  ? 'Compare how positions changed throughout races in different seasons.'
+                  : 'Compare qualifying grid positions between drivers across different seasons.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="h-[600px]">
-              <YearComparisonPositionChart 
+              {sessionType === 'race' ? (
+                <YearComparisonPositionChart 
+                  baseYear={baseYear}
+                  baseRound={selectedRaceBase}
+                  comparisonYear={comparisonYear}
+                  comparisonRound={selectedRaceComparison}
+                  displayMode={displayMode}
+                />
+              ) : (
+                <YearComparisonQualifyingChart 
+                  baseYear={baseYear}
+                  baseRound={selectedRaceBase}
+                  comparisonYear={comparisonYear}
+                  comparisonRound={selectedRaceComparison}
+                  positionView={true}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="qualifyingTable" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Qualifying Time Comparison</CardTitle>
+              <CardDescription>
+                Compare qualifying times (Q1, Q2, Q3) between drivers across different seasons in a detailed table format.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-[600px]">
+              <YearComparisonQualifyingChart 
                 baseYear={baseYear}
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}
                 comparisonRound={selectedRaceComparison}
-                displayMode={displayMode}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="qualifyingChart" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Qualifying Chart Comparison</CardTitle>
+              <CardDescription>
+                Compare qualifying performance between two seasons with interactive bar charts showing Q1, Q2, and Q3 times.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-[600px]">
+              <YearComparisonQualifyingChart 
+                baseYear={baseYear}
+                baseRound={selectedRaceBase}
+                comparisonYear={comparisonYear}
+                comparisonRound={selectedRaceComparison}
+                chartView={true}
               />
             </CardContent>
           </Card>
