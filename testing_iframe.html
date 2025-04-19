@@ -104,6 +104,25 @@
       font-weight: 600;
     }
     
+    .source-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 5px;
+    }
+    
+    .source-local {
+      background-color: #007bff;
+      color: white;
+    }
+    
+    .source-prod {
+      background-color: #28a745;
+      color: white;
+    }
+    
     .theme-light {
       background-color: #f0f0f0;
       color: #333;
@@ -117,7 +136,7 @@
     iframe {
       border: none;
       width: 100%;
-      background-color: rgba(255, 255, 255, 0.03);
+      background-color: rgb(250, 245, 245);
     }
     
     @media (max-width: 768px) {
@@ -135,25 +154,25 @@
     </div>
     
     <div class="grid-container">
-      <!-- Row 1: 2023 -->
+      <!-- Row 1: 2025 -->
       <div class="embed-container">
         <div class="embed-title">
-          <div>2023 Driver Standings</div>
-          <div class="embed-subtitle">Font: Inter <span class="theme-badge theme-dark">Dark</span></div>
+          <div>2025 Driver Standings</div>
+          <div class="embed-subtitle">Font: Inter <span class="theme-badge theme-dark">Dark</span> <span class="source-badge source-local">Local</span></div>
         </div>
         <iframe 
-          src="https://f1datastop.com/embed/driver-standings?season=2023&theme=dark&font=Inter"
-          height="600px">
+          src="http://localhost:8080/embed/driver-standings?season=2025&theme=dark&font=Inter"
+          height="872px">
         </iframe>
       </div>
       
       <div class="embed-container">
         <div class="embed-title">
           <div>2023 Constructor Standings</div>
-          <div class="embed-subtitle">Font: Inter <span class="theme-badge theme-light">Light</span></div>
+          <div class="embed-subtitle">Font: Inter <span class="theme-badge theme-light">Light</span> <span class="source-badge source-prod">Prod</span></div>
         </div>
         <iframe 
-          src="https://f1datastop.com/embed/constructor-standings?season=2023&theme=light&font=Inter"
+          src="https://f1datastop.com/embed/constructor-standings?season=2025&theme=light&font=Inter"
           height="600px">
         </iframe>
       </div>
@@ -162,10 +181,10 @@
       <div class="embed-container">
         <div class="embed-title">
           <div>2020 Driver Standings</div>
-          <div class="embed-subtitle">Font: Roboto <span class="theme-badge theme-light">Light</span></div>
+          <div class="embed-subtitle">Font: Roboto <span class="theme-badge theme-light">Light</span> <span class="source-badge source-local">Local</span></div>
         </div>
         <iframe 
-          src="https://f1datastop.com/embed/driver-standings?season=2020&theme=light&font=Roboto"
+          src="http://localhost:8080/embed/driver-standings?season=2020&theme=light&font=Roboto"
           height="600px">
         </iframe>
       </div>
@@ -173,7 +192,7 @@
       <div class="embed-container">
         <div class="embed-title">
           <div>2020 Constructor Standings</div>
-          <div class="embed-subtitle">Font: Roboto <span class="theme-badge theme-dark">Dark</span></div>
+          <div class="embed-subtitle">Font: Roboto <span class="theme-badge theme-dark">Dark</span> <span class="source-badge source-prod">Prod</span></div>
         </div>
         <iframe 
           src="https://f1datastop.com/embed/constructor-standings?season=2020&theme=dark&font=Roboto"
@@ -185,7 +204,7 @@
       <div class="embed-container">
         <div class="embed-title">
           <div>2016 Driver Standings</div>
-          <div class="embed-subtitle">Font: Montserrat <span class="theme-badge theme-dark">Dark</span></div>
+          <div class="embed-subtitle">Font: Montserrat <span class="theme-badge theme-dark">Dark</span> <span class="source-badge source-prod">Prod</span></div>
         </div>
         <iframe 
           src="https://f1datastop.com/embed/driver-standings?season=2016&theme=dark&font=Montserrat"
@@ -196,10 +215,10 @@
       <div class="embed-container">
         <div class="embed-title">
           <div>2016 Constructor Standings</div>
-          <div class="embed-subtitle">Font: Montserrat <span class="theme-badge theme-light">Light</span></div>
+          <div class="embed-subtitle">Font: Montserrat <span class="theme-badge theme-light">Light</span> <span class="source-badge source-local">Local</span></div>
         </div>
         <iframe 
-          src="https://f1datastop.com/embed/constructor-standings?season=2016&theme=light&font=Montserrat"
+          src="http://localhost:8080/embed/constructor-standings?season=2016&theme=light&font=Montserrat"
           height="600px">
         </iframe>
       </div>
@@ -208,7 +227,7 @@
       <div class="embed-container">
         <div class="embed-title">
           <div>2012 Driver Standings</div>
-          <div class="embed-subtitle">Font: Poppins <span class="theme-badge theme-light">Light</span></div>
+          <div class="embed-subtitle">Font: Poppins <span class="theme-badge theme-light">Light</span> <span class="source-badge source-prod">Prod</span></div>
         </div>
         <iframe 
           src="https://f1datastop.com/embed/driver-standings?season=2012&theme=light&font=Poppins"
@@ -219,10 +238,10 @@
       <div class="embed-container">
         <div class="embed-title">
           <div>2012 Constructor Standings</div>
-          <div class="embed-subtitle">Font: Poppins <span class="theme-badge theme-dark">Dark</span></div>
+          <div class="embed-subtitle">Font: Poppins <span class="theme-badge theme-dark">Dark</span> <span class="source-badge source-local">Local</span></div>
         </div>
         <iframe 
-          src="https://f1datastop.com/embed/constructor-standings?season=2012&theme=dark&font=Poppins"
+          src="http://localhost:8080/embed/constructor-standings?season=2012&theme=dark&font=Poppins"
           height="600px">
         </iframe>
       </div>
@@ -231,10 +250,10 @@
       <div class="embed-container">
         <div class="embed-title">
           <div>2008 Driver Standings</div>
-          <div class="embed-subtitle">Font: Futura <span class="theme-badge theme-dark">Dark</span></div>
+          <div class="embed-subtitle">Font: Futura <span class="theme-badge theme-dark">Dark</span> <span class="source-badge source-local">Local</span></div>
         </div>
         <iframe 
-          src="https://f1datastop.com/embed/driver-standings?season=2008&theme=dark&font=Futura"
+          src="http://localhost:8080/embed/driver-standings?season=2008&theme=dark&font=Futura"
           height="600px">
         </iframe>
       </div>
@@ -242,7 +261,7 @@
       <div class="embed-container">
         <div class="embed-title">
           <div>2008 Constructor Standings</div>
-          <div class="embed-subtitle">Font: Futura <span class="theme-badge theme-light">Light</span></div>
+          <div class="embed-subtitle">Font: Futura <span class="theme-badge theme-light">Light</span> <span class="source-badge source-prod">Prod</span></div>
         </div>
         <iframe 
           src="https://f1datastop.com/embed/constructor-standings?season=2008&theme=light&font=Futura"
@@ -254,7 +273,7 @@
       <div class="embed-container">
         <div class="embed-title">
           <div>2004 Driver Standings</div>
-          <div class="embed-subtitle">Font: Helvetica <span class="theme-badge theme-light">Light</span></div>
+          <div class="embed-subtitle">Font: Helvetica <span class="theme-badge theme-light">Light</span> <span class="source-badge source-prod">Prod</span></div>
         </div>
         <iframe 
           src="https://f1datastop.com/embed/driver-standings?season=2004&theme=light&font=Helvetica"
@@ -265,10 +284,10 @@
       <div class="embed-container">
         <div class="embed-title">
           <div>2004 Constructor Standings</div>
-          <div class="embed-subtitle">Font: Helvetica <span class="theme-badge theme-dark">Dark</span></div>
+          <div class="embed-subtitle">Font: Helvetica <span class="theme-badge theme-dark">Dark</span> <span class="source-badge source-local">Local</span></div>
         </div>
         <iframe 
-          src="https://f1datastop.com/embed/constructor-standings?season=2004&theme=dark&font=Helvetica"
+          src="http://localhost:8080/embed/constructor-standings?season=2004&theme=dark&font=Helvetica"
           height="600px">
         </iframe>
       </div>
