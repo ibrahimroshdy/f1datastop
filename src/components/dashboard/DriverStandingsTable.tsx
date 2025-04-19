@@ -33,6 +33,11 @@ const getTeamColorStyle = (teamId: string) => {
 const DriverStandingsTable = ({ driverStandings, getTeamColor, showAllDrivers }: DriverStandingsTableProps) => {
   const driversToShow = showAllDrivers ? driverStandings?.data : driverStandings?.data?.slice(0, 10);
 
+  // Helper function to get the current constructor (last in array)
+  const getCurrentConstructor = (constructors: any[]) => {
+    return constructors.length > 0 ? constructors[constructors.length - 1] : null;
+  };
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -45,37 +50,40 @@ const DriverStandingsTable = ({ driverStandings, getTeamColor, showAllDrivers }:
           </TableRow>
         </TableHeader>
         <TableBody>
-          {driversToShow?.map(driver => (
-            <TableRow key={driver.position} className="border-border">
-              <TableCell className="font-medium text-base">{driver.position}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <div style={getTeamColorStyle(driver.Constructors[0].constructorId)}>
-                    <span className="text-base">{driver.Driver.givenName} {driver.Driver.familyName}</span>
+          {driversToShow?.map(driver => {
+            const currentConstructor = getCurrentConstructor(driver.Constructors);
+            return (
+              <TableRow key={driver.position} className="border-border">
+                <TableCell className="font-medium text-base">{driver.position}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div style={getTeamColorStyle(currentConstructor?.constructorId || 'default')}>
+                      <span className="text-base">{driver.Driver.givenName} {driver.Driver.familyName}</span>
+                    </div>
                   </div>
-                </div>
-              </TableCell>
-              <TableCell className="p-0 text-center">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center justify-center w-full h-12">
-                        <TeamLogo 
-                          constructorId={driver.Constructors[0].constructorId}
-                          alt={driver.Constructors[0].name}
-                          size="md"
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-base">{driver.Constructors[0].name}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </TableCell>
-              <TableCell className="text-right font-medium text-base">{driver.points}</TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell className="p-0 text-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center justify-center w-full h-12">
+                          <TeamLogo 
+                            constructorId={currentConstructor?.constructorId || 'default'}
+                            alt={currentConstructor?.name || 'Unknown Team'}
+                            size="md"
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-base">{currentConstructor?.name || 'Unknown Team'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableCell>
+                <TableCell className="text-right font-medium text-base">{driver.points}</TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

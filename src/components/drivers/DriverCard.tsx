@@ -14,10 +14,13 @@ interface DriverCardProps {
 const DriverCard = ({ driver }: DriverCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
   
-  // Map constructor IDs to team colors using our constants file
-  const constructorId = driver.Constructors[0].constructorId;
+  // Get the current constructor (last in array)
+  const currentConstructor = driver.Constructors.length > 0 
+    ? driver.Constructors[driver.Constructors.length - 1] 
+    : null;
   
   // Get the team color using the constructor ID
+  const constructorId = currentConstructor?.constructorId || 'default';
   const teamColor = TEAM_COLORS[constructorId] || TEAM_COLORS.default;
 
   // Extract birth year for age calculation
@@ -53,7 +56,7 @@ const DriverCard = ({ driver }: DriverCardProps) => {
               <h3 className="text-lg font-bold">{driver.Driver.givenName} {driver.Driver.familyName}</h3>
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: teamColor }}></span>
-                {driver.Constructors[0].name}
+                {currentConstructor?.name || 'Unknown Team'}
                 <span className="ml-1 text-xs font-medium">#{driverNumber}</span>
               </p>
             </div>
@@ -103,7 +106,7 @@ const DriverCard = ({ driver }: DriverCardProps) => {
               {driver.Driver.givenName} {driver.Driver.familyName}
             </DialogTitle>
             <DialogDescription>
-              {driver.Constructors[0].name} | #{driverNumber}
+              {currentConstructor?.name || 'Unknown Team'} | #{driverNumber}
             </DialogDescription>
           </DialogHeader>
           
@@ -148,7 +151,7 @@ const DriverCard = ({ driver }: DriverCardProps) => {
           <div className="mt-2">
             <h4 className="font-medium text-muted-foreground mb-2">F1 Profile</h4>
             <p className="text-sm">
-              {driver.Driver.givenName} {driver.Driver.familyName} is a Formula 1 driver currently racing for {driver.Constructors[0].name}.
+              {driver.Driver.givenName} {driver.Driver.familyName} is a Formula 1 driver currently racing for {currentConstructor?.name || 'Unknown Team'}.
               {driver.Driver.url && (
                 <a 
                   href={driver.Driver.url} 
