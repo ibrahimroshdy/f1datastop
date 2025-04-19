@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useRaceQualifying, useRaceResults } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, AlertCircle, Check, Clock, Timer } from "lucide-react";
+import { Loader2, AlertCircle, Check, Clock, Timer, Info } from "lucide-react";
 import { toast } from "sonner";
 import DataLoadingProgress from "./DataLoadingProgress";
 import { QualifyingSession } from "@/hooks/useQualifyingData";
@@ -284,187 +284,190 @@ const QualifyingChartView = ({
         </div>
       ) : (
         <div className="h-[400px] w-full">
-          <ResponsiveContainer width="100%" height="80%">
-            <BarChart
-              data={groupedChartData}
-              margin={{ top: 10, right: 30, left: 40, bottom: 10 }}
-              barGap={0}
-              barCategoryGap={10}
-            >
-              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-              <XAxis 
-                dataKey="driverCode" 
-                tick={(props) => {
-                  const { x, y, payload } = props;
-                  return (
-                    <g transform={`translate(${x},${y})`}>
-                      <text 
-                        x={0} 
-                        y={0} 
-                        dy={8} 
-                        textAnchor="end" 
-                        fill="#888888"
-                        transform="rotate(-45)"
-                        fontSize={10}
-                        fontWeight="bold"
-                      >
-                        {payload.value}
-                      </text>
-                    </g>
-                  );
-                }}
-                height={30}
-              />
-              <YAxis 
-                domain={['auto', 'auto']}
-                tickFormatter={(seconds) => {
-                  return formatTimeDisplay(seconds);
-                }}
-                width={70}
-              />
-              <Tooltip 
-                cursor={{ 
-                  fill: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-                  stroke: theme === 'dark' ? '#444' : '#ddd',
-                  strokeWidth: 1,
-                  radius: 4
-                }}
-                formatter={(value, name, props) => {
-                  if (!value) return ['-', name];
-                  
-                  const item = props.payload;
-                  const isBaseYear = name === `${baseYear}`;
-                  const position = isBaseYear ? item.basePosition : item.compPosition;
-                  const formattedTime = isBaseYear ? item.baseFormattedTime : item.compFormattedTime;
-                  const team = isBaseYear ? item.baseTeam : item.compTeam;
-                  const teamColor = TEAM_COLORS[team] || '#666666';
-                  const yearColor = isBaseYear ? '#f59e0b' : '#3b82f6';
-                  
-                  return [
-                    <span style={{ color: yearColor, fontWeight: 'bold' }}>
-                      {formattedTime} <span style={{ color: '#a855f7' }}>(P{position})</span>
-                    </span>,
-                    <span>
-                      <span style={{ color: teamColor, fontWeight: 'bold' }}>{item.driverCode}</span> - {isBaseYear ? baseYear : comparisonYear}
-                    </span>
-                  ];
-                }}
-                contentStyle={{ 
-                  backgroundColor: theme === 'dark' ? '#222' : '#fff',
-                  borderColor: theme === 'dark' ? '#444' : '#e2e8f0',
-                  color: theme === 'dark' ? '#fff' : '#1a202c',
-                  borderRadius: '6px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                  padding: '6px 10px',
-                  fontSize: '12px'
-                }}
-                wrapperStyle={{
-                  zIndex: 100,
-                  overflow: 'visible'
-                }}
-              />
-              <Legend 
-                formatter={(value) => {
-                  return value === `${baseYear}` ? 
-                    <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>
-                      <span className="hover:underline cursor-pointer inline-block transition-all duration-150 transform hover:scale-105">{baseYear} Season</span>
-                    </span> : 
-                    <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>
-                      <span className="hover:underline cursor-pointer inline-block transition-all duration-150 transform hover:scale-105">{comparisonYear} Season</span>
-                    </span>;
-                }}
-                layout="horizontal"
-                align="center"
-                verticalAlign="bottom"
-                wrapperStyle={{ 
-                  position: 'relative', 
-                  marginTop: 0, 
-                  paddingTop: 5,
-                  bottom: 'auto'
-                }}
-                onClick={(data) => {
-                  if (data.value === `${baseYear}`) {
-                    if (selectedBaseDrivers.length > 0) {
-                      // Clear all selected base drivers
-                      selectedBaseDrivers.forEach(driverCode => {
-                        toggleBaseDriver(driverCode);
-                      });
-                    } else {
-                      // Select all base drivers
-                      baseDrivers.forEach(d => {
-                        if (!selectedBaseDrivers.includes(d.code)) {
-                          toggleBaseDriver(d.code);
-                        }
-                      });
-                    }
-                  } else {
-                    if (selectedComparisonDrivers.length > 0) {
-                      // Clear all selected comparison drivers
-                      selectedComparisonDrivers.forEach(driverCode => {
-                        toggleComparisonDriver(driverCode);
-                      });
-                    } else {
-                      // Select all comparison drivers
-                      comparisonDrivers.forEach(d => {
-                        if (!selectedComparisonDrivers.includes(d.code)) {
-                          toggleComparisonDriver(d.code);
-                        }
-                      });
-                    }
-                  }
-                }}
-              />
-              
-              <Bar 
-                dataKey="baseTime" 
-                name={`${baseYear}`}
-                fill="#f59e0b"
-                fillOpacity={0.8}
-                stroke="#ed8a00"
-                strokeWidth={1}
-                minPointSize={3}
-                barSize={16}
-                activeBar={{ 
-                  stroke: '#d97706', 
-                  strokeWidth: 2,
-                  fill: '#f59e0b'
-                }}
-              />
-              <Bar 
-                dataKey="compTime" 
-                name={`${comparisonYear}`}
-                fill="#3b82f6"
-                fillOpacity={0.8}
-                stroke="#2563eb"
-                strokeWidth={1}
-                minPointSize={3}
-                barSize={16}
-                activeBar={{ 
-                  stroke: '#1d4ed8',
-                  strokeWidth: 2,
-                  fill: '#3b82f6'
-                }}
-              />
-              
-              {/* Reference line for fastest time - placed after bars to overlay them */}
-              {fastestDriver && (
-                <ReferenceLine 
-                  y={fastestTime} 
-                  stroke="#a855f7" 
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  ifOverflow="extendDomain"
-                  label={{
-                    value: `Fastest: ${fastestDriver.formattedTime} (${fastestDriver.name}, ${selectedChartSession.toUpperCase()}, ${fastestDriver.year})`,
-                    fill: '#a855f7',
-                    fontSize: 10,
-                    fontWeight: 'bold',
-                    position: 'insideTopRight'
+          <div className="h-[90%]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={groupedChartData}
+                margin={{ top: 10, right: 30, left: 40, bottom: 10 }}
+                barGap={0}
+                barCategoryGap={10}
+              >
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                <XAxis 
+                  dataKey="driverCode" 
+                  tick={(props) => {
+                    const { x, y, payload } = props;
+                    return (
+                      <g transform={`translate(${x},${y})`}>
+                        <text 
+                          x={0} 
+                          y={0} 
+                          dy={8} 
+                          textAnchor="end" 
+                          fill="#888888"
+                          transform="rotate(-45)"
+                          fontSize={10}
+                          fontWeight="bold"
+                        >
+                          {payload.value}
+                        </text>
+                      </g>
+                    );
+                  }}
+                  height={30}
+                />
+                <YAxis 
+                  domain={['auto', 'auto']}
+                  tickFormatter={(seconds) => {
+                    return formatTimeDisplay(seconds);
+                  }}
+                  width={70}
+                />
+                <Tooltip 
+                  cursor={{ 
+                    fill: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                    stroke: theme === 'dark' ? '#444' : '#ddd',
+                    strokeWidth: 1,
+                    radius: 4
+                  }}
+                  formatter={(value, name, props) => {
+                    if (!value) return ['-', name];
+                    
+                    const item = props.payload;
+                    const isBaseYear = name === `${baseYear}`;
+                    const position = isBaseYear ? item.basePosition : item.compPosition;
+                    const formattedTime = isBaseYear ? item.baseFormattedTime : item.compFormattedTime;
+                    const team = isBaseYear ? item.baseTeam : item.compTeam;
+                    const teamColor = TEAM_COLORS[team] || '#666666';
+                    const yearColor = isBaseYear ? '#f59e0b' : '#3b82f6';
+                    
+                    return [
+                      <span style={{ color: yearColor, fontWeight: 'bold' }}>
+                        {formattedTime} <span style={{ color: '#a855f7' }}>(P{position})</span>
+                      </span>,
+                      <span>
+                        <span style={{ color: teamColor, fontWeight: 'bold' }}>{item.driverCode}</span> - {isBaseYear ? baseYear : comparisonYear}
+                      </span>
+                    ];
+                  }}
+                  contentStyle={{ 
+                    backgroundColor: theme === 'dark' ? '#222' : '#fff',
+                    borderColor: theme === 'dark' ? '#444' : '#e2e8f0',
+                    color: theme === 'dark' ? '#fff' : '#1a202c',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    padding: '6px 10px',
+                    fontSize: '12px'
+                  }}
+                  wrapperStyle={{
+                    zIndex: 100,
+                    overflow: 'visible'
                   }}
                 />
-              )}
-            </BarChart>
-          </ResponsiveContainer>
+                <Legend 
+                  formatter={(value) => {
+                    return value === `${baseYear}` ? 
+                      <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>
+                        <span className="hover:underline cursor-pointer inline-block transition-all duration-150 transform hover:scale-105">{baseYear} Season</span>
+                      </span> : 
+                      <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>
+                        <span className="hover:underline cursor-pointer inline-block transition-all duration-150 transform hover:scale-105">{comparisonYear} Season</span>
+                      </span>;
+                  }}
+                  layout="horizontal"
+                  align="center"
+                  verticalAlign="top"
+                  wrapperStyle={{ 
+                    position: 'relative', 
+                    marginTop: 0, 
+                    paddingTop: 5,
+                    bottom: 'auto',
+                    marginBottom: 10
+                  }}
+                  onClick={(data) => {
+                    if (data.value === `${baseYear}`) {
+                      if (selectedBaseDrivers.length > 0) {
+                        // Clear all selected base drivers
+                        selectedBaseDrivers.forEach(driverCode => {
+                          toggleBaseDriver(driverCode);
+                        });
+                      } else {
+                        // Select all base drivers
+                        baseDrivers.forEach(d => {
+                          if (!selectedBaseDrivers.includes(d.code)) {
+                            toggleBaseDriver(d.code);
+                          }
+                        });
+                      }
+                    } else {
+                      if (selectedComparisonDrivers.length > 0) {
+                        // Clear all selected comparison drivers
+                        selectedComparisonDrivers.forEach(driverCode => {
+                          toggleComparisonDriver(driverCode);
+                        });
+                      } else {
+                        // Select all comparison drivers
+                        comparisonDrivers.forEach(d => {
+                          if (!selectedComparisonDrivers.includes(d.code)) {
+                            toggleComparisonDriver(d.code);
+                          }
+                        });
+                      }
+                    }
+                  }}
+                />
+                
+                <Bar 
+                  dataKey="baseTime" 
+                  name={`${baseYear}`}
+                  fill="#f59e0b"
+                  fillOpacity={0.8}
+                  stroke="#ed8a00"
+                  strokeWidth={1}
+                  minPointSize={3}
+                  barSize={16}
+                  activeBar={{ 
+                    stroke: '#d97706', 
+                    strokeWidth: 2,
+                    fill: '#f59e0b'
+                  }}
+                />
+                <Bar 
+                  dataKey="compTime" 
+                  name={`${comparisonYear}`}
+                  fill="#3b82f6"
+                  fillOpacity={0.8}
+                  stroke="#2563eb"
+                  strokeWidth={1}
+                  minPointSize={3}
+                  barSize={16}
+                  activeBar={{ 
+                    stroke: '#1d4ed8',
+                    strokeWidth: 2,
+                    fill: '#3b82f6'
+                  }}
+                />
+                
+                {/* Reference line for fastest time - placed after bars to overlay them */}
+                {fastestDriver && (
+                  <ReferenceLine 
+                    y={fastestTime} 
+                    stroke="#a855f7" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    ifOverflow="extendDomain"
+                    label={{
+                      value: `Fastest: ${fastestDriver.formattedTime} (${fastestDriver.name}, ${selectedChartSession.toUpperCase()}, ${fastestDriver.year})`,
+                      fill: '#a855f7',
+                      fontSize: 10,
+                      fontWeight: 'bold',
+                      position: 'insideTopRight'
+                    }}
+                  />
+                )}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
     </div>
