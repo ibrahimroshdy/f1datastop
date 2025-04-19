@@ -182,10 +182,6 @@ export default function EmbeddableDriverStandings({
         </div>
       ) : (
         <div className="overflow-x-auto h-full w-full flex-grow">
-          <div className="px-3 py-2 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">{season} Driver Standings</h2>
-            {currentRound && <span className="text-xs opacity-75">Round {currentRound}</span>}
-          </div>
           <table className="min-w-full divide-y" style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead className={cn(themeClasses.headerBg)}>
               <tr>

@@ -1,17 +1,15 @@
-import { useRouter } from 'next/router';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getConstructorColor } from '@/lib/constructorColors';
+import { TEAM_COLORS } from "@/constants/f1Colors";
 
 interface DriverStandingsTableProps {
   standings: any[];
 }
 
 const DriverStandingsTable = ({ standings }: DriverStandingsTableProps) => {
-  const router = useRouter();
-
   const handleRowClick = (driverId: string) => {
-    router.push(`/drivers/${driverId}`);
+    // If you need routing, implement it with your app's router
+    window.location.href = `/drivers/${driverId}`;
   };
 
   return (
@@ -31,10 +29,15 @@ const DriverStandingsTable = ({ standings }: DriverStandingsTableProps) => {
               ? driver.Constructors[driver.Constructors.length - 1] 
               : null;
             
-            // Get constructor color
-            const constructorColor = currentConstructor 
-              ? getConstructorColor(currentConstructor.constructorId) 
-              : "#cccccc";
+            // Get constructor color from TEAM_COLORS
+            let constructorId = currentConstructor?.constructorId?.toLowerCase() || 'default';
+            // Handle specific mappings
+            if (constructorId === "alphatauri") {
+              constructorId = "rb";
+            } else if (constructorId === "alfa") {
+              constructorId = "sauber";
+            }
+            const constructorColor = TEAM_COLORS[constructorId] || "#cccccc";
             
             return (
               <TableRow 
