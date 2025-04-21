@@ -10,6 +10,7 @@ import ConstructorStandingsCard from "@/components/dashboard/ConstructorStanding
 import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
 import FastestPitStopCard from "@/components/dashboard/FastestPitStopCard";
 import QualifyingResultsCard from "@/components/dashboard/QualifyingResultsCard";
+import QualifyingToRaceChart from "@/components/dashboard/QualifyingToRaceChart";
 import useAnalytics from '@/hooks/useAnalytics';
 import useClarity from '@/hooks/useClarity';
 
@@ -55,7 +56,7 @@ const Index = () => {
       'F1 DataStop Homepage',
       { sponsor_visible: true }
     );
-    
+
     clarity.setTag('page_type', 'homepage');
     clarity.setTag('page_version', 'v1');
   }, [analytics, clarity]);
@@ -69,7 +70,7 @@ const Index = () => {
     <MainLayout>
       <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
         <HeaderSection nextRace={nextRace} isOffline={isOffline} />
-        
+
         {isLoading ? (
           <div className="flex items-center justify-center h-96">
             <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -84,8 +85,8 @@ const Index = () => {
                       <Users className="h-5 w-5 text-primary" />
                       Driver Standings
                     </CardTitle>
-                    <button 
-                      onClick={() => setShowAllDrivers(!showAllDrivers)} 
+                    <button
+                      onClick={() => setShowAllDrivers(!showAllDrivers)}
                       className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
                     >
                       <Users className="h-4 w-4" />
@@ -94,27 +95,36 @@ const Index = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <DriverStandingsTable 
-                    driverStandings={driverStandings} 
+                  <DriverStandingsTable
+                    driverStandings={driverStandings}
                     getTeamColor={getTeamColor}
                     showAllDrivers={showAllDrivers}
                   />
                 </CardContent>
               </Card>
-              
+
               <ConstructorStandingsCard constructorStandings={constructorStandings} getTeamColor={getTeamColor} />
             </div>
-            
+
+
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <QualifyingResultsCard />
-              
-              <LastRaceResultsCard 
-                lastRaceResults={lastRaceResults} 
-                isResultsLoading={isResultsLoading} 
-                getTeamColor={getTeamColor} 
+
+              <LastRaceResultsCard
+                lastRaceResults={lastRaceResults}
+                isResultsLoading={isResultsLoading}
+                getTeamColor={getTeamColor}
               />
-              
+
               <FastestPitStopCard />
+
+
+            </div>
+
+            {/* Qualifying to Race Sankey Chart */}
+            <div className="grid grid-cols-1 gap-6">
+              <QualifyingToRaceChart />
             </div>
           </div>
         )}

@@ -98,7 +98,7 @@ export const getRaceSchedule = async (year?: number) => {
   }
 };
 
-// Fetch specific race results
+// Fetch specific race results with error logging
 export const getRaceResults = async (year: number, round: string) => {
   try {
     const response = await fetch(`${BASE_URL}/f1/${year}/${round}/results.json`, {
@@ -200,7 +200,6 @@ async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3, at
         
         // Calculate exponential backoff with jitter
         const delay = retryDelay * (2 ** retries) * (0.8 + Math.random() * 0.4);
-        console.log(`Rate limit hit. Retry ${retries}/${maxRetries} after ${Math.round(delay)}ms delay for ${requestId}`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -214,7 +213,6 @@ async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3, at
         }
         
         const delay = retryDelay * (2 ** retries);
-        console.log(`Network error. Retry ${retries}/${maxRetries} after ${delay}ms delay for ${requestId}`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -257,8 +255,6 @@ export const getLapTimes = async (
     
     if (total > 30) {
       if (onProgress) onProgress(0.05, 1, Math.ceil((total - 30) / limit) + 1, retryAttempts);
-      
-      console.log(`Fetching all ${total} laps for race ${year}/${round} with pagination`);
       
       let allLaps = initialData.MRData?.RaceTable?.Races?.[0]?.Laps || [];
       
@@ -318,8 +314,7 @@ export const getLapTimes = async (
       }
       
       try {
-        // Adjust batch processing to handle retries per batch
-        // Use Promise.allSettled with sequential fallback to maximize data retrieval
+        // Try Promise.allSettled with sequential fallback to maximize data retrieval
         const results = await Promise.allSettled(fetchPromises);
         
         let failedBatches = 0;
@@ -330,7 +325,6 @@ export const getLapTimes = async (
             allLaps = [...allLaps, ...result.value];
           } else {
             failedBatches++;
-            console.warn(`Failed to fetch lap data batch ${index + 1}:`, result.reason);
           }
         });
         

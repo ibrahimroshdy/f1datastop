@@ -249,3 +249,276 @@ export const useF1Circuits = () => {
     ...defaultRetryConfig,
   });
 };
+
+// Integrated from useQualifyingToRaceData.ts
+export const useQualifyingToRaceData = (year?: number) => {
+  return useQuery({
+    queryKey: ["qualifyingToRaceData", year],
+    queryFn: async () => {
+      try {
+        // Get race schedule first to find completed races
+        const raceScheduleData = await f1Service.getRaceSchedule(year);
+        
+        if (!raceScheduleData?.data || raceScheduleData.data.length === 0) {
+          return { 
+            qualifyingData: null, 
+            raceData: null, 
+            error: "No race schedule available" 
+          };
+        }
+        
+        // Find races with completed qualifying
+        const races = raceScheduleData.data;
+        const now = new Date();
+        
+        // Process races to determine if qualifying has occurred
+        const racesWithQualifyingStatus = races.map((race: any) => {
+          const raceDate = new Date(race.date);
+          // Estimate qualifying date as 1 day before race
+          const qualifyingDate = new Date(raceDate);
+          qualifyingDate.setDate(raceDate.getDate() - 1);
+          
+          return {
+            ...race,
+            qualifyingDate,
+            hasQualifyingOccurred: qualifyingDate < now,
+            hasRaceOccurred: raceDate < now
+          };
+        });
+        
+        // Filter races where both qualifying and race have occurred
+        const completedRaces = racesWithQualifyingStatus.filter(
+          (race: any) => race.hasQualifyingOccurred && race.hasRaceOccurred
+        );
+        
+        if (completedRaces.length === 0) {
+          return { 
+            qualifyingData: null, 
+            raceData: null, 
+            error: "No completed race weekends found" 
+          };
+        }
+        
+        // Get the most recent completed race weekend
+        const lastRace = completedRaces[completedRaces.length - 1];
+        
+        // Get qualifying data for the race
+        const season = parseInt(lastRace.season);
+        const round = lastRace.round;
+        
+        // Get all race weekend data
+        const [qualifyingData, raceData, raceScheduleDetail] = await Promise.all([
+          f1Service.getRaceQualifying(season, round),
+          f1Service.getRaceResults(season, round),
+          f1Service.getRaceSchedule(season) // Get full race schedule for session data
+        ]);
+        
+        if (!qualifyingData?.data?.QualifyingResults || !raceData?.data?.Results) {
+          return {
+            qualifyingData: qualifyingData?.data || null,
+            raceData: raceData?.data || null,
+            error: "Incomplete race weekend data"
+          };
+        }
+        
+        // Find the complete race data from schedule including practice sessions
+        const fullRaceData = raceScheduleDetail?.data?.find((r: any) => 
+          r.round === round && r.season === season.toString()
+        );
+        
+        // Get the complete race data similar to how QualifyingResultsCard does it
+        let completeRaceData = {
+          ...raceData.data,
+          ...fullRaceData, // Add all fields from full race data
+          results: raceData.data.Results || [],
+          // Ensure these fields exist
+          FirstPractice: fullRaceData?.FirstPractice || raceData.data.FirstPractice,
+          SecondPractice: fullRaceData?.SecondPractice || raceData.data.SecondPractice,
+          ThirdPractice: fullRaceData?.ThirdPractice || raceData.data.ThirdPractice,
+          Qualifying: fullRaceData?.Qualifying || raceData.data.Qualifying,
+          Sprint: fullRaceData?.Sprint || raceData.data.Sprint,
+          SprintQualifying: fullRaceData?.SprintQualifying || raceData.data.SprintQualifying,
+          // Add date for qualifying similar to QualifyingResultsCard
+          qualifyingDate: fullRaceData?.Qualifying?.date || raceData.data.Qualifying?.date || (() => {
+            const raceDate = new Date(raceData.data.date);
+            const qualifyingDate = new Date(raceDate);
+            qualifyingDate.setDate(raceDate.getDate() - 1);
+            return qualifyingDate.toISOString().split('T')[0];
+          })()
+        };
+        
+        // Process data for the Sankey chart
+        try {
+          const processedData = processDataForSankey(qualifyingData.data, completeRaceData);
+          
+          if (!processedData || !processedData.nodes || !processedData.links || 
+              processedData.nodes.length === 0 || processedData.links.length === 0) {
+            return {
+              qualifyingData: qualifyingData.data,
+              raceData: completeRaceData,
+              error: "Unable to process race data for visualization"
+            };
+          }
+          
+          return {
+            qualifyingData: qualifyingData.data,
+            raceData: completeRaceData,
+            processedData,
+            error: null
+          };
+        } catch (processingError) {
+          return {
+            qualifyingData: qualifyingData.data,
+            raceData: completeRaceData,
+            processedData: null,
+            error: "Error processing data: " + (processingError as Error).message
+          };
+        }
+      } catch (error) {
+        return { qualifyingData: null, raceData: null, processedData: null, error: "Failed to load race data" };
+      }
+    },
+    staleTime: 60 * 60 * 1000, // 1 hour - data won't change frequently
+    gcTime: 3 * 60 * 60 * 1000, // 3 hours cache time
+    retry: 1, // Only retry once to avoid excessive API calls
+  });
+};
+
+// Process data for Sankey chart
+const processDataForSankey = (qualifyingData: any, raceData: any) => {
+  // Accept both "Results" (API standard) and "results" (our normalized format)
+  const qualifyingResults = qualifyingData?.QualifyingResults;
+  const raceResults = raceData?.results || raceData?.Results;
+  
+  if (!qualifyingResults || !raceResults) {
+    return null;
+  }
+  
+  // Create nodes (drivers)
+  const drivers = new Set<string>();
+  
+  // Map qualifying results
+  const qualifyingResultsMapped = qualifyingResults.map((result: any) => {
+    const driverCode = result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase();
+    drivers.add(driverCode);
+    
+    return {
+      code: driverCode,
+      name: `${result.Driver.givenName} ${result.Driver.familyName}`,
+      team: result.Constructor.constructorId,
+      qualifyingPosition: parseInt(result.position),
+      teamName: result.Constructor.name
+    };
+  });
+  
+  // Map race results
+  const raceResultsMapped = raceResults.map((result: any) => {
+    const driverCode = result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase();
+    drivers.add(driverCode);
+    
+    // Determine driver status
+    const status = result.status || "";
+    const isDNF = status !== "Finished" && !status.startsWith("+");
+    
+    return {
+      code: driverCode,
+      name: `${result.Driver.givenName} ${result.Driver.familyName}`,
+      team: result.Constructor.constructorId,
+      racePosition: parseInt(result.position),
+      teamName: result.Constructor.name,
+      status: status,
+      isDNF: isDNF
+    };
+  });
+  
+  // Create links between qualifying and race results
+  const links = [];
+  const driverMap = new Map();
+  
+  // Create a map of driver codes to their data
+  qualifyingResultsMapped.forEach((quali: any) => {
+    if (!driverMap.has(quali.code)) {
+      driverMap.set(quali.code, { ...quali });
+    } else {
+      driverMap.set(quali.code, { ...driverMap.get(quali.code), ...quali });
+    }
+  });
+  
+  raceResultsMapped.forEach((race: any) => {
+    if (!driverMap.has(race.code)) {
+      driverMap.set(race.code, { ...race });
+    } else {
+      driverMap.set(race.code, { ...driverMap.get(race.code), ...race });
+    }
+  });
+  
+  // Create links for each driver
+  driverMap.forEach((driver) => {
+    if (driver.qualifyingPosition !== undefined && driver.racePosition !== undefined) {
+      links.push({
+        source: driver.code + "_quali",
+        target: driver.code + "_race",
+        value: 1, // Required for d3-sankey
+        code: driver.code,
+        name: driver.name,
+        team: driver.team,
+        teamName: driver.teamName,
+        qualifyingPosition: driver.qualifyingPosition,
+        racePosition: driver.racePosition,
+        positionChange: driver.qualifyingPosition - driver.racePosition,
+        status: driver.status || "",
+        isDNF: driver.isDNF || false
+      });
+    }
+  });
+  
+  // Create nodes array
+  const qualifyingNodes = [];
+  const raceNodes = [];
+  
+  // Add qualifying nodes
+  qualifyingResultsMapped.forEach((driver: any) => {
+    qualifyingNodes.push({
+      id: driver.code + "_quali",
+      name: driver.code,
+      team: driver.team,
+      position: driver.qualifyingPosition,
+      type: "qualifying",
+      teamName: driver.teamName,
+      fullName: driver.name
+    });
+  });
+  
+  // Add race nodes
+  raceResultsMapped.forEach((driver: any) => {
+    raceNodes.push({
+      id: driver.code + "_race",
+      name: driver.code,
+      team: driver.team,
+      position: driver.racePosition,
+      type: "race",
+      teamName: driver.teamName,
+      fullName: driver.name,
+      status: driver.status || "",
+      isDNF: driver.isDNF || false
+    });
+  });
+  
+  // Sort nodes by position within their groups
+  qualifyingNodes.sort((a, b) => a.position - b.position);
+  raceNodes.sort((a, b) => a.position - b.position);
+  
+  // Combine sorted nodes
+  const nodes = [...qualifyingNodes, ...raceNodes];
+  
+  return {
+    nodes,
+    links,
+    race: {
+      name: raceData.raceName,
+      circuit: raceData.Circuit?.circuitName,
+      country: raceData.Circuit?.Location?.country,
+      date: raceData.date
+    }
+  };
+};
