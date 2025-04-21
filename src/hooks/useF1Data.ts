@@ -3,6 +3,7 @@ import * as f1Service from "@/services/f1Service";
 import { optimizeLapData } from "@/utils/dataLoadingUtils";
 import { toast } from "sonner";
 import { useState } from "react";
+import { F1_API } from "@/constants/apiConfig";
 
 // Helper function to create exponential backoff retry logic with jitter
 const createRetryConfig = (retryDelayBase = 2000, maxRetryAttempts = 5) => ({
@@ -522,3 +523,147 @@ const processDataForSankey = (qualifyingData: any, raceData: any) => {
     }
   };
 };
+
+export function useQualifyingToRaceDataByRound(year: number, round: string) {
+  return useQuery({
+    queryKey: ['qualifyingToRaceData', year, round],
+    queryFn: async () => {
+      try {
+        // First get qualifying data
+        const qualifyingResponse = await fetch(`${F1_API.ERGAST}/${year}/${round}/qualifying.json`);
+        if (!qualifyingResponse.ok) {
+          throw new Error('Failed to fetch qualifying data');
+        }
+        const qualifyingData = await qualifyingResponse.json();
+        
+        // Then get race results
+        const raceResponse = await fetch(`${F1_API.ERGAST}/${year}/${round}/results.json`);
+        if (!raceResponse.ok) {
+          throw new Error('Failed to fetch race results');
+        }
+        const raceData = await raceResponse.json();
+        
+        // Get race data for info
+        const raceInfo = raceData.MRData.RaceTable.Races[0] || null;
+        
+        // Process the data for the Sankey diagram
+        if (!qualifyingData.MRData.RaceTable?.Races?.length || !raceData.MRData.RaceTable?.Races?.length) {
+          return {
+            processedData: null,
+            raceData: raceInfo,
+            error: "No qualifying or race data available for this race"
+          };
+        }
+        
+        const qualifying = qualifyingData.MRData.RaceTable.Races[0].QualifyingResults || [];
+        const raceResults = raceData.MRData.RaceTable.Races[0].Results || [];
+        
+        if (!qualifying.length || !raceResults.length) {
+          return {
+            processedData: null,
+            raceData: raceInfo,
+            error: "Incomplete qualifying or race data"
+          };
+        }
+        
+        // Create nodes for qualifying and race positions
+        const nodes = [];
+        const links = [];
+        
+        // Create unique IDs for nodes
+        const qualifyingIdPrefix = "Q";
+        const raceIdPrefix = "R";
+        
+        // Process qualifying nodes
+        qualifying.forEach((driver, index) => {
+          if (!driver.position) return;
+          
+          const position = parseInt(driver.position);
+          
+          const driverCode = driver.Driver.code;
+          const driverName = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
+          const team = driver.Constructor.constructorId;
+          const teamName = driver.Constructor.name;
+          
+          nodes.push({
+            id: `${qualifyingIdPrefix}${position}`,
+            name: driverCode,
+            fullName: driverName,
+            team,
+            teamName,
+            position,
+            type: 'qualifying'
+          });
+        });
+        
+        // Process race nodes and create links
+        raceResults.forEach((driver, index) => {
+          if (!driver.position) return;
+          
+          const position = parseInt(driver.position);
+          const driverCode = driver.Driver.code;
+          const driverName = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
+          const team = driver.Constructor.constructorId;
+          const teamName = driver.Constructor.name;
+          
+          // Handle DNFs
+          const status = driver.status;
+          const isDNF = status !== "Finished" && !status.includes("+");
+          
+          nodes.push({
+            id: `${raceIdPrefix}${position}`,
+            name: driverCode,
+            fullName: driverName,
+            team,
+            teamName,
+            position,
+            type: 'race',
+            status,
+            isDNF
+          });
+          
+          // Find matching qualifying result for this driver
+          const qualifyingResult = qualifying.find(q => 
+            q.Driver.driverId === driver.Driver.driverId
+          );
+          
+          if (qualifyingResult) {
+            const qualifyingPosition = parseInt(qualifyingResult.position);
+            
+            links.push({
+              source: `${qualifyingIdPrefix}${qualifyingPosition}`,
+              target: `${raceIdPrefix}${position}`,
+              value: 1, // Uniform value for consistent link width
+              name: driverCode,
+              code: driverCode,
+              fullName: driverName,
+              team,
+              teamName,
+              qualifyingPosition,
+              racePosition: position,
+              positionChange: qualifyingPosition - position,
+              status,
+              isDNF
+            });
+          }
+        });
+        
+        return {
+          processedData: { nodes, links },
+          raceData: raceInfo,
+          error: null
+        };
+      } catch (error) {
+        console.error("Error fetching qualifying and race data:", error);
+        return {
+          processedData: null,
+          raceData: null,
+          error: "Failed to load data. Please try again later."
+        };
+      }
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour
+    retry: 1,
+    refetchOnWindowFocus: false
+  });
+}

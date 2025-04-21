@@ -11,7 +11,7 @@ export const SUPABASE_FUNCTIONS = {
 
 // F1 API Base URLs
 export const F1_API = {
-  ERGAST: "https://ergast.com/api/f1",
+  ERGAST: "https://api.jolpi.ca/ergast/f1",
   OPENF1: "https://api.openf1.org/v1",
 };
 

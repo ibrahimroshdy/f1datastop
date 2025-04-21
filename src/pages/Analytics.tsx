@@ -7,11 +7,12 @@ import LapTimeChart from "@/components/analytics/LapTimeChart";
 import PositionChangeChart from "@/components/analytics/PositionChangeChart";
 import QualifyingChart from "@/components/analytics/QualifyingChart";
 import PitStopTable from "@/components/analytics/PitStopTable";
+import ProgressionChart from "@/components/analytics/ProgressionChart";
 import YearComparisonAnalytics from "@/components/analytics/YearComparisonAnalytics";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, Loader2, GitCompare, Clock, TrendingUp, Timer, Flag, Wrench } from "lucide-react";
+import { Info, Loader2, GitCompare, Clock, TrendingUp, Timer, Flag, Wrench, TrendingUpIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Function to determine the most appropriate default year
@@ -131,7 +132,7 @@ const Analytics = () => {
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
               {/* Tabs for larger screens */}
               <div className="hidden md:block">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="lapTimes" className="flex gap-2 items-center">
                     <Clock className="h-4 w-4" />
                     <span>Race Times</span>
@@ -143,6 +144,10 @@ const Analytics = () => {
                   <TabsTrigger value="qualifying" className="flex gap-2 items-center">
                     <Flag className="h-4 w-4" />
                     <span>Qualifying</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="progression" className="flex gap-2 items-center">
+                    <TrendingUpIcon className="h-4 w-4" />
+                    <span>Quali to Race</span>
                   </TabsTrigger>
                   <TabsTrigger value="pitstops" className="flex gap-2 items-center">
                     <Wrench className="h-4 w-4" />
@@ -174,6 +179,12 @@ const Analytics = () => {
                       <div className="flex items-center gap-2">
                         <Flag className="h-4 w-4" />
                         <span>Qualifying</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="progression">
+                      <div className="flex items-center gap-2">
+                        <TrendingUpIcon className="h-4 w-4" />
+                        <span>Quali to Race</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="pitstops">
@@ -235,6 +246,25 @@ const Analytics = () => {
                   <CardContent className="h-[600px] p-4">
                     {selectedTab === "qualifying" && (
                       <QualifyingChart 
+                        year={selectedYear} 
+                        round={selectedRace} 
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="progression" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Qualifying to Race Progression</CardTitle>
+                    <CardDescription>
+                      Visualize how drivers progress from qualifying positions to race results.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[600px] p-4">
+                    {selectedTab === "progression" && (
+                      <ProgressionChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
