@@ -252,6 +252,46 @@ const FastestPitStopCard = () => {
           <CardDescription>
             Top 5 fastest pit stops from the last race
           </CardDescription>
+          
+          {/* Fastest Pit Stop */}
+          {!isLoading && !error && fastestPitStops.length > 0 && (
+            <div className="mt-2 flex items-center justify-center">
+              {(() => {
+                // Get the fastest pit stop (already sorted by duration, so first one is fastest)
+                const fastestStop = fastestPitStops[0];
+                
+                if (fastestStop) {
+                  // Get team color
+                  let teamId = fastestStop.driver.team.toLowerCase();
+                  // Handle specific mappings
+                  if (teamId === "alphatauri") teamId = "rb";
+                  else if (teamId === "alfa") teamId = "sauber";
+                  
+                  // Get color from TEAM_COLORS
+                  const teamColor = TEAM_COLORS[teamId] || "#666666";
+                  
+                  return (
+                    <div className="border border-dashed border-purple-500/50 dark:border-purple-400/50 px-2 py-1 rounded-md inline-flex items-center gap-2 text-xs">
+                      <span className="text-purple-600 dark:text-purple-400 font-medium">Record Stop:</span>
+                      <div className="flex items-center gap-1">
+                        <span 
+                          className="font-mono font-bold" 
+                          style={{ color: teamColor }}
+                        >
+                          {fastestStop.driver.code}
+                        </span>
+                        <span className="text-muted-foreground">·</span>
+                        <span>Lap {fastestStop.lap}</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="font-mono">{fastestStop.duration.toFixed(3)}s</span>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="px-2">
           {isLoading ? (

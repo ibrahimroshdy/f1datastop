@@ -113,6 +113,50 @@ const LastRaceResultsCard = ({
           <CardDescription>
             Top 5 results from the most recent race
           </CardDescription>
+          
+          {/* Fastest Lap Information */}
+          {!isResultsLoading && lastRaceResults?.data?.results && (
+            <>
+              {(() => {
+                // Find driver with fastest lap
+                const fastestLapDriver = lastRaceResults.data.results.find(result => 
+                  result.FastestLap?.rank === "1"
+                );
+                
+                if (fastestLapDriver) {
+                  // Get team color
+                  let teamId = fastestLapDriver.Constructor.constructorId.toLowerCase();
+                  // Handle specific mappings
+                  if (teamId === "alphatauri") teamId = "rb";
+                  else if (teamId === "alfa") teamId = "sauber";
+                  
+                  // Get color from TEAM_COLORS
+                  const teamColor = TEAM_COLORS[teamId] || "#666666";
+                  
+                  return (
+                    <div className="mt-2 flex items-center justify-center">
+                      <div className="border border-dashed border-purple-500/50 dark:border-purple-400/50 px-2 py-1 rounded-md inline-flex items-center gap-2 text-xs">
+                        <span className="text-purple-600 dark:text-purple-400 font-medium">Fastest Lap:</span>
+                        <div className="flex items-center gap-1">
+                          <span 
+                            className="font-mono font-bold" 
+                            style={{ color: teamColor }}
+                          >
+                            {fastestLapDriver.Driver.code}
+                          </span>
+                          <span className="text-muted-foreground">·</span>
+                          <span>Lap {fastestLapDriver.FastestLap?.lap}</span>
+                          <span className="text-muted-foreground">·</span>
+                          <span className="font-mono">{fastestLapDriver.FastestLap?.Time.time}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+            </>
+          )}
         </CardHeader>
         <CardContent className="px-2">
           {isResultsLoading ? (
@@ -150,7 +194,7 @@ const LastRaceResultsCard = ({
                       {result.position === '1' ? result.Time?.time : result.Time?.time?.startsWith('+') ? result.Time.time : result.status === "Finished" ? "+" + result.Time?.time : result.status}
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      Lap {result.FastestLap?.lap || result.laps}
+                      Lap {result.laps}
                     </Badge>
                   </div>
                 </div>
