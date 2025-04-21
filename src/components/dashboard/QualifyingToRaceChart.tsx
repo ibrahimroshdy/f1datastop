@@ -763,4 +763,4 @@ const QualifyingToRaceChart = () => {
   );
 };
 
-export default QualifyingToRaceChart; 
+export default QualifyingToRaceChart;
