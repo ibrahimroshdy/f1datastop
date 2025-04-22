@@ -43,10 +43,10 @@ const DriverStandingsTable = ({ driverStandings, getTeamColor, showAllDrivers }:
       <Table>
         <TableHeader>
           <TableRow className="border-border">
-            <TableHead className="w-12 text-base">Pos</TableHead>
-            <TableHead className="text-base">Driver</TableHead>
-            <TableHead className="text-center text-base">Team</TableHead>
-            <TableHead className="text-right text-base">Points</TableHead>
+            <TableHead className="w-8 lg:w-12 text-sm lg:text-base">Pos</TableHead>
+            <TableHead className="text-sm lg:text-base">Driver</TableHead>
+            <TableHead className="text-center text-sm lg:text-base">Team</TableHead>
+            <TableHead className="text-right text-sm lg:text-base">Pts</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -54,11 +54,15 @@ const DriverStandingsTable = ({ driverStandings, getTeamColor, showAllDrivers }:
             const currentConstructor = getCurrentConstructor(driver.Constructors);
             return (
               <TableRow key={driver.position} className="border-border">
-                <TableCell className="font-medium text-base">{driver.position}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
+                <TableCell className="font-medium text-sm lg:text-base py-2 px-2 lg:p-4">{driver.position}</TableCell>
+                <TableCell className="py-2 px-1 lg:p-4">
+                  <div className="flex items-center gap-1 lg:gap-2">
                     <div style={getTeamColorStyle(currentConstructor?.constructorId || 'default')}>
-                      <span className="text-base">{driver.Driver.givenName} {driver.Driver.familyName}</span>
+                      <span className="text-sm lg:text-base">
+                        {/* Show abbreviated name on small/medium screens */}
+                        <span className="hidden lg:inline">{driver.Driver.givenName} {driver.Driver.familyName}</span>
+                        <span className="lg:hidden">{driver.Driver.familyName}</span>
+                      </span>
                     </div>
                   </div>
                 </TableCell>
@@ -66,21 +70,21 @@ const DriverStandingsTable = ({ driverStandings, getTeamColor, showAllDrivers }:
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div className="flex items-center justify-center w-full h-12">
+                        <div className="flex items-center justify-center w-full h-8 lg:h-12">
                           <TeamLogo 
                             constructorId={currentConstructor?.constructorId || 'default'}
                             alt={currentConstructor?.name || 'Unknown Team'}
-                            size="md"
+                            size="sm"
                           />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="text-base">{currentConstructor?.name || 'Unknown Team'}</p>
+                        <p className="text-sm lg:text-base">{currentConstructor?.name || 'Unknown Team'}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </TableCell>
-                <TableCell className="text-right font-medium text-base">{driver.points}</TableCell>
+                <TableCell className="text-right font-medium text-sm lg:text-base py-2 px-2 lg:p-4">{driver.points}</TableCell>
               </TableRow>
             );
           })}

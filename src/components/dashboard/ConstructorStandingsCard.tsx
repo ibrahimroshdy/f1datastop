@@ -58,10 +58,15 @@ const ConstructorStandingsCard = ({ constructorStandings, getTeamColor }: Constr
           </CardTitle>
           <button 
             onClick={() => setShowAllConstructors(!showAllConstructors)} 
-            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+            className="text-xs lg:text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
           >
             <Users className="h-4 w-4" />
-            {showAllConstructors ? 'Show Top 5' : 'Show All Constructors'}
+            <span className="hidden lg:inline">
+              {showAllConstructors ? 'Show Top 5' : 'Show All Constructors'}
+            </span>
+            <span className="lg:hidden">
+              {showAllConstructors ? 'Top 5' : 'All'}
+            </span>
           </button>
         </div>
       </CardHeader>
@@ -70,19 +75,23 @@ const ConstructorStandingsCard = ({ constructorStandings, getTeamColor }: Constr
         <Table>
           <TableHeader>
             <TableRow className="border-border">
-              <TableHead className="w-12 text-base">Pos</TableHead>
-              <TableHead className="text-base">Team</TableHead>
-              <TableHead className="text-right text-base">Points</TableHead>
+              <TableHead className="w-8 lg:w-12 text-sm lg:text-base">Pos</TableHead>
+              <TableHead className="text-sm lg:text-base">Team</TableHead>
+              <TableHead className="text-right text-sm lg:text-base">Pts</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {teamsToShow?.map(team => (
               <TableRow key={team.position} className="border-border">
-                <TableCell className="font-medium text-base">{team.position}</TableCell>
-                <TableCell>
+                <TableCell className="font-medium text-sm lg:text-base py-2 px-2 lg:p-4">{team.position}</TableCell>
+                <TableCell className="py-2 px-1 lg:p-4">
                   <div className="space-y-1">
-                    <div style={getTeamColorStyle(team.Constructor.constructorId)} className="font-medium text-foreground text-base">
-                      {team.Constructor.name}
+                    <div style={getTeamColorStyle(team.Constructor.constructorId)} className="font-medium text-foreground text-sm lg:text-base">
+                      {/* Show abbreviated team name on small and medium screens */}
+                      <span className="hidden lg:inline">{team.Constructor.name}</span>
+                      <span className="lg:hidden">
+                        {team.Constructor.name.split(' ')[0]}
+                      </span>
                     </div>
                     <Progress 
                       value={Number(team.points) / Number(constructorStandings.data[0].points) * 100} 
@@ -91,7 +100,7 @@ const ConstructorStandingsCard = ({ constructorStandings, getTeamColor }: Constr
                     />
                   </div>
                 </TableCell>
-                <TableCell className="text-right font-medium text-base">{team.points} pts</TableCell>
+                <TableCell className="text-right font-medium text-sm lg:text-base py-2 px-2 lg:p-4">{team.points}</TableCell>
               </TableRow>
             ))}
           </TableBody>
