@@ -18,6 +18,7 @@ import { Trophy, Flag, Clock, LineChart } from "lucide-react";
 import { Link } from "react-router-dom";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { TEAM_COLORS } from "@/constants/f1Colors";
 
 // Function to determine the current year (hardcoded to 2025 for now)
 const getCurrentYear = () => 2025;
@@ -27,6 +28,32 @@ interface RaceDetailDialogProps {
   onClose: () => void;
   race: any;
 }
+
+// Helper function to get team color from constructorId
+const getTeamColor = (constructorId: string) => {
+  // Normalize the team ID to match the keys in TEAM_COLORS
+  let normalizedTeamId = constructorId.toLowerCase();
+  
+  // Handle specific mappings
+  if (normalizedTeamId === "alphatauri") {
+    normalizedTeamId = "rb";
+  } else if (normalizedTeamId === "alfa") {
+    normalizedTeamId = "sauber";
+  }
+  
+  // Get color from TEAM_COLORS or default to a gray color
+  return TEAM_COLORS[normalizedTeamId] || "#666666";
+};
+
+// Helper function to get team color style with border
+const getTeamColorStyle = (constructorId: string) => {
+  const color = getTeamColor(constructorId);
+  
+  return {
+    borderLeft: `4px solid ${color}`,
+    paddingLeft: "0.5rem"
+  };
+};
 
 const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   const [selectedTab, setSelectedTab] = useState("info");
@@ -67,9 +94,9 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     const now = new Date();
     
     if (sessionDateTime < now) {
-      return <Badge className="bg-green-600">Completed</Badge>;
+      return <Badge className="bg-green-600 text-[10px] px-1 py-0 sm:px-2 sm:py-0.5">Completed</Badge>;
     } else {
-      return <Badge variant="outline">Upcoming</Badge>;
+      return <Badge variant="outline" className="text-[10px] px-1 py-0 sm:px-2 sm:py-0.5">Upcoming</Badge>;
     }
   };
   
@@ -83,234 +110,342 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     }
   };
   
+  // Function to create more compact driver display for mobile
+  const getCompactDriverDisplay = (driver: any, constructorId: string) => {
+    const color = getTeamColor(constructorId);
+    return (
+      <div className="flex flex-col" style={{ borderLeft: `3px solid ${color}`, paddingLeft: "0.25rem" }}>
+        <span className="font-medium">{driver.code}</span>
+        <span className="text-[10px] text-muted-foreground truncate max-w-16">
+          {driver.familyName}
+        </span>
+      </div>
+    );
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
+      <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto p-3 sm:p-6">
+        <DialogHeader className="pb-1 sm:pb-2">
+          <DialogTitle className="flex items-center gap-1 sm:gap-2 text-base sm:text-lg md:text-xl">
             {race.Circuit?.Location?.country && (
               <CountryFlag 
                 country={race.Circuit.Location.country} 
-                size={24}
+                size={20}
                 svg={true}
               />
             )}
             {getRaceNameWithoutEmoji(race.raceName)}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Round {race.round} of the {race.season} Formula 1 Season
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="info">Race Info</TabsTrigger>
-            <TabsTrigger value="results">Results</TabsTrigger>
-            <TabsTrigger value="qualifying">Qualifying</TabsTrigger>
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-1">
+            <TabsTrigger value="info" className="text-xs sm:text-sm px-1 sm:px-2">Race Info</TabsTrigger>
+            <TabsTrigger value="results" className="text-xs sm:text-sm px-1 sm:px-2">Results</TabsTrigger>
+            <TabsTrigger value="qualifying" className="text-xs sm:text-sm px-1 sm:px-2">Qualifying</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="info" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Circuit Information</h3>
-                <p className="text-sm text-muted-foreground">Circuit: {race.Circuit?.circuitName || "-"}</p>
-                <p className="text-sm text-muted-foreground">Location: {race.Circuit?.Location?.locality || "-"}, {race.Circuit?.Location?.country || "-"}</p>
+          <div className="h-[350px] sm:h-[400px] md:h-[450px] overflow-y-auto">
+            <TabsContent value="info" className="space-y-3 h-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
+                <div>
+                  <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Circuit Information</h3>
+                  <p className="text-xs md:text-sm text-muted-foreground">Circuit: {race.Circuit?.circuitName || "-"}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Location: {race.Circuit?.Location?.locality || "-"}, {race.Circuit?.Location?.country || "-"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Race Date</h3>
+                  <div className="flex items-center gap-1 md:gap-2">
+                    <Flag className="h-3 w-3 md:h-4 md:w-4" />
+                    <p className="text-xs md:text-sm">
+                      {race.date ? format(parseISO(race.date), 'MMMM d, yyyy') : '-'} 
+                      {race.time ? ` at ${formatTime(race.time)}` : ''}
+                    </p>
+                  </div>
+                </div>
               </div>
               
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Race Date</h3>
-                <div className="flex items-center gap-2">
-                  <Flag className="h-4 w-4" />
-                  <p className="text-sm">
-                    {race.date ? format(parseISO(race.date), 'MMMM d, yyyy') : '-'} 
-                    {race.time ? ` at ${formatTime(race.time)}` : ''}
-                  </p>
+              <div className="border rounded-md p-2 md:p-4">
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-4">Schedule</h3>
+                <div className="space-y-1 md:space-y-3">
+                  {race.FirstPractice && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-xs md:text-sm font-medium">Practice 1</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.FirstPractice)}</p>
+                      </div>
+                      {getSessionStatusBadge(race.FirstPractice.date, race.FirstPractice.time)}
+                    </div>
+                  )}
+                  
+                  {race.SecondPractice && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-xs md:text-sm font-medium">Practice 2</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.SecondPractice)}</p>
+                      </div>
+                      {getSessionStatusBadge(race.SecondPractice.date, race.SecondPractice.time)}
+                    </div>
+                  )}
+                  
+                  {race.ThirdPractice && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-xs md:text-sm font-medium">Practice 3</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.ThirdPractice)}</p>
+                      </div>
+                      {getSessionStatusBadge(race.ThirdPractice.date, race.ThirdPractice.time)}
+                    </div>
+                  )}
+                  
+                  {race.SprintQualifying && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-xs md:text-sm font-medium">Sprint Qualifying</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.SprintQualifying)}</p>
+                      </div>
+                      {getSessionStatusBadge(race.SprintQualifying.date, race.SprintQualifying.time)}
+                    </div>
+                  )}
+                  
+                  {race.Sprint && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-xs md:text-sm font-medium">Sprint Race</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.Sprint)}</p>
+                      </div>
+                      {getSessionStatusBadge(race.Sprint.date, race.Sprint.time)}
+                    </div>
+                  )}
+                  
+                  {race.Qualifying && (
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-xs md:text-sm font-medium">Qualifying</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.Qualifying)}</p>
+                      </div>
+                      {getSessionStatusBadge(race.Qualifying.date, race.Qualifying.time)}
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-xs md:text-sm font-medium">Race</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race)}</p>
+                    </div>
+                    {getSessionStatusBadge(race.date, race.time)}
+                  </div>
                 </div>
               </div>
-            </div>
+              
+              <div className="mt-2 md:mt-4 flex justify-end">
+                <Link to={`/race-info/${getCurrentYear()}/${race.round}`}>
+                  <Button size="sm" className="bg-f1-red hover:bg-f1-red/90 text-xs md:text-sm h-7 sm:h-9">
+                    <LineChart className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                    View Analysis
+                  </Button>
+                </Link>
+              </div>
+            </TabsContent>
             
-            <div className="border rounded-md p-4">
-              <h3 className="text-lg font-semibold mb-4">Schedule</h3>
-              <div className="space-y-3">
-                {race.FirstPractice && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Practice 1</p>
-                      <p className="text-sm text-muted-foreground">{getSessionDate(race.FirstPractice)}</p>
-                    </div>
-                    {getSessionStatusBadge(race.FirstPractice.date, race.FirstPractice.time)}
-                  </div>
-                )}
-                
-                {race.SecondPractice && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Practice 2</p>
-                      <p className="text-sm text-muted-foreground">{getSessionDate(race.SecondPractice)}</p>
-                    </div>
-                    {getSessionStatusBadge(race.SecondPractice.date, race.SecondPractice.time)}
-                  </div>
-                )}
-                
-                {race.ThirdPractice && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Practice 3</p>
-                      <p className="text-sm text-muted-foreground">{getSessionDate(race.ThirdPractice)}</p>
-                    </div>
-                    {getSessionStatusBadge(race.ThirdPractice.date, race.ThirdPractice.time)}
-                  </div>
-                )}
-                
-                {race.SprintQualifying && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Sprint Qualifying</p>
-                      <p className="text-sm text-muted-foreground">{getSessionDate(race.SprintQualifying)}</p>
-                    </div>
-                    {getSessionStatusBadge(race.SprintQualifying.date, race.SprintQualifying.time)}
-                  </div>
-                )}
-                
-                {race.Sprint && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Sprint Race</p>
-                      <p className="text-sm text-muted-foreground">{getSessionDate(race.Sprint)}</p>
-                    </div>
-                    {getSessionStatusBadge(race.Sprint.date, race.Sprint.time)}
-                  </div>
-                )}
-                
-                {race.Qualifying && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Qualifying</p>
-                      <p className="text-sm text-muted-foreground">{getSessionDate(race.Qualifying)}</p>
-                    </div>
-                    {getSessionStatusBadge(race.Qualifying.date, race.Qualifying.time)}
-                  </div>
-                )}
-                
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">Race</p>
-                    <p className="text-sm text-muted-foreground">{getSessionDate(race)}</p>
-                  </div>
-                  {getSessionStatusBadge(race.date, race.time)}
+            <TabsContent value="results" className="h-full">
+              {isResultsLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
                 </div>
-              </div>
-            </div>
+              ) : !raceResults?.data?.Results?.length ? (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground text-xs md:text-sm">No results available for this race yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {/* Mobile view (up to sm breakpoint) */}
+                  <div className="sm:hidden">
+                    {/* Mobile header row */}
+                    <div className="flex items-center justify-between mb-1 border-b pb-1 pt-1 bg-muted/20">
+                      <div className="flex space-x-2 items-center">
+                        <span className="text-[10px] font-medium text-muted-foreground w-5">Pos</span>
+                        <span className="text-[10px] font-medium text-muted-foreground">Driver</span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] font-medium text-muted-foreground">Team/Points</span>
+                      </div>
+                    </div>
+                    
+                    {raceResults.data.Results.map((result: any) => (
+                      <div key={result.position} className="flex items-center justify-between border-b py-1.5">
+                        <div className="flex space-x-2 items-center">
+                          <span className="text-xs font-medium w-5">{result.position}</span>
+                          {getCompactDriverDisplay(result.Driver, result.Constructor.constructorId)}
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span 
+                            className="text-[10px] text-muted-foreground" 
+                            style={{color: getTeamColor(result.Constructor.constructorId)}}
+                          >
+                            {result.Constructor.name}
+                          </span>
+                          <span className="text-xs">{result.points}pts</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Desktop view (sm breakpoint and above) */}
+                  <div className="hidden sm:block">
+                    <Table className="w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10 text-xs md:text-sm py-2">Pos</TableHead>
+                          <TableHead className="text-xs md:text-sm py-2">Driver</TableHead>
+                          <TableHead className="text-xs md:text-sm py-2">Team</TableHead>
+                          <TableHead className="text-right text-xs md:text-sm py-2">Time/Status</TableHead>
+                          <TableHead className="text-right text-xs md:text-sm py-2">Points</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {raceResults.data.Results.map((result: any) => (
+                          <TableRow key={result.position}>
+                            <TableCell className="font-medium text-xs md:text-sm py-1 md:py-2">{result.position}</TableCell>
+                            <TableCell className="text-xs md:text-sm py-1 md:py-2" style={getTeamColorStyle(result.Constructor.constructorId)}>
+                              {result.Driver.givenName} {result.Driver.familyName}
+                              <span className="text-xs text-muted-foreground ml-1">
+                                {result.Driver.code}
+                              </span>
+                            </TableCell>
+                            <TableCell 
+                              className="text-xs md:text-sm py-1 md:py-2" 
+                              style={{color: getTeamColor(result.Constructor.constructorId)}}
+                            >
+                              {result.Constructor.name}
+                            </TableCell>
+                            <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                              {result.Time ? result.Time.time : result.status}
+                            </TableCell>
+                            <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                              {result.points}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
             
-            <div className="mt-4 flex justify-end">
-              <Link to={`/race-info/${getCurrentYear()}/${race.round}`}>
-                <Button className="bg-f1-red hover:bg-f1-red/90">
-                  <LineChart className="h-4 w-4 mr-2" />
-                  View Detailed Analysis
-                </Button>
-              </Link>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="results">
-            {isResultsLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ) : !raceResults?.data?.Results?.length ? (
-              <div className="py-8 text-center">
-                <p className="text-muted-foreground">No results available for this race yet.</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">Pos</TableHead>
-                    <TableHead>Driver</TableHead>
-                    <TableHead>Team</TableHead>
-                    <TableHead className="text-right">Time/Status</TableHead>
-                    <TableHead className="text-right">Points</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {raceResults.data.Results.map((result: any) => (
-                    <TableRow key={result.position}>
-                      <TableCell className="font-medium">{result.position}</TableCell>
-                      <TableCell>
-                        {result.Driver.givenName} {result.Driver.familyName}
-                        <span className="text-xs text-muted-foreground ml-1">
-                          {result.Driver.code}
-                        </span>
-                      </TableCell>
-                      <TableCell>{result.Constructor.name}</TableCell>
-                      <TableCell className="text-right">
-                        {result.Time ? result.Time.time : result.status}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {result.points}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="qualifying">
-            {isQualifyingLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ) : !qualifyingResults?.data?.QualifyingResults?.length ? (
-              <div className="py-8 text-center">
-                <p className="text-muted-foreground">No qualifying results available for this race yet.</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">Pos</TableHead>
-                    <TableHead>Driver</TableHead>
-                    <TableHead>Team</TableHead>
-                    <TableHead className="text-right">Q1</TableHead>
-                    <TableHead className="text-right">Q2</TableHead>
-                    <TableHead className="text-right">Q3</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {qualifyingResults.data.QualifyingResults.map((result: any) => (
-                    <TableRow key={result.position}>
-                      <TableCell className="font-medium">{result.position}</TableCell>
-                      <TableCell>
-                        {result.Driver.givenName} {result.Driver.familyName}
-                        <span className="text-xs text-muted-foreground ml-1">
-                          {result.Driver.code}
-                        </span>
-                      </TableCell>
-                      <TableCell>{result.Constructor.name}</TableCell>
-                      <TableCell className="text-right">
-                        {result.Q1 || "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {result.Q2 || "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {result.Q3 || "-"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </TabsContent>
+            <TabsContent value="qualifying" className="h-full">
+              {isQualifyingLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              ) : !qualifyingResults?.data?.QualifyingResults?.length ? (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground text-xs md:text-sm">No qualifying results available for this race yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {/* Mobile view (up to sm breakpoint) */}
+                  <div className="sm:hidden">
+                    {/* Mobile header row */}
+                    <div className="flex items-center justify-between mb-1 border-b pb-1 pt-1 bg-muted/20">
+                      <div className="flex space-x-2 items-center">
+                        <span className="text-[10px] font-medium text-muted-foreground w-5">Pos</span>
+                        <span className="text-[10px] font-medium text-muted-foreground">Driver</span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <div className="grid grid-cols-3 gap-1 text-[10px] font-medium text-muted-foreground">
+                          <span className="text-right">Q1</span>
+                          <span className="text-right">Q2</span>
+                          <span className="text-right">Q3</span>
+                        </div>
+                        <span className="text-[10px] font-medium text-muted-foreground">Team</span>
+                      </div>
+                    </div>
+                    
+                    {qualifyingResults.data.QualifyingResults.map((result: any) => (
+                      <div key={result.position} className="flex items-center justify-between border-b py-1.5">
+                        <div className="flex space-x-2 items-center">
+                          <span className="text-xs font-medium w-5">{result.position}</span>
+                          {getCompactDriverDisplay(result.Driver, result.Constructor.constructorId)}
+                        </div>
+                        <div className="flex flex-col items-end text-[10px]">
+                          <div className="grid grid-cols-3 gap-1">
+                            <span className="text-right">{result.Q1 || "-"}</span>
+                            <span className="text-right">{result.Q2 || "-"}</span>
+                            <span className="text-right">{result.Q3 || "-"}</span>
+                          </div>
+                          <span 
+                            className="text-muted-foreground"
+                            style={{color: getTeamColor(result.Constructor.constructorId)}}
+                          >
+                            {result.Constructor.name}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Desktop view (sm breakpoint and above) */}
+                  <div className="hidden sm:block">
+                    <Table className="w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10 text-xs md:text-sm py-2">Pos</TableHead>
+                          <TableHead className="text-xs md:text-sm py-2">Driver</TableHead>
+                          <TableHead className="text-xs md:text-sm py-2">Team</TableHead>
+                          <TableHead className="text-right text-xs md:text-sm py-2">Q1</TableHead>
+                          <TableHead className="text-right text-xs md:text-sm py-2">Q2</TableHead>
+                          <TableHead className="text-right text-xs md:text-sm py-2">Q3</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {qualifyingResults.data.QualifyingResults.map((result: any) => (
+                          <TableRow key={result.position}>
+                            <TableCell className="font-medium text-xs md:text-sm py-1 md:py-2">{result.position}</TableCell>
+                            <TableCell className="text-xs md:text-sm py-1 md:py-2" style={getTeamColorStyle(result.Constructor.constructorId)}>
+                              {result.Driver.givenName} {result.Driver.familyName}
+                              <span className="text-xs text-muted-foreground ml-1">
+                                {result.Driver.code}
+                              </span>
+                            </TableCell>
+                            <TableCell 
+                              className="text-xs md:text-sm py-1 md:py-2"
+                              style={{color: getTeamColor(result.Constructor.constructorId)}}
+                            >
+                              {result.Constructor.name}
+                            </TableCell>
+                            <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                              {result.Q1 || "-"}
+                            </TableCell>
+                            <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                              {result.Q2 || "-"}
+                            </TableCell>
+                            <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                              {result.Q3 || "-"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          </div>
         </Tabs>
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" size="sm" onClick={onClose} className="text-xs md:text-sm h-7 sm:h-9">
             Close
           </Button>
         </DialogFooter>
