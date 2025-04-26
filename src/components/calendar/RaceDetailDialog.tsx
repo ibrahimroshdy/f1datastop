@@ -427,6 +427,11 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                             </span>
                             <span className="text-[10px]">{formatRaceTime(result)}</span>
                             <span className="text-[10px] text-muted-foreground">Grid: {result.grid || "-"}</span>
+                            {result.FastestLap?.Time?.time && (
+                              <span className="text-[10px] italic">
+                                {result.FastestLap.Time.time}
+                              </span>
+                            )}
                             <span className="text-xs">{result.points}pts</span>
                           </div>
                         </div>
@@ -443,6 +448,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                             <TableHead className="text-xs md:text-sm py-2">Team</TableHead>
                             <TableHead className="text-right text-xs md:text-sm py-2">Time/Status</TableHead>
                             <TableHead className="text-right text-xs md:text-sm py-2">Grid</TableHead>
+                            <TableHead className="text-right text-xs md:text-sm py-2">Best Lap</TableHead>
                             <TableHead className="text-right text-xs md:text-sm py-2">Points</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -467,6 +473,9 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                               </TableCell>
                               <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
                                 {result.grid || "-"}
+                              </TableCell>
+                              <TableCell className="text-right text-xs md:text-sm py-1 md:py-2 italic">
+                                {result.FastestLap?.Time?.time || "-"}
                               </TableCell>
                               <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
                                 {result.points}
