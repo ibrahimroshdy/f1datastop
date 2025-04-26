@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent,
@@ -9,12 +9,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRaceResults, useRaceQualifying } from "@/hooks/useF1Data";
+import { useRaceResults, useRaceQualifying, useSprintResults } from "@/hooks/useF1Data";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Trophy, Flag, Clock, LineChart } from "lucide-react";
+import { Trophy, Flag, Clock, LineChart, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
@@ -57,6 +57,18 @@ const getTeamColorStyle = (constructorId: string) => {
 
 const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   const [selectedTab, setSelectedTab] = useState("info");
+  const hasSprint = !!race?.Sprint;
+  
+  // Reset tab when race changes
+  useEffect(() => {
+    if (race) {
+      // If race has sprint and selectedTab was "sprint", keep it
+      // Otherwise reset to "info" 
+      if (!hasSprint || (hasSprint && selectedTab !== "sprint")) {
+        setSelectedTab("info");
+      }
+    }
+  }, [race?.round, race?.season]);
   
   const { data: raceResults, isLoading: isResultsLoading } = useRaceResults(
     parseInt(race?.season || "0"), 
@@ -64,6 +76,11 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   );
   
   const { data: qualifyingResults, isLoading: isQualifyingLoading } = useRaceQualifying(
+    parseInt(race?.season || "0"), 
+    race?.round || "0"
+  );
+  
+  const { data: sprintResults, isLoading: isSprintLoading } = useSprintResults(
     parseInt(race?.season || "0"), 
     race?.round || "0"
   );
@@ -83,6 +100,24 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     } catch (e) {
       return timeString;
     }
+  };
+  
+  // Format sprint/race time - ensures consistent time formatting
+  const formatRaceTime = (result: any) => {
+    if (!result) return "-";
+    
+    // If it's the winner with a full time
+    if (result.Time?.time) {
+      return result.Time.time;
+    }
+    
+    // If it's a gap to the leader
+    if (result.status && result.status.startsWith('+')) {
+      return result.status;
+    }
+    
+    // Otherwise it's probably a status like "DNF" or "Finished"
+    return result.status || "-";
   };
   
   const getSessionStatusBadge = (date: string, time?: string) => {
@@ -143,9 +178,17 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         </DialogHeader>
         
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-1">
+          <TabsList className={`grid w-full ${hasSprint ? 'grid-cols-4' : 'grid-cols-3'} mb-1`}>
             <TabsTrigger value="info" className="text-xs sm:text-sm px-1 sm:px-2">Race Info</TabsTrigger>
             <TabsTrigger value="results" className="text-xs sm:text-sm px-1 sm:px-2">Results</TabsTrigger>
+            {hasSprint && (
+              <TabsTrigger value="sprint" className="text-xs sm:text-sm px-1 sm:px-2">
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  <span>Sprint</span>
+                </span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="qualifying" className="text-xs sm:text-sm px-1 sm:px-2">Qualifying</TabsTrigger>
           </TabsList>
           
@@ -275,7 +318,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                         <span className="text-[10px] font-medium text-muted-foreground">Driver</span>
                       </div>
                       <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-medium text-muted-foreground">Team/Points</span>
+                        <span className="text-[10px] font-medium text-muted-foreground">Team/Time/Points</span>
                       </div>
                     </div>
                     
@@ -292,6 +335,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                           >
                             {result.Constructor.name}
                           </span>
+                          <span className="text-[10px]">{formatRaceTime(result)}</span>
                           <span className="text-xs">{result.points}pts</span>
                         </div>
                       </div>
@@ -327,7 +371,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                               {result.Constructor.name}
                             </TableCell>
                             <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
-                              {result.Time ? result.Time.time : result.status}
+                              {formatRaceTime(result)}
                             </TableCell>
                             <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
                               {result.points}
@@ -340,6 +384,102 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                 </div>
               )}
             </TabsContent>
+            
+            {hasSprint && (
+              <TabsContent value="sprint" className="h-full">
+                {isSprintLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                ) : !sprintResults?.data?.SprintResults?.length ? (
+                  <div className="py-8 text-center">
+                    <p className="text-muted-foreground text-xs md:text-sm">No sprint results available for this race yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {/* Mobile view (up to sm breakpoint) */}
+                    <div className="sm:hidden">
+                      {/* Mobile header row */}
+                      <div className="flex items-center justify-between mb-1 border-b pb-1 pt-1 bg-muted/20">
+                        <div className="flex space-x-2 items-center">
+                          <span className="text-[10px] font-medium text-muted-foreground w-5">Pos</span>
+                          <span className="text-[10px] font-medium text-muted-foreground">Driver</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] font-medium text-muted-foreground">Team/Time/Grid/Pts</span>
+                        </div>
+                      </div>
+                      
+                      {sprintResults.data.SprintResults.map((result: any) => (
+                        <div key={result.position} className="flex items-center justify-between border-b py-1.5">
+                          <div className="flex space-x-2 items-center">
+                            <span className="text-xs font-medium w-5">{result.position}</span>
+                            {getCompactDriverDisplay(result.Driver, result.Constructor.constructorId)}
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span 
+                              className="text-[10px] text-muted-foreground" 
+                              style={{color: getTeamColor(result.Constructor.constructorId)}}
+                            >
+                              {result.Constructor.name}
+                            </span>
+                            <span className="text-[10px]">{formatRaceTime(result)}</span>
+                            <span className="text-[10px] text-muted-foreground">Grid: {result.grid || "-"}</span>
+                            <span className="text-xs">{result.points}pts</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Desktop view (sm breakpoint and above) */}
+                    <div className="hidden sm:block">
+                      <Table className="w-full">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-10 text-xs md:text-sm py-2">Pos</TableHead>
+                            <TableHead className="text-xs md:text-sm py-2">Driver</TableHead>
+                            <TableHead className="text-xs md:text-sm py-2">Team</TableHead>
+                            <TableHead className="text-right text-xs md:text-sm py-2">Time/Status</TableHead>
+                            <TableHead className="text-right text-xs md:text-sm py-2">Grid</TableHead>
+                            <TableHead className="text-right text-xs md:text-sm py-2">Points</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sprintResults.data.SprintResults.map((result: any) => (
+                            <TableRow key={result.position}>
+                              <TableCell className="font-medium text-xs md:text-sm py-1 md:py-2">{result.position}</TableCell>
+                              <TableCell className="text-xs md:text-sm py-1 md:py-2" style={getTeamColorStyle(result.Constructor.constructorId)}>
+                                {result.Driver.givenName} {result.Driver.familyName}
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  {result.Driver.code}
+                                </span>
+                              </TableCell>
+                              <TableCell 
+                                className="text-xs md:text-sm py-1 md:py-2" 
+                                style={{color: getTeamColor(result.Constructor.constructorId)}}
+                              >
+                                {result.Constructor.name}
+                              </TableCell>
+                              <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                                {formatRaceTime(result)}
+                              </TableCell>
+                              <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                                {result.grid || "-"}
+                              </TableCell>
+                              <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                                {result.points}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+            )}
             
             <TabsContent value="qualifying" className="h-full">
               {isQualifyingLoading ? (

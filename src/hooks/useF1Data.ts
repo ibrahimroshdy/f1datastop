@@ -667,3 +667,16 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
     refetchOnWindowFocus: false
   });
 }
+
+// Hook for fetching sprint results
+export const useSprintResults = (year: number, round: string) => {
+  return useQuery({
+    queryKey: ['sprintResults', year, round],
+    queryFn: () => f1Service.getSprintResults(year, round),
+    retry: 1,
+    retryDelay: 1000,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 60, // 1 hour
+    enabled: !!year && !!round
+  });
+};

@@ -610,3 +610,28 @@ export const getF1Circuits = async () => {
     return { data: [], error };
   }
 };
+
+// Fetch sprint results for a specific race
+export const getSprintResults = async (year: number, round: string) => {
+  try {
+    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/sprint.json`, {
+      mode: 'cors',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return { 
+      data: data.MRData?.RaceTable?.Races?.[0] || {}, 
+      error: null 
+    };
+  } catch (error) {
+    console.error(`Failed to fetch sprint results for round ${round}:`, error);
+    return { data: {}, error };
+  }
+};
