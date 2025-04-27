@@ -331,7 +331,7 @@ const RaceCalendar = () => {
                 
                 return (
                   <Card 
-                    key={race.round}
+                    key={race.round} 
                     className={`overflow-hidden hover:shadow-md cursor-pointer transition-all duration-200 ${
                       status === "next" ? "border-f1-red" : ""
                     }`}
@@ -355,8 +355,8 @@ const RaceCalendar = () => {
                               "bg-gray-500"
                             }>
                             {status === "completed" ? "Completed" : 
-                            status === "next" ? "Next Race" : 
-                            "Upcoming"}
+                             status === "next" ? "Next Race" : 
+                             "Upcoming"}
                           </Badge>
                         </div>
                         

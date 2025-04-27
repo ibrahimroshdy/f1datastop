@@ -123,14 +123,14 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
           <div className="flex items-center mt-1">
             <p className="text-muted-foreground">Live race data, standings and schedule</p>
             <a 
-              href="https://www.producthunt.com/posts/f1-datastop?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-f1&#0045;datastop" 
+              href="https://www.buymeacoffee.com/f1datastop" 
               target="_blank" 
               rel="noopener noreferrer"
               className="ml-3"
             >
               <img 
-                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=950747&theme=light&t=1744238501973" 
-                alt="F1 DataStop on Product Hunt" 
+                src="https://img.buymeacoffee.com/button-api/?text=Buy me a PitStop&emoji=🚦&slug=f1datastop&button_colour=dd4040&font_colour=ffffff&font_family=Lato&outline_colour=ffffff&coffee_colour=FFDD00" 
+                alt="Buy me a PitStop" 
                 style={{ width: "120px", height: "26px" }} 
                 width="120" 
                 height="26" 

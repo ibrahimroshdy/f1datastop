@@ -61,7 +61,7 @@ const ClarityStatus: React.FC<ClarityStatusProps> = ({ projectId }) => {
     <div style={{
       position: 'fixed',
       bottom: '10px',
-      right: '10px',
+      left: '10px',
       backgroundColor: '#f0f0f0',
       padding: '10px',
       border: '1px solid #ccc',
