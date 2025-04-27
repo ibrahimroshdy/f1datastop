@@ -110,12 +110,11 @@ const Signup = () => {
           </a>
         </div>
         
-        <div className="mb-6 flex justify-center">
-          <img src={f1Logo} alt="F1 DataStop" className="w-20 h-20" />
-        </div>
-        
         <Card className={`w-full ${theme === 'dark' ? 'bg-f1-dark border-gray-800' : 'bg-white border-gray-200'}`}>
           <CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-4">
+              <img src={f1Logo} alt="F1 DataStop" className="w-16 h-16" />
+            </div>
             <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
             <CardDescription className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
               Enter your information to create an account
