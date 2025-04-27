@@ -65,6 +65,23 @@ const Signup = () => {
 
   return (
     <div className={`flex items-center justify-center min-h-screen p-4 ${theme === 'dark' ? 'bg-f1-black' : 'bg-gray-100'}`}>
+      {/* Buy Me A Coffee widget */}
+      <div className="fixed right-5 bottom-5 z-50">
+        <a 
+          href="https://www.buymeacoffee.com/f1datastop" 
+          target="_blank" 
+          rel="noopener noreferrer"
+        >
+          <img 
+            src="https://img.buymeacoffee.com/button-api/?text=Buy me a PitStop&emoji=🚦&slug=f1datastop&button_colour=dd4040&font_colour=ffffff&font_family=Lato&outline_colour=ffffff&coffee_colour=FFDD00" 
+            alt="Buy me a PitStop" 
+            style={{ width: "180px", height: "40px" }} 
+            width="180" 
+            height="40" 
+          />
+        </a>
+      </div>
+      
       <div className="w-full max-w-md">
         <div className="mb-6">
           <Link 
