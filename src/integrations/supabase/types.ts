@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
+export interface Database {
   public: {
     Tables: {
       profiles: {
@@ -36,19 +36,51 @@ export type Database = {
         }
         Relationships: []
       }
+      trivia_scores: {
+        Row: {
+          id: string
+          user_id: string
+          username: string
+          score: number
+          correct_answers: number
+          total_questions: number
+          time_spent: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          username: string
+          score: number
+          correct_answers: number
+          total_questions: number
+          time_spent: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          username?: string
+          score?: number
+          correct_answers?: number
+          total_questions?: number
+          time_spent?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trivia_scores_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    Views: {}
+    Functions: {}
+    Enums: {}
+    CompositeTypes: {}
   }
 }
 

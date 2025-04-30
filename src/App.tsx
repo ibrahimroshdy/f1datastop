@@ -154,6 +154,14 @@ const App = () => (
                         <Route path="/privacy" element={<Privacy />} />
                         <Route path="*" element={<NotFound />} />
                         
+                        {/* Trivia Game Route */}
+                        <Route 
+                          path="/trivia" 
+                          element={<Suspense fallback={<div>Loading...</div>}>
+                            {React.createElement(React.lazy(() => import('./pages/Trivia')))}
+                          </Suspense>} 
+                        />
+                        
                         {/* Embed Routes */}
                         <Route 
                           path="/embed" 
