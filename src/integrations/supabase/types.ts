@@ -45,6 +45,7 @@ export interface Database {
           correct_answers: number
           total_questions: number
           time_spent: number
+          game_mode: string
           created_at: string
         }
         Insert: {
@@ -55,6 +56,7 @@ export interface Database {
           correct_answers: number
           total_questions: number
           time_spent: number
+          game_mode: string
           created_at?: string
         }
         Update: {
@@ -65,6 +67,7 @@ export interface Database {
           correct_answers?: number
           total_questions?: number
           time_spent?: number
+          game_mode?: string
           created_at?: string
         }
         Relationships: [

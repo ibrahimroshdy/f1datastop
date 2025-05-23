@@ -17,6 +17,7 @@ export interface TriviaScore {
   correctAnswers: number;
   totalQuestions: number;
   timeSpent: number; // in seconds
+  gameMode: GameMode;
   createdAt: string;
 }
 
@@ -30,6 +31,8 @@ export type TriviaCategory =
 
 export type TriviaDifficulty = 'easy' | 'medium' | 'hard';
 
+export type GameMode = 'normal' | 'destructive';
+
 export interface GameState {
   currentQuestion: number;
   score: number;
@@ -42,4 +45,16 @@ export interface GameState {
   gameStarted: boolean;
   gameFinished: boolean;
   timeLeft: number;
+  gameMode: GameMode;
+  wrongAnswersCount: number; // Track wrong answers for destructive mode
+  correctAnswersLost: number; // Track how many correct answers were lost
+}
+
+export interface GameModeInfo {
+  mode: GameMode;
+  title: string;
+  description: string;
+  rules: string[];
+  difficulty: 'Easy' | 'Medium' | 'Hard' | 'Extreme';
+  icon: string;
 } 

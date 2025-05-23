@@ -1,19 +1,132 @@
 import { supabase } from "@/integrations/supabase/client";
-import { TriviaQuestion, TriviaScore, TriviaCategory, TriviaDifficulty } from "@/types/trivia";
+import { TriviaQuestion, TriviaScore, TriviaCategory, TriviaDifficulty, GameMode, GameModeInfo } from "@/types/trivia";
 import { v4 as uuidv4 } from "uuid";
 
 const BASE_URL = "https://api.jolpi.ca/ergast";
 
-// Function to generate random years between 2000 and current year
-const getRandomYear = (min = 2000, max = new Date().getFullYear()): number => {
-  // If min somehow becomes greater than max (e.g., current year is 1999), default to max
+// Enhanced configuration
+const CONFIG = {
+  MIN_YEAR: 2005,
+  MAX_YEAR: new Date().getFullYear(),
+  MAX_RETRIES: 3,
+  RETRY_DELAY: 1000,
+  CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+  MIN_OPTIONS: 4,
+  MAX_OPTIONS: 4
+};
+
+// Game mode configurations
+export const GAME_MODES: Record<GameMode, GameModeInfo> = {
+  normal: {
+    mode: 'normal',
+    title: 'Normal Mode',
+    description: 'Classic trivia experience with standard scoring',
+    rules: [
+      'Answer 15 F1 trivia questions',
+      '45 seconds per question',
+      'Earn points for correct answers',
+      'Time bonus for quick responses',
+      'No penalties for wrong answers'
+    ],
+    difficulty: 'Medium',
+    icon: '🏎️'
+  },
+  destructive: {
+    mode: 'destructive',
+    title: 'Destructive Mode',
+    description: 'High-stakes mode where wrong answers cost you!',
+    rules: [
+      'Answer 15 F1 trivia questions',
+      '45 seconds per question',
+      'Every 2 wrong answers removes 1 correct answer',
+      'Lost correct answers = lost points',
+      'Only for the brave - high risk, high reward!'
+    ],
+    difficulty: 'Extreme',
+    icon: '💥'
+  }
+};
+
+// Simple cache for API responses
+const cache = new Map<string, { data: any; timestamp: number }>();
+
+// Enhanced error types
+class TriviaError extends Error {
+  constructor(message: string, public code: string) {
+    super(message);
+    this.name = 'TriviaError';
+  }
+}
+
+// Utility function for API calls with retry and caching
+const fetchWithRetry = async (url: string, retries = CONFIG.MAX_RETRIES): Promise<any> => {
+  // Check cache first
+  const cacheKey = url;
+  const cached = cache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CONFIG.CACHE_DURATION) {
+    return cached.data;
+  }
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new TriviaError(`HTTP ${response.status}: ${response.statusText}`, 'HTTP_ERROR');
+      }
+      
+      const data = await response.json();
+      
+      // Validate data structure
+      if (!data?.MRData) {
+        throw new TriviaError('Invalid API response structure', 'INVALID_RESPONSE');
+      }
+      
+      // Cache the response
+      cache.set(cacheKey, { data, timestamp: Date.now() });
+      return data;
+    } catch (error) {
+      console.warn(`API call attempt ${attempt} failed:`, error);
+      
+      if (attempt === retries) {
+        throw error instanceof TriviaError ? error : new TriviaError(`Failed after ${retries} attempts: ${error.message}`, 'API_FAILURE');
+      }
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY * attempt));
+    }
+  }
+};
+
+// Enhanced function to generate random years with better distribution
+const getRandomYear = (min = CONFIG.MIN_YEAR, max = CONFIG.MAX_YEAR): number => {
   if (min > max) {
     min = max;
   }
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  
+  // Weight more recent years slightly higher
+  const range = max - min + 1;
+  const weights = Array.from({ length: range }, (_, i) => {
+    const year = min + i;
+    const recency = (year - min) / range;
+    return 0.5 + (recency * 0.5); // Weight from 0.5 to 1.0
+  });
+  
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  const random = Math.random() * totalWeight;
+  
+  let accumulator = 0;
+  for (let i = 0; i < weights.length; i++) {
+    accumulator += weights[i];
+    if (random <= accumulator) {
+      return min + i;
+    }
+  }
+  
+  return max; // Fallback
 };
 
-// Function to shuffle array randomly (Fisher-Yates algorithm)
+// Enhanced function to shuffle array with better randomization
 const shuffleArray = <T>(array: T[]): T[] => {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -23,21 +136,57 @@ const shuffleArray = <T>(array: T[]): T[] => {
   return newArray;
 };
 
+// Validate question quality
+const validateQuestion = (question: TriviaQuestion): boolean => {
+  if (!question.question || question.question.length < 10) return false;
+  if (!question.correctAnswer || question.correctAnswer.trim() === '') return false;
+  if (!question.options || question.options.length < CONFIG.MIN_OPTIONS) return false;
+  if (!question.options.includes(question.correctAnswer)) return false;
+  if (new Set(question.options).size !== question.options.length) return false; // No duplicates
+  return true;
+};
+
+// Enhanced scoring system based on difficulty and category
+const calculatePoints = (category: TriviaCategory, difficulty: TriviaDifficulty, year?: number): number => {
+  let basePoints = 10;
+  
+  // Category multiplier
+  const categoryMultipliers = {
+    'drivers': 1.0,
+    'teams': 1.2,
+    'races': 1.1,
+    'championships': 1.5,
+    'statistics': 1.3
+  };
+  
+  // Difficulty multiplier
+  const difficultyMultipliers = {
+    'easy': 1.0,
+    'medium': 1.2,
+    'hard': 1.5
+  };
+  
+  // Year bonus (older years are worth more)
+  let yearMultiplier = 1.0;
+  if (year) {
+    const currentYear = new Date().getFullYear();
+    const yearDiff = currentYear - year;
+    yearMultiplier = 1.0 + (yearDiff * 0.02); // 2% bonus per year back
+  }
+  
+  return Math.round(basePoints * categoryMultipliers[category] * difficultyMultipliers[difficulty] * yearMultiplier);
+};
+
 // Get driver information for a random year
 const getRandomDriverQuestion = async (): Promise<TriviaQuestion | null> => {
   try {
     const year = getRandomYear();
-    const response = await fetch(`${BASE_URL}/f1/${year}/drivers.json`);
+    const data = await fetchWithRetry(`${BASE_URL}/f1/${year}/drivers.json`);
     
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
     const drivers = data.MRData?.DriverTable?.Drivers || [];
     
     if (drivers.length === 0) {
-      return null;
+      throw new TriviaError('No drivers found for the selected year', 'NO_DATA');
     }
     
     // Generate a random driver question
@@ -47,12 +196,16 @@ const getRandomDriverQuestion = async (): Promise<TriviaQuestion | null> => {
         type: "number",
         question: `What was ${randomDriver.givenName} ${randomDriver.familyName}'s permanent number in ${year}?`,
         answer: randomDriver.permanentNumber || "No permanent number",
+        difficulty: 'medium' as TriviaDifficulty,
         generate: () => {
           const correctAnswer = randomDriver.permanentNumber || "N/A";
           // Generate 3 random numbers between 1 and 99 (excluding the correct answer)
           const options = new Set([correctAnswer]);
-          while (options.size < 4) {
-            options.add(Math.floor(Math.random() * 99) + 1 + "");
+          while (options.size < CONFIG.MAX_OPTIONS) {
+            const randomNum = Math.floor(Math.random() * 99) + 1;
+            if (randomNum.toString() !== correctAnswer) {
+              options.add(randomNum.toString());
+            }
           }
           return { correctAnswer, options: Array.from(options) };
         }
@@ -61,6 +214,7 @@ const getRandomDriverQuestion = async (): Promise<TriviaQuestion | null> => {
         type: "nationality",
         question: `What is the nationality of F1 driver ${randomDriver.givenName} ${randomDriver.familyName}?`,
         answer: randomDriver.nationality,
+        difficulty: 'easy' as TriviaDifficulty,
         generate: () => {
           const correctAnswer = randomDriver.nationality;
           // Get random nationalities from other drivers (excluding the correct one)
@@ -68,6 +222,13 @@ const getRandomDriverQuestion = async (): Promise<TriviaQuestion | null> => {
             .filter(d => d.nationality !== correctAnswer)
             .map(d => d.nationality);
           const uniqueNationalities = [...new Set(otherNationalities)];
+          
+          if (uniqueNationalities.length < 3) {
+            // Fallback nationalities if not enough unique ones
+            const fallbackNationalities = ['British', 'German', 'Italian', 'French', 'Spanish', 'Brazilian', 'American'];
+            uniqueNationalities.push(...fallbackNationalities.filter(n => n !== correctAnswer));
+          }
+          
           const randomOptions = shuffleArray(uniqueNationalities).slice(0, 3);
           const options = shuffleArray([correctAnswer, ...randomOptions]);
           return { correctAnswer, options };
@@ -77,12 +238,31 @@ const getRandomDriverQuestion = async (): Promise<TriviaQuestion | null> => {
         type: "code",
         question: `What is ${randomDriver.givenName} ${randomDriver.familyName}'s driver code?`,
         answer: randomDriver.code || "Unknown",
+        difficulty: 'hard' as TriviaDifficulty,
         generate: () => {
           const correctAnswer = randomDriver.code || "Unknown";
+          if (correctAnswer === "Unknown") {
+            return { correctAnswer, options: ["Unknown", "N/A", "Not assigned", "No code"] };
+          }
+          
           // Get random codes from other drivers (excluding the correct one)
           const otherCodes = drivers
             .filter(d => d.code && d.code !== correctAnswer)
             .map(d => d.code);
+          
+          if (otherCodes.length < 3) {
+            // Generate some realistic-looking codes if not enough
+            const codeLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            while (otherCodes.length < 3) {
+              const randomCode = Array.from({ length: 3 }, () => 
+                codeLetters[Math.floor(Math.random() * codeLetters.length)]
+              ).join('');
+              if (!otherCodes.includes(randomCode) && randomCode !== correctAnswer) {
+                otherCodes.push(randomCode);
+              }
+            }
+          }
+          
           const randomOptions = shuffleArray(otherCodes).slice(0, 3);
           const options = shuffleArray([correctAnswer, ...randomOptions]);
           return { correctAnswer, options };
@@ -94,16 +274,23 @@ const getRandomDriverQuestion = async (): Promise<TriviaQuestion | null> => {
     const questionType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
     const { correctAnswer, options } = questionType.generate();
     
-    return {
+    const question: TriviaQuestion = {
       id: uuidv4(),
       question: questionType.question,
       correctAnswer,
       options: shuffleArray(options as string[]),
       category: 'drivers',
-      difficulty: 'medium',
+      difficulty: questionType.difficulty,
       year,
-      points: 10
+      points: calculatePoints('drivers', questionType.difficulty, year)
     };
+    
+    // Validate the question before returning
+    if (!validateQuestion(question)) {
+      throw new TriviaError('Generated question failed validation', 'INVALID_QUESTION');
+    }
+    
+    return question;
   } catch (error) {
     console.error("Failed to generate driver question:", error);
     return null;
@@ -210,7 +397,7 @@ const getRandomTeamQuestion = async (): Promise<TriviaQuestion | null> => {
       category: 'teams',
       difficulty: 'medium',
       year,
-      points: 15
+      points: calculatePoints('teams', 'medium', year)
     };
   } catch (error) {
     console.error("Failed to generate team question:", error);
@@ -318,7 +505,7 @@ const getRandomRaceQuestion = async (): Promise<TriviaQuestion | null> => {
       category: 'races',
       difficulty: 'medium',
       year,
-      points: 10
+      points: calculatePoints('races', 'medium', year)
     };
   } catch (error) {
     console.error("Failed to generate race question:", error);
@@ -329,33 +516,29 @@ const getRandomRaceQuestion = async (): Promise<TriviaQuestion | null> => {
 // Get championship information for a random year
 const getRandomChampionshipQuestion = async (): Promise<TriviaQuestion | null> => {
   try {
-    const year = getRandomYear(1950, new Date().getFullYear() - 1); // Ensure complete season
+    const year = getRandomYear(CONFIG.MIN_YEAR, new Date().getFullYear() - 1); // Ensure complete season
     
     // Get driver standings for the championship winner
-    const driverStandingsResponse = await fetch(`${BASE_URL}/f1/${year}/driverStandings.json`);
-    if (!driverStandingsResponse.ok) {
-      throw new Error(`API request failed with status ${driverStandingsResponse.status}`);
-    }
-    
-    const driverStandingsData = await driverStandingsResponse.json();
+    const driverStandingsData = await fetchWithRetry(`${BASE_URL}/f1/${year}/driverStandings.json`);
     const driverStandings = driverStandingsData.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
     
     if (driverStandings.length === 0) {
-      return null;
+      throw new TriviaError('No driver standings found for the selected year', 'NO_DATA');
     }
     
     const champion = driverStandings[0];
     
     // Get constructor standings for the constructor champion
-    const constructorStandingsResponse = await fetch(`${BASE_URL}/f1/${year}/constructorStandings.json`);
     let constructorChampion = null;
     
-    if (constructorStandingsResponse.ok) {
-      const constructorStandingsData = await constructorStandingsResponse.json();
+    try {
+      const constructorStandingsData = await fetchWithRetry(`${BASE_URL}/f1/${year}/constructorStandings.json`);
       const constructorStandings = constructorStandingsData.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || [];
       if (constructorStandings.length > 0) {
         constructorChampion = constructorStandings[0];
       }
+    } catch (error) {
+      console.warn("Could not fetch constructor standings for", year);
     }
     
     const questionTypes = [
@@ -430,7 +613,7 @@ const getRandomChampionshipQuestion = async (): Promise<TriviaQuestion | null> =
       category: 'championships',
       difficulty: 'medium',
       year,
-      points: 20
+      points: calculatePoints('championships', 'medium', year)
     };
   } catch (error) {
     console.error("Failed to generate championship question:", error);
@@ -441,47 +624,34 @@ const getRandomChampionshipQuestion = async (): Promise<TriviaQuestion | null> =
 // Get statistics and records questions
 const getRandomStatisticsQuestion = async (): Promise<TriviaQuestion | null> => {
   try {
-    const year = getRandomYear(1950, new Date().getFullYear() - 1);
+    const year = getRandomYear(CONFIG.MIN_YEAR, new Date().getFullYear() - 1);
     
     // Get all races for the year to find statistics
-    const racesResponse = await fetch(`${BASE_URL}/f1/${year}.json`);
-    if (!racesResponse.ok) {
-      throw new Error(`API request failed with status ${racesResponse.status}`);
-    }
-    
-    const racesData = await racesResponse.json();
+    const racesData = await fetchWithRetry(`${BASE_URL}/f1/${year}.json`);
     const races = racesData.MRData?.RaceTable?.Races || [];
     
     if (races.length === 0) {
-      return null;
+      throw new TriviaError('No races found for the selected year', 'NO_DATA');
     }
     
     // Choose a random race
     const randomRace = races[Math.floor(Math.random() * races.length)];
     
     // Get results for the race
-    const resultsResponse = await fetch(`${BASE_URL}/f1/${year}/${randomRace.round}/results.json`);
-    if (!resultsResponse.ok) {
-      throw new Error(`API request failed with status ${resultsResponse.status}`);
-    }
-    
-    const resultsData = await resultsResponse.json();
+    const resultsData = await fetchWithRetry(`${BASE_URL}/f1/${year}/${randomRace.round}/results.json`);
     const results = resultsData.MRData?.RaceTable?.Races?.[0]?.Results || [];
     
     if (results.length === 0) {
-      return null;
+      throw new TriviaError('No race results found for the selected race', 'NO_DATA');
     }
     
     // Get qualifying results if available
     let qualifyingResults = [];
     try {
-      const qualifyingResponse = await fetch(`${BASE_URL}/f1/${year}/${randomRace.round}/qualifying.json`);
-      if (qualifyingResponse.ok) {
-        const qualifyingData = await qualifyingResponse.json();
-        qualifyingResults = qualifyingData.MRData?.RaceTable?.Races?.[0]?.QualifyingResults || [];
-      }
+      const qualifyingData = await fetchWithRetry(`${BASE_URL}/f1/${year}/${randomRace.round}/qualifying.json`);
+      qualifyingResults = qualifyingData.MRData?.RaceTable?.Races?.[0]?.QualifyingResults || [];
     } catch (error) {
-      console.error("Failed to fetch qualifying results:", error);
+      console.warn("Failed to fetch qualifying results for", year, randomRace.round);
     }
     
     const questionTypes = [
@@ -575,7 +745,7 @@ const getRandomStatisticsQuestion = async (): Promise<TriviaQuestion | null> => 
       category: 'statistics',
       difficulty: 'hard',
       year,
-      points: 15
+      points: calculatePoints('statistics', 'hard', year)
     };
   } catch (error) {
     console.error("Failed to generate statistics question:", error);
@@ -583,50 +753,101 @@ const getRandomStatisticsQuestion = async (): Promise<TriviaQuestion | null> => 
   }
 };
 
-// Main function to generate a batch of random trivia questions
+// Enhanced main function to generate a batch of random trivia questions
 export const generateTriviaQuestions = async (count: number = 15): Promise<TriviaQuestion[]> => {
   const questions: TriviaQuestion[] = [];
   const generators = [
-    getRandomDriverQuestion,
-    getRandomTeamQuestion,
-    getRandomRaceQuestion,
-    getRandomChampionshipQuestion,
-    getRandomStatisticsQuestion
+    { func: getRandomDriverQuestion, category: 'drivers', weight: 2 },
+    { func: getRandomTeamQuestion, category: 'teams', weight: 1.5 },
+    { func: getRandomRaceQuestion, category: 'races', weight: 2 },
+    { func: getRandomChampionshipQuestion, category: 'championships', weight: 1 },
+    { func: getRandomStatisticsQuestion, category: 'statistics', weight: 1.2 }
   ];
   
-  // Ensure we have a good mix of different question types
-  const questionsPerCategory = Math.ceil(count / generators.length);
+  // Calculate target questions per category based on weights
+  const totalWeight = generators.reduce((sum, gen) => sum + gen.weight, 0);
+  const targetDistribution = generators.map(gen => ({
+    ...gen,
+    target: Math.ceil((gen.weight / totalWeight) * count)
+  }));
   
-  for (const generator of generators) {
-    for (let i = 0; i < questionsPerCategory; i++) {
-      let question = await generator();
-      if (question) {
-        // Make sure we don't have duplicate questions
-        if (!questions.some(q => q.question === question!.question)) {
-          questions.push(question);
+  // Track attempts to prevent infinite loops
+  const maxAttempts = count * 3;
+  let attempts = 0;
+  const questionsByCategory = new Map<string, number>();
+  
+  // Initialize category counts
+  generators.forEach(gen => questionsByCategory.set(gen.category, 0));
+  
+  while (questions.length < count && attempts < maxAttempts) {
+    attempts++;
+    
+    // Select generator based on current distribution needs
+    const availableGenerators = targetDistribution.filter(gen => {
+      const currentCount = questionsByCategory.get(gen.category) || 0;
+      return currentCount < gen.target;
+    });
+    
+    if (availableGenerators.length === 0) {
+      // All categories have reached their targets, pick randomly
+      const randomGen = generators[Math.floor(Math.random() * generators.length)];
+      await tryGenerateQuestion(randomGen.func, randomGen.category);
+    } else {
+      // Pick from available generators, weighted by remaining need
+      const weights = availableGenerators.map(gen => {
+        const currentCount = questionsByCategory.get(gen.category) || 0;
+        const remaining = gen.target - currentCount;
+        return remaining * gen.weight;
+      });
+      
+      const totalAvailableWeight = weights.reduce((sum, weight) => sum + weight, 0);
+      const random = Math.random() * totalAvailableWeight;
+      
+      let accumulator = 0;
+      for (let i = 0; i < availableGenerators.length; i++) {
+        accumulator += weights[i];
+        if (random <= accumulator) {
+          const selectedGen = availableGenerators[i];
+          await tryGenerateQuestion(selectedGen.func, selectedGen.category);
+          break;
         }
       }
-      
-      // Break if we have enough questions
-      if (questions.length >= count) {
-        break;
-      }
-    }
-    
-    // Break if we have enough questions
-    if (questions.length >= count) {
-      break;
     }
   }
   
-  // If we still need more questions, try again with random generators
-  while (questions.length < count) {
-    const randomGenerator = generators[Math.floor(Math.random() * generators.length)];
-    const question = await randomGenerator();
-    if (question && !questions.some(q => q.question === question.question)) {
-      questions.push(question);
+  async function tryGenerateQuestion(generator: () => Promise<TriviaQuestion | null>, category: string) {
+    try {
+      const question = await generator();
+      if (question && validateQuestion(question)) {
+        // Check for duplicate questions
+        const isDuplicate = questions.some(q => 
+          q.question.toLowerCase() === question.question.toLowerCase() ||
+          (q.correctAnswer === question.correctAnswer && q.category === question.category)
+        );
+        
+        if (!isDuplicate) {
+          questions.push(question);
+          questionsByCategory.set(category, (questionsByCategory.get(category) || 0) + 1);
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to generate ${category} question:`, error);
     }
   }
+  
+  // If we don't have enough questions, try a few more random attempts
+  const finalAttempts = Math.min(10, count - questions.length);
+  for (let i = 0; i < finalAttempts && questions.length < count; i++) {
+    const randomGenerator = generators[Math.floor(Math.random() * generators.length)];
+    await tryGenerateQuestion(randomGenerator.func, randomGenerator.category);
+  }
+  
+  if (questions.length === 0) {
+    throw new TriviaError('Unable to generate any questions', 'GENERATION_FAILED');
+  }
+  
+  console.log(`Generated ${questions.length} questions with distribution:`, 
+    Object.fromEntries(questionsByCategory));
   
   return shuffleArray(questions).slice(0, count);
 };
@@ -642,7 +863,8 @@ export const saveScore = async (score: TriviaScore): Promise<void> => {
       correct_answers: score.correctAnswers,
       total_questions: score.totalQuestions,
       time_spent: score.timeSpent,
-      created_at: score.createdAt
+      created_at: score.createdAt,
+      game_mode: score.gameMode
     };
     
     const { error } = await supabase.from('trivia_scores').insert(dbScore);
@@ -677,7 +899,8 @@ export const getTopScores = async (limit: number = 10): Promise<TriviaScore[]> =
       correctAnswers: record.correct_answers,
       totalQuestions: record.total_questions,
       timeSpent: record.time_spent,
-      createdAt: record.created_at
+      createdAt: record.created_at,
+      gameMode: (record.game_mode as GameMode) || 'normal'
     }));
   } catch (error) {
     console.error("Failed to get top scores:", error);
@@ -708,7 +931,8 @@ export const getUserScores = async (userId: string, limit: number = 10): Promise
       correctAnswers: record.correct_answers,
       totalQuestions: record.total_questions,
       timeSpent: record.time_spent,
-      createdAt: record.created_at
+      createdAt: record.created_at,
+      gameMode: (record.game_mode as GameMode) || 'normal'
     }));
   } catch (error) {
     console.error("Failed to get user scores:", error);

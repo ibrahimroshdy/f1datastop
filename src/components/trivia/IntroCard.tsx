@@ -1,115 +1,123 @@
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, Trophy, User, Clock, List } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { Play, Trophy, Info } from "lucide-react";
+import { GameMode } from "@/types/trivia";
+import { GAME_MODES } from "@/services/triviaService";
 
 interface IntroCardProps {
-  onStart: () => void;
+  onStart: (gameMode: GameMode) => void;
   onViewLeaderboard: () => void;
   isLoading: boolean;
 }
 
 export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardProps) {
-  const { user } = useAuth();
-  
+  const [selectedMode, setSelectedMode] = useState<GameMode>('normal');
+
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader className="text-center border-b pb-6">
-        <div className="mx-auto w-16 h-16 rounded-full bg-f1-red flex items-center justify-center mb-4">
-          <HelpCircle className="w-8 h-8 text-white" />
-        </div>
-        <CardTitle className="text-3xl font-extrabold">
-          F1 Trivia Challenge
-        </CardTitle>
-        <p className="text-muted-foreground mt-2">
-          Test your Formula 1 knowledge with questions from 1950 to present day
-        </p>
-      </CardHeader>
-      
-      <CardContent className="pt-6">
-        <div className="grid gap-4">
-          <div className="flex items-start gap-3">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <HelpCircle className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-medium">15 Random Questions</h3>
-              <p className="text-sm text-muted-foreground">
-                Answer questions about drivers, teams, races, championships and more
-              </p>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">🏎️ F1 Trivia Challenge</CardTitle>
+          <p className="text-muted-foreground">
+            Test your Formula 1 knowledge with questions from 2005 onwards
+          </p>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-center">Choose Your Game Mode</h3>
+            
+            <div className="grid gap-4">
+              {Object.values(GAME_MODES).map((mode) => (
+                <Card 
+                  key={mode.mode}
+                  className={`cursor-pointer transition-all hover:shadow-md ${
+                    selectedMode === mode.mode 
+                      ? 'ring-2 ring-primary border-primary' 
+                      : 'hover:border-muted-foreground/50'
+                  }`}
+                  onClick={() => setSelectedMode(mode.mode)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-3 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{mode.icon}</span>
+                          <h3 className="font-semibold">{mode.title}</h3>
+                          <Badge 
+                            variant={mode.difficulty === 'Extreme' ? 'destructive' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {mode.difficulty}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {mode.description}
+                        </p>
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Rules:</h4>
+                          {mode.rules.map((rule, index) => (
+                            <div key={index} className="flex items-start gap-2 text-xs">
+                              <span className="text-primary mt-0.5">•</span>
+                              <span>{rule}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          selectedMode === mode.mode 
+                            ? 'bg-primary border-primary' 
+                            : 'border-muted-foreground'
+                        }`} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
           
-          <div className="flex items-start gap-3">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <Clock className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-medium">Timer Challenge</h3>
-              <p className="text-sm text-muted-foreground">
-                30 seconds per question - answer faster for a higher score
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-start gap-3">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <List className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-medium">Varying Difficulty</h3>
-              <p className="text-sm text-muted-foreground">
-                Questions range from easy to challenging - points awarded based on difficulty
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-start gap-3">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <Trophy className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-medium">Global Leaderboard</h3>
-              <p className="text-sm text-muted-foreground">
-                Compete with other F1 fans around the world
-              </p>
-            </div>
-          </div>
-          
-          {!user && (
-            <div className="flex items-start gap-3">
-              <div className="bg-primary/10 p-2 rounded-full">
-                <User className="w-5 h-5 text-primary" />
+          <Card className="bg-muted/50">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-blue-500 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">General Information</p>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>• Questions cover drivers, teams, races, championships, and statistics</p>
+                    <p>• Points are awarded based on difficulty, category, and year</p>
+                    <p>• Time bonuses are given for quick correct answers</p>
+                    <p>• All questions are from the 2005 F1 season onwards</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium">Create an Account</h3>
-                <p className="text-sm text-muted-foreground">
-                  Sign up to save your scores and track your progress
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </CardContent>
-      
-      <CardFooter className="flex flex-col sm:flex-row gap-3 justify-center pt-6 border-t">
-        <Button 
-          size="lg" 
-          className="w-full sm:w-auto"
-          onClick={onStart}
-          disabled={isLoading}
-        >
-          {isLoading ? "Loading Questions..." : "Start Quiz"}
-        </Button>
-        <Button 
-          variant="outline" 
-          size="lg" 
-          className="w-full sm:w-auto"
-          onClick={onViewLeaderboard}
-        >
-          View Leaderboard
-        </Button>
-      </CardFooter>
-    </Card>
+            </CardContent>
+          </Card>
+        </CardContent>
+        
+        <CardFooter className="flex gap-4">
+          <Button 
+            onClick={() => onStart(selectedMode)} 
+            className="flex-1"
+            disabled={isLoading}
+          >
+            <Play className="mr-2 h-4 w-4" />
+            Start {GAME_MODES[selectedMode].title}
+          </Button>
+          
+          <Button 
+            onClick={onViewLeaderboard} 
+            variant="outline"
+            disabled={isLoading}
+          >
+            <Trophy className="mr-2 h-4 w-4" />
+            Leaderboard
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
   );
 } 

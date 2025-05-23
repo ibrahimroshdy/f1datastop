@@ -1,20 +1,26 @@
-import { TriviaQuestion } from "@/types/trivia";
+import { TriviaQuestion, GameMode } from "@/types/trivia";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Timer } from "./Timer";
 import { TriviaOption } from "./TriviaOption";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SkipForward, Clock } from "lucide-react";
+import { GAME_MODES } from "@/services/triviaService";
 
 interface QuestionCardProps {
   question: TriviaQuestion;
   onAnswer: (answer: string, isCorrect: boolean, timeTaken: number) => void;
   onNextQuestion: () => void;
   onTimeUp: () => void;
+  onSkipQuestion?: () => void;
   isLastQuestion: boolean;
   questionNumber: number;
   totalQuestions: number;
   timeLimitPerQuestion: number;
+  gameMode: GameMode;
+  wrongAnswersCount?: number;
+  correctAnswersLost?: number;
 }
 
 export function QuestionCard({
@@ -22,16 +28,28 @@ export function QuestionCard({
   onAnswer,
   onNextQuestion,
   onTimeUp,
+  onSkipQuestion,
   isLastQuestion,
   questionNumber,
   totalQuestions,
-  timeLimitPerQuestion
+  timeLimitPerQuestion,
+  gameMode,
+  wrongAnswersCount = 0,
+  correctAnswersLost = 0
 }: QuestionCardProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [timerPaused, setTimerPaused] = useState(false);
   const [timeTaken, setTimeTaken] = useState(0);
   const [startTime, setStartTime] = useState(Date.now());
+  const [autoAdvanceTime, setAutoAdvanceTime] = useState(0);
+  const [isAutoAdvancing, setIsAutoAdvancing] = useState(false);
+  
+  const autoAdvanceRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Auto-advance delay in seconds (time to show the result)
+  const AUTO_ADVANCE_DELAY = 4;
   
   useEffect(() => {
     // Reset state when question changes
@@ -40,7 +58,41 @@ export function QuestionCard({
     setTimerPaused(false);
     setTimeTaken(0);
     setStartTime(Date.now());
+    setAutoAdvanceTime(0);
+    setIsAutoAdvancing(false);
+    
+    // Clear any existing timers
+    if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
   }, [question]);
+  
+  const startAutoAdvance = () => {
+    setIsAutoAdvancing(true);
+    setAutoAdvanceTime(AUTO_ADVANCE_DELAY);
+    
+    // Start countdown
+    countdownRef.current = setInterval(() => {
+      setAutoAdvanceTime(prev => {
+        if (prev <= 1) {
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Auto advance after delay
+    autoAdvanceRef.current = setTimeout(() => {
+      handleNextQuestion();
+    }, AUTO_ADVANCE_DELAY * 1000);
+  };
+  
+  const cancelAutoAdvance = () => {
+    setIsAutoAdvancing(false);
+    setAutoAdvanceTime(0);
+    if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+  };
   
   const handleOptionSelect = (option: string) => {
     if (selectedOption || showResult) return;
@@ -59,17 +111,40 @@ export function QuestionCard({
     // Call parent handler
     const isCorrect = option === question.correctAnswer;
     onAnswer(option, isCorrect, seconds);
+    
+    // Start auto-advance timer
+    startAutoAdvance();
   };
   
   const handleInternalTimeUp = () => {
     if (selectedOption || showResult) return;
     setTimerPaused(true);
+    setShowResult(true);
     onTimeUp();
+    
+    // Start auto-advance timer for timeout case too
+    startAutoAdvance();
   };
   
   const handleNextQuestion = () => {
+    cancelAutoAdvance();
     onNextQuestion();
   };
+  
+  const handleSkipQuestion = () => {
+    if (onSkipQuestion) {
+      cancelAutoAdvance();
+      onSkipQuestion();
+    }
+  };
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, []);
   
   // Get difficulty badge color
   const getDifficultyColor = () => {
@@ -80,6 +155,8 @@ export function QuestionCard({
       default: return '';
     }
   };
+
+  const currentGameMode = GAME_MODES[gameMode];
 
   return (
     <Card className="w-full max-w-3xl mx-auto">
@@ -92,11 +169,39 @@ export function QuestionCard({
             <Badge className={`font-normal ${getDifficultyColor()}`}>
               {question.difficulty.toUpperCase()}
             </Badge>
+            <Badge 
+              variant={currentGameMode.difficulty === 'Extreme' ? 'destructive' : 'secondary'}
+              className="font-normal"
+            >
+              {currentGameMode.icon} {currentGameMode.title}
+            </Badge>
           </div>
           <Badge variant="secondary" className="font-normal">
             {question.category.charAt(0).toUpperCase() + question.category.slice(1)}
           </Badge>
         </div>
+        
+        {/* Destructive mode warning */}
+        {gameMode === 'destructive' && (wrongAnswersCount > 0 || correctAnswersLost > 0) && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-2">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-4">
+                <span className="text-destructive font-medium">
+                  Wrong answers: {wrongAnswersCount}
+                </span>
+                {correctAnswersLost > 0 && (
+                  <span className="text-destructive font-medium">
+                    Correct answers lost: {correctAnswersLost}
+                  </span>
+                )}
+              </div>
+              <span className="text-muted-foreground text-xs">
+                Every 2 wrong = -1 correct
+              </span>
+            </div>
+          </div>
+        )}
+        
         <CardTitle className="text-xl font-bold">{question.question}</CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
@@ -120,26 +225,73 @@ export function QuestionCard({
           ))}
         </div>
       </CardContent>
-      <CardFooter className="border-t pt-4 flex justify-between min-h-[60px]">
-        <div>
-          {showResult && (
-            <p className="text-sm opacity-80">
-              {selectedOption === question.correctAnswer 
-                ? <span className="text-green-600 font-medium">Correct! +{question.points} points</span> 
-                : selectedOption 
-                  ? <span className="text-red-600 font-medium">Incorrect. The answer was: {question.correctAnswer}</span> 
-                  : <span className="text-orange-600 font-medium">Time ran out! Correct answer: {question.correctAnswer}</span>}
-            </p>
+      <CardFooter className="border-t pt-4 flex justify-between items-center min-h-[60px]">
+        <div className="flex items-center gap-2">
+          {!showResult && onSkipQuestion && (
+            <Button 
+              onClick={handleSkipQuestion}
+              variant="outline"
+              size="sm"
+              className="text-muted-foreground"
+            >
+              <SkipForward className="mr-2 h-4 w-4" />
+              Skip
+            </Button>
           )}
         </div>
-        {showResult && (
-          <Button 
-            onClick={handleNextQuestion}
-            className="ml-auto"
-          >
-            {isLastQuestion ? "Finish Quiz" : "Next Question"}
-          </Button>
-        )}
+        
+        <div className="flex-1 text-center">
+          {showResult && (
+            <div className="space-y-2">
+              <p className="text-base font-medium">
+                {selectedOption === question.correctAnswer 
+                  ? <span className="text-green-600">✅ Correct! +{question.points} points</span> 
+                  : selectedOption 
+                    ? <span className="text-red-600">❌ Incorrect</span> 
+                    : <span className="text-orange-600">⏰ Time's up!</span>}
+              </p>
+              {selectedOption !== question.correctAnswer && (
+                <p className="text-sm text-muted-foreground">
+                  Correct answer: <span className="font-medium text-foreground">{question.correctAnswer}</span>
+                </p>
+              )}
+              {/* Destructive mode warning for wrong answers */}
+              {gameMode === 'destructive' && selectedOption !== question.correctAnswer && (
+                <p className="text-xs text-destructive">
+                  💥 Wrong answer! {wrongAnswersCount + 1}/2 towards losing a correct answer
+                </p>
+              )}
+              {isAutoAdvancing && autoAdvanceTime > 0 && (
+                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>Auto-advancing in {autoAdvanceTime}s</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {showResult && (
+            <>
+              {isAutoAdvancing && (
+                <Button 
+                  onClick={cancelAutoAdvance}
+                  variant="outline"
+                  size="sm"
+                >
+                  Cancel Auto-advance
+                </Button>
+              )}
+              <Button 
+                onClick={handleNextQuestion}
+                className={isAutoAdvancing ? "animate-pulse" : ""}
+              >
+                {isLastQuestion ? "Finish Quiz" : "Next Question"}
+              </Button>
+            </>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );
