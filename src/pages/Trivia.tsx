@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import MainLayout from "@/components/layout/MainLayout";
 import { AnswerReview } from "@/components/trivia/AnswerReview";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, SkipForward, Home, LogIn, Trophy, AlertTriangle } from "lucide-react";
+import { SkipForward, Home, LogIn, Trophy, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
@@ -111,8 +111,6 @@ export default function Trivia() {
   const [showReview, setShowReview] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [endTime, setEndTime] = useState<number | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const [pausedTime, setPausedTime] = useState(0);
   const [isPublic, setIsPublic] = useState<boolean>(true); // Track privacy setting
   const [isMobile, setIsMobile] = useState(() => isMobileDevice());
   const [gameStats, setGameStats] = useState<GameStats>({
@@ -166,8 +164,6 @@ export default function Trivia() {
     setEndTime(null);
     setShowLeaderboard(false);
     setShowReview(false);
-    setIsPaused(false);
-    setPausedTime(0);
     setIsPublic(true); // Reset privacy setting
     setGameStats({
       totalTimeSpent: 0,
@@ -221,18 +217,6 @@ export default function Trivia() {
       setIsLoading(false);
     }
   };
-  
-  // Enhanced pause/resume functionality
-  const togglePause = useCallback(() => {
-    if (isPaused) {
-      // Resume
-      setIsPaused(false);
-      // Don't reset questionStartTime - let the Timer component handle it properly
-    } else {
-      // Pause
-      setIsPaused(true);
-    }
-  }, [isPaused]);
   
   // Calculate destructive mode penalty
   const calculateDestructivePenalty = (wrongCount: number, currentCorrect: number) => {
@@ -386,8 +370,6 @@ export default function Trivia() {
   
   // Enhanced time up handling with destructive mode logic
   const handleTimeUp = useCallback(() => {
-    if (isPaused) return;
-    
     const currentQuestion = questions[gameState.currentQuestion];
     if (!currentQuestion) return;
 
@@ -450,7 +432,7 @@ export default function Trivia() {
       duration: 3000
     });
     
-  }, [isPaused, questions, gameState.currentQuestion, gameState.gameMode, gameState.wrongAnswersCount, gameState.answers, gameState.score, TIME_LIMIT_PER_QUESTION]);
+  }, [questions, gameState.currentQuestion, gameState.gameMode, gameState.wrongAnswersCount, gameState.answers, gameState.score, TIME_LIMIT_PER_QUESTION]);
   
   // Skip question functionality
   const handleSkipQuestion = useCallback(() => {
@@ -502,7 +484,7 @@ export default function Trivia() {
   // Calculate total time spent in seconds with pause adjustments
   const getTotalTimeSpent = () => {
     if (!startTime || !endTime) return 0;
-    return Math.floor((endTime - startTime - pausedTime) / 1000);
+    return Math.floor((endTime - startTime) / 1000);
   };
   
   // Calculate game progress
@@ -624,26 +606,6 @@ export default function Trivia() {
             {/* Control buttons - full width stack on mobile */}
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
-                onClick={togglePause}
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto text-xs sm:text-sm"
-                disabled={false}
-              >
-                {isPaused ? (
-                  <>
-                    <Play className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                    Resume
-                  </>
-                ) : (
-                  <>
-                    <Pause className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                    Pause
-                  </>
-                )}
-              </Button>
-              
-              <Button
                 onClick={resetGame}
                 variant="outline"
                 size="sm"
@@ -685,20 +647,6 @@ export default function Trivia() {
           </div>
         </div>
 
-        {/* Pause Overlay - mobile optimized */}
-        {isPaused && (
-          <div className="bg-card border rounded-lg p-6 sm:p-8 text-center">
-            <h3 className="text-lg sm:text-xl font-semibold mb-2">Game Paused</h3>
-            <p className="text-sm sm:text-base text-muted-foreground mb-4">
-              Take your time! Click resume when you're ready to continue.
-            </p>
-            <Button onClick={togglePause} className="w-full sm:w-auto">
-              <Play className="mr-2 h-4 w-4" />
-              Resume Game
-            </Button>
-          </div>
-        )}
-
         {/* Question Card */}
         <QuestionCard
           question={currentQ}
@@ -713,7 +661,6 @@ export default function Trivia() {
           gameMode={gameState.gameMode}
           wrongAnswersCount={gameState.wrongAnswersCount}
           correctAnswersLost={gameState.correctAnswersLost}
-          globalPaused={isPaused}
         />
       </div>
     );
