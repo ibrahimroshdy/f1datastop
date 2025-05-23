@@ -55,27 +55,27 @@ export function ScoreCard({
     <Card className="w-full max-w-xl mx-auto">
       <CardHeader className="text-center border-b pb-4">
         <div className="flex justify-center mb-3">
-          <Badge className="text-md px-3 py-1.5">Quiz Completed!</Badge>
+          <Badge className="text-sm sm:text-base px-3 py-1.5">Quiz Completed!</Badge>
         </div>
-        <CardTitle className="text-2xl">Your Score: {score} points</CardTitle>
-        <p className={`mt-2 font-medium ${getPerformanceColor()}`}>
+        <CardTitle className="text-xl sm:text-2xl">Your Score: {score} points</CardTitle>
+        <p className={`mt-2 text-sm sm:text-base font-medium ${getPerformanceColor()}`}>
           {getPerformanceMessage()}
         </p>
       </CardHeader>
       
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-card border rounded-lg p-4 text-center">
-            <p className="text-sm text-muted-foreground">Accuracy</p>
-            <p className="text-2xl font-bold">{accuracy}%</p>
+      <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="bg-card border rounded-lg p-3 sm:p-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">Accuracy</p>
+            <p className="text-xl sm:text-2xl font-bold">{accuracy}%</p>
           </div>
-          <div className="bg-card border rounded-lg p-4 text-center">
-            <p className="text-sm text-muted-foreground">Time Spent</p>
-            <p className="text-2xl font-bold">{formatTime(timeSpent)}</p>
+          <div className="bg-card border rounded-lg p-3 sm:p-4 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground">Time Spent</p>
+            <p className="text-xl sm:text-2xl font-bold">{formatTime(timeSpent)}</p>
           </div>
         </div>
         
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4 text-sm sm:text-base">
           <div className="flex justify-between">
             <span>Correct Answers:</span>
             <span className="font-medium">{correctAnswers} of {totalQuestions}</span>
@@ -106,21 +106,21 @@ export function ScoreCard({
         </div>
       </CardContent>
       
-      <CardFooter className="flex flex-col gap-3 sm:flex-row justify-center pt-6 border-t">
-        <Button onClick={onRestart} className="w-full sm:w-auto">
+      <CardFooter className="flex flex-col gap-3 sm:flex-row justify-center pt-4 sm:pt-6 border-t px-4 sm:px-6">
+        <Button onClick={onRestart} className="w-full sm:w-auto h-11 sm:h-10">
           Play Again
         </Button>
         <Button 
           onClick={onReview}
           variant="secondary" 
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto h-11 sm:h-10"
         >
           <Eye className="mr-2 h-4 w-4" /> Review Answers
         </Button>
         <Button 
           onClick={onViewLeaderboard} 
           variant="outline" 
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto h-11 sm:h-10"
         >
           View Leaderboard
         </Button>

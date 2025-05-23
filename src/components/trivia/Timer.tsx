@@ -46,16 +46,26 @@ export function Timer({ duration, onTimeUp, paused }: TimerProps) {
   };
   
   return (
-    <div className="w-full mb-8">
-      <div className="flex justify-between mb-2">
-        <span className="text-sm font-medium">Time Remaining</span>
-        <span className="text-sm font-medium">{timeLeft}s</span>
+    <div className="w-full mb-4 sm:mb-6 lg:mb-8">
+      <div className="flex justify-between items-center mb-2 sm:mb-3">
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground">Time Remaining</span>
+        <span className="text-sm sm:text-base font-bold tabular-nums">
+          {timeLeft}s
+        </span>
       </div>
       <Progress 
         value={progress} 
-        className="h-2"
+        className="h-2 sm:h-3"
         indicatorClassName={getColorClass()}
       />
+      {/* Warning text for low time on mobile */}
+      {timeLeft <= 10 && timeLeft > 0 && (
+        <div className="text-center mt-2">
+          <span className="text-xs sm:text-sm text-red-600 font-medium animate-pulse">
+            Hurry up! Only {timeLeft} seconds left!
+          </span>
+        </div>
+      )}
     </div>
   );
 } 

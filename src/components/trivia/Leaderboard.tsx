@@ -136,9 +136,9 @@ export function Leaderboard() {
   
   return (
     <Card className="w-full max-w-5xl mx-auto">
-      <CardHeader className="border-b pb-3">
+      <CardHeader className="border-b pb-3 px-4 sm:px-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <CardTitle className="text-2xl">F1 Trivia Leaderboard</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">F1 Trivia Leaderboard</CardTitle>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <Select value={modeFilter} onValueChange={setModeFilter}>
@@ -155,19 +155,20 @@ export function Leaderboard() {
         </div>
       </CardHeader>
       
-      <CardContent className="pt-6">
+      <CardContent className="pt-4 sm:pt-6 px-2 sm:px-6">
         <Tabs 
           defaultValue="global" 
           value={activeTab} 
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="global">Global Leaderboard</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6">
+            <TabsTrigger value="global" className="text-xs sm:text-sm">Global Leaderboard</TabsTrigger>
             <TabsTrigger 
               value="personal" 
               disabled={!user}
               title={!user ? "Login to view your personal scores" : ""}
+              className="text-xs sm:text-sm"
             >
               Your Scores
             </TabsTrigger>
@@ -179,49 +180,53 @@ export function Leaderboard() {
                 <Spinner size="lg" />
               </div>
             ) : filteredTopScores.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
+              <div className="text-center py-12 text-sm sm:text-base text-muted-foreground">
                 {modeFilter === "all" ? "No scores yet. Be the first to play!" : `No scores for ${modeFilter} mode yet.`}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[80px]">Rank</TableHead>
-                    <TableHead>Player</TableHead>
-                    <TableHead className="text-right">Score</TableHead>
-                    <TableHead className="text-center">Mode</TableHead>
-                    <TableHead className="text-right hidden md:table-cell">Accuracy</TableHead>
-                    <TableHead className="text-right hidden md:table-cell">Time</TableHead>
-                    <TableHead className="text-right">Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTopScores.map((score, index) => (
-                    <TableRow key={score.id || index}>
-                      <TableCell className="font-medium">#{index + 1}</TableCell>
-                      <TableCell>
-                        {score.username}
-                        {user && score.userId === user.id && (
-                          <span className="ml-2 text-xs text-f1-red">(You)</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-bold">{score.score}</TableCell>
-                      <TableCell className="text-center">
-                        {getGameModeBadge(score.gameMode || 'normal')}
-                      </TableCell>
-                      <TableCell className="text-right hidden md:table-cell">
-                        {Math.round((score.correctAnswers / score.totalQuestions) * 100)}%
-                      </TableCell>
-                      <TableCell className="text-right hidden md:table-cell">
-                        {formatTime(score.timeSpent)}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground text-sm">
-                        {formatDate(score.createdAt)}
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[60px] sm:w-[80px] text-xs sm:text-sm">Rank</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Player</TableHead>
+                      <TableHead className="text-right text-xs sm:text-sm">Score</TableHead>
+                      <TableHead className="text-center text-xs sm:text-sm">Mode</TableHead>
+                      <TableHead className="text-right hidden md:table-cell text-xs sm:text-sm">Accuracy</TableHead>
+                      <TableHead className="text-right hidden md:table-cell text-xs sm:text-sm">Time</TableHead>
+                      <TableHead className="text-right text-xs sm:text-sm">Date</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTopScores.map((score, index) => (
+                      <TableRow key={score.id || index}>
+                        <TableCell className="font-medium text-xs sm:text-sm">#{index + 1}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <div className="min-w-0">
+                            <div className="truncate">{score.username}</div>
+                            {user && score.userId === user.id && (
+                              <span className="text-xs text-f1-red">(You)</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-xs sm:text-sm">{score.score}</TableCell>
+                        <TableCell className="text-center">
+                          {getGameModeBadge(score.gameMode || 'normal')}
+                        </TableCell>
+                        <TableCell className="text-right hidden md:table-cell text-xs sm:text-sm">
+                          {Math.round((score.correctAnswers / score.totalQuestions) * 100)}%
+                        </TableCell>
+                        <TableCell className="text-right hidden md:table-cell text-xs sm:text-sm">
+                          {formatTime(score.timeSpent)}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground text-xs">
+                          {formatDate(score.createdAt)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </TabsContent>
           

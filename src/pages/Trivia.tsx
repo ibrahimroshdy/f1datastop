@@ -39,16 +39,16 @@ const LoginRequired = () => {
             <Trophy className="h-8 w-8 text-primary" />
           </div>
         </div>
-        <CardTitle className="text-2xl">Login Required</CardTitle>
+        <CardTitle className="text-xl sm:text-2xl">Login Required</CardTitle>
       </CardHeader>
-      <CardContent className="text-center space-y-4">
-        <p className="text-muted-foreground">
+      <CardContent className="text-center space-y-4 px-4 sm:px-6">
+        <p className="text-sm sm:text-base text-muted-foreground">
           You need to be logged in to play F1 Trivia and compete on the leaderboard.
         </p>
         <div className="space-y-3">
           <Button 
             onClick={() => navigate('/auth/login')}
-            className="w-full"
+            className="w-full h-11 sm:h-10"
           >
             <LogIn className="mr-2 h-4 w-4" />
             Login to Play
@@ -56,14 +56,14 @@ const LoginRequired = () => {
           <Button 
             onClick={() => navigate('/auth/signup')}
             variant="outline"
-            className="w-full"
+            className="w-full h-11 sm:h-10"
           >
             Create Account
           </Button>
         </div>
-        <div className="text-sm text-muted-foreground">
-          <p>With an account you can:</p>
-          <ul className="list-disc list-inside mt-2 space-y-1">
+        <div className="text-xs sm:text-sm text-muted-foreground">
+          <p className="font-medium mb-2">With an account you can:</p>
+          <ul className="list-disc list-inside space-y-1 text-left">
             <li>Save your high scores</li>
             <li>Compete on the leaderboard</li>
             <li>Track your progress over time</li>
@@ -87,6 +87,12 @@ const initialGameState: GameState = {
   correctAnswersLost: 0
 };
 
+// Utility function to detect mobile devices
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 640; // Tailwind's sm breakpoint
+};
+
 // Game statistics interface
 interface GameStats {
   totalTimeSpent: number;
@@ -108,6 +114,7 @@ export default function Trivia() {
   const [isPaused, setIsPaused] = useState(false);
   const [pausedTime, setPausedTime] = useState(0);
   const [isPublic, setIsPublic] = useState<boolean>(true); // Track privacy setting
+  const [isMobile, setIsMobile] = useState(() => isMobileDevice());
   const [gameStats, setGameStats] = useState<GameStats>({
     totalTimeSpent: 0,
     averageTimePerQuestion: 0,
@@ -125,6 +132,16 @@ export default function Trivia() {
   // Refs for cleanup
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const questionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Mobile detection effect
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(isMobileDevice());
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Check if user is authenticated
   if (!user) {
@@ -272,10 +289,12 @@ export default function Trivia() {
             const pointsToLose = Math.floor(avgPointsPerCorrect || basePoints);
             newScore = Math.max(0, newScore - pointsToLose);
             
-            // Show destructive mode notification
-            toast.error(`💥 2 wrong answers reached! Lost 1 correct answer (-${pointsToLose} points)`, {
-              duration: 4000
-            });
+            // Show destructive mode notification only on desktop
+            if (!isMobile) {
+              toast.error(`💥 2 wrong answers reached! Lost 1 correct answer (-${pointsToLose} points)`, {
+                duration: 4000
+              });
+            }
           }
         }
       }
@@ -401,9 +420,12 @@ export default function Trivia() {
           const pointsToLose = Math.floor(avgPointsPerCorrect || 10);
           newScore = Math.max(0, newScore - pointsToLose);
           
-          toast.error(`💥 Time's up + 2 wrong answers! Lost 1 correct answer (-${pointsToLose} points)`, {
-            duration: 4000
-          });
+          // Show destructive mode notification only on desktop
+          if (!isMobile) {
+            toast.error(`💥 Time's up + 2 wrong answers! Lost 1 correct answer (-${pointsToLose} points)`, {
+              duration: 4000
+            });
+          }
         }
       }
       
@@ -563,43 +585,53 @@ export default function Trivia() {
     const currentGameMode = GAME_MODES[gameState.gameMode];
 
     return (
-      <div className="space-y-6">
-        {/* Game Progress and Controls */}
-        <div className="bg-card border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="text-sm font-medium">
-                Score: <span className="text-primary">{gameState.score}</span>
+      <div className="space-y-4 sm:space-y-6">
+        {/* Game Progress and Controls - Mobile Optimized */}
+        <div className="bg-card border rounded-lg p-3 sm:p-4">
+          {/* Top stats row - responsive layout */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+            {/* Stats - stacked on mobile, horizontal on desktop */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <div className="flex items-center justify-between sm:justify-start gap-4">
+                <div className="text-xs sm:text-sm font-medium">
+                  Score: <span className="text-primary font-bold">{gameState.score}</span>
+                </div>
+                <div className="text-xs sm:text-sm font-medium">
+                  Streak: <span className="text-orange-500 font-bold">{gameStats.currentStreak}</span>
+                </div>
+                <div className="text-xs sm:text-sm font-medium">
+                  Progress: <span className="font-bold">{gameState.currentQuestion + 1}/{questions.length}</span>
+                </div>
               </div>
-              <div className="text-sm font-medium">
-                Streak: <span className="text-orange-500">{gameStats.currentStreak}</span>
+              
+              {/* Game mode badge - centered on mobile */}
+              <div className="flex justify-center sm:justify-start">
+                <Badge 
+                  variant={currentGameMode.difficulty === 'Extreme' ? 'destructive' : 'secondary'}
+                  className="text-xs whitespace-nowrap"
+                >
+                  {currentGameMode.icon} {currentGameMode.title}
+                </Badge>
               </div>
-              <div className="text-sm font-medium">
-                Progress: {gameState.currentQuestion + 1}/{questions.length}
-              </div>
-              <Badge 
-                variant={currentGameMode.difficulty === 'Extreme' ? 'destructive' : 'secondary'}
-                className="text-xs"
-              >
-                {currentGameMode.icon} {currentGameMode.title}
-              </Badge>
             </div>
             
-            <div className="flex items-center gap-2">
+            {/* Control buttons - full width stack on mobile */}
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={togglePause}
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto text-xs sm:text-sm"
                 disabled={false}
               >
                 {isPaused ? (
                   <>
-                    <Play className="mr-2 h-4 w-4" />
+                    <Play className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Resume
                   </>
                 ) : (
                   <>
-                    <Pause className="mr-2 h-4 w-4" />
+                    <Pause className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Pause
                   </>
                 )}
@@ -609,24 +641,26 @@ export default function Trivia() {
                 onClick={resetGame}
                 variant="outline"
                 size="sm"
-                className="text-destructive"
+                className="w-full sm:w-auto text-xs sm:text-sm text-destructive hover:text-destructive"
               >
                 Quit Game
               </Button>
             </div>
           </div>
           
-          {/* Destructive mode status */}
+          {/* Destructive mode status - mobile optimized */}
           {gameState.gameMode === 'destructive' && (
-            <div className="mb-4 p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-4">
+            <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                   <div className="flex items-center gap-1">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                    <span className="font-medium">Destructive Mode</span>
+                    <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium">Destructive Mode</span>
                   </div>
-                  <span>Wrong: {gameState.wrongAnswersCount}</span>
-                  <span>Lost: {gameState.correctAnswersLost}</span>
+                  <div className="flex items-center gap-3 text-xs sm:text-sm">
+                    <span>Wrong: <span className="font-medium text-destructive">{gameState.wrongAnswersCount}</span></span>
+                    <span>Lost: <span className="font-medium text-destructive">{gameState.correctAnswersLost}</span></span>
+                  </div>
                 </div>
                 <span className="text-muted-foreground text-xs">
                   Next loss at {Math.ceil(gameState.wrongAnswersCount / 2) * 2} wrong answers
@@ -635,21 +669,24 @@ export default function Trivia() {
             </div>
           )}
           
-          <div className="space-y-2">
+          {/* Progress bar section */}
+          <div className="space-y-1 sm:space-y-2">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Question {gameState.currentQuestion + 1} of {questions.length}</span>
               <span>{getGameProgress()}% Complete</span>
             </div>
-            <Progress value={getGameProgress()} className="h-2" />
+            <Progress value={getGameProgress()} className="h-1.5 sm:h-2" />
           </div>
         </div>
 
-        {/* Pause Overlay */}
+        {/* Pause Overlay - mobile optimized */}
         {isPaused && (
-          <div className="bg-card border rounded-lg p-8 text-center">
-            <h3 className="text-lg font-semibold mb-2">Game Paused</h3>
-            <p className="text-muted-foreground mb-4">Take your time! Click resume when you're ready to continue.</p>
-            <Button onClick={togglePause}>
+          <div className="bg-card border rounded-lg p-6 sm:p-8 text-center">
+            <h3 className="text-lg sm:text-xl font-semibold mb-2">Game Paused</h3>
+            <p className="text-sm sm:text-base text-muted-foreground mb-4">
+              Take your time! Click resume when you're ready to continue.
+            </p>
+            <Button onClick={togglePause} className="w-full sm:w-auto">
               <Play className="mr-2 h-4 w-4" />
               Resume Game
             </Button>
@@ -687,7 +724,7 @@ export default function Trivia() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8 flex-grow">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 flex-grow">
         {renderGameView()}
       </div>
     </MainLayout>
