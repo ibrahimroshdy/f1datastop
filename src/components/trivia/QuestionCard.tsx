@@ -21,6 +21,7 @@ interface QuestionCardProps {
   gameMode: GameMode;
   wrongAnswersCount?: number;
   correctAnswersLost?: number;
+  globalPaused?: boolean;
 }
 
 export function QuestionCard({
@@ -35,7 +36,8 @@ export function QuestionCard({
   timeLimitPerQuestion,
   gameMode,
   wrongAnswersCount = 0,
-  correctAnswersLost = 0
+  correctAnswersLost = 0,
+  globalPaused = false
 }: QuestionCardProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -117,7 +119,7 @@ export function QuestionCard({
   };
   
   const handleInternalTimeUp = () => {
-    if (selectedOption || showResult) return;
+    if (selectedOption || showResult || globalPaused) return;
     setTimerPaused(true);
     setShowResult(true);
     onTimeUp();
@@ -133,7 +135,19 @@ export function QuestionCard({
   const handleSkipQuestion = () => {
     if (onSkipQuestion) {
       cancelAutoAdvance();
-      onSkipQuestion();
+      // Instead of ending the game, treat as timeout and go to next question
+      setTimerPaused(true);
+      setShowResult(true);
+      setSelectedOption(''); // Mark as skipped
+      
+      // Call parent handler with empty answer (skip)
+      const endTime = Date.now();
+      const seconds = Math.floor((endTime - startTime) / 1000);
+      setTimeTaken(seconds);
+      onAnswer('', false, seconds); // Empty answer counts as wrong
+      
+      // Start auto-advance timer
+      startAutoAdvance();
     }
   };
   
@@ -180,7 +194,15 @@ export function QuestionCard({
   const currentGameMode = GAME_MODES[gameMode];
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className={`w-full max-w-4xl mx-auto relative ${globalPaused ? 'opacity-60' : ''}`}>
+      {globalPaused && (
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">Game Paused</h3>
+            <p className="text-sm text-muted-foreground">Resume from the game controls above</p>
+          </div>
+        </div>
+      )}
       <CardHeader className="border-b pb-3 sm:pb-4 space-y-2 sm:space-y-3">
         {/* Mobile-optimized compact header */}
         <div className="space-y-2 sm:space-y-3">
@@ -198,7 +220,7 @@ export function QuestionCard({
               <Badge variant="secondary" className="text-xs font-normal whitespace-nowrap px-1.5 sm:px-2.5 py-0.5">
                 <span className="sm:hidden">{getCategoryAbbreviation(question.category)}</span>
                 <span className="hidden sm:inline">{question.category.charAt(0).toUpperCase() + question.category.slice(1)}</span>
-              </Badge>
+            </Badge>
             </div>
             
             {/* Right side - Game mode */}
@@ -246,7 +268,7 @@ export function QuestionCard({
         <Timer
           duration={timeLimitPerQuestion}
           onTimeUp={handleInternalTimeUp}
-          paused={timerPaused}
+          paused={timerPaused || globalPaused}
         />
         
         {/* Options with improved mobile spacing */}
@@ -280,6 +302,16 @@ export function QuestionCard({
                       <div className="text-xs text-muted-foreground">+{question.points} points</div>
                     </div>
                   </>
+                ) : selectedOption === '' ? (
+                  <>
+                    <span className="text-2xl">⏭️</span>
+                    <div className="text-left">
+                      <div className="text-sm font-semibold text-blue-600">Skipped</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-32">
+                        {question.correctAnswer}
+                      </div>
+                    </div>
+                  </>
                 ) : selectedOption ? (
                   <>
                     <span className="text-2xl">❌</span>
@@ -304,7 +336,7 @@ export function QuestionCard({
               </div>
               
               {/* Destructive mode warning - more compact */}
-              {gameMode === 'destructive' && selectedOption !== question.correctAnswer && (
+              {gameMode === 'destructive' && (selectedOption !== question.correctAnswer) && (
                 <div className="text-xs text-center">
                   <span className="text-destructive font-medium">
                     💥 {wrongAnswersCount + 1}/2 wrong
@@ -344,12 +376,12 @@ export function QuestionCard({
               className="text-muted-foreground hover:text-foreground w-full sm:w-auto order-2 sm:order-1"
             >
               <SkipForward className="mr-2 h-4 w-4" />
-              End Game
+              Skip Question
             </Button>
           )}
           
           {/* Next/Finish button */}
-          {showResult && (
+        {showResult && (
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto order-1 sm:order-2">
               {isAutoAdvancing && (
                 <Button 
@@ -361,14 +393,14 @@ export function QuestionCard({
                   Cancel Auto-advance
                 </Button>
               )}
-              <Button 
-                onClick={handleNextQuestion}
+          <Button 
+            onClick={handleNextQuestion}
                 className={`w-full sm:w-auto ${isAutoAdvancing ? "animate-pulse" : ""}`}
-              >
-                {isLastQuestion ? "Finish Quiz" : "Next Question"}
-              </Button>
+          >
+            {isLastQuestion ? "Finish Quiz" : "Next Question"}
+          </Button>
             </div>
-          )}
+        )}
         </div>
       </CardFooter>
     </Card>

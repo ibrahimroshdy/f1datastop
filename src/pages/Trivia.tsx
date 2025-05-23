@@ -227,14 +227,12 @@ export default function Trivia() {
     if (isPaused) {
       // Resume
       setIsPaused(false);
-      setPausedTime(prev => prev + (Date.now() - (questionStartTime || 0)));
-      setQuestionStartTime(Date.now());
+      // Don't reset questionStartTime - let the Timer component handle it properly
     } else {
       // Pause
       setIsPaused(true);
-      setQuestionStartTime(null);
     }
-  }, [isPaused, questionStartTime]);
+  }, [isPaused]);
   
   // Calculate destructive mode penalty
   const calculateDestructivePenalty = (wrongCount: number, currentCorrect: number) => {
@@ -283,7 +281,7 @@ export default function Trivia() {
           
           if (correctAnswersWithPoints.length > newCorrectAnswersLost) {
             newCorrectAnswersLost++;
-            
+  
             // Calculate lost points (approximate based on average points)
             const avgPointsPerCorrect = prev.score / Math.max(1, prev.answers.filter(a => a.isCorrect).length);
             const pointsToLose = Math.floor(avgPointsPerCorrect || basePoints);
@@ -357,7 +355,7 @@ export default function Trivia() {
       setQuestionStartTime(Date.now());
     }
   }, [gameState.currentQuestion, questions.length]);
-  
+
   // Enhanced game finish with game mode context
   const finishGame = useCallback(() => {
     setGameState(prev => ({
@@ -366,7 +364,7 @@ export default function Trivia() {
     }));
     setEndTime(Date.now());
     setQuestionStartTime(null);
-    
+
     // Clear any running timers
     if (timerRef.current) clearInterval(timerRef.current);
     if (questionTimerRef.current) clearTimeout(questionTimerRef.current);
@@ -456,9 +454,9 @@ export default function Trivia() {
   
   // Skip question functionality
   const handleSkipQuestion = useCallback(() => {
-    // Skipping a question should end the game, same as timing out
-    handleTimeUp();
-  }, [handleTimeUp]);
+    // Skipping now just goes to the next question instead of ending the game
+    handleNextQuestion();
+  }, [handleNextQuestion]);
   
   // Save score to leaderboard with game mode
   useEffect(() => {
@@ -702,22 +700,21 @@ export default function Trivia() {
         )}
 
         {/* Question Card */}
-        {!isPaused && (
-          <QuestionCard
-            question={currentQ}
-            onAnswer={handleAnswer}
-            onNextQuestion={handleNextQuestion}
-            onTimeUp={handleTimeUp}
-            onSkipQuestion={handleSkipQuestion}
-            isLastQuestion={gameState.currentQuestion === questions.length - 1}
-            questionNumber={gameState.currentQuestion + 1}
-            totalQuestions={questions.length}
-            timeLimitPerQuestion={TIME_LIMIT_PER_QUESTION}
-            gameMode={gameState.gameMode}
-            wrongAnswersCount={gameState.wrongAnswersCount}
-            correctAnswersLost={gameState.correctAnswersLost}
-          />
-        )}
+        <QuestionCard
+          question={currentQ}
+          onAnswer={handleAnswer}
+          onNextQuestion={handleNextQuestion}
+          onTimeUp={handleTimeUp}
+          onSkipQuestion={handleSkipQuestion}
+          isLastQuestion={gameState.currentQuestion === questions.length - 1}
+          questionNumber={gameState.currentQuestion + 1}
+          totalQuestions={questions.length}
+          timeLimitPerQuestion={TIME_LIMIT_PER_QUESTION}
+          gameMode={gameState.gameMode}
+          wrongAnswersCount={gameState.wrongAnswersCount}
+          correctAnswersLost={gameState.correctAnswersLost}
+          globalPaused={isPaused}
+        />
       </div>
     );
   };
@@ -727,7 +724,7 @@ export default function Trivia() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (questionTimerRef.current) clearTimeout(questionTimerRef.current);
-    };
+  };
   }, []);
 
   return (

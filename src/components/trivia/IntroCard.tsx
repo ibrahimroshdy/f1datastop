@@ -15,7 +15,7 @@ interface IntroCardProps {
 export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardProps) {
   const [selectedMode, setSelectedMode] = useState<GameMode>('normal');
   const [isPublic, setIsPublic] = useState<boolean>(true);
-
+  
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
       <Card>
@@ -23,9 +23,9 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
           <CardTitle className="text-xl sm:text-2xl">🏎️ F1 Trivia Challenge</CardTitle>
           <p className="text-sm sm:text-base text-muted-foreground">
             Test your Formula 1 knowledge with questions from 2005 onwards
-          </p>
-        </CardHeader>
-        
+        </p>
+      </CardHeader>
+      
         <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
           <div className="space-y-3 sm:space-y-4">
             <h3 className="text-base sm:text-lg font-semibold text-center">Choose Your Game Mode</h3>
@@ -55,7 +55,7 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
                           >
                             {mode.difficulty}
                           </Badge>
-                        </div>
+            </div>
                         <p className="text-xs sm:text-sm text-muted-foreground">
                           {mode.description}
                         </p>
@@ -67,8 +67,8 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
                               <span className="leading-relaxed">{rule}</span>
                             </div>
                           ))}
-                        </div>
-                      </div>
+            </div>
+          </div>
                       <div className="ml-3 sm:ml-4 mt-1">
                         <div className={`w-4 h-4 rounded-full border-2 ${
                           selectedMode === mode.mode 
@@ -76,27 +76,27 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
                             : 'border-muted-foreground'
                         }`} />
                       </div>
-                    </div>
+            </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           </div>
-
+          
           {/* Privacy Settings - Mobile Optimized */}
           <Card className="bg-muted/30">
             <CardContent className="p-3 sm:p-4">
-              <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3">
                 <div className="flex items-center gap-2 mt-0.5">
                   {isPublic ? (
                     <Eye className="h-4 w-4 text-green-600" />
                   ) : (
                     <EyeOff className="h-4 w-4 text-orange-600" />
                   )}
-                </div>
+            </div>
                 <div className="flex-1 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <div>
+            <div>
                       <h4 className="text-sm font-medium">Leaderboard Visibility</h4>
                       <p className="text-xs text-muted-foreground">
                         Choose whether your score appears on the public leaderboard
@@ -130,8 +130,8 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
+            </div>
+          </div>
             </CardContent>
           </Card>
           
@@ -158,8 +158,8 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
                           <p>• E = Easy</p>
                           <p>• M = Medium</p>
                           <p>• H = Hard</p>
-                        </div>
-                        <div>
+            </div>
+            <div>
                           <p className="font-medium">Categories:</p>
                           <p>• D = Drivers</p>
                           <p>• T = Teams</p>
@@ -168,35 +168,35 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
                           <p>• S = Statistics</p>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
+            </div>
+          </div>
+              </div>
               </div>
             </CardContent>
           </Card>
-        </CardContent>
-        
+      </CardContent>
+      
         <CardFooter className="flex flex-col sm:flex-row gap-3 sm:gap-4 px-4 sm:px-6">
-          <Button 
+        <Button 
             onClick={() => onStart(selectedMode, isPublic)} 
             className="w-full sm:flex-1 h-11 sm:h-10"
-            disabled={isLoading}
-          >
+          disabled={isLoading}
+        >
             <Play className="mr-2 h-4 w-4" />
             Start {GAME_MODES[selectedMode].title}
-          </Button>
+        </Button>
           
-          <Button 
+        <Button 
             onClick={onViewLeaderboard} 
-            variant="outline"
+          variant="outline" 
             className="w-full sm:w-auto h-11 sm:h-10"
             disabled={isLoading}
-          >
+        >
             <Trophy className="mr-2 h-4 w-4" />
             Leaderboard
-          </Button>
-        </CardFooter>
-      </Card>
+        </Button>
+      </CardFooter>
+    </Card>
     </div>
   );
 } 

@@ -227,9 +227,9 @@ export function Leaderboard() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
+              <Table>
+                <TableHeader>
+                  <TableRow>
                       {isMobile ? (
                         <>
                           <TableHead className="text-xs px-2 py-2 w-8 font-medium">#</TableHead>
@@ -248,9 +248,9 @@ export function Leaderboard() {
                           <TableHead className="text-right text-xs px-3 py-2.5 w-20 font-semibold text-muted-foreground">Date</TableHead>
                         </>
                       )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                     {filteredTopScores.map((score, index) => (
                       <TableRow key={score.id || index} className={isMobile ? "border-b" : "hover:bg-muted/30 transition-colors"}>
                         {isMobile ? (
@@ -297,11 +297,11 @@ export function Leaderboard() {
                             <TableCell className="px-3 py-3">
                               <div className="min-w-0">
                                 <div className="font-semibold text-sm truncate text-foreground">
-                                  {score.username}
+                        {score.username}
                                 </div>
-                                {user && score.userId === user.id && (
+                        {user && score.userId === user.id && (
                                   <span className="text-xs text-f1-red font-medium">(You)</span>
-                                )}
+                        )}
                               </div>
                             </TableCell>
                             <TableCell className="text-right font-bold text-base px-3 py-3 text-primary">
@@ -309,22 +309,22 @@ export function Leaderboard() {
                             </TableCell>
                             <TableCell className="text-center px-3 py-3">
                               {getGameModeBadge(score.gameMode || 'normal', false)}
-                            </TableCell>
+                      </TableCell>
                             <TableCell className="text-right hidden md:table-cell text-sm px-3 py-3 font-medium text-muted-foreground">
-                              {Math.round((score.correctAnswers / score.totalQuestions) * 100)}%
-                            </TableCell>
+                        {Math.round((score.correctAnswers / score.totalQuestions) * 100)}%
+                      </TableCell>
                             <TableCell className="text-right hidden md:table-cell text-sm px-3 py-3 font-medium text-muted-foreground">
-                              {formatTime(score.timeSpent)}
-                            </TableCell>
+                        {formatTime(score.timeSpent)}
+                      </TableCell>
                             <TableCell className="text-right text-sm px-3 py-3 font-medium text-muted-foreground">
-                              {formatDate(score.createdAt)}
-                            </TableCell>
+                        {formatDate(score.createdAt)}
+                      </TableCell>
                           </>
                         )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
               </div>
             )}
           </TabsContent>
@@ -355,9 +355,9 @@ export function Leaderboard() {
                   </div>
                 </div>
                 
-                <Table>
-                  <TableHeader>
-                    <TableRow>
+              <Table>
+                <TableHeader>
+                  <TableRow>
                       {isMobile ? (
                         <>
                           <TableHead className="text-xs px-2 py-2 w-14 font-medium">Date</TableHead>
@@ -375,9 +375,9 @@ export function Leaderboard() {
                           <TableHead className="text-right hidden md:table-cell text-xs px-3 py-2.5 font-semibold text-muted-foreground">Questions</TableHead>
                         </>
                       )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                     {filteredUserScores.map((score, index) => (
                       <TableRow key={score.id || index} className={isMobile ? "border-b" : "hover:bg-muted/30 transition-colors"}>
                         {isMobile ? (
@@ -435,11 +435,11 @@ export function Leaderboard() {
                               {getGameModeBadge(score.gameMode || 'normal', false)}
                             </TableCell>
                             <TableCell className="text-right text-sm px-3 py-3 font-semibold">
-                              {Math.round((score.correctAnswers / score.totalQuestions) * 100)}%
-                            </TableCell>
+                        {Math.round((score.correctAnswers / score.totalQuestions) * 100)}%
+                      </TableCell>
                             <TableCell className="text-right text-sm px-3 py-3 font-medium text-muted-foreground">
-                              {formatTime(score.timeSpent)}
-                            </TableCell>
+                        {formatTime(score.timeSpent)}
+                      </TableCell>
                             <TableCell className="text-center px-3 py-3">
                               <Button
                                 variant="ghost"
@@ -470,13 +470,13 @@ export function Leaderboard() {
                             <TableCell className="text-right hidden md:table-cell text-sm px-3 py-3 font-medium text-muted-foreground">
                               <span className="font-semibold text-foreground">{score.correctAnswers}</span>
                               <span className="text-muted-foreground">/{score.totalQuestions}</span>
-                            </TableCell>
+                      </TableCell>
                           </>
                         )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
               </div>
             )}
           </TabsContent>
