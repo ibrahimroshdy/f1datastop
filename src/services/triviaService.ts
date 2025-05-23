@@ -649,7 +649,7 @@ const getRandomStatisticsQuestion = async (): Promise<TriviaQuestion | null> => 
     let qualifyingResults = [];
     try {
       const qualifyingData = await fetchWithRetry(`${BASE_URL}/f1/${year}/${randomRace.round}/qualifying.json`);
-      qualifyingResults = qualifyingData.MRData?.RaceTable?.Races?.[0]?.QualifyingResults || [];
+        qualifyingResults = qualifyingData.MRData?.RaceTable?.Races?.[0]?.QualifyingResults || [];
     } catch (error) {
       console.warn("Failed to fetch qualifying results for", year, randomRace.round);
     }
@@ -828,8 +828,8 @@ export const generateTriviaQuestions = async (count: number = 15): Promise<Trivi
         if (!isDuplicate) {
           questions.push(question);
           questionsByCategory.set(category, (questionsByCategory.get(category) || 0) + 1);
-        }
       }
+    }
     } catch (error) {
       console.warn(`Failed to generate ${category} question:`, error);
     }
@@ -840,7 +840,7 @@ export const generateTriviaQuestions = async (count: number = 15): Promise<Trivi
   for (let i = 0; i < finalAttempts && questions.length < count; i++) {
     const randomGenerator = generators[Math.floor(Math.random() * generators.length)];
     await tryGenerateQuestion(randomGenerator.func, randomGenerator.category);
-  }
+    }
   
   if (questions.length === 0) {
     throw new TriviaError('Unable to generate any questions', 'GENERATION_FAILED');

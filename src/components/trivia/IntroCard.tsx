@@ -147,6 +147,7 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
                     <p>• Points are awarded based on difficulty, category, and year</p>
                     <p>• Time bonuses are given for quick correct answers</p>
                     <p>• All questions are from the 2005 F1 season onwards</p>
+                    <p>• Game ends immediately if time runs out on any question</p>
                     <p>• You can change your privacy settings for future games anytime</p>
                     
                     <div className="pt-2 border-t border-muted-foreground/20 mt-3">

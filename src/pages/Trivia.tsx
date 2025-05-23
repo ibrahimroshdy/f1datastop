@@ -419,13 +419,6 @@ export default function Trivia() {
           const avgPointsPerCorrect = prev.score / Math.max(1, prev.answers.filter(a => a.isCorrect).length);
           const pointsToLose = Math.floor(avgPointsPerCorrect || 10);
           newScore = Math.max(0, newScore - pointsToLose);
-          
-          // Show destructive mode notification only on desktop
-          if (!isMobile) {
-            toast.error(`💥 Time's up + 2 wrong answers! Lost 1 correct answer (-${pointsToLose} points)`, {
-              duration: 4000
-            });
-          }
         }
       }
       
@@ -434,7 +427,8 @@ export default function Trivia() {
         answers: newAnswers,
         wrongAnswersCount: newWrongCount,
         correctAnswersLost: newCorrectAnswersLost,
-        score: newScore
+        score: newScore,
+        gameFinished: true // End the game immediately when time runs out
       };
     });
     
@@ -444,11 +438,25 @@ export default function Trivia() {
       currentStreak: 0
     }));
     
-    handleNextQuestion();
-  }, [isPaused, questions, gameState.currentQuestion, gameState.gameMode, gameState.wrongAnswersCount, gameState.answers, gameState.score, TIME_LIMIT_PER_QUESTION, handleNextQuestion]);
+    // End the game immediately instead of going to next question
+    setEndTime(Date.now());
+    setQuestionStartTime(null);
+    
+    // Clear any running timers
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (questionTimerRef.current) clearTimeout(questionTimerRef.current);
+    
+    // Show timeout notification
+    toast.error("⏰ Time's up! Game ended.", {
+      description: "The game ends when time runs out on any question.",
+      duration: 3000
+    });
+    
+  }, [isPaused, questions, gameState.currentQuestion, gameState.gameMode, gameState.wrongAnswersCount, gameState.answers, gameState.score, TIME_LIMIT_PER_QUESTION]);
   
   // Skip question functionality
   const handleSkipQuestion = useCallback(() => {
+    // Skipping a question should end the game, same as timing out
     handleTimeUp();
   }, [handleTimeUp]);
   

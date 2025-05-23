@@ -122,8 +122,7 @@ export function QuestionCard({
     setShowResult(true);
     onTimeUp();
     
-    // Start auto-advance timer for timeout case too
-    startAutoAdvance();
+    // Don't start auto-advance for timeout - game will end immediately
   };
   
   const handleNextQuestion = () => {
@@ -266,69 +265,92 @@ export function QuestionCard({
         </div>
       </CardContent>
       
-      <CardFooter className="border-t pt-4 flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center min-h-[120px]">
-        {/* Skip button - full width on mobile */}
-        <div className="w-full sm:w-auto flex justify-center sm:justify-start">
+      <CardFooter className="border-t pt-4 flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:justify-between sm:items-center">
+        {/* Result display or placeholder - more compact layout */}
+        <div className="flex-1 text-center px-2">
+          {showResult ? (
+            <div className="space-y-2 max-w-sm mx-auto">
+              {/* Main result feedback - more compact */}
+              <div className="flex items-center justify-center gap-2">
+                {selectedOption === question.correctAnswer ? (
+                  <>
+                    <span className="text-2xl">✅</span>
+                    <div className="text-left">
+                      <div className="text-sm font-semibold text-green-600">Correct!</div>
+                      <div className="text-xs text-muted-foreground">+{question.points} points</div>
+                    </div>
+                  </>
+                ) : selectedOption ? (
+                  <>
+                    <span className="text-2xl">❌</span>
+                    <div className="text-left">
+                      <div className="text-sm font-semibold text-red-600">Incorrect</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-32">
+                        {question.correctAnswer}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-2xl">⏰</span>
+                    <div className="text-left">
+                      <div className="text-sm font-semibold text-orange-600">Time's up!</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-32">
+                        {question.correctAnswer}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {/* Destructive mode warning - more compact */}
+              {gameMode === 'destructive' && selectedOption !== question.correctAnswer && (
+                <div className="text-xs text-center">
+                  <span className="text-destructive font-medium">
+                    💥 {wrongAnswersCount + 1}/2 wrong
+                  </span>
+                  {Math.floor((wrongAnswersCount + 1) / 2) > Math.floor(wrongAnswersCount / 2) && (
+                    <span className="block text-red-600 font-bold animate-pulse mt-1">
+                      ⚠️ Correct answer removed!
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              {/* Auto-advance timer - more compact */}
+              {isAutoAdvancing && autoAdvanceTime > 0 && (
+                <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>Next in {autoAdvanceTime}s</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Compact placeholder
+            <div className="py-3">
+              <span className="text-sm text-muted-foreground">Choose your answer</span>
+            </div>
+          )}
+        </div>
+        
+        {/* Action buttons - cleaner layout */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+          {/* Skip/End Game button */}
           {!showResult && onSkipQuestion && (
             <Button 
               onClick={handleSkipQuestion}
               variant="outline"
               size="sm"
-              className="text-muted-foreground w-full sm:w-auto"
+              className="text-muted-foreground hover:text-foreground w-full sm:w-auto order-2 sm:order-1"
             >
               <SkipForward className="mr-2 h-4 w-4" />
-              Skip Question
+              End Game
             </Button>
           )}
-        </div>
-        
-        {/* Result display - fixed height to prevent layout shifts */}
-        <div className="flex-1 text-center px-2 min-h-[80px] flex items-center justify-center">
-          {showResult ? (
-            <div className="space-y-1.5 w-full max-w-md mx-auto">
-              <p className="text-sm sm:text-base font-medium">
-                {selectedOption === question.correctAnswer 
-                  ? <span className="text-green-600">✅ Correct! +{question.points} points</span> 
-                  : selectedOption 
-                    ? <span className="text-red-600">❌ Incorrect</span> 
-                    : <span className="text-orange-600">⏰ Time's up!</span>}
-              </p>
-              {selectedOption !== question.correctAnswer && (
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  <span className="block">Correct answer:</span>
-                  <span className="font-medium text-foreground break-words">{question.correctAnswer}</span>
-                </p>
-              )}
-              {/* Destructive mode warning for wrong answers */}
-              {gameMode === 'destructive' && selectedOption !== question.correctAnswer && (
-                <p className="text-xs text-destructive font-medium">
-                  💥 Wrong answer! {wrongAnswersCount + 1}/2 towards losing a correct answer
-                  {Math.floor((wrongAnswersCount + 1) / 2) > Math.floor(wrongAnswersCount / 2) && (
-                    <span className="block text-red-600 font-bold animate-pulse">
-                      ⚠️ Correct answer removed! Points deducted!
-                    </span>
-                  )}
-                </p>
-              )}
-              {isAutoAdvancing && autoAdvanceTime > 0 && (
-                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-2">
-                  <Clock className="h-3 w-3" />
-                  <span>Auto-advancing in {autoAdvanceTime}s</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            // Reserved space when no result is shown to maintain consistent layout
-            <div className="w-full h-16 flex items-center justify-center">
-              <span className="text-xs text-muted-foreground/50">Select an answer or skip this question</span>
-            </div>
-          )}
-        </div>
-        
-        {/* Action buttons - responsive layout with fixed positioning */}
-        <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2 min-h-[44px] items-center justify-center sm:justify-end">
+          
+          {/* Next/Finish button */}
           {showResult && (
-            <>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto order-1 sm:order-2">
               {isAutoAdvancing && (
                 <Button 
                   onClick={cancelAutoAdvance}
@@ -345,7 +367,7 @@ export function QuestionCard({
               >
                 {isLastQuestion ? "Finish Quiz" : "Next Question"}
               </Button>
-            </>
+            </div>
           )}
         </div>
       </CardFooter>
