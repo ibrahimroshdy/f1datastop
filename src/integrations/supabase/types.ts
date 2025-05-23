@@ -46,6 +46,7 @@ export interface Database {
           total_questions: number
           time_spent: number
           game_mode: string
+          is_public: boolean
           created_at: string
         }
         Insert: {
@@ -57,6 +58,7 @@ export interface Database {
           total_questions: number
           time_spent: number
           game_mode: string
+          is_public?: boolean
           created_at?: string
         }
         Update: {
@@ -68,6 +70,7 @@ export interface Database {
           total_questions?: number
           time_spent?: number
           game_mode?: string
+          is_public?: boolean
           created_at?: string
         }
         Relationships: [

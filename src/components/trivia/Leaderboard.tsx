@@ -3,13 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { formatDistance, formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
-import { getTopScores, getUserScores, GAME_MODES } from "@/services/triviaService";
+import { getTopScores, getUserScores, updateScorePrivacy, GAME_MODES } from "@/services/triviaService";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
-import { Filter } from "lucide-react";
+import { Filter, Eye, EyeOff, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export function Leaderboard() {
   const { user } = useAuth();
@@ -18,6 +20,7 @@ export function Leaderboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("global");
   const [modeFilter, setModeFilter] = useState<string>("all");
+  const [updatingScoreId, setUpdatingScoreId] = useState<string | null>(null);
   
   useEffect(() => {
     const loadLeaderboard = async () => {
@@ -41,6 +44,17 @@ export function Leaderboard() {
     
     loadLeaderboard();
   }, [user]);
+  
+  // Function to refresh leaderboard data
+  const refreshLeaderboard = async () => {
+    try {
+      // Refresh global leaderboard to reflect privacy changes
+      const tops = await getTopScores(30);
+      setTopScores(tops);
+    } catch (error) {
+      console.error("Failed to refresh leaderboard:", error);
+    }
+  };
   
   // Filter scores by game mode
   const filterScoresByMode = (scores: TriviaScore[]) => {
@@ -78,6 +92,43 @@ export function Leaderboard() {
         {mode.icon} {mode.title}
       </Badge>
     );
+  };
+  
+  // Toggle privacy setting for a score
+  const togglePrivacy = async (scoreId: string, currentIsPublic: boolean) => {
+    if (!scoreId) {
+      toast.error("Cannot update score: Invalid score ID");
+      return;
+    }
+
+    setUpdatingScoreId(scoreId);
+    try {
+      const newIsPublic = !currentIsPublic;
+      await updateScorePrivacy(scoreId, newIsPublic);
+      
+      // Update the local state
+      setUserScores(prev => 
+        prev.map(score => 
+          score.id === scoreId 
+            ? { ...score, isPublic: newIsPublic }
+            : score
+        )
+      );
+
+      // Refresh the global leaderboard to reflect changes immediately
+      await refreshLeaderboard();
+
+      toast.success(
+        newIsPublic 
+          ? "Score is now visible on the public leaderboard" 
+          : "Score is now hidden from the public leaderboard"
+      );
+    } catch (error) {
+      console.error("Failed to toggle privacy:", error);
+      toast.error("Failed to update privacy setting. Please try again.");
+    } finally {
+      setUpdatingScoreId(null);
+    }
   };
   
   const filteredTopScores = filterScoresByMode(topScores);
@@ -190,38 +241,77 @@ export function Leaderboard() {
                   : `You haven't played any ${modeFilter} mode games yet.`}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Score</TableHead>
-                    <TableHead className="text-center">Mode</TableHead>
-                    <TableHead className="text-right">Accuracy</TableHead>
-                    <TableHead className="text-right">Time</TableHead>
-                    <TableHead className="text-right hidden md:table-cell">Questions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUserScores.map((score, index) => (
-                    <TableRow key={score.id || index}>
-                      <TableCell>{formatDate(score.createdAt)}</TableCell>
-                      <TableCell className="text-right font-bold">{score.score}</TableCell>
-                      <TableCell className="text-center">
-                        {getGameModeBadge(score.gameMode || 'normal')}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {Math.round((score.correctAnswers / score.totalQuestions) * 100)}%
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatTime(score.timeSpent)}
-                      </TableCell>
-                      <TableCell className="text-right hidden md:table-cell">
-                        {score.correctAnswers}/{score.totalQuestions}
-                      </TableCell>
+              <div className="space-y-4">
+                <div className="bg-muted/30 rounded-lg p-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      <strong>Tip:</strong> Click on the privacy indicators to toggle whether your scores appear on the public leaderboard
+                    </span>
+                  </div>
+                </div>
+                
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Score</TableHead>
+                      <TableHead className="text-center">Mode</TableHead>
+                      <TableHead className="text-right">Accuracy</TableHead>
+                      <TableHead className="text-right">Time</TableHead>
+                      <TableHead className="text-center">Privacy</TableHead>
+                      <TableHead className="text-right hidden md:table-cell">Questions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUserScores.map((score, index) => (
+                      <TableRow key={score.id || index}>
+                        <TableCell>{formatDate(score.createdAt)}</TableCell>
+                        <TableCell className="text-right font-bold">{score.score}</TableCell>
+                        <TableCell className="text-center">
+                          {getGameModeBadge(score.gameMode || 'normal')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {Math.round((score.correctAnswers / score.totalQuestions) * 100)}%
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatTime(score.timeSpent)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => togglePrivacy(score.id!, score.isPublic)}
+                            disabled={updatingScoreId === score.id || !score.id}
+                            className="h-auto p-1 hover:bg-muted/50"
+                            title={score.isPublic ? "Click to make private" : "Click to make public"}
+                          >
+                            {updatingScoreId === score.id ? (
+                              <div className="flex items-center justify-center gap-1">
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">Updating...</span>
+                              </div>
+                            ) : score.isPublic ? (
+                              <div className="flex items-center justify-center gap-1 hover:scale-105 transition-transform">
+                                <Eye className="h-4 w-4 text-green-600" />
+                                <span className="text-xs text-green-600">Public</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-1 hover:scale-105 transition-transform">
+                                <EyeOff className="h-4 w-4 text-orange-600" />
+                                <span className="text-xs text-orange-600">Private</span>
+                              </div>
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-right hidden md:table-cell">
+                          {score.correctAnswers}/{score.totalQuestions}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </TabsContent>
         </Tabs>

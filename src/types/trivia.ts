@@ -18,6 +18,7 @@ export interface TriviaScore {
   totalQuestions: number;
   timeSpent: number; // in seconds
   gameMode: GameMode;
+  isPublic: boolean; // Whether the score should appear on public leaderboard
   createdAt: string;
 }
 

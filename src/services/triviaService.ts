@@ -864,7 +864,8 @@ export const saveScore = async (score: TriviaScore): Promise<void> => {
       total_questions: score.totalQuestions,
       time_spent: score.timeSpent,
       created_at: score.createdAt,
-      game_mode: score.gameMode
+      game_mode: score.gameMode,
+      is_public: score.isPublic
     };
     
     const { error } = await supabase.from('trivia_scores').insert(dbScore);
@@ -877,12 +878,13 @@ export const saveScore = async (score: TriviaScore): Promise<void> => {
   }
 };
 
-// Get top scores from Supabase
+// Get top scores from Supabase (only public scores)
 export const getTopScores = async (limit: number = 10): Promise<TriviaScore[]> => {
   try {
     const { data, error } = await supabase
       .from('trivia_scores')
       .select('*')
+      .eq('is_public', true) // Only get public scores
       .order('score', { ascending: false })
       .limit(limit);
     
@@ -900,7 +902,8 @@ export const getTopScores = async (limit: number = 10): Promise<TriviaScore[]> =
       totalQuestions: record.total_questions,
       timeSpent: record.time_spent,
       createdAt: record.created_at,
-      gameMode: (record.game_mode as GameMode) || 'normal'
+      gameMode: (record.game_mode as GameMode) || 'normal',
+      isPublic: record.is_public
     }));
   } catch (error) {
     console.error("Failed to get top scores:", error);
@@ -908,7 +911,7 @@ export const getTopScores = async (limit: number = 10): Promise<TriviaScore[]> =
   }
 };
 
-// Get user's scores from Supabase
+// Get user's scores from Supabase (both public and private scores)
 export const getUserScores = async (userId: string, limit: number = 10): Promise<TriviaScore[]> => {
   try {
     const { data, error } = await supabase
@@ -932,10 +935,28 @@ export const getUserScores = async (userId: string, limit: number = 10): Promise
       totalQuestions: record.total_questions,
       timeSpent: record.time_spent,
       createdAt: record.created_at,
-      gameMode: (record.game_mode as GameMode) || 'normal'
+      gameMode: (record.game_mode as GameMode) || 'normal',
+      isPublic: record.is_public
     }));
   } catch (error) {
     console.error("Failed to get user scores:", error);
     return [];
+  }
+};
+
+// Update the privacy setting of a specific score
+export const updateScorePrivacy = async (scoreId: string, isPublic: boolean): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('trivia_scores')
+      .update({ is_public: isPublic })
+      .eq('id', scoreId);
+    
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    console.error("Failed to update score privacy:", error);
+    throw error;
   }
 }; 

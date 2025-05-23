@@ -107,6 +107,7 @@ export default function Trivia() {
   const [endTime, setEndTime] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [pausedTime, setPausedTime] = useState(0);
+  const [isPublic, setIsPublic] = useState<boolean>(true); // Track privacy setting
   const [gameStats, setGameStats] = useState<GameStats>({
     totalTimeSpent: 0,
     averageTimePerQuestion: 0,
@@ -150,6 +151,7 @@ export default function Trivia() {
     setShowReview(false);
     setIsPaused(false);
     setPausedTime(0);
+    setIsPublic(true); // Reset privacy setting
     setGameStats({
       totalTimeSpent: 0,
       averageTimePerQuestion: 0,
@@ -160,8 +162,8 @@ export default function Trivia() {
     setQuestionStartTime(null);
   }, []);
   
-  // Enhanced game start with game mode selection
-  const startGame = async (gameMode: GameMode) => {
+  // Enhanced game start with game mode selection and privacy setting
+  const startGame = async (gameMode: GameMode, isPublicScore: boolean) => {
     try {
       setIsLoading(true);
       
@@ -183,12 +185,14 @@ export default function Trivia() {
         gameStarted: true,
         gameMode
       });
+      setIsPublic(isPublicScore); // Store privacy setting
       setStartTime(Date.now());
       setQuestionStartTime(Date.now());
       
       // Show game mode notification
       const modeInfo = GAME_MODES[gameMode];
-      toast.success(`${modeInfo.icon} Starting ${modeInfo.title}!`, {
+      const privacyMsg = isPublicScore ? "" : " (private score)";
+      toast.success(`${modeInfo.icon} Starting ${modeInfo.title}!${privacyMsg}`, {
         description: gameMode === 'destructive' ? "Remember: Every 2 wrong answers removes 1 correct answer!" : undefined,
         duration: 3000
       });
@@ -444,7 +448,8 @@ export default function Trivia() {
             totalQuestions: questions.length,
             timeSpent,
             gameMode: gameState.gameMode,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            isPublic: isPublic
           };
           
           await saveScore(score);
@@ -464,7 +469,7 @@ export default function Trivia() {
     };
     
     saveUserScore();
-  }, [gameState.gameFinished, startTime, endTime, user, profile, gameState.score, gameState.answers, gameState.gameMode, gameState.correctAnswersLost, questions]);
+  }, [gameState.gameFinished, startTime, endTime, user, profile, gameState.score, gameState.answers, gameState.gameMode, gameState.correctAnswersLost, questions, isPublic]);
   
   // Calculate total time spent in seconds with pause adjustments
   const getTotalTimeSpent = () => {
@@ -526,7 +531,7 @@ export default function Trivia() {
     if (!gameState.gameStarted) {
       return (
         <IntroCard 
-          onStart={startGame} 
+          onStart={(gameMode, isPublic) => startGame(gameMode, isPublic)} 
           onViewLeaderboard={() => setShowLeaderboard(true)}
           isLoading={isLoading}
         />
