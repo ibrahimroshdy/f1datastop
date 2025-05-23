@@ -130,6 +130,7 @@ export default function Trivia() {
   // Refs for cleanup
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const questionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const scoreSavedRef = useRef<boolean>(false); // Track if score has been saved
   
   // Mobile detection effect
   useEffect(() => {
@@ -173,12 +174,16 @@ export default function Trivia() {
       difficultyBreakdown: {}
     });
     setQuestionStartTime(null);
+    scoreSavedRef.current = false; // Reset score saved flag
   }, []);
   
   // Enhanced game start with game mode selection and privacy setting
   const startGame = async (gameMode: GameMode, isPublicScore: boolean) => {
     try {
       setIsLoading(true);
+      
+      // Reset score saved flag for new game
+      scoreSavedRef.current = false;
       
       const loadedQuestions = await generateTriviaQuestions(QUESTIONS_PER_QUIZ);
       
@@ -443,30 +448,40 @@ export default function Trivia() {
   // Save score to leaderboard with game mode
   useEffect(() => {
     const saveUserScore = async () => {
-      if (gameState.gameFinished && startTime && endTime && user && questions.length > 0) {
+      // Only save if game is finished, we have all required data, and haven't saved already
+      if (gameState.gameFinished && startTime && endTime && user && questions.length > 0 && !scoreSavedRef.current) {
         try {
+          // Mark as saved immediately to prevent duplicate saves
+          scoreSavedRef.current = true;
+          
+          // Capture current values to avoid stale closure issues
+          const currentGameState = gameState;
+          const currentQuestions = questions;
+          const currentProfile = profile;
+          const currentIsPublic = isPublic;
+          
           const timeSpent = Math.floor((endTime - startTime) / 1000);
-          const effectiveCorrectAnswers = gameState.gameMode === 'destructive' 
-            ? Math.max(0, gameState.answers.filter(a => a.isCorrect).length - gameState.correctAnswersLost)
-            : gameState.answers.filter(a => a.isCorrect).length;
+          const effectiveCorrectAnswers = currentGameState.gameMode === 'destructive' 
+            ? Math.max(0, currentGameState.answers.filter(a => a.isCorrect).length - currentGameState.correctAnswersLost)
+            : currentGameState.answers.filter(a => a.isCorrect).length;
             
           const score: TriviaScore = {
             userId: user.id,
-            username: profile?.username || user.email?.split('@')[0] || 'Anonymous',
-            score: gameState.score,
+            username: currentProfile?.username || user.email?.split('@')[0] || 'Anonymous',
+            score: currentGameState.score,
             correctAnswers: effectiveCorrectAnswers,
-            totalQuestions: questions.length,
+            totalQuestions: currentQuestions.length,
             timeSpent,
-            gameMode: gameState.gameMode,
+            gameMode: currentGameState.gameMode,
             createdAt: new Date().toISOString(),
-            isPublic: isPublic
+            isPublic: currentIsPublic
           };
           
           await saveScore(score);
           
           // Show success for high scores or destructive mode completion
-          if (gameState.score > 100 || gameState.gameMode === 'destructive') {
-            const modeInfo = GAME_MODES[gameState.gameMode];
+          if (currentGameState.score > 100 || currentGameState.gameMode === 'destructive') {
+            const modeInfo = GAME_MODES[currentGameState.gameMode];
             toast.success(`${modeInfo.icon} High score saved to leaderboard! 🏆`, {
               duration: 3000
             });
@@ -474,12 +489,14 @@ export default function Trivia() {
         } catch (error) {
           console.error("Failed to save score:", error);
           toast.error("Failed to save your score.");
+          // Reset the flag if saving failed so it can be retried
+          scoreSavedRef.current = false;
         }
       }
     };
     
     saveUserScore();
-  }, [gameState.gameFinished, startTime, endTime, user, profile, gameState.score, gameState.answers, gameState.gameMode, gameState.correctAnswersLost, questions, isPublic]);
+  }, [gameState.gameFinished, startTime, endTime, user]);
   
   // Calculate total time spent in seconds with pause adjustments
   const getTotalTimeSpent = () => {
