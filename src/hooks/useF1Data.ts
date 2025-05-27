@@ -412,7 +412,7 @@ const processDataForSankey = (qualifyingData: any, raceData: any) => {
     };
   });
   
-  // Map race results
+  // Map race results (which include grid positions)
   const raceResultsMapped = raceResults.map((result: any) => {
     const driverCode = result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase();
     drivers.add(driverCode);
@@ -426,13 +426,14 @@ const processDataForSankey = (qualifyingData: any, raceData: any) => {
       name: `${result.Driver.givenName} ${result.Driver.familyName}`,
       team: result.Constructor.constructorId,
       racePosition: parseInt(result.position),
+      gridPosition: parseInt(result.grid), // Add grid position from race results
       teamName: result.Constructor.name,
       status: status,
       isDNF: isDNF
     };
   });
   
-  // Create links between qualifying and race results
+  // Create links between qualifying, grid, and race results
   const links = [];
   const driverMap = new Map();
   
@@ -453,11 +454,29 @@ const processDataForSankey = (qualifyingData: any, raceData: any) => {
     }
   });
   
-  // Create links for each driver
+  // Create links for each driver (qualifying -> grid -> race)
   driverMap.forEach((driver) => {
-    if (driver.qualifyingPosition !== undefined && driver.racePosition !== undefined) {
+    if (driver.qualifyingPosition !== undefined && driver.gridPosition !== undefined && driver.racePosition !== undefined) {
+      // Link from qualifying to grid
       links.push({
         source: driver.code + "_quali",
+        target: driver.code + "_grid",
+        value: 1, // Required for d3-sankey
+        code: driver.code,
+        name: driver.name,
+        team: driver.team,
+        teamName: driver.teamName,
+        qualifyingPosition: driver.qualifyingPosition,
+        gridPosition: driver.gridPosition,
+        racePosition: driver.racePosition,
+        positionChange: driver.qualifyingPosition - driver.gridPosition,
+        status: driver.status || "",
+        isDNF: driver.isDNF || false
+      });
+      
+      // Link from grid to race
+      links.push({
+        source: driver.code + "_grid",
         target: driver.code + "_race",
         value: 1, // Required for d3-sankey
         code: driver.code,
@@ -465,8 +484,9 @@ const processDataForSankey = (qualifyingData: any, raceData: any) => {
         team: driver.team,
         teamName: driver.teamName,
         qualifyingPosition: driver.qualifyingPosition,
+        gridPosition: driver.gridPosition,
         racePosition: driver.racePosition,
-        positionChange: driver.qualifyingPosition - driver.racePosition,
+        positionChange: driver.gridPosition - driver.racePosition,
         status: driver.status || "",
         isDNF: driver.isDNF || false
       });
@@ -475,6 +495,7 @@ const processDataForSankey = (qualifyingData: any, raceData: any) => {
   
   // Create nodes array
   const qualifyingNodes = [];
+  const gridNodes = [];
   const raceNodes = [];
   
   // Add qualifying nodes
@@ -485,6 +506,19 @@ const processDataForSankey = (qualifyingData: any, raceData: any) => {
       team: driver.team,
       position: driver.qualifyingPosition,
       type: "qualifying",
+      teamName: driver.teamName,
+      fullName: driver.name
+    });
+  });
+  
+  // Add grid nodes
+  raceResultsMapped.forEach((driver: any) => {
+    gridNodes.push({
+      id: driver.code + "_grid",
+      name: driver.code,
+      team: driver.team,
+      position: driver.gridPosition,
+      type: "grid",
       teamName: driver.teamName,
       fullName: driver.name
     });
@@ -507,10 +541,11 @@ const processDataForSankey = (qualifyingData: any, raceData: any) => {
   
   // Sort nodes by position within their groups
   qualifyingNodes.sort((a, b) => a.position - b.position);
+  gridNodes.sort((a, b) => a.position - b.position);
   raceNodes.sort((a, b) => a.position - b.position);
   
   // Combine sorted nodes
-  const nodes = [...qualifyingNodes, ...raceNodes];
+  const nodes = [...qualifyingNodes, ...gridNodes, ...raceNodes];
   
   return {
     nodes,
@@ -566,12 +601,13 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
           };
         }
         
-        // Create nodes for qualifying and race positions
+        // Create nodes for qualifying, grid, and race positions
         const nodes = [];
         const links = [];
         
         // Create unique IDs for nodes
         const qualifyingIdPrefix = "Q";
+        const gridIdPrefix = "G";
         const raceIdPrefix = "R";
         
         // Process qualifying nodes
@@ -596,11 +632,12 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
           });
         });
         
-        // Process race nodes and create links
+        // Process grid and race nodes and create links
         raceResults.forEach((driver, index) => {
-          if (!driver.position) return;
+          if (!driver.position || !driver.grid) return;
           
-          const position = parseInt(driver.position);
+          const racePosition = parseInt(driver.position);
+          const gridPosition = parseInt(driver.grid);
           const driverCode = driver.Driver.code;
           const driverName = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
           const team = driver.Constructor.constructorId;
@@ -610,13 +647,25 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
           const status = driver.status;
           const isDNF = status !== "Finished" && !status.includes("+");
           
+          // Add grid node
           nodes.push({
-            id: `${raceIdPrefix}${position}`,
+            id: `${gridIdPrefix}${gridPosition}`,
             name: driverCode,
             fullName: driverName,
             team,
             teamName,
-            position,
+            position: gridPosition,
+            type: 'grid'
+          });
+          
+          // Add race node
+          nodes.push({
+            id: `${raceIdPrefix}${racePosition}`,
+            name: driverCode,
+            fullName: driverName,
+            team,
+            teamName,
+            position: racePosition,
             type: 'race',
             status,
             isDNF
@@ -630,9 +679,10 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
           if (qualifyingResult) {
             const qualifyingPosition = parseInt(qualifyingResult.position);
             
+            // Link from qualifying to grid
             links.push({
               source: `${qualifyingIdPrefix}${qualifyingPosition}`,
-              target: `${raceIdPrefix}${position}`,
+              target: `${gridIdPrefix}${gridPosition}`,
               value: 1, // Uniform value for consistent link width
               name: driverCode,
               code: driverCode,
@@ -640,8 +690,27 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
               team,
               teamName,
               qualifyingPosition,
-              racePosition: position,
-              positionChange: qualifyingPosition - position,
+              gridPosition,
+              racePosition,
+              positionChange: qualifyingPosition - gridPosition,
+              status,
+              isDNF
+            });
+            
+            // Link from grid to race
+            links.push({
+              source: `${gridIdPrefix}${gridPosition}`,
+              target: `${raceIdPrefix}${racePosition}`,
+              value: 1, // Uniform value for consistent link width
+              name: driverCode,
+              code: driverCode,
+              fullName: driverName,
+              team,
+              teamName,
+              qualifyingPosition,
+              gridPosition,
+              racePosition,
+              positionChange: gridPosition - racePosition,
               status,
               isDNF
             });

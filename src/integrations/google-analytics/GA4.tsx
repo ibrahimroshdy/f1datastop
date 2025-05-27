@@ -22,8 +22,10 @@ declare global {
 
 // Initialize Google Analytics
 export const initializeGA = () => {
-  // Skip if already initialized
-  if (window.gtag) return;
+  // Skip if already initialized - check if the script already exists
+  if (document.querySelector(`script[src*="googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}"]`)) {
+    return;
+  }
   
   // Create script for Google Analytics
   const gtagScript = document.createElement('script');

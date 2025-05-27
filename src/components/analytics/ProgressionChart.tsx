@@ -12,7 +12,7 @@ interface SankeyNodeExtended extends SankeyNode<any, any> {
   name: string;
   team: string;
   position: number;
-  type: 'qualifying' | 'race';
+  type: 'qualifying' | 'grid' | 'race';
   teamName: string;
   fullName: string;
   status?: string;
@@ -27,6 +27,7 @@ interface SankeyLinkExtended extends Omit<SankeyLink<any, any>, 'source' | 'targ
   team: string;
   teamName: string;
   qualifyingPosition: number;
+  gridPosition: number;
   racePosition: number;
   positionChange: number;
   source: SankeyNodeExtended;
@@ -182,12 +183,20 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
           if (a.type === "qualifying" && b.type === "qualifying") {
             return a.position - b.position;
           }
+          // Sort grid nodes by position
+          if (a.type === "grid" && b.type === "grid") {
+            return a.position - b.position;
+          }
           // Sort race nodes by position
           if (a.type === "race" && b.type === "race") {
             return a.position - b.position;  
           }
-          // Keep qualifying nodes on left, race nodes on right
-          return a.type === "qualifying" ? -1 : 1;
+          // Keep qualifying nodes on left, grid in middle, race nodes on right
+          if (a.type === "qualifying") return -1;
+          if (b.type === "qualifying") return 1;
+          if (a.type === "grid") return -1;
+          if (b.type === "grid") return 1;
+          return 0;
         });
     };
   }, []);
@@ -202,13 +211,38 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
           .attr("stroke-width", () => Math.max(3, (d.width || 1) * 1.5))
           .style("filter", "drop-shadow(0px 1px 2px rgba(0,0,0,0.2))");
         
-        // Display tooltip
-        const positionChange = d.qualifyingPosition - d.racePosition;
-        const positionChangeText = positionChange > 0 
-          ? `+${positionChange} positions` 
-          : positionChange < 0 
-            ? `${positionChange} positions` 
-            : `Maintained position`;
+        // Display tooltip with grid information
+        const isQualiToGrid = d.source.type === "qualifying" && d.target.type === "grid";
+        const isGridToRace = d.source.type === "grid" && d.target.type === "race";
+        
+        let positionChangeText = "";
+        let positionChangeClass = "";
+        
+        if (isQualiToGrid) {
+          const positionChange = d.qualifyingPosition - d.gridPosition;
+          positionChangeText = positionChange > 0 
+            ? `+${positionChange} positions` 
+            : positionChange < 0 
+              ? `${positionChange} positions` 
+              : `No change`;
+          positionChangeClass = positionChange > 0 
+            ? "text-red-500" 
+            : positionChange < 0 
+              ? "text-emerald-500" 
+              : "text-blue-500";
+        } else if (isGridToRace) {
+          const positionChange = d.gridPosition - d.racePosition;
+          positionChangeText = positionChange > 0 
+            ? `+${positionChange} positions` 
+            : positionChange < 0 
+              ? `${positionChange} positions` 
+              : `No change`;
+          positionChangeClass = positionChange > 0 
+            ? "text-emerald-500" 
+            : positionChange < 0 
+              ? "text-red-500" 
+              : "text-blue-500";
+        }
         
         // Check if the driver retired or DNF
         const statusHTML = d.isDNF 
@@ -223,18 +257,19 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
               <div class="font-bold text-sm mb-1">${d.fullName || d.name}</div>
               <div class="text-xs text-muted-foreground mb-2">${d.teamName}</div>
               <div class="grid grid-cols-2 gap-x-2 text-xs">
-                <div>Qualifying:</div>
-                <div class="font-mono font-medium">P${d.qualifyingPosition}</div>
-                <div>Race:</div>
-                <div class="font-mono font-medium">P${d.racePosition}</div>
+                ${isQualiToGrid ? `
+                  <div>Qualifying:</div>
+                  <div class="font-mono font-medium">P${d.qualifyingPosition}</div>
+                  <div>Grid:</div>
+                  <div class="font-mono font-medium">P${d.gridPosition}</div>
+                ` : `
+                  <div>Grid:</div>
+                  <div class="font-mono font-medium">P${d.gridPosition}</div>
+                  <div>Race:</div>
+                  <div class="font-mono font-medium">P${d.racePosition}</div>
+                `}
                 <div>Change:</div>
-                <div class="font-mono font-medium ${
-                  positionChange > 0 
-                    ? "text-emerald-500" 
-                    : positionChange < 0 
-                      ? "text-red-500" 
-                      : "text-blue-500"
-                }">${positionChangeText}</div>
+                <div class="font-mono font-medium ${positionChangeClass}">${positionChangeText}</div>
               </div>
               ${statusHTML}
             </div>
@@ -298,7 +333,7 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
               <div class="font-bold text-sm mb-1">${d.fullName}</div>
               <div class="text-xs text-muted-foreground mb-2">${d.teamName}</div>
               <div class="grid grid-cols-2 gap-x-2 text-xs">
-                <div>${d.type === 'qualifying' ? 'Qualifying' : 'Race'} Position:</div>
+                <div>${d.type === 'qualifying' ? 'Qualifying' : d.type === 'grid' ? 'Grid' : 'Race'} Position:</div>
                 <div class="font-mono font-medium">P${d.position}</div>
               </div>
               ${statusHTML}
@@ -370,11 +405,14 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
     const qualifyingNodes = nodes.filter(n => n.type === "qualifying")
       .sort((a, b) => a.position - b.position);
     
+    const gridNodes = nodes.filter(n => n.type === "grid")
+      .sort((a, b) => a.position - b.position);
+    
     const raceNodes = nodes.filter(n => n.type === "race")
       .sort((a, b) => a.position - b.position);
       
     // Combine sorted nodes
-    const sortedNodes = [...qualifyingNodes, ...raceNodes];
+    const sortedNodes = [...qualifyingNodes, ...gridNodes, ...raceNodes];
     
     // Create Sankey generator with adjusted width
     const sankeyGenerator = createSankeyGenerator(width, height);
@@ -403,17 +441,37 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
         if (normalizedTeam === "alfa") normalizedTeam = "sauber";
         const teamColor = TEAM_COLORS[normalizedTeam] || "#666666";
         
-        // Then color by position change
-        if (d.qualifyingPosition < d.racePosition) {
-          // Lost positions (worse in race)
-          return "#ef4444"; // red-500
-        } else if (d.qualifyingPosition > d.racePosition) {
-          // Gained positions (better in race)
-          return "#10b981"; // emerald-500
-        } else {
-          // Maintained position
-          return "#3b82f6"; // blue-500
+        // Then color by position change based on link type
+        const isQualiToGrid = d.source.type === "qualifying" && d.target.type === "grid";
+        const isGridToRace = d.source.type === "grid" && d.target.type === "race";
+        
+        if (isQualiToGrid) {
+          // Qualifying to Grid: penalties/promotions
+          if (d.qualifyingPosition < d.gridPosition) {
+            // Lost positions (penalty)
+            return "#ef4444"; // red-500
+          } else if (d.qualifyingPosition > d.gridPosition) {
+            // Gained positions (promotion)
+            return "#10b981"; // emerald-500
+          } else {
+            // Maintained position
+            return "#3b82f6"; // blue-500
+          }
+        } else if (isGridToRace) {
+          // Grid to Race: race performance
+          if (d.gridPosition < d.racePosition) {
+            // Lost positions (worse in race)
+            return "#ef4444"; // red-500
+          } else if (d.gridPosition > d.racePosition) {
+            // Gained positions (better in race)
+            return "#10b981"; // emerald-500
+          } else {
+            // Maintained position
+            return "#3b82f6"; // blue-500
+          }
         }
+        
+        return teamColor; // fallback
       })
       .attr("stroke-width", (d) => Math.max(1, d.width || 1))
       .attr("fill", "none")
@@ -468,28 +526,39 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
     const positionOffset = 22;
     const driverOffset = 62;
     
-    // Add position numbers with consistent spacing
-    nodes_g.append("text")
-      .attr("x", (d) => d.type === "qualifying" ? (d.x0 || 0) - positionOffset : (d.x1 || 0) + positionOffset)
-      .attr("y", (d) => ((d.y0 || 0) + (d.y1 || 0)) / 2)
-      .attr("dy", "0.35em")
-      .attr("text-anchor", (d) => d.type === "qualifying" ? "end" : "start")
-      .text((d) => d.position)
-      .attr("font-size", "10px")
-      .attr("fill", "currentColor")
-      .attr("class", "position-label");
-    
-    // Add driver codes with sufficient consistent spacing
+    // Add position numbers with consistent spacing (only for qualifying and race)
     nodes_g.append("text")
       .attr("x", (d) => {
-        return d.type === "qualifying" 
-          ? (d.x0 || 0) - driverOffset
-          : (d.x1 || 0) + driverOffset;
+        if (d.type === "qualifying") {
+          return (d.x0 || 0) - positionOffset;
+        } else if (d.type === "race") {
+          return (d.x1 || 0) + positionOffset;
+        }
+        return 0; // Grid nodes don't show position labels
       })
       .attr("y", (d) => ((d.y0 || 0) + (d.y1 || 0)) / 2)
       .attr("dy", "0.35em")
       .attr("text-anchor", (d) => d.type === "qualifying" ? "end" : "start")
-      .text((d) => d.name)
+      .text((d) => d.type === "grid" ? "" : d.position) // Don't show position for grid
+      .attr("font-size", "10px")
+      .attr("fill", "currentColor")
+      .attr("class", "position-label")
+      .style("opacity", (d) => d.type === "grid" ? 0 : 1); // Hide grid position labels
+    
+    // Add driver codes with sufficient consistent spacing (only for qualifying and race)
+    nodes_g.append("text")
+      .attr("x", (d) => {
+        if (d.type === "qualifying") {
+          return (d.x0 || 0) - driverOffset;
+        } else if (d.type === "race") {
+          return (d.x1 || 0) + driverOffset;
+        }
+        return 0; // Grid nodes don't show driver names
+      })
+      .attr("y", (d) => ((d.y0 || 0) + (d.y1 || 0)) / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", (d) => d.type === "qualifying" ? "end" : "start")
+      .text((d) => d.type === "grid" ? "" : d.name) // Don't show names for grid
       .attr("font-size", "11px")
       .attr("font-weight", "bold")
       .attr("fill", (d) => {
@@ -500,7 +569,8 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
         if (normalizedTeam === "alfa") normalizedTeam = "sauber";
         return TEAM_COLORS[normalizedTeam] || "#666666";
       })
-      .attr("class", "driver-code-label");
+      .attr("class", "driver-code-label")
+      .style("opacity", (d) => d.type === "grid" ? 0 : 1); // Hide grid driver labels
     
     // Draw axes labels with consistent positioning
     chartArea.append("text")
@@ -508,6 +578,19 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
       .attr("x", -10)
       .attr("text-anchor", "start")
       .text("QUALIFYING")
+      .attr("font-size", "11px")
+      .attr("font-weight", "bold")
+      .attr("fill", "currentColor")
+      .attr("opacity", 0.9)
+      .attr("letter-spacing", "0.5px")
+      .attr("class", "axis-label");
+    
+    // Add grid label in the middle
+    chartArea.append("text")
+      .attr("y", -14)
+      .attr("x", width / 2)
+      .attr("text-anchor", "middle")
+      .text("GRID")
       .attr("font-size", "11px")
       .attr("font-weight", "bold")
       .attr("fill", "currentColor")
