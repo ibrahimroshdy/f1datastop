@@ -208,7 +208,17 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
         // Enhance the path appearance
         d3.select(this as SVGPathElement)
           .attr("opacity", 0.9)
-          .attr("stroke-width", () => Math.max(3, (d.width || 1) * 1.5))
+          .attr("stroke-width", () => {
+            // Make hover effect consistent with responsive stroke width
+            const baseWidth = d.width || 1;
+            if (isMobile) {
+              return Math.max(1, baseWidth * 0.5);
+            } else if (dimensions.width < 1024) {
+              return Math.max(1.5, baseWidth * 0.8);
+            } else {
+              return Math.max(2, baseWidth * 1.0);
+            }
+          })
           .style("filter", "drop-shadow(0px 1px 2px rgba(0,0,0,0.2))");
         
         // Display tooltip with grid information
@@ -285,13 +295,23 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
       onMouseOut: function() {
         d3.select(this as SVGPathElement)
           .attr("opacity", 0.5)
-          .attr("stroke-width", (d: any) => Math.max(1, d.width || 1))
+          .attr("stroke-width", (d: any) => {
+            // Reset to responsive stroke width
+            const baseWidth = d.width || 1;
+            if (isMobile) {
+              return Math.max(0.5, baseWidth * 0.3);
+            } else if (dimensions.width < 1024) {
+              return Math.max(0.8, baseWidth * 0.5);
+            } else {
+              return Math.max(1, baseWidth * 0.7);
+            }
+          })
           .style("filter", "none"); // Remove shadow effect
           
         tooltip.style("visibility", "hidden").style("opacity", 0);
       }
     };
-  }, []);
+  }, [isMobile, dimensions.width]);
   
   // Create memoized node mouse event handlers
   const nodeMouseHandlers = useCallback((tooltip: any) => {
@@ -473,7 +493,20 @@ const ProgressionChart = ({ year, round }: ProgressionChartProps) => {
         
         return teamColor; // fallback
       })
-      .attr("stroke-width", (d) => Math.max(1, d.width || 1))
+      .attr("stroke-width", (d) => {
+        // Make lines thinner based on screen size for better traceability
+        const baseWidth = d.width || 1;
+        if (isMobile) {
+          // Mobile: much thinner lines
+          return Math.max(0.5, baseWidth * 0.3);
+        } else if (dimensions.width < 1024) {
+          // Medium screens: thinner lines
+          return Math.max(0.8, baseWidth * 0.5);
+        } else {
+          // Large screens: slightly thinner than before
+          return Math.max(1, baseWidth * 0.7);
+        }
+      })
       .attr("fill", "none")
       .attr("opacity", 0.5)
       .attr("class", "link-path")
