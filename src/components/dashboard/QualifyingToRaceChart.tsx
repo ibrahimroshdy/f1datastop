@@ -54,6 +54,8 @@ const QualifyingToRaceChart = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [lastRace, setLastRace] = useState<any>(null);
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const resizeTimeoutRef = useRef<number>();
   
   // Handle retry
   const handleRetry = useCallback(async () => {
@@ -92,25 +94,29 @@ const QualifyingToRaceChart = () => {
   
   // Update dimensions when window resizes - with debounce
   useEffect(() => {
-    let timeoutId: number;
-    
     const updateDimensions = () => {
       if (sankeyRef.current) {
-        clearTimeout(timeoutId);
+        if (resizeTimeoutRef.current) {
+          clearTimeout(resizeTimeoutRef.current);
+        }
         
-        timeoutId = window.setTimeout(() => {
-          const { width } = sankeyRef.current.getBoundingClientRect();
+        resizeTimeoutRef.current = window.setTimeout(() => {
+          const { width } = sankeyRef.current!.getBoundingClientRect();
           if (width > 0) {
-            // Use consistent height ratio across all screen sizes
+            // Only update if there's a significant change (more than 50px difference)
             const heightRatio = 0.7;
+            const newWidth = width;
+            const newHeight = Math.max(350, Math.min(500, width * heightRatio));
             
-            setDimensions({
-              width: width,
-              height: Math.max(350, Math.min(500, width * heightRatio))
-            });
-            setHasInitialized(true);
+            if (Math.abs(newWidth - dimensions.width) > 50 || Math.abs(newHeight - dimensions.height) > 35) {
+              setDimensions({
+                width: newWidth,
+                height: newHeight
+              });
+              setHasInitialized(true);
+            }
           }
-        }, 100);
+        }, 300); // Longer debounce delay
       }
     };
     
@@ -143,9 +149,11 @@ const QualifyingToRaceChart = () => {
     
     return () => {
       window.removeEventListener('resize', updateDimensions);
-      clearTimeout(timeoutId);
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
     };
-  }, [dimensions.width, hasInitialized]);
+  }, [dimensions.width, dimensions.height, hasInitialized]);
   
   // Check for mobile screen size
   useEffect(() => {
@@ -670,35 +678,62 @@ const QualifyingToRaceChart = () => {
       .attr("class", "axis-label");
     
     // Add entry animation - with staggered loading
-    svg.selectAll(".sankey-node rect")
-      .attr("opacity", 0)
-      .transition()
-      .duration(300)
-      .delay((_, i) => i * 20)
-      .attr("opacity", 0.85);
-    
-    svg.selectAll(".sankey-node text")
-      .attr("opacity", 0)
-      .transition()
-      .duration(300)
-      .delay((_, i) => 300 + i * 10)
-      .attr("opacity", 1);
-    
-    svg.selectAll(".link-path")
-      .attr("stroke-dashoffset", function(this: SVGPathElement) {
-        return this.getTotalLength();
-      })
-      .attr("stroke-dasharray", function(this: SVGPathElement) {
-        return this.getTotalLength();
-      })
-      .transition()
-      .duration(800)
-      .delay((_, i) => i * 30)
-      .ease(d3.easeLinear)
-      .attr("stroke-dashoffset", 0);
+    if (hasAnimated) {
+      // No animation on resize - just set final values
+      svg.selectAll(".sankey-node rect")
+        .attr("opacity", 0.85);
+      
+      svg.selectAll(".sankey-node text")
+        .attr("opacity", 1);
+      
+      svg.selectAll(".link-path")
+        .attr("stroke-dashoffset", 0)
+        .attr("stroke-dasharray", "none");
+    } else {
+      // Animate on first load with subtle effects
+      svg.selectAll(".sankey-node rect")
+        .attr("opacity", 0)
+        .attr("transform", "scale(0.8)")
+        .transition()
+        .duration(400)
+        .delay((_, i) => i * 15)
+        .ease(d3.easeBackOut.overshoot(1.2))
+        .attr("opacity", 0.85)
+        .attr("transform", "scale(1)");
+      
+      svg.selectAll(".sankey-node text")
+        .attr("opacity", 0)
+        .transition()
+        .duration(300)
+        .delay((_, i) => 200 + i * 8)
+        .ease(d3.easeQuadOut)
+        .attr("opacity", 1);
+      
+      svg.selectAll(".link-path")
+        .attr("stroke-dashoffset", function(this: SVGPathElement) {
+          return this.getTotalLength();
+        })
+        .attr("stroke-dasharray", function(this: SVGPathElement) {
+          return this.getTotalLength();
+        })
+        .attr("opacity", 0)
+        .transition()
+        .duration(600)
+        .delay((_, i) => 300 + i * 25)
+        .ease(d3.easeQuadInOut)
+        .attr("stroke-dashoffset", 0)
+        .attr("opacity", 0.5)
+        .on("end", function() {
+          // Reset stroke-dasharray after animation
+          d3.select(this).attr("stroke-dasharray", "none");
+        });
+        
+      // Mark that we've animated once
+      setHasAnimated(true);
+    }
       
     console.log('Chart drawn successfully');
-  }, [data, dimensions, createTooltip, createSankeyGenerator, linkMouseHandlers, nodeMouseHandlers, isMobile]);
+  }, [data, dimensions, createTooltip, createSankeyGenerator, linkMouseHandlers, nodeMouseHandlers, isMobile, hasAnimated]);
   
   // Force chart rendering after mount and data load
   useEffect(() => {
