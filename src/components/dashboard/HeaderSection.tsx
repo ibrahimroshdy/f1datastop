@@ -6,6 +6,7 @@ import { AlertCircle, CalendarDays } from "lucide-react";
 import PageSelector from "@/components/navigation/PageSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import CountryFlag from "@/components/common/CountryFlag";
+import BuyMeCoffeeWidget from "@/components/common/BuyMeCoffeeWidget";
 
 interface HeaderSectionProps {
   nextRace: any;
@@ -122,20 +123,7 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
           </h1>
           <div className="flex items-center mt-1">
             <p className="text-muted-foreground">Live race data, standings and schedule</p>
-            <a 
-              href="https://www.buymeacoffee.com/f1datastop" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="ml-3"
-            >
-              <img 
-                src="https://img.buymeacoffee.com/button-api/?text=Buy me a PitStop&emoji=🚦&slug=f1datastop&button_colour=dd4040&font_colour=ffffff&font_family=Lato&outline_colour=ffffff&coffee_colour=FFDD00" 
-                alt="Buy me a PitStop" 
-                style={{ width: "120px", height: "26px" }} 
-                width="120" 
-                height="26" 
-              />
-            </a>
+            <BuyMeCoffeeWidget size="small" className="ml-3" />
           </div>
         </div>
         {nextRace && 
