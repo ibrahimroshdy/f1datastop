@@ -109,12 +109,12 @@ const QualifyingToRaceChart = () => {
             const newHeight = Math.max(350, Math.min(500, width * heightRatio));
             
             if (Math.abs(newWidth - dimensions.width) > 50 || Math.abs(newHeight - dimensions.height) > 35) {
-              setDimensions({
+            setDimensions({
                 width: newWidth,
                 height: newHeight
-              });
-              setHasInitialized(true);
-            }
+            });
+            setHasInitialized(true);
+          }
           }
         }, 300); // Longer debounce delay
       }
@@ -501,24 +501,24 @@ const QualifyingToRaceChart = () => {
         
         if (isQualiToGrid) {
           // Qualifying to Grid: penalties/promotions
-          if (d.qualifyingPosition < d.gridPosition) {
-            // Lost positions (penalty)
-            return "#ef4444"; // red-500
-          } else if (d.qualifyingPosition > d.gridPosition) {
-            // Gained positions (promotion)
+          if (d.qualifyingPosition > d.gridPosition) {
+            // Gained positions - went from worse to better position (e.g., P5 to P3)
             return "#10b981"; // emerald-500
+          } else if (d.qualifyingPosition < d.gridPosition) {
+            // Lost positions - went from better to worse position (e.g., P3 to P5)
+            return "#ef4444"; // red-500
           } else {
             // Maintained position
             return "#3b82f6"; // blue-500
           }
         } else if (isGridToRace) {
           // Grid to Race: race performance
-          if (d.gridPosition < d.racePosition) {
-            // Lost positions (worse in race)
-            return "#ef4444"; // red-500
-          } else if (d.gridPosition > d.racePosition) {
-            // Gained positions (better in race)
+          if (d.gridPosition > d.racePosition) {
+            // Gained positions - went from worse to better position (e.g., P5 to P3)
             return "#10b981"; // emerald-500
+          } else if (d.gridPosition < d.racePosition) {
+            // Lost positions - went from better to worse position (e.g., P3 to P5)
+            return "#ef4444"; // red-500
           } else {
             // Maintained position
             return "#3b82f6"; // blue-500
@@ -691,33 +691,33 @@ const QualifyingToRaceChart = () => {
         .attr("stroke-dasharray", "none");
     } else {
       // Animate on first load with subtle effects
-      svg.selectAll(".sankey-node rect")
-        .attr("opacity", 0)
+    svg.selectAll(".sankey-node rect")
+      .attr("opacity", 0)
         .attr("transform", "scale(0.8)")
-        .transition()
+      .transition()
         .duration(400)
         .delay((_, i) => i * 15)
         .ease(d3.easeBackOut.overshoot(1.2))
         .attr("opacity", 0.85)
         .attr("transform", "scale(1)");
-      
-      svg.selectAll(".sankey-node text")
-        .attr("opacity", 0)
-        .transition()
-        .duration(300)
+    
+    svg.selectAll(".sankey-node text")
+      .attr("opacity", 0)
+      .transition()
+      .duration(300)
         .delay((_, i) => 200 + i * 8)
         .ease(d3.easeQuadOut)
-        .attr("opacity", 1);
-      
-      svg.selectAll(".link-path")
-        .attr("stroke-dashoffset", function(this: SVGPathElement) {
-          return this.getTotalLength();
-        })
-        .attr("stroke-dasharray", function(this: SVGPathElement) {
-          return this.getTotalLength();
-        })
+      .attr("opacity", 1);
+    
+    svg.selectAll(".link-path")
+      .attr("stroke-dashoffset", function(this: SVGPathElement) {
+        return this.getTotalLength();
+      })
+      .attr("stroke-dasharray", function(this: SVGPathElement) {
+        return this.getTotalLength();
+      })
         .attr("opacity", 0)
-        .transition()
+      .transition()
         .duration(600)
         .delay((_, i) => 300 + i * 25)
         .ease(d3.easeQuadInOut)
