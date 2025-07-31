@@ -10,6 +10,7 @@ import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { Calendar as CalendarIcon, Star } from "lucide-react";
 import CountryFlag from "@/components/common/CountryFlag";
+import CalendarAnalyticsTracker from "@/components/calendar/CalendarAnalyticsTracker";
 
 // Race type constants
 const SINGLE_RACE = "single";
@@ -61,6 +62,11 @@ const RaceCalendar = () => {
   };
   
   const openRaceDetails = (race: any) => {
+    // Track race card click
+    if ((window as any).calendarAnalytics) {
+      (window as any).calendarAnalytics.trackRaceCardClick(race);
+    }
+    
     setSelectedRace(race);
     setIsDialogOpen(true);
   };
@@ -262,7 +268,8 @@ const RaceCalendar = () => {
   
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <CalendarAnalyticsTracker selectedYear={selectedYear} viewType="list">
+        <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <h1 className="text-3xl font-bold">Race Calendar</h1>
           <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
@@ -396,6 +403,7 @@ const RaceCalendar = () => {
           race={selectedRace} 
         />
       )}
+      </CalendarAnalyticsTracker>
     </MainLayout>
   );
 };

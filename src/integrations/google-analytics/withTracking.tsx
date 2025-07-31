@@ -1,5 +1,5 @@
 import React from 'react';
-import { trackEvent } from './GA4';
+import { trackEvent } from './GA4.tsx';
 
 // HOC to automatically track component mounts and interactions
 export const withTracking = <P extends object>(

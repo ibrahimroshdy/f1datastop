@@ -47,6 +47,11 @@ const F1MapContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
   const handleRaceSelect = useCallback((race: Race) => {
     setSelectedRace(race);
     
+    // Track map race selection
+    if ((window as any).calendarAnalytics) {
+      (window as any).calendarAnalytics.trackMapInteraction('race_marker_click', { race });
+    }
+    
     toast.success(`Selected: ${race.raceName}`, {
       description: `Round ${race.round} - ${race.date}`
     });
@@ -54,19 +59,49 @@ const F1MapContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
 
   // Handle filter toggle
   const toggleFilter = (filter: 'first' | 'upcoming' | 'completed') => {
-    setFilterStatus(prev => ({
-      ...prev,
-      [filter]: !prev[filter]
-    }));
+    setFilterStatus(prev => {
+      const newValue = !prev[filter];
+      
+      // Track filter toggle
+      if ((window as any).calendarAnalytics) {
+        (window as any).calendarAnalytics.trackMapInteraction('filter_toggle', { 
+          filterType: filter, 
+          filterEnabled: newValue 
+        });
+      }
+      
+      return {
+        ...prev,
+        [filter]: newValue
+      };
+    });
   };
   
   // Toggle paths visibility
   const handleTogglePaths = () => {
-    setShowPaths(prev => !prev);
+    setShowPaths(prev => {
+      const newValue = !prev;
+      
+      // Track paths toggle
+      if ((window as any).calendarAnalytics) {
+        (window as any).calendarAnalytics.trackMapInteraction('paths_toggle', { 
+          pathsEnabled: newValue 
+        });
+      }
+      
+      return newValue;
+    });
   };
   
   // Handle detail level change
   const handleDetailLevelChange = (level: GlobeDetailLevel) => {
+    // Track detail level change
+    if ((window as any).calendarAnalytics) {
+      (window as any).calendarAnalytics.trackMapInteraction('detail_level_change', { 
+        detailLevel: level 
+      });
+    }
+    
     setDetailLevel(level);
   };
 
@@ -110,6 +145,11 @@ const F1MapContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
   const handleRaceHover = useCallback((race: Race | null, point: {x: number, y: number} | null) => {
     setHoveredRace(race);
     setHoverPoint(point);
+    
+    // Track race hover (only when hovering starts, not when it ends)
+    if (race && (window as any).calendarAnalytics) {
+      (window as any).calendarAnalytics.trackMapInteraction('race_hover', { race });
+    }
   }, []);
 
   return (
@@ -137,7 +177,20 @@ const F1MapContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
             type="text"
             placeholder="Search races..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              const newSearchTerm = e.target.value;
+              setSearchTerm(newSearchTerm);
+              
+              // Track search with debounce
+              if (newSearchTerm.length > 2 && (window as any).calendarAnalytics) {
+                setTimeout(() => {
+                  if (searchTerm === newSearchTerm) { // Only track if search term hasn't changed
+                    const filteredRaces = getFilteredRaces();
+                    (window as any).calendarAnalytics.trackCalendarFilter('search', newSearchTerm, filteredRaces.length);
+                  }
+                }, 500);
+              }
+            }}
             className="pl-8 pr-4 py-2 bg-black/60 backdrop-blur-sm border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-f1-red"
           />
         </div>

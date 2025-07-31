@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { trackEvent } from '@/integrations/google-analytics/GA4';
+import { trackEvent } from '@/integrations/google-analytics/GA4.tsx';
 import useAnalytics from '@/hooks/useAnalytics';
 import { useDeveloper } from '@/context/DeveloperContext';
 import MainLayout from '@/components/layout/MainLayout';

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { trackEvent } from './GA4';
+import { trackEvent } from './GA4.tsx';
 
 // Maximum scroll depth reached
 let maxScrollDepth = 0;

@@ -57,18 +57,37 @@ const getTeamColorStyle = (constructorId: string) => {
 
 const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   const [selectedTab, setSelectedTab] = useState("info");
+  const [dialogOpenTime, setDialogOpenTime] = useState<number>(0);
   const hasSprint = !!race?.Sprint;
   
-  // Reset tab when race changes
+  // Track dialog open/close and reset tab when race changes
   useEffect(() => {
-    if (race) {
-      // If race has sprint and selectedTab was "sprint", keep it
-      // Otherwise reset to "info" 
+    if (race && isOpen) {
+      // Track dialog open
+      if ((window as any).calendarAnalytics) {
+        (window as any).calendarAnalytics.trackRaceDetailDialog('open', race);
+      }
+      setDialogOpenTime(Date.now());
+      
+      // Reset tab selection
       if (!hasSprint || (hasSprint && selectedTab !== "sprint")) {
         setSelectedTab("info");
       }
+      
+      // Track session schedule view
+      const sessions = [];
+      if (race.FirstPractice) sessions.push('FirstPractice');
+      if (race.SecondPractice) sessions.push('SecondPractice');
+      if (race.ThirdPractice) sessions.push('ThirdPractice');
+      if (race.SprintQualifying) sessions.push('SprintQualifying');
+      if (race.Sprint) sessions.push('Sprint');
+      if (race.Qualifying) sessions.push('Qualifying');
+      
+      if ((window as any).calendarAnalytics) {
+        (window as any).calendarAnalytics.trackSessionScheduleView(race, sessions);
+      }
     }
-  }, [race?.round, race?.season]);
+  }, [race?.round, race?.season, isOpen, hasSprint, selectedTab]);
   
   const { data: raceResults, isLoading: isResultsLoading } = useRaceResults(
     parseInt(race?.season || "0"), 
@@ -177,7 +196,20 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+        <Tabs 
+          value={selectedTab} 
+          onValueChange={(newTab) => {
+            // Track tab change
+            if ((window as any).calendarAnalytics && race) {
+              (window as any).calendarAnalytics.trackRaceDetailDialog('tab_change', race, { 
+                selectedTab: newTab, 
+                previousTab: selectedTab 
+              });
+            }
+            setSelectedTab(newTab);
+          }} 
+          className="w-full"
+        >
           <TabsList className={`grid w-full ${hasSprint ? 'grid-cols-4' : 'grid-cols-3'} mb-1`}>
             <TabsTrigger value="info" className="text-xs sm:text-sm px-1 sm:px-2">Race Info</TabsTrigger>
             <TabsTrigger value="results" className="text-xs sm:text-sm px-1 sm:px-2">Results</TabsTrigger>
@@ -288,7 +320,15 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             
               <div className="mt-2 md:mt-4 flex justify-end">
               <Link to={`/race-info/${getCurrentYear()}/${race.round}`}>
-                  <Button size="sm" className="bg-f1-red hover:bg-f1-red/90 text-xs md:text-sm h-7 sm:h-9">
+                  <Button 
+                    size="sm" 
+                    className="bg-f1-red hover:bg-f1-red/90 text-xs md:text-sm h-7 sm:h-9"
+                    onClick={() => {
+                      if ((window as any).calendarAnalytics) {
+                        (window as any).calendarAnalytics.trackViewAnalysisClick(race);
+                      }
+                    }}
+                  >
                     <LineChart className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                     View Analysis
                 </Button>
@@ -308,6 +348,13 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                   <p className="text-muted-foreground text-xs md:text-sm">No results available for this race yet.</p>
               </div>
             ) : (
+                (() => {
+                  // Track race results view
+                  if ((window as any).calendarAnalytics && race) {
+                    (window as any).calendarAnalytics.trackRaceResultsView(race, 'race', raceResults.data.Results.length);
+                  }
+                  return null;
+                })(),
                 <div className="space-y-1">
                   {/* Mobile view (up to sm breakpoint) */}
                   <div className="sm:hidden">
@@ -398,6 +445,13 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                     <p className="text-muted-foreground text-xs md:text-sm">No sprint results available for this race yet.</p>
                   </div>
                 ) : (
+                  (() => {
+                    // Track sprint results view
+                    if ((window as any).calendarAnalytics && race) {
+                      (window as any).calendarAnalytics.trackRaceResultsView(race, 'sprint', sprintResults.data.SprintResults.length);
+                    }
+                    return null;
+                  })(),
                   <div className="space-y-1">
                     {/* Mobile view (up to sm breakpoint) */}
                     <div className="sm:hidden">
@@ -502,6 +556,13 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                   <p className="text-muted-foreground text-xs md:text-sm">No qualifying results available for this race yet.</p>
               </div>
             ) : (
+                (() => {
+                  // Track qualifying results view
+                  if ((window as any).calendarAnalytics && race) {
+                    (window as any).calendarAnalytics.trackRaceResultsView(race, 'qualifying', qualifyingResults.data.QualifyingResults.length);
+                  }
+                  return null;
+                })(),
                 <div className="space-y-1">
                   {/* Mobile view (up to sm breakpoint) */}
                   <div className="sm:hidden">
@@ -594,7 +655,22 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         </Tabs>
         
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose} className="text-xs md:text-sm h-7 sm:h-9">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              // Track dialog close with time spent
+              if ((window as any).calendarAnalytics && race && dialogOpenTime > 0) {
+                const timeSpent = Math.floor((Date.now() - dialogOpenTime) / 1000);
+                (window as any).calendarAnalytics.trackRaceDetailDialog('close', race, { 
+                  selectedTab, 
+                  timeSpent 
+                });
+              }
+              onClose();
+            }} 
+            className="text-xs md:text-sm h-7 sm:h-9"
+          >
             Close
           </Button>
         </DialogFooter>

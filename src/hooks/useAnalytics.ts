@@ -1,4 +1,4 @@
-import { trackEvent, trackPageView } from '@/integrations/google-analytics/GA4';
+import { trackEvent, trackPageView } from '@/integrations/google-analytics/GA4.tsx';
 
 // Custom hook for analytics
 const useAnalytics = () => {

@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SUPABASE_FUNCTIONS } from "@/constants/apiConfig";
-import { trackLogin, trackSignup } from '@/integrations/google-analytics/GA4';
+import { trackLogin, trackSignup } from '@/integrations/google-analytics/GA4.tsx';
 import { identifyUser, trackEvent as trackClarityEvent } from '@/integrations/clarity/clarityHelpers';
 
 // Add tracking for user ID
@@ -378,7 +378,7 @@ export const notifySlackAboutTwitterSignin = async (user: any): Promise<void> =>
 // Add new tracking event helper
 export const trackEvent = (eventName: string, eventParams?: Record<string, any>) => {
   // Re-export for convenience
-  import('@/integrations/google-analytics/GA4').then(module => {
+          import('@/integrations/google-analytics/GA4.tsx').then(module => {
     module.trackEvent(eventName, eventParams);
   });
 };
