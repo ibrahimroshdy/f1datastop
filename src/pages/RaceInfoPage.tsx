@@ -29,6 +29,7 @@ const WeatherAnalysis = lazy(() => import('@/components/analytics/WeatherAnalysi
 const TeamRadio = lazy(() => import('@/components/analytics/TeamRadio'));
 const LapTimeTab = lazy(() => import('@/components/analytics/LapTimeTab'));
 const LapTimeCharts = lazy(() => import('@/components/analytics/LapTimeCharts'));
+const SessionResults = lazy(() => import('@/components/analytics/SessionResults'));
 
 // Component for the tab content loading state
 const TabLoadingFallback = () => (
@@ -266,8 +267,8 @@ const RaceInfoPage = () => {
                     </CardDescription>
                   </div>
                   
-                  {/* Session selector dropdown - remove the extra badge */}
-                  {availableSessions.length > 1 && (
+                  {/* Session selector dropdown - show even with one session */}
+                  {availableSessions.length > 0 && (
                     <div className="mt-4 md:mt-0">
                       <Select 
                         value={selectedSessionKey?.toString() || ""} 
@@ -316,17 +317,19 @@ const RaceInfoPage = () => {
                         <SelectItem value="telemetry">Telemetry</SelectItem>
                         <SelectItem value="lap-time">Laptimes Table</SelectItem>
                         <SelectItem value="lap-charts">Laptimes Charts</SelectItem>
+                        <SelectItem value="results">Results</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
                   {/* Regular tabs for larger screens */}
-                  <TabsList className="hidden md:grid grid-cols-5 w-full">
+                  <TabsList className="hidden md:grid grid-cols-6 w-full">
                     <TabsTrigger value="weather">Weather</TabsTrigger>
                     <TabsTrigger value="radio">Team Radio</TabsTrigger>
                     <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
                     <TabsTrigger value="lap-time">Laptimes Table</TabsTrigger>
                     <TabsTrigger value="lap-charts">Laptimes Charts</TabsTrigger>
+                    <TabsTrigger value="results">Results</TabsTrigger>
                   </TabsList>
                   
                   <Suspense fallback={<TabLoadingFallback />}>
@@ -459,6 +462,35 @@ const RaceInfoPage = () => {
                                   Compare lap times across multiple drivers with the first selected driver shown as a solid line
                                   and others as dashed lines. This helps identify performance trends, consistency, and the
                                   impact of race events on lap times.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="results" className="space-y-4">
+                      {activeTab === "results" && (
+                        <>
+                          <SessionResults 
+                            year={selectedYear} 
+                            round={selectedRound}
+                            sessionType={selectedSession?.session_type || undefined}
+                            sessionKey={selectedSessionKey || undefined}
+                            sessionName={selectedSession?.session_name || undefined}
+                          />
+                          
+                          <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
+                            <div className="flex items-start gap-2">
+                              <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium mb-1">About Session Results</p>
+                                <p className="text-muted-foreground">
+                                  Final session results showing position, constructor, driver with number, best lap time, and 
+                                  gap to leader. Podium positions (1st, 2nd, 3rd) are specially highlighted with trophy icons. 
+                                  Constructor names use the same styling as the laptimes table with team colors. Driver numbers 
+                                  are displayed in colored circles matching their team colors.
                                 </p>
                               </div>
                             </div>

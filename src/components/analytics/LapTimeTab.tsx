@@ -124,7 +124,7 @@ const LapTimeTab: React.FC<LapTimeTabProps> = ({
       "Williams": "rgb(0, 90, 255)", // Williams blue
       "RB": "rgb(30, 65, 255)", // RB blue
       "Haas F1 Team": "rgb(255, 255, 255)", // White 
-      "Kick Sauber": "rgb(201, 45, 75)" // Darker red
+      "Kick Sauber": "rgb(50, 205, 50)" // Lime green
     };
     
     // Map drivers and assign team colors
