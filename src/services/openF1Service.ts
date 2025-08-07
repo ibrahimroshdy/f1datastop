@@ -276,6 +276,25 @@ export const getTeamRadio = async (session_key: number, driver_number?: number) 
   }
 };
 
+// Get race control messages
+export const getRaceControl = async (session_key: number) => {
+  try {
+    const url = `${BASE_URL}/race_control?session_key=${session_key}`;
+    const response = await throttledFetch(url);
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    const data = await validateJsonResponse(response, `race control data for session ${session_key}`);
+    return {
+      data,
+      error: null
+    };
+  } catch (error) {
+    console.error(`Failed to fetch race control data for session ${session_key}:`, error);
+    return { data: [], error };
+  }
+};
+
 // Get position data for a session
 export const getPositionData = async (session_key: number, driver_number?: number) => {
   try {
@@ -330,6 +349,56 @@ export const getOvertakes = async (session_key: number, overtaking_driver_number
     };
   } catch (error) {
     console.error(`Failed to fetch overtakes data for session ${session_key}:`, error);
+    return { data: [], error };
+  }
+};
+
+export const getLaps = async (session_key: number, driver_number?: number, lap_number?: number) => {
+  try {
+    let url = `${BASE_URL}/laps?session_key=${session_key}`;
+    if (driver_number) {
+      url += `&driver_number=${driver_number}`;
+    }
+    if (lap_number) {
+      url += `&lap_number=${lap_number}`;
+    }
+    
+    const response = await throttledFetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const context = `laps data for session ${session_key}`;
+    const data = await validateJsonResponse(response, context);
+    return { 
+      data, 
+      error: null 
+    };
+  } catch (error) {
+    console.error(`Failed to fetch laps data for session ${session_key}:`, error);
+    return { data: [], error };
+  }
+};
+
+export const getStartingGrid = async (session_key: number) => {
+  try {
+    const url = `${BASE_URL}/starting_grid?session_key=${session_key}`;
+    
+    const response = await throttledFetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const context = `starting grid data for session ${session_key}`;
+    const data = await validateJsonResponse(response, context);
+    return { 
+      data, 
+      error: null 
+    };
+  } catch (error) {
+    console.error(`Failed to fetch starting grid data for session ${session_key}:`, error);
     return { data: [], error };
   }
 }; 

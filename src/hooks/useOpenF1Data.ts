@@ -147,6 +147,17 @@ export const useTeamRadio = (sessionKey: number, driverNumber?: number) => {
   });
 };
 
+// Get race control messages for a session
+export const useRaceControl = (sessionKey: number) => {
+  return useQuery({
+    queryKey: ["openF1RaceControl", sessionKey],
+    queryFn: () => openF1Service.getRaceControl(sessionKey),
+    staleTime: 1000 * 60 * 60,
+    enabled: !!sessionKey,
+    ...defaultRetryConfig,
+  });
+};
+
 // Get position data for a session
 export const usePositionData = (sessionKey: number, driverNumber?: number) => {
   return useQuery({
@@ -163,6 +174,28 @@ export const useOvertakes = (sessionKey: number, overtakingDriverNumber?: number
   return useQuery({
     queryKey: ["openF1Overtakes", sessionKey, overtakingDriverNumber, overtakenDriverNumber, position],
     queryFn: () => openF1Service.getOvertakes(sessionKey, overtakingDriverNumber, overtakenDriverNumber, position),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    enabled: !!sessionKey,
+    ...defaultRetryConfig,
+  });
+};
+
+// Get lap data for a session
+export const useLaps = (sessionKey: number, driverNumber?: number, lapNumber?: number) => {
+  return useQuery({
+    queryKey: ["openF1Laps", sessionKey, driverNumber, lapNumber],
+    queryFn: () => openF1Service.getLaps(sessionKey, driverNumber, lapNumber),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    enabled: !!sessionKey,
+    ...defaultRetryConfig,
+  });
+};
+
+// Get starting grid data for a session
+export const useStartingGrid = (sessionKey: number) => {
+  return useQuery({
+    queryKey: ["openF1StartingGrid", sessionKey],
+    queryFn: () => openF1Service.getStartingGrid(sessionKey),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
     ...defaultRetryConfig,
