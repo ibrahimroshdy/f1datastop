@@ -120,6 +120,18 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   // Compute time markers: session start/end and qualifying parts if present
   const sessionMarkers = React.useMemo(() => {
     const markers: Array<{ x: number; label: string; color: string }> = [];
+    // Use race control messages for robust markers
+    const rc: any[] = raceControlData?.data || [];
+
+    // Only add ANY markers for qualifying sessions
+    const sessionName = `${sessionType || ''} ${sessionData?.data?.session_name || ''} ${sessionData?.data?.session_type || ''}`.toLowerCase();
+    const isQualifyingSession = sessionName.includes('qualifying');
+
+    if (!isQualifyingSession) {
+      // Do not render any markers for non-qualifying sessions
+      return [];
+    }
+
     // Start/End from session when available
     let ds = sessionData?.data?.date_start ? new Date(sessionData.data.date_start).getTime() : null;
     let de = sessionData?.data?.date_end ? new Date(sessionData.data.date_end).getTime() : null;
@@ -128,40 +140,51 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
       ds = processedData[0]?.time ?? ds;
       de = processedData[processedData.length - 1]?.time ?? de;
     }
-    if (typeof ds === 'number') markers.push({ x: ds, label: 'Start', color: '#22c55e' });
-    if (typeof de === 'number') markers.push({ x: de, label: 'End', color: '#ef4444' });
+    if (typeof ds === 'number' && !isNaN(ds)) markers.push({ x: ds, label: 'Start', color: '#22c55e' });
+    if (typeof de === 'number' && !isNaN(de)) markers.push({ x: de, label: 'End', color: '#ef4444' });
 
-    // Use race control messages for robust markers
-    const rc: any[] = raceControlData?.data || [];
+    // Qualifying phase markers via GREEN LIGHT - PIT EXIT OPEN
+    const greenLightMessages = rc
+      .filter(msg => String(msg.message || '').toUpperCase().includes('GREEN LIGHT - PIT EXIT OPEN'))
+      .map(msg => ({ time: new Date(msg.date).getTime(), message: msg.message }))
+      .sort((a, b) => a.time - b.time);
+
+    greenLightMessages.forEach((msg, index) => {
+      if (index === 0) markers.push({ x: msg.time, label: 'Q1', color: '#60a5fa' });
+      else if (index === 1) markers.push({ x: msg.time, label: 'Q2', color: '#f59e0b' });
+      else if (index === 2) markers.push({ x: msg.time, label: 'Q3', color: '#10b981' });
+    });
+
+    // Session lifecycle markers (qualifying only)
     rc.forEach((msg) => {
       const text = String(msg.message || '').toLowerCase();
       const t = new Date(msg.date).getTime();
-      // Session lifecycle
+      if (typeof t !== 'number' || isNaN(t)) return;
       if (text.includes('session start') || text.includes('green flag')) {
         markers.push({ x: t, label: 'Start', color: '#22c55e' });
       }
       if (text.includes('session finish') || text.includes('chequered')) {
         markers.push({ x: t, label: 'End', color: '#ef4444' });
       }
-      // Qualifying phases
-      if (text.includes('start q1') || text.includes('q1 session start')) {
-        markers.push({ x: t, label: 'Q1', color: '#60a5fa' });
-      }
-      if (text.includes('start q2') || text.includes('q2 session start')) {
-        markers.push({ x: t, label: 'Q2', color: '#f59e0b' });
-      }
-      if (text.includes('start q3') || text.includes('q3 session start')) {
-        markers.push({ x: t, label: 'Q3', color: '#10b981' });
-      }
     });
-    // Clamp to data range and deduplicate sensibly
+    // Debug weather data time range
     const minTime = processedData.length ? processedData[0].time : undefined;
     const maxTime = processedData.length ? processedData[processedData.length - 1].time : undefined;
+    console.log('Weather data time range:', 
+      minTime ? new Date(minTime).toISOString() : 'no min', 
+      'to', 
+      maxTime ? new Date(maxTime).toISOString() : 'no max'
+    );
+    console.log('Markers before filtering:', markers.map(m => ({ label: m.label, time: new Date(m.x).toISOString() })));
+    
+    // Clamp to data range and deduplicate sensibly
     const inRange = markers.filter(m => {
       if (typeof m.x !== 'number') return false;
-      if (typeof minTime === 'number' && m.x < minTime) return false;
-      if (typeof maxTime === 'number' && m.x > maxTime) return false;
-      return true;
+      const inTimeRange = !(typeof minTime === 'number' && m.x < minTime) && !(typeof maxTime === 'number' && m.x > maxTime);
+      if (!inTimeRange) {
+        console.log('Filtering out marker', m.label, 'at', new Date(m.x).toISOString(), 'outside range');
+      }
+      return inTimeRange;
     });
 
     // Reduce duplicates: keep earliest Start/Q1/Q2/Q3, keep latest End
@@ -188,6 +211,30 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
 
     // Sort by time for consistent rendering
     result.sort((a, b) => a.x - b.x);
+    
+    console.log('Final markers after processing:', result.map(m => ({ 
+      label: m.label, 
+      time: new Date(m.x).toISOString(),
+      localTime: new Date(m.x).toLocaleTimeString(),
+      timestamp: m.x,
+      isValidNumber: typeof m.x === 'number' && !isNaN(m.x)
+    })));
+    
+    // Debug: Also log first few weather data points for comparison
+    if (processedData.length > 0) {
+      console.log('First few weather data points:', processedData.slice(0, 3).map(d => ({
+        time: d.time,
+        timestamp: d.time,
+        formatted: new Date(d.time).toISOString()
+      })));
+    }
+    
+    // Debug: Check for any invalid markers
+    const invalidMarkers = result.filter(m => typeof m.x !== 'number' || isNaN(m.x));
+    if (invalidMarkers.length > 0) {
+      console.error('Invalid markers found:', invalidMarkers);
+    }
+    
     return result;
   }, [sessionData, meetingSessions, processedData, raceControlData]);
   
@@ -380,11 +427,22 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={processedData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                         <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
-                        <XAxis dataKey="time" tickFormatter={formatTimeForAxis} minTickGap={30} tick={{ fontSize: 10 }} />
+                        <XAxis
+                          dataKey="time"
+                          type="number"
+                          domain={["dataMin", "dataMax"]}
+                          scale="time"
+                          allowDataOverflow
+                          tickFormatter={formatTimeForAxis}
+                          minTickGap={30}
+                          tick={{ fontSize: 10 }}
+                        />
                         <YAxis domain={m.domain as any} unit={m.unit} width={40} tick={{ fontSize: 10 }} />
                         <Tooltip content={<CustomTooltip unit={m.unit} formatTime={formatTimeForAxis} />} />
-                        {sessionMarkers.map((mrk, idx) => (
-                          <ReferenceLine key={`marker-${m.id}-${idx}`} x={mrk.x} stroke={mrk.color} isFront ifOverflow="discard" strokeDasharray="6 4" label={{ value: mrk.label, fill: mrk.color, position: 'insideTop', fontSize: 9 }} />
+                        {sessionMarkers
+                          .filter(mrk => typeof mrk.x === 'number' && !isNaN(mrk.x))
+                          .map((mrk, idx) => (
+                          <ReferenceLine key={`marker-${m.id}-${idx}`} x={mrk.x} stroke={mrk.color} isFront ifOverflow="extendDomain" strokeDasharray="6 4" label={{ value: mrk.label, fill: mrk.color, position: 'insideTop', fontSize: 9 }} />
                         ))}
                         {m.keys.map(({ key, name, color }) => (
                           <Line key={key} type="monotone" dataKey={key} name={name} stroke={color} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
@@ -407,11 +465,21 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={processedData} margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                        <XAxis dataKey="time" tickFormatter={formatTimeForAxis} minTickGap={50} />
+                        <XAxis
+                          dataKey="time"
+                          type="number"
+                          domain={["dataMin", "dataMax"]}
+                          scale="time"
+                          allowDataOverflow
+                          tickFormatter={formatTimeForAxis}
+                          minTickGap={50}
+                        />
                         <YAxis domain={domain} unit={unit} width={50} />
                         <Tooltip content={<CustomTooltip unit={unit} formatTime={formatTimeForAxis} />} />
-                        {sessionMarkers.map((m, idx) => (
-                          <ReferenceLine key={`marker-${idx}`} x={m.x} stroke={m.color} isFront ifOverflow="discard" strokeDasharray="6 4" label={{ value: m.label, fill: m.color, position: 'insideTop', fontSize: 10 }} />
+                        {sessionMarkers
+                          .filter(m => typeof m.x === 'number' && !isNaN(m.x))
+                          .map((m, idx) => (
+                          <ReferenceLine key={`marker-${idx}`} x={m.x} stroke={m.color} isFront ifOverflow="extendDomain" strokeDasharray="6 4" label={{ value: m.label, fill: m.color, position: 'insideTop', fontSize: 10 }} />
                         ))}
                         {dataKeys.map(({ key, name, color }) => (
                           <Line key={key} type="monotone" dataKey={key} name={name} stroke={color} strokeWidth={2} dot={false} activeDot={{ r: 6 }} />
