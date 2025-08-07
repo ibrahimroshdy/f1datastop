@@ -245,99 +245,103 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
 
   return (
     <div className="h-full">
-      <div className="mb-4">
-        <h2 className="text-xl font-bold tracking-tight">Pit Stop Details</h2>
-        <Badge variant="outline" className="mt-2">
+      <div className="mb-2 sm:mb-4">
+        <h2 className="text-lg sm:text-xl font-bold tracking-tight">Pit Stop Details</h2>
+        <Badge variant="outline" className="mt-1 sm:mt-2 text-xs sm:text-sm">
           {circuitName}
         </Badge>
       </div>
-      <div className="h-[calc(100%-80px)] overflow-y-auto rounded-md border">
+      <div className="h-[calc(100%-60px)] sm:h-[calc(100%-80px)] overflow-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead 
-                className="w-[100px] bg-background sticky top-0 cursor-pointer hover:bg-accent/50"
+                className="w-16 sm:w-[100px] bg-background sticky top-0 cursor-pointer hover:bg-accent/50 text-xs sm:text-sm px-1 sm:px-4"
                 onClick={() => handleSort('driver')}
               >
                 <div className="flex items-center justify-between">
                   Driver
                   {sortConfig.key === 'driver' ? (
                     sortConfig.direction === 'asc' ? (
-                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                      <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     ) : (
-                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                      <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     )
                   ) : (
-                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                    <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
                   )}
                 </div>
               </TableHead>
               <TableHead 
-                className="w-[120px] bg-background sticky top-0 cursor-pointer hover:bg-accent/50 text-center"
+                className="w-16 sm:w-[120px] bg-background sticky top-0 cursor-pointer hover:bg-accent/50 text-center text-xs sm:text-sm px-1 sm:px-4"
                 onClick={() => handleSort('team')}
               >
                 <div className="flex items-center justify-center">
                   Team
                   {sortConfig.key === 'team' ? (
                     sortConfig.direction === 'asc' ? (
-                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                      <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     ) : (
-                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                      <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     )
                   ) : (
-                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                    <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
                   )}
                 </div>
               </TableHead>
               <TableHead 
-                className="w-[80px] text-right bg-background sticky top-0 cursor-pointer hover:bg-accent/50"
+                className="w-12 sm:w-[80px] text-right bg-background sticky top-0 cursor-pointer hover:bg-accent/50 text-xs sm:text-sm px-1 sm:px-4"
                 onClick={() => handleSort('stop')}
               >
                 <div className="flex items-center justify-end">
                   Stops
                   {sortConfig.key === 'stop' ? (
                     sortConfig.direction === 'asc' ? (
-                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                      <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     ) : (
-                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                      <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     )
                   ) : (
-                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                    <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
                   )}
                 </div>
               </TableHead>
               <TableHead 
-                className="w-[120px] text-right bg-background sticky top-0 cursor-pointer hover:bg-accent/50"
+                className="w-16 sm:w-[120px] text-right bg-background sticky top-0 cursor-pointer hover:bg-accent/50 text-xs sm:text-sm px-1 sm:px-4"
                 onClick={() => handleSort('totalTime')}
               >
                 <div className="flex items-center justify-end">
-                  Total Time
+                  <span className="hidden sm:inline">Total Time</span>
+                  <span className="sm:hidden">Time</span>
                   {sortConfig.key === 'totalTime' ? (
                     sortConfig.direction === 'asc' ? (
-                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                      <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     ) : (
-                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                      <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     )
                   ) : (
-                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                    <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
                   )}
                 </div>
               </TableHead>
-              <TableHead className="bg-background sticky top-0">Stop Details</TableHead>
+              <TableHead className="bg-background sticky top-0 text-xs sm:text-sm px-1 sm:px-4">
+                <span className="hidden sm:inline">Stop Details</span>
+                <span className="sm:hidden">Details</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedData.map((driver) => (
               <TableRow key={driver.driverId}>
-                <TableCell>
+                <TableCell className="px-1 sm:px-4 py-2">
                   <div 
-                    className="flex items-center gap-2"
-                    style={{ borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}` }}
+                    className="flex items-center gap-1 sm:gap-2"
+                    style={{ borderLeft: `2px solid ${TEAM_COLORS[driver.team] || '#666'}` }}
                   >
-                    <span className="pl-2 font-medium">{driver.driver}</span>
+                    <span className="pl-1 sm:pl-2 font-medium text-xs sm:text-sm">{driver.driver}</span>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-1 sm:px-4 py-2">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -351,19 +355,20 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
                     </Tooltip>
                   </TooltipProvider>
                 </TableCell>
-                <TableCell className="text-right">{driver.stops}</TableCell>
-                <TableCell className="text-right font-mono">
+                <TableCell className="text-right px-1 sm:px-4 py-2 text-xs sm:text-sm">{driver.stops}</TableCell>
+                <TableCell className="text-right font-mono px-1 sm:px-4 py-2 text-xs sm:text-sm">
                   {driver.totalTime.toFixed(3)}s
                 </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-2">
+                <TableCell className="px-1 sm:px-4 py-2">
+                  <div className="flex flex-wrap gap-1 sm:gap-2">
                     {driver.pitStops.map((stop, index) => (
                       <Badge 
                         key={`${driver.driverId}-stop-${index}`}
                         variant="outline"
-                        className="whitespace-nowrap"
+                        className="whitespace-nowrap text-xs"
                       >
-                        Lap {stop.lap}: {stop.formattedTime}s
+                        <span className="hidden sm:inline">Lap {stop.lap}: {stop.formattedTime}s</span>
+                        <span className="sm:hidden">L{stop.lap}: {stop.formattedTime}s</span>
                       </Badge>
                     ))}
                   </div>

@@ -886,8 +886,8 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
           <div className="py-8 text-center">
             <p className="text-muted-foreground">No OpenF1 data available for this race.</p>
             <p className="text-sm text-muted-foreground mt-2">
-              {year >= 2025 ? 
-                "2025 season data is not yet fully available in the OpenF1 API. Please check back later or select a previous season from the Season dropdown above." :
+              {year >= new Date().getFullYear() ? 
+                `${new Date().getFullYear()} season data is not yet fully available in the OpenF1 API. Please check back later or select a previous season from the Season dropdown above.` :
                 "OpenF1 data is only available for recent races (2023 onwards)."}
             </p>
           </div>
@@ -1556,8 +1556,8 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                 : errorMessage}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              {year >= 2025 ? 
-                "2025 season data is still being collected and not all sessions have complete telemetry information. Some driver data may be available while detailed telemetry is still pending. If you see drivers listed but no telemetry charts, this is likely why." :
+              {year >= new Date().getFullYear() ? 
+                `${new Date().getFullYear()} season data is still being collected and not all sessions have complete telemetry information. Some driver data may be available while detailed telemetry is still pending. If you see drivers listed but no telemetry charts, this is likely why.` :
                 hasServerError 
                   ? errorMessage && errorMessage.includes("HTML instead of")
                     ? "The F1 data service API is returning HTML pages instead of data. This is typically a temporary server-side issue with the F1 API provider."
@@ -1596,8 +1596,8 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
           <div className="py-8 text-center">
             <p className="text-muted-foreground">No driver data available for this race.</p>
             <p className="text-sm text-muted-foreground mt-2">
-              {year >= 2025 ? 
-                "2025 season data is still being collected. Driver and telemetry data may be added in the coming days. Please check back later or select a previous season from the dropdown above." :
+              {year >= new Date().getFullYear() ? 
+                `${new Date().getFullYear()} season data is still being collected. Driver and telemetry data may be added in the coming days. Please check back later or select a previous season from the dropdown above.` :
                 "The OpenF1 API doesn't have data for this session."}
             </p>
           </div>

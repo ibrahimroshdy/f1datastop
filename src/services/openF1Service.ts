@@ -300,4 +300,36 @@ export const getPositionData = async (session_key: number, driver_number?: numbe
     console.error(`Failed to fetch position data for session ${session_key}:`, error);
     return { data: [], error };
   }
+};
+
+// Get overtakes data for a session
+export const getOvertakes = async (session_key: number, overtaking_driver_number?: number, overtaken_driver_number?: number, position?: number) => {
+  try {
+    let url = `${BASE_URL}/overtakes?session_key=${session_key}`;
+    if (overtaking_driver_number) {
+      url += `&overtaking_driver_number=${overtaking_driver_number}`;
+    }
+    if (overtaken_driver_number) {
+      url += `&overtaken_driver_number=${overtaken_driver_number}`;
+    }
+    if (position) {
+      url += `&position=${position}`;
+    }
+    
+    const response = await throttledFetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const context = `overtakes data for session ${session_key}`;
+    const data = await validateJsonResponse(response, context);
+    return { 
+      data, 
+      error: null 
+    };
+  } catch (error) {
+    console.error(`Failed to fetch overtakes data for session ${session_key}:`, error);
+    return { data: [], error };
+  }
 }; 

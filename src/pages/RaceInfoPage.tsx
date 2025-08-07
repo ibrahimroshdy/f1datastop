@@ -30,6 +30,7 @@ const TeamRadio = lazy(() => import('@/components/analytics/TeamRadio'));
 const LapTimeTab = lazy(() => import('@/components/analytics/LapTimeTab'));
 const LapTimeCharts = lazy(() => import('@/components/analytics/LapTimeCharts'));
 const SessionResults = lazy(() => import('@/components/analytics/SessionResults'));
+const OvertakesAnalysis = lazy(() => import('@/components/analytics/OvertakesAnalysis'));
 
 // Component for the tab content loading state
 const TabLoadingFallback = () => (
@@ -39,11 +40,11 @@ const TabLoadingFallback = () => (
   </div>
 );
 
-// Function to determine the default year (current year is 2025)
-const getCurrentYear = () => 2025; // Hard-coding 2025 as the current year
+// Function to determine the default year (current year)
+const getCurrentYear = () => new Date().getFullYear();
 
 const RaceInfoPage = () => {
-  // Use getCurrentYear() to always default to the current real-world year (2025)
+  // Use getCurrentYear() to always default to the current real-world year
   const { year = getCurrentYear(), round = "last" } = useParams();
   const navigate = useNavigate();
   const [selectedYear, setSelectedYear] = useState<number>(parseInt(year.toString()));
@@ -318,18 +319,20 @@ const RaceInfoPage = () => {
                         <SelectItem value="lap-time">Laptimes Table</SelectItem>
                         <SelectItem value="lap-charts">Laptimes Charts</SelectItem>
                         <SelectItem value="results">Results</SelectItem>
+                        <SelectItem value="overtakes">Overtakes</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
                   {/* Regular tabs for larger screens */}
-                  <TabsList className="hidden md:grid grid-cols-6 w-full">
+                  <TabsList className="hidden md:grid grid-cols-7 w-full">
                     <TabsTrigger value="weather">Weather</TabsTrigger>
                     <TabsTrigger value="radio">Team Radio</TabsTrigger>
                     <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
                     <TabsTrigger value="lap-time">Laptimes Table</TabsTrigger>
                     <TabsTrigger value="lap-charts">Laptimes Charts</TabsTrigger>
                     <TabsTrigger value="results">Results</TabsTrigger>
+                    <TabsTrigger value="overtakes">Overtakes</TabsTrigger>
                   </TabsList>
                   
                   <Suspense fallback={<TabLoadingFallback />}>
@@ -491,6 +494,34 @@ const RaceInfoPage = () => {
                                   gap to leader. Podium positions (1st, 2nd, 3rd) are specially highlighted with trophy icons. 
                                   Constructor names use the same styling as the laptimes table with team colors. Driver numbers 
                                   are displayed in colored circles matching their team colors.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="overtakes" className="space-y-4">
+                      {activeTab === "overtakes" && (
+                        <>
+                          <OvertakesAnalysis 
+                            year={selectedYear} 
+                            round={selectedRound}
+                            sessionKey={selectedSessionKey || undefined}
+                            sessionName={selectedSession?.session_name || undefined}
+                          />
+                          
+                          <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
+                            <div className="flex items-start gap-2">
+                              <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-medium mb-1">About Overtakes Analysis</p>
+                                <p className="text-muted-foreground">
+                                  Track every overtake that happened during the race session. View overtakes in chronological order 
+                                  or analyze driver statistics including overtakes made, suffered, and net performance. Filter by 
+                                  specific drivers to see their overtaking battles. Data includes on-track passes and position 
+                                  changes from pit stops or penalties. This feature uses OpenF1's real-time overtakes data.
                                 </p>
                               </div>
                             </div>

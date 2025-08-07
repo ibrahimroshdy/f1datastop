@@ -158,6 +158,17 @@ export const usePositionData = (sessionKey: number, driverNumber?: number) => {
   });
 };
 
+// Get overtakes data for a session
+export const useOvertakes = (sessionKey: number, overtakingDriverNumber?: number, overtakenDriverNumber?: number, position?: number) => {
+  return useQuery({
+    queryKey: ["openF1Overtakes", sessionKey, overtakingDriverNumber, overtakenDriverNumber, position],
+    queryFn: () => openF1Service.getOvertakes(sessionKey, overtakingDriverNumber, overtakenDriverNumber, position),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    enabled: !!sessionKey,
+    ...defaultRetryConfig,
+  });
+};
+
 // Special utility hook to match Ergast year/round to OpenF1 session
 export const useOpenF1SessionFromErgast = (year: number, round: string, sessionType?: string) => {
   // First get all sessions for the year

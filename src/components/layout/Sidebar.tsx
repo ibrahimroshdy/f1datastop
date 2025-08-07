@@ -40,8 +40,8 @@ interface SidebarProps {
   setSidebarOpen: (open: boolean) => void;
 }
 
-// Function to determine the current year (hardcoded to 2025 for now)
-const getCurrentYear = () => 2025;
+// Function to determine the current year
+const getCurrentYear = () => new Date().getFullYear();
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const { pathname } = useLocation();
@@ -58,8 +58,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   ];
 
   const protectedNavigation = [
-    { name: "Race Info", href: `/race-info/${getCurrentYear()}/last`, icon: LineChart },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
+    { name: "Race Info", href: `/race-info/${getCurrentYear()}/last`, icon: LineChart },
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Constructors", href: "/constructors", icon: Caravan },
   ];

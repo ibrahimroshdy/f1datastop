@@ -197,17 +197,17 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
               {weatherError?.toString() || "No OpenF1 weather data available for this race."}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              {year >= 2025 ? 
-                "2025 season data is not yet fully available in the OpenF1 API. Please check back later or select a previous season." :
+              {year >= new Date().getFullYear() ? 
+                `${new Date().getFullYear()} season data is not yet fully available in the OpenF1 API. Please check back later or select a previous season.` :
                 "Weather data is only available for recent races (2023 onwards)."}
             </p>
           </div>
         ) : hasNoData ? (
           <div className="py-8 text-center">
             <p className="text-muted-foreground">No weather data available for this session.</p>
-            {year >= 2025 && (
+            {year >= new Date().getFullYear() && (
               <p className="text-sm text-muted-foreground mt-2">
-                2025 season data is still being collected and may not be complete.
+                {new Date().getFullYear()} season data is still being collected and may not be complete.
               </p>
             )}
           </div>

@@ -156,7 +156,13 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
       setIsProcessingData(true);
       setTimeout(() => {
         const laps = lapTimesData.data.Races[0].Laps;
-        setTotalLaps(laps.length);
+        // Fix: Use the actual number of laps, not the total number of timing records
+        // The API 'total' field represents total timing records across all drivers and laps
+        // The actual race length is the highest lap number in the Laps array
+        const actualLapCount = laps.length > 0 
+          ? Math.max(...laps.map((lap: any) => parseInt(lap.number) || 0))
+          : 0;
+        setTotalLaps(actualLapCount);
         
         // Find fastest lap time from lap data if not already set
         if (!fastestLapTime) {
@@ -282,6 +288,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
   }, [lapTimesData, availableDrivers, fastestLapTime]);
 
   // Calculate maximum lap number from the data
+  // Use the actual data if available, otherwise fall back to totalLaps
   const maxLap = chartData.length > 0 
     ? Math.max(...chartData.map(lap => lap.lap)) 
     : totalLaps;

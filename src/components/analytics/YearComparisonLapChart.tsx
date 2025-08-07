@@ -23,6 +23,71 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
   comparisonYear,
   comparisonRound
 }) => {
+  // Helper function to get line style for drivers from the same team
+  const getTeamLineStyle = (driverCode: string, year: number, allSelectedDrivers: { base: any[], comparison: any[] }): { strokeDasharray?: string, dot?: any } => {
+    const isBaseYear = year === baseYear;
+    const currentYearDrivers = isBaseYear ? allSelectedDrivers.base : allSelectedDrivers.comparison;
+    const currentDriver = currentYearDrivers.find(d => d.code === driverCode);
+    
+    if (!currentDriver) return { strokeDasharray: undefined, dot: { r: 3 } };
+    
+    // Find all drivers from the same team in the current year that are selected
+    const sameTeamDrivers = currentYearDrivers.filter(d => d.team === currentDriver.team);
+    
+    // If only one driver from this team in this year, check if same driver exists in other year
+    if (sameTeamDrivers.length <= 1) {
+      const otherYearDrivers = isBaseYear ? allSelectedDrivers.comparison : allSelectedDrivers.base;
+      const sameDriverOtherYear = otherYearDrivers.find(d => d.code === driverCode);
+      
+      // If same driver in both years, use different patterns for different years
+      if (sameDriverOtherYear) {
+        return isBaseYear 
+          ? { strokeDasharray: undefined, dot: { r: 4 } } // Solid line, larger dots for base year
+          : { strokeDasharray: "5 5", dot: { r: 3, fill: "transparent", strokeWidth: 2 } }; // Dashed line, hollow dots for comparison year
+      }
+      return { strokeDasharray: undefined, dot: { r: 3 } }; // Solid line if no conflicts
+    }
+    
+    // Multiple drivers from same team in same year - use different patterns
+    const sortedSameTeamDrivers = sameTeamDrivers.sort((a, b) => a.code.localeCompare(b.code));
+    const driverIndex = sortedSameTeamDrivers.findIndex(d => d.code === driverCode);
+    
+    const lineStyles = [
+      { strokeDasharray: undefined, dot: { r: 3 } },                    // Solid line with circles
+      { strokeDasharray: "5 5", dot: { r: 3, fill: "transparent", strokeWidth: 2 } }, // Dashed line with hollow circles
+      { strokeDasharray: "10 5 5 5", dot: { r: 4, symbol: "square" } }, // Dash-dot line with squares
+      { strokeDasharray: "15 5 5 5 5 5", dot: { r: 3, symbol: "triangle" } }, // Dash-dot-dot with triangles
+    ];
+    
+    return lineStyles[driverIndex] || { strokeDasharray: "3 3", dot: { r: 2 } };
+  };
+
+  // Helper function to generate visual line pattern for tooltips
+  const getVisualLinePattern = (strokeDasharray?: string) => {
+    if (strokeDasharray === "5 5") {
+      return '− − − −'; // Dashed
+    } else if (strokeDasharray === "10 5 5 5") {
+      return '−· −· −·'; // Dash-dot
+    } else if (strokeDasharray === "15 5 5 5 5 5") {
+      return '−·· −·· −··'; // Dash-dot-dot
+    } else if (strokeDasharray === "3 3") {
+      return '· · · ·'; // Dotted
+    } else {
+      return '————'; // Solid
+    }
+  };
+
+  // Helper function to generate visual dot pattern
+  const getVisualDotPattern = (dot?: any) => {
+    if (dot?.fill === "transparent") {
+      return '○'; // Hollow circle
+    } else if (dot?.r === 4) {
+      return '●+'; // Larger circle
+    } else {
+      return '●'; // Regular circle
+    }
+  };
+
   const [baseDrivers, setBaseDrivers] = useState<any[]>([]);
   const [comparisonDrivers, setComparisonDrivers] = useState<any[]>([]);
   const [selectedBaseDrivers, setSelectedBaseDrivers] = useState<string[]>([]);
@@ -182,21 +247,26 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         }
         
         // Find max number of laps between both races
-        const maxBaseLaps = baseRace.Laps.length;
-        const maxCompLaps = compRace.Laps.length;
+        // Fix: Use the actual highest lap number, not the array length
+        const maxBaseLaps = baseRace.Laps.length > 0 
+          ? Math.max(...baseRace.Laps.map((lap: any) => parseInt(lap.number) || 0))
+          : 0;
+        const maxCompLaps = compRace.Laps.length > 0 
+          ? Math.max(...compRace.Laps.map((lap: any) => parseInt(lap.number) || 0))
+          : 0;
         const maxLaps = Math.max(maxBaseLaps, maxCompLaps);
         
         // Process lap time data
         const processedData = [];
         const tempOutliers: {[key: string]: number[]} = {};
         
-        for (let i = 0; i < maxLaps; i++) {
-          const lapData: any = { lap: i + 1 };
+        for (let lapNumber = 1; lapNumber <= maxLaps; lapNumber++) {
+          const lapData: any = { lap: lapNumber };
           
           // Process base year lap data
-          if (i < maxBaseLaps) {
-            const lap = baseRace.Laps[i];
-            lap.Timings.forEach((timing: any) => {
+          const baseLap = baseRace.Laps.find((lap: any) => parseInt(lap.number) === lapNumber);
+          if (baseLap) {
+            baseLap.Timings.forEach((timing: any) => {
               const driver = baseDrivers.find(d => d.driverId === timing.driverId);
               if (driver) {
                 const lapTime = convertLapTimeToSeconds(timing.time);
@@ -207,9 +277,9 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
           }
           
           // Process comparison year lap data
-          if (i < maxCompLaps) {
-            const lap = compRace.Laps[i];
-            lap.Timings.forEach((timing: any) => {
+          const compLap = compRace.Laps.find((lap: any) => parseInt(lap.number) === lapNumber);
+          if (compLap) {
+            compLap.Timings.forEach((timing: any) => {
               const driver = comparisonDrivers.find(d => d.driverId === timing.driverId);
               if (driver) {
                 const lapTime = convertLapTimeToSeconds(timing.time);
@@ -391,21 +461,21 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         />
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div>
-          <h4 className="text-sm font-semibold mb-2 text-amber-600">{baseYear} Drivers</h4>
-          <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="min-w-0">
+          <h4 className="text-xs sm:text-sm font-semibold mb-1 sm:mb-2 text-amber-600">{baseYear} Drivers</h4>
+          <div className="flex flex-wrap gap-1 sm:gap-2 max-h-20 sm:max-h-none overflow-y-auto">
             {baseDrivers.map(driver => (
               <button
                 key={`base-${driver.code}`}
                 onClick={() => toggleBaseDriver(driver.code)}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium transition-colors flex-shrink-0 ${
                   selectedBaseDrivers.includes(driver.code)
                     ? 'bg-amber-700 text-white'
                     : 'bg-gray-200 text-gray-800'
                 }`}
                 style={{
-                  borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+                  borderLeft: `2px solid ${TEAM_COLORS[driver.team] || '#666'}`
                 }}
               >
                 {driver.code}
@@ -414,20 +484,20 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
           </div>
         </div>
         
-        <div>
-          <h4 className="text-sm font-semibold mb-2 text-blue-600">{comparisonYear} Drivers</h4>
-          <div className="flex flex-wrap gap-2">
+        <div className="min-w-0">
+          <h4 className="text-xs sm:text-sm font-semibold mb-1 sm:mb-2 text-blue-600">{comparisonYear} Drivers</h4>
+          <div className="flex flex-wrap gap-1 sm:gap-2 max-h-20 sm:max-h-none overflow-y-auto">
             {comparisonDrivers.map(driver => (
               <button
                 key={`comp-${driver.code}`}
                 onClick={() => toggleComparisonDriver(driver.code)}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium transition-colors flex-shrink-0 ${
                   selectedComparisonDrivers.includes(driver.code)
                     ? 'bg-blue-700 text-white'
                     : 'bg-gray-200 text-gray-800'
                 }`}
                 style={{
-                  borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+                  borderLeft: `2px solid ${TEAM_COLORS[driver.team] || '#666'}`
                 }}
               >
                 {driver.code}
@@ -437,31 +507,46 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
         </div>
       </div>
       
-      <div className="h-[400px] w-full">
+      <div className="h-[350px] sm:h-[400px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            margin={{ 
+              top: window.innerWidth < 640 ? 15 : 20, 
+              right: window.innerWidth < 640 ? 15 : 30, 
+              left: window.innerWidth < 640 ? 15 : 20, 
+              bottom: 5 
+            }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
             <XAxis 
               dataKey="lap" 
-              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+              label={{ 
+                value: 'Lap Number', 
+                position: 'insideBottomRight', 
+                offset: -10,
+                style: { fontSize: window.innerWidth < 640 ? '11px' : '12px' }
+              }} 
+              tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
               xAxisId="primary" 
             />
             <YAxis 
               label={{ 
-                value: 'Lap Time (seconds)', 
+                value: window.innerWidth < 640 ? 'Time (s)' : 'Lap Time (seconds)', 
                 angle: -90, 
-                position: 'insideLeft' 
+                position: 'insideLeft',
+                style: { fontSize: window.innerWidth < 640 ? '11px' : '12px' }
               }}
+              tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
               yAxisId="primary"
             />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: '#1a1a1a',
                 borderColor: '#333',
-                borderRadius: '5px'
+                borderRadius: '5px',
+                fontSize: window.innerWidth < 640 ? '11px' : '12px',
+                padding: window.innerWidth < 640 ? '6px' : '8px'
               }}
               formatter={(value: any, name: string) => {
                 if (typeof value === 'number') {
@@ -481,7 +566,18 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                     ? ' ⚠️ Outlier' 
                     : (isPotentialPitStop ? ' 🔄 Possible Pit Stop' : '');
                   
-                  return [`${formatTime(value)}${labelText}`, name];
+                  // Add line style info
+                  const [code, year] = driverKey.split('_');
+                  const isBaseYear = year === baseYear.toString();
+                  const allSelectedDrivers = {
+                    base: baseDrivers.filter(d => selectedBaseDrivers.includes(d.code)),
+                    comparison: comparisonDrivers.filter(d => selectedComparisonDrivers.includes(d.code))
+                  };
+                  const lineStyle = getTeamLineStyle(code, parseInt(year), allSelectedDrivers);
+                  const linePattern = getVisualLinePattern(lineStyle.strokeDasharray);
+                  const dotPattern = getVisualDotPattern(lineStyle.dot);
+                  
+                  return [`${formatTime(value)}${labelText}`, `${name} ${linePattern} ${dotPattern}`];
                 }
                 return value;
               }}
@@ -490,33 +586,111 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
             <Legend 
               formatter={(value) => {
                 const [code, year] = value.split('_');
-                if (year === baseYear.toString()) {
-                  const driver = baseDrivers.find(d => d.code === code);
-                  return driver ? `${code} (${year})` : code;
+                const isBaseYear = year === baseYear.toString();
+                let driver, allSelectedDrivers;
+                
+                if (isBaseYear) {
+                  driver = baseDrivers.find(d => d.code === code);
+                  allSelectedDrivers = {
+                    base: baseDrivers.filter(d => selectedBaseDrivers.includes(d.code)),
+                    comparison: comparisonDrivers.filter(d => selectedComparisonDrivers.includes(d.code))
+                  };
                 } else {
-                  const driver = comparisonDrivers.find(d => d.code === code);
-                  return driver ? `${code} (${year})` : code;
+                  driver = comparisonDrivers.find(d => d.code === code);
+                  allSelectedDrivers = {
+                    base: baseDrivers.filter(d => selectedBaseDrivers.includes(d.code)),
+                    comparison: comparisonDrivers.filter(d => selectedComparisonDrivers.includes(d.code))
+                  };
                 }
+                
+                if (!driver) return code;
+                
+                const lineStyle = getTeamLineStyle(code, parseInt(year), allSelectedDrivers);
+                
+                // For mobile, use shorter format
+                if (window.innerWidth < 640) {
+                  let styleIndicator = '';
+                  if (lineStyle.strokeDasharray === "5 5") {
+                    styleIndicator = '---'; // Dashed
+                  } else if (lineStyle.strokeDasharray === "10 5 5 5") {
+                    styleIndicator = '-·-'; // Dash-dot
+                  } else if (lineStyle.strokeDasharray === "15 5 5 5 5 5") {
+                    styleIndicator = '-··-'; // Dash-dot-dot
+                  } else if (lineStyle.strokeDasharray === "3 3") {
+                    styleIndicator = '···'; // Dotted
+                  } else {
+                    styleIndicator = '—'; // Solid
+                  }
+                  
+                  let dotIndicator = '';
+                  if (lineStyle.dot?.fill === "transparent") {
+                    dotIndicator = '○'; // Hollow circle
+                  } else if (lineStyle.dot?.r === 4) {
+                    dotIndicator = '●+'; // Larger circle
+                  } else {
+                    dotIndicator = '●'; // Regular circle
+                  }
+                  
+                  return `${code} ${styleIndicator}${dotIndicator} (${year})`;
+                }
+                
+                // Desktop format - full
+                let styleIndicator = '';
+                if (lineStyle.strokeDasharray === "5 5") {
+                  styleIndicator = ' (---)'; // Dashed
+                } else if (lineStyle.strokeDasharray === "10 5 5 5") {
+                  styleIndicator = ' (-·-)'; // Dash-dot
+                } else if (lineStyle.strokeDasharray === "15 5 5 5 5 5") {
+                  styleIndicator = ' (-··-)'; // Dash-dot-dot
+                } else if (lineStyle.strokeDasharray === "3 3") {
+                  styleIndicator = ' (···)'; // Dotted
+                } else {
+                  styleIndicator = ' (—)'; // Solid
+                }
+                
+                let dotIndicator = '';
+                if (lineStyle.dot?.fill === "transparent") {
+                  dotIndicator = ' ○'; // Hollow circle
+                } else if (lineStyle.dot?.r === 4) {
+                  dotIndicator = ' ●+'; // Larger filled circle
+                } else {
+                  dotIndicator = ' ●'; // Regular filled circle
+                }
+                
+                return `${code}${styleIndicator}${dotIndicator} (${year})`;
               }}
               wrapperStyle={{ 
                 opacity: 1,
-                padding: '10px',
+                padding: window.innerWidth < 640 ? '3px' : '10px',
                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderRadius: '5px'
+                borderRadius: '5px',
+                fontSize: window.innerWidth < 640 ? '9px' : '12px',
+                maxHeight: window.innerWidth < 640 ? '80px' : 'auto',
+                overflowX: window.innerWidth < 640 ? 'auto' : 'visible',
+                overflowY: window.innerWidth < 640 ? 'hidden' : 'visible',
+                whiteSpace: window.innerWidth < 640 ? 'nowrap' : 'normal'
               }}
             />
             
             {/* Base year lines */}
-            {baseDrivers
-              .filter(driver => selectedBaseDrivers.includes(driver.code))
-              .map(driver => (
-                <Line
-                  key={`base-line-${driver.code}`}
-                  type="monotone"
-                  dataKey={`${driver.code}_${baseYear}`}
-                  name={`${driver.code}_${baseYear}`}
-                  stroke={`#f59e0b`} // Amber color for base year
-                  strokeWidth={driver.finishPosition === 1 ? 3 : 2}
+                          {baseDrivers
+                .filter(driver => selectedBaseDrivers.includes(driver.code))
+                .map(driver => {
+                  const selectedDriversData = {
+                    base: baseDrivers.filter(d => selectedBaseDrivers.includes(d.code)),
+                    comparison: comparisonDrivers.filter(d => selectedComparisonDrivers.includes(d.code))
+                  };
+                  const lineStyle = getTeamLineStyle(driver.code, baseYear, selectedDriversData);
+                  
+                  return (
+                    <Line
+                      key={`base-line-${driver.code}`}
+                      type="monotone"
+                      dataKey={`${driver.code}_${baseYear}`}
+                      name={`${driver.code}_${baseYear}`}
+                      stroke={`#f59e0b`} // Amber color for base year
+                      strokeWidth={driver.finishPosition === 1 ? 3 : 2}
+                      strokeDasharray={lineStyle.strokeDasharray}
                   dot={(props) => {
                     // Skip rendering if cx or cy are not valid numbers
                     if (!props.cx || !props.cy || isNaN(props.cx) || isNaN(props.cy)) {
@@ -534,10 +708,10 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                         key={`dot-${driver.code}-${baseYear}-${props.payload.lap}`}
                         cx={props.cx}
                         cy={props.cy}
-                        r={isOutlier ? 4 : 3}
-                        fill={isOutlier ? '#f97316' : '#f59e0b'}
-                        stroke="#ffffff"
-                        strokeWidth={1}
+                        r={isOutlier ? 4 : (lineStyle.dot.r || 3)}
+                        fill={isOutlier ? '#f97316' : (lineStyle.dot.fill === "transparent" ? "transparent" : '#f59e0b')}
+                        stroke={isOutlier ? "#ffffff" : (lineStyle.dot.fill === "transparent" ? "#f59e0b" : "#ffffff")}
+                        strokeWidth={lineStyle.dot.strokeWidth || 1}
                         opacity={1}
                       />
                     );
@@ -552,19 +726,28 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   xAxisId="primary"
                   yAxisId="primary"
                 />
-              ))}
+              );
+            })}
             
             {/* Comparison year lines */}
             {comparisonDrivers
               .filter(driver => selectedComparisonDrivers.includes(driver.code))
-              .map(driver => (
-                <Line
-                  key={`comp-line-${driver.code}`}
-                  type="monotone"
-                  dataKey={`${driver.code}_${comparisonYear}`}
-                  name={`${driver.code}_${comparisonYear}`}
-                  stroke={`#3b82f6`} // Blue color for comparison year
-                  strokeWidth={driver.finishPosition === 1 ? 3 : 2}
+              .map(driver => {
+                const selectedDriversData = {
+                  base: baseDrivers.filter(d => selectedBaseDrivers.includes(d.code)),
+                  comparison: comparisonDrivers.filter(d => selectedComparisonDrivers.includes(d.code))
+                };
+                const lineStyle = getTeamLineStyle(driver.code, comparisonYear, selectedDriversData);
+                
+                return (
+                  <Line
+                    key={`comp-line-${driver.code}`}
+                    type="monotone"
+                    dataKey={`${driver.code}_${comparisonYear}`}
+                    name={`${driver.code}_${comparisonYear}`}
+                    stroke={`#3b82f6`} // Blue color for comparison year
+                    strokeWidth={driver.finishPosition === 1 ? 3 : 2}
+                    strokeDasharray={lineStyle.strokeDasharray}
                   dot={(props) => {
                     // Skip rendering if cx or cy are not valid numbers
                     if (!props.cx || !props.cy || isNaN(props.cx) || isNaN(props.cy)) {
@@ -582,10 +765,10 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                         key={`dot-${driver.code}-${comparisonYear}-${props.payload.lap}`}
                         cx={props.cx}
                         cy={props.cy}
-                        r={isOutlier ? 4 : 3}
-                        fill={isOutlier ? '#2563eb' : '#3b82f6'}
-                        stroke="#ffffff"
-                        strokeWidth={1}
+                        r={isOutlier ? 4 : (lineStyle.dot.r || 3)}
+                        fill={isOutlier ? '#2563eb' : (lineStyle.dot.fill === "transparent" ? "transparent" : '#3b82f6')}
+                        stroke={isOutlier ? "#ffffff" : (lineStyle.dot.fill === "transparent" ? "#3b82f6" : "#ffffff")}
+                        strokeWidth={lineStyle.dot.strokeWidth || 1}
                         opacity={1}
                       />
                     );
@@ -600,7 +783,8 @@ const YearComparisonLapChart: React.FC<YearComparisonLapChartProps> = ({
                   xAxisId="primary"
                   yAxisId="primary"
                 />
-              ))}
+              );
+            })}
           </LineChart>
         </ResponsiveContainer>
       </div>

@@ -14,6 +14,34 @@ interface PositionChangesAnalysisProps {
 }
 
 const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
+  // Helper function to get line style for drivers from the same team
+  const getLineStyle = (currentDriver: any, allSelectedDrivers: any[]): { strokeDasharray?: string, dot?: any } => {
+    // Find all drivers from the same team that are currently selected
+    const sameTeamDrivers = allSelectedDrivers.filter(d => d.team === currentDriver.team);
+    
+    // If only one driver from this team, use solid line with default dots
+    if (sameTeamDrivers.length <= 1) {
+      return { 
+        strokeDasharray: undefined,
+        dot: { r: 3 }
+      };
+    }
+    
+    // Find the index of current driver among same-team drivers (sorted by code for consistency)
+    const sortedSameTeamDrivers = sameTeamDrivers.sort((a, b) => a.code.localeCompare(b.code));
+    const driverIndex = sortedSameTeamDrivers.findIndex(d => d.code === currentDriver.code);
+    
+    // Return different styles for each driver from the same team
+    const lineStyles = [
+      { strokeDasharray: undefined, dot: { r: 3 } },                    // Solid line with circles
+      { strokeDasharray: "5 5", dot: { r: 3, fill: "transparent", strokeWidth: 2 } }, // Dashed line with hollow circles
+      { strokeDasharray: "10 5 5 5", dot: { r: 4, symbol: "square" } }, // Dash-dot line with squares
+      { strokeDasharray: "15 5 5 5 5 5", dot: { r: 3, symbol: "triangle" } }, // Dash-dot-dot with triangles
+    ];
+    
+    return lineStyles[driverIndex] || { strokeDasharray: "3 3", dot: { r: 2 } }; // Fallback
+  };
+
   const { data: raceScheduleData, isLoading: isScheduleLoading } = useRaceSchedule(year);
   const [selectedRace, setSelectedRace] = useState<string>("");
   const [positionData, setPositionData] = useState<any[]>([]);
@@ -213,51 +241,140 @@ const PositionChangesAnalysis = ({ year }: PositionChangesAnalysisProps) => {
               ))}
             </div>
             
-            <div className="h-[400px] w-full">
+            <div className="h-[350px] sm:h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={positionData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  margin={{ 
+                    top: window.innerWidth < 640 ? 15 : 20, 
+                    right: window.innerWidth < 640 ? 15 : 30, 
+                    left: window.innerWidth < 640 ? 15 : 20, 
+                    bottom: 5 
+                  }}
                 >
                   <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                   <XAxis 
                     dataKey="lap" 
-                    label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }} 
+                    label={{ 
+                      value: 'Lap Number', 
+                      position: 'insideBottomRight', 
+                      offset: -10,
+                      style: { fontSize: window.innerWidth < 640 ? '11px' : '12px' }
+                    }} 
+                    tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
                     xAxisId="lap"
                   />
                   <YAxis 
                     reversed 
                     domain={[1, 20]} 
-                    label={{ value: 'Position', angle: -90, position: 'insideLeft' }} 
+                    label={{ 
+                      value: 'Position', 
+                      angle: -90, 
+                      position: 'insideLeft',
+                      style: { fontSize: window.innerWidth < 640 ? '11px' : '12px' }
+                    }} 
+                    tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
                     yAxisId="position"
                   />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: '#1a1a1a',
                       borderColor: '#333',
-                      borderRadius: '5px'
+                      borderRadius: '5px',
+                      fontSize: window.innerWidth < 640 ? '11px' : '12px',
+                      padding: window.innerWidth < 640 ? '6px' : '8px'
                     }}
                     formatter={(value) => [`Position: ${value}`, '']}
                   />
-                  <Legend />
+                  <Legend 
+                    formatter={(value) => {
+                      const driver = availableDrivers.find(d => d.code === value);
+                      if (!driver) return value;
+                      
+                      const selectedDriversData = availableDrivers.filter(d => selectedDrivers.includes(d.code));
+                      const lineStyle = getLineStyle(driver, selectedDriversData);
+                      
+                      // For mobile, use shorter format
+                      if (window.innerWidth < 640) {
+                        let styleIndicator = '';
+                        if (lineStyle.strokeDasharray === "5 5") {
+                          styleIndicator = '---'; // Dashed
+                        } else if (lineStyle.strokeDasharray === "10 5 5 5") {
+                          styleIndicator = '-·-'; // Dash-dot
+                        } else if (lineStyle.strokeDasharray === "15 5 5 5 5 5") {
+                          styleIndicator = '-··-'; // Dash-dot-dot
+                        } else if (lineStyle.strokeDasharray === "3 3") {
+                          styleIndicator = '···'; // Dotted
+                        } else {
+                          styleIndicator = '—'; // Solid
+                        }
+                        
+                        let dotIndicator = '';
+                        if (lineStyle.dot?.fill === "transparent") {
+                          dotIndicator = '○'; // Hollow circle
+                        } else {
+                          dotIndicator = '●'; // Filled circle
+                        }
+                        
+                        return `${value} ${styleIndicator}${dotIndicator}`;
+                      }
+                      
+                      // Desktop format - full
+                      let styleIndicator = '';
+                      if (lineStyle.strokeDasharray === "5 5") {
+                        styleIndicator = ' (---)'; // Dashed
+                      } else if (lineStyle.strokeDasharray === "10 5 5 5") {
+                        styleIndicator = ' (-·-)'; // Dash-dot
+                      } else if (lineStyle.strokeDasharray === "15 5 5 5 5 5") {
+                        styleIndicator = ' (-··-)'; // Dash-dot-dot
+                      } else if (lineStyle.strokeDasharray === "3 3") {
+                        styleIndicator = ' (···)'; // Dotted
+                      } else {
+                        styleIndicator = ' (—)'; // Solid
+                      }
+                      
+                      let dotIndicator = '';
+                      if (lineStyle.dot?.fill === "transparent") {
+                        dotIndicator = ' ○'; // Hollow circle
+                      } else {
+                        dotIndicator = ' ●'; // Filled circle
+                      }
+                      
+                      return `${value}${styleIndicator}${dotIndicator} (${driver.name.split(' ').pop()})`;
+                    }}
+                    wrapperStyle={{
+                      fontSize: window.innerWidth < 640 ? '9px' : '12px',
+                      paddingTop: window.innerWidth < 640 ? '3px' : '10px',
+                      maxHeight: window.innerWidth < 640 ? '60px' : 'auto',
+                      overflowX: window.innerWidth < 640 ? 'auto' : 'visible',
+                      overflowY: window.innerWidth < 640 ? 'hidden' : 'visible',
+                      whiteSpace: window.innerWidth < 640 ? 'nowrap' : 'normal'
+                    }}
+                  />
                   
                   {availableDrivers
                     .filter(driver => selectedDrivers.includes(driver.code))
-                    .map(driver => (
-                      <Line
-                        key={driver.code}
-                        type="monotone"
-                        dataKey={driver.code}
-                        name={`${driver.code} (${driver.name.split(' ').pop()})`}
-                        stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
-                        strokeWidth={2}
-                        dot={{ r: 3 }}
-                        activeDot={{ r: 8 }}
-                        connectNulls
-                        xAxisId="lap"
-                        yAxisId="position"
-                      />
-                    ))}
+                    .map(driver => {
+                      const selectedDriversData = availableDrivers.filter(d => selectedDrivers.includes(d.code));
+                      const lineStyle = getLineStyle(driver, selectedDriversData);
+                      
+                      return (
+                        <Line
+                          key={driver.code}
+                          type="monotone"
+                          dataKey={driver.code}
+                          name={driver.code}
+                          stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
+                          strokeWidth={2}
+                          strokeDasharray={lineStyle.strokeDasharray}
+                          dot={lineStyle.dot}
+                          activeDot={{ r: 8 }}
+                          connectNulls
+                          xAxisId="lap"
+                          yAxisId="position"
+                        />
+                      );
+                    })}
                 </LineChart>
               </ResponsiveContainer>
             </div>

@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, Loader2 } from "lucide-react";
-import { useLapTimeData } from "@/hooks/useLapTimeData";
+import { useLapTimeData, Driver } from "@/hooks/useLapTimeData";
 import DriverSelector from "./DriverSelector";
 import DisplayModeToggle from "./DisplayModeToggle";
 
@@ -17,6 +17,60 @@ interface LapTimeChartProps {
 
 const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
   const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
+  
+  // Helper function to generate visual line pattern for tooltips
+  const getVisualLinePattern = (strokeDasharray?: string) => {
+    if (strokeDasharray === "5 5") {
+      return '− − − −'; // Dashed
+    } else if (strokeDasharray === "10 5 5 5") {
+      return '−· −· −·'; // Dash-dot
+    } else if (strokeDasharray === "15 5 5 5 5 5") {
+      return '−·· −·· −··'; // Dash-dot-dot
+    } else if (strokeDasharray === "3 3") {
+      return '· · · ·'; // Dotted
+    } else {
+      return '————'; // Solid
+    }
+  };
+
+  // Helper function to generate visual dot pattern
+  const getVisualDotPattern = (dot?: any) => {
+    if (dot?.fill === "transparent") {
+      return '○'; // Hollow circle
+    } else if (dot?.r === 4) {
+      return '●'; // Larger circle
+    } else {
+      return '●'; // Regular circle
+    }
+  };
+
+  // Helper function to get line style for drivers from the same team
+  const getLineStyle = (currentDriver: Driver, allVisibleDrivers: Driver[]): { strokeDasharray?: string, dot?: any } => {
+    // Find all drivers from the same team that are currently visible
+    const sameTeamDrivers = allVisibleDrivers.filter(d => d.team === currentDriver.team);
+    
+    // If only one driver from this team, use solid line with default dots
+    if (sameTeamDrivers.length <= 1) {
+      return { 
+        strokeDasharray: undefined,
+        dot: { r: 3 }
+      };
+    }
+    
+    // Find the index of current driver among same-team drivers (sorted by code for consistency)
+    const sortedSameTeamDrivers = sameTeamDrivers.sort((a, b) => a.code.localeCompare(b.code));
+    const driverIndex = sortedSameTeamDrivers.findIndex(d => d.code === currentDriver.code);
+    
+    // Return different styles for each driver from the same team
+    const lineStyles = [
+      { strokeDasharray: undefined, dot: { r: 3 } },                    // Solid line with circles
+      { strokeDasharray: "5 5", dot: { r: 3, fill: "transparent", strokeWidth: 2 } }, // Dashed line with hollow circles
+      { strokeDasharray: "10 5 5 5", dot: { r: 4, symbol: "square" } }, // Dash-dot line with squares
+      { strokeDasharray: "15 5 5 5 5 5", dot: { r: 3, symbol: "triangle" } }, // Dash-dot-dot with triangles
+    ];
+    
+    return lineStyles[driverIndex] || { strokeDasharray: "3 3", dot: { r: 2 } }; // Fallback
+  };
   
   const {
     chartData,
@@ -138,23 +192,41 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
         getAverageTime={getAverageTime}
       />
       
-      <div className="h-[450px] mt-4 flex-grow">
+      <div className="h-[350px] sm:h-[450px] mt-2 sm:mt-4 flex-grow">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            margin={{ 
+              top: 5, 
+              right: window.innerWidth < 640 ? 15 : 30, 
+              left: window.innerWidth < 640 ? 15 : 20, 
+              bottom: 5 
+            }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" opacity={0.3} />
             <XAxis
               dataKey="lap"
               type="number"
               domain={[1, maxLap]}
-              label={{ value: 'Lap Number', position: 'insideBottomRight', offset: -10 }}
+              label={{ 
+                value: 'Lap Number', 
+                position: 'insideBottomRight', 
+                offset: -10,
+                style: { fontSize: window.innerWidth < 640 ? '11px' : '12px' }
+              }}
+              tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
               xAxisId="lap"
             />
             <YAxis
               domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
-              label={{ value: displayMode === 'absolute' ? 'Lap Time (seconds)' : 'Gap to Fastest (seconds)', angle: -90, position: 'insideLeft', dx: -35 }}
+              label={{ 
+                value: displayMode === 'absolute' ? 'Time (s)' : 'Gap (s)', 
+                angle: -90, 
+                position: 'insideLeft', 
+                dx: window.innerWidth < 640 ? -25 : -35,
+                style: { fontSize: window.innerWidth < 640 ? '11px' : '12px' }
+              }}
+              tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
               yAxisId="time"
               tickFormatter={(value) => {
                 if (displayMode === 'absolute') {
@@ -171,29 +243,109 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
             <Tooltip
               formatter={(value, name) => {
                 const driverCode = String(name);
+                const driver = availableDrivers.find(d => d.code === driverCode);
+                
+                let formattedValue;
                 if (displayMode === 'absolute') {
                   // Format as MM:SS.sss
-                  if (typeof value !== 'number') return [`${value}`, driverCode];
-                  const mins = Math.floor(value / 60);
-                  const secs = (value % 60).toFixed(3);
-                  return [`${mins}:${secs.padStart(6, '0')}`, driverCode];
+                  if (typeof value !== 'number') {
+                    formattedValue = `${value}`;
+                  } else {
+                    const mins = Math.floor(value / 60);
+                    const secs = (value % 60).toFixed(3);
+                    formattedValue = `${mins}:${secs.padStart(6, '0')}`;
+                  }
                 } else {
                   // Make sure value is a number before calling toFixed
-                  return [typeof value === 'number' ? `+${value.toFixed(3)}s` : `+${value}`, driverCode];
+                  formattedValue = typeof value === 'number' ? `+${value.toFixed(3)}s` : `+${value}`;
                 }
+                
+                // Add line style info if driver is found
+                if (driver) {
+                  const visibleDriversData = availableDrivers.filter(d => visibleDrivers.includes(d.code));
+                  const lineStyle = getLineStyle(driver, visibleDriversData);
+                  
+                  const linePattern = getVisualLinePattern(lineStyle.strokeDasharray);
+                  const dotPattern = getVisualDotPattern(lineStyle.dot);
+                  
+                  return [formattedValue, `${driverCode} ${linePattern} ${dotPattern}`];
+                }
+                
+                return [formattedValue, driverCode];
               }}
               labelFormatter={(label) => `Lap ${label}`}
               contentStyle={{ 
                 backgroundColor: '#1a1a1a',
                 borderColor: '#333',
                 borderRadius: '5px',
-                color: 'white'
+                color: 'white',
+                fontSize: window.innerWidth < 640 ? '11px' : '12px',
+                padding: window.innerWidth < 640 ? '6px' : '8px'
               }}
             />
             <Legend
               formatter={(value) => {
                 const driver = availableDrivers.find(d => d.code === value);
-                return driver ? `${value} (${driver.name.split(' ').pop()})` : value;
+                if (!driver) return value;
+                
+                const visibleDriversData = availableDrivers.filter(d => visibleDrivers.includes(d.code));
+                const lineStyle = getLineStyle(driver, visibleDriversData);
+                
+                // For mobile, use shorter format
+                if (window.innerWidth < 640) {
+                  let styleIndicator = '';
+                  if (lineStyle.strokeDasharray === "5 5") {
+                    styleIndicator = '---'; // Dashed
+                  } else if (lineStyle.strokeDasharray === "10 5 5 5") {
+                    styleIndicator = '-·-'; // Dash-dot
+                  } else if (lineStyle.strokeDasharray === "15 5 5 5 5 5") {
+                    styleIndicator = '-··-'; // Dash-dot-dot
+                  } else if (lineStyle.strokeDasharray === "3 3") {
+                    styleIndicator = '···'; // Dotted
+                  } else {
+                    styleIndicator = '—'; // Solid
+                  }
+                  
+                  let dotIndicator = '';
+                  if (lineStyle.dot?.fill === "transparent") {
+                    dotIndicator = '○'; // Hollow circle
+                  } else {
+                    dotIndicator = '●'; // Filled circle
+                  }
+                  
+                  return `${value} ${styleIndicator}${dotIndicator}`;
+                }
+                
+                // Desktop format - full
+                let styleIndicator = '';
+                if (lineStyle.strokeDasharray === "5 5") {
+                  styleIndicator = ' (---)'; // Dashed
+                } else if (lineStyle.strokeDasharray === "10 5 5 5") {
+                  styleIndicator = ' (-·-)'; // Dash-dot
+                } else if (lineStyle.strokeDasharray === "15 5 5 5 5 5") {
+                  styleIndicator = ' (-··-)'; // Dash-dot-dot
+                } else if (lineStyle.strokeDasharray === "3 3") {
+                  styleIndicator = ' (···)'; // Dotted
+                } else {
+                  styleIndicator = ' (—)'; // Solid
+                }
+                
+                let dotIndicator = '';
+                if (lineStyle.dot?.fill === "transparent") {
+                  dotIndicator = ' ○'; // Hollow circle
+                } else {
+                  dotIndicator = ' ●'; // Filled circle
+                }
+                
+                return `${value}${styleIndicator}${dotIndicator} (${driver.name.split(' ').pop()})`;
+              }}
+              wrapperStyle={{
+                fontSize: window.innerWidth < 640 ? '9px' : '12px',
+                paddingTop: window.innerWidth < 640 ? '3px' : '10px',
+                maxHeight: window.innerWidth < 640 ? '60px' : 'auto',
+                overflowX: window.innerWidth < 640 ? 'auto' : 'visible',
+                overflowY: window.innerWidth < 640 ? 'hidden' : 'visible',
+                whiteSpace: window.innerWidth < 640 ? 'nowrap' : 'normal'
               }}
             />
             {fastestLapTime && displayMode === 'absolute' && (
@@ -216,23 +368,29 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
             )}
             {availableDrivers
               .filter(driver => visibleDrivers.includes(driver.code))
-              .map(driver => (
-                <Line
-                  key={driver.code}
-                  type="monotone"
-                  dataKey={driver.code}
-                  name={driver.code}
-                  stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
-                  strokeWidth={hoveredDriver === driver.code ? 3 : 2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 8 }}
-                  connectNulls
-                  isAnimationActive={false}
-                  xAxisId="lap"
-                  yAxisId="time"
-                  opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
-                />
-              ))}
+              .map(driver => {
+                const visibleDriversData = availableDrivers.filter(d => visibleDrivers.includes(d.code));
+                const lineStyle = getLineStyle(driver, visibleDriversData);
+                
+                return (
+                  <Line
+                    key={driver.code}
+                    type="monotone"
+                    dataKey={driver.code}
+                    name={driver.code}
+                    stroke={TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666"}
+                    strokeWidth={hoveredDriver === driver.code ? 3 : 2}
+                    strokeDasharray={lineStyle.strokeDasharray}
+                    dot={lineStyle.dot}
+                    activeDot={{ r: 8 }}
+                    connectNulls
+                    isAnimationActive={false}
+                    xAxisId="lap"
+                    yAxisId="time"
+                    opacity={hoveredDriver ? (hoveredDriver === driver.code ? 1 : 0.3) : 1}
+                  />
+                );
+              })}
           </LineChart>
         </ResponsiveContainer>
       </div>

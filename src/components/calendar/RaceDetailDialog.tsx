@@ -20,8 +20,8 @@ import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 
-// Function to determine the current year (hardcoded to 2025 for now)
-const getCurrentYear = () => 2025;
+// Function to determine the current year
+const getCurrentYear = () => new Date().getFullYear();
 
 interface RaceDetailDialogProps {
   isOpen: boolean;
@@ -60,35 +60,6 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   const [dialogOpenTime, setDialogOpenTime] = useState<number>(0);
   const hasSprint = !!race?.Sprint;
   
-  // Track dialog open/close and reset tab when race changes
-  useEffect(() => {
-    if (race && isOpen) {
-      // Track dialog open
-      if ((window as any).calendarAnalytics) {
-        (window as any).calendarAnalytics.trackRaceDetailDialog('open', race);
-      }
-      setDialogOpenTime(Date.now());
-      
-      // Reset tab selection
-      if (!hasSprint || (hasSprint && selectedTab !== "sprint")) {
-        setSelectedTab("info");
-      }
-      
-      // Track session schedule view
-      const sessions = [];
-      if (race.FirstPractice) sessions.push('FirstPractice');
-      if (race.SecondPractice) sessions.push('SecondPractice');
-      if (race.ThirdPractice) sessions.push('ThirdPractice');
-      if (race.SprintQualifying) sessions.push('SprintQualifying');
-      if (race.Sprint) sessions.push('Sprint');
-      if (race.Qualifying) sessions.push('Qualifying');
-      
-      if ((window as any).calendarAnalytics) {
-        (window as any).calendarAnalytics.trackSessionScheduleView(race, sessions);
-      }
-    }
-  }, [race?.round, race?.season, isOpen, hasSprint, selectedTab]);
-  
   const { data: raceResults, isLoading: isResultsLoading } = useRaceResults(
     parseInt(race?.season || "0"), 
     race?.round || "0"
@@ -103,6 +74,84 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     parseInt(race?.season || "0"), 
     race?.round || "0"
   );
+
+  // Helper function to convert sprint results to sprint qualifying results
+  // The grid positions in sprint results represent the sprint qualifying order
+  const getSprintQualifyingResults = () => {
+    if (!sprintResults?.data?.SprintResults) return null;
+    
+    // Sort by grid position to get sprint qualifying order
+    const sortedByGrid = [...sprintResults.data.SprintResults].sort((a, b) => {
+      const gridA = parseInt(a.grid) || 999;
+      const gridB = parseInt(b.grid) || 999;
+      return gridA - gridB;
+    });
+    
+    // Transform to qualifying-like structure
+    return sortedByGrid.map((result, index) => ({
+      ...result,
+      position: (index + 1).toString(), // Sprint qualifying position
+      gridPosition: result.grid // Original grid position for reference
+    }));
+  };
+  
+  const sprintQualifyingResults = getSprintQualifyingResults();
+
+  // Track dialog open/close and reset tab when race changes
+  useEffect(() => {
+    if (race && isOpen) {
+      // Track dialog open
+      if ((window as any).calendarAnalytics) {
+        (window as any).calendarAnalytics.trackRaceDetailDialog('open', race);
+      }
+      setDialogOpenTime(Date.now());
+      
+      // Reset tab selection to 'info' when dialog opens
+      setSelectedTab("info");
+      
+      // Track session schedule view
+      const sessions = [];
+      if (race.FirstPractice) sessions.push('FirstPractice');
+      if (race.SecondPractice) sessions.push('SecondPractice');
+      if (race.ThirdPractice) sessions.push('ThirdPractice');
+      if (race.SprintQualifying) sessions.push('SprintQualifying');
+      if (race.Sprint) sessions.push('Sprint');
+      if (race.Qualifying) sessions.push('Qualifying');
+      
+      if ((window as any).calendarAnalytics) {
+        (window as any).calendarAnalytics.trackSessionScheduleView(race, sessions);
+      }
+    }
+  }, [race?.round, race?.season, isOpen]);
+
+  // Track analytics when data loads and tab is visible
+  useEffect(() => {
+    if (race && selectedTab && (window as any).calendarAnalytics) {
+      switch (selectedTab) {
+        case 'results':
+          if (raceResults?.data?.Results?.length) {
+            (window as any).calendarAnalytics.trackRaceResultsView(race, 'race', raceResults.data.Results.length);
+          }
+          break;
+        case 'sprint':
+          if (sprintResults?.data?.SprintResults?.length) {
+            (window as any).calendarAnalytics.trackRaceResultsView(race, 'sprint', sprintResults.data.SprintResults.length);
+          }
+          break;
+        case 'sprint-qualifying':
+          if (sprintQualifyingResults?.length) {
+            (window as any).calendarAnalytics.trackRaceResultsView(race, 'sprint-qualifying', sprintQualifyingResults.length);
+          }
+          break;
+        case 'qualifying':
+          if (qualifyingResults?.data?.QualifyingResults?.length) {
+            (window as any).calendarAnalytics.trackRaceResultsView(race, 'qualifying', qualifyingResults.data.QualifyingResults.length);
+          }
+          break;
+
+      }
+    }
+  }, [selectedTab, raceResults, sprintResults, qualifyingResults, sprintQualifyingResults, race]);
   
   if (!race) return null;
   
@@ -210,9 +259,16 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
           }} 
           className="w-full"
         >
-          <TabsList className={`grid w-full ${hasSprint ? 'grid-cols-4' : 'grid-cols-3'} mb-1`}>
-            <TabsTrigger value="info" className="text-xs sm:text-sm px-1 sm:px-2">Race Info</TabsTrigger>
-            <TabsTrigger value="results" className="text-xs sm:text-sm px-1 sm:px-2">Results</TabsTrigger>
+          <TabsList className={`grid w-full ${hasSprint ? 'grid-cols-5' : 'grid-cols-3'} mb-1`}>
+            <TabsTrigger value="info" className="text-xs sm:text-sm px-1 sm:px-2">Schedule</TabsTrigger>
+            {hasSprint && (
+              <TabsTrigger value="sprint-qualifying" className="text-xs sm:text-sm px-1 sm:px-2">
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  <span>Sprint Q</span>
+                </span>
+              </TabsTrigger>
+            )}
             {hasSprint && (
               <TabsTrigger value="sprint" className="text-xs sm:text-sm px-1 sm:px-2">
                 <span className="flex items-center gap-1">
@@ -222,6 +278,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               </TabsTrigger>
             )}
             <TabsTrigger value="qualifying" className="text-xs sm:text-sm px-1 sm:px-2">Qualifying</TabsTrigger>
+            <TabsTrigger value="results" className="text-xs sm:text-sm px-1 sm:px-2">Race Results</TabsTrigger>
           </TabsList>
           
           <div className="h-[350px] sm:h-[400px] md:h-[450px] overflow-y-auto">
@@ -246,7 +303,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             </div>
             
               <div className="border rounded-md p-2 md:p-4">
-                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-4">Schedule</h3>
+                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-4">Weekend Schedule</h3>
                 <div className="space-y-1 md:space-y-3">
                 {race.FirstPractice && (
                   <div className="flex justify-between items-center">
@@ -281,7 +338,10 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                 {race.SprintQualifying && (
                   <div className="flex justify-between items-center">
                     <div>
-                        <p className="text-xs md:text-sm font-medium">Sprint Qualifying</p>
+                        <p className="text-xs md:text-sm font-medium flex items-center gap-1">
+                          <Zap className="h-3 w-3" />
+                          Sprint Qualifying
+                        </p>
                         <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.SprintQualifying)}</p>
                     </div>
                     {getSessionStatusBadge(race.SprintQualifying.date, race.SprintQualifying.time)}
@@ -291,7 +351,10 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                 {race.Sprint && (
                   <div className="flex justify-between items-center">
                     <div>
-                        <p className="text-xs md:text-sm font-medium">Sprint Race</p>
+                        <p className="text-xs md:text-sm font-medium flex items-center gap-1">
+                          <Zap className="h-3 w-3" />
+                          Sprint Race
+                        </p>
                         <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.Sprint)}</p>
                     </div>
                     {getSessionStatusBadge(race.Sprint.date, race.Sprint.time)}
@@ -310,7 +373,10 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                 
                 <div className="flex justify-between items-center">
                   <div>
-                      <p className="text-xs md:text-sm font-medium">Race</p>
+                      <p className="text-xs md:text-sm font-medium flex items-center gap-1">
+                        <Trophy className="h-3 w-3" />
+                        Race
+                      </p>
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race)}</p>
                   </div>
                   {getSessionStatusBadge(race.date, race.time)}
@@ -348,13 +414,6 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                   <p className="text-muted-foreground text-xs md:text-sm">No results available for this race yet.</p>
               </div>
             ) : (
-                (() => {
-                  // Track race results view
-                  if ((window as any).calendarAnalytics && race) {
-                    (window as any).calendarAnalytics.trackRaceResultsView(race, 'race', raceResults.data.Results.length);
-                  }
-                  return null;
-                })(),
                 <div className="space-y-1">
                   {/* Mobile view (up to sm breakpoint) */}
                   <div className="sm:hidden">
@@ -433,6 +492,91 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
           </TabsContent>
           
             {hasSprint && (
+              <TabsContent value="sprint-qualifying" className="h-full">
+                {isSprintLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                ) : !sprintQualifyingResults?.length ? (
+                  <div className="py-8 text-center">
+                    <p className="text-muted-foreground text-xs md:text-sm">No sprint qualifying results available for this race yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {/* Mobile view (up to sm breakpoint) */}
+                    <div className="sm:hidden">
+                      <div className="flex items-center justify-between mb-1 border-b pb-1 pt-1 bg-muted/20">
+                        <div className="flex space-x-2 items-center">
+                          <span className="text-[10px] font-medium text-muted-foreground w-5">Pos</span>
+                          <span className="text-[10px] font-medium text-muted-foreground">Driver</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] font-medium text-muted-foreground">Team/Grid</span>
+                        </div>
+                      </div>
+                      
+                      {sprintQualifyingResults.map((result: any) => (
+                        <div key={result.position} className="flex items-center justify-between border-b py-1.5">
+                          <div className="flex space-x-2 items-center">
+                            <span className="text-xs font-medium w-5">{result.position}</span>
+                            {getCompactDriverDisplay(result.Driver, result.Constructor.constructorId)}
+                          </div>
+                          <div className="flex flex-col items-end text-[10px]">
+                            <span 
+                              className="text-muted-foreground"
+                              style={{color: getTeamColor(result.Constructor.constructorId)}}
+                            >
+                              {result.Constructor.name}
+                            </span>
+                            <span className="text-xs">Grid: {result.gridPosition}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Desktop view (sm breakpoint and above) */}
+                    <div className="hidden sm:block">
+                      <Table className="w-full">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-10 text-xs md:text-sm py-2">Pos</TableHead>
+                            <TableHead className="text-xs md:text-sm py-2">Driver</TableHead>
+                            <TableHead className="text-xs md:text-sm py-2">Team</TableHead>
+                            <TableHead className="text-right text-xs md:text-sm py-2">Grid Position</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sprintQualifyingResults.map((result: any) => (
+                            <TableRow key={result.position}>
+                              <TableCell className="font-medium text-xs md:text-sm py-1 md:py-2">{result.position}</TableCell>
+                              <TableCell className="text-xs md:text-sm py-1 md:py-2" style={getTeamColorStyle(result.Constructor.constructorId)}>
+                                {result.Driver.givenName} {result.Driver.familyName}
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  {result.Driver.code}
+                                </span>
+                              </TableCell>
+                              <TableCell 
+                                className="text-xs md:text-sm py-1 md:py-2"
+                                style={{color: getTeamColor(result.Constructor.constructorId)}}
+                              >
+                                {result.Constructor.name}
+                              </TableCell>
+                              <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                                {result.gridPosition}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+            )}
+            
+            {hasSprint && (
               <TabsContent value="sprint" className="h-full">
                 {isSprintLoading ? (
                   <div className="space-y-2">
@@ -445,13 +589,6 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                     <p className="text-muted-foreground text-xs md:text-sm">No sprint results available for this race yet.</p>
                   </div>
                 ) : (
-                  (() => {
-                    // Track sprint results view
-                    if ((window as any).calendarAnalytics && race) {
-                      (window as any).calendarAnalytics.trackRaceResultsView(race, 'sprint', sprintResults.data.SprintResults.length);
-                    }
-                    return null;
-                  })(),
                   <div className="space-y-1">
                     {/* Mobile view (up to sm breakpoint) */}
                     <div className="sm:hidden">
@@ -556,13 +693,6 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                   <p className="text-muted-foreground text-xs md:text-sm">No qualifying results available for this race yet.</p>
               </div>
             ) : (
-                (() => {
-                  // Track qualifying results view
-                  if ((window as any).calendarAnalytics && race) {
-                    (window as any).calendarAnalytics.trackRaceResultsView(race, 'qualifying', qualifyingResults.data.QualifyingResults.length);
-                  }
-                  return null;
-                })(),
                 <div className="space-y-1">
                   {/* Mobile view (up to sm breakpoint) */}
                   <div className="sm:hidden">

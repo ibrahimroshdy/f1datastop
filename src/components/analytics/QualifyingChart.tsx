@@ -232,14 +232,14 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
       </div>
       
       {/* Driver Selection Legend */}
-      <div className="mb-4">
-        <h3 className="text-sm font-medium mb-2">Drivers</h3>
-        <div className="flex flex-wrap gap-2 mb-2">
+      <div className="mb-3 sm:mb-4">
+        <h3 className="text-xs sm:text-sm font-medium mb-1 sm:mb-2">Drivers</h3>
+        <div className="flex flex-wrap gap-1 sm:gap-2 mb-1 sm:mb-2 max-h-16 sm:max-h-none overflow-y-auto">
           {availableDrivers.map(driver => (
             <button
               key={driver.code}
               onClick={() => handleDriverToggle(driver.code)}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+              className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 flex-shrink-0 ${
                 selectedDrivers.includes(driver.code)
                   ? 'bg-gray-800 text-white'
                   : selectedDrivers.length > 0
@@ -247,7 +247,7 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
                     : 'bg-gray-700 text-white'
               }`}
               style={{
-                borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+                borderLeft: `2px solid ${TEAM_COLORS[driver.team] || '#666'}`
               }}
             >
               {selectedDrivers.includes(driver.code) && <Check className="h-3 w-3" />}
@@ -274,109 +274,112 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
           <TableHeader>
             <TableRow>
               <TableHead 
-                className="w-16 text-center sticky top-0 bg-background cursor-pointer hover:bg-accent/50"
+                className="w-10 sm:w-16 text-center sticky top-0 bg-background cursor-pointer hover:bg-accent/50 text-xs sm:text-sm px-1 sm:px-4"
                 onClick={() => handleSort('position')}
               >
                 <div className="flex items-center justify-center">
                   Pos
                   {sortConfig.key === 'position' ? (
                     sortConfig.direction === 'asc' ? (
-                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                      <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     ) : (
-                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                      <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     )
                   ) : (
-                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                    <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
                   )}
                 </div>
               </TableHead>
               <TableHead 
-                className="w-20 sticky top-0 bg-background cursor-pointer hover:bg-accent/50"
+                className="w-14 sm:w-20 sticky top-0 bg-background cursor-pointer hover:bg-accent/50 text-xs sm:text-sm px-1 sm:px-4"
                 onClick={() => handleSort('driver')}
               >
                 <div className="flex items-center">
                   Driver
                   {sortConfig.key === 'driver' ? (
                     sortConfig.direction === 'asc' ? (
-                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                      <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     ) : (
-                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                      <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     )
                   ) : (
-                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                    <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
                   )}
                 </div>
               </TableHead>
               <TableHead 
-                className="w-32 sticky top-0 bg-background cursor-pointer hover:bg-accent/50 text-center"
+                className="w-16 sm:w-32 sticky top-0 bg-background cursor-pointer hover:bg-accent/50 text-center text-xs sm:text-sm px-1 sm:px-4"
                 onClick={() => handleSort('team')}
               >
                 <div className="flex items-center justify-center">
                   Team
                   {sortConfig.key === 'team' ? (
                     sortConfig.direction === 'asc' ? (
-                      <ArrowUpIcon className="h-4 w-4 ml-1" />
+                      <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     ) : (
-                      <ArrowDownIcon className="h-4 w-4 ml-1" />
+                      <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     )
                   ) : (
-                    <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                    <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
                   )}
                 </div>
               </TableHead>
               {(activeSessions.includes('all') || activeSessions.includes('Q1')) && (
                 <TableHead 
-                  className="text-right sticky top-0 bg-background cursor-pointer hover:bg-accent/50"
+                  className="text-right sticky top-0 bg-background cursor-pointer hover:bg-accent/50 text-xs sm:text-sm px-1 sm:px-4"
                   onClick={() => handleSort('q1Time')}
                 >
                   <div className="flex items-center justify-end">
-                    Q1 Time
+                    <span className="hidden sm:inline">Q1 Time</span>
+                    <span className="sm:hidden">Q1</span>
                     {sortConfig.key === 'q1Time' ? (
                       sortConfig.direction === 'asc' ? (
-                        <ArrowUpIcon className="h-4 w-4 ml-1" />
+                        <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                       ) : (
-                        <ArrowDownIcon className="h-4 w-4 ml-1" />
+                        <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                       )
                     ) : (
-                      <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                      <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
                     )}
                   </div>
                 </TableHead>
               )}
               {(activeSessions.includes('all') || activeSessions.includes('Q2')) && (
                 <TableHead 
-                  className="text-right sticky top-0 bg-background cursor-pointer hover:bg-accent/50"
+                  className="text-right sticky top-0 bg-background cursor-pointer hover:bg-accent/50 text-xs sm:text-sm px-1 sm:px-4"
                   onClick={() => handleSort('q2Time')}
                 >
                   <div className="flex items-center justify-end">
-                    Q2 Time
+                    <span className="hidden sm:inline">Q2 Time</span>
+                    <span className="sm:hidden">Q2</span>
                     {sortConfig.key === 'q2Time' ? (
                       sortConfig.direction === 'asc' ? (
-                        <ArrowUpIcon className="h-4 w-4 ml-1" />
+                        <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                       ) : (
-                        <ArrowDownIcon className="h-4 w-4 ml-1" />
+                        <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                       )
                     ) : (
-                      <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                      <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
                     )}
                   </div>
                 </TableHead>
               )}
               {(activeSessions.includes('all') || activeSessions.includes('Q3')) && (
                 <TableHead 
-                  className="text-right sticky top-0 bg-background cursor-pointer hover:bg-accent/50"
+                  className="text-right sticky top-0 bg-background cursor-pointer hover:bg-accent/50 text-xs sm:text-sm px-1 sm:px-4"
                   onClick={() => handleSort('q3Time')}
                 >
                   <div className="flex items-center justify-end">
-                    Q3 Time
+                    <span className="hidden sm:inline">Q3 Time</span>
+                    <span className="sm:hidden">Q3</span>
                     {sortConfig.key === 'q3Time' ? (
                       sortConfig.direction === 'asc' ? (
-                        <ArrowUpIcon className="h-4 w-4 ml-1" />
+                        <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                       ) : (
-                        <ArrowDownIcon className="h-4 w-4 ml-1" />
+                        <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                       )
                     ) : (
-                      <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />
+                      <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
                     )}
                   </div>
                 </TableHead>
@@ -393,18 +396,18 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
                 onClick={() => handleDriverToggle(driver.code)}
                 style={{ cursor: "pointer" }}
               >
-                <TableCell className="text-center font-medium">
+                <TableCell className="text-center font-medium px-1 sm:px-4 py-2 text-xs sm:text-sm">
                   {driver.position}
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-1 sm:px-4 py-2">
                   <div 
-                    className="flex items-center gap-2"
-                    style={{ borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}` }}
+                    className="flex items-center gap-1 sm:gap-2"
+                    style={{ borderLeft: `2px solid ${TEAM_COLORS[driver.team] || '#666'}` }}
                   >
-                    <span className="pl-2 font-medium">{driver.code}</span>
+                    <span className="pl-1 sm:pl-2 font-medium text-xs sm:text-sm">{driver.code}</span>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="px-1 sm:px-4 py-2">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -420,21 +423,21 @@ const QualifyingChart: React.FC<QualifyingChartProps> = ({ year, round }) => {
                 </TableCell>
                 {(activeSessions.includes('all') || activeSessions.includes('Q1')) && (
                   <TableCell 
-                    className={`text-right font-mono ${isFastestTime('q1Time', driver.q1Time) ? 'text-purple-500 font-bold' : ''}`}
+                    className={`text-right font-mono px-1 sm:px-4 py-2 text-xs sm:text-sm ${isFastestTime('q1Time', driver.q1Time) ? 'text-purple-500 font-bold' : ''}`}
                   >
                     {formatTimeDisplay(driver.q1Time)}
                   </TableCell>
                 )}
                 {(activeSessions.includes('all') || activeSessions.includes('Q2')) && (
                   <TableCell 
-                    className={`text-right font-mono ${isFastestTime('q2Time', driver.q2Time) ? 'text-blue-500 font-bold' : ''}`}
+                    className={`text-right font-mono px-1 sm:px-4 py-2 text-xs sm:text-sm ${isFastestTime('q2Time', driver.q2Time) ? 'text-blue-500 font-bold' : ''}`}
                   >
                     {formatTimeDisplay(driver.q2Time)}
                   </TableCell>
                 )}
                 {(activeSessions.includes('all') || activeSessions.includes('Q3')) && (
                   <TableCell 
-                    className={`text-right font-mono ${isFastestTime('q3Time', driver.q3Time) ? 'text-green-500 font-bold' : ''}`}
+                    className={`text-right font-mono px-1 sm:px-4 py-2 text-xs sm:text-sm ${isFastestTime('q3Time', driver.q3Time) ? 'text-green-500 font-bold' : ''}`}
                   >
                     {formatTimeDisplay(driver.q3Time)}
                   </TableCell>

@@ -10,8 +10,8 @@ interface PageOption {
   color: string;
 }
 
-// Function to determine the current year (hardcoded to 2025 for now)
-const getCurrentYear = () => 2025;
+// Function to determine the current year
+const getCurrentYear = () => new Date().getFullYear();
 
 const PageSelector = () => {
   const pages: PageOption[] = [

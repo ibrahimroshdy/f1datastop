@@ -153,8 +153,8 @@ const QualifyingChartView = ({
   const groupedChartData = prepareChartData();
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
+    <div className="space-y-2 sm:space-y-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-2 sm:mb-4 gap-2 sm:gap-4">
         <div className="flex flex-col md:flex-row gap-2 md:items-center">
           <Badge variant="outline" className="border-amber-500 py-1">
             {baseYear} - {baseCircuit}
@@ -200,15 +200,15 @@ const QualifyingChartView = ({
       </div>
       
       {/* Driver selection UI */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div>
-          <h4 className="text-sm font-semibold mb-2 text-amber-600">{baseYear} Drivers</h4>
-          <div className="flex flex-wrap gap-2 mb-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-4">
+        <div className="min-w-0">
+          <h4 className="text-xs sm:text-sm font-semibold mb-1 sm:mb-2 text-amber-600">{baseYear} Drivers</h4>
+          <div className="flex flex-wrap gap-1 sm:gap-2 max-h-16 sm:max-h-none overflow-y-auto">
             {baseDrivers.map(driver => (
               <button
                 key={`base-${driver.code}`}
                 onClick={() => toggleBaseDriver(driver.code)}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium transition-colors flex-shrink-0 ${
                   selectedBaseDrivers.includes(driver.code)
                     ? 'bg-amber-700 text-white'
                     : selectedBaseDrivers.length > 0
@@ -216,7 +216,7 @@ const QualifyingChartView = ({
                       : 'bg-amber-700/80 text-white'
                 }`}
                 style={{
-                  borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666666'}`
+                  borderLeft: `2px solid ${TEAM_COLORS[driver.team] || '#666666'}`
                 }}
               >
                 {driver.code}
@@ -230,21 +230,21 @@ const QualifyingChartView = ({
                   toggleBaseDriver(d.code);
                 }
               })}
-              className="text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 underline"
+              className="text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 underline mt-1"
             >
               Clear selection (show all)
             </button>
           )}
         </div>
         
-        <div>
-          <h4 className="text-sm font-semibold mb-2 text-blue-600">{comparisonYear} Drivers</h4>
-          <div className="flex flex-wrap gap-2 mb-2">
+        <div className="min-w-0">
+          <h4 className="text-xs sm:text-sm font-semibold mb-1 sm:mb-2 text-blue-600">{comparisonYear} Drivers</h4>
+          <div className="flex flex-wrap gap-1 sm:gap-2 max-h-16 sm:max-h-none overflow-y-auto">
             {comparisonDrivers.map(driver => (
               <button
                 key={`comp-${driver.code}`}
                 onClick={() => toggleComparisonDriver(driver.code)}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium transition-colors flex-shrink-0 ${
                   selectedComparisonDrivers.includes(driver.code)
                     ? 'bg-blue-700 text-white'
                     : selectedComparisonDrivers.length > 0
@@ -252,7 +252,7 @@ const QualifyingChartView = ({
                       : 'bg-blue-700/80 text-white'
                 }`}
                 style={{
-                  borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666666'}`
+                  borderLeft: `2px solid ${TEAM_COLORS[driver.team] || '#666666'}`
                 }}
               >
                 {driver.code}
@@ -266,7 +266,7 @@ const QualifyingChartView = ({
                   toggleComparisonDriver(d.code);
                 }
               })}
-              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
+              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline mt-1"
             >
               Clear selection (show all)
             </button>
@@ -283,15 +283,19 @@ const QualifyingChartView = ({
           </div>
         </div>
       ) : (
-        <div className="h-[400px] w-full">
-          <div className="h-[90%]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={groupedChartData}
-                margin={{ top: 10, right: 30, left: 40, bottom: 10 }}
-                barGap={0}
-                barCategoryGap={10}
-              >
+        <div className="h-[320px] sm:h-[380px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={groupedChartData}
+              margin={{ 
+                top: window.innerWidth < 640 ? 10 : 15, 
+                right: window.innerWidth < 640 ? 5 : 15, 
+                left: window.innerWidth < 640 ? 25 : 35, 
+                bottom: window.innerWidth < 640 ? 35 : 45 
+              }}
+              barGap={0}
+              barCategoryGap={window.innerWidth < 640 ? 5 : 10}
+            >
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis 
                   dataKey="driverCode" 
@@ -306,7 +310,7 @@ const QualifyingChartView = ({
                           textAnchor="end" 
                           fill="#888888"
                           transform="rotate(-45)"
-                          fontSize={10}
+                          fontSize={window.innerWidth < 640 ? 8 : 10}
                           fontWeight="bold"
                         >
                           {payload.value}
@@ -314,14 +318,15 @@ const QualifyingChartView = ({
                       </g>
                     );
                   }}
-                  height={30}
+                  height={window.innerWidth < 640 ? 25 : 30}
                 />
                 <YAxis 
                   domain={['auto', 'auto']}
                   tickFormatter={(seconds) => {
                     return formatTimeDisplay(seconds);
                   }}
-                  width={70}
+                  width={window.innerWidth < 640 ? 50 : 70}
+                  tick={{ fontSize: window.innerWidth < 640 ? 8 : 10 }}
                 />
                 <Tooltip 
                   cursor={{ 
@@ -356,8 +361,8 @@ const QualifyingChartView = ({
                     color: theme === 'dark' ? '#fff' : '#1a202c',
                     borderRadius: '6px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    padding: '6px 10px',
-                    fontSize: '12px'
+                    padding: window.innerWidth < 640 ? '4px 6px' : '6px 10px',
+                    fontSize: window.innerWidth < 640 ? '10px' : '12px'
                   }}
                   wrapperStyle={{
                     zIndex: 100,
@@ -366,23 +371,35 @@ const QualifyingChartView = ({
                 />
                 <Legend 
                   formatter={(value) => {
+                    const isMobile = window.innerWidth < 640;
                     return value === `${baseYear}` ? 
-                      <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>
-                        <span className="hover:underline cursor-pointer inline-block transition-all duration-150 transform hover:scale-105">{baseYear} Season</span>
+                      <span style={{ 
+                        color: '#f59e0b', 
+                        fontWeight: 'bold',
+                        fontSize: isMobile ? '11px' : '12px'
+                      }}>
+                        {isMobile ? baseYear : `${baseYear} Season`}
                       </span> : 
-                      <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>
-                        <span className="hover:underline cursor-pointer inline-block transition-all duration-150 transform hover:scale-105">{comparisonYear} Season</span>
+                      <span style={{ 
+                        color: '#3b82f6', 
+                        fontWeight: 'bold',
+                        fontSize: isMobile ? '11px' : '12px'
+                      }}>
+                        {isMobile ? comparisonYear : `${comparisonYear} Season`}
                       </span>;
                   }}
                   layout="horizontal"
                   align="center"
-                  verticalAlign="top"
+                  verticalAlign={window.innerWidth < 640 ? "bottom" : "top"}
                   wrapperStyle={{ 
                     position: 'relative', 
-                    marginTop: 0, 
-                    paddingTop: 5,
+                    marginTop: window.innerWidth < 640 ? 5 : 0, 
+                    paddingTop: window.innerWidth < 640 ? 2 : 5,
                     bottom: 'auto',
-                    marginBottom: 10
+                    marginBottom: window.innerWidth < 640 ? 0 : 8,
+                    fontSize: window.innerWidth < 640 ? '11px' : '12px',
+                    maxHeight: window.innerWidth < 640 ? '20px' : 'auto',
+                    textAlign: 'center'
                   }}
                   onClick={(data) => {
                     if (data.value === `${baseYear}`) {
@@ -467,7 +484,6 @@ const QualifyingChartView = ({
                 )}
               </BarChart>
             </ResponsiveContainer>
-          </div>
         </div>
       )}
     </div>
@@ -1036,17 +1052,17 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6 flex-1 overflow-hidden">
         {/* Base Year Table */}
-        <div className="border rounded-lg overflow-hidden flex flex-col">
-          <div className="mb-2 p-4 pb-0 flex-shrink-0">
-            <h3 className="text-sm font-medium mb-2 text-amber-600">{baseYear} Drivers</h3>
-            <div className="flex flex-wrap gap-2 mb-2">
+        <div className="border rounded-lg overflow-hidden flex flex-col min-h-0">
+          <div className="mb-2 p-2 sm:p-4 pb-0 flex-shrink-0">
+            <h3 className="text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-amber-600">{baseYear} Drivers</h3>
+            <div className="flex flex-wrap gap-1 sm:gap-2 mb-1 sm:mb-2 max-h-12 sm:max-h-none overflow-y-auto">
               {baseDrivers.map(driver => (
                 <button
                   key={`base-${driver.code}`}
                   onClick={() => toggleBaseDriver(driver.code)}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 flex-shrink-0 ${
                     selectedBaseDrivers.includes(driver.code)
                       ? 'bg-amber-700 text-white'
                       : selectedBaseDrivers.length > 0
@@ -1054,7 +1070,7 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
                         : 'bg-amber-700/80 text-white'
                   }`}
                   style={{
-                    borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+                    borderLeft: `2px solid ${TEAM_COLORS[driver.team] || '#666'}`
                   }}
                 >
                   {selectedBaseDrivers.includes(driver.code) && <Check className="h-3 w-3" />}
@@ -1160,15 +1176,15 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
         </div>
 
         {/* Comparison Year Table */}
-        <div className="border rounded-lg overflow-hidden flex flex-col">
-          <div className="mb-2 p-4 pb-0 flex-shrink-0">
-            <h3 className="text-sm font-medium mb-2 text-blue-600">{comparisonYear} Drivers</h3>
-            <div className="flex flex-wrap gap-2 mb-2">
+        <div className="border rounded-lg overflow-hidden flex flex-col min-h-0">
+          <div className="mb-2 p-2 sm:p-4 pb-0 flex-shrink-0">
+            <h3 className="text-xs sm:text-sm font-medium mb-1 sm:mb-2 text-blue-600">{comparisonYear} Drivers</h3>
+            <div className="flex flex-wrap gap-1 sm:gap-2 mb-1 sm:mb-2 max-h-12 sm:max-h-none overflow-y-auto">
               {comparisonDrivers.map(driver => (
                 <button
                   key={`comp-${driver.code}`}
                   onClick={() => toggleComparisonDriver(driver.code)}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                  className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 flex-shrink-0 ${
                     selectedComparisonDrivers.includes(driver.code)
                       ? 'bg-blue-700 text-white'
                       : selectedComparisonDrivers.length > 0
@@ -1176,7 +1192,7 @@ const YearComparisonQualifyingChart: React.FC<YearComparisonQualifyingChartProps
                         : 'bg-blue-700/80 text-white'
                   }`}
                   style={{
-                    borderLeft: `3px solid ${TEAM_COLORS[driver.team] || '#666'}`
+                    borderLeft: `2px solid ${TEAM_COLORS[driver.team] || '#666'}`
                   }}
                 >
                   {selectedComparisonDrivers.includes(driver.code) && <Check className="h-3 w-3" />}

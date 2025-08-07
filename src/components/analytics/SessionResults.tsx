@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Award, Medal, Clock, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { useLapData, useDrivers, useOpenF1SessionFromErgast } from "@/hooks/useOpenF1Data";
+import { useLapData, useDrivers, useOpenF1SessionFromErgast, usePositionData } from "@/hooks/useOpenF1Data";
 import { formatTime } from "@/utils/lapTimeUtils";
 
 interface SessionResultsProps {
@@ -96,16 +96,23 @@ const SessionResults: React.FC<SessionResultsProps> = ({
 
 
 
-  // Process lap data to get final results
+  // Get position data to determine final race results
+  const {
+    data: positionData,
+    isLoading: isPositionDataLoading,
+    error: positionDataError
+  } = usePositionData(effectiveSessionKey);
+
+  // Process position data to get final race results
   const processedResults = useMemo(() => {
-    if (!lapData?.data || !driversData?.data) return [];
+    if (!positionData?.data || !driversData?.data || !lapData?.data) return [];
 
     const driverResults: { [key: number]: ProcessedResult } = {};
     
     // Initialize results for each driver
     driversData.data.forEach((driver: any) => {
       driverResults[driver.driver_number] = {
-        position: 0, // Will be calculated based on best lap time
+        position: 0, // Will be determined from final position
         driver_number: driver.driver_number,
         driver_name: `${driver.first_name} ${driver.last_name}`,
         driver_acronym: driver.name_acronym || `${driver.first_name.charAt(0)}${driver.last_name.charAt(0)}${driver.driver_number}`,
@@ -116,7 +123,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
       };
     });
 
-    // Process lap data to find best times for each driver
+    // Process lap data to find best times and total laps for each driver
     lapData.data.forEach((lap: any) => {
       const driverNumber = lap.driver_number;
       if (!driverResults[driverNumber]) return;
@@ -130,16 +137,39 @@ const SessionResults: React.FC<SessionResultsProps> = ({
       }
     });
 
-    // Convert to array and sort by best lap time to determine positions
-    const resultsArray = Object.values(driverResults)
-      .filter(result => result.best_lap_time !== null)
-      .sort((a, b) => (a.best_lap_time || Infinity) - (b.best_lap_time || Infinity));
-
-    // Assign positions and calculate gaps
-    resultsArray.forEach((result, index) => {
-      result.position = index + 1;
+    // Get final positions from position data (last recorded position for each driver)
+    const finalPositions: { [key: number]: { position: number; date: string } } = {};
+    
+    // Group position data by driver and find their final position
+    positionData.data.forEach((position: any) => {
+      const driverNumber = position.driver_number;
+      const positionValue = position.position;
       
-      // Calculate gap to leader
+      // Keep track of the latest (highest) position for each driver
+      if (!finalPositions[driverNumber] || position.date > finalPositions[driverNumber].date) {
+        finalPositions[driverNumber] = {
+          position: positionValue,
+          date: position.date
+        };
+      }
+    });
+
+    // Apply final positions to results
+    Object.keys(driverResults).forEach(driverNumberStr => {
+      const driverNumber = parseInt(driverNumberStr);
+      const finalPos = finalPositions[driverNumber];
+      if (finalPos) {
+        driverResults[driverNumber].position = finalPos.position;
+      }
+    });
+
+    // Convert to array and sort by final race position
+    const resultsArray = Object.values(driverResults)
+      .filter(result => result.position > 0) // Only include drivers with valid positions
+      .sort((a, b) => a.position - b.position);
+
+    // Calculate gaps to leader based on best lap times
+    resultsArray.forEach((result, index) => {
       if (index === 0) {
         result.gap_to_leader = "Leader";
       } else {
@@ -154,7 +184,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
     });
 
     return resultsArray;
-  }, [lapData, driversData]);
+  }, [positionData, lapData, driversData]);
 
 
 
@@ -236,7 +266,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
     return <span className="font-semibold">{position}</span>;
   };
 
-  const isLoading = isSessionLoading || isDriversLoading || isLapDataLoading;
+  const isLoading = isSessionLoading || isDriversLoading || isLapDataLoading || isPositionDataLoading;
 
   if (isLoading) {
     return (
@@ -255,7 +285,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
     );
   }
 
-  if (lapDataError || !effectiveSessionKey) {
+  if (lapDataError || positionDataError || !effectiveSessionKey) {
     return (
       <Card>
         <CardHeader>
@@ -267,7 +297,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
         <CardContent>
           <div className="text-center py-8">
             <p className="text-muted-foreground">
-              {lapDataError ? 'Failed to load session results' : 'No session data available'}
+              {lapDataError || positionDataError ? 'Failed to load session results' : 'No session data available'}
             </p>
           </div>
         </CardContent>
