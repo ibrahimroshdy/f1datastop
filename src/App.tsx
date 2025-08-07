@@ -152,6 +152,11 @@ const App = () => (
                         <Route path="/calendar" element={<RaceCalendar />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="/privacy" element={<Privacy />} />
+                        {/* Make Analytics public */}
+                        <Route path="/analytics" element={<Analytics />} />
+                        {/* Make Drivers and Constructors public */}
+                        <Route path="/drivers" element={<Drivers />} />
+                        <Route path="/constructors" element={<Constructors />} />
                         <Route path="*" element={<NotFound />} />
                         
                         {/* Trivia Game Route */}
@@ -191,10 +196,7 @@ const App = () => (
                         
                         {/* Protected routes with blur effect for non-authenticated users */}
                         <Route element={<ProtectedRoute />}>
-                          <Route path="/analytics" element={<Analytics />} />
                           <Route path="/race-info/:year/:round" element={<RaceInfoPage />} />
-                          <Route path="/drivers" element={<Drivers />} />
-                          <Route path="/constructors" element={<Constructors />} />
                           <Route path="/profile" element={<Profile />} />
                           <Route path="/developers" element={<Developers />} />
                         </Route>

@@ -22,19 +22,20 @@ const PageSelector = () => {
       href: "/calendar",
       color: "from-green-500 to-green-700",
     },
-    {
-      title: "Race Info",
-      description: "Detailed information about races and results",
-      icon: <LineChart className="h-5 w-5" />,
-      href: `/race-info/${getCurrentYear()}/last`,
-      color: "from-red-500 to-red-700",
-    },
+    // Match sidebar order: Analytics then Race Info
     {
       title: "Analytics",
       description: "Visualize detailed F1 performance data",
       icon: <BarChart3 className="h-5 w-5" />,
       href: "/analytics",
       color: "from-purple-500 to-purple-700",
+    },
+    {
+      title: "Race Info",
+      description: "Detailed information about races and results",
+      icon: <LineChart className="h-5 w-5" />,
+      href: `/race-info/${getCurrentYear()}/last`,
+      color: "from-red-500 to-red-700",
     },
     {
       title: "Drivers",
