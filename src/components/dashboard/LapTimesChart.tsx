@@ -142,6 +142,31 @@ const LapTimesChart = ({
   const [fastestLapTime, setFastestLapTime] = useState<number>(0);
   const { data: raceScheduleData } = useRaceSchedule();
   
+  // Build per-team driver order for styling (same team gets different dash styles)
+  const teamDriversOrder = useMemo(() => {
+    const top5 = lastRaceResults?.data?.results?.slice(0, 5) || [];
+    const map: Record<string, string[]> = {};
+    top5.forEach((res: any) => {
+      let teamId = res.Constructor?.constructorId?.toLowerCase?.() || "";
+      if (teamId === "alphatauri") teamId = "rb";
+      else if (teamId === "alfa") teamId = "sauber";
+      if (!map[teamId]) map[teamId] = [];
+      map[teamId].push(res.Driver?.code);
+    });
+    return map;
+  }, [lastRaceResults?.data?.results]);
+  
+  const getStrokeDashForDriver = (driverCode: string, rawTeamId: string) => {
+    let teamId = rawTeamId?.toLowerCase?.() || "";
+    if (teamId === "alphatauri") teamId = "rb";
+    else if (teamId === "alfa") teamId = "sauber";
+    const order = teamDriversOrder[teamId] || [];
+    const idx = order.indexOf(driverCode);
+    if (idx <= 0) return undefined; // first driver solid
+    if (idx === 1) return "6 3"; // second driver dashed
+    return "2 2"; // fallback style if ever needed
+  };
+  
   // Memoize race info to prevent unnecessary recalculations
   const raceInfo = useMemo(() => {
     if (raceScheduleData?.data) {
@@ -353,7 +378,7 @@ const LapTimesChart = ({
             </Alert>
           ) : (
             <div className="space-y-3 h-full flex flex-col">
-              <div className="w-full overflow-hidden py-2 flex-1" style={{ height: '100%', minHeight: compact ? 260 : 400 }}>
+              <div className="w-full overflow-hidden py-2" style={{ height: `${compact ? 260 : 400}px` }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
@@ -386,6 +411,7 @@ const LapTimesChart = ({
                       const driverCode = result.Driver.code;
                       const teamColor = getTeamColorStyle(result.Constructor.constructorId);
                       const isFastest = driverCode === fastestDriver;
+                      const strokeDasharray = getStrokeDashForDriver(driverCode, result.Constructor.constructorId);
                       
                       return (
                         <Line
@@ -394,6 +420,7 @@ const LapTimesChart = ({
                           dataKey={driverCode}
                           stroke={isFastest ? "hsl(var(--muted-foreground))" : teamColor}
                           strokeWidth={isFastest ? 3 : 2}
+                          strokeDasharray={strokeDasharray}
                           dot={{ 
                             fill: isFastest ? "hsl(var(--muted-foreground))" : teamColor, 
                             strokeWidth: 0, 
@@ -418,6 +445,8 @@ const LapTimesChart = ({
                   const driverCode = result.Driver.code;
                   const teamColor = getTeamColorStyle(result.Constructor.constructorId);
                   const isFastest = driverCode === fastestDriver;
+                  const strokeDasharray = getStrokeDashForDriver(driverCode, result.Constructor.constructorId);
+                  const lineColor = isFastest ? "hsl(var(--muted-foreground))" : teamColor;
                   
                   return (
                     <div key={driverCode} className="flex items-center gap-1">
@@ -425,6 +454,9 @@ const LapTimesChart = ({
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: isFastest ? "#a855f7" : teamColor }}
                       />
+                      <svg width="18" height="6" className="mx-1">
+                        <line x1="0" y1="3" x2="18" y2="3" stroke={lineColor} strokeWidth={2} strokeDasharray={strokeDasharray} />
+                      </svg>
                       <span className={`text-xs font-mono ${isFastest ? 'text-purple-600 dark:text-purple-400 font-bold' : 'text-muted-foreground'}`}>
                         {driverCode}
                       </span>
