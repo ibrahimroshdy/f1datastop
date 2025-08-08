@@ -137,26 +137,29 @@ const CombinedStandingsCard = ({
             )}
           </div>
         </div>
-        <div className="mt-3">
+        <div className="mt-2">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-            <TabsList>
-              <TabsTrigger value="combined" className="gap-1">
+            <div className="w-full flex justify-center lg:justify-end">
+              <TabsList className="mx-auto lg:mx-0 h-9 lg:h-10 p-0.5 lg:p-1">
+                <TabsTrigger value="combined" className="gap-1 px-2 py-1 text-xs lg:px-3 lg:py-1.5 lg:text-sm">
                 <Caravan className="h-4 w-4" /> Combined
               </TabsTrigger>
-              <TabsTrigger value="drivers" className="gap-1">
+                <TabsTrigger value="drivers" className="gap-1 px-2 py-1 text-xs lg:px-3 lg:py-1.5 lg:text-sm">
                 <Users className="h-4 w-4" /> Drivers
               </TabsTrigger>
-              <TabsTrigger value="constructors" className="gap-1">
+                <TabsTrigger value="constructors" className="gap-1 px-2 py-1 text-xs lg:px-3 lg:py-1.5 lg:text-sm">
                 <Caravan className="h-4 w-4" /> Constructors
               </TabsTrigger>
-            </TabsList>
+              </TabsList>
+            </div>
           </Tabs>
         </div>
       </CardHeader>
       <CardContent>
         <Tabs value={tab}>
           <TabsContent value="drivers" className="mt-0">
-            <div className="overflow-x-auto">
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border">
@@ -234,6 +237,62 @@ const CombinedStandingsCard = ({
                 </TableBody>
               </Table>
             </div>
+            {/* Mobile compact list */}
+            <div className="lg:hidden space-y-2">
+              {driverRows?.map((standing: any) => {
+                const currentConstructor = standing.Constructors?.length
+                  ? standing.Constructors[standing.Constructors.length - 1]
+                  : null;
+                const teamId = currentConstructor?.constructorId || "default";
+                const borderColor = getTeamHexColor(teamId);
+                const points = Number(standing.points || 0);
+                const fullList = driverStandings?.data || [];
+                const fullIndex = fullList.findIndex((d: any) => d.position === standing.position);
+                const { toLeader, toNext } = getGaps(fullIndex, fullList);
+                const teamTotal = teamPointsMap[normalizeTeamId(teamId)] || 0;
+                const contribPct = teamTotal > 0 ? Math.round((points / teamTotal) * 100) : 0;
+                return (
+                  <div
+                    key={standing.position}
+                    className="rounded-md border border-border p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="text-xs text-muted-foreground w-5">{standing.position}</div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <TeamLogo constructorId={teamId} alt={currentConstructor?.name || "Team"} size="sm" />
+                          <div className="min-w-0">
+                            <div
+                              className="font-medium truncate"
+                              style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: 6 }}
+                            >
+                              {standing.Driver?.givenName} {standing.Driver?.familyName}
+                            </div>
+                            {fullIndex !== 0 && (
+                              <div className="mt-1 text-[10px] text-muted-foreground">
+                                <div>To Leader: {toLeader}</div>
+                                <div>To P{Number(standing.position) - 1}: {toNext}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold">{standing.points}</div>
+                        <div className="text-[10px] text-muted-foreground">{contribPct}%</div>
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <Progress
+                        value={(points / (driverLeaderPoints || points || 1)) * 100}
+                        className="h-1.5 bg-muted"
+                        indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             <div className="flex items-center justify-center gap-2 pt-3 border-t border-dashed border-purple-500/30">
               <div className="w-2 h-2 rounded-full bg-purple-500/50" />
               <span className="text-xs text-muted-foreground">Driver Championship</span>
@@ -242,7 +301,8 @@ const CombinedStandingsCard = ({
           </TabsContent>
 
           <TabsContent value="constructors" className="mt-0">
-            <div className="overflow-x-auto">
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border">
@@ -302,6 +362,49 @@ const CombinedStandingsCard = ({
                 </TableBody>
               </Table>
             </div>
+            {/* Mobile compact list */}
+            <div className="lg:hidden space-y-2">
+              {constructorRows?.map((team: any, idx: number) => {
+                const teamId = team.Constructor?.constructorId || "default";
+                const borderColor = getTeamHexColor(teamId);
+                const points = Number(team.points || 0);
+                const fullList = constructorStandings?.data || [];
+                const fullIndex = fullList.findIndex((t: any) => t.position === team.position);
+                const { toLeader, toNext } = getGaps(fullIndex, fullList);
+                return (
+                  <div key={team.position} className="rounded-md border border-border p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="text-xs text-muted-foreground w-5">{team.position}</div>
+                        <TeamLogo constructorId={teamId} alt={team.Constructor?.name} size="sm" />
+                        <div
+                          className="font-medium truncate"
+                          style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: 6 }}
+                        >
+                          {team.Constructor?.name}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold">{team.points}</div>
+                      </div>
+                    </div>
+                    {idx !== 0 && (
+                      <div className="mt-2 text-[10px] text-muted-foreground text-right">
+                        <div>To Leader: {toLeader}</div>
+                        <div>To P{Number(team.position) - 1}: {toNext}</div>
+                      </div>
+                    )}
+                    <div className="mt-2">
+                      <Progress
+                        value={(points / (constructorLeaderPoints || points || 1)) * 100}
+                        className="h-1.5 bg-muted"
+                        indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             <div className="flex items-center justify-center gap-2 pt-3 border-t border-dashed border-purple-500/30">
               <div className="w-2 h-2 rounded-full bg-purple-500/50" />
               <span className="text-xs text-muted-foreground">Constructor Championship</span>
@@ -310,7 +413,8 @@ const CombinedStandingsCard = ({
           </TabsContent>
 
           <TabsContent value="combined" className="mt-0">
-            <div className="overflow-x-auto">
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-border">
@@ -393,6 +497,67 @@ const CombinedStandingsCard = ({
                   })}
                 </TableBody>
               </Table>
+            </div>
+            {/* Mobile compact list */}
+            <div className="lg:hidden space-y-2">
+              {(constructorStandings?.data || []).map((team: any, idx: number) => {
+                const teamIdRaw = team.Constructor?.constructorId || "default";
+                const teamId = normalizeTeamId(teamIdRaw);
+                const borderColor = getTeamHexColor(teamId);
+                const totalPts = Number(team.points || 0);
+                const list = constructorStandings?.data || [];
+                const leaderPts = Number(list?.[0]?.points || 0);
+                const toLeader = Math.max(0, leaderPts - totalPts);
+                const aheadPts = idx === 0 ? Number(list?.[1]?.points || 0) : Number(list?.[idx - 1]?.points || 0);
+                const toNext = idx === 0 ? Math.max(0, totalPts - aheadPts) : Math.max(0, aheadPts - totalPts);
+                const drivers = driversByTeam[teamId] || [];
+                return (
+                  <div key={team.position} className="rounded-md border border-border p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="text-xs text-muted-foreground w-5">{team.position}</div>
+                        <TeamLogo constructorId={teamId} alt={team.Constructor?.name} size="sm" />
+                        <div
+                          className="font-medium truncate"
+                          style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: 6 }}
+                        >
+                          {team.Constructor?.name}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold">{team.points}</div>
+                      </div>
+                    </div>
+                    {/* Driver contributions compact */}
+                    {drivers.length > 0 && (
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {drivers.map((dr) => {
+                          const pct = totalPts > 0 ? Math.round((dr.points / totalPts) * 100) : 0;
+                          return (
+                            <div key={dr.code} className="flex items-center justify-between text-[11px] bg-muted/40 rounded px-2 py-1">
+                              <span className="font-mono text-muted-foreground">{dr.code}</span>
+                              <span className="text-foreground">{dr.points} pts • {pct}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {idx !== 0 && (
+                      <div className="mt-2 text-[10px] text-muted-foreground text-right">
+                        <div>To Leader: {toLeader}</div>
+                        <div>To P{Number(team.position) - 1}: {toNext}</div>
+                      </div>
+                    )}
+                    <div className="mt-2">
+                      <Progress
+                        value={(totalPts / (constructorLeaderPoints || totalPts || 1)) * 100}
+                        className="h-1.5 bg-muted"
+                        indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </TabsContent>
         </Tabs>

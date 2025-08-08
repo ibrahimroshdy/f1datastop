@@ -4,6 +4,7 @@ import { useDriverStandings } from "@/hooks/useF1Data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
+import TeamLogo from "@/components/common/TeamLogo";
 
 const normalizeTeamId = (teamId: string) => {
   let id = (teamId || "").toLowerCase();
@@ -56,9 +57,10 @@ const DriverStandings = () => {
             return (
               <div key={standing.position} className="space-y-1">
                 <div className="flex justify-between text-xs lg:text-sm">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <span className="text-muted-foreground">{standing.position}</span>
-                    <span className="font-medium">
+                    <TeamLogo constructorId={team?.constructorId || "default"} alt={team?.name} size="sm" />
+                    <span className="font-medium truncate">
                       <span className="hidden lg:inline">{name}</span>
                       <span className="lg:hidden">{standing.Driver?.familyName}</span>
                     </span>
