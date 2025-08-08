@@ -31,7 +31,7 @@ const CombinedStandingsCard = ({
   constructorStandings,
   onExpandChange,
 }: CombinedStandingsCardProps) => {
-  const [tab, setTab] = useState<"drivers" | "constructors">("drivers");
+  const [tab, setTab] = useState<"combined" | "drivers" | "constructors">("combined");
   const [showAllDrivers, setShowAllDrivers] = useState<boolean>(false);
   const [showAllConstructors, setShowAllConstructors] = useState<boolean>(false);
 
@@ -52,6 +52,52 @@ const CombinedStandingsCard = ({
   const constructorLeaderPoints = useMemo(() => {
     return Number(constructorStandings?.data?.[0]?.points || 0);
   }, [constructorStandings?.data]);
+
+  // Map of constructorId -> total points for contribution calculations
+  const teamPointsMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    (constructorStandings?.data || []).forEach((team: any) => {
+      const id = normalizeTeamId(team?.Constructor?.constructorId || "default");
+      map[id] = Number(team?.points || 0);
+    });
+    return map;
+  }, [constructorStandings?.data]);
+
+  // Map of constructorId -> drivers and their points
+  const driversByTeam = useMemo(() => {
+    const map: Record<string, { code: string; name: string; points: number }[]> = {};
+    (driverStandings?.data || []).forEach((d: any) => {
+      const constructors = d.Constructors || [];
+      const current = constructors.length ? constructors[constructors.length - 1] : null;
+      const teamId = normalizeTeamId(current?.constructorId || "default");
+      if (!map[teamId]) map[teamId] = [];
+      map[teamId].push({
+        code: d.Driver?.code || d.Driver?.familyName || "",
+        name: `${d.Driver?.givenName || ""} ${d.Driver?.familyName || ""}`.trim(),
+        points: Number(d.points || 0),
+      });
+    });
+    // Sort drivers by points desc per team
+    Object.keys(map).forEach((k) => map[k].sort((a, b) => b.points - a.points));
+    return map;
+  }, [driverStandings?.data]);
+
+  const getGaps = (index: number, list: any[]) => {
+    if (!list || list.length === 0) return { toLeader: 0, toNext: 0 };
+    const pts = Number(list?.[index]?.points || 0);
+    const leader = Number(list?.[0]?.points || 0);
+    const toLeader = Math.max(0, leader - pts);
+    let toNext = 0;
+    if (index === 0) {
+      toNext = 0; // no gap rendered for leader
+    } else {
+      const aheadPts = Number(list?.[index - 1]?.points || 0);
+      toNext = Math.max(0, aheadPts - pts);
+    }
+    return { toLeader, toNext };
+  };
+
+  // Bars removed; keep simple textual gaps only
 
   const toggleShowAllDrivers = () => {
     setShowAllDrivers((prev) => {
@@ -94,6 +140,9 @@ const CombinedStandingsCard = ({
         <div className="mt-3">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
             <TabsList>
+              <TabsTrigger value="combined" className="gap-1">
+                <Caravan className="h-4 w-4" /> Combined
+              </TabsTrigger>
               <TabsTrigger value="drivers" className="gap-1">
                 <Users className="h-4 w-4" /> Drivers
               </TabsTrigger>
@@ -115,6 +164,8 @@ const CombinedStandingsCard = ({
                     <TableHead className="text-xs lg:text-sm">Driver</TableHead>
                     <TableHead className="text-center text-xs lg:text-sm">Team</TableHead>
                     <TableHead className="text-right text-xs lg:text-sm">Pts</TableHead>
+                    <TableHead className="text-right text-xs lg:text-sm">Gap</TableHead>
+                    <TableHead className="text-right text-xs lg:text-sm">Contrib</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -126,6 +177,11 @@ const CombinedStandingsCard = ({
                     const borderColor = getTeamHexColor(teamId);
                     const points = Number(standing.points || 0);
                     const leader = driverLeaderPoints || points || 1;
+                    const fullList = driverStandings?.data || [];
+                    const fullIndex = fullList.findIndex((d: any) => d.position === standing.position);
+                    const { toLeader, toNext } = getGaps(fullIndex, fullList);
+                    const teamTotal = teamPointsMap[normalizeTeamId(teamId)] || 0;
+                    const contribPct = teamTotal > 0 ? Math.round((points / teamTotal) * 100) : 0;
                     return (
                       <TableRow key={standing.position} className="border-border">
                         <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
@@ -161,6 +217,17 @@ const CombinedStandingsCard = ({
                         <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
                           {standing.points}
                         </TableCell>
+                        <TableCell className="text-right py-2 px-2 lg:p-4 text-[10px] lg:text-xs text-muted-foreground">
+                          {fullIndex === 0 ? null : (
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span>To Leader: {toLeader}</span>
+                              <span>To P{Number(standing.position) - 1}: {toNext}</span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-[10px] lg:text-xs py-2 px-2 lg:p-4">
+                          {contribPct}%
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -182,6 +249,7 @@ const CombinedStandingsCard = ({
                     <TableHead className="w-10 lg:w-12 text-xs lg:text-sm">Pos</TableHead>
                     <TableHead className="text-xs lg:text-sm">Team</TableHead>
                     <TableHead className="text-right text-xs lg:text-sm">Pts</TableHead>
+                    <TableHead className="text-right text-xs lg:text-sm">Gap</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -190,6 +258,9 @@ const CombinedStandingsCard = ({
                     const borderColor = getTeamHexColor(teamId);
                     const points = Number(team.points || 0);
                     const leader = constructorLeaderPoints || points || 1;
+                    const fullList = constructorStandings?.data || [];
+                    const fullIndex = fullList.findIndex((t: any) => t.position === team.position);
+                    const { toLeader, toNext } = getGaps(fullIndex, fullList);
                     return (
                       <TableRow key={team.position} className="border-border">
                         <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
@@ -217,6 +288,14 @@ const CombinedStandingsCard = ({
                         <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
                           {team.points}
                         </TableCell>
+                        <TableCell className="text-right py-2 px-2 lg:p-4 text-[10px] lg:text-xs text-muted-foreground">
+                          {fullIndex === 0 ? null : (
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span>To Leader: {toLeader}</span>
+                              <span>To P{Number(team.position) - 1}: {toNext}</span>
+                            </div>
+                          )}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -227,6 +306,93 @@ const CombinedStandingsCard = ({
               <div className="w-2 h-2 rounded-full bg-purple-500/50" />
               <span className="text-xs text-muted-foreground">Constructor Championship</span>
               <div className="w-2 h-2 rounded-full bg-purple-500/50" />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="combined" className="mt-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border">
+                    <TableHead className="w-10 lg:w-12 text-xs lg:text-sm">Pos</TableHead>
+                    <TableHead className="text-xs lg:text-sm">Team</TableHead>
+                    <TableHead className="text-right text-xs lg:text-sm">Total Pts</TableHead>
+                    <TableHead className="text-left text-xs lg:text-sm">Driver Contribution</TableHead>
+                    <TableHead className="text-right text-xs lg:text-sm">Gap</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(constructorStandings?.data || []).map((team: any, idx: number) => {
+                    const teamIdRaw = team.Constructor?.constructorId || "default";
+                    const teamId = normalizeTeamId(teamIdRaw);
+                    const borderColor = getTeamHexColor(teamId);
+                    const totalPts = Number(team.points || 0);
+                    const leader = constructorLeaderPoints || totalPts || 1;
+                    const list = constructorStandings?.data || [];
+                    const leaderPts = Number(list?.[0]?.points || 0);
+                    const toLeader = Math.max(0, leaderPts - totalPts);
+                    const aheadPts = idx === 0 ? Number(list?.[1]?.points || 0) : Number(list?.[idx - 1]?.points || 0);
+                    const toNext = idx === 0 ? Math.max(0, totalPts - aheadPts) : Math.max(0, aheadPts - totalPts);
+                    const drivers = driversByTeam[teamId] || [];
+                    return (
+                      <TableRow key={team.position} className="border-border">
+                        <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">{team.position}</TableCell>
+                        <TableCell className="py-2 px-1 lg:p-4">
+                          <div className="space-y-1">
+                            <div
+                              style={{ borderLeft: `4px solid ${borderColor}`, paddingLeft: 8 }}
+                              className="font-medium text-foreground text-xs lg:text-sm"
+                            >
+                              <div className="flex items-center gap-2">
+                                <TeamLogo constructorId={teamId} alt={team.Constructor?.name} size="sm" />
+                                <span className="hidden lg:inline">{team.Constructor?.name}</span>
+                                <span className="lg:hidden">{(team.Constructor?.name || "").split(" ")[0]}</span>
+                              </div>
+                            </div>
+                            <Progress
+                              value={(totalPts / leader) * 100}
+                              className="h-2 bg-muted"
+                              indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">{team.points}</TableCell>
+                        <TableCell className="py-2 px-2 lg:p-4">
+                          {drivers.length > 0 ? (
+                            <div className="flex flex-col gap-1 text-[10px] lg:text-xs">
+                              {drivers.map((dr) => {
+                                const pct = totalPts > 0 ? Math.round((dr.points / totalPts) * 100) : 0;
+                                return (
+                                  <div key={dr.code} className="flex items-center gap-2">
+                                    <span className="min-w-[36px] font-mono text-muted-foreground">{dr.code}</span>
+                                    <div className="flex-1">
+                                      <div className="h-2 bg-muted rounded overflow-hidden">
+                                        <div className="h-2 bg-purple-500/70" style={{ width: `${pct}%` }} />
+                                      </div>
+                                      <div className="text-[10px] text-muted-foreground mt-0.5">{dr.points} pts</div>
+                                    </div>
+                                    <span className="w-10 text-right font-medium">{pct}%</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-[10px]">No drivers</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right py-2 px-2 lg:p-4 text-[10px] lg:text-xs text-muted-foreground">
+                          {idx === 0 ? null : (
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span>To Leader: {toLeader}</span>
+                              <span>To P{Number(team.position) - 1}: {toNext}</span>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           </TabsContent>
         </Tabs>

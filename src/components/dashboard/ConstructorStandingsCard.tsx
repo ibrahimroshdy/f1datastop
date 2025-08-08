@@ -55,14 +55,20 @@ const ConstructorStandingsCard = ({ constructorStandings }: ConstructorStandings
               <TableHead className="w-8 lg:w-12 text-xs lg:text-sm">Pos</TableHead>
               <TableHead className="text-xs lg:text-sm">Team</TableHead>
               <TableHead className="text-right text-xs lg:text-sm">Pts</TableHead>
+              <TableHead className="text-right text-xs lg:text-sm">Gap</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {teamsToShow?.map((team: any) => {
+            {teamsToShow?.map((team: any, idx: number) => {
               const teamId = team.Constructor?.constructorId || "default";
               const color = getTeamHex(teamId);
               const points = Number(team.points || 0);
               const leader = leaderPoints || points || 1;
+              const list = constructorStandings?.data || [];
+              const leaderPts = Number(list?.[0]?.points || 0);
+              const toLeader = Math.max(0, leaderPts - points);
+              const aheadPts = idx === 0 ? Number(list?.[1]?.points || 0) : Number(list?.[idx - 1]?.points || 0);
+              const toNext = idx === 0 ? Math.max(0, points - aheadPts) : Math.max(0, aheadPts - points);
               return (
                 <TableRow key={team.position} className="border-border">
                   <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">{team.position}</TableCell>
@@ -86,6 +92,14 @@ const ConstructorStandingsCard = ({ constructorStandings }: ConstructorStandings
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">{team.points}</TableCell>
+                  <TableCell className="text-right py-2 px-2 lg:p-4 text-[10px] lg:text-xs text-muted-foreground">
+                    {idx === 0 ? null : (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span>To Leader: {toLeader}</span>
+                        <span>To P{Number(team.position) - 1}: {toNext}</span>
+                      </div>
+                    )}
+                  </TableCell>
                 </TableRow>
               );
             })}

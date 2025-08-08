@@ -30,16 +30,32 @@ const DriverStandingsTable = ({ driverStandings, showAllDrivers }: DriverStandin
             <TableHead className="text-xs lg:text-sm">Driver</TableHead>
             <TableHead className="text-center text-xs lg:text-sm">Team</TableHead>
             <TableHead className="text-right text-xs lg:text-sm">Pts</TableHead>
+            <TableHead className="text-right text-xs lg:text-sm">Gap</TableHead>
+            <TableHead className="text-right text-xs lg:text-sm">Contrib</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {driversToShow?.map((standing: any) => {
+          {driversToShow?.map((standing: any, idx: number) => {
             const constructors = standing.Constructors || [];
             const currentConstructor = constructors.length ? constructors[constructors.length - 1] : null;
             const teamId = currentConstructor?.constructorId || "default";
             const color = TEAM_COLORS[normalizeTeamId(teamId)] || TEAM_COLORS.default;
             const points = Number(standing.points || 0);
             const leader = leaderPoints || points || 1;
+            const list = driverStandings?.data || [];
+            const leaderPts = Number(list?.[0]?.points || 0);
+            const toLeader = Math.max(0, leaderPts - points);
+            const aheadPts = idx === 0 ? Number(list?.[1]?.points || 0) : Number(list?.[idx - 1]?.points || 0);
+            const toNext = idx === 0 ? Math.max(0, points - aheadPts) : Math.max(0, aheadPts - points);
+            const constructorsTotals: Record<string, number> = (driverStandings?.data || []).reduce((acc: Record<string, number>, d: any) => {
+              const cs = d.Constructors || [];
+              const cc = cs.length ? cs[cs.length - 1] : null;
+              const cid = normalizeTeamId(cc?.constructorId || "default");
+              acc[cid] = (acc[cid] || 0) + Number(d.points || 0);
+              return acc;
+            }, {});
+            const teamTotal = constructorsTotals[normalizeTeamId(teamId)] || 0;
+            const contribPct = teamTotal > 0 ? Math.round((points / teamTotal) * 100) : 0;
             return (
               <TableRow key={standing.position} className="border-border">
                 <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">{standing.position}</TableCell>
@@ -74,6 +90,15 @@ const DriverStandingsTable = ({ driverStandings, showAllDrivers }: DriverStandin
                   </TooltipProvider>
                 </TableCell>
                 <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">{standing.points}</TableCell>
+                <TableCell className="text-right py-2 px-2 lg:p-4 text-[10px] lg:text-xs text-muted-foreground">
+                  {idx === 0 ? null : (
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span>To Leader: {toLeader}</span>
+                      <span>To P{Number(standing.position) - 1}: {toNext}</span>
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="text-right font-medium text-[10px] lg:text-xs py-2 px-2 lg:p-4">{contribPct}%</TableCell>
               </TableRow>
             );
           })}
