@@ -40,7 +40,7 @@ interface SankeyLinkExtended extends Omit<SankeyLink<any, any>, 'source' | 'targ
   isDNF?: boolean;
 }
 
-const QualifyingToRaceChart = () => {
+const QualifyingToRaceChart = ({ compact = false }: { compact?: boolean }) => {
   const { data, isLoading, error, refetch } = useQualifyingToRaceData();
   const sankeyRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -81,12 +81,12 @@ const QualifyingToRaceChart = () => {
   // Immediate dimensions calculation on mount using useLayoutEffect
   useLayoutEffect(() => {
     if (sankeyRef.current) {
-      const { width } = sankeyRef.current.getBoundingClientRect();
+      const rect = sankeyRef.current.getBoundingClientRect();
+      const width = rect.width;
+      const desired = compact ? 400 : 500;
+      const height = rect.height > 0 ? rect.height : desired;
       if (width > 0) {
-        setDimensions({
-          width: width,
-          height: Math.max(400, Math.min(600, width * 0.8)) // Responsive height
-        });
+        setDimensions({ width, height });
         setHasInitialized(true);
       }
     }
@@ -101,12 +101,13 @@ const QualifyingToRaceChart = () => {
         }
         
         resizeTimeoutRef.current = window.setTimeout(() => {
-          const { width } = sankeyRef.current!.getBoundingClientRect();
+          const rect = sankeyRef.current!.getBoundingClientRect();
+          const width = rect.width;
+          const containerHeight = rect.height;
           if (width > 0) {
-            // Only update if there's a significant change (more than 50px difference)
-            const heightRatio = 0.7;
+            const heightRatio = compact ? 0.55 : 0.7;
             const newWidth = width;
-            const newHeight = Math.max(350, Math.min(500, width * heightRatio));
+            const newHeight = containerHeight > 0 ? containerHeight : Math.min(700, width * heightRatio);
             
             if (Math.abs(newWidth - dimensions.width) > 50 || Math.abs(newHeight - dimensions.height) > 35) {
             setDimensions({
@@ -128,14 +129,14 @@ const QualifyingToRaceChart = () => {
     // Ensure we have proper dimensions - additional check after the component has mounted
     if (!hasInitialized && sankeyRef.current) {
       const checkDimensions = () => {
-        const { width } = sankeyRef.current!.getBoundingClientRect();
+        const rect = sankeyRef.current!.getBoundingClientRect();
+        const width = rect.width;
+        const containerHeight = rect.height;
         if (width > 0 && dimensions.width === 0) {
-          // Use consistent height ratio across all screen sizes
-          const heightRatio = 0.7;
-          
+          const heightRatio = compact ? 0.55 : 0.7;
           setDimensions({
-            width: width,
-            height: Math.max(350, Math.min(500, width * heightRatio))
+            width,
+            height: Math.max(350, containerHeight > 0 ? containerHeight : Math.min(700, width * heightRatio))
           });
           setHasInitialized(true);
         } else if (!hasInitialized) {
@@ -744,11 +745,13 @@ const QualifyingToRaceChart = () => {
     } else if (data?.processedData && !isLoading && dimensions.width === 0 && sankeyRef.current) {
       // If we have data but no dimensions yet, force dimensions calculation
       console.log('Have data but no dimensions, forcing recalculation');
-      const { width } = sankeyRef.current.getBoundingClientRect();
+      const rect = sankeyRef.current.getBoundingClientRect();
+      const width = rect.width;
+      const containerHeight = rect.height;
       if (width > 0) {
         setDimensions({
-          width: width,
-          height: Math.max(400, Math.min(600, width * 0.8))
+          width,
+          height: Math.max(350, containerHeight > 0 ? containerHeight : (compact ? 400 : Math.min(700, width * 0.7)))
         });
       }
     }
@@ -768,11 +771,11 @@ const QualifyingToRaceChart = () => {
       // Use ResizeObserver to detect when the container becomes visible
       const resizeObserver = new ResizeObserver(entries => {
         for (const entry of entries) {
-          const { width } = entry.contentRect;
+          const { width, height } = entry.contentRect;
           if (width > 0 && dimensions.width === 0) {
             setDimensions({
-              width: width,
-              height: Math.max(400, Math.min(600, width * 0.8))
+              width,
+              height: Math.max(350, height > 0 ? height : Math.min(700, width * 0.7))
             });
             break;
           }
@@ -800,7 +803,7 @@ const QualifyingToRaceChart = () => {
   };
 
   return (
-    <Card className="h-full">
+    <Card className="bg-card border-border h-full">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center gap-2">
@@ -845,7 +848,7 @@ const QualifyingToRaceChart = () => {
             <div 
               ref={sankeyRef} 
               className="w-full overflow-hidden py-2"
-              style={{ minHeight: "400px" }}
+              style={{ minHeight: "400px", height: "100%" }}
             />
             
             <div className="mt-4 pt-2 border-t border-border">

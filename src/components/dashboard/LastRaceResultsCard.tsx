@@ -104,7 +104,7 @@ const LastRaceResultsCard = ({
 
   return (
     <>
-      <Card className="h-full overflow-hidden">
+      <Card className="bg-card border-border h-full overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
@@ -174,7 +174,7 @@ const LastRaceResultsCard = ({
               </AlertDescription>
             </Alert>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 max-w-3xl mx-auto">
               {lastRaceResults?.data?.results?.slice(0, 5).map(result => (
                 <div 
                   key={result.position} 

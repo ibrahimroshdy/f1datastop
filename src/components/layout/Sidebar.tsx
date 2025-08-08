@@ -2,30 +2,16 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { 
-  Home, 
-  Calendar,
-  BarChart,
   Users,
   X,
-  Award,
   User,
   LogIn,
   LineChart,
   BarChart3,
   Calendar as CalendarIcon,
-  ChartPieIcon,
   LayoutDashboard,
   Settings,
   Trophy,
-  LogOut,
-  Menu,
-  CalendarDays,
-  Activity,
-  BarChart4,
-  UserRound,
-  Car,
-  Newspaper,
-  Users2,
   Caravan
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -63,6 +49,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Constructors", href: "/constructors", icon: Caravan },
   ];
+
+  const socialNavigation: never[] = [];
 
   // Create a new array for auth navigation based on user status and developer mode
   const authNavigation = user 
@@ -115,84 +103,111 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       <div
         ref={sidebarRef}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 border-r bg-sidebar transform transition-transform duration-200 ease-in-out md:transition-none",
-          isMediumOrSmaller && !sidebarOpen ? "-translate-x-full" : "translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-72 border-r bg-sidebar transform transition-transform duration-200 ease-in-out md:transition-none flex flex-col",
+          !sidebarOpen ? "-translate-x-full md:w-0 md:min-w-0 md:opacity-0 md:pointer-events-none" : "translate-x-0 md:w-72",
           !isMediumOrSmaller && "md:relative md:top-0"
         )}
       >
         {/* Logo and brand */}
         <div className="flex h-16 items-center border-b px-6">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2" onClick={handleNavClick}>
             <img src={f1Logo} alt="F1 DataStop" className="w-10 h-10" />
             <span className="font-bold text-xl tracking-tight">F1 DataStop</span>
           </Link>
+          {isMediumOrSmaller && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-auto"
+              aria-label="Close sidebar"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          )}
         </div>
 
         {/* Desktop navigation */}
-        <div className="hidden md:block space-y-2 py-2">
+        <div className="hidden md:block space-y-2 py-2 flex-1 overflow-y-auto">
           <div className="px-3 py-1">
             <div className="space-y-1">
-              {mainNavigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={handleNavClick}
-                  className={cn(
-                    "flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
-                    pathname === item.href ? "bg-red-200/70 text-red-900 dark:bg-red-900/30 dark:text-red-200" : "transparent"
-                  )}
-                >
-                  <item.icon className="mr-2 h-4 w-4" />
-                  {item.name}
-                </Link>
-              ))}
+              {mainNavigation.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onClick={handleNavClick}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isActive
+                        ? "bg-accent text-accent-foreground border-l-2 border-primary"
+                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className={cn("mr-2 h-4 w-4", isActive ? "text-accent-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                    {item.name}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
           {/* Protected navigation section */}
           <div className="px-3 py-1">
-            <h2 className="px-4 text-xs font-semibold tracking-tight text-muted-foreground">
-              F1 Information
-            </h2>
+            <h2 className="px-4 text-[11px] uppercase font-semibold tracking-wider text-muted-foreground">F1 Information</h2>
             <div className="space-y-1">
-              {protectedNavigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={handleNavClick}
-                  className={cn(
-                    "flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
-                    pathname === item.href ? "bg-red-200/70 text-red-900 dark:bg-red-900/30 dark:text-red-200" : "transparent"
-                  )}
-                >
-                  <item.icon className="mr-2 h-4 w-4" />
-                  {item.name}
-                </Link>
-              ))}
+              {protectedNavigation.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onClick={handleNavClick}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isActive
+                        ? "bg-accent text-accent-foreground border-l-2 border-primary"
+                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className={cn("mr-2 h-4 w-4", isActive ? "text-accent-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                    {item.name}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
+          {/* Community section removed */}
+
           {/* Authentication navigation section */}
           <div className="px-3 py-1">
-            <h2 className="px-4 text-xs font-semibold tracking-tight text-muted-foreground">
-              Account
-            </h2>
+            <h2 className="px-4 text-[11px] uppercase font-semibold tracking-wider text-muted-foreground">Account</h2>
             <div className="space-y-1">
-              {authNavigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={handleNavClick}
-                  className={cn(
-                    "flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
-                    pathname === item.href ? "bg-red-200/70 text-red-900 dark:bg-red-900/30 dark:text-red-200" : "transparent",
-                    item.name === "Developers PitStop" ? "text-amber-600 dark:text-amber-400" : ""
-                  )}
-                >
-                  <item.icon className="mr-2 h-4 w-4" />
-                  {item.name}
-                </Link>
-              ))}
+              {authNavigation.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    onClick={handleNavClick}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      isActive
+                        ? "bg-accent text-accent-foreground border-l-2 border-primary"
+                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                      item.name === "Developers PitStop" ? "text-amber-600 dark:text-amber-400" : ""
+                    )}
+                  >
+                    <item.icon className={cn("mr-2 h-4 w-4", isActive ? "text-accent-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+                    {item.name}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -214,6 +229,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             items={protectedNavigation}
             onNavClick={handleNavClick}
           />
+          {/* Community section removed for mobile */}
           
           {/* Auth navigation for mobile */}
           <div className="px-3 py-1">

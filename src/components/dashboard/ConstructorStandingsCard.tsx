@@ -1,110 +1,115 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Caravan, Users } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import TeamLogo from "@/components/common/TeamLogo";
 
 interface ConstructorStandingsCardProps {
   constructorStandings: any;
   getTeamColor: (constructorId: string) => string;
 }
 
-// Define team type based on usage in the component
-interface TeamStandingType {
-  position: string;
-  points: string;
-  Constructor: {
-    constructorId: string;
-    name: string;
-  };
-}
-
-// Helper function to get team color style with border
-const getTeamColorStyle = (teamId: string) => {
-  // Normalize the team ID to match the keys in TEAM_COLORS
-  let normalizedTeamId = teamId.toLowerCase();
-  
-  // Handle specific mappings
-  if (normalizedTeamId === "alphatauri") {
-    normalizedTeamId = "rb";
-  } else if (normalizedTeamId === "alfa") {
-    normalizedTeamId = "sauber";
-  }
-  
-  // Get color from TEAM_COLORS or default to a gray color
-  const color = TEAM_COLORS[normalizedTeamId] || "#666666";
-  
-  return {
-    borderLeft: `4px solid ${color}`,
-    paddingLeft: "0.5rem"
-  };
+const normalizeTeamId = (teamId: string) => {
+  let id = (teamId || "").toLowerCase();
+  if (id === "alphatauri") id = "rb";
+  if (id === "alfa") id = "sauber";
+  return id;
 };
 
-const ConstructorStandingsCard = ({ constructorStandings, getTeamColor }: ConstructorStandingsCardProps) => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const [showAllConstructors, setShowAllConstructors] = useState<boolean>(true);
-  const [selectedTeam, setSelectedTeam] = useState<TeamStandingType | null>(null);
-  const teamsToShow = showAllConstructors ? constructorStandings?.data : constructorStandings?.data?.slice(0, 5);
+const getTeamHex = (teamId: string) => TEAM_COLORS[normalizeTeamId(teamId)] || TEAM_COLORS.default;
+
+const ConstructorStandingsCard = ({ constructorStandings }: ConstructorStandingsCardProps) => {
+  const [showAllConstructors, setShowAllConstructors] = useState<boolean>(false);
+
+  const teamsToShow = useMemo(() => {
+    const list = constructorStandings?.data || [];
+    return showAllConstructors ? list : list.slice(0, 8);
+  }, [constructorStandings?.data, showAllConstructors]);
+
+  const leaderPoints = useMemo(() => Number(constructorStandings?.data?.[0]?.points || 0), [constructorStandings?.data]);
 
   return (
-    <Card className="bg-card border-border">
+    <Card className="bg-card border-border h-full">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center gap-2">
             <Caravan className="h-5 w-5 text-primary" />
             Constructor Standings
           </CardTitle>
-          <button 
-            onClick={() => setShowAllConstructors(!showAllConstructors)} 
+          <button
+            onClick={() => setShowAllConstructors((s) => !s)}
             className="text-xs lg:text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
           >
             <Users className="h-4 w-4" />
-            <span className="hidden lg:inline">
-              {showAllConstructors ? 'Show Top 5' : 'Show All Constructors'}
-            </span>
-            <span className="lg:hidden">
-              {showAllConstructors ? 'Top 5' : 'All'}
-            </span>
+            <span className="hidden lg:inline">{showAllConstructors ? "Show Top 8" : "Show All Teams"}</span>
+            <span className="lg:hidden">{showAllConstructors ? "Top 8" : "All"}</span>
           </button>
         </div>
       </CardHeader>
-      
       <CardContent className="pt-0">
         <Table>
           <TableHeader>
             <TableRow className="border-border">
-              <TableHead className="w-8 lg:w-12 text-sm lg:text-base">Pos</TableHead>
-              <TableHead className="text-sm lg:text-base">Team</TableHead>
-              <TableHead className="text-right text-sm lg:text-base">Pts</TableHead>
+              <TableHead className="w-8 lg:w-12 text-xs lg:text-sm">Pos</TableHead>
+              <TableHead className="text-xs lg:text-sm">Team</TableHead>
+              <TableHead className="text-right text-xs lg:text-sm">Pts</TableHead>
+              <TableHead className="text-right text-xs lg:text-sm">Gap</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {teamsToShow?.map(team => (
-              <TableRow key={team.position} className="border-border">
-                <TableCell className="font-medium text-sm lg:text-base py-2 px-2 lg:p-4">{team.position}</TableCell>
-                <TableCell className="py-2 px-1 lg:p-4">
-                  <div className="space-y-1">
-                    <div style={getTeamColorStyle(team.Constructor.constructorId)} className="font-medium text-foreground text-sm lg:text-base">
-                      {/* Show abbreviated team name on small and medium screens */}
-                      <span className="hidden lg:inline">{team.Constructor.name}</span>
-                      <span className="lg:hidden">
-                        {team.Constructor.name.split(' ')[0]}
-                      </span>
+            {teamsToShow?.map((team: any, idx: number) => {
+              const teamId = team.Constructor?.constructorId || "default";
+              const color = getTeamHex(teamId);
+              const points = Number(team.points || 0);
+              const leader = leaderPoints || points || 1;
+              const list = constructorStandings?.data || [];
+              const leaderPts = Number(list?.[0]?.points || 0);
+              const toLeader = Math.max(0, leaderPts - points);
+              const aheadPts = idx === 0 ? Number(list?.[1]?.points || 0) : Number(list?.[idx - 1]?.points || 0);
+              const toNext = idx === 0 ? Math.max(0, points - aheadPts) : Math.max(0, aheadPts - points);
+              return (
+                <TableRow key={team.position} className="border-border">
+                  <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">{team.position}</TableCell>
+                  <TableCell className="py-2 px-1 lg:p-4">
+                    <div className="space-y-1">
+                      <div
+                        style={{ borderLeft: `4px solid ${color}`, paddingLeft: 8 }}
+                        className="font-medium text-foreground text-xs lg:text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <TeamLogo constructorId={teamId} alt={team.Constructor?.name} size="sm" />
+                          <span className="hidden lg:inline">{team.Constructor?.name}</span>
+                          <span className="lg:hidden">{(team.Constructor?.name || "").split(" ")[0]}</span>
+                        </div>
+                      </div>
+                      <Progress
+                        value={(points / leader) * 100}
+                        className="h-2 bg-muted"
+                        indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                      />
                     </div>
-                    <Progress 
-                      value={Number(team.points) / Number(constructorStandings.data[0].points) * 100} 
-                      className="h-2 bg-muted" 
-                      indicatorClassName="opacity-50"
-                    />
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-medium text-sm lg:text-base py-2 px-2 lg:p-4">{team.points}</TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">{team.points}</TableCell>
+                  <TableCell className="text-right py-2 px-2 lg:p-4 text-[10px] lg:text-xs text-muted-foreground">
+                    {idx === 0 ? null : (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span>To Leader: {toLeader}</span>
+                        <span>To P{Number(team.position) - 1}: {toNext}</span>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
+        <div className="flex items-center justify-center gap-2 pt-3 border-t border-dashed border-purple-500/30">
+          <div className="w-2 h-2 rounded-full bg-purple-500/50" />
+          <span className="text-xs text-muted-foreground">Constructor Championship</span>
+          <div className="w-2 h-2 rounded-full bg-purple-500/50" />
+        </div>
       </CardContent>
     </Card>
   );

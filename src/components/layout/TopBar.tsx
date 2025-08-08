@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { MenuIcon } from "lucide-react";
+import { MenuIcon, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import f1Logo from "@/assets/f1-logo.svg";
 import { Link } from "react-router-dom";
 import NextRaceInfo from "./nextRace/NextRaceInfo";
@@ -24,8 +24,8 @@ const TopBar = ({
   return (
     <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-2 sm:px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* Show menu button on mobile or medium screens */}
-        {isMediumOrSmaller && (
+        {/* Toggle button on all screens; on desktop it hides/shows sidebar */}
+        {(
           <Button
             variant="outline"
             size="icon"
@@ -33,7 +33,11 @@ const TopBar = ({
           onClick={() => setSidebarOpen(!sidebarOpen)} 
             aria-label="Toggle sidebar"
         >
-            <MenuIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+            {sidebarOpen ? (
+              <PanelLeftClose className="h-4 w-4 sm:h-5 sm:w-5" />
+            ) : (
+              <PanelLeftOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+            )}
           </Button>
         )}
         

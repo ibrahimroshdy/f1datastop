@@ -1,16 +1,18 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Trophy, Users, ChartColumn } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults, useLastRacePitStops } from "@/hooks/useF1Data";
 import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { getTeamColor, getCountryFlag } from "@/utils/teamUtils";
 import HeaderSection from "@/components/dashboard/HeaderSection";
-import DriverStandingsTable from "@/components/dashboard/DriverStandingsTable";
-import ConstructorStandingsCard from "@/components/dashboard/ConstructorStandingsCard";
+import CombinedStandingsCard, { CombinedStandingsCardProps } from "@/components/dashboard/CombinedStandingsCard";
+import SeasonalReviewPanel from "@/components/dashboard/SeasonalReviewPanel";
 import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
+import LastRaceResultsChart from "@/components/dashboard/LastRaceResultsChart";
+import LapTimesChart from "@/components/dashboard/LapTimesChart";
 import FastestPitStopCard from "@/components/dashboard/FastestPitStopCard";
 import QualifyingResultsCard from "@/components/dashboard/QualifyingResultsCard";
 import QualifyingToRaceChart from "@/components/dashboard/QualifyingToRaceChart";
+
 import useAnalytics from '@/hooks/useAnalytics';
 import useClarity from '@/hooks/useClarity';
 
@@ -38,7 +40,7 @@ const Index = () => {
 
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading || isPitStopsLoading;
   const [isOffline, setIsOffline] = useState(false);
-  const [showAllDrivers, setShowAllDrivers] = useState(false);
+  const [standingsExpanded, setStandingsExpanded] = useState(false);
 
   const analytics = useAnalytics();
   const clarity = useClarity();
@@ -76,55 +78,56 @@ const Index = () => {
             <Loader2 className="w-12 h-12 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-card border-border">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-primary" />
-                      Driver Standings
-                    </CardTitle>
-                    <button
-                      onClick={() => setShowAllDrivers(!showAllDrivers)}
-                      className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-                    >
-                      <Users className="h-4 w-4" />
-                      {showAllDrivers ? 'Show Top 10' : 'Show All Drivers'}
-                    </button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <DriverStandingsTable
-                    driverStandings={driverStandings}
-                    getTeamColor={getTeamColor}
-                    showAllDrivers={showAllDrivers}
-                  />
-                </CardContent>
-              </Card>
-
-              <ConstructorStandingsCard constructorStandings={constructorStandings} getTeamColor={getTeamColor} />
+          <div className="space-y-6">
+            {/* Top Row: Combined Standings & Seasonal Overview */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <CombinedStandingsCard 
+                  constructorStandings={constructorStandings} 
+                  driverStandings={driverStandings}
+                  getTeamColor={getTeamColor}
+                  onExpandChange={setStandingsExpanded}
+                />
+              </div>
+              <SeasonalReviewPanel expandedView={standingsExpanded} />
             </div>
 
+            {/* Second Row, top half: 1/3 Race Progression and 2/3 Qualifying → Race Progression */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 items-stretch gap-2 md:gap-3">
+              {/* Left (1/3): Race Progression */}
+              <div className="lg:col-span-1">
+                <LastRaceResultsChart
+                  lastRaceResults={lastRaceResults}
+                  isResultsLoading={isResultsLoading}
+                  getTeamColor={getTeamColor}
+                  compact
+                />
+              </div>
+              {/* Right (2/3): Qualifying → Race Progression */}
+              <div className="h-full lg:col-span-2">
+                <QualifyingToRaceChart compact />
+              </div>
+            </div>
 
+            {/* Second Row, bottom half: Lap Times full width */}
+            <div>
+              <LapTimesChart
+                lastRaceResults={lastRaceResults}
+                isResultsLoading={isResultsLoading}
+                getTeamColor={getTeamColor}
+                compact
+              />
+            </div>
 
+            {/* Third Row: Race Data Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <QualifyingResultsCard />
-
               <LastRaceResultsCard
                 lastRaceResults={lastRaceResults}
                 isResultsLoading={isResultsLoading}
                 getTeamColor={getTeamColor}
               />
-
               <FastestPitStopCard />
-
-
-            </div>
-
-            {/* Qualifying to Race Sankey Chart */}
-            <div className="grid grid-cols-1 gap-6">
-              <QualifyingToRaceChart />
             </div>
           </div>
         )}

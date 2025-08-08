@@ -149,7 +149,7 @@ const App = () => (
                       <Routes>
                         {/* Public Routes */}
                         <Route path="/" element={<Index />} />
-                        <Route path="/calendar" element={<RaceCalendar />} />
+                         <Route path="/calendar" element={<RaceCalendar />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="/privacy" element={<Privacy />} />
                         {/* Make Analytics public */}
