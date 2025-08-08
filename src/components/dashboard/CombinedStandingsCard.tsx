@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import TeamLogo from "@/components/common/TeamLogo";
 import { TEAM_COLORS } from "@/constants/f1Colors";
-import { Caravan, Users } from "lucide-react";
+import { Caravan, Users, Trophy } from "lucide-react";
 
 export interface CombinedStandingsCardProps {
   driverStandings: any;
@@ -115,7 +115,7 @@ const CombinedStandingsCard = ({
             {tab === "drivers" ? (
               <Users className="h-5 w-5 text-primary" />
             ) : (
-              <Caravan className="h-5 w-5 text-primary" />
+              <Trophy className="h-5 w-5 text-primary" />
             )}
             Standings
           </CardTitle>

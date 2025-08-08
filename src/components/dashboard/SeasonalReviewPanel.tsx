@@ -297,186 +297,113 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
             </div>
           </div>
           
-          {/* Upcoming Sessions or Expanded Calendar Info */}
+          {/* Next Sessions - always visible */}
           <div className="space-y-3 border-t border-dashed border-purple-500/30 pt-4">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-purple-500" />
-              <span className="text-sm font-medium text-foreground">
-                {expandedView ? 'Season Calendar' : 'Next Sessions'}
-              </span>
+              <span className="text-sm font-medium text-foreground">Next Sessions</span>
             </div>
-            
             <div className="space-y-2">
-              {expandedView ? (
-                // Expanded view: Show more calendar information
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
-                      <div className="text-lg font-mono font-bold text-green-600 dark:text-green-400">
-                        {completedRaces.length}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Completed</div>
-                    </div>
-                    <div className="text-center p-3 rounded-lg bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20">
-                      <div className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400">
-                        {totalRaces - completedRaces.length}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Remaining</div>
-                    </div>
-                  </div>
-                  
-                  {/* Recent and Upcoming Races */}
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {raceSchedule?.data?.map((race: any, index: number) => {
-                      const raceDate = new Date(race.date);
-                      const isPast = raceDate < now;
-                      const isNext = !isPast && index === completedRaces.length;
-                      
-                      return (
-                        <div 
-                          key={race.round}
-                          className={`flex items-center justify-between p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30 ${
-                            isNext 
-                              ? 'bg-gradient-to-r from-purple-500/10 to-transparent border-purple-500/30' 
-                              : isPast 
-                                ? 'bg-muted/30 border-muted' 
-                                : 'bg-card border-border'
-                          }`}
-                          onClick={() => openRaceDetails(race)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <CountryFlag country={race.Circuit?.Location?.country || ""} size={14} svg={true} />
-                            <div>
-                              <div className="text-xs font-medium">
-                                {getRaceNameWithoutEmoji(race.raceName)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                R{race.round} • {raceDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-1">
-                            {isPast && <div className="w-2 h-2 rounded-full bg-green-500" />}
-                            {isNext && (
-                              <Badge variant="outline" className="text-xs border-purple-500/50 text-purple-600 dark:text-purple-400">
-                                Next
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                // Normal view: Show next 3 sessions
-                upcomingSessions.length > 0 ? upcomingSessions.map((item, index) => {
-                  const timeUntil = formatDistance(item.date, now, { addSuffix: true });
-                  const isNext = index === 0;
-                  
-                  return (
-                    <div 
-                      key={item.race.round}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30 ${
-                        isNext 
-                          ? 'bg-gradient-to-r from-purple-500/10 to-transparent border-purple-500/30' 
-                          : 'bg-card border-border'
-                      }`}
-                      onClick={() => openRaceDetails(item.race)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <CountryFlag country={item.country} size={16} svg={true} />
-                          <div>
-                            <div className="text-sm font-medium">
-                              {getRaceNameWithoutEmoji(item.raceName)}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {item.session?.shortName || 'Race'}
-                            </div>
-                          </div>
+              {upcomingSessions.length > 0 ? upcomingSessions.map((item, index) => {
+                const timeUntil = formatDistance(item.date, now, { addSuffix: true });
+                const isNext = index === 0;
+                return (
+                  <div
+                    key={item.race.round}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30 ${
+                      isNext
+                        ? 'bg-gradient-to-r from-purple-500/10 to-transparent border-purple-500/30'
+                        : 'bg-card border-border'
+                    }`}
+                    onClick={() => openRaceDetails(item.race)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <CountryFlag country={item.country} size={16} svg={true} />
+                        <div>
+                          <div className="text-sm font-medium">{getRaceNameWithoutEmoji(item.raceName)}</div>
+                          <div className="text-xs text-muted-foreground">{item.session?.shortName || 'Race'}</div>
                         </div>
                       </div>
-                      
-                      <div className="text-right">
-                        <div className="text-xs font-mono text-muted-foreground">
-                          {timeUntil}
-                        </div>
-                        {isNext && (
-                          <Badge variant="outline" className="text-xs mt-1 border-purple-500/50 text-purple-600 dark:text-purple-400">
-                            Next
-                          </Badge>
-                        )}
-                      </div>
                     </div>
-                  );
-                }) : (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    Season complete
+                    <div className="text-right">
+                      <div className="text-xs font-mono text-muted-foreground">{timeUntil}</div>
+                      {isNext && (
+                        <Badge variant="outline" className="text-xs mt-1 border-purple-500/50 text-purple-600 dark:text-purple-400">Next</Badge>
+                      )}
+                    </div>
                   </div>
-                )
+                );
+              }) : (
+                <div className="text-center py-4 text-muted-foreground text-sm">Season complete</div>
               )}
             </div>
           </div>
-          
-          {/* Season Stats */}
+
+          {/* Season Stats (moved just below Next Sessions) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border">
             <div className="text-center p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
-              <div className="text-lg font-mono font-bold text-foreground">
-                {completedRaces.length}
-              </div>
+              <div className="text-lg font-mono font-bold text-foreground">{completedRaces.length}</div>
               <div className="text-xs text-muted-foreground">Races Done</div>
             </div>
             <div className="text-center p-3 rounded-lg bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20">
-              <div className="text-lg font-mono font-bold text-foreground">
-                {totalRaces - completedRaces.length}
-              </div>
+              <div className="text-lg font-mono font-bold text-foreground">{totalRaces - completedRaces.length}</div>
               <div className="text-xs text-muted-foreground">Races Remaining</div>
             </div>
             <div className="text-center p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-transparent border border-purple-500/20">
-              <div className="text-lg font-mono font-bold text-foreground">
-                {sprintCount}
-              </div>
+              <div className="text-lg font-mono font-bold text-foreground">{sprintCount}</div>
               <div className="text-xs text-muted-foreground">Sprint Weekends</div>
             </div>
             <div className="text-center p-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20">
-              <div className="text-lg font-mono font-bold text-foreground">
-                {longestBreakDays}d
-              </div>
+              <div className="text-lg font-mono font-bold text-foreground">{longestBreakDays}d</div>
               <div className="text-xs text-muted-foreground">Longest Gap</div>
             </div>
           </div>
 
-          {/* Extended Season Calendar Preview */}
-          <div className="pt-4 border-t border-dashed border-border/50">
+          {/* Upcoming Calendar - exclude any races shown in Next Sessions. Expands when expandedView, scrolls otherwise */}
+          <div className="space-y-2 pt-4 border-t border-border/50">
             <div className="mb-2 text-sm font-medium text-foreground">Upcoming Calendar</div>
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {getUpcomingRaces(8).map((race: any, idx: number) => {
-                const raceDate = new Date(race.date);
-                const type = raceTypes[idx + (completedRaces.length || 0)] || SINGLE_RACE;
-                const color = raceTypeColors[type] || raceTypeColors[SINGLE_RACE];
-                return (
-                  <div
-                    key={race.round}
-                    className="flex items-center justify-between p-2 rounded-lg border bg-card border-border hover:bg-accent/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CountryFlag country={race.Circuit?.Location?.country || ""} size={14} svg={true} />
-                      <div>
-                        <div className="text-xs font-medium">{getRaceNameWithoutEmoji(race.raceName)}</div>
-                        <div className="text-xs text-muted-foreground">R{race.round} • {raceDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div>
+            <div className={`space-y-2 pr-1 ${expandedView ? '' : 'max-h-100 overflow-y-auto'}`}>
+              {(() => {
+                const excludedRounds = new Set((upcomingSessions || []).map((u: any) => u.race.round));
+                const upcoming = (raceSchedule?.data || []).filter((r: any) => new Date(r.date) >= now && !excludedRounds.has(r.round));
+                const displayed = expandedView ? upcoming : upcoming.slice(0, 12);
+                return displayed.map((race: any) => {
+                  const raceDate = new Date(race.date);
+                  const idxInSchedule = (raceSchedule?.data || []).findIndex((r: any) => r.round === race.round);
+                  const typeKey = raceTypes[idxInSchedule] || SINGLE_RACE;
+                  const typeLabel = typeKey === TRIPLE_HEADER ? 'Triple Header' : typeKey === DOUBLE_HEADER ? 'Double Header' : 'Single';
+                  const typeColor = raceTypeColors[typeKey] || raceTypeColors[SINGLE_RACE];
+                  return (
+                    <div
+                      key={race.round}
+                      className="flex items-center justify-between p-2 rounded-lg border bg-card border-border hover:bg-accent/30 transition-colors"
+                      onClick={() => openRaceDetails(race)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <CountryFlag country={race.Circuit?.Location?.country || ''} size={14} svg={true} />
+                        <div>
+                          <div className="text-xs font-medium">{getRaceNameWithoutEmoji(race.raceName)}</div>
+                          <div className="text-xs text-muted-foreground">R{race.round} • {raceDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!!race.Sprint && <Badge variant="outline" className="text-[10px] h-5 border-yellow-500/50 text-yellow-600 dark:text-yellow-400">Sprint</Badge>}
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <div className={`w-2 h-2 rounded-full ${typeColor}`} />
+                          <span className="text-muted-foreground">{typeLabel}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {!!race.Sprint && <Badge variant="outline" className="text-[10px] h-5 border-yellow-500/50 text-yellow-600 dark:text-yellow-400">Sprint</Badge>}
-                      <div className={`w-2 h-2 rounded-full ${color}`} title={type} />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </div>
+          
+          {/* (stats moved above) */}
+
+          {/* Removed duplicate extended preview; Upcoming Calendar handled above */}
         </CardContent>
       </Card>
       
