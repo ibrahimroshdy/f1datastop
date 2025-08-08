@@ -70,7 +70,7 @@ const Index = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
+      <div className="min-h-0 bg-background text-foreground">
         <HeaderSection nextRace={nextRace} isOffline={isOffline} />
 
         {isLoading ? (
