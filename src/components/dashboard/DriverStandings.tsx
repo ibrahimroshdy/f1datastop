@@ -75,21 +75,9 @@ const DriverStandings = () => {
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                   {idx === 0 ? <div /> : (
-                    <div className="flex flex-col gap-1 w-40">
-                      <div>
-                        <div>To Leader</div>
-                        <div className="h-2 bg-muted rounded overflow-hidden">
-                          <div className="h-2 bg-purple-500/70" style={{ width: `${leader ? Math.round((toLeader / leader) * 100) : 0}%` }} />
-                        </div>
-                        <div className="text-right mt-0.5">{toLeader}</div>
-                      </div>
-                      <div>
-                        <div>To P{Number(standing.position) - 1}</div>
-                        <div className="h-2 bg-muted rounded overflow-hidden">
-                          <div className="h-2 bg-purple-400/70" style={{ width: `${points ? Math.round((toNext / points) * 100) : 0}%` }} />
-                        </div>
-                        <div className="text-right mt-0.5">{toNext}</div>
-                      </div>
+                    <div className="flex flex-col gap-0.5">
+                      <span>To Leader: {toLeader}</span>
+                      <span>To P{Number(standing.position) - 1}: {toNext}</span>
                     </div>
                   )}
                   <span className="font-medium">{contribPct}%</span>

@@ -43,21 +43,9 @@ const ConstructorStandingsContent = ({ constructorStandings }: ConstructorStandi
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-1">
                   {idx === 0 ? <div /> : (
-                    <div className="flex flex-col items-start gap-1 w-40">
-                      <div>
-                        <div className="text-[10px] lg:text-xs text-muted-foreground">To Leader</div>
-                        <div className="h-2 bg-muted rounded overflow-hidden">
-                          <div className="h-2 bg-purple-500/70" style={{ width: `${leaderPts ? Math.round((toLeader / leaderPts) * 100) : 0}%` }} />
-                        </div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">{toLeader}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] lg:text-xs text-muted-foreground">To P{Number(team.position) - 1}</div>
-                        <div className="h-2 bg-muted rounded overflow-hidden">
-                          <div className="h-2 bg-purple-400/70" style={{ width: `${aheadPts ? Math.round((toNext / aheadPts) * 100) : 0}%` }} />
-                        </div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">{toNext}</div>
-                      </div>
+                    <div className="flex flex-col items-start gap-0.5 text-[10px] lg:text-xs text-muted-foreground">
+                      <span>To Leader: {toLeader}</span>
+                      <span>To P{Number(team.position) - 1}: {toNext}</span>
                     </div>
                   )}
                   <span className="font-medium text-sm lg:text-base">{team.points}</span>
