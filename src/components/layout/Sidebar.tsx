@@ -24,7 +24,6 @@ import {
   BarChart4,
   UserRound,
   Car,
-  Newspaper,
   Users2,
   Caravan
 } from "lucide-react";
@@ -63,6 +62,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Constructors", href: "/constructors", icon: Caravan },
   ];
+
+  const socialNavigation: never[] = [];
 
   // Create a new array for auth navigation based on user status and developer mode
   const authNavigation = user 
@@ -172,6 +173,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             </div>
           </div>
 
+          {/* Community section removed */}
+
           {/* Authentication navigation section */}
           <div className="px-3 py-1">
             <h2 className="px-4 text-xs font-semibold tracking-tight text-muted-foreground">
@@ -214,6 +217,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             items={protectedNavigation}
             onNavClick={handleNavClick}
           />
+          {/* Community section removed for mobile */}
           
           {/* Auth navigation for mobile */}
           <div className="px-3 py-1">
