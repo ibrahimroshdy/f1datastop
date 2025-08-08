@@ -22,6 +22,22 @@ const Drivers = () => {
       driver.Constructors[0].name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  // Compute total constructor points map from all standings
+  const constructorIdToTotalPoints = new Map<string, number>();
+  if (driverStandings?.data) {
+    for (const driver of driverStandings.data) {
+      const currentConstructor = driver.Constructors.length > 0
+        ? driver.Constructors[driver.Constructors.length - 1]
+        : null;
+      const constructorId: string | null = currentConstructor?.constructorId || null;
+      if (!constructorId) continue;
+
+      const previousTotal = constructorIdToTotalPoints.get(constructorId) || 0;
+      const driverPoints = Number(driver.points) || 0;
+      constructorIdToTotalPoints.set(constructorId, previousTotal + driverPoints);
+    }
+  }
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -65,9 +81,22 @@ const Drivers = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredDrivers?.map((driver: any) => (
-              <DriverCard key={driver.Driver.driverId} driver={driver} />
-            ))}
+            {filteredDrivers?.map((driver: any) => {
+              const currentConstructor = driver.Constructors.length > 0
+                ? driver.Constructors[driver.Constructors.length - 1]
+                : null;
+              const constructorId: string | null = currentConstructor?.constructorId || null;
+              const teamTotalPoints = constructorId ? (constructorIdToTotalPoints.get(constructorId) || 0) : 0;
+
+              return (
+                <DriverCard
+                  key={driver.Driver.driverId}
+                  driver={driver}
+                  teamTotalPoints={teamTotalPoints}
+                  seasonYear={selectedYear}
+                />
+              );
+            })}
           </div>
         )}
       </div>

@@ -9,6 +9,7 @@ interface DriversProps {
 
 const Drivers = ({ standings }: DriversProps) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const seasonYear = new Date().getFullYear();
 
   // Filter drivers based on search query
   const filteredDrivers = standings.filter(driver => {
@@ -27,6 +28,20 @@ const Drivers = ({ standings }: DriversProps) => {
     return fullName.includes(query) || code.includes(query) || number.includes(query) || team.includes(query);
   });
 
+  // Compute total constructor points map from all standings
+  const constructorIdToTotalPoints = new Map<string, number>();
+  for (const driver of standings) {
+    const currentConstructor = driver.Constructors.length > 0
+      ? driver.Constructors[driver.Constructors.length - 1]
+      : null;
+    const constructorId: string | null = currentConstructor?.constructorId || null;
+    if (!constructorId) continue;
+
+    const previousTotal = constructorIdToTotalPoints.get(constructorId) || 0;
+    const driverPoints = Number(driver.points) || 0;
+    constructorIdToTotalPoints.set(constructorId, previousTotal + driverPoints);
+  }
+
   return (
     <div>
       <div className="mb-6 relative">
@@ -43,9 +58,22 @@ const Drivers = ({ standings }: DriversProps) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredDrivers.map(driver => (
-          <DriverCard key={driver.Driver.driverId} driver={driver} />
-        ))}
+        {filteredDrivers.map(driver => {
+          const currentConstructor = driver.Constructors.length > 0
+            ? driver.Constructors[driver.Constructors.length - 1]
+            : null;
+          const constructorId: string | null = currentConstructor?.constructorId || null;
+          const teamTotalPoints = constructorId ? (constructorIdToTotalPoints.get(constructorId) || 0) : 0;
+
+          return (
+            <DriverCard
+              key={driver.Driver.driverId}
+              driver={driver}
+              teamTotalPoints={teamTotalPoints}
+              seasonYear={seasonYear}
+            />
+          );
+        })}
       </div>
 
       {filteredDrivers.length === 0 && (

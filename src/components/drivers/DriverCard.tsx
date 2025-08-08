@@ -6,12 +6,16 @@ import { Info } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { TEAM_COLORS } from "@/constants/f1Colors";
+import { useLatestDriver } from "@/hooks/useOpenF1Data";
+import { useDriverResultsBySeason } from "@/hooks/useF1Data";
 
 interface DriverCardProps {
   driver: any;
+  teamTotalPoints?: number;
+  seasonYear?: number;
 }
 
-const DriverCard = ({ driver }: DriverCardProps) => {
+const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
   
   // Get the current constructor (last in array)
@@ -30,8 +34,35 @@ const DriverCard = ({ driver }: DriverCardProps) => {
   const currentYear = new Date().getFullYear();
   const age = birthYear ? currentYear - birthYear : "N/A";
 
-  // Get driver number
+  // Get driver number (fallback to Ergast, prefer OpenF1 latest)
   const driverNumber = driver.Driver.permanentNumber || 'N/A';
+  const codeAcronym = (driver.Driver.code || '').toUpperCase();
+
+  // Fetch latest OpenF1 driver info to get headshot_url (by driver code only)
+  const latestDriverQuery = useLatestDriver(undefined, codeAcronym);
+  const headshotUrl: string | undefined = latestDriverQuery.data?.data?.headshot_url;
+  const latestNumber: number | undefined = latestDriverQuery.data?.data?.driver_number;
+  const displayDriverNumber = latestNumber ?? driver.Driver.permanentNumber ?? 'N/A';
+  
+  // Driver contribution to constructor points
+  const driverPoints = Number(driver.points) || 0;
+  const teamPoints = Number(teamTotalPoints) || 0;
+  const contributionPercent = teamPoints > 0 && driverPoints > 0 ? Math.round((driverPoints / teamPoints) * 100) : null;
+
+  // Season year for per-race points history
+  const season = seasonYear || new Date().getFullYear();
+  const { data: resultsByRaceResp } = useDriverResultsBySeason(season, driver.Driver.driverId);
+  const pointsHistory: Array<{
+    round: string;
+    raceName: string;
+    date: string;
+    circuit?: string;
+    country?: string;
+    position?: string;
+    status?: string;
+    points: number;
+    constructor?: string;
+  }> = resultsByRaceResp?.data || [];
   
   // Generate driver image URL based on driver ID (or use a fallback)
   const getDriverImageUrl = (driverId: string) => {
@@ -45,7 +76,7 @@ const DriverCard = ({ driver }: DriverCardProps) => {
           <div className="flex items-center gap-2">
             <Avatar className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: teamColor }}>
               <AvatarImage 
-                src={getDriverImageUrl(driver.Driver.driverId)} 
+                src={headshotUrl || getDriverImageUrl(driver.Driver.driverId)} 
                 alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`} 
               />
               <AvatarFallback style={{ backgroundColor: teamColor }}>
@@ -57,7 +88,10 @@ const DriverCard = ({ driver }: DriverCardProps) => {
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: teamColor }}></span>
                 {currentConstructor?.name || 'Unknown Team'}
-                <span className="ml-1 text-xs font-medium">#{driverNumber}</span>
+                <span className="ml-1 text-xs font-medium">#{displayDriverNumber}</span>
+                {contributionPercent !== null && (
+                  <span className="ml-2 text-xs text-muted-foreground">{contributionPercent}% Team Points Contribution</span>
+                )}
               </p>
             </div>
           </div>
@@ -79,8 +113,14 @@ const DriverCard = ({ driver }: DriverCardProps) => {
             </div>
             <div>
               <p className="text-muted-foreground">Driver Number</p>
-              <p className="font-semibold">#{driverNumber}</p>
+              <p className="font-semibold">#{displayDriverNumber}</p>
             </div>
+            {contributionPercent !== null && (
+              <div className="col-span-2">
+                <p className="text-muted-foreground">Team Points Contribution</p>
+                <p className="font-semibold">{contributionPercent}%</p>
+              </div>
+            )}
           </div>
         </CardContent>
         <CardFooter className="pt-2">
@@ -106,7 +146,7 @@ const DriverCard = ({ driver }: DriverCardProps) => {
               {driver.Driver.givenName} {driver.Driver.familyName}
             </DialogTitle>
             <DialogDescription>
-              {currentConstructor?.name || 'Unknown Team'} | #{driverNumber}
+              {currentConstructor?.name || 'Unknown Team'} | #{displayDriverNumber}
             </DialogDescription>
           </DialogHeader>
           
@@ -144,9 +184,37 @@ const DriverCard = ({ driver }: DriverCardProps) => {
                   <span className="text-muted-foreground text-sm">Wins:</span>
                   <p>{driver.wins}</p>
                 </div>
+                {contributionPercent !== null && (
+                  <div>
+                    <span className="text-muted-foreground text-sm">Team Points Contribution:</span>
+                    <p>{contributionPercent}%</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
+
+          {pointsHistory.length > 0 && (
+            <div className="mt-2">
+              <h4 className="font-medium text-muted-foreground mb-2">Points by Race ({season})</h4>
+              <div className="max-h-60 overflow-auto pr-1 space-y-2">
+                {pointsHistory.map((race) => (
+                  <div key={`${race.round}-${race.raceName}`} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                        {race.round}
+                      </span>
+                      <div className="truncate">
+                        <p className="truncate font-medium">{race.raceName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{race.date}{race.position ? ` • P${race.position}` : ''}</p>
+                      </div>
+                    </div>
+                    <div className="ml-2 shrink-0 font-semibold">+{race.points}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-2">
             <h4 className="font-medium text-muted-foreground mb-2">F1 Profile</h4>

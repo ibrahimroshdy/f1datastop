@@ -402,3 +402,32 @@ export const getStartingGrid = async (session_key: number) => {
     return { data: [], error };
   }
 }; 
+
+// Get latest driver info (including headshot_url) by number or acronym
+export const getLatestDriver = async (driver_number?: number, name_acronym?: string) => {
+  try {
+    let url = `${BASE_URL}/drivers?session_key=latest`;
+    if (driver_number) {
+      url += `&driver_number=${driver_number}`;
+    }
+    if (name_acronym) {
+      url += `&name_acronym=${encodeURIComponent(name_acronym)}`;
+    }
+
+    const response = await throttledFetch(url);
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const context = `latest driver info${driver_number ? ` for driver ${driver_number}` : name_acronym ? ` for ${name_acronym}` : ''}`;
+    const data = await validateJsonResponse(response, context);
+    return {
+      data: Array.isArray(data) ? (data[0] || null) : null,
+      error: null,
+    };
+  } catch (error) {
+    console.error(`Failed to fetch latest driver info:`, error);
+    return { data: null, error };
+  }
+};

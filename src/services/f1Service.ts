@@ -635,3 +635,45 @@ export const getSprintResults = async (year: number, round: string) => {
     return { data: {}, error };
   }
 };
+
+// Fetch all race results for a driver in a given season (points per race)
+export const getDriverResultsBySeason = async (year: number, driverId: string) => {
+  try {
+    const url = `${BASE_URL}/f1/${year}/drivers/${encodeURIComponent(driverId)}/results.json?limit=1000`;
+    const response = await fetch(url, {
+      mode: 'cors',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const races: any[] = data.MRData?.RaceTable?.Races || [];
+
+    // Map to simplified per-race structure
+    const pointsByRace = races.map((race: any) => {
+      const result = (race.Results || [])[0] || {};
+      return {
+        round: race.round,
+        raceName: race.raceName,
+        date: race.date,
+        circuit: race.Circuit?.circuitName,
+        country: race.Circuit?.Location?.country,
+        position: result.position,
+        status: result.status,
+        points: Number(result.points || 0),
+        constructor: result.Constructor?.name,
+      };
+    }).filter(r => r.points > 0);
+
+    // Sort by round numeric
+    pointsByRace.sort((a, b) => parseInt(a.round) - parseInt(b.round));
+
+    return { data: pointsByRace, error: null };
+  } catch (error) {
+    console.error(`Failed to fetch driver results for ${year}, driver ${driverId}:`, error);
+    return { data: [], error };
+  }
+};

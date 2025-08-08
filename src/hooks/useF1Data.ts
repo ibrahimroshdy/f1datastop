@@ -749,3 +749,14 @@ export const useSprintResults = (year: number, round: string) => {
     enabled: !!year && !!round
   });
 };
+
+// Driver results by season (points per race)
+export const useDriverResultsBySeason = (year: number, driverId: string) => {
+  return useQuery({
+    queryKey: ["driverResultsBySeason", year, driverId],
+    queryFn: () => f1Service.getDriverResultsBySeason(year, driverId),
+    staleTime: 1000 * 60 * 10,
+    enabled: !!year && !!driverId,
+    ...defaultRetryConfig,
+  });
+};
