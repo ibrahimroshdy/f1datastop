@@ -92,27 +92,31 @@ const Index = () => {
               <SeasonalReviewPanel expandedView={standingsExpanded} />
             </div>
 
-            {/* Second Row: Chart Analysis - Left/Right 1/2 each */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 items-stretch gap-2 md:gap-3">
-              {/* Left Column: compact stacked */}
-              <div className="flex flex-col gap-2 md:gap-3">
+            {/* Second Row, top half: 1/3 Race Progression and 2/3 Qualifying → Race Progression */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 items-stretch gap-2 md:gap-3">
+              {/* Left (1/3): Race Progression */}
+              <div className="lg:col-span-1">
                 <LastRaceResultsChart
                   lastRaceResults={lastRaceResults}
                   isResultsLoading={isResultsLoading}
                   getTeamColor={getTeamColor}
                   compact
                 />
-                <LapTimesChart
-                  lastRaceResults={lastRaceResults}
-                  isResultsLoading={isResultsLoading}
-                  getTeamColor={getTeamColor}
-                  compact
-                />
               </div>
-              {/* Right Column: Qualifying → Race Progression */}
-              <div className="h-full">
-                <QualifyingToRaceChart />
+              {/* Right (2/3): Qualifying → Race Progression */}
+              <div className="h-full lg:col-span-2">
+                <QualifyingToRaceChart compact />
               </div>
+            </div>
+
+            {/* Second Row, bottom half: Lap Times full width */}
+            <div>
+              <LapTimesChart
+                lastRaceResults={lastRaceResults}
+                isResultsLoading={isResultsLoading}
+                getTeamColor={getTeamColor}
+                compact
+              />
             </div>
 
             {/* Third Row: Race Data Cards */}

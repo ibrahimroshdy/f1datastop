@@ -8,7 +8,7 @@ import ReactCountryFlag from "react-country-flag";
 import { getCountryCode } from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { useState, useEffect, useMemo } from "react";
-import { useRaceSchedule } from "@/hooks/useF1Data";
+import { useRaceSchedule, useLapTimes } from "@/hooks/useF1Data";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
@@ -62,6 +62,70 @@ const secondsToLapTime = (seconds: number): string => {
   }
 };
 
+// Interpolate missing series values per driver so charts don't break
+function interpolateDriverSeries(points: any[], driverCodes: string[]) {
+  const n = points.length;
+  driverCodes.forEach((code) => {
+    const values: Array<number | null> = points.map((p) => p[code] ?? null);
+    let i = 0;
+    while (i < n) {
+      if (values[i] != null) {
+        i++;
+        continue;
+      }
+      // find previous and next non-null
+      let prev = i - 1;
+      while (prev >= 0 && values[prev] == null) prev--;
+      let next = i + 1;
+      while (next < n && values[next] == null) next++;
+      if (prev >= 0 && next < n && values[prev] != null && values[next] != null) {
+        const start = values[prev] as number;
+        const end = values[next] as number;
+        const len = next - prev;
+        for (let k = prev + 1; k < next; k++) {
+          const t = (k - prev) / len;
+          values[k] = start + (end - start) * t;
+        }
+        i = next;
+      } else if (prev >= 0 && values[prev] != null) {
+        const val = values[prev] as number;
+        while (i < n && values[i] == null) {
+          values[i] = val;
+          i++;
+        }
+      } else if (next < n && values[next] != null) {
+        const val = values[next] as number;
+        for (let k = 0; k < next; k++) {
+          if (values[k] == null) values[k] = val;
+        }
+        i = next + 1;
+      } else {
+        // all nulls; leave zeros
+        for (let k = 0; k < n; k++) {
+          if (values[k] == null) values[k] = 0;
+        }
+        break;
+      }
+    }
+    // write back
+    for (let k = 0; k < n; k++) {
+      points[k][code] = values[k];
+    }
+  });
+  return points;
+}
+
+// Downsample to every 10 laps while ensuring we keep the first, last, and a specific lap (e.g., fastest)
+function downsampleEveryTen(points: any[], includeLap?: number) {
+  if (!points || points.length === 0) return points;
+  const total = points[points.length - 1]?.lap ?? 0;
+  const filtered = points.filter((p) => p.lap === 1 || p.lap === total || p.lap % 10 === 0 || (includeLap && p.lap === includeLap));
+  // Ensure uniqueness and sorted order by lap
+  const byLap = new Map<number, any>();
+  filtered.forEach((p) => byLap.set(p.lap, p));
+  return Array.from(byLap.values()).sort((a, b) => a.lap - b.lap);
+}
+
 const LapTimesChart = ({
   lastRaceResults,
   isResultsLoading,
@@ -107,54 +171,71 @@ const LapTimesChart = ({
       const driverCode = fastestLapDriver?.Driver?.code || "";
       const fastestTime = fastestLapDriver?.FastestLap?.Time?.time || "0";
       const lapTime = lapTimeToSeconds(fastestTime);
+      const lapNumber = parseInt(fastestLapDriver?.FastestLap?.lap || "0");
       
-      return { driverCode, lapTime };
+      return { driverCode, lapTime, lapNumber };
     }
-    return { driverCode: "", lapTime: 0 };
+    return { driverCode: "", lapTime: 0, lapNumber: 0 };
   }, [lastRaceResults?.data?.results]);
 
-  // Memoize chart data to prevent expensive recalculation
+  // Determine the last completed race (season/round)
+  const lastCompleted = useMemo(() => {
+    const races = raceScheduleData?.data || [];
+    const now = new Date();
+    const completed = races.filter((race: any) => new Date(race.date) < now);
+    if (completed.length === 0) return null;
+    const last = completed[completed.length - 1];
+    return { season: parseInt(last.season), round: last.round } as { season: number; round: string } | null;
+  }, [raceScheduleData?.data]);
+
+  // Load real lap times for that race (all drivers)
+  const { data: lapTimesResp } = useLapTimes(lastCompleted?.season || 0, lastCompleted?.round || "", false);
+
+  // Memoize chart data, prefer real lap times, fallback to simulated
   const memoizedChartData = useMemo(() => {
-    console.log('LapTimesChart - lastRaceResults:', lastRaceResults);
-    if (!lastRaceResults?.data?.results) return [];
-    
-    const top5Results = lastRaceResults.data.results.slice(0, 5);
-    const totalLaps = parseInt(lastRaceResults.data.results[0]?.laps || "50");
-    const chartPoints: any[] = [];
-    
-    // Generate data points for key laps (every 10 laps)
-    const keyLaps = [];
-    for (let i = 1; i <= totalLaps; i += Math.max(1, Math.floor(totalLaps / 8))) {
-      keyLaps.push(i);
-    }
-    if (keyLaps[keyLaps.length - 1] !== totalLaps) {
-      keyLaps.push(totalLaps);
-    }
-    
-    keyLaps.forEach(lap => {
-      const point: any = { lap };
-      
-      top5Results.forEach((result, index) => {
-        const driverCode = result.Driver.code;
-        const baseLapTime = fastestLapInfo?.lapTime > 0 ? fastestLapInfo.lapTime : 90; // Default ~1:30 if no fastest lap
-        
-        // Simulate lap time variation based on position and race progress
-        const positionPenalty = index * 0.5; // Slower drivers have higher base times
-        const fuelLoad = Math.max(0, 1 - (lap / totalLaps)) * 2; // Fuel effect decreases over race
-        const tireWear = (lap / totalLaps) * 1.5; // Tire degradation increases
-        const randomVariation = (Math.random() - 0.5) * 1; // Random variation
-        
-        const lapTime = baseLapTime + positionPenalty + fuelLoad + tireWear + randomVariation;
-        
-        point[driverCode] = Math.max(baseLapTime - 2, lapTime); // Ensure reasonable lap times
+    const laps: any[] = lapTimesResp?.data?.Races?.[0]?.Laps || [];
+    const top5Results = lastRaceResults?.data?.results?.slice(0, 5) || [];
+    if (laps.length > 0 && top5Results.length > 0) {
+      const driverIds: string[] = top5Results.map((r: any) => r.Driver.driverId);
+      const driverCodeById: Record<string, string> = top5Results.reduce((acc: any, r: any) => {
+        acc[r.Driver.driverId] = r.Driver.code; return acc;
+      }, {});
+      const points: any[] = [];
+      laps.forEach((lapObj: any) => {
+        const lapNum = parseInt(lapObj.number);
+        const p: any = { lap: lapNum };
+        driverIds.forEach((id) => {
+          const t = (lapObj.Timings || []).find((tt: any) => tt.driverId === id);
+          p[driverCodeById[id]] = t ? lapTimeToSeconds(t.time) : null;
+        });
+        points.push(p);
       });
-      
-      chartPoints.push(point);
-    });
-    
-    console.log('LapTimesChart - Generated chartPoints:', chartPoints);
-    return chartPoints;
-  }, [lastRaceResults?.data?.results, fastestLapInfo]);
+      const interpolated = interpolateDriverSeries(points, Object.values(driverCodeById));
+      return downsampleEveryTen(interpolated, fastestLapInfo?.lapNumber);
+    }
+
+    // Fallback if no lap times available
+    if (!lastRaceResults?.data?.results) return [];
+    const totalLaps = parseInt(lastRaceResults.data.results[0]?.laps || "50");
+    const fallbackTop = lastRaceResults.data.results.slice(0, 5);
+    const base = fastestLapInfo?.lapTime > 0 ? fastestLapInfo.lapTime : 90;
+    const simulated: any[] = [];
+    for (let lap = 1; lap <= totalLaps; lap += 1) {
+      const row: any = { lap };
+      fallbackTop.forEach((result: any, index: number) => {
+        const driverCode = result.Driver.code;
+        const positionPenalty = index * 0.5;
+        const fuelLoad = Math.max(0, 1 - (lap / totalLaps)) * 2;
+        const tireWear = (lap / totalLaps) * 1.5;
+        const randomVariation = (Math.random() - 0.5) * 1;
+        const lapTime = base + positionPenalty + fuelLoad + tireWear + randomVariation;
+        row[driverCode] = Math.max(base - 2, lapTime);
+      });
+      simulated.push(row);
+    }
+    const interpolated = interpolateDriverSeries(simulated, fallbackTop.map((r:any)=>r.Driver.code));
+    return downsampleEveryTen(interpolated, fastestLapInfo?.lapNumber);
+  }, [lapTimesResp?.data, lastRaceResults?.data?.results, raceScheduleData?.data, fastestLapInfo]);
   
   // Update state only when necessary
   useEffect(() => {
@@ -207,7 +288,7 @@ const LapTimesChart = ({
 
   return (
     <>
-      <Card className="h-full overflow-hidden">
+      <Card className="bg-card border-border h-full overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
@@ -281,6 +362,15 @@ const LapTimesChart = ({
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                      ticks={(chartData || []).length ? (() => {
+                        const total = (chartData || []).length;
+                        const step = 10; // every 10 laps for readability
+                        const arr: number[] = [];
+                        for (let i = 1; i <= total; i += step) arr.push(i);
+                        if (arr[0] !== 1) arr.unshift(1);
+                        if (arr[arr.length - 1] !== total) arr.push(total);
+                        return arr;
+                      })() : undefined}
                     />
                     <YAxis 
                       domain={['dataMin - 2', 'dataMax + 2']}
@@ -292,9 +382,9 @@ const LapTimesChart = ({
                     />
                     <Tooltip content={<CustomTooltip />} />
                     
-                    {/* Reference line for fastest lap time */}
+                    {/* Highlight fastest lap with purple dotted line only */}
                     {fastestLapTime > 0 && (
-                      <ReferenceLine y={fastestLapTime} stroke="#a855f7" strokeDasharray="2 2" opacity={0.7} />
+                      <ReferenceLine y={fastestLapTime} stroke="#a855f7" strokeDasharray="4 3" opacity={0.9} />
                     )}
                     
                     {lastRaceResults?.data?.results?.slice(0, 5).map((result: any) => {
@@ -307,16 +397,16 @@ const LapTimesChart = ({
                           key={driverCode}
                           type="monotone"
                           dataKey={driverCode}
-                          stroke={isFastest ? "#a855f7" : teamColor}
+                          stroke={isFastest ? "hsl(var(--muted-foreground))" : teamColor}
                           strokeWidth={isFastest ? 3 : 2}
                           dot={{ 
-                            fill: isFastest ? "#a855f7" : teamColor, 
+                            fill: isFastest ? "hsl(var(--muted-foreground))" : teamColor, 
                             strokeWidth: 0, 
                             r: isFastest ? 4 : 3 
                           }}
                           activeDot={{ 
                             r: 5, 
-                            stroke: isFastest ? "#a855f7" : teamColor,
+                            stroke: isFastest ? "hsl(var(--muted-foreground))" : teamColor,
                             strokeWidth: 2,
                             fill: "hsl(var(--background))"
                           }}

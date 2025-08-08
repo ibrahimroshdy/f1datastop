@@ -8,7 +8,7 @@ import ReactCountryFlag from "react-country-flag";
 import { getCountryCode } from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { useState, useEffect, useMemo } from "react";
-import { useRaceSchedule } from "@/hooks/useF1Data";
+import { useRaceSchedule, useLapTimes } from "@/hooks/useF1Data";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
@@ -39,6 +39,41 @@ const LastRaceResultsChart = ({
   getTeamColor,
   compact
 }: LastRaceResultsChartProps) => {
+  // Interpolate missing series values per driver so lines remain continuous
+  function interpolatePositions(points: any[], driverCodes: string[]) {
+    const n = points.length;
+    driverCodes.forEach((code) => {
+      const values: Array<number | null> = points.map((p) => p[code] ?? null);
+      let i = 0;
+      while (i < n) {
+        if (values[i] != null) { i++; continue; }
+        let prev = i - 1; while (prev >= 0 && values[prev] == null) prev--;
+        let next = i + 1; while (next < n && values[next] == null) next++;
+        if (prev >= 0 && next < n && values[prev] != null && values[next] != null) {
+          const start = values[prev] as number;
+          const end = values[next] as number;
+          const len = next - prev;
+          for (let k = prev + 1; k < next; k++) {
+            const t = (k - prev) / len;
+            values[k] = Math.round(start + (end - start) * t);
+          }
+          i = next;
+        } else if (prev >= 0 && values[prev] != null) {
+          const val = values[prev] as number;
+          while (i < n && values[i] == null) { values[i] = val; i++; }
+        } else if (next < n && values[next] != null) {
+          const val = values[next] as number;
+          for (let k = 0; k < next; k++) if (values[k] == null) values[k] = val;
+          i = next + 1;
+        } else {
+          for (let k = 0; k < n; k++) if (values[k] == null) values[k] = 10; // default mid-pack
+          break;
+        }
+      }
+      for (let k = 0; k < n; k++) points[k][code] = values[k];
+    });
+    return points;
+  }
   const [raceName, setRaceName] = useState<string>("");
   const [countryName, setCountryName] = useState<string>("");
   const [countryCode, setCountryCode] = useState<string>("");
@@ -79,45 +114,53 @@ const LastRaceResultsChart = ({
     return "";
   }, [lastRaceResults?.data?.results]);
 
-  // Memoize chart data to prevent expensive recalculation
+  // Build positions from real lap timing data
+  const lastCompleted = useMemo(() => {
+    const races = raceScheduleData?.data || [];
+    const now = new Date();
+    const completed = races.filter((race: any) => new Date(race.date) < now);
+    if (completed.length === 0) return null;
+    const last = completed[completed.length - 1];
+    return { season: parseInt(last.season), round: last.round } as { season: number; round: string } | null;
+  }, [raceScheduleData?.data]);
+
+  const { data: lapTimesResp } = useLapTimes(lastCompleted?.season || 0, lastCompleted?.round || "", false);
+
+  // Downsample to every 10 laps, keep first/last and fastest lap
+  function downsampleEveryTen(points: any[], includeLap?: number) {
+    if (!points || points.length === 0) return points;
+    const total = points[points.length - 1]?.lap ?? 0;
+    const filtered = points.filter((p) => p.lap === 1 || p.lap === total || p.lap % 10 === 0 || (includeLap && p.lap === includeLap));
+    const byLap = new Map<number, any>();
+    filtered.forEach((p) => byLap.set(p.lap, p));
+    return Array.from(byLap.values()).sort((a, b) => a.lap - b.lap);
+  }
+
   const memoizedChartData = useMemo(() => {
-    if (!lastRaceResults?.data?.results) return [];
-    
-    const top5Results = lastRaceResults.data.results.slice(0, 5);
-    const totalLaps = parseInt(lastRaceResults.data.results[0]?.laps || "50");
-    const chartPoints: any[] = [];
-    
-    // Generate data points for key laps (start, 25%, 50%, 75%, finish)
-    const keyLaps = [1, Math.floor(totalLaps * 0.25), Math.floor(totalLaps * 0.5), Math.floor(totalLaps * 0.75), totalLaps];
-    
-    keyLaps.forEach(lap => {
-      const point: any = { lap };
-      
-      top5Results.forEach((result, index) => {
-        const driverCode = result.Driver.code;
-        // Simulate position changes throughout race (simplified)
-        let position;
-        if (lap === 1) {
-          // Starting positions (simplified - could be actual grid positions)
-          position = index + 1;
-        } else if (lap === totalLaps) {
-          // Final positions
-          position = parseInt(result.position);
-        } else {
-          // Intermediate positions with some variation
-          const finalPos = parseInt(result.position);
-          const variation = Math.sin((lap / totalLaps) * Math.PI) * (index + 1) * 0.5;
-          position = Math.max(1, Math.min(10, finalPos + variation));
-        }
-        point[driverCode] = position;
+    const laps: any[] = lapTimesResp?.data?.Races?.[0]?.Laps || [];
+    const results = lastRaceResults?.data?.results || [];
+    const top5 = results.slice(0, 5);
+    if (laps.length === 0 || top5.length === 0) return [];
+    const driverIds: string[] = top5.map((r: any) => r.Driver.driverId);
+    const codeById: Record<string, string> = top5.reduce((acc: any, r: any) => {
+      acc[r.Driver.driverId] = r.Driver.code; return acc;
+    }, {});
+    const points: any[] = [];
+    laps.forEach((lapObj: any) => {
+      const lapNum = parseInt(lapObj.number);
+      const p: any = { lap: lapNum };
+      driverIds.forEach((id) => {
+        const t = (lapObj.Timings || []).find((tt: any) => tt.driverId === id);
+        p[codeById[id]] = t ? parseInt(t.position) : null;
       });
-      
-      chartPoints.push(point);
+      points.push(p);
     });
-    
-    console.log('LastRaceResultsChart - Generated chartPoints:', chartPoints);
-    return chartPoints;
-  }, [lastRaceResults?.data?.results]);
+    const interpolated = interpolatePositions(points, Object.values(codeById));
+    // Fastest lap number from results if available
+    const fastest = results.find((r:any)=> r.FastestLap?.rank === "1");
+    const fastestLapNum = fastest ? parseInt(fastest.FastestLap?.lap || "0") : 0;
+    return downsampleEveryTen(interpolated, fastestLapNum);
+  }, [lapTimesResp?.data, lastRaceResults?.data?.results, raceScheduleData?.data]);
   
   // Update state only when necessary
   useEffect(() => {
@@ -169,7 +212,7 @@ const LastRaceResultsChart = ({
 
   return (
     <>
-      <Card className="h-full overflow-hidden">
+      <Card className="bg-card border-border h-full overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
@@ -243,10 +286,19 @@ const LastRaceResultsChart = ({
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                      ticks={(chartData || []).length ? (() => {
+                        const total = (chartData || []).length;
+                        const step = 10; // every 10 laps
+                        const arr: number[] = [];
+                        for (let i = 1; i <= total; i += step) arr.push(i);
+                        if (arr[0] !== 1) arr.unshift(1);
+                        if (arr[arr.length - 1] !== total) arr.push(total);
+                        return arr;
+                      })() : undefined}
                     />
                     <YAxis 
                       reversed
-                      domain={[1, 10]}
+                      domain={[1, 20]}
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
