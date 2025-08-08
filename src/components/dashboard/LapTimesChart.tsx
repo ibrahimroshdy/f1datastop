@@ -288,7 +288,7 @@ const LapTimesChart = ({
 
   return (
     <>
-      <Card className="bg-card border-border h-full overflow-hidden">
+      <Card className="bg-card border-border h-full overflow-hidden flex flex-col">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
@@ -338,7 +338,7 @@ const LapTimesChart = ({
             </>
           )}
         </CardHeader>
-        <CardContent className="px-2 pb-2">
+        <CardContent className="px-2 pb-2 flex-1 flex flex-col">
           {isResultsLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-48 w-full" />
@@ -352,25 +352,20 @@ const LapTimesChart = ({
               </AlertDescription>
             </Alert>
           ) : (
-            <div className="space-y-3">
-              <div className="w-full overflow-hidden py-2" style={{ height: `${compact ? 260 : 400}px` }}>
+            <div className="space-y-3 h-full flex flex-col">
+              <div className="w-full overflow-hidden py-2 flex-1" style={{ height: '100%', minHeight: compact ? 260 : 400 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                     <XAxis 
-                      dataKey="lap" 
+                      dataKey="lap"
+                      type="number"
+                      domain={["dataMin", "dataMax"]}
+                      allowDecimals={false}
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                      ticks={(chartData || []).length ? (() => {
-                        const total = (chartData || []).length;
-                        const step = 10; // every 10 laps for readability
-                        const arr: number[] = [];
-                        for (let i = 1; i <= total; i += step) arr.push(i);
-                        if (arr[0] !== 1) arr.unshift(1);
-                        if (arr[arr.length - 1] !== total) arr.push(total);
-                        return arr;
-                      })() : undefined}
+                      ticks={(chartData || []).map((d: any) => d.lap)}
                     />
                     <YAxis 
                       domain={['dataMin - 2', 'dataMax + 2']}
