@@ -5,9 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerClose } from "@/components/ui/drawer";
+import { X } from "lucide-react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { useLatestDriver } from "@/hooks/useOpenF1Data";
 import { useDriverResultsBySeason } from "@/hooks/useF1Data";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DriverCardProps {
   driver: any;
@@ -17,6 +20,7 @@ interface DriverCardProps {
 
 const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
+  const isMobile = useIsMobile();
   
   // Get the current constructor (last in array)
   const currentConstructor = driver.Constructors.length > 0 
@@ -69,6 +73,94 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
     return `https://raw.githubusercontent.com/npranav10/F1-Dashboard/main/public/img/drivers/${driverId}.png`;
   };
 
+  // Component for the detail content (shared between dialog and drawer)
+  const DetailContent = () => (
+    <>
+      <div className="grid grid-cols-2 gap-4 py-4">
+        <div>
+          <h4 className="font-medium text-muted-foreground mb-1">Personal Information</h4>
+          <div className="space-y-2">
+            <div>
+              <span className="text-muted-foreground text-sm">Born:</span>
+              <p>{driver.Driver.dateOfBirth || "Unknown"} ({age})</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-sm">Nationality:</span>
+              <p>{driver.Driver.nationality}</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-sm">Code:</span>
+              <p>{driver.Driver.code}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <h4 className="font-medium text-muted-foreground mb-1">Season Statistics</h4>
+          <div className="space-y-2">
+            <div>
+              <span className="text-muted-foreground text-sm">Position:</span>
+              <p>{driver.position}</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-sm">Points:</span>
+              <p>{driver.points}</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-sm">Wins:</span>
+              <p>{driver.wins}</p>
+            </div>
+            {contributionPercent !== null && (
+              <div>
+                <span className="text-muted-foreground text-sm">Team Points Contribution:</span>
+                <p>{contributionPercent}%</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {pointsHistory.length > 0 && (
+        <div className="mt-2">
+          <h4 className="font-medium text-muted-foreground mb-2">Points by Race ({season})</h4>
+          <div className="max-h-60 overflow-auto pr-1 space-y-2">
+            {pointsHistory.map((race) => (
+              <div key={`${race.round}-${race.raceName}`} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                    {race.round}
+                  </span>
+                  <div className="truncate">
+                    <p className="truncate font-medium">{race.raceName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{race.date}{race.position ? ` • P${race.position}` : ''}</p>
+                  </div>
+                </div>
+                <div className="ml-2 shrink-0 font-semibold">+{race.points}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-2">
+        <h4 className="font-medium text-muted-foreground mb-2">F1 Profile</h4>
+        <p className="text-sm">
+          {driver.Driver.givenName} {driver.Driver.familyName} is a Formula 1 driver currently racing for {currentConstructor?.name || 'Unknown Team'}.
+          {driver.Driver.url && (
+            <a 
+              href={driver.Driver.url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block mt-2 text-primary hover:underline"
+            >
+              View Wikipedia Profile
+            </a>
+          )}
+        </p>
+      </div>
+    </>
+  );
+
   return (
     <>
       <Card className="overflow-hidden border-t-4 hover:shadow-md transition-shadow" style={{ borderTopColor: teamColor }}>
@@ -89,9 +181,7 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
                 <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: teamColor }}></span>
                 {currentConstructor?.name || 'Unknown Team'}
                 <span className="ml-1 text-xs font-medium">#{displayDriverNumber}</span>
-                {contributionPercent !== null && (
-                  <span className="ml-2 text-xs text-muted-foreground">{contributionPercent}% Team Points Contribution</span>
-                )}
+
               </p>
             </div>
           </div>
@@ -135,105 +225,67 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
         </CardFooter>
       </Card>
 
-      <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span 
-                className="inline-block w-4 h-4 rounded-full"
-                style={{ backgroundColor: teamColor }}
-              ></span>
-              {driver.Driver.givenName} {driver.Driver.familyName}
-            </DialogTitle>
-            <DialogDescription>
-              {currentConstructor?.name || 'Unknown Team'} | #{displayDriverNumber}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-2 gap-4 py-4">
-            <div>
-              <h4 className="font-medium text-muted-foreground mb-1">Personal Information</h4>
-              <div className="space-y-2">
-                <div>
-                  <span className="text-muted-foreground text-sm">Born:</span>
-                  <p>{driver.Driver.dateOfBirth || "Unknown"} ({age})</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-sm">Nationality:</span>
-                  <p>{driver.Driver.nationality}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-sm">Code:</span>
-                  <p>{driver.Driver.code}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="font-medium text-muted-foreground mb-1">Season Statistics</h4>
-              <div className="space-y-2">
-                <div>
-                  <span className="text-muted-foreground text-sm">Position:</span>
-                  <p>{driver.position}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-sm">Points:</span>
-                  <p>{driver.points}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-sm">Wins:</span>
-                  <p>{driver.wins}</p>
-                </div>
-                {contributionPercent !== null && (
-                  <div>
-                    <span className="text-muted-foreground text-sm">Team Points Contribution:</span>
-                    <p>{contributionPercent}%</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {pointsHistory.length > 0 && (
-            <div className="mt-2">
-              <h4 className="font-medium text-muted-foreground mb-2">Points by Race ({season})</h4>
-              <div className="max-h-60 overflow-auto pr-1 space-y-2">
-                {pointsHistory.map((race) => (
-                  <div key={`${race.round}-${race.raceName}`} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                        {race.round}
-                      </span>
-                      <div className="truncate">
-                        <p className="truncate font-medium">{race.raceName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{race.date}{race.position ? ` • P${race.position}` : ''}</p>
-                      </div>
-                    </div>
-                    <div className="ml-2 shrink-0 font-semibold">+{race.points}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-2">
-            <h4 className="font-medium text-muted-foreground mb-2">F1 Profile</h4>
-            <p className="text-sm">
-              {driver.Driver.givenName} {driver.Driver.familyName} is a Formula 1 driver currently racing for {currentConstructor?.name || 'Unknown Team'}.
-              {driver.Driver.url && (
-                <a 
-                  href={driver.Driver.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block mt-2 text-primary hover:underline"
+      {isMobile ? (
+        <Drawer open={showDetails} onOpenChange={setShowDetails}>
+          <DrawerContent>
+            <DrawerHeader className="relative">
+              <DrawerClose asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute right-4 top-4 h-6 w-6"
+                  onClick={() => setShowDetails(false)}
                 >
-                  View Wikipedia Profile
-                </a>
-              )}
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </Button>
+              </DrawerClose>
+              <DrawerTitle className="flex items-center gap-2 pr-8">
+                <span 
+                  className="inline-block w-4 h-4 rounded-full"
+                  style={{ backgroundColor: teamColor }}
+                ></span>
+                {driver.Driver.givenName} {driver.Driver.familyName}
+              </DrawerTitle>
+              <DrawerDescription>
+                {currentConstructor?.name || 'Unknown Team'} | #{displayDriverNumber}
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-4">
+              <DetailContent />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={showDetails} onOpenChange={setShowDetails}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogClose asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-4 top-4 h-6 w-6"
+                onClick={() => setShowDetails(false)}
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </DialogClose>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 pr-8">
+                <span 
+                  className="inline-block w-4 h-4 rounded-full"
+                  style={{ backgroundColor: teamColor }}
+                ></span>
+                {driver.Driver.givenName} {driver.Driver.familyName}
+              </DialogTitle>
+              <DialogDescription>
+                {currentConstructor?.name || 'Unknown Team'} | #{displayDriverNumber}
+              </DialogDescription>
+            </DialogHeader>
+            <DetailContent />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };
