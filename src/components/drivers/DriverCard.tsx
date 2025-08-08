@@ -227,31 +227,31 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
 
       {isMobile ? (
         <Drawer open={showDetails} onOpenChange={setShowDetails}>
-          <DrawerContent>
-            <DrawerHeader className="relative">
+          <DrawerContent className="mx-auto w-full max-w-md rounded-t-lg max-h-[75vh] p-0">
+            <DrawerHeader className="relative px-4 py-3 border-b sticky top-0 bg-background z-10">
               <DrawerClose asChild>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="absolute right-4 top-4 h-6 w-6"
+                  className="absolute right-4 top-3 h-6 w-6"
                   onClick={() => setShowDetails(false)}
                 >
                   <X className="h-4 w-4" />
                   <span className="sr-only">Close</span>
                 </Button>
               </DrawerClose>
-              <DrawerTitle className="flex items-center gap-2 pr-8">
+              <DrawerTitle className="flex items-center gap-2 pr-8 text-base">
                 <span 
                   className="inline-block w-4 h-4 rounded-full"
                   style={{ backgroundColor: teamColor }}
                 ></span>
                 {driver.Driver.givenName} {driver.Driver.familyName}
               </DrawerTitle>
-              <DrawerDescription>
+              <DrawerDescription className="text-xs">
                 {currentConstructor?.name || 'Unknown Team'} | #{displayDriverNumber}
               </DrawerDescription>
             </DrawerHeader>
-            <div className="px-4 pb-4">
+            <div className="px-4 pb-4 overflow-y-auto max-h-[calc(75vh-56px)]">
               <DetailContent />
             </div>
           </DrawerContent>

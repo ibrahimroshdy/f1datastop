@@ -7,6 +7,7 @@ import PageSelector from "@/components/navigation/PageSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import CountryFlag from "@/components/common/CountryFlag";
 import BuyMeCoffeeWidget from "@/components/common/BuyMeCoffeeWidget";
+import { getNextSession } from "@/utils/nextSessionUtils";
 
 interface HeaderSectionProps {
   nextRace: any;
@@ -17,13 +18,16 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   
+  // Get the next session instead of just the race
+  const { session: nextSession, raceName, country } = getNextSession(nextRace);
+  
   useEffect(() => {
-    if (!nextRace) return;
+    if (!nextSession) return;
     
     const calculateTimeLeft = () => {
-      const raceDate = new Date(nextRace.date + "T" + (nextRace.time || "00:00:00Z"));
+      const sessionDate = new Date(nextSession.date + "T" + (nextSession.time || "00:00:00Z"));
       const now = new Date();
-      const difference = raceDate.getTime() - now.getTime();
+      const difference = sessionDate.getTime() - now.getTime();
       
       if (difference <= 0) {
         return { days: 0, hours: 0, minutes: 0, seconds: 0 };
@@ -43,7 +47,7 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [nextRace]);
+  }, [nextSession]);
   
   const getCountryFlag = (location: string) => {
     const countryFlags: Record<string, string> = {
@@ -126,7 +130,7 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
             <BuyMeCoffeeWidget size="small" className="ml-3" />
           </div>
         </div>
-        {nextRace && 
+        {nextRace && nextSession && 
           <div 
             className="mt-4 md:mt-0 bg-card rounded-lg px-3 md:px-4 py-2 flex items-center gap-2 border border-border hover:shadow-md md:hover:scale-102 hover:bg-card/90 cursor-pointer transition-all duration-300 transform hover:border-primary text-sm md:text-base w-full md:w-auto justify-between"
             onClick={openRaceDetails}
@@ -134,8 +138,10 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
             <div className="w-full">
               <div className="flex items-center justify-between gap-1 md:gap-2">
                 <div className="flex items-center gap-1">
-                  <CountryFlag country={nextRace.Circuit.Location.country} size={20} svg={true} />
-                  <span className="font-medium text-foreground max-w-full">{removeFlag(nextRace.raceName)}</span>
+                  <CountryFlag country={country} size={20} svg={true} />
+                  <span className="font-medium text-foreground max-w-full">
+                    {removeFlag(raceName)} {nextSession.shortName}
+                  </span>
                 </div>
                 <div className="text-[10px] md:text-xs text-muted-foreground flex gap-1">
                   <span><span className={`font-semibold ${countdown.days < 3 ? "text-[#ef4444]" : ""}`}>{countdown.days}</span><span className={`font-normal ${countdown.days < 3 ? "text-[#ef4444]" : ""}`}>d</span></span>
