@@ -7,7 +7,7 @@ import { TEAM_COLORS } from "@/constants/f1Colors";
 import ReactCountryFlag from "react-country-flag";
 import { getCountryCode } from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRaceSchedule, useLapTimes } from "@/hooks/useF1Data";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
@@ -128,9 +128,9 @@ const LastRaceResultsChart = ({
 
   // Build per-team driver order for styling (same team gets different dash styles)
   const teamDriversOrder = useMemo(() => {
-    const top5 = lastRaceResults?.data?.results?.slice(0, 5) || [];
+    const allResults = lastRaceResults?.data?.results || [];
     const map: Record<string, string[]> = {};
-    top5.forEach((res: any) => {
+    allResults.forEach((res: any) => {
       let teamId = res.Constructor?.constructorId?.toLowerCase?.() || "";
       if (teamId === "alphatauri") teamId = "rb";
       else if (teamId === "alfa") teamId = "sauber";
@@ -164,10 +164,10 @@ const LastRaceResultsChart = ({
   const memoizedChartData = useMemo(() => {
     const laps: any[] = lapTimesResp?.data?.Races?.[0]?.Laps || [];
     const results = lastRaceResults?.data?.results || [];
-    const top5 = results.slice(0, 5);
-    if (laps.length === 0 || top5.length === 0) return [];
-    const driverIds: string[] = top5.map((r: any) => r.Driver.driverId);
-    const codeById: Record<string, string> = top5.reduce((acc: any, r: any) => {
+    const allDrivers = results;
+    if (laps.length === 0 || allDrivers.length === 0) return [];
+    const driverIds: string[] = allDrivers.map((r: any) => r.Driver.driverId);
+    const codeById: Record<string, string> = allDrivers.reduce((acc: any, r: any) => {
       acc[r.Driver.driverId] = r.Driver.code; return acc;
     }, {});
     const points: any[] = [];
@@ -222,7 +222,7 @@ const LastRaceResultsChart = ({
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+        <div className="bg-card border border-border rounded-lg p-3 shadow-lg" style={{ minWidth: 140 }}>
           <p className="font-medium text-sm">{`Lap ${label}`}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-xs" style={{ color: entry.color }}>
@@ -244,7 +244,7 @@ const LastRaceResultsChart = ({
             Race Progression
           </CardTitle>
           <CardDescription>
-            Top 5 drivers position changes throughout the race
+            Drivers position changes throughout the race
           </CardDescription>
           
           {/* Fastest Lap Information (same as LapTimes) */}
@@ -302,7 +302,10 @@ const LastRaceResultsChart = ({
             </Alert>
           ) : (
             <div className="space-y-3 h-full flex flex-col">
-              <div className="w-full overflow-hidden py-2" style={{ height: `${compact ? 260 : 400}px` }}>
+              <div
+                className="w-full overflow-visible py-2 relative mx-auto"
+                style={{ height: '100%', minHeight: compact ? 260 : 400, maxWidth: 1000 }}
+              >
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
@@ -331,7 +334,7 @@ const LastRaceResultsChart = ({
                     <ReferenceLine y={2} stroke="#9ca3af" strokeDasharray="2 2" opacity={0.5} />
                     <ReferenceLine y={3} stroke="#d97706" strokeDasharray="2 2" opacity={0.5} />
                     
-                    {lastRaceResults?.data?.results?.slice(0, 5).map((result: any) => {
+                    {(lastRaceResults?.data?.results || []).map((result: any) => {
                       const driverCode = result.Driver.code;
                       const teamColor = getTeamColorStyle(result.Constructor.constructorId);
                       const isFastest = driverCode === fastestDriver;
@@ -363,32 +366,7 @@ const LastRaceResultsChart = ({
                 </ResponsiveContainer>
               </div>
               
-              {/* Driver Legend */}
-              <div className="flex flex-wrap gap-2 justify-center">
-                {lastRaceResults?.data?.results?.slice(0, 5).map((result: any) => {
-                  const driverCode = result.Driver.code;
-                  const teamColor = getTeamColorStyle(result.Constructor.constructorId);
-                  const isFastest = driverCode === fastestDriver;
-                  const strokeDasharray = getStrokeDashForDriver(driverCode, result.Constructor.constructorId);
-                  const lineColor = isFastest ? "#a855f7" : teamColor;
-                  
-                  return (
-                    <div key={driverCode} className="flex items-center gap-1">
-                      <div 
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: isFastest ? "#a855f7" : teamColor }}
-                      />
-                      <svg width="18" height="6" className="mx-1">
-                        <line x1="0" y1="3" x2="18" y2="3" stroke={lineColor} strokeWidth={2} strokeDasharray={strokeDasharray} />
-                      </svg>
-                      <span className={`text-xs font-mono ${isFastest ? 'text-purple-600 dark:text-purple-400 font-bold' : 'text-muted-foreground'}`}>
-                        {driverCode}
-                      </span>
-                      {isFastest && <Zap className="h-3 w-3 text-purple-600 dark:text-purple-400" />}
-                    </div>
-                  );
-                })}
-              </div>
+              {/* Removed bottom legend to keep focus on side-aligned legends */}
               
               <div className="mt-4 pt-2 border-t border-border">
                   <div className="flex flex-wrap gap-4 justify-center">

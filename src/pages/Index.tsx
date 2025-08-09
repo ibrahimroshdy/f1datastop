@@ -92,9 +92,13 @@ const Index = () => {
               <SeasonalReviewPanel expandedView={standingsExpanded} />
             </div>
 
-            {/* Second Row, top half: 1/3 Race Progression and 2/3 Qualifying → Race Progression */}
+            {/* Second Row, top half: 2/3 Qualifying → Race Progression and 1/3 Race Progression */}
             <div className="grid grid-cols-1 lg:grid-cols-3 items-stretch gap-2 md:gap-3">
-              {/* Left (1/3): Race Progression */}
+              {/* Left (2/3): Qualifying → Race Progression */}
+              <div className="h-full lg:col-span-2">
+                <QualifyingToRaceChart compact />
+              </div>
+              {/* Right (1/3): Race Progression */}
               <div className="lg:col-span-1">
                 <LastRaceResultsChart
                   lastRaceResults={lastRaceResults}
@@ -102,10 +106,6 @@ const Index = () => {
                   getTeamColor={getTeamColor}
                   compact
                 />
-              </div>
-              {/* Right (2/3): Qualifying → Race Progression */}
-              <div className="h-full lg:col-span-2">
-                <QualifyingToRaceChart compact />
               </div>
             </div>
 

@@ -73,9 +73,9 @@ const getNationalityCode = (nationality: string | undefined): string => {
   return NATIONALITY_TO_CODE[nationality] || getCountryCode(nationality) || "";
 };
 
-const CombinedStandingsCard = ({
+const CombinedStandingsCard = ({ 
   driverStandings,
-  constructorStandings,
+  constructorStandings, 
   onExpandChange,
 }: CombinedStandingsCardProps) => {
   const [tab, setTab] = useState<"combined" | "drivers" | "constructors">("combined");
@@ -122,7 +122,7 @@ const CombinedStandingsCard = ({
         code: d.Driver?.code || d.Driver?.familyName || "",
         name: `${d.Driver?.givenName || ""} ${d.Driver?.familyName || ""}`.trim(),
         points: Number(d.points || 0),
-      });
+    });
     });
     // Sort drivers by points desc per team
     Object.keys(map).forEach((k) => map[k].sort((a, b) => b.points - a.points));
@@ -154,7 +154,7 @@ const CombinedStandingsCard = ({
     });
   };
 
-  return (
+    return (
     <Card className="bg-card border-border h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -166,7 +166,7 @@ const CombinedStandingsCard = ({
             )}
             Standings
           </CardTitle>
-          <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
             {tab === "drivers" ? (
               <button
                 onClick={toggleShowAllDrivers}
@@ -182,8 +182,8 @@ const CombinedStandingsCard = ({
                 {showAllConstructors ? "Show Top 8" : "Show All Teams"}
               </button>
             )}
-          </div>
-        </div>
+                    </div>
+                  </div>
         <div className="mt-2">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
             <div className="w-full flex justify-center lg:justify-end">
@@ -254,14 +254,14 @@ const CombinedStandingsCard = ({
                                   {standing.Driver?.givenName} {standing.Driver?.familyName}
                                 </span>
                                 <span className="lg:hidden">{standing.Driver?.familyName}</span>
-                              </div>
-                            </div>
+                </div>
+              </div>
                             <Progress
                               value={(points / leader) * 100}
                               className="h-2 bg-muted"
-                              indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                              indicatorStyle={{ backgroundColor: borderColor, opacity: 0.8 }}
                             />
-                          </div>
+                </div>
                         </TableCell>
                         <TableCell className="p-0 text-center">
                           <div className="flex items-center justify-center w-full h-8 lg:h-12">
@@ -270,7 +270,7 @@ const CombinedStandingsCard = ({
                               alt={currentConstructor?.name || "Unknown Team"}
                               size="sm"
                             />
-                          </div>
+              </div>
                         </TableCell>
                         <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
                           {standing.points}
@@ -280,18 +280,18 @@ const CombinedStandingsCard = ({
                             <div className="flex flex-col items-end gap-0.5">
                               <span>To Leader: {toLeader}</span>
                               <span>To P{Number(standing.position) - 1}: {toNext}</span>
-                            </div>
+            </div>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium text-[10px] lg:text-xs py-2 px-2 lg:p-4">
                           {contribPct}%
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
+          );
+        })}
                 </TableBody>
               </Table>
-            </div>
+      </div>
             {/* Mobile compact list */}
             <div className="lg:hidden space-y-2">
               {driverRows?.map((standing: any) => {
@@ -306,7 +306,7 @@ const CombinedStandingsCard = ({
                 const { toLeader, toNext } = getGaps(fullIndex, fullList);
                 const teamTotal = teamPointsMap[normalizeTeamId(teamId)] || 0;
                 const contribPct = teamTotal > 0 ? Math.round((points / teamTotal) * 100) : 0;
-                return (
+    return (
                   <div
                     key={standing.position}
                     className="rounded-md border border-border p-3"
@@ -333,10 +333,10 @@ const CombinedStandingsCard = ({
                               <div className="mt-1 text-[10px] text-muted-foreground">
                                 <div>To Leader: {toLeader}</div>
                                 <div>To P{Number(standing.position) - 1}: {toNext}</div>
-                              </div>
+                    </div>
                             )}
-                          </div>
-                        </div>
+                    </div>
+                  </div>
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-semibold">{standing.points}</div>
@@ -347,13 +347,13 @@ const CombinedStandingsCard = ({
                       <Progress
                         value={(points / (driverLeaderPoints || points || 1)) * 100}
                         className="h-1.5 bg-muted"
-                        indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                        indicatorStyle={{ backgroundColor: borderColor, opacity: 0.8 }}
                       />
-                    </div>
-                  </div>
-                );
-              })}
+              </div>
             </div>
+          );
+        })}
+      </div>
             <div className="flex items-center justify-center gap-2 pt-3 border-t border-dashed border-purple-500/30">
               <div className="w-2 h-2 rounded-full bg-purple-500/50" />
               <span className="text-xs text-muted-foreground">Driver Championship</span>
@@ -402,7 +402,7 @@ const CombinedStandingsCard = ({
                             <Progress
                               value={(points / leader) * 100}
                               className="h-2 bg-muted"
-                              indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                              indicatorStyle={{ backgroundColor: borderColor, opacity: 0.8 }}
                             />
                           </div>
                         </TableCell>
@@ -432,7 +432,7 @@ const CombinedStandingsCard = ({
                 const fullList = constructorStandings?.data || [];
                 const fullIndex = fullList.findIndex((t: any) => t.position === team.position);
                 const { toLeader, toNext } = getGaps(fullIndex, fullList);
-                return (
+  return (
                   <div key={team.position} className="rounded-md border border-border p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
@@ -443,26 +443,26 @@ const CombinedStandingsCard = ({
                           style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: 6 }}
                         >
                           {team.Constructor?.name}
-                        </div>
-                      </div>
+        </div>
+                </div>
                       <div className="text-right">
                         <div className="text-sm font-semibold">{team.points}</div>
-                      </div>
-                    </div>
+                </div>
+              </div>
                     {idx !== 0 && (
                       <div className="mt-2 text-[10px] text-muted-foreground text-right">
                         <div>To Leader: {toLeader}</div>
                         <div>To P{Number(team.position) - 1}: {toNext}</div>
-                      </div>
+                </div>
                     )}
                     <div className="mt-2">
                       <Progress
                         value={(points / (constructorLeaderPoints || points || 1)) * 100}
                         className="h-1.5 bg-muted"
-                        indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                        indicatorStyle={{ backgroundColor: borderColor, opacity: 0.8 }}
                       />
-                    </div>
-                  </div>
+                </div>
+              </div>
                 );
               })}
             </div>
@@ -517,7 +517,7 @@ const CombinedStandingsCard = ({
                             <Progress
                               value={(totalPts / leader) * 100}
                               className="h-2 bg-muted"
-                              indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                              indicatorClassName="bg-gradient-to-r from-red-600 to-red-400"
                             />
                           </div>
                         </TableCell>
@@ -532,7 +532,10 @@ const CombinedStandingsCard = ({
                                     <span className="min-w-[36px] font-mono text-muted-foreground">{dr.code}</span>
                                     <div className="flex-1">
                                       <div className="h-2 bg-muted rounded overflow-hidden">
-                                        <div className="h-2 bg-purple-500/70" style={{ width: `${pct}%` }} />
+                                        <div
+                                          className="h-2"
+                                          style={{ width: `${pct}%`, backgroundColor: borderColor, opacity: 0.7 }}
+                                        />
                                       </div>
                                       <div className="text-[10px] text-muted-foreground mt-0.5">{dr.points} pts</div>
                                     </div>

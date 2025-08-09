@@ -111,7 +111,7 @@ const LastRaceResultsCard = ({
             Last Race Results
           </CardTitle>
           <CardDescription>
-            Top 5 results from the most recent race
+            Results from the most recent race
           </CardDescription>
           
           {/* Fastest Lap Information */}
