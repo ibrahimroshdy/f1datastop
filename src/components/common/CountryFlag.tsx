@@ -3,6 +3,7 @@ import ReactCountryFlag from 'react-country-flag';
 
 // Map of country names to their ISO 3166-1 alpha-2 codes for react-country-flag
 const countryToCode: { [key: string]: string } = {
+  "Argentina": "AR",
   "Australia": "AU",
   "Austria": "AT",
   "Azerbaijan": "AZ",
@@ -12,6 +13,7 @@ const countryToCode: { [key: string]: string } = {
   "Canada": "CA",
   "China": "CN",
   "Denmark": "DK",
+  "Egypt": "EG",
   "Finland": "FI",
   "France": "FR",
   "Germany": "DE",
@@ -35,6 +37,8 @@ const countryToCode: { [key: string]: string } = {
   "Turkey": "TR",
   "UK": "GB",
   "U.K.": "GB",
+  "New Zealand": "NZ",
+  "New Zealander": "NZ",
   "UAE": "AE",
   "U.A.E.": "AE",
   "United Arab Emirates": "AE",

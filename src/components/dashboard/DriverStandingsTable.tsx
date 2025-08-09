@@ -3,6 +3,8 @@ import { TEAM_COLORS } from "@/constants/f1Colors";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import TeamLogo from "@/components/common/TeamLogo";
+import ReactCountryFlag from "react-country-flag";
+import { getCountryCode } from "@/components/common/CountryFlag";
 
 interface DriverStandingsTableProps {
   driverStandings: any;
@@ -63,12 +65,20 @@ const DriverStandingsTable = ({ driverStandings, showAllDrivers }: DriverStandin
                 <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">{standing.position}</TableCell>
                 <TableCell className="py-2 px-1 lg:p-4">
                   <div className="space-y-1">
-                    <div
-                      style={{ borderLeft: `4px solid ${color}`, paddingLeft: 8 }}
-                      className="font-medium text-foreground text-xs lg:text-sm"
-                    >
-                      <span className="hidden lg:inline">{standing.Driver?.givenName} {standing.Driver?.familyName}</span>
-                      <span className="lg:hidden">{standing.Driver?.familyName}</span>
+                    <div className="flex items-center gap-2">
+                      <ReactCountryFlag
+                        countryCode={getCountryCode(standing.Driver?.nationality || "") || ""}
+                        svg
+                        style={{ width: 16, height: "auto" }}
+                        title={standing.Driver?.nationality || ""}
+                      />
+                      <div
+                        style={{ borderLeft: `4px solid ${color}`, paddingLeft: 8 }}
+                        className="font-medium text-foreground text-xs lg:text-sm"
+                      >
+                        <span className="hidden lg:inline">{standing.Driver?.givenName} {standing.Driver?.familyName}</span>
+                        <span className="lg:hidden">{standing.Driver?.familyName}</span>
+                      </div>
                     </div>
                     <Progress
                       value={(points / leader) * 100}
@@ -135,10 +145,13 @@ const DriverStandingsTable = ({ driverStandings, showAllDrivers }: DriverStandin
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="text-xs text-muted-foreground w-5">{standing.position}</div>
                   <TeamLogo constructorId={teamId} alt={currentConstructor?.name || "Team"} size="sm" />
-                  <div
-                    className="font-medium truncate"
-                    style={{ borderLeft: `3px solid ${color}`, paddingLeft: 6 }}
-                  >
+                  <ReactCountryFlag
+                    countryCode={getCountryCode(standing.Driver?.nationality || "") || ""}
+                    svg
+                    style={{ width: 14, height: "auto" }}
+                    title={standing.Driver?.nationality || ""}
+                  />
+                  <div className="font-medium truncate" style={{ borderLeft: `3px solid ${color}`, paddingLeft: 6 }}>
                     {standing.Driver?.givenName} {standing.Driver?.familyName}
                   </div>
                 </div>

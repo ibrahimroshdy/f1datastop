@@ -6,6 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import TeamLogo from "@/components/common/TeamLogo";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { Caravan, Users, Trophy } from "lucide-react";
+import ReactCountryFlag from "react-country-flag";
+import { getCountryCode } from "@/components/common/CountryFlag";
 
 export interface CombinedStandingsCardProps {
   driverStandings: any;
@@ -24,6 +26,51 @@ const normalizeTeamId = (constructorId: string): string => {
 const getTeamHexColor = (constructorId: string): string => {
   const normalized = normalizeTeamId(constructorId);
   return TEAM_COLORS[normalized] || TEAM_COLORS.default;
+};
+
+// Some driver nationalities are adjectives (e.g., "British", "Monegasque").
+// Map common F1 nationalities to ISO2 codes for flag rendering.
+const NATIONALITY_TO_CODE: Record<string, string> = {
+  Argentine: "AR",
+  Australian: "AU",
+  Austrian: "AT",
+  Belgian: "BE",
+  Brazilian: "BR",
+  British: "GB",
+  Canadian: "CA",
+  Chinese: "CN",
+  Danish: "DK",
+  Dutch: "NL",
+  English: "GB",
+  Egyptian: "EG",
+  Finnish: "FI",
+  French: "FR",
+  German: "DE",
+  Italian: "IT",
+  Japanese: "JP",
+  Mexican: "MX",
+  Monegasque: "MC",
+  Portuguese: "PT",
+  Polish: "PL",
+  Russian: "RU",
+  Spanish: "ES",
+  Swedish: "SE",
+  Swiss: "CH",
+  Thai: "TH",
+  American: "US",
+  Venezuelan: "VE",
+  Singaporean: "SG",
+  "Saudi Arabian": "SA",
+  Saudi: "SA",
+  Emirati: "AE",
+  Qatari: "QA",
+  "South African": "ZA",
+  "New Zealander": "NZ",
+};
+
+const getNationalityCode = (nationality: string | undefined): string => {
+  if (!nationality) return "";
+  return NATIONALITY_TO_CODE[nationality] || getCountryCode(nationality) || "";
 };
 
 const CombinedStandingsCard = ({
@@ -192,14 +239,22 @@ const CombinedStandingsCard = ({
                         </TableCell>
                         <TableCell className="py-2 px-1 lg:p-4">
                           <div className="space-y-1">
-                            <div
-                              style={{ borderLeft: `4px solid ${borderColor}`, paddingLeft: 8 }}
-                              className="font-medium text-foreground text-xs lg:text-sm"
-                            >
-                              <span className="hidden lg:inline">
-                                {standing.Driver?.givenName} {standing.Driver?.familyName}
-                              </span>
-                              <span className="lg:hidden">{standing.Driver?.familyName}</span>
+                            <div className="flex items-center gap-2">
+                              <ReactCountryFlag
+                                countryCode={getNationalityCode(standing.Driver?.nationality)}
+                                svg
+                                style={{ width: 16, height: "auto" }}
+                                title={standing.Driver?.nationality || ""}
+                              />
+                              <div
+                                style={{ borderLeft: `4px solid ${borderColor}`, paddingLeft: 8 }}
+                                className="font-medium text-foreground text-xs lg:text-sm"
+                              >
+                                <span className="hidden lg:inline">
+                                  {standing.Driver?.givenName} {standing.Driver?.familyName}
+                                </span>
+                                <span className="lg:hidden">{standing.Driver?.familyName}</span>
+                              </div>
                             </div>
                             <Progress
                               value={(points / leader) * 100}
@@ -261,6 +316,12 @@ const CombinedStandingsCard = ({
                         <div className="text-xs text-muted-foreground w-5">{standing.position}</div>
                         <div className="flex items-center gap-2 min-w-0">
                           <TeamLogo constructorId={teamId} alt={currentConstructor?.name || "Team"} size="sm" />
+                          <ReactCountryFlag
+                            countryCode={getNationalityCode(standing.Driver?.nationality)}
+                            svg
+                            style={{ width: 14, height: "auto" }}
+                            title={standing.Driver?.nationality || ""}
+                          />
                           <div className="min-w-0">
                             <div
                               className="font-medium truncate"

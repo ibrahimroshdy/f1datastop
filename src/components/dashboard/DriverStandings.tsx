@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import TeamLogo from "@/components/common/TeamLogo";
+import ReactCountryFlag from "react-country-flag";
+import { getCountryCode } from "@/components/common/CountryFlag";
 
 const normalizeTeamId = (teamId: string) => {
   let id = (teamId || "").toLowerCase();
@@ -60,6 +62,12 @@ const DriverStandings = () => {
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-muted-foreground">{standing.position}</span>
                     <TeamLogo constructorId={team?.constructorId || "default"} alt={team?.name} size="sm" />
+                    <ReactCountryFlag
+                      countryCode={getCountryCode(standing.Driver?.nationality || "") || ""}
+                      svg
+                      style={{ width: 14, height: "auto" }}
+                      title={standing.Driver?.nationality || ""}
+                    />
                     <span className="font-medium truncate">
                       <span className="hidden lg:inline">{name}</span>
                       <span className="lg:hidden">{standing.Driver?.familyName}</span>
