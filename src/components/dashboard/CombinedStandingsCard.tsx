@@ -616,7 +616,7 @@ const CombinedStandingsCard = ({
                       <Progress
                         value={(totalPts / (constructorLeaderPoints || totalPts || 1)) * 100}
                         className="h-1.5 bg-muted"
-                        indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                        indicatorClassName="bg-gradient-to-r from-red-600 to-red-400"
                       />
                     </div>
                   </div>
