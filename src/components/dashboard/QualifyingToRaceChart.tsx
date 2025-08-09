@@ -765,30 +765,28 @@ const QualifyingToRaceChart = ({ compact = false }: { compact?: boolean }) => {
     };
   }, [data, dimensions.width, isLoading, drawChart]);
   
-  // Add a secondary effect to ensure chart is drawn when container is visible
+  // Keep dimensions in sync with container changes (e.g., sidebar toggle) using ResizeObserver
   useEffect(() => {
-    if (sankeyRef.current && data?.processedData && dimensions.width === 0) {
-      // Use ResizeObserver to detect when the container becomes visible
-      const resizeObserver = new ResizeObserver(entries => {
-        for (const entry of entries) {
-          const { width, height } = entry.contentRect;
-          if (width > 0 && dimensions.width === 0) {
-            setDimensions({
-              width,
-              height: Math.max(350, height > 0 ? height : Math.min(700, width * 0.7))
-            });
-            break;
-          }
+    if (!sankeyRef.current) return;
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0) {
+          const heightRatio = compact ? 0.55 : 0.7;
+          const nextHeight = Math.max(350, height > 0 ? height : Math.min(700, width * heightRatio));
+          setDimensions(prev => {
+            if (Math.abs(prev.width - width) > 2 || Math.abs(prev.height - nextHeight) > 2) {
+              return { width, height: nextHeight };
+            }
+            return prev;
+          });
+          setHasInitialized(true);
         }
-      });
-      
-      resizeObserver.observe(sankeyRef.current);
-      
-      return () => {
-        resizeObserver.disconnect();
-      };
-    }
-  }, [data, dimensions.width]);
+      }
+    });
+    resizeObserver.observe(sankeyRef.current);
+    return () => resizeObserver.disconnect();
+  }, [compact]);
 
   // Open race details dialog
   const openRaceDetails = () => {
