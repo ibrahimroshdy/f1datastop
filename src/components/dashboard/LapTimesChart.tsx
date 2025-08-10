@@ -407,28 +407,61 @@ const LapTimesChart = ({
                       <ReferenceLine y={fastestLapTime} stroke="#a855f7" strokeDasharray="4 3" opacity={0.9} />
                     )}
                     
+                    {/* Fastest lap vertical line */}
+                    {(() => {
+                      const fastest = (lastRaceResults?.data?.results || []).find((r: any) => r.FastestLap?.rank === "1");
+                      const fastestLapNum = fastest ? parseInt(fastest.FastestLap?.lap || "0") : 0;
+                      if (fastestLapNum > 0) {
+                        return <ReferenceLine x={fastestLapNum} stroke="#a855f7" strokeWidth={2} opacity={0.8} />;
+                      }
+                      return null;
+                    })()}
+                    
                     {lastRaceResults?.data?.results?.slice(0, 5).map((result: any) => {
                       const driverCode = result.Driver.code;
                       const teamColor = getTeamColorStyle(result.Constructor.constructorId);
                       const isFastest = driverCode === fastestDriver;
                       const strokeDasharray = getStrokeDashForDriver(driverCode, result.Constructor.constructorId);
                       
+                      // Get fastest lap number for purple dot
+                      const fastestLapNum = isFastest ? parseInt(result.FastestLap?.lap || "0") : 0;
+                      
                       return (
                         <Line
                           key={driverCode}
                           type="monotone"
                           dataKey={driverCode}
-                          stroke={isFastest ? "hsl(var(--muted-foreground))" : teamColor}
-                          strokeWidth={isFastest ? 3 : 2}
+                          stroke={teamColor}
+                          strokeWidth={2}
                           strokeDasharray={strokeDasharray}
-                          dot={{ 
-                            fill: isFastest ? "hsl(var(--muted-foreground))" : teamColor, 
-                            strokeWidth: 0, 
-                            r: isFastest ? 4 : 3 
+                          dot={(props: any) => {
+                            // Show purple dot only at fastest lap for fastest driver
+                            if (isFastest && fastestLapNum > 0 && props.payload?.lap === fastestLapNum) {
+                              return (
+                                <circle
+                                  cx={props.cx}
+                                  cy={props.cy}
+                                  r={5}
+                                  fill="#a855f7"
+                                  stroke="#a855f7"
+                                  strokeWidth={2}
+                                />
+                              );
+                            }
+                            // Regular dots for all other points
+                            return (
+                              <circle
+                                cx={props.cx}
+                                cy={props.cy}
+                                r={3}
+                                fill={teamColor}
+                                strokeWidth={0}
+                              />
+                            );
                           }}
                           activeDot={{ 
                             r: 5, 
-                            stroke: isFastest ? "hsl(var(--muted-foreground))" : teamColor,
+                            stroke: teamColor,
                             strokeWidth: 2,
                             fill: "hsl(var(--background))"
                           }}
@@ -446,16 +479,15 @@ const LapTimesChart = ({
                   const teamColor = getTeamColorStyle(result.Constructor.constructorId);
                   const isFastest = driverCode === fastestDriver;
                   const strokeDasharray = getStrokeDashForDriver(driverCode, result.Constructor.constructorId);
-                  const lineColor = isFastest ? "hsl(var(--muted-foreground))" : teamColor;
                   
                   return (
                     <div key={driverCode} className="flex items-center gap-1">
                       <div 
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: isFastest ? "#a855f7" : teamColor }}
+                        style={{ backgroundColor: teamColor }}
                       />
                       <svg width="18" height="6" className="mx-1">
-                        <line x1="0" y1="3" x2="18" y2="3" stroke={lineColor} strokeWidth={2} strokeDasharray={strokeDasharray} />
+                        <line x1="0" y1="3" x2="18" y2="3" stroke={teamColor} strokeWidth={2} strokeDasharray={strokeDasharray} />
                       </svg>
                       <span className={`text-xs font-mono ${isFastest ? 'text-purple-600 dark:text-purple-400 font-bold' : 'text-muted-foreground'}`}>
                         {driverCode}

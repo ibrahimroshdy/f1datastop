@@ -334,28 +334,61 @@ const LastRaceResultsChart = ({
                     <ReferenceLine y={2} stroke="#9ca3af" strokeDasharray="2 2" opacity={0.5} />
                     <ReferenceLine y={3} stroke="#d97706" strokeDasharray="2 2" opacity={0.5} />
                     
+                    {/* Fastest lap vertical line */}
+                    {(() => {
+                      const fastest = (lastRaceResults?.data?.results || []).find((r: any) => r.FastestLap?.rank === "1");
+                      const fastestLapNum = fastest ? parseInt(fastest.FastestLap?.lap || "0") : 0;
+                      if (fastestLapNum > 0) {
+                        return <ReferenceLine x={fastestLapNum} stroke="#a855f7" strokeWidth={2} opacity={0.8} />;
+                      }
+                      return null;
+                    })()}
+                    
                     {(lastRaceResults?.data?.results || []).map((result: any) => {
                       const driverCode = result.Driver.code;
                       const teamColor = getTeamColorStyle(result.Constructor.constructorId);
                       const isFastest = driverCode === fastestDriver;
                       const strokeDasharray = getStrokeDashForDriver(driverCode, result.Constructor.constructorId);
                       
+                      // Get fastest lap number for purple dot
+                      const fastestLapNum = isFastest ? parseInt(result.FastestLap?.lap || "0") : 0;
+                      
                       return (
                         <Line
                           key={driverCode}
                           type="monotone"
                           dataKey={driverCode}
-                          stroke={isFastest ? "#a855f7" : teamColor}
-                          strokeWidth={isFastest ? 3 : 2}
+                          stroke={teamColor}
+                          strokeWidth={2}
                           strokeDasharray={strokeDasharray}
-                          dot={{ 
-                            fill: isFastest ? "#a855f7" : teamColor, 
-                            strokeWidth: 0, 
-                            r: isFastest ? 4 : 3 
+                          dot={(props: any) => {
+                            // Show purple dot only at fastest lap for fastest driver
+                            if (isFastest && fastestLapNum > 0 && props.payload?.lap === fastestLapNum) {
+                              return (
+                                <circle
+                                  cx={props.cx}
+                                  cy={props.cy}
+                                  r={5}
+                                  fill="#a855f7"
+                                  stroke="#a855f7"
+                                  strokeWidth={2}
+                                />
+                              );
+                            }
+                            // Regular dots for all other points
+                            return (
+                              <circle
+                                cx={props.cx}
+                                cy={props.cy}
+                                r={3}
+                                fill={teamColor}
+                                strokeWidth={0}
+                              />
+                            );
                           }}
                           activeDot={{ 
                             r: 5, 
-                            stroke: isFastest ? "#a855f7" : teamColor,
+                            stroke: teamColor,
                             strokeWidth: 2,
                             fill: "hsl(var(--background))"
                           }}
