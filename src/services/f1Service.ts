@@ -736,7 +736,12 @@ export const getDriverResultsBySeason = async (year: number, driverId: string) =
 // Cache management utilities
 export const cacheUtils = {
   // Clear all F1 data cache
-  clearAll: () => clearNamespace('ergast'),
+  clearAll: () => {
+    clearNamespace('ergast');
+    clearNamespace('openf1');
+    // Also clear image cache
+    import('@/utils/imageCache').then(({ clearImageCache }) => clearImageCache());
+  },
   
   // Clear specific data types
   clearStandings: (year?: number) => {
@@ -763,5 +768,15 @@ export const cacheUtils = {
   clearSchedule: (year?: number) => {
     const seasonYear = year || getCurrentSeason();
     deleteCache(`raceSchedule:${seasonYear}`, 'ergast');
+  },
+  
+  // Clear image cache
+  clearImages: () => {
+    import('@/utils/imageCache').then(({ clearImageCache }) => clearImageCache());
+  },
+  
+  // Clear OpenF1 cache
+  clearOpenF1: () => {
+    clearNamespace('openf1');
   }
 };

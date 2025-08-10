@@ -1,9 +1,17 @@
 import { toast } from "sonner";
+import { withCache } from "@/utils/cache";
 
 // Use different base URLs for development vs production
 const BASE_URL = import.meta.env.PROD 
   ? "https://api.openf1.org/v1" 
   : "/api/openf1";
+
+// Cache TTLs for OpenF1 data
+const TTL = {
+  DRIVER_INFO: 24 * 60 * 60 * 1000, // 24 hours - driver info rarely changes
+  SESSION_DATA: 60 * 60 * 1000, // 1 hour - session data can change during events
+  LIVE_DATA: 30 * 1000, // 30 seconds - live telemetry data
+} as const;
 
 // Helper function for throttled fetching
 async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3): Promise<Response> {
@@ -227,19 +235,33 @@ export const getWeatherData = async (session_key: number) => {
 // Get driver info for a session
 export const getDrivers = async (session_key: number, driver_number?: number) => {
   try {
-    let url = `${BASE_URL}/drivers?session_key=${session_key}`;
-    if (driver_number) {
-      url += `&driver_number=${driver_number}`;
-    }
+    // Create cache key based on session and driver
+    const cacheKey = `drivers:${session_key}:${driver_number || 'all'}`;
     
-    const response = await throttledFetch(url);
+    const data = await withCache(
+      cacheKey,
+      TTL.SESSION_DATA,
+      async () => {
+        let url = `${BASE_URL}/drivers?session_key=${session_key}`;
+        if (driver_number) {
+          url += `&driver_number=${driver_number}`;
+        }
+        
+        const response = await throttledFetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        
+        const context = driver_number ? `driver info for driver ${driver_number}` : `driver info for session ${session_key}`;
+        return await validateJsonResponse(response, context);
+      },
+      { 
+        namespace: 'openf1',
+        staleWhileRevalidate: true
+      }
+    );
     
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const context = driver_number ? `driver info for driver ${driver_number}` : `driver info for session ${session_key}`;
-    const data = await validateJsonResponse(response, context);
     return { 
       data, 
       error: null 
@@ -406,24 +428,39 @@ export const getStartingGrid = async (session_key: number) => {
 // Get latest driver info (including headshot_url) by number or acronym
 export const getLatestDriver = async (driver_number?: number, name_acronym?: string) => {
   try {
-    let url = `${BASE_URL}/drivers?session_key=latest`;
-    if (driver_number) {
-      url += `&driver_number=${driver_number}`;
-    }
-    if (name_acronym) {
-      url += `&name_acronym=${encodeURIComponent(name_acronym)}`;
-    }
+    // Create cache key based on parameters
+    const cacheKey = `latestDriver:${driver_number || 'none'}:${name_acronym || 'none'}`;
+    
+    const data = await withCache(
+      cacheKey,
+      TTL.DRIVER_INFO,
+      async () => {
+        let url = `${BASE_URL}/drivers?session_key=latest`;
+        if (driver_number) {
+          url += `&driver_number=${driver_number}`;
+        }
+        if (name_acronym) {
+          url += `&name_acronym=${encodeURIComponent(name_acronym)}`;
+        }
 
-    const response = await throttledFetch(url);
+        const response = await throttledFetch(url);
 
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
 
-    const context = `latest driver info${driver_number ? ` for driver ${driver_number}` : name_acronym ? ` for ${name_acronym}` : ''}`;
-    const data = await validateJsonResponse(response, context);
+        const context = `latest driver info${driver_number ? ` for driver ${driver_number}` : name_acronym ? ` for ${name_acronym}` : ''}`;
+        const responseData = await validateJsonResponse(response, context);
+        return Array.isArray(responseData) ? (responseData[0] || null) : null;
+      },
+      { 
+        namespace: 'openf1',
+        staleWhileRevalidate: true
+      }
+    );
+
     return {
-      data: Array.isArray(data) ? (data[0] || null) : null,
+      data,
       error: null,
     };
   } catch (error) {

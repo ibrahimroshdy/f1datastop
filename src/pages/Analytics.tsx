@@ -278,7 +278,7 @@ const Analytics = () => {
                   <CardHeader>
                     <CardTitle>Pit Stop Analysis</CardTitle>
                     <CardDescription>
-                      Detailed pit stop timings and strategies for each driver.
+                      Individual pit stop durations for each driver. Duration includes pit entry, exit and red flag time, if necessary (MM:ss.sss format).
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="h-[600px] p-4">

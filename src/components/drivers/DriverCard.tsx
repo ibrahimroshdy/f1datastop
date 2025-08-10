@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { TEAM_COLORS } from "@/constants/f1Colors";
 import { useLatestDriver } from "@/hooks/useOpenF1Data";
 import { useDriverResultsBySeason } from "@/hooks/useF1Data";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { getCachedImage, getDriverImageUrls } from "@/utils/imageCache";
 
 interface DriverCardProps {
   driver: any;
@@ -20,6 +21,8 @@ interface DriverCardProps {
 
 const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
+  const [cachedImageUrl, setCachedImageUrl] = useState<string>('');
+  const [imageLoading, setImageLoading] = useState(true);
   const isMobile = useIsMobile();
   
   // Get the current constructor (last in array)
@@ -68,10 +71,25 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
     constructor?: string;
   }> = resultsByRaceResp?.data || [];
   
-  // Generate driver image URL based on driver ID (or use a fallback)
-  const getDriverImageUrl = (driverId: string) => {
-    return `https://raw.githubusercontent.com/npranav10/F1-Dashboard/main/public/img/drivers/${driverId}.png`;
-  };
+  // Load and cache driver image
+  useEffect(() => {
+    const loadDriverImage = async () => {
+      try {
+        setImageLoading(true);
+        const imageUrls = getDriverImageUrls(driver.Driver.driverId, headshotUrl);
+        const cached = await getCachedImage(imageUrls.primary, imageUrls.fallback);
+        setCachedImageUrl(cached);
+      } catch (error) {
+        console.warn(`Failed to load image for driver ${driver.Driver.driverId}:`, error);
+        // Fallback to original URL structure
+        setCachedImageUrl(headshotUrl || `/driver-images/${driver.Driver.driverId}.jpg`);
+      } finally {
+        setImageLoading(false);
+      }
+    };
+
+    loadDriverImage();
+  }, [driver.Driver.driverId, headshotUrl]);
 
   // Component for the detail content (shared between dialog and drawer)
   const DetailContent = () => (
@@ -168,11 +186,11 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
           <div className="flex items-center gap-2">
             <Avatar className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: teamColor }}>
               <AvatarImage 
-                src={headshotUrl || getDriverImageUrl(driver.Driver.driverId)} 
+                src={cachedImageUrl} 
                 alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`} 
               />
               <AvatarFallback style={{ backgroundColor: teamColor }}>
-                {driver.Driver.code?.slice(0, 2) || driver.Driver.familyName.slice(0, 2)}
+                {imageLoading ? '...' : (driver.Driver.code?.slice(0, 2) || driver.Driver.familyName.slice(0, 2))}
               </AvatarFallback>
             </Avatar>
             <div>

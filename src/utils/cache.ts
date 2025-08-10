@@ -199,6 +199,16 @@ if (typeof window !== "undefined") {
       console.log("🧹 Ergast cache cleared");
     },
     
+    clearImages: () => {
+      clearNamespace('images');
+      console.log("🧹 Image cache cleared");
+    },
+    
+    clearOpenF1: () => {
+      clearNamespace('openf1');
+      console.log("🧹 OpenF1 cache cleared");
+    },
+    
     get: (key: string, namespace?: string) => {
       return getStale(key, namespace);
     },

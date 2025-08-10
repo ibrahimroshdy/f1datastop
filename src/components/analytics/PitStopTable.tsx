@@ -10,15 +10,16 @@ import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TeamLogo from "@/components/common/TeamLogo";
 
-// Helper function to format milliseconds into a readable format
-const formatMilliseconds = (ms: number): string => {
-  const totalSeconds = ms / 1000;
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+// Helper function to format pit stop duration into MM:ss.sss format
+const formatPitStopDuration = (durationInSeconds: number): string => {
+  const minutes = Math.floor(durationInSeconds / 60);
+  const seconds = durationInSeconds % 60;
   
-  return minutes > 0 
-    ? `${minutes}:${seconds.toFixed(3).padStart(6, '0')}` 
-    : seconds.toFixed(3);
+  if (minutes > 0) {
+    return `${minutes}:${seconds.toFixed(3).padStart(6, '0')}`;
+  } else {
+    return `${seconds.toFixed(3)}`;
+  }
 };
 
 interface PitStopTableProps {
@@ -31,10 +32,10 @@ interface DriverPitStop {
   driver: string;
   stops: number;
   lap?: number;
-  timeOfDay?: string;
-  time?: string; // pit stop duration
+  timeOfDay?: string; // Time of day when pit stop occurred
+  time?: string; // Time of day when pit stop occurred
   formattedTime?: string;
-  totalTime: number;
+  totalTime: number; // Duration of pit stop in seconds
   team: string;
   pitStops: Array<{
     lap: number;
@@ -50,7 +51,7 @@ interface DriverInfo {
 }
 
 // Define sort keys for type safety
-type SortKey = 'stop' | 'driver' | 'lap' | 'time' | 'totalTime' | 'team';
+type SortKey = 'stop' | 'driver' | 'lap' | 'time' | 'totalTime' | 'team' | 'timeOfDay';
 
 const PitStopTable = ({ year, round }: PitStopTableProps) => {
   const [pitStopData, setPitStopData] = useState<DriverPitStop[]>([]);
@@ -100,8 +101,8 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
         // Process pit stop data
         const pitStops = pitStopsResponse.data.Races[0].PitStops;
         
-        // Group pit stops by driver
-        const driversMap = new Map();
+        // Process individual pit stops (no aggregation)
+        const processedData: DriverPitStop[] = [];
         
         pitStops.forEach((stop: any) => {
           const driverId = stop.driverId;
@@ -112,35 +113,25 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
           // Convert duration to seconds
           const duration = parseFloat(stop.duration);
           
-          // If this is the first time we're seeing this driver
-          if (!driversMap.has(driverId)) {
-            driversMap.set(driverId, {
-              driverId,
-              driver: driver.code,
-              stops: 1,
-              totalTime: duration,
-              team: driver.team,
-              pitStops: [{
-                lap: parseInt(stop.lap),
-                time: stop.duration,
-                formattedTime: stop.duration,
-              }]
-            });
-          } else {
-            // Update existing driver data
-            const driverData = driversMap.get(driverId);
-            driverData.stops += 1;
-            driverData.totalTime += duration;
-            driverData.pitStops.push({
+          // Create individual pit stop entry
+          processedData.push({
+            driverId: `${driverId}-${stop.lap}`, // Make unique ID for each pit stop
+            driver: driver.code,
+            stops: 1, // Each entry is one pit stop
+            lap: parseInt(stop.lap),
+            time: stop.time, // Time of day when pit stop occurred
+            timeOfDay: stop.time, // Time of day when pit stop occurred
+            formattedTime: stop.duration,
+            totalTime: duration, // Individual pit stop time (not aggregated)
+            team: driver.team,
+            pitStops: [{
               lap: parseInt(stop.lap),
               time: stop.duration,
               formattedTime: stop.duration,
-            });
-          }
+            }]
+          });
         });
 
-        // Convert map to array
-        const processedData = Array.from(driversMap.values());
         setPitStopData(processedData);
       } catch (err: any) {
         console.error("Error fetching pit stop data:", err);
@@ -171,13 +162,18 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
           aValue = a.team;
           bValue = b.team;
           break;
-        case 'stop':
-          aValue = a.stops;
-          bValue = b.stops;
+        case 'lap':
+          aValue = a.lap || 0;
+          bValue = b.lap || 0;
           break;
         case 'totalTime':
           aValue = a.totalTime;
           bValue = b.totalTime;
+          break;
+        case 'timeOfDay':
+          // Convert time of day to sortable format (assuming HH:mm:ss format)
+          aValue = a.timeOfDay || a.time || '';
+          bValue = b.timeOfDay || b.time || '';
           break;
         default:
           aValue = a.totalTime;
@@ -291,11 +287,11 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
               </TableHead>
               <TableHead 
                 className="w-12 sm:w-[80px] text-right bg-background sticky top-0 cursor-pointer hover:bg-accent/50 text-xs sm:text-sm px-1 sm:px-4"
-                onClick={() => handleSort('stop')}
+                onClick={() => handleSort('lap')}
               >
                 <div className="flex items-center justify-end">
-                  Stops
-                  {sortConfig.key === 'stop' ? (
+                  Lap
+                  {sortConfig.key === 'lap' ? (
                     sortConfig.direction === 'asc' ? (
                       <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                     ) : (
@@ -311,7 +307,7 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
                 onClick={() => handleSort('totalTime')}
               >
                 <div className="flex items-center justify-end">
-                  <span className="hidden sm:inline">Total Time</span>
+                  <span className="hidden sm:inline">Duration</span>
                   <span className="sm:hidden">Time</span>
                   {sortConfig.key === 'totalTime' ? (
                     sortConfig.direction === 'asc' ? (
@@ -324,9 +320,23 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
                   )}
                 </div>
               </TableHead>
-              <TableHead className="bg-background sticky top-0 text-xs sm:text-sm px-1 sm:px-4">
-                <span className="hidden sm:inline">Stop Details</span>
-                <span className="sm:hidden">Details</span>
+              <TableHead 
+                className="bg-background sticky top-0 cursor-pointer hover:bg-accent/50 text-xs sm:text-sm px-1 sm:px-4"
+                onClick={() => handleSort('timeOfDay')}
+              >
+                <div className="flex items-center justify-start">
+                  <span className="hidden sm:inline">Time of Day</span>
+                  <span className="sm:hidden">Time</span>
+                  {sortConfig.key === 'timeOfDay' ? (
+                    sortConfig.direction === 'asc' ? (
+                      <ArrowUpIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
+                    ) : (
+                      <ArrowDownIcon className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1 opacity-50" />
+                  )}
+                </div>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -355,23 +365,12 @@ const PitStopTable = ({ year, round }: PitStopTableProps) => {
                     </Tooltip>
                   </TooltipProvider>
                 </TableCell>
-                <TableCell className="text-right px-1 sm:px-4 py-2 text-xs sm:text-sm">{driver.stops}</TableCell>
+                <TableCell className="text-right px-1 sm:px-4 py-2 text-xs sm:text-sm">{driver.lap}</TableCell>
                 <TableCell className="text-right font-mono px-1 sm:px-4 py-2 text-xs sm:text-sm">
-                  {driver.totalTime.toFixed(3)}s
+                  {formatPitStopDuration(driver.totalTime)}
                 </TableCell>
-                <TableCell className="px-1 sm:px-4 py-2">
-                  <div className="flex flex-wrap gap-1 sm:gap-2">
-                    {driver.pitStops.map((stop, index) => (
-                      <Badge 
-                        key={`${driver.driverId}-stop-${index}`}
-                        variant="outline"
-                        className="whitespace-nowrap text-xs"
-                      >
-                        <span className="hidden sm:inline">Lap {stop.lap}: {stop.formattedTime}s</span>
-                        <span className="sm:hidden">L{stop.lap}: {stop.formattedTime}s</span>
-                      </Badge>
-                    ))}
-                  </div>
+                <TableCell className="px-1 sm:px-4 py-2 text-xs sm:text-sm font-mono">
+                  {driver.timeOfDay || driver.time || 'N/A'}
                 </TableCell>
               </TableRow>
             ))}

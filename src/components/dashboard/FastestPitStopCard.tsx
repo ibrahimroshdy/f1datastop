@@ -11,6 +11,18 @@ import { getCountryCode } from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 
+// Helper function to format pit stop duration into MM:ss.sss format
+const formatPitStopDuration = (durationInSeconds: number): string => {
+  const minutes = Math.floor(durationInSeconds / 60);
+  const seconds = durationInSeconds % 60;
+  
+  if (minutes > 0) {
+    return `${minutes}:${seconds.toFixed(3).padStart(6, '0')}`;
+  } else {
+    return `${seconds.toFixed(3)}`;
+  }
+};
+
 interface FastestStop {
   driver: {
     code: string;
@@ -250,7 +262,7 @@ const FastestPitStopCard = () => {
             Fastest Pit Stops
           </CardTitle>
           <CardDescription>
-            Top 5 fastest pit stops from the last race
+            Top 5 fastest individual pit stops from the last race (duration includes pit entry, exit and red flag time)
           </CardDescription>
           
           {/* Fastest Pit Stop */}
@@ -283,7 +295,7 @@ const FastestPitStopCard = () => {
                         <span className="text-muted-foreground">·</span>
                         <span>Lap {fastestStop.lap}</span>
                         <span className="text-muted-foreground">·</span>
-                        <span className="font-mono">{fastestStop.duration.toFixed(3)}s</span>
+                        <span className="font-mono">{formatPitStopDuration(fastestStop.duration)}</span>
                       </div>
                     </div>
                   );
@@ -325,7 +337,7 @@ const FastestPitStopCard = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-mono font-medium">{stop.duration.toFixed(3)}s</div>
+                    <div className="font-mono font-medium">{formatPitStopDuration(stop.duration)}</div>
                     <Badge variant="outline" className="text-xs">
                       Lap {stop.lap}
                     </Badge>
