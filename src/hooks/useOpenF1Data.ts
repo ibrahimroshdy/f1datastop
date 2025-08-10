@@ -227,12 +227,12 @@ export const useOpenF1SessionFromErgast = (year: number, round: string, sessionT
 }; 
 
 // Get latest driver info (e.g. headshot_url) via driver number or acronym
-export const useLatestDriver = (driverNumber?: number, nameAcronym?: string) => {
+export const useLatestDriver = (driverNumber?: number, nameAcronym?: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: ["openF1LatestDriver", driverNumber, nameAcronym],
     queryFn: () => openF1Service.getLatestDriver(driverNumber, nameAcronym),
     staleTime: 1000 * 60 * 60, // 1 hour
-    enabled: !!driverNumber || !!nameAcronym,
+    enabled: enabled && (!!driverNumber || !!nameAcronym),
     refetchOnWindowFocus: false,
     ...defaultRetryConfig,
   });

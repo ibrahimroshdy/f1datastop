@@ -1,6 +1,22 @@
 // Image caching utility for driver images and other static assets
 import { withCache } from './cache';
 
+// Eagerly import all local driver headshots to build a lookup map at build time
+// Supports common image formats in case some assets are avif/webp
+const localHeadshotModules = import.meta.glob('/src/assets/drivers-headshot/*.{png,avif,jpg,jpeg,webp}', {
+  eager: true,
+  as: 'url'
+}) as Record<string, string>;
+
+const LOCAL_HEADSHOTS: Record<string, string> = {};
+for (const [path, url] of Object.entries(localHeadshotModules)) {
+  const fileName = path.split('/').pop() || '';
+  const driverIdFromFile = fileName.substring(0, fileName.lastIndexOf('.')).toLowerCase();
+  if (driverIdFromFile) {
+    LOCAL_HEADSHOTS[driverIdFromFile] = url;
+  }
+}
+
 // Cache TTL for images (7 days - images rarely change)
 const IMAGE_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
@@ -137,23 +153,33 @@ export const clearImageCache = (): void => {
  * @returns Primary and fallback URLs
  */
 export const getDriverImageUrls = (driverId: string, headshotUrl?: string) => {
-  const githubUrl = `https://raw.githubusercontent.com/npranav10/F1-Dashboard/main/public/img/drivers/${driverId}.png`;
-  const localFallback = `/driver-images/${driverId}.jpg`;
-  
-  // Priority: OpenF1 headshot > GitHub repo > Local fallback
+  const normalizedId = (driverId || '').toLowerCase();
+  const localUrl = LOCAL_HEADSHOTS[normalizedId];
+
+  // Priority: Local asset > OpenF1 headshot > nothing (show initials)
+  if (localUrl) {
+    return {
+      primary: localUrl
+    } as { primary?: string };
+  }
+
   if (headshotUrl) {
     return {
-      primary: headshotUrl,
-      fallback: githubUrl,
-      localFallback
-    };
+      primary: headshotUrl
+    } as { primary?: string };
   }
-  
+
   return {
-    primary: githubUrl,
-    fallback: localFallback,
-    localFallback: undefined
-  };
+    primary: undefined
+  } as { primary?: string };
+};
+
+export const hasLocalHeadshot = (driverId: string): boolean => {
+  return !!LOCAL_HEADSHOTS[(driverId || '').toLowerCase()];
+};
+
+export const getLocalHeadshotUrl = (driverId: string): string | undefined => {
+  return LOCAL_HEADSHOTS[(driverId || '').toLowerCase()];
 };
 
 /**

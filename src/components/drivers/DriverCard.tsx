@@ -11,7 +11,7 @@ import { TEAM_COLORS } from "@/constants/f1Colors";
 import { useLatestDriver } from "@/hooks/useOpenF1Data";
 import { useDriverResultsBySeason } from "@/hooks/useF1Data";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getCachedImage, getDriverImageUrls } from "@/utils/imageCache";
+import { getCachedImage, getDriverImageUrls, hasLocalHeadshot } from "@/utils/imageCache";
 
 interface DriverCardProps {
   driver: any;
@@ -46,7 +46,8 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
   const codeAcronym = (driver.Driver.code || '').toUpperCase();
 
   // Fetch latest OpenF1 driver info to get headshot_url (by driver code only)
-  const latestDriverQuery = useLatestDriver(undefined, codeAcronym);
+  const localHasImage = hasLocalHeadshot(driver.Driver.driverId);
+  const latestDriverQuery = useLatestDriver(undefined, codeAcronym, !localHasImage);
   const headshotUrl: string | undefined = latestDriverQuery.data?.data?.headshot_url;
   const latestNumber: number | undefined = latestDriverQuery.data?.data?.driver_number;
   const displayDriverNumber = latestNumber ?? driver.Driver.permanentNumber ?? 'N/A';
@@ -71,18 +72,21 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
     constructor?: string;
   }> = resultsByRaceResp?.data || [];
   
-  // Load and cache driver image
+  // Load and cache driver image (local > OpenF1; else none, show initials)
   useEffect(() => {
     const loadDriverImage = async () => {
       try {
         setImageLoading(true);
         const imageUrls = getDriverImageUrls(driver.Driver.driverId, headshotUrl);
-        const cached = await getCachedImage(imageUrls.primary, imageUrls.fallback);
-        setCachedImageUrl(cached);
+        if (imageUrls.primary) {
+          const cached = await getCachedImage(imageUrls.primary);
+          setCachedImageUrl(cached);
+        } else {
+          setCachedImageUrl('');
+        }
       } catch (error) {
         console.warn(`Failed to load image for driver ${driver.Driver.driverId}:`, error);
-        // Fallback to original URL structure
-        setCachedImageUrl(headshotUrl || `/driver-images/${driver.Driver.driverId}.jpg`);
+        setCachedImageUrl('');
       } finally {
         setImageLoading(false);
       }
@@ -185,10 +189,12 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
             <Avatar className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: teamColor }}>
-              <AvatarImage 
-                src={cachedImageUrl} 
-                alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`} 
-              />
+              {cachedImageUrl && (
+                <AvatarImage 
+                  src={cachedImageUrl} 
+                  alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`} 
+                />
+              )}
               <AvatarFallback style={{ backgroundColor: teamColor }}>
                 {imageLoading ? '...' : (driver.Driver.code?.slice(0, 2) || driver.Driver.familyName.slice(0, 2))}
               </AvatarFallback>

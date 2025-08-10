@@ -32,17 +32,21 @@ const DriverRow = ({ driver, onClick }: DriverRowProps) => {
   }
   const constructorColor = TEAM_COLORS[constructorId] || "#cccccc";
 
-  // Load and cache driver image
+  // Load and cache driver image (local > OpenF1; else none, show initials)
   useEffect(() => {
     const loadDriverImage = async () => {
       try {
         setImageLoading(true);
         const imageUrls = getDriverImageUrls(driver.Driver.driverId);
-        const cached = await getCachedImage(imageUrls.primary, imageUrls.fallback);
-        setCachedImageUrl(cached);
+        if (imageUrls.primary) {
+          const cached = await getCachedImage(imageUrls.primary);
+          setCachedImageUrl(cached);
+        } else {
+          setCachedImageUrl('');
+        }
       } catch (error) {
         console.warn(`Failed to load image for driver ${driver.Driver.driverId}:`, error);
-        setCachedImageUrl(`/driver-images/${driver.Driver.driverId}.jpg`);
+        setCachedImageUrl('');
       } finally {
         setImageLoading(false);
       }
@@ -61,10 +65,12 @@ const DriverRow = ({ driver, onClick }: DriverRowProps) => {
       <TableCell>
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9">
-            <AvatarImage 
-              src={cachedImageUrl} 
-              alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`} 
-            />
+            {cachedImageUrl && (
+              <AvatarImage 
+                src={cachedImageUrl} 
+                alt={`${driver.Driver.givenName} ${driver.Driver.familyName}`} 
+              />
+            )}
             <AvatarFallback 
               style={{ backgroundColor: constructorColor, color: '#ffffff' }}
             >
