@@ -1,10 +1,24 @@
 import { toast } from "sonner";
 import { getCountryFlag, addFlagToRaceName } from "@/utils/countryUtils";
+import { withCache, deleteCache, clearNamespace } from "@/utils/cache";
 
 const BASE_URL = "https://api.jolpi.ca/ergast";
 
 // Get the current F1 season year
 const getCurrentSeason = () => new Date().getFullYear();
+
+// Cache TTLs (ms) - differentiated by how frequently data changes
+const ONE_HOUR = 60 * 60 * 1000;
+const THREE_HOURS = 3 * 60 * 60 * 1000;
+const ONE_DAY = 24 * 60 * 60 * 1000;
+const TTL = {
+  standings: ONE_HOUR,        // Changes after each race
+  schedule: ONE_DAY,          // Rarely changes during season
+  circuits: ONE_DAY,          // Static data
+  nextRace: THREE_HOURS,      // Changes as races approach
+  lastRaceResults: THREE_HOURS, // Static after race ends
+  driverInfo: ONE_HOUR        // Can change with driver swaps
+};
 
 // Process race data to add emojis
 const processRaceData = (races: any[]) => {
@@ -21,22 +35,24 @@ const processRaceData = (races: any[]) => {
 export const getDriverStandings = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${seasonYear}/driverStandings.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return { 
-      data: data.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [], 
-      error: null 
-    };
+    const cacheKey = `driverStandings:${seasonYear}`;
+    const data = await withCache(
+      cacheKey,
+      TTL.standings,
+      async () => {
+        const response = await fetch(`${BASE_URL}/f1/${seasonYear}/driverStandings.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const json = await response.json();
+        return json.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    return { data, error: null };
   } catch (error) {
     console.error("Failed to fetch driver standings:", error);
     return { data: [], error };
@@ -47,22 +63,24 @@ export const getDriverStandings = async (year?: number) => {
 export const getConstructorStandings = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${seasonYear}/constructorStandings.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return { 
-      data: data.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || [], 
-      error: null 
-    };
+    const cacheKey = `constructorStandings:${seasonYear}`;
+    const data = await withCache(
+      cacheKey,
+      TTL.standings,
+      async () => {
+        const response = await fetch(`${BASE_URL}/f1/${seasonYear}/constructorStandings.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const json = await response.json();
+        return json.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || [];
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    return { data, error: null };
   } catch (error) {
     console.error("Failed to fetch constructor standings:", error);
     return { data: [], error };
@@ -73,25 +91,25 @@ export const getConstructorStandings = async (year?: number) => {
 export const getRaceSchedule = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    const races = data.MRData?.RaceTable?.Races || [];
-    const processedRaces = processRaceData(races);
-    
-    return { 
-      data: processedRaces, 
-      error: null 
-    };
+    const cacheKey = `raceSchedule:${seasonYear}`;
+    const data = await withCache(
+      cacheKey,
+      TTL.schedule,
+      async () => {
+        const response = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const json = await response.json();
+        const races = json.MRData?.RaceTable?.Races || [];
+        return processRaceData(races);
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    return { data, error: null };
   } catch (error) {
     console.error("Failed to fetch race schedule:", error);
     return { data: [], error };
@@ -101,22 +119,24 @@ export const getRaceSchedule = async (year?: number) => {
 // Fetch specific race results with error logging
 export const getRaceResults = async (year: number, round: string) => {
   try {
-    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/results.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return { 
-      data: data.MRData?.RaceTable?.Races?.[0] || {}, 
-      error: null 
-    };
+    const cacheKey = `raceResults:${year}:${round}`;
+    const data = await withCache(
+      cacheKey,
+      TTL.lastRaceResults,
+      async () => {
+        const response = await fetch(`${BASE_URL}/f1/${year}/${round}/results.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const json = await response.json();
+        return json.MRData?.RaceTable?.Races?.[0] || {};
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    return { data, error: null };
   } catch (error) {
     console.error(`Failed to fetch results for round ${round}:`, error);
     return { data: {}, error };
@@ -126,22 +146,24 @@ export const getRaceResults = async (year: number, round: string) => {
 // Fetch qualifying results
 export const getRaceQualifying = async (year: number, round: string) => {
   try {
-    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/qualifying.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return { 
-      data: data.MRData?.RaceTable?.Races?.[0] || {}, 
-      error: null 
-    };
+    const cacheKey = `raceQualifying:${year}:${round}`;
+    const data = await withCache(
+      cacheKey,
+      TTL.lastRaceResults,
+      async () => {
+        const response = await fetch(`${BASE_URL}/f1/${year}/${round}/qualifying.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const json = await response.json();
+        return json.MRData?.RaceTable?.Races?.[0] || {};
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    return { data, error: null };
   } catch (error) {
     console.error(`Failed to fetch qualifying for round ${round}:`, error);
     return { data: {}, error };
@@ -151,22 +173,24 @@ export const getRaceQualifying = async (year: number, round: string) => {
 // Fetch pit stops for a specific race
 export const getPitStops = async (year: number, round: string) => {
   try {
-    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/pitstops.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return { 
-      data: data.MRData?.RaceTable || {}, 
-      error: null 
-    };
+    const cacheKey = `pitStops:${year}:${round}`;
+    const data = await withCache(
+      cacheKey,
+      TTL.lastRaceResults,
+      async () => {
+        const response = await fetch(`${BASE_URL}/f1/${year}/${round}/pitstops.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const json = await response.json();
+        return json.MRData?.RaceTable || {};
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    return { data, error: null };
   } catch (error) {
     console.error(`Failed to fetch pit stops for round ${round}:`, error);
     return { data: {}, error };
@@ -233,6 +257,35 @@ export const getLapTimes = async (
     retryAttempts: {[key: string]: number}
   ) => void
 ) => {
+  // Cache key includes firstDriverOnly to differentiate cached results
+  const cacheKey = `lapTimes:${year}:${round}:${firstDriverOnly || 'all'}`;
+  
+  // Check cache first for this expensive operation
+  const cachedData = await withCache(
+    cacheKey,
+    TTL.lastRaceResults, // 3 hours TTL
+    async () => {
+      // Original lap times fetching logic
+      return await fetchLapTimesUncached(year, round, firstDriverOnly, onProgress);
+    },
+    { namespace: 'ergast', staleWhileRevalidate: true }
+  );
+  
+  return cachedData;
+};
+
+// Extract the original lap times logic to a separate function
+async function fetchLapTimesUncached(
+  year: number, 
+  round: string, 
+  firstDriverOnly?: string,
+  onProgress?: (
+    progress: number,
+    pagesLoaded: number, 
+    totalPages: number,
+    retryAttempts: {[key: string]: number}
+  ) => void
+) {
   try {
     let baseUrl = `${BASE_URL}/f1/${year}/${round}/laps`;
     const retryAttempts: {[key: string]: number} = {};
@@ -445,52 +498,44 @@ export const getLapTimes = async (
 export const getLastRaceResults = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const scheduleResponse = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!scheduleResponse.ok) {
-      throw new Error(`API request failed with status ${scheduleResponse.status}`);
+    const data = await withCache(
+      `lastRaceResults:${seasonYear}`,
+      TTL.lastRaceResults,
+      async () => {
+        const scheduleResponse = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!scheduleResponse.ok) {
+          throw new Error(`API request failed with status ${scheduleResponse.status}`);
+        }
+        const scheduleData = await scheduleResponse.json();
+        const races = scheduleData.MRData?.RaceTable?.Races || [];
+        const now = new Date();
+        const completedRaces = races.filter((race: any) => new Date(race.date) < now);
+        if (completedRaces.length === 0) {
+          return null;
+        }
+        const lastRace = completedRaces[completedRaces.length - 1];
+        const resultsResponse = await fetch(`${BASE_URL}/f1/${lastRace.season}/${lastRace.round}/results.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!resultsResponse.ok) {
+          throw new Error(`API request failed with status ${resultsResponse.status}`);
+        }
+        const resultsData = await resultsResponse.json();
+        return {
+          raceName: lastRace.raceName,
+          results: resultsData.MRData?.RaceTable?.Races?.[0]?.Results || []
+        };
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    if (!data) {
+      return { data: null, error: "No completed races found for this season" };
     }
-    
-    const scheduleData = await scheduleResponse.json();
-    const races = scheduleData.MRData?.RaceTable?.Races || [];
-    
-    const now = new Date();
-    const completedRaces = races.filter(race => new Date(race.date) < now);
-    
-    if (completedRaces.length === 0) {
-      return { 
-        data: null, 
-        error: "No completed races found for this season" 
-      };
-    }
-    
-    const lastRace = completedRaces[completedRaces.length - 1];
-    
-    const resultsResponse = await fetch(`${BASE_URL}/f1/${lastRace.season}/${lastRace.round}/results.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!resultsResponse.ok) {
-      throw new Error(`API request failed with status ${resultsResponse.status}`);
-    }
-    
-    const resultsData = await resultsResponse.json();
-    
-    return { 
-      data: {
-        raceName: lastRace.raceName,
-        results: resultsData.MRData?.RaceTable?.Races?.[0]?.Results || []
-      }, 
-      error: null 
-    };
+    return { data, error: null };
   } catch (error) {
     console.error("Failed to fetch race results:", error);
     return { data: null, error };
@@ -501,30 +546,33 @@ export const getLastRaceResults = async (year?: number) => {
 export const getNextRace = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    const races = data.MRData?.RaceTable?.Races || [];
-    
-    const now = new Date();
-    const upcomingRaces = races.filter(race => new Date(race.date) > now);
-    
-    if (upcomingRaces.length === 0) {
+    const cacheKey = `nextRace:${seasonYear}`;
+    const data = await withCache(
+      cacheKey,
+      TTL.nextRace,
+      async () => {
+        const response = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const json = await response.json();
+        const races = json.MRData?.RaceTable?.Races || [];
+        const now = new Date();
+        const upcomingRaces = races.filter((race: any) => new Date(race.date) > now);
+        if (upcomingRaces.length === 0) {
+          return null;
+        }
+        return upcomingRaces[0];
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    if (!data) {
       return { data: null, error: "No upcoming races found for this season" };
     }
-    
-    const nextRace = upcomingRaces[0];
-    
-    return { data: nextRace, error: null };
+    return { data, error: null };
   } catch (error) {
     console.error("Failed to fetch next race:", error);
     return { data: null, error };
@@ -545,21 +593,24 @@ export const getRaceStatus = async (sessionId?: string) => {
 export const getDriverInfo = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${seasonYear}/driverStandings.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    const drivers = data.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
-    
-    return { data: drivers, error: null };
+    const cacheKey = `driverInfo:${seasonYear}`;
+    const data = await withCache(
+      cacheKey,
+      TTL.driverInfo,
+      async () => {
+        const response = await fetch(`${BASE_URL}/f1/${seasonYear}/driverStandings.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const json = await response.json();
+        return json.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    return { data, error: null };
   } catch (error) {
     console.error("Failed to fetch driver info:", error);
     return { data: [], error };
@@ -589,22 +640,24 @@ export const getF1News = async () => {
 // Fetch F1 circuits data
 export const getF1Circuits = async () => {
   try {
-    const response = await fetch(`${BASE_URL}/f1/circuits.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return { 
-      data: data.MRData?.CircuitTable?.Circuits || [],
-      error: null 
-    };
+    const cacheKey = `circuits:all`;
+    const data = await withCache(
+      cacheKey,
+      TTL.circuits,
+      async () => {
+        const response = await fetch(`${BASE_URL}/f1/circuits.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const json = await response.json();
+        return json.MRData?.CircuitTable?.Circuits || [];
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    return { data, error: null };
   } catch (error) {
     console.error("Failed to fetch circuits:", error);
     return { data: [], error };
@@ -614,22 +667,24 @@ export const getF1Circuits = async () => {
 // Fetch sprint results for a specific race
 export const getSprintResults = async (year: number, round: string) => {
   try {
-    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/sprint.json`, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return { 
-      data: data.MRData?.RaceTable?.Races?.[0] || {}, 
-      error: null 
-    };
+    const cacheKey = `sprintResults:${year}:${round}`;
+    const data = await withCache(
+      cacheKey,
+      TTL.lastRaceResults,
+      async () => {
+        const response = await fetch(`${BASE_URL}/f1/${year}/${round}/sprint.json`, {
+          mode: 'cors',
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        const json = await response.json();
+        return json.MRData?.RaceTable?.Races?.[0] || {};
+      },
+      { namespace: 'ergast', staleWhileRevalidate: true }
+    );
+    return { data, error: null };
   } catch (error) {
     console.error(`Failed to fetch sprint results for round ${round}:`, error);
     return { data: {}, error };
@@ -675,5 +730,38 @@ export const getDriverResultsBySeason = async (year: number, driverId: string) =
   } catch (error) {
     console.error(`Failed to fetch driver results for ${year}, driver ${driverId}:`, error);
     return { data: [], error };
+  }
+};
+
+// Cache management utilities
+export const cacheUtils = {
+  // Clear all F1 data cache
+  clearAll: () => clearNamespace('ergast'),
+  
+  // Clear specific data types
+  clearStandings: (year?: number) => {
+    const seasonYear = year || getCurrentSeason();
+    deleteCache(`driverStandings:${seasonYear}`, 'ergast');
+    deleteCache(`constructorStandings:${seasonYear}`, 'ergast');
+    deleteCache(`driverInfo:${seasonYear}`, 'ergast');
+  },
+  
+  clearRaceData: (year: number, round?: string) => {
+    if (round) {
+      deleteCache(`raceResults:${year}:${round}`, 'ergast');
+      deleteCache(`raceQualifying:${year}:${round}`, 'ergast');
+      deleteCache(`pitStops:${year}:${round}`, 'ergast');
+      deleteCache(`sprintResults:${year}:${round}`, 'ergast');
+      // Clear lap times cache (both all drivers and first driver only)
+      deleteCache(`lapTimes:${year}:${round}:all`, 'ergast');
+      deleteCache(`lapTimes:${year}:${round}:true`, 'ergast');
+    }
+    deleteCache(`lastRaceResults:${year}`, 'ergast');
+    deleteCache(`nextRace:${year}`, 'ergast');
+  },
+  
+  clearSchedule: (year?: number) => {
+    const seasonYear = year || getCurrentSeason();
+    deleteCache(`raceSchedule:${seasonYear}`, 'ergast');
   }
 };
