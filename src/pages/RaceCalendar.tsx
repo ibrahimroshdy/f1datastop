@@ -1,16 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO, differenceInDays, getMonth, getWeek, getYear, addDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import YearSelector from "@/components/common/YearSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import RaceInfographic from "@/components/calendar/RaceInfographic";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
-import { Calendar as CalendarIcon, Star } from "lucide-react";
+import { Calendar as CalendarIcon, Star, Download } from "lucide-react";
 import CountryFlag from "@/components/common/CountryFlag";
 import CalendarAnalyticsTracker from "@/components/calendar/CalendarAnalyticsTracker";
+import { toast } from "sonner";
 
 // Race type constants
 const SINGLE_RACE = "single";
@@ -53,6 +56,9 @@ const RaceCalendar = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedRace, setSelectedRace] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [downloadingRace, setDownloadingRace] = useState<string | null>(null);
+  const [infographicRace, setInfographicRace] = useState<any>(null);
+  const infographicRef = useRef<HTMLDivElement>(null);
   
   const { data: raceSchedule, isLoading } = useRaceSchedule(selectedYear);
   const currentDate = new Date();
@@ -73,6 +79,32 @@ const RaceCalendar = () => {
   
   const closeRaceDetails = () => {
     setIsDialogOpen(false);
+  };
+
+  // Handle direct download from calendar card
+  const handleDirectDownload = async (race: any, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent opening the modal
+    
+    if (downloadingRace === race.round) return; // Prevent multiple downloads
+    
+    setDownloadingRace(race.round);
+    setInfographicRace(race);
+    
+    try {
+      // Wait a moment for the infographic to render
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Trigger the download from the hidden infographic
+      const downloadEvent = new CustomEvent('triggerInfographicDownload', {
+        detail: { raceRound: race.round }
+      });
+      window.dispatchEvent(downloadEvent);
+      
+    } catch (error) {
+      console.error("Error downloading infographic:", error);
+      toast.error("Failed to download infographic");
+      setDownloadingRace(null);
+    }
   };
   
   const getRaceStatus = (race: any) => {
@@ -355,16 +387,34 @@ const RaceCalendar = () => {
                               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                             )}
                           </div>
-                          <Badge 
-                            className={
-                              status === "completed" ? "bg-green-600" : 
-                              status === "next" ? "bg-f1-red" : 
-                              "bg-gray-500"
-                            }>
-                            {status === "completed" ? "Completed" : 
-                             status === "next" ? "Next Race" : 
-                             "Upcoming"}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              className={
+                                status === "completed" ? "bg-green-600" : 
+                                status === "next" ? "bg-f1-red" : 
+                                "bg-gray-500"
+                              }>
+                              {status === "completed" ? "Completed" : 
+                               status === "next" ? "Next Race" : 
+                               "Upcoming"}
+                            </Badge>
+                            {status === "completed" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 hover:bg-accent"
+                                onClick={(e) => handleDirectDownload(race, e)}
+                                disabled={downloadingRace === race.round}
+                                title="Download race infographic"
+                              >
+                                {downloadingRace === race.round ? (
+                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <Download className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         
                         <div className="mt-2">
@@ -402,6 +452,23 @@ const RaceCalendar = () => {
           onClose={closeRaceDetails} 
           race={selectedRace} 
         />
+      )}
+
+      {/* Hidden infographic for direct downloads */}
+      {infographicRace && (
+        <div className="fixed -top-[9999px] -left-[9999px] opacity-0 pointer-events-none">
+          <div ref={infographicRef}>
+            <RaceInfographic 
+              race={infographicRace}
+              isVisible={true}
+              onDownloadStart={() => {}}
+              onDownloadComplete={() => {
+                setDownloadingRace(null);
+                setInfographicRace(null);
+              }}
+            />
+          </div>
+        </div>
       )}
       </CalendarAnalyticsTracker>
     </MainLayout>

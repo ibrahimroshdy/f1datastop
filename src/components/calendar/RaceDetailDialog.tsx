@@ -14,11 +14,12 @@ import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Trophy, Flag, Clock, LineChart, Zap } from "lucide-react";
+import { Trophy, Flag, Clock, LineChart, Zap, Download, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { TEAM_COLORS } from "@/constants/f1Colors";
+import RaceInfographic from "./RaceInfographic";
 
 // Function to determine the current year
 const getCurrentYear = () => new Date().getFullYear();
@@ -58,7 +59,11 @@ const getTeamColorStyle = (constructorId: string) => {
 const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   const [selectedTab, setSelectedTab] = useState("info");
   const [dialogOpenTime, setDialogOpenTime] = useState<number>(0);
+  const [showInfographic, setShowInfographic] = useState(false);
   const hasSprint = !!race?.Sprint;
+  
+  // Check if race is completed (for infographic availability)
+  const isRaceCompleted = race?.date ? parseISO(race.date) < new Date() : false;
   
   const { data: raceResults, isLoading: isResultsLoading } = useRaceResults(
     parseInt(race?.season || "0"), 
@@ -259,7 +264,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
           }} 
           className="w-full"
         >
-          <TabsList className={`grid w-full ${hasSprint ? 'grid-cols-5' : 'grid-cols-3'} mb-1`}>
+          <TabsList className={`grid w-full ${hasSprint ? 'grid-cols-6' : 'grid-cols-4'} mb-1`}>
             <TabsTrigger value="info" className="text-xs sm:text-sm px-1 sm:px-2">Schedule</TabsTrigger>
             {hasSprint && (
               <TabsTrigger value="sprint-qualifying" className="text-xs sm:text-sm px-1 sm:px-2">
@@ -279,6 +284,14 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             )}
             <TabsTrigger value="qualifying" className="text-xs sm:text-sm px-1 sm:px-2">Qualifying</TabsTrigger>
             <TabsTrigger value="results" className="text-xs sm:text-sm px-1 sm:px-2">Race Results</TabsTrigger>
+            {isRaceCompleted && (
+              <TabsTrigger value="infographic" className="text-xs sm:text-sm px-1 sm:px-2">
+                <span className="flex items-center gap-1">
+                  <BarChart3 className="h-3 w-3" />
+                  <span>Infographic</span>
+                </span>
+              </TabsTrigger>
+            )}
           </TabsList>
           
           <div className="h-[350px] sm:h-[400px] md:h-[450px] overflow-y-auto">
@@ -384,7 +397,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               </div>
             </div>
             
-              <div className="mt-2 md:mt-4 flex justify-end">
+              <div className="mt-2 md:mt-4 flex justify-end gap-2">
               <Link to={`/race-info/${getCurrentYear()}/${race.round}`}>
                   <Button 
                     size="sm" 
@@ -399,6 +412,17 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                     View Analysis
                 </Button>
               </Link>
+              {isRaceCompleted && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="text-xs md:text-sm h-7 sm:h-9"
+                  onClick={() => setSelectedTab("infographic")}
+                >
+                  <BarChart3 className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                  Infographic
+                </Button>
+              )}
             </div>
           </TabsContent>
           
@@ -781,6 +805,19 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                 </div>
             )}
           </TabsContent>
+          
+          {isRaceCompleted && (
+            <TabsContent value="infographic" className="h-full overflow-hidden">
+              <div className="h-full overflow-y-auto">
+                <RaceInfographic 
+                  race={race}
+                  isVisible={selectedTab === "infographic"}
+                  onDownloadStart={() => console.log("Download started")}
+                  onDownloadComplete={() => console.log("Download completed")}
+                />
+              </div>
+            </TabsContent>
+          )}
           </div>
         </Tabs>
         
