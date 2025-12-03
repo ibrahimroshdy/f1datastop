@@ -1,14 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip, Legend } from "recharts";
 import { XAxis, YAxis, ReferenceLine } from '@/utils/rechartsWrapper';
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { Loader2, Clock, TrendingUp } from "lucide-react";
 import { useLapTimeData, Driver } from "@/hooks/useLapTimeData";
 import DriverSelector from "./DriverSelector";
 import DisplayModeToggle from "./DisplayModeToggle";
+import { F1ChartLoading } from "@/components/charts/F1ChartLoading";
+import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
+import { F1ErrorState } from "@/components/f1/F1ErrorState";
 
 interface LapTimeChartProps {
   year: number;
@@ -17,6 +18,15 @@ interface LapTimeChartProps {
 
 const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
   const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Helper function to generate visual line pattern for tooltips
   const getVisualLinePattern = (strokeDasharray?: string) => {
@@ -97,49 +107,41 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
   // Render loading state with progress indicator
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center space-y-4">
-        <Skeleton className="h-full w-full opacity-30" />
-        <div className="absolute flex flex-col items-center justify-center space-y-6 w-3/4 max-w-md">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <div className="w-full space-y-2">
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-              <span>Loading lap times...</span>
-              <span>{loadingProgress}%</span>
+      <div className="h-full flex flex-col items-center justify-center space-y-4 relative">
+        <F1ChartLoading chartType="line" height={350} />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center justify-center space-y-4 w-3/4 max-w-md p-6 rounded-lg bg-card border shadow-lg">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+              <div className="relative p-3 bg-primary/10 rounded-full">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            </div>
+            
+            <div className="w-full space-y-3">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span className="font-medium">Loading lap times...</span>
+                <span className="font-mono tabular-nums">{loadingProgress}%</span>
             </div>
             <Progress 
               value={loadingProgress} 
               className="h-2 w-full" 
-              indicatorClassName={isError ? "bg-yellow-500" : "bg-blue-500"}
             />
-            <div className="mt-2 text-center text-sm">
+              
               {errorMessage ? (
-                <div className="text-amber-600 font-medium">{errorMessage}</div>
+                <p className="text-amber-600 text-sm font-medium text-center">{errorMessage}</p>
               ) : (
-                <div className="text-muted-foreground">Loading lap time data for all drivers...</div>
+                <p className="text-muted-foreground text-sm text-center">
+                  Fetching lap data for all drivers...
+                </p>
               )}
               
               {retryCount > 0 && (
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Rate limits encountered. Retry attempt {retryCount}/15.
-                </div>
-              )}
-              
-              {loadingProgress > 0 && loadingProgress < 100 && (
-                <div className="mt-2 px-3 py-2 bg-blue-50 dark:bg-blue-950 rounded-md text-xs text-blue-700 dark:text-blue-300 animate-pulse-red">
-                  This may take a moment. F1 data is being fetched in batches to avoid rate limits.
-                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  Rate limit reached. Retry {retryCount}/15
+                </p>
               )}
             </div>
-            
-            {isError && (
-              <Alert className="mt-4 bg-yellow-50 border-yellow-200 text-yellow-900">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <AlertDescription className="text-xs">
-                  System is automatically retrying with exponential backoff...
-                  <div className="mt-1 font-medium">The F1 API has strict rate limits.</div>
-                </AlertDescription>
-              </Alert>
-            )}
           </div>
         </div>
       </div>
@@ -147,16 +149,15 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
   }
 
   // Handle error state
-  if (isError) {
+  if (isError && chartData.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center">
-        <Alert className="bg-red-50 border-red-200 text-red-900 mb-4">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription>
-            Unable to load lap time data due to API rate limits.
-            Please try again in a few minutes or select a different race.
-          </AlertDescription>
-        </Alert>
+      <div className="h-full flex items-center justify-center p-4">
+        <F1ErrorState
+          type="rate-limit"
+          title="Unable to Load Lap Times"
+          message="The F1 API rate limit was reached. Please wait a moment and try again."
+          variant="card"
+        />
       </div>
     );
   }
@@ -164,13 +165,13 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
   // Handle no data state
   if (chartData.length === 0) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center">
-        <p className="text-muted-foreground">
-          No lap time data available for this race
-        </p>
-        <p className="text-sm text-muted-foreground mt-2">
-          This could be because the race hasn't occurred yet or lap time data wasn't recorded
-        </p>
+      <div className="h-full flex items-center justify-center p-4">
+        <F1ChartEmpty
+          chartType="line"
+          title="No Lap Time Data"
+          message="Lap time data is not available for this race. This may be because the race hasn't occurred yet."
+          icon={<Clock className="h-12 w-12 text-muted-foreground" />}
+        />
       </div>
     );
   }
@@ -192,14 +193,14 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
         getAverageTime={getAverageTime}
       />
       
-      <div className="h-[350px] sm:h-[450px] mt-2 sm:mt-4 flex-grow">
+      <div className="h-[300px] sm:h-[350px] lg:h-[450px] mt-2 sm:mt-4 flex-grow touch-pan-x touch-pan-y">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
             margin={{ 
               top: 5, 
-              right: window.innerWidth < 640 ? 15 : 30, 
-              left: window.innerWidth < 640 ? 15 : 20, 
+              right: isMobile ? 10 : 30, 
+              left: isMobile ? 5 : 20, 
               bottom: 5 
             }}
           >
@@ -208,26 +209,31 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
               dataKey="lap"
               type="number"
               domain={[1, maxLap]}
-              label={{ 
+              label={!isMobile ? { 
                 value: 'Lap Number', 
                 position: 'insideBottomRight', 
                 offset: -10,
-                style: { fontSize: window.innerWidth < 640 ? '11px' : '12px' }
-              }}
-              tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
+                style: { fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }
+              } : undefined}
+              tick={{ fontSize: isMobile ? 9 : 12, fill: 'hsl(var(--muted-foreground))' }}
+              tickLine={{ stroke: 'hsl(var(--border))' }}
+              axisLine={{ stroke: 'hsl(var(--border))' }}
               xAxisId="lap"
             />
             <YAxis
               domain={displayMode === 'absolute' ? ['auto', 'auto'] : [0, 'auto']}
-              label={{ 
+              label={!isMobile ? { 
                 value: displayMode === 'absolute' ? 'Time (s)' : 'Gap (s)', 
                 angle: -90, 
                 position: 'insideLeft', 
-                dx: window.innerWidth < 640 ? -25 : -35,
-                style: { fontSize: window.innerWidth < 640 ? '11px' : '12px' }
-              }}
-              tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
+                dx: -35,
+                style: { fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }
+              } : undefined}
+              tick={{ fontSize: isMobile ? 9 : 12, fill: 'hsl(var(--muted-foreground))' }}
+              tickLine={{ stroke: 'hsl(var(--border))' }}
+              axisLine={{ stroke: 'hsl(var(--border))' }}
               yAxisId="time"
+              width={isMobile ? 45 : 60}
               tickFormatter={(value) => {
                 if (displayMode === 'absolute') {
                   // Format as MM:SS.sss
@@ -247,7 +253,6 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                 
                 let formattedValue;
                 if (displayMode === 'absolute') {
-                  // Format as MM:SS.sss
                   if (typeof value !== 'number') {
                     formattedValue = `${value}`;
                   } else {
@@ -256,18 +261,14 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
                     formattedValue = `${mins}:${secs.padStart(6, '0')}`;
                   }
                 } else {
-                  // Make sure value is a number before calling toFixed
                   formattedValue = typeof value === 'number' ? `+${value.toFixed(3)}s` : `+${value}`;
                 }
                 
-                // Add line style info if driver is found
                 if (driver) {
                   const visibleDriversData = availableDrivers.filter(d => visibleDrivers.includes(d.code));
                   const lineStyle = getLineStyle(driver, visibleDriversData);
-                  
                   const linePattern = getVisualLinePattern(lineStyle.strokeDasharray);
                   const dotPattern = getVisualDotPattern(lineStyle.dot);
-                  
                   return [formattedValue, `${driverCode} ${linePattern} ${dotPattern}`];
                 }
                 
@@ -275,13 +276,15 @@ const LapTimeChart: React.FC<LapTimeChartProps> = ({ year, round }) => {
               }}
               labelFormatter={(label) => `Lap ${label}`}
               contentStyle={{ 
-                backgroundColor: '#1a1a1a',
-                borderColor: '#333',
-                borderRadius: '5px',
-                color: 'white',
-                fontSize: window.innerWidth < 640 ? '11px' : '12px',
-                padding: window.innerWidth < 640 ? '6px' : '8px'
+                backgroundColor: 'hsl(240 12% 10%)',
+                borderColor: 'hsl(240 10% 20%)',
+                borderRadius: '8px',
+                color: 'hsl(0 0% 98%)',
+                fontSize: isMobile ? '11px' : '12px',
+                padding: isMobile ? '8px' : '10px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
               }}
+              wrapperStyle={{ zIndex: 100 }}
             />
             <Legend
               formatter={(value) => {

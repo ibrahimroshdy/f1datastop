@@ -11,6 +11,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRaceSchedule, useLapTimes } from "@/hooks/useF1Data";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { useTheme } from "@/context/ThemeContext";
 
 interface LapTimesChartProps {
   lastRaceResults: any;
@@ -132,6 +133,16 @@ const LapTimesChart = ({
   getTeamColor,
   compact
 }: LapTimesChartProps) => {
+  const { isGlass } = useTheme();
+  
+  // Glass styling for the card
+  const glassStyle = isGlass ? {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(var(--glass-blur))',
+    WebkitBackdropFilter: 'blur(var(--glass-blur))',
+    border: '1px solid var(--glass-border)',
+  } : {};
+  
   const [raceName, setRaceName] = useState<string>("");
   const [countryName, setCountryName] = useState<string>("");
   const [countryCode, setCountryCode] = useState<string>("");
@@ -313,7 +324,7 @@ const LapTimesChart = ({
 
   return (
     <>
-      <Card className="bg-card border-border h-full overflow-hidden flex flex-col">
+      <Card className="bg-card border-border h-full overflow-hidden flex flex-col" style={glassStyle}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />

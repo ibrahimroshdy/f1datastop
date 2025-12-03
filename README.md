@@ -1,140 +1,263 @@
 # F1 DataStop
 
+<p align="center">
 <img src="public/lovable-uploads/4b2c0df9-6dc4-4759-bfe3-fb274f378741.png" alt="F1 DataStop" width="250" height="200">
+</p>
 
-A modern React application for Formula 1 enthusiasts providing real-time race data, lap time analysis, position tracking, and comprehensive F1 insights.
+<p align="center">
+  <strong>The Ultimate Formula 1 Data Analytics Platform</strong>
+</p>
 
-## Overview
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#tech-stack">Tech Stack</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#data-sources">Data Sources</a> •
+  <a href="#analytics">Analytics</a> •
+  <a href="#contributing">Contributing</a>
+</p>
 
-F1 DataStop is a data-rich analytics platform for Formula 1 fans that visualizes race performance, lap times, position changes, and other critical race metrics. The application uses the latest F1 data to deliver insights through interactive charts and immersive visualizations.
+---
+
+A modern, responsive React application for Formula 1 enthusiasts providing real-time race data, lap time analysis, position tracking, championship standings, and comprehensive F1 insights. Built with shadcn/ui components for a beautiful, unified user experience.
+
+## Features
+
+### Dashboard
+- **Live Race Tracking** - Real-time position updates during races
+- **Championship Standings** - Driver and Constructor standings with points progression
+- **Last Race Results** - Quick overview of the most recent race results
+- **Next Race Countdown** - Countdown to the upcoming race with circuit information
+- **Season Overview** - Comprehensive view of the current F1 season
+
+### Analytics
+- **Lap Time Analysis** - Compare lap times across drivers with gap mode
+- **Position Changes** - Track position changes throughout races
+- **Qualifying Analysis** - Detailed qualifying session breakdowns
+- **Pit Stop Analysis** - Pit stop timing and strategy visualization
+- **Year-over-Year Comparisons** - Compare performance across seasons
+
+### Interactive Features
+- **F1 Trivia** - Test your F1 knowledge with timed quizzes
+- **Race Calendar** - Full season calendar with race details and infographics
+- **Driver & Constructor Profiles** - Detailed information for all teams and drivers
+- **Embeddable Widgets** - Share standings on your own website
+
+### Design System
+- **Dark/Light Mode** - Full theme support
+- **Mobile Responsive** - Optimized for all screen sizes
+- **F1 Branding** - Authentic F1 red (#e10600) color scheme
+- **shadcn/ui Components** - Beautiful, accessible UI components
 
 ## Tech Stack
 
-- **Frontend**: React 18, TypeScript
-- **Build Tool**: Vite
-- **UI Framework**: shadcn/ui components
-- **Styling**: Tailwind CSS
-- **State Management**: React Query, Context API
-- **Routing**: React Router
-- **Data Visualization**: Recharts
-- **Backend**: Supabase
-- **Maps**: Mapbox GL
-- **3D Globe**: Three.js, Three-Globe
+| Category | Technology |
+|----------|------------|
+| **Frontend** | React 18, TypeScript |
+| **Build Tool** | Vite |
+| **UI Framework** | [shadcn/ui](https://ui.shadcn.com/) |
+| **Styling** | Tailwind CSS |
+| **State Management** | React Query, Context API |
+| **Routing** | React Router v6 |
+| **Data Visualization** | Recharts, D3.js |
+| **Backend/Auth** | Supabase |
+| **Maps** | Mapbox GL |
+| **3D Globe** | Three.js, Three-Globe |
+| **Analytics** | Google Analytics 4, Microsoft Clarity |
+
+## Data Sources
+
+F1 DataStop uses **two complementary data sources** for comprehensive coverage:
+
+### Jolpica/Ergast API (Historical Data)
+- **Base URL**: `https://api.jolpi.ca/ergast/f1/`
+- **Documentation**: [Jolpica F1 API](https://github.com/jolpica/jolpica-f1)
+- **Data**: Standings, results, qualifying, lap times, pit stops, race schedules
+- **Usage**: Primary data source for all historical and race-by-race data
+
+### OpenF1 API (Live Data)
+- **Base URL**: `https://api.openf1.org/v1/`
+- **Documentation**: [OpenF1 API](https://openf1.org/)
+- **Data**: Live timing, telemetry, weather, team radio, session data
+- **Usage**: Real-time data during race weekends
+
+> **IMPORTANT**: All team and driver data is fetched **dynamically** from the APIs. No static team lists or driver configurations are hardcoded, ensuring the app automatically supports any number of teams (10, 11, or more) and drivers (20, 22, or more) for future seasons.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v16+)
+- Node.js (v18+)
 - npm or yarn
-- Supabase account (for database functionality)
+- Supabase account (for authentication and trivia features)
 
 ### Installation
 
-1. Clone the repository:
-```sh
+1. **Clone the repository**
+```bash
 git clone https://github.com/yourusername/f1datastop.git
 cd f1datastop
 ```
 
-2. Install dependencies:
-```sh
+2. **Install dependencies**
+```bash
 npm install
 ```
 
-3. Set up environment variables:
-Create a `.env` file in the root directory with the following variables:
-```
+3. **Set up environment variables**
+
+Create a `.env` file in the root directory:
+
+```env
+# Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Google Analytics (Optional)
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+
+# Microsoft Clarity (Optional)
+VITE_CLARITY_PROJECT_ID=your_clarity_project_id
+
+# Mapbox (Optional - for maps)
+VITE_MAPBOX_TOKEN=your_mapbox_token
 ```
 
-4. Start the development server:
-```sh
+4. **Start the development server**
+```bash
 npm run dev
 ```
 
 The app will be available at `http://localhost:8080`.
 
-## Supabase Integration
+## Analytics Integration
 
-F1 DataStop uses Supabase for data storage, authentication, and real-time updates.
+### Google Analytics 4
 
-### Data Model
+F1 DataStop integrates Google Analytics for tracking:
+- Page views and navigation
+- User engagement metrics
+- Feature usage analytics
+- Error tracking
 
-The application relies on several Supabase tables:
-- `races`: Information about F1 races
-- `drivers`: Driver information and statistics
-- `teams`: Team data
-- `lap_times`: Detailed lap time data
-- `position_data`: Race position tracking
-- `users`: User accounts and preferences
+The integration is handled by `src/integrations/google-analytics/AnalyticsProvider.tsx`.
 
-### Authentication
+### Microsoft Clarity
 
-The app implements Supabase authentication through the `AuthContext` provider:
-- Email/password login
-- Social login options
-- JWT token management
-- Protected routes
+Session recording and heatmaps are provided by Microsoft Clarity:
+- User session recordings
+- Click heatmaps
+- Scroll depth tracking
+- Rage click detection
 
-### Connecting to Supabase
+The integration is handled by `src/integrations/clarity/ClarityProvider.tsx`.
 
-The connection is managed in `src/integrations/supabase.ts`:
+## Authentication
 
-```typescript
-import { createClient } from '@supabase/supabase-js';
+F1 DataStop uses **Supabase** for authentication:
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+- **Email/Password** - Standard email authentication
+- **Twitter/X OAuth** - Social login with Twitter
+- **Profile Management** - User profiles with customizable usernames
+- **Protected Routes** - Trivia and profile features require authentication
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-```
+### Setting Up Twitter OAuth
 
-## Key Components
-
-### Analytics Components
-
-- **LapTimeChart**: Visualizes lap times for selected drivers
-- **PositionChangeChart**: Tracks position changes throughout a race
-- **DriverSelector**: Interactive component for selecting drivers to analyze
-- **DisplayModeToggle**: Toggles between absolute and gap time displays
-
-### Layout Components
-
-- **MainLayout**: Primary layout with navigation and content areas
-- **SideNav**: Navigation sidebar with links to different sections
-- **Header**: App header with authentication and user controls
-
-### Authentication Components
-
-- **ProtectedRoute**: Route wrapper that requires authentication
-- **LoginForm**: User login interface
-- **SignupForm**: New user registration
+1. Create a Twitter Developer account
+2. Set up an OAuth 2.0 app
+3. Add the callback URL: `https://your-supabase-url.supabase.co/auth/v1/callback`
+4. Configure in Supabase Dashboard → Authentication → Providers → Twitter
 
 ## Project Structure
 
 ```
 f1datastop/
-├── public/                  # Static assets
+├── public/                     # Static assets
 ├── src/
-│   ├── assets/              # Application assets
-│   │   ├── analytics/       # Data visualization components
-│   │   ├── auth/            # Authentication components
-│   │   ├── layout/          # Layout components
-│   │   └── ui/              # shadcn UI components
-│   ├── constants/           # Application constants
-│   ├── context/             # React context providers
-│   ├── hooks/               # Custom React hooks
-│   ├── integrations/        # Third-party integrations
-│   ├── lib/                 # Utility libraries
-│   ├── pages/               # Page components
-│   ├── services/            # API services
-│   └── utils/               # Utility functions
-├── supabase/                # Supabase configuration
-│   └── functions/           # Supabase Edge Functions
+│   ├── components/
+│   │   ├── analytics/          # Chart and data visualization components
+│   │   ├── calendar/           # Race calendar components
+│   │   ├── charts/             # F1 chart system (F1ChartCard, etc.)
+│   │   ├── common/             # Shared components (CountryFlag, TeamLogo)
+│   │   ├── dashboard/          # Dashboard cards and widgets
+│   │   ├── embeddable/         # Embeddable widget components
+│   │   ├── f1/                 # F1 component library (F1Card, F1Badge, etc.)
+│   │   ├── layout/             # Layout components (MainLayout, Sidebar)
+│   │   ├── trivia/             # Trivia game components
+│   │   └── ui/                 # shadcn/ui components
+│   ├── constants/              # F1 colors, configuration
+│   ├── context/                # React context providers
+│   │   └── auth/               # Authentication context
+│   ├── hooks/                  # Custom React hooks
+│   ├── integrations/           # Third-party integrations
+│   │   ├── clarity/            # Microsoft Clarity
+│   │   ├── google-analytics/   # GA4 integration
+│   │   └── supabase/           # Supabase client
+│   ├── pages/                  # Page components
+│   ├── services/               # API services
+│   │   ├── f1Service.ts        # Ergast/Jolpica API
+│   │   ├── openF1Service.ts    # OpenF1 API
+│   │   └── triviaService.ts    # Trivia game service
+│   └── utils/                  # Utility functions
+├── supabase/                   # Supabase configuration
+│   └── functions/              # Edge Functions
 └── ...
 ```
+
+## F1 Component Library
+
+F1 DataStop includes a custom component library built on shadcn/ui:
+
+### Core Components (`src/components/f1/`)
+- `F1Card` - Racing-styled card with team color accents
+- `F1Badge` - Position badges, status indicators
+- `F1Avatar` - Driver/team avatars with team colors
+- `F1Progress` - Points progress bars with team gradients
+- `F1Skeleton` - F1-themed loading skeletons
+- `F1EmptyState` - Beautiful empty states with F1 imagery
+- `F1ErrorState` - Friendly error states with retry
+
+### Chart Components (`src/components/charts/`)
+- `F1ChartCard` - Chart wrapper with loading/empty/error states
+- `F1ChartTooltip` - Unified tooltip styling
+- `F1ChartLegend` - Responsive legend component
+- `F1ChartEmpty` - Chart-specific empty states
+- `F1ChartLoading` - Chart skeleton loaders
+
+## Embeddable Widgets
+
+F1 DataStop provides embeddable widgets for external use:
+
+### Driver Standings
+```html
+<iframe 
+  src="https://f1datastop.com/embed/driver-standings?season=2024&theme=dark" 
+  width="400" 
+  height="600"
+></iframe>
+```
+
+### Constructor Standings
+```html
+<iframe 
+  src="https://f1datastop.com/embed/constructor-standings?season=2024&theme=light" 
+  width="400" 
+  height="400"
+></iframe>
+```
+
+**URL Parameters:**
+- `season` - Year (default: current year)
+- `theme` - `light` or `dark`
+- `font` - Custom font family
+
+## Support the Project
+
+If you enjoy F1 DataStop, consider supporting the project:
+
+<a href="https://www.buymeacoffee.com/f1datastop" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-red.png" alt="Buy Me A Coffee" height="50">
+</a>
 
 ## Development Guidelines
 
@@ -143,26 +266,44 @@ f1datastop/
 1. Create the component in the appropriate directory
 2. Use TypeScript interfaces for props
 3. Follow the established styling patterns with Tailwind CSS
-4. Import from shadcn/ui for consistent design
+4. Import from shadcn/ui or the F1 component library
+5. Ensure mobile responsiveness
 
 ### Data Fetching Pattern
 
-The application uses React Query and custom hooks for data fetching:
-
 ```typescript
-// Example hook for fetching race data
-export const useRaceData = (year: number, round: string) => {
-  return useQuery(['race', year, round], () => 
-    fetchRaceData(year, round)
-  );
+// Use React Query hooks from useF1Data.ts
+import { useDriverStandings, useRaceSchedule } from "@/hooks/useF1Data";
+
+// For team/driver metadata with colors
+import { useF1Metadata } from "@/hooks/useF1Metadata";
+
+const MyComponent = () => {
+  const { drivers, teams, getTeamColor } = useF1Metadata();
+  const { data: standings, isLoading } = useDriverStandings();
+  
+  // Use the data...
 };
+```
+
+### Theme Support
+
+All components support light and dark themes via CSS variables:
+
+```css
+/* Use semantic color variables */
+.my-component {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
 ```
 
 ## Deployment
 
 ### Building for Production
 
-```sh
+```bash
 npm run build
 ```
 
@@ -170,12 +311,10 @@ The production-ready files will be in the `dist` directory.
 
 ### Hosting
 
-The application is deployed on Lovable's hosting platform. To deploy:
-
-1. Visit the [Lovable Project](https://lovable.dev/projects/824fa660-781a-4224-acb7-e9b726fb6efa)
-2. Navigate to Share -> Publish
-
-For custom domain deployment, follow the Netlify instructions in the [Lovable docs](https://docs.lovable.dev/tips-tricks/custom-domain/).
+The application can be deployed to:
+- **Vercel** - Recommended for React apps
+- **Netlify** - Easy deployment with Git integration
+- **Lovable** - Original hosting platform
 
 ## Contributing
 
@@ -185,12 +324,29 @@ For custom domain deployment, follow the Netlify instructions in the [Lovable do
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+### Code Style
+
+- Use TypeScript for all new code
+- Follow the existing component patterns
+- Use shadcn/ui components where possible
+- Ensure mobile responsiveness
+- Add appropriate loading and error states
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments 
 
-- Formula 1 for the inspiration and data
-- The shadcn/ui team for the component library
-- Lovable for the hosting platform
+- **Formula 1** - For the inspiration and amazing sport
+- **Jolpica F1 API** - Historical F1 data
+- **OpenF1** - Live timing data
+- **shadcn/ui** - Beautiful component library
+- **Recharts** - Data visualization
+- **Supabase** - Backend and authentication
+
+---
+
+<p align="center">
+  Made with ❤️ for F1 fans everywhere
+</p>

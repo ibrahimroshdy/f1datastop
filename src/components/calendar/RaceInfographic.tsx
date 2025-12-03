@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import html2canvas from "html2canvas";
-import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { 
@@ -31,6 +30,49 @@ import {
 } from "@/hooks/useF1Data";
 import { toast } from "sonner";
 import QualifyingToRaceChart from "@/components/dashboard/QualifyingToRaceChart";
+
+// Country name to ISO code mapping for emoji flags (works with html2canvas)
+const countryToCode: { [key: string]: string } = {
+  "Argentina": "AR", "Australia": "AU", "Austria": "AT", "Azerbaijan": "AZ",
+  "Bahrain": "BH", "Belgium": "BE", "Brazil": "BR", "Canada": "CA", "China": "CN",
+  "France": "FR", "Germany": "DE", "Hungary": "HU", "Italy": "IT", "Japan": "JP",
+  "Mexico": "MX", "Monaco": "MC", "Netherlands": "NL", "Portugal": "PT", "Qatar": "QA",
+  "Saudi Arabia": "SA", "Singapore": "SG", "Spain": "ES", "UK": "GB", "UAE": "AE",
+  "United Kingdom": "GB", "United States": "US", "USA": "US", "Miami": "US",
+  "Vegas": "US", "Las Vegas": "US", "Abu Dhabi": "AE", "Emilia Romagna": "IT",
+  "Imola": "IT", "Sao Paulo": "BR", "Jeddah": "SA", "Zandvoort": "NL", "Monza": "IT",
+  "Austin": "US", "Yas Marina": "AE", "Silverstone": "GB", "Spa": "BE",
+  "Barcelona": "ES", "Montreal": "CA", "Baku": "AZ", "Suzuka": "JP", "Losail": "QA",
+  "Shanghai": "CN"
+};
+
+// Helper to get country code from country name
+const getCountryCodeFromName = (country: string): string => {
+  if (!country) return "UN";
+  const normalized = country.trim();
+  if (countryToCode[normalized]) return countryToCode[normalized];
+  
+  // Try case-insensitive lookup
+  const lower = normalized.toLowerCase();
+  for (const [key, code] of Object.entries(countryToCode)) {
+    if (key.toLowerCase() === lower) return code;
+  }
+  
+  // Try partial match
+  for (const [key, code] of Object.entries(countryToCode)) {
+    if (normalized.includes(key) || key.includes(normalized)) return code;
+  }
+  
+  return "UN"; // Default
+};
+
+// Helper to convert country code to emoji flag (works in html2canvas)
+const getEmojiFlag = (country: string): string => {
+  const code = getCountryCodeFromName(country).toUpperCase();
+  if (code === "UN") return "🏁";
+  const codePoints = code.split('').map(char => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+};
 
 interface RaceInfographicProps {
   race: any;
@@ -81,6 +123,7 @@ const getMockWeatherData = (race: any) => {
   return mockWeatherConditions[weatherIndex];
 };
 
+
 const RaceInfographic: React.FC<RaceInfographicProps> = ({ 
   race, 
   isVisible, 
@@ -90,15 +133,15 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
   const infographicRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-
+  
   // Download function
   const downloadInfographic = async () => {
     if (!infographicRef.current || isDownloading) return;
-
+    
     setIsDownloading(true);
     setIsGenerating(true);
     onDownloadStart?.();
-
+    
     try {
       // Wait for any pending renders and data loading
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -106,24 +149,48 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
       // Ensure all images and fonts are loaded
       const images = infographicRef.current.querySelectorAll('img');
       await Promise.all(Array.from(images).map(img => {
-        return new Promise((resolve) => {
+          return new Promise((resolve) => {
           if (img.complete) {
             resolve(true);
           } else {
             img.onload = () => resolve(true);
             img.onerror = () => resolve(true);
           }
-        });
+          });
       }));
-
-      const canvas = await html2canvas(infographicRef.current, {
+      
+      // Pre-load all flag images and convert to data URLs
+      const flagImages = infographicRef.current.querySelectorAll('img[src*="flag"]');
+      const imageDataMap = new Map<string, string>();
+      
+      await Promise.all(Array.from(flagImages).map(async (img) => {
+        const imgElement = img as HTMLImageElement;
+        const src = imgElement.src;
+        if (src && !imageDataMap.has(src)) {
+          try {
+            const response = await fetch(src);
+            const blob = await response.blob();
+            const dataUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+            imageDataMap.set(src, dataUrl);
+          } catch (e) {
+            console.warn('Failed to load flag image:', src);
+          }
+        }
+      }));
+      
+              const canvas = await html2canvas(infographicRef.current, {
         scale: 2, // High quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
+          useCORS: true,
+          allowTaint: true,
+        backgroundColor: '#0a0a0a', // Dark background to match theme
         width: infographicRef.current.offsetWidth,
         height: infographicRef.current.offsetHeight,
         logging: false, // Disable logging for cleaner output
+        windowWidth: 1200, // Fixed width for consistent rendering
         onclone: (clonedDoc) => {
           // Ensure all text and elements are visible in the clone
           const clonedElement = clonedDoc.querySelector('[data-infographic-root]');
@@ -131,27 +198,52 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
             (clonedElement as HTMLElement).style.transform = 'none';
             (clonedElement as HTMLElement).style.opacity = '1';
             (clonedElement as HTMLElement).style.visibility = 'visible';
-            
-            // Ensure all child elements are visible
+            (clonedElement as HTMLElement).style.position = 'relative';
+                
+            // Ensure all child elements are visible and properly positioned
             const allElements = clonedElement.querySelectorAll('*');
             allElements.forEach((el) => {
-              (el as HTMLElement).style.visibility = 'visible';
-              (el as HTMLElement).style.opacity = '1';
+              const htmlEl = el as HTMLElement;
+              htmlEl.style.visibility = 'visible';
+              htmlEl.style.opacity = '1';
+              // Reset any transforms that might cause misalignment
+              if (htmlEl.style.transform && htmlEl.style.transform !== 'none') {
+                htmlEl.style.transform = 'none';
+              }
+            });
+            
+            // Replace external flag images with data URLs
+            const clonedImages = clonedElement.querySelectorAll('img');
+            clonedImages.forEach((img) => {
+              const imgEl = img as HTMLImageElement;
+              const dataUrl = imageDataMap.get(imgEl.src);
+              if (dataUrl) {
+                imgEl.src = dataUrl;
+              }
+            });
+            
+            // Remove any SVG elements that might cause issues (D3 charts)
+            const svgElements = clonedElement.querySelectorAll('svg');
+            svgElements.forEach((svg) => {
+              // Keep simple SVG icons, remove complex D3 charts
+              if (svg.querySelector('path.link-path') || svg.querySelector('.sankey-node')) {
+                svg.remove();
+              }
             });
           }
-        }
-      });
-
+          }
+        });
+      
       // Create download link
-      const link = document.createElement('a');
+          const link = document.createElement('a');
       link.download = `${raceName.replace(/\s+/g, '_')}_${year}_Race_Infographic.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
       
       // Trigger download
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
       toast.success("Race infographic downloaded successfully!");
     } catch (error) {
       console.error("Error generating infographic:", error);
@@ -187,7 +279,6 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
   const { data: pitStopsData, isLoading: isPitStopsLoading } = useLastRacePitStops();
   const { data: lapTimesData, isLoading: isLapTimesLoading } = useLapTimes(year, round, false);
 
-
   const isLoading = isResultsLoading || isQualifyingLoading || isPitStopsLoading || isLapTimesLoading;
 
   // Get race name and country info
@@ -218,7 +309,7 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
     }
     return null;
   }, [raceResults]);
-
+  
   // Process pit stops data
   const fastestPitStop = useMemo(() => {
     // Try multiple possible data structures for pit stops
@@ -276,7 +367,7 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
       </div>
 
       {/* Infographic Content */}
-      <div 
+      <div
         ref={infographicRef}
         data-infographic-root
         className="bg-background p-8 rounded-lg border"
@@ -285,8 +376,10 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
         {/* Header Section */}
         <div className="text-center mb-8 space-y-4">
           <div className="flex items-center justify-center gap-4">
-            <CountryFlag country={country} size={40} svg={true} />
-            <div>
+            <span className="text-5xl" role="img" aria-label={country}>
+              {getEmojiFlag(country)}
+            </span>
+              <div>
               <h1 className="text-4xl font-bold text-foreground">{raceName}</h1>
               <p className="text-lg text-muted-foreground">{circuitName}</p>
             </div>
@@ -309,7 +402,7 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-4 w-1/2" />
                 </div>
-              </Card>
+        </Card>
             ))}
           </div>
         ) : (
@@ -318,27 +411,27 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
             <div className="grid grid-cols-3 gap-6">
               {/* Race Results - Main Section */}
               <Card className="col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                     <Trophy className="h-6 w-6 text-yellow-500" />
                     Final Race Results
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                   {raceResults?.data?.Results ? (
                     <div className="grid grid-cols-2 gap-3">
                       {raceResults.data.Results.slice(0, 10).map((result: any) => (
                         <div key={result.position} className="flex items-center justify-between p-3 border rounded-lg bg-card/50">
-                          <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
                             <div className="text-xl font-bold w-8 text-center">{result.position}</div>
-                            <div style={getTeamColorStyle(result.Constructor.constructorId)}>
+                        <div style={getTeamColorStyle(result.Constructor.constructorId)}>
                               <div className="font-bold text-sm">{result.Driver.code}</div>
                               <div className="text-xs text-muted-foreground truncate max-w-24">
                                 {result.Driver.familyName}
-                              </div>
-                            </div>
                           </div>
-                          <div className="text-right">
+                        </div>
+                      </div>
+                      <div className="text-right">
                             <div className="font-mono text-sm font-medium">
                               {result.position === '1' ? result.Time?.time : 
                                result.Time?.time?.startsWith('+') ? result.Time.time : 
@@ -377,7 +470,7 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                       <div className="flex items-center gap-2">
                         <Droplets className="h-4 w-4 text-blue-500" />
                         <span className="text-sm">{weatherData.humidity}</span>
-                      </div>
+                    </div>
                       <div className="flex items-center gap-2">
                         <Wind className="h-4 w-4 text-gray-500" />
                         <span className="text-sm">{weatherData.wind}</span>
@@ -386,8 +479,8 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                         {weatherData.condition}
                       </Badge>
                     </div>
-                  </CardContent>
-                </Card>
+              </CardContent>
+            </Card>
 
                 {/* Fastest Lap */}
                 {fastestLapData && (
@@ -440,7 +533,7 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                         <div key={result.position} className="flex items-center justify-between p-2 border rounded bg-card/30">
                           <div className="flex items-center gap-2">
                             <span className="font-bold w-6 text-sm text-center">{result.position}</span>
-                            <div style={getTeamColorStyle(result.Constructor.constructorId)}>
+                          <div style={getTeamColorStyle(result.Constructor.constructorId)}>
                               <div className="font-bold text-sm">{result.Driver.code}</div>
                             </div>
                           </div>
@@ -503,7 +596,9 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                   <div className="space-y-4">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-2">
-                        <CountryFlag country={country} size={20} svg={true} />
+                        <span className="text-xl" role="img" aria-label={country}>
+                          {getEmojiFlag(country)}
+                        </span>
                         <h4 className="font-bold text-sm">{circuitName}</h4>
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -515,7 +610,7 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-muted-foreground">Date:</span>
                         <span className="font-medium">{format(parseISO(race.date), 'MMM d, yyyy')}</span>
-                      </div>
+                        </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-muted-foreground">Time:</span>
                         <span className="font-medium">{race.time ? format(parseISO(`${race.date}T${race.time}`), 'HH:mm') : 'N/A'}</span>
@@ -528,13 +623,13 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                   </div>
                 </CardContent>
               </Card>
-            </div>
-
+                  </div>
+                  
             {/* Third Row: Qualifying to Race Progression Chart */}
             <div className="h-[500px]">
               <QualifyingToRaceChart compact={false} />
-            </div>
-
+                  </div>
+                  
             {/* Fourth Row: Additional Statistics */}
             <div className="grid grid-cols-4 gap-4">
               {/* DNF Count */}
@@ -556,8 +651,8 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                     {raceResults?.data?.Results?.[0]?.laps || "57"}
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">Total Laps</div>
-                </CardContent>
-              </Card>
+              </CardContent>
+            </Card>
 
               {/* Race Winner */}
               <Card className="text-center">
@@ -576,10 +671,10 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                     {qualifyingResults?.data?.QualifyingResults?.[0]?.Driver?.code || "NOR"}
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">Pole Position</div>
-                </CardContent>
-              </Card>
-            </div>
+              </CardContent>
+            </Card>
           </div>
+        </div>
         )}
 
         {/* Footer */}
@@ -590,7 +685,7 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
           <p className="text-xs text-muted-foreground mt-1">
             Race infographic for {raceName} • {raceDate}
           </p>
-        </div>
+            </div>
       </div>
     </div>
   );

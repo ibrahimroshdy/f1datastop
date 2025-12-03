@@ -12,6 +12,7 @@ import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import { useTheme } from "@/context/ThemeContext";
 
 interface SankeyNodeExtended extends SankeyNode<any, any> {
   name: string;
@@ -42,6 +43,7 @@ interface SankeyLinkExtended extends Omit<SankeyLink<any, any>, 'source' | 'targ
 
 const QualifyingToRaceChart = ({ compact = false }: { compact?: boolean }) => {
   const { data, isLoading, error, refetch } = useQualifyingToRaceData();
+  const { isGlass } = useTheme();
   const sankeyRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -800,8 +802,16 @@ const QualifyingToRaceChart = ({ compact = false }: { compact?: boolean }) => {
     setIsDialogOpen(false);
   };
 
+  // Glass styling for the card
+  const glassStyle = isGlass ? {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(var(--glass-blur))',
+    WebkitBackdropFilter: 'blur(var(--glass-blur))',
+    border: '1px solid var(--glass-border)',
+  } : {};
+
   return (
-    <Card className="bg-card border-border h-full">
+    <Card className="bg-card border-border h-full" style={glassStyle}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="flex items-center gap-2">
@@ -849,56 +859,58 @@ const QualifyingToRaceChart = ({ compact = false }: { compact?: boolean }) => {
               style={{ minHeight: "400px", height: "100%" }}
             />
             
-            <div className="mt-4 pt-2 border-t border-border">
-              <div className="flex flex-wrap gap-4 justify-center">
-                <Badge 
-                  variant="outline" 
-                  className="flex items-center justify-center gap-2 text-sm"
-                >
-                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                  Gained Positions
-                </Badge>
-                <Badge 
-                  variant="outline" 
-                  className="flex items-center justify-center gap-2 text-sm"
-                >
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  Lost Positions
-                </Badge>
-                <Badge 
-                  variant="outline" 
-                  className="flex items-center justify-center gap-2 text-sm"
-                >
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  Maintained Position
-                </Badge>
-              </div>
-              
-              {!isLoading && !error && circuitName && (
-                <div className="mt-4 text-center">
+            {!compact && (
+              <div className="mt-4 pt-2 border-t border-border">
+                <div className="flex flex-wrap gap-4 justify-center">
                   <Badge 
-                    variant="secondary" 
-                    className="flex items-center justify-center gap-2 mx-auto py-1 px-3 cursor-pointer hover:outline hover:outline-2 hover:outline-red-500 transition-all"
-                    onClick={openRaceDetails}
+                    variant="outline" 
+                    className="flex items-center justify-center gap-2 text-sm"
                   >
-                    <span className="inline-flex items-center">
-                      <ReactCountryFlag
-                        countryCode={countryCode || ""}
-                        svg
-                        style={{
-                          width: "16px",
-                          height: "auto",
-                          display: "inline-block",
-                          verticalAlign: "middle"
-                        }}
-                        title={countryName}
-                      />
-                    </span>
-                    <span>{circuitName}</span>
+                    <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                    Gained Positions
+                  </Badge>
+                  <Badge 
+                    variant="outline" 
+                    className="flex items-center justify-center gap-2 text-sm"
+                  >
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    Lost Positions
+                  </Badge>
+                  <Badge 
+                    variant="outline" 
+                    className="flex items-center justify-center gap-2 text-sm"
+                  >
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    Maintained Position
                   </Badge>
                 </div>
-              )}
-            </div>
+                
+                {!isLoading && !error && circuitName && (
+                  <div className="mt-4 text-center">
+                    <Badge 
+                      variant="secondary" 
+                      className="flex items-center justify-center gap-2 mx-auto py-1 px-3 cursor-pointer hover:outline hover:outline-2 hover:outline-red-500 transition-all"
+                      onClick={openRaceDetails}
+                    >
+                      <span className="inline-flex items-center">
+                        <ReactCountryFlag
+                          countryCode={countryCode || ""}
+                          svg
+                          style={{
+                            width: "16px",
+                            height: "auto",
+                            display: "inline-block",
+                            verticalAlign: "middle"
+                          }}
+                          title={countryName}
+                        />
+                      </span>
+                      <span>{circuitName}</span>
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </CardContent>

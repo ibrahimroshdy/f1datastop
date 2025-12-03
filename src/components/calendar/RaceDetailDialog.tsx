@@ -14,12 +14,13 @@ import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Trophy, Flag, Clock, LineChart, Zap, Download, BarChart3 } from "lucide-react";
+import { Trophy, Flag, Clock, LineChart, Zap, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import RaceInfographic from "./RaceInfographic";
+import { cn } from "@/lib/utils";
 
 // Function to determine the current year
 const getCurrentYear = () => new Date().getFullYear();
@@ -202,9 +203,9 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     const now = new Date();
     
     if (sessionDateTime < now) {
-      return <Badge className="bg-green-600 text-[10px] px-1 py-0 sm:px-2 sm:py-0.5">Completed</Badge>;
+      return <Badge variant="secondary" className="text-[10px] px-1.5 py-0 sm:px-2 sm:py-0.5">Completed</Badge>;
     } else {
-      return <Badge variant="outline" className="text-[10px] px-1 py-0 sm:px-2 sm:py-0.5">Upcoming</Badge>;
+      return <Badge variant="outline" className="text-[10px] px-1.5 py-0 sm:px-2 sm:py-0.5">Upcoming</Badge>;
     }
   };
   
@@ -233,9 +234,9 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto p-3 sm:p-6">
-        <DialogHeader className="pb-1 sm:pb-2">
-          <DialogTitle className="flex items-center gap-1 sm:gap-2 text-base sm:text-lg md:text-xl">
+      <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
             {race.Circuit?.Location?.country && (
               <CountryFlag 
                 country={race.Circuit.Location.country} 
@@ -264,49 +265,46 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
           }} 
           className="w-full"
         >
-          <TabsList className={`grid w-full ${hasSprint ? 'grid-cols-6' : 'grid-cols-4'} mb-1`}>
-            <TabsTrigger value="info" className="text-xs sm:text-sm px-1 sm:px-2">Schedule</TabsTrigger>
+          <TabsList className={`grid w-full ${hasSprint ? 'grid-cols-6' : 'grid-cols-4'} mb-2`}>
+            <TabsTrigger value="info" className="text-xs px-1 sm:px-2">Schedule</TabsTrigger>
             {hasSprint && (
-              <TabsTrigger value="sprint-qualifying" className="text-xs sm:text-sm px-1 sm:px-2">
-                <span className="flex items-center gap-1">
-                  <Zap className="h-3 w-3" />
-                  <span>Sprint Q</span>
-                </span>
+              <TabsTrigger value="sprint-qualifying" className="text-xs px-1 sm:px-2">
+                <Zap className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Sprint Q</span>
+                <span className="sm:hidden">SQ</span>
               </TabsTrigger>
             )}
             {hasSprint && (
-              <TabsTrigger value="sprint" className="text-xs sm:text-sm px-1 sm:px-2">
-                <span className="flex items-center gap-1">
-                  <Zap className="h-3 w-3" />
-                  <span>Sprint</span>
-                </span>
+              <TabsTrigger value="sprint" className="text-xs px-1 sm:px-2">
+                <Zap className="h-3 w-3 mr-1" />
+                Sprint
               </TabsTrigger>
             )}
-            <TabsTrigger value="qualifying" className="text-xs sm:text-sm px-1 sm:px-2">Qualifying</TabsTrigger>
-            <TabsTrigger value="results" className="text-xs sm:text-sm px-1 sm:px-2">Race Results</TabsTrigger>
+            <TabsTrigger value="qualifying" className="text-xs px-1 sm:px-2">Qualifying</TabsTrigger>
+            <TabsTrigger value="results" className="text-xs px-1 sm:px-2">Results</TabsTrigger>
             {isRaceCompleted && (
-              <TabsTrigger value="infographic" className="text-xs sm:text-sm px-1 sm:px-2">
-                <span className="flex items-center gap-1">
-                  <BarChart3 className="h-3 w-3" />
-                  <span>Infographic</span>
-                </span>
+              <TabsTrigger value="infographic" className="text-xs px-1 sm:px-2">
+                <BarChart3 className="h-3 w-3 mr-1" />
+                <span className="hidden sm:inline">Infographic</span>
+                <span className="sm:hidden">Info</span>
               </TabsTrigger>
             )}
           </TabsList>
           
           <div className="h-[350px] sm:h-[400px] md:h-[450px] overflow-y-auto">
-            <TabsContent value="info" className="space-y-3 h-full">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
+            <TabsContent value="info" className="space-y-3 h-full mt-0">
+              {/* Circuit & Race Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                  <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Circuit Information</h3>
+                  <h3 className="text-sm font-semibold mb-2">Circuit Information</h3>
                   <p className="text-xs md:text-sm text-muted-foreground">Circuit: {race.Circuit?.circuitName || "-"}</p>
                   <p className="text-xs md:text-sm text-muted-foreground">Location: {race.Circuit?.Location?.locality || "-"}, {race.Circuit?.Location?.country || "-"}</p>
               </div>
               
               <div>
-                  <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Race Date</h3>
-                  <div className="flex items-center gap-1 md:gap-2">
-                    <Flag className="h-3 w-3 md:h-4 md:w-4" />
+                  <h3 className="text-sm font-semibold mb-2">Race Date</h3>
+                  <div className="flex items-center gap-2">
+                    <Flag className="h-4 w-4 text-muted-foreground" />
                     <p className="text-xs md:text-sm">
                     {race.date ? format(parseISO(race.date), 'MMMM d, yyyy') : '-'} 
                     {race.time ? ` at ${formatTime(race.time)}` : ''}
@@ -315,9 +313,10 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               </div>
             </div>
             
-              <div className="border rounded-md p-2 md:p-4">
-                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-4">Weekend Schedule</h3>
-                <div className="space-y-1 md:space-y-3">
+              {/* Weekend Schedule */}
+              <div className="border rounded-md p-3">
+                <h3 className="text-sm font-semibold mb-3">Weekend Schedule</h3>
+                <div className="space-y-2">
                 {race.FirstPractice && (
                   <div className="flex justify-between items-center">
                     <div>
@@ -397,32 +396,33 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               </div>
             </div>
             
-              <div className="mt-2 md:mt-4 flex justify-end gap-2">
+              {/* Action Buttons */}
+              <div className="mt-4 flex justify-end gap-2">
               <Link to={`/race-info/${getCurrentYear()}/${race.round}`}>
                   <Button 
                     size="sm" 
-                    className="bg-f1-red hover:bg-f1-red/90 text-xs md:text-sm h-7 sm:h-9"
+                    className="bg-f1-red hover:bg-f1-red/90 text-xs md:text-sm h-8"
                     onClick={() => {
                       if ((window as any).calendarAnalytics) {
                         (window as any).calendarAnalytics.trackViewAnalysisClick(race);
                       }
                     }}
                   >
-                    <LineChart className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                    <LineChart className="h-3 w-3 mr-1.5" />
                     View Analysis
                 </Button>
               </Link>
-              {isRaceCompleted && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="text-xs md:text-sm h-7 sm:h-9"
-                  onClick={() => setSelectedTab("infographic")}
-                >
-                  <BarChart3 className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                  Infographic
-                </Button>
-              )}
+                {isRaceCompleted && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="text-xs md:text-sm h-8"
+                    onClick={() => setSelectedTab("infographic")}
+                  >
+                    <BarChart3 className="h-3 w-3 mr-1.5" />
+                    Infographic
+                  </Button>
+                )}
             </div>
           </TabsContent>
           
@@ -836,7 +836,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               }
               onClose();
             }} 
-            className="text-xs md:text-sm h-7 sm:h-9"
+            className="text-xs md:text-sm h-8"
           >
             Close
           </Button>

@@ -1,15 +1,21 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GlobeSceneProps } from './types';
 
+// Earth texture URLs from NASA/public sources
+const EARTH_TEXTURE_URL = 'https://unpkg.com/three-globe@2.31.1/example/img/earth-blue-marble.jpg';
+const EARTH_BUMP_URL = 'https://unpkg.com/three-globe@2.31.1/example/img/earth-topology.png';
+
 const GlobeScene = ({ containerRef, onSceneCreated, detailLevel }: GlobeSceneProps) => {
-  const [isInitialized, setIsInitialized] = useState(false);
+  const isInitializedRef = useRef(false);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current || isInitialized) return;
+    if (!containerRef.current || isInitializedRef.current) return;
     
+    isInitializedRef.current = true;
     console.log("Initializing globe scene");
     
     // Create scene
@@ -52,16 +58,46 @@ const GlobeScene = ({ containerRef, onSceneCreated, detailLevel }: GlobeScenePro
                     detailLevel === 'medium' ? 64 : 32;
     
     const globeGeometry = new THREE.SphereGeometry(1, segments, segments);
+    
+    // Load earth textures
+    const textureLoader = new THREE.TextureLoader();
+    
+    // Create initial material with dark color while textures load
     const globeMaterial = new THREE.MeshPhongMaterial({
-      color: 0x182436,
-      shininess: 15,
-      specular: 0x333333,
+      color: 0x1a3a5c,
+      shininess: 25,
+      specular: 0x333355,
     });
     
     const globe = new THREE.Mesh(globeGeometry, globeMaterial);
     globe.castShadow = true;
     globe.receiveShadow = true;
     scene.add(globe);
+    
+    // Load textures asynchronously
+    textureLoader.load(
+      EARTH_TEXTURE_URL,
+      (texture) => {
+        globeMaterial.map = texture;
+        globeMaterial.color = new THREE.Color(0xffffff);
+        globeMaterial.needsUpdate = true;
+      },
+      undefined,
+      (error) => {
+        console.warn('Failed to load earth texture, using fallback color');
+      }
+    );
+    
+    textureLoader.load(
+      EARTH_BUMP_URL,
+      (texture) => {
+        globeMaterial.bumpMap = texture;
+        globeMaterial.bumpScale = 0.02;
+        globeMaterial.needsUpdate = true;
+      },
+      undefined,
+      () => {} // Silent fail for bump map
+    );
     
     // Create markers group
     const markersGroup = new THREE.Group();
@@ -124,6 +160,9 @@ const GlobeScene = ({ containerRef, onSceneCreated, detailLevel }: GlobeScenePro
     
     animate();
     
+    // Store renderer for cleanup
+    rendererRef.current = renderer;
+    
     // Pass scene data back to parent
     onSceneCreated({
       scene,
@@ -134,30 +173,38 @@ const GlobeScene = ({ containerRef, onSceneCreated, detailLevel }: GlobeScenePro
       markersGroup
     });
     
-    setIsInitialized(true);
-    
-    // Cleanup function
+    // Cleanup function - only runs on actual unmount
     return () => {
       console.log("Cleaning up globe scene");
       window.removeEventListener('resize', handleResize);
       
-      if (containerRef.current && renderer.domElement) {
-        containerRef.current.removeChild(renderer.domElement);
+      // Only cleanup if we actually have a renderer
+      if (rendererRef.current && containerRef.current) {
+        try {
+          if (rendererRef.current.domElement && containerRef.current.contains(rendererRef.current.domElement)) {
+            containerRef.current.removeChild(rendererRef.current.domElement);
+          }
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
+        
+        // Dispose of geometries and materials
+        globeGeometry.dispose();
+        globeMaterial.dispose();
+        glowGeometry.dispose();
+        glowMaterial.dispose();
+        
+        // Dispose of renderer
+        rendererRef.current.dispose();
+        
+        // Dispose of controls
+        controls.dispose();
+        
+        rendererRef.current = null;
+        isInitializedRef.current = false;
       }
-      
-      // Dispose of geometries and materials
-      globeGeometry.dispose();
-      globeMaterial.dispose();
-      glowGeometry.dispose();
-      glowMaterial.dispose();
-      
-      // Dispose of renderer
-      renderer.dispose();
-      
-      // Dispose of controls
-      controls.dispose();
     };
-  }, [containerRef, onSceneCreated, isInitialized, detailLevel]);
+  }, [containerRef, onSceneCreated, detailLevel]);
 
   return null;
 };

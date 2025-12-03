@@ -33,15 +33,20 @@ const GlobeControls = ({
       </Tooltip>
 
       <Popover>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <button 
-              className="p-2 bg-black/60 backdrop-blur-sm border border-gray-700 rounded-md text-white hover:bg-black/80 transition-colors"
-            >
-              <Settings2 className="h-5 w-5" />
-            </button>
-          </PopoverTrigger>
-        </TooltipTrigger>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <button 
+                className="p-2 bg-black/60 backdrop-blur-sm border border-gray-700 rounded-md text-white hover:bg-black/80 transition-colors"
+              >
+                <Settings2 className="h-5 w-5" />
+              </button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            Globe settings
+          </TooltipContent>
+        </Tooltip>
         <PopoverContent className="w-60 bg-black/80 backdrop-blur-sm border border-gray-700 text-white">
           <div className="space-y-2 p-2">
             <h4 className="font-medium text-xs uppercase text-gray-400">Globe Settings</h4>

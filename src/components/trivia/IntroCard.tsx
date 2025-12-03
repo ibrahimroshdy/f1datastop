@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { Play, Trophy, Info, EyeOff, Eye } from "lucide-react";
+import { Play, Trophy, Info, EyeOff, Eye, Flag, Timer, Zap } from "lucide-react";
 import { GameMode } from "@/types/trivia";
 import { GAME_MODES } from "@/services/triviaService";
 
@@ -18,12 +20,22 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
   
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
-      <Card>
-        <CardHeader className="text-center px-4 sm:px-6">
-          <CardTitle className="text-xl sm:text-2xl">🏎️ F1 Trivia Challenge</CardTitle>
-          <p className="text-sm sm:text-base text-muted-foreground">
+      <Card className="border-t-4 border-t-primary overflow-hidden">
+        <CardHeader className="text-center px-4 sm:px-6 bg-gradient-to-b from-primary/5 to-transparent pb-6">
+          <div className="flex justify-center mb-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+              <div className="relative bg-primary/10 p-4 rounded-full">
+                <Flag className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+          </div>
+          <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight">
+            F1 Trivia Challenge
+          </CardTitle>
+          <CardDescription className="text-sm sm:text-base text-muted-foreground mt-2">
             Test your Formula 1 knowledge with questions from 2005 onwards
-        </p>
+          </CardDescription>
       </CardHeader>
       
         <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
@@ -83,54 +95,35 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
             </div>
           </div>
           
-          {/* Privacy Settings - Mobile Optimized */}
-          <Card className="bg-muted/30">
-            <CardContent className="p-3 sm:p-4">
-          <div className="flex items-start gap-3">
-                <div className="flex items-center gap-2 mt-0.5">
+          {/* Privacy Settings - Enhanced with shadcn Switch */}
+          <Card className="bg-muted/30 border-dashed">
+            <CardContent className="p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-full ${isPublic ? 'bg-green-500/10' : 'bg-orange-500/10'}`}>
                   {isPublic ? (
                     <Eye className="h-4 w-4 text-green-600" />
                   ) : (
                     <EyeOff className="h-4 w-4 text-orange-600" />
                   )}
             </div>
-                <div className="flex-1 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-                      <h4 className="text-sm font-medium">Leaderboard Visibility</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Choose whether your score appears on the public leaderboard
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 self-start sm:self-center">
-                      <button
-                        onClick={() => setIsPublic(!isPublic)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          isPublic ? 'bg-primary' : 'bg-muted-foreground/30'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            isPublic ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="text-xs">
-                    {isPublic ? (
-                      <div className="flex items-center gap-1 text-green-700">
-                        <Eye className="h-3 w-3" />
-                        <span>Your score will appear on the public leaderboard</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-orange-700">
-                        <EyeOff className="h-3 w-3" />
-                        <span>Your score will be private (only you can see it)</span>
-                      </div>
-                    )}
+                    <Label htmlFor="public-score" className="text-sm font-medium cursor-pointer">
+                      Public Leaderboard
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {isPublic 
+                        ? "Your score will be visible to everyone" 
+                        : "Only you can see your score"}
+                    </p>
                   </div>
             </div>
+                <Switch
+                  id="public-score"
+                  checked={isPublic}
+                  onCheckedChange={setIsPublic}
+                  className="data-[state=checked]:bg-green-600"
+                />
           </div>
             </CardContent>
           </Card>
@@ -176,23 +169,23 @@ export function IntroCard({ onStart, onViewLeaderboard, isLoading }: IntroCardPr
           </Card>
       </CardContent>
       
-        <CardFooter className="flex flex-col sm:flex-row gap-3 sm:gap-4 px-4 sm:px-6">
+        <CardFooter className="flex flex-col sm:flex-row gap-3 sm:gap-4 px-4 sm:px-6 bg-gradient-to-t from-muted/30 to-transparent pt-6">
         <Button 
             onClick={() => onStart(selectedMode, isPublic)} 
-            className="w-full sm:flex-1 h-11 sm:h-10"
+          className="w-full sm:flex-1 h-12 sm:h-11 text-base font-semibold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
           disabled={isLoading}
         >
-            <Play className="mr-2 h-4 w-4" />
+          <Play className="mr-2 h-5 w-5" />
             Start {GAME_MODES[selectedMode].title}
         </Button>
           
         <Button 
             onClick={onViewLeaderboard} 
           variant="outline" 
-            className="w-full sm:w-auto h-11 sm:h-10"
+          className="w-full sm:w-auto h-12 sm:h-11 text-base font-medium"
             disabled={isLoading}
         >
-            <Trophy className="mr-2 h-4 w-4" />
+          <Trophy className="mr-2 h-5 w-5 text-yellow-500" />
             Leaderboard
         </Button>
       </CardFooter>

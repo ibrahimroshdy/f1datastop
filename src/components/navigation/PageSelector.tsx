@@ -1,6 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Calendar, BarChart3, Users, Caravan, LineChart } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 
 interface PageOption {
   title: string;
@@ -14,6 +16,8 @@ interface PageOption {
 const getCurrentYear = () => new Date().getFullYear();
 
 const PageSelector = () => {
+  const { isGlass } = useTheme();
+  
   const pages: PageOption[] = [
     {
       title: "Race Calendar",
@@ -57,11 +61,29 @@ const PageSelector = () => {
     <div className="grid grid-cols-5 gap-3 mt-4">
       {pages.map((page) => (
         <Link key={page.title} to={page.href}>
-          <Card className="h-full transition-all duration-300 hover:bg-accent hover:translate-y-[-4px] border-border cursor-pointer overflow-hidden shadow-md rounded-xl group">
+          <Card 
+            className={cn(
+              "h-full transition-all duration-300 hover:translate-y-[-4px] cursor-pointer overflow-hidden shadow-md rounded-xl group",
+              isGlass 
+                ? "border-white/10 hover:border-white/20" 
+                : "border-border hover:bg-accent"
+            )}
+            style={isGlass ? {
+              background: 'var(--glass-bg)',
+              backdropFilter: 'blur(var(--glass-blur))',
+              WebkitBackdropFilter: 'blur(var(--glass-blur))',
+              boxShadow: 'var(--glass-shadow)'
+            } : undefined}
+          >
             <div className={`h-1.5 bg-gradient-to-r ${page.color}`}></div>
             <CardContent className="p-3 md:p-4">
               <div className="flex flex-col items-center text-center">
-                <div className="p-1.5 rounded-md bg-secondary text-secondary-foreground group-hover:bg-f1-red/80 dark:group-hover:bg-f1-red transition-colors shrink-0">
+                <div className={cn(
+                  "p-1.5 rounded-md transition-colors shrink-0",
+                  isGlass 
+                    ? "bg-white/10 text-foreground group-hover:bg-primary/80 group-hover:text-primary-foreground" 
+                    : "bg-secondary text-secondary-foreground group-hover:bg-f1-red/80 dark:group-hover:bg-f1-red"
+                )}>
                   {page.icon}
                 </div>
                 <div className="mt-2 min-w-0 hidden sm:block">

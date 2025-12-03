@@ -1,11 +1,12 @@
 import { GameState, TriviaScore } from "@/types/trivia";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
-import { Eye } from "lucide-react";
+import { Eye, Trophy, Target, Clock, RotateCcw, Medal, Flame, CheckCircle } from "lucide-react";
 
 interface ScoreCardProps {
   gameState: GameState;
@@ -51,27 +52,73 @@ export function ScoreCard({
     return `${minutes}m ${remainingSeconds}s`;
   };
 
+  // Get performance icon
+  const getPerformanceIcon = () => {
+    if (accuracy >= 90) return <Trophy className="h-8 w-8 text-yellow-500" />;
+    if (accuracy >= 70) return <Medal className="h-8 w-8 text-gray-400" />;
+    if (accuracy >= 50) return <Target className="h-8 w-8 text-orange-500" />;
+    return <Flame className="h-8 w-8 text-red-500" />;
+  };
+
   return (
-    <Card className="w-full max-w-xl mx-auto">
-      <CardHeader className="text-center border-b pb-4">
-        <div className="flex justify-center mb-3">
-          <Badge className="text-sm sm:text-base px-3 py-1.5">Quiz Completed!</Badge>
+    <Card className="w-full max-w-xl mx-auto border-t-4 border-t-primary overflow-hidden">
+      <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent">
+        {/* Checkered flag pattern decoration */}
+        <div className="absolute top-0 left-0 right-0 h-2 checkered-bg opacity-30" />
+        
+        <div className="flex justify-center mb-4">
+          <div className="relative">
+            <div className={`absolute inset-0 rounded-full blur-xl animate-pulse ${
+              accuracy >= 70 ? 'bg-yellow-500/30' : 'bg-primary/20'
+            }`} />
+            <div className={`relative p-4 rounded-full ${
+              accuracy >= 90 ? 'bg-yellow-500/10' :
+              accuracy >= 70 ? 'bg-green-500/10' :
+              accuracy >= 50 ? 'bg-orange-500/10' : 'bg-red-500/10'
+            }`}>
+              {getPerformanceIcon()}
+            </div>
+          </div>
         </div>
-        <CardTitle className="text-xl sm:text-2xl">Your Score: {score} points</CardTitle>
-        <p className={`mt-2 text-sm sm:text-base font-medium ${getPerformanceColor()}`}>
+        
+        <Badge className="text-sm sm:text-base px-4 py-1.5 mb-3" variant="secondary">
+          <CheckCircle className="h-4 w-4 mr-1.5" />
+          Quiz Completed!
+        </Badge>
+        
+        <CardTitle className="text-3xl sm:text-4xl font-bold tabular-nums">
+          {score} <span className="text-lg font-normal text-muted-foreground">points</span>
+        </CardTitle>
+        
+        <p className={`mt-3 text-sm sm:text-base font-semibold ${getPerformanceColor()}`}>
           {getPerformanceMessage()}
         </p>
       </CardHeader>
       
       <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <div className="bg-card border rounded-lg p-3 sm:p-4 text-center">
-            <p className="text-xs sm:text-sm text-muted-foreground">Accuracy</p>
-            <p className="text-xl sm:text-2xl font-bold">{accuracy}%</p>
+          <div className="bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-lg p-3 sm:p-4 text-center">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <Target className="h-4 w-4 text-primary" />
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Accuracy</p>
+            </div>
+            <p className={`text-2xl sm:text-3xl font-bold tabular-nums ${getPerformanceColor()}`}>
+              {accuracy}%
+            </p>
+            <Progress 
+              value={accuracy} 
+              className="h-1.5 mt-2"
+            />
           </div>
-          <div className="bg-card border rounded-lg p-3 sm:p-4 text-center">
-            <p className="text-xs sm:text-sm text-muted-foreground">Time Spent</p>
-            <p className="text-xl sm:text-2xl font-bold">{formatTime(timeSpent)}</p>
+          <div className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border border-blue-500/20 rounded-lg p-3 sm:p-4 text-center">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <Clock className="h-4 w-4 text-blue-500" />
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Time Spent</p>
+            </div>
+            <p className="text-2xl sm:text-3xl font-bold tabular-nums text-blue-500">
+              {formatTime(timeSpent)}
+            </p>
           </div>
         </div>
         
@@ -106,23 +153,29 @@ export function ScoreCard({
         </div>
       </CardContent>
       
-      <CardFooter className="flex flex-col gap-3 sm:flex-row justify-center pt-4 sm:pt-6 border-t px-4 sm:px-6">
-        <Button onClick={onRestart} className="w-full sm:w-auto h-11 sm:h-10">
+      <CardFooter className="flex flex-col gap-3 sm:flex-row justify-center pt-4 sm:pt-6 border-t px-4 sm:px-6 bg-gradient-to-t from-muted/30 to-transparent">
+        <Button 
+          onClick={onRestart} 
+          className="w-full sm:w-auto h-12 sm:h-11 text-base font-semibold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
+        >
+          <RotateCcw className="mr-2 h-4 w-4" />
           Play Again
         </Button>
         <Button 
           onClick={onReview}
           variant="secondary" 
-          className="w-full sm:w-auto h-11 sm:h-10"
+          className="w-full sm:w-auto h-12 sm:h-11 text-base"
         >
-          <Eye className="mr-2 h-4 w-4" /> Review Answers
+          <Eye className="mr-2 h-4 w-4" /> 
+          Review Answers
         </Button>
         <Button 
           onClick={onViewLeaderboard} 
           variant="outline" 
-          className="w-full sm:w-auto h-11 sm:h-10"
+          className="w-full sm:w-auto h-12 sm:h-11 text-base"
         >
-          View Leaderboard
+          <Trophy className="mr-2 h-4 w-4 text-yellow-500" />
+          Leaderboard
         </Button>
       </CardFooter>
     </Card>

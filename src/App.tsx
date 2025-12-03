@@ -149,9 +149,16 @@ const App = () => (
                       <Routes>
                         {/* Public Routes */}
                         <Route path="/" element={<Index />} />
-                         <Route path="/calendar" element={<RaceCalendar />} />
+                        <Route path="/calendar" element={<RaceCalendar />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="/privacy" element={<Privacy />} />
+                        {/* Race Infographic Page */}
+                        <Route 
+                          path="/infographic/:year/:round" 
+                          element={<Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div></div>}>
+                            {React.createElement(React.lazy(() => import('./pages/RaceInfographicPage')))}
+                          </Suspense>} 
+                        />
                         {/* Make Analytics public */}
                         <Route path="/analytics" element={<Analytics />} />
                         {/* Make Drivers and Constructors public */}

@@ -64,13 +64,30 @@ const RaceMarkers = ({
                        isUpcoming ? 0xe10600 : // Red for upcoming races
                        0xffffff; // White for completed races
       
-      // Create marker
-      const markerGeometry = new THREE.SphereGeometry(0.02, 16, 16);
-      const markerMaterial = new THREE.MeshBasicMaterial({ color: markerColor });
+      // Create marker - larger and more visible
+      const markerGeometry = new THREE.SphereGeometry(0.035, 16, 16);
+      const markerMaterial = new THREE.MeshBasicMaterial({ 
+        color: markerColor,
+        transparent: true,
+        opacity: 1.0
+      });
       const marker = new THREE.Mesh(markerGeometry, markerMaterial);
       marker.position.copy(position);
       marker.userData = { race };
       markersGroup.add(marker);
+      
+      // Add outer ring for better visibility
+      const ringGeometry = new THREE.RingGeometry(0.04, 0.055, 32);
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: markerColor,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8
+      });
+      const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+      ring.position.copy(position);
+      ring.lookAt(new THREE.Vector3(0, 0, 0));
+      markersGroup.add(ring);
       
       // Add pulse effect for upcoming/first races
       if (isUpcoming || isFirstRace) {

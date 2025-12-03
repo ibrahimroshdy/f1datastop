@@ -1,9 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Clock } from "lucide-react";
+import { Clock, Flag } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import ReactCountryFlag from "react-country-flag";
 import { getCountryCode } from "@/components/common/CountryFlag";
@@ -11,6 +8,10 @@ import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { useState, useEffect } from "react";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import { F1EmptyState } from "@/components/f1/F1EmptyState";
+import { StandingsSkeleton } from "@/components/f1/F1Skeleton";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 
 interface LastRaceResultsCardProps {
   lastRaceResults: any;
@@ -18,65 +19,41 @@ interface LastRaceResultsCardProps {
   getTeamColor: (constructorId: string) => string;
 }
 
-// Helper function to get team color style with border
-const getTeamColorStyle = (teamId: string) => {
-  // Normalize the team ID to match the keys in TEAM_COLORS
+// Helper function to get team color
+const getTeamHexColor = (teamId: string): string => {
   let normalizedTeamId = teamId.toLowerCase();
-  
-  // Handle specific mappings
-  if (normalizedTeamId === "alphatauri") {
-    normalizedTeamId = "rb";
-  } else if (normalizedTeamId === "alfa") {
-    normalizedTeamId = "sauber";
-  }
-  
-  // Get color from TEAM_COLORS or default to a gray color
-  const color = TEAM_COLORS[normalizedTeamId] || "#666666";
-  
-  return {
-    borderLeft: `3px solid ${color}`,
-    paddingLeft: "0.5rem"
-  };
+  if (normalizedTeamId === "alphatauri") normalizedTeamId = "rb";
+  else if (normalizedTeamId === "alfa") normalizedTeamId = "sauber";
+  return TEAM_COLORS[normalizedTeamId] || "#666666";
 };
 
 const LastRaceResultsCard = ({
   lastRaceResults,
   isResultsLoading,
-  getTeamColor
 }: LastRaceResultsCardProps) => {
-  // Track race info in state
   const [raceName, setRaceName] = useState<string>("");
   const [countryName, setCountryName] = useState<string>("");
   const [countryCode, setCountryCode] = useState<string>("");
   const [lastRace, setLastRace] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: raceScheduleData } = useRaceSchedule();
+  const { isGlass } = useTheme();
   
-  // Update race info whenever lastRaceResults or raceScheduleData changes
   useEffect(() => {
-    // Priority: Get data from race schedule first for consistency
     if (raceScheduleData?.data) {
       const races = raceScheduleData.data;
       const now = new Date();
       const completedRaces = races.filter((race: any) => new Date(race.date) < now);
       
       if (completedRaces.length > 0) {
-        const lastRace = completedRaces[completedRaces.length - 1];
-        setRaceName(getRaceNameWithoutEmoji(lastRace.raceName));
-        const country = lastRace.Circuit?.Location?.country || "";
+        const lastRaceData = completedRaces[completedRaces.length - 1];
+        setRaceName(getRaceNameWithoutEmoji(lastRaceData.raceName));
+        const country = lastRaceData.Circuit?.Location?.country || "";
         setCountryName(country);
         setCountryCode(getCountryCode(country) || "");
-        setLastRace(lastRace);
-        
-        console.log("LastRaceResultsCard country info:", {
-          raceName: lastRace.raceName,
-          country,
-          countryCode: getCountryCode(country)
-        });
+        setLastRace(lastRaceData);
       }
-    } 
-    // Fallback to lastRaceResults if race schedule doesn't have data
-    else if (lastRaceResults?.data?.raceName) {
+    } else if (lastRaceResults?.data?.raceName) {
       setRaceName(getRaceNameWithoutEmoji(lastRaceResults.data.raceName));
       const country = lastRaceResults.data?.Circuit?.Location?.country || "";
       setCountryName(country);
@@ -90,141 +67,127 @@ const LastRaceResultsCard = ({
     }
   }, [lastRaceResults, raceScheduleData]);
 
-  // Open race details dialog
-  const openRaceDetails = () => {
-    if (lastRace) {
-      setIsDialogOpen(true);
-    }
-  };
-
-  // Close race details dialog
-  const closeRaceDetails = () => {
-    setIsDialogOpen(false);
-  };
+  // Get fastest lap driver
+  const fastestLapDriver = lastRaceResults?.data?.results?.find(
+    (result: any) => result.FastestLap?.rank === "1"
+  );
 
   return (
     <>
-      <Card className="bg-card border-border h-full overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
-            Last Race Results
-          </CardTitle>
-          <CardDescription>
-            Results from the most recent race
-          </CardDescription>
+      <Card 
+        className={cn(
+          "h-full overflow-hidden",
+          isGlass && "border-white/10"
+        )}
+        style={isGlass ? {
+          background: 'var(--glass-bg)',
+          backdropFilter: 'blur(var(--glass-blur))',
+          WebkitBackdropFilter: 'blur(var(--glass-blur))',
+          boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
+        } : undefined}
+      >
+        <CardHeader className="pb-2 pt-3 px-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary shrink-0" />
+              <h3 className="font-semibold text-sm">Last Race Results</h3>
+            </div>
           
-          {/* Fastest Lap Information */}
-          {!isResultsLoading && lastRaceResults?.data?.results && (
-            <>
-              {(() => {
-                // Find driver with fastest lap
-                const fastestLapDriver = lastRaceResults.data.results.find(result => 
-                  result.FastestLap?.rank === "1"
-                );
-                
-                if (fastestLapDriver) {
-                  // Get team color
-                  let teamId = fastestLapDriver.Constructor.constructorId.toLowerCase();
-                  // Handle specific mappings
-                  if (teamId === "alphatauri") teamId = "rb";
-                  else if (teamId === "alfa") teamId = "sauber";
-                  
-                  // Get color from TEAM_COLORS
-                  const teamColor = TEAM_COLORS[teamId] || "#666666";
-                  
-                  return (
+            {/* GP Badge - Top Right */}
+            {!isResultsLoading && raceName && (
+              <button
+                onClick={() => setIsDialogOpen(true)}
+                className={cn(
+                  "shrink-0 rounded-md border text-[10px] font-medium flex items-center gap-1 py-0.5 px-1.5 cursor-pointer transition-all",
+                  isGlass 
+                    ? "border-white/20 bg-white/5 hover:bg-white/10" 
+                    : "border-border bg-secondary/50 hover:bg-secondary hover:border-primary/50"
+                )}
+              >
+                {countryCode && (
+                  <ReactCountryFlag
+                    countryCode={countryCode}
+                    svg
+                    style={{ width: "12px", height: "auto" }}
+                    title={countryName}
+                  />
+                )}
+                <span className="hidden sm:inline">{raceName}</span>
+              </button>
+            )}
+          </div>
+          
+          {/* Fastest Lap */}
+          {!isResultsLoading && fastestLapDriver && (
                     <div className="mt-2 flex items-center justify-center">
-                      <div className="border border-dashed border-purple-500/50 dark:border-purple-400/50 px-2 py-1 rounded-md inline-flex items-center gap-2 text-xs">
-                        <span className="text-purple-600 dark:text-purple-400 font-medium">Fastest Lap:</span>
-                        <div className="flex items-center gap-1">
+              <div className="border border-dashed border-purple-500/50 dark:border-purple-400/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-[10px]">
+                <span className="text-purple-600 dark:text-purple-400 font-medium">Fastest:</span>
                           <span 
                             className="font-mono font-bold" 
-                            style={{ color: teamColor }}
+                  style={{ color: getTeamHexColor(fastestLapDriver.Constructor.constructorId) }}
                           >
                             {fastestLapDriver.Driver.code}
                           </span>
                           <span className="text-muted-foreground">·</span>
-                          <span>Lap {fastestLapDriver.FastestLap?.lap}</span>
-                          <span className="text-muted-foreground">·</span>
                           <span className="font-mono">{fastestLapDriver.FastestLap?.Time.time}</span>
                         </div>
                       </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-            </>
           )}
         </CardHeader>
+        
         <CardContent className="px-2">
           {isResultsLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
+            <StandingsSkeleton rows={5} />
           ) : !lastRaceResults?.data?.raceName ? (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>
-                No recent race data available
-              </AlertDescription>
-            </Alert>
+            <F1EmptyState
+              type="no-results"
+              title="No Results Yet"
+              description="Results appear after races."
+              icon={<Flag className="h-8 w-8 text-muted-foreground" />}
+              size="sm"
+              showDecoration={false}
+            />
           ) : (
             <div className="space-y-3 max-w-3xl mx-auto">
-              {lastRaceResults?.data?.results?.slice(0, 5).map(result => (
+              {lastRaceResults?.data?.results?.slice(0, 5).map((result: any) => {
+                const position = Number(result.position);
+                const teamColor = getTeamHexColor(result.Constructor.constructorId);
+                const isWinner = position === 1;
+                
+                return (
                 <div 
                   key={result.position} 
                   className="flex items-center justify-between p-2 bg-card rounded-lg hover:bg-accent/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-xl font-bold">{result.position}</div>
-                    <div style={getTeamColorStyle(result.Constructor.constructorId)}>
+                      <div style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: '0.5rem' }}>
                       <div className="font-semibold">{result.Driver.code}</div>
                       <div className="text-xs text-muted-foreground capitalize">
                         {result.Constructor.name}
                       </div>
                     </div>
                   </div>
+                    
                   <div className="text-right">
                     <div className="font-mono font-medium">
-                      {result.position === '1' ? result.Time?.time : result.Time?.time?.startsWith('+') ? result.Time.time : result.status === "Finished" ? "+" + result.Time?.time : result.status}
+                        {isWinner 
+                          ? result.Time?.time 
+                          : result.Time?.time?.startsWith('+') 
+                            ? result.Time.time 
+                            : result.status === "Finished" 
+                              ? "+" + result.Time?.time 
+                              : result.status
+                        }
                     </div>
                     <Badge variant="outline" className="text-xs">
                       Lap {result.laps}
                     </Badge>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               
-              {/* Race Circuit Badge */}
-              {!isResultsLoading && raceName && (
-                <div className="mt-4 text-center">
-                  <Badge 
-                    variant="secondary" 
-                    className="flex items-center justify-center gap-2 mx-auto py-1 px-3 cursor-pointer hover:outline hover:outline-2 hover:outline-red-500 transition-all"
-                    onClick={openRaceDetails}
-                  >
-                    <span className="inline-flex items-center">
-                      <ReactCountryFlag
-                        countryCode={countryCode || ""}
-                        svg
-                        style={{
-                          width: "16px",
-                          height: "auto",
-                          display: "inline-block",
-                          verticalAlign: "middle"
-                        }}
-                        title={countryName}
-                      />
-                    </span>
-                    <span>{raceName}</span>
-                  </Badge>
-                </div>
-              )}
             </div>
           )}
         </CardContent>
@@ -234,7 +197,7 @@ const LastRaceResultsCard = ({
       {lastRace && (
         <RaceDetailDialog 
           isOpen={isDialogOpen} 
-          onClose={closeRaceDetails} 
+          onClose={() => setIsDialogOpen(false)} 
           race={lastRace} 
         />
       )}

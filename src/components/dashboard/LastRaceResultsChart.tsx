@@ -11,6 +11,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRaceSchedule, useLapTimes } from "@/hooks/useF1Data";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { useTheme } from "@/context/ThemeContext";
 
 interface LastRaceResultsChartProps {
   lastRaceResults: any;
@@ -39,6 +40,16 @@ const LastRaceResultsChart = ({
   getTeamColor,
   compact
 }: LastRaceResultsChartProps) => {
+  const { isGlass } = useTheme();
+  
+  // Glass styling for the card
+  const glassStyle = isGlass ? {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(var(--glass-blur))',
+    WebkitBackdropFilter: 'blur(var(--glass-blur))',
+    border: '1px solid var(--glass-border)',
+  } : {};
+  
   // Interpolate missing series values per driver so lines remain continuous
   function interpolatePositions(points: any[], driverCodes: string[]) {
     const n = points.length;
@@ -237,7 +248,7 @@ const LastRaceResultsChart = ({
 
   return (
     <>
-      <Card className="bg-card border-border h-full overflow-hidden flex flex-col">
+      <Card className="bg-card border-border h-full overflow-hidden flex flex-col" style={glassStyle}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
