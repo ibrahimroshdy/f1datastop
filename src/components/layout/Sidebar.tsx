@@ -11,7 +11,6 @@ import {
   Calendar as CalendarIcon,
   LayoutDashboard,
   Settings,
-  Trophy,
   Caravan,
   ChevronLeft,
   ChevronRight,
@@ -69,12 +68,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
   const mainNavigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Race Calendar", href: "/calendar", icon: CalendarIcon },
-    { name: "Trivia", href: "/trivia", icon: Trophy },
   ];
 
   const protectedNavigation = [
-    { name: "Analytics", href: "/analytics", icon: BarChart3 },
-    { name: "Race Info", href: `/race-info/${getCurrentYear()}/last`, icon: LineChart },
+    { name: "Race Analysis", href: "/race-analysis", icon: BarChart3 },
     { name: "Drivers", href: "/drivers", icon: Users },
     { name: "Constructors", href: "/constructors", icon: Caravan },
   ];

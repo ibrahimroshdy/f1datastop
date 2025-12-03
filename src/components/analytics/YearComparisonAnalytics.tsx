@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { useRaceSchedule, useRaceResults, useLapTimes } from "@/hooks/useF1Data";
+import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, GitCompare, Loader2, BarChart3, Table2, Clock, TrendingUp } from "lucide-react";
+import { Loader2, BarChart3, Clock, TrendingUp, Flag } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import YearComparisonLapChart from "./YearComparisonLapChart";
-import YearComparisonPositionChart from "./YearComparisonPositionChart";
-import YearComparisonQualifyingChart from "./YearComparisonQualifyingChart";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
+import MuiYearComparisonLapChart from "./MuiYearComparisonLapChart";
+import MuiYearComparisonPositionChart from "./MuiYearComparisonPositionChart";
+import MuiYearComparisonQualifyingChart from "./MuiYearComparisonQualifyingChart";
+import DataSourceBadge from "./DataSourceBadge";
 
 // Function to determine the most appropriate default years
 const getDefaultYears = () => {
@@ -31,6 +33,7 @@ const YearComparisonAnalytics = () => {
   const [selectedRaceBase, setSelectedRaceBase] = useState<string>("1");
   const [selectedRaceComparison, setSelectedRaceComparison] = useState<string>("1");
   const [selectedTab, setSelectedTab] = useState<string>("lapTimes");
+  const { isGlass } = useTheme();
   
   const { 
     data: baseRaceSchedule, 
@@ -41,6 +44,14 @@ const YearComparisonAnalytics = () => {
     data: comparisonRaceSchedule, 
     isLoading: isComparisonScheduleLoading 
   } = useRaceSchedule(comparisonYear);
+  
+  // Glass styling
+  const cardStyle = isGlass ? {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(var(--glass-blur))',
+    WebkitBackdropFilter: 'blur(var(--glass-blur))',
+    boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
+  } : undefined;
 
   const handleBaseYearChange = (value: string) => {
     const year = parseInt(value);
@@ -93,9 +104,12 @@ const YearComparisonAnalytics = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <Card>
+        <Card className={cn(isGlass && "border-white/10")} style={cardStyle}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Base Year</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Base Year</CardTitle>
+              <DataSourceBadge source="ergast" />
+            </div>
             <CardDescription>Select the reference season and race</CardDescription>
           </CardHeader>
           <CardContent>
@@ -145,7 +159,7 @@ const YearComparisonAnalytics = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={cn(isGlass && "border-white/10")} style={cardStyle}>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Comparison Year</CardTitle>
             <CardDescription>Select the season and race to compare against</CardDescription>
@@ -201,22 +215,21 @@ const YearComparisonAnalytics = () => {
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         {/* Tabs for medium and large screens, hidden on small screens */}
         <div className="hidden sm:block">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="lapTimes">
-            <Clock className="h-4 w-4 mr-2" />
+        <TabsList className={cn(
+          "grid w-full grid-cols-3",
+          isGlass && "bg-white/5 border border-white/10"
+        )}>
+          <TabsTrigger value="lapTimes" className="gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
             Lap Times
           </TabsTrigger>
-          <TabsTrigger value="positions">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Position Changes
+          <TabsTrigger value="positions" className="gap-1.5">
+            <TrendingUp className="h-3.5 w-3.5" />
+            Positions
           </TabsTrigger>
-          <TabsTrigger value="qualifyingTable">
-            <Table2 className="h-4 w-4 mr-2" />
-            Qualifying Table
-          </TabsTrigger>
-          <TabsTrigger value="qualifyingChart">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Qualifying Chart
+          <TabsTrigger value="qualifying" className="gap-1.5">
+            <Flag className="h-3.5 w-3.5" />
+            Qualifying
           </TabsTrigger>
         </TabsList>
         </div>
@@ -224,28 +237,30 @@ const YearComparisonAnalytics = () => {
         {/* Dropdown for mobile screens only */}
         <div className="sm:hidden mb-4">
           <Select value={selectedTab} onValueChange={setSelectedTab}>
-            <SelectTrigger>
+            <SelectTrigger className={cn(isGlass && "bg-white/5 border-white/10")}>
               <SelectValue placeholder="Select comparison view" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="lapTimes">Lap Time Comparison</SelectItem>
               <SelectItem value="positions">Position Change Comparison</SelectItem>
-              <SelectItem value="qualifyingTable">Qualifying Table</SelectItem>
-              <SelectItem value="qualifyingChart">Qualifying Chart</SelectItem>
+              <SelectItem value="qualifying">Qualifying Comparison</SelectItem>
             </SelectContent>
           </Select>
         </div>
         
         <TabsContent value="lapTimes" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Lap Time Comparison</CardTitle>
-              <CardDescription>
-                Compare lap times between two different seasons at the same track or different tracks.
+          <Card className={cn(isGlass && "border-white/10")} style={cardStyle}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Lap Time Comparison</CardTitle>
+                <DataSourceBadge source="ergast" />
+              </div>
+              <CardDescription className="text-xs">
+                Compare lap times between two different seasons
               </CardDescription>
             </CardHeader>
-            <CardContent className="h-[600px]">
-              <YearComparisonLapChart 
+            <CardContent className="min-h-[500px]">
+              <MuiYearComparisonLapChart 
                 baseYear={baseYear}
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}
@@ -256,15 +271,18 @@ const YearComparisonAnalytics = () => {
         </TabsContent>
         
         <TabsContent value="positions" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Position Change Comparison</CardTitle>
-              <CardDescription>
-                Compare how positions changed throughout races in different seasons.
+          <Card className={cn(isGlass && "border-white/10")} style={cardStyle}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Position Change Comparison</CardTitle>
+                <DataSourceBadge source="ergast" />
+              </div>
+              <CardDescription className="text-xs">
+                Compare how positions changed throughout races
               </CardDescription>
             </CardHeader>
-            <CardContent className="h-[600px]">
-              <YearComparisonPositionChart 
+            <CardContent className="min-h-[500px]">
+              <MuiYearComparisonPositionChart 
                 baseYear={baseYear}
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}
@@ -274,40 +292,23 @@ const YearComparisonAnalytics = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="qualifyingTable" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Qualifying Time Comparison</CardTitle>
-              <CardDescription>
-                Compare qualifying times (Q1, Q2, Q3) between drivers across different seasons in a detailed table format.
+        <TabsContent value="qualifying" className="space-y-4 mt-4">
+          <Card className={cn(isGlass && "border-white/10")} style={cardStyle}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Qualifying Comparison</CardTitle>
+                <DataSourceBadge source="ergast" />
+              </div>
+              <CardDescription className="text-xs">
+                Compare qualifying times (Q1, Q2, Q3) between seasons
               </CardDescription>
             </CardHeader>
-            <CardContent className="h-[600px]">
-              <YearComparisonQualifyingChart 
+            <CardContent className="min-h-[500px]">
+              <MuiYearComparisonQualifyingChart 
                 baseYear={baseYear}
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}
                 comparisonRound={selectedRaceComparison}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="qualifyingChart" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Qualifying Chart Comparison</CardTitle>
-              <CardDescription>
-                Compare qualifying performance between two seasons with interactive bar charts showing Q1, Q2, and Q3 times.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[600px]">
-              <YearComparisonQualifyingChart 
-                baseYear={baseYear}
-                baseRound={selectedRaceBase}
-                comparisonYear={comparisonYear}
-                comparisonRound={selectedRaceComparison}
-                chartView={true}
               />
             </CardContent>
           </Card>

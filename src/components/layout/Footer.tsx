@@ -11,10 +11,9 @@ const Footer = () => {
   const quickLinks = [
     { name: 'Dashboard', href: '/' },
     { name: 'Race Calendar', href: '/calendar' },
+    { name: 'Race Analysis', href: '/race-analysis' },
     { name: 'Drivers', href: '/drivers' },
     { name: 'Constructors', href: '/constructors' },
-    { name: 'Analytics', href: '/analytics' },
-    { name: 'Trivia', href: '/trivia' },
   ];
 
   const legalLinks = [

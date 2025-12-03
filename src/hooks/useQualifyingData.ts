@@ -144,13 +144,11 @@ export const useQualifyingData = (year: number, round: string) => {
     }
   };
 
-  // Calculate visible drivers (either all selected or just the hovered one)
+  // Visible drivers - always show all selected drivers
+  // Hovering only highlights, doesn't filter (to prevent chart flickering)
   const visibleDrivers = useMemo(() => {
-    if (hoveredDriver) {
-      return selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers;
-    }
     return selectedDrivers;
-  }, [hoveredDriver, selectedDrivers]);
+  }, [selectedDrivers]);
 
   // Function to convert lap time string (e.g. "1:15.912") to seconds
   const convertLapTimeToSeconds = (timeStr: string): number | null => {

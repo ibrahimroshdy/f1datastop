@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useOpenF1SessionFromErgast, useTeamRadio, useDrivers } from "@/hooks/useOpenF1Data";
 import { format } from 'date-fns';
-import DriverSelectionPanel from './DriverSelectionPanel';
+import DriverSelectionPanel from './charts/DriverSelectionPanel';
 import { Driver } from '@/hooks/useTelemetryData';
 
 interface TeamRadioProps {

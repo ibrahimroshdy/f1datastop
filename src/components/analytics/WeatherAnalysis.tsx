@@ -8,7 +8,7 @@ import { useOpenF1SessionFromErgast, useDrivers, useSession, useRaceControl } fr
 import { useWeatherData } from "@/hooks/useOpenF1Data";
 import { processOpenF1WeatherData } from "@/utils/apiAdapters";
 import { Line, LineChart, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine } from "recharts";
-import DriverSelectionPanel from './DriverSelectionPanel';
+import DriverSelectionPanel from './charts/DriverSelectionPanel';
 import { Driver } from '@/hooks/useTelemetryData';
 
 interface WeatherAnalysisProps {

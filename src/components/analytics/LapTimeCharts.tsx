@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLapData, useDrivers, useOpenF1SessionFromErgast } from "@/hooks/useOpenF1Data";
 import { formatTime } from "@/utils/lapTimeUtils";
-import DriverSelectionPanel from './DriverSelectionPanel';
+import DriverSelectionPanel from './charts/DriverSelectionPanel';
 import { Driver } from '@/hooks/useTelemetryData';
 
 interface LapTimeChartsProps {

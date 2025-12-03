@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,17 +7,17 @@ import YearSelector from "@/components/common/YearSelector";
 import MuiLapTimeChart from "@/components/analytics/MuiLapTimeChart";
 import MuiPositionChart from "@/components/analytics/MuiPositionChart";
 import MuiQualifyingChart from "@/components/analytics/MuiQualifyingChart";
-// Keep original components for fallback
-import PitStopTable from "@/components/analytics/PitStopTable";
-import ProgressionChart from "@/components/analytics/ProgressionChart";
+import MuiPitStopTable from "@/components/analytics/MuiPitStopTable";
+import MuiSankeyChart from "@/components/analytics/MuiSankeyChart";
 import YearComparisonAnalytics from "@/components/analytics/YearComparisonAnalytics";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Info, Loader2, GitCompare, Clock, TrendingUp, Timer, Flag, Wrench, TrendingUpIcon, BarChart3 } from "lucide-react";
+import { Info, Loader2, GitCompare, Clock, TrendingUp, Timer, Flag, Wrench, TrendingUpIcon, BarChart3, MapPin, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import CountryFlag from "@/components/common/CountryFlag";
 
 // Function to determine the most appropriate default year
 const getDefaultYear = () => {
@@ -34,9 +34,16 @@ const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(getDefaultYear());
   const [selectedTab, setSelectedTab] = useState<string>("lapTimes");
   const [selectedRace, setSelectedRace] = useState<string>("1");
-  const { isGlass } = useTheme();
+  const { isGlass, baseTheme } = useTheme();
+  const isDark = baseTheme === 'dark';
   
   const { data: raceScheduleData, isLoading: isRaceScheduleLoading } = useRaceSchedule(selectedYear);
+  
+  // Get currently selected race info
+  const selectedRaceInfo = useMemo(() => {
+    if (!raceScheduleData?.data) return null;
+    return raceScheduleData.data.find((race: any) => race.round === selectedRace);
+  }, [raceScheduleData, selectedRace]);
   
   // Handler for year changes
   const handleYearChange = (year: number) => {
@@ -177,6 +184,54 @@ const Analytics = () => {
               </CardContent>
             </Card>
             
+            {/* Circuit Info Display */}
+            {selectedRaceInfo && (
+              <div className={cn(
+                "flex flex-wrap items-center gap-4 p-3 rounded-lg border text-sm",
+                isDark 
+                  ? "bg-zinc-900/50 border-zinc-800" 
+                  : "bg-zinc-50 border-zinc-200",
+                isGlass && "bg-white/5 border-white/10"
+              )}>
+                {/* Country flag and race name */}
+                <div className="flex items-center gap-2">
+                  <CountryFlag 
+                    country={selectedRaceInfo.Circuit?.Location?.country || ''} 
+                    className="h-4 w-6"
+                  />
+                  <span className="font-semibold">{cleanRaceName(selectedRaceInfo.raceName)}</span>
+                </div>
+                
+                {/* Circuit name */}
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span className="text-xs">{selectedRaceInfo.Circuit?.circuitName}</span>
+                </div>
+                
+                {/* Location */}
+                <div className="text-xs text-muted-foreground">
+                  {selectedRaceInfo.Circuit?.Location?.locality}, {selectedRaceInfo.Circuit?.Location?.country}
+                </div>
+                
+                {/* Date */}
+                <div className="flex items-center gap-1.5 text-muted-foreground ml-auto">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="text-xs">
+                    {new Date(selectedRaceInfo.date).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </span>
+                </div>
+                
+                {/* Round badge */}
+                <Badge variant="outline" className="text-xs">
+                  Round {selectedRaceInfo.round}
+                </Badge>
+              </div>
+            )}
+            
             {/* Analysis Tabs */}
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
               {/* Tabs for larger screens */}
@@ -271,7 +326,7 @@ const Analytics = () => {
                       Compare lap-by-lap times between drivers
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[550px] px-4 pb-4">
+                  <CardContent className="min-h-[480px] px-4 pb-4">
                     {selectedTab === "lapTimes" && (
                       <MuiLapTimeChart 
                         year={selectedYear} 
@@ -301,7 +356,7 @@ const Analytics = () => {
                       Track how positions change throughout the race
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[550px] px-4 pb-4">
+                  <CardContent className="min-h-[480px] px-4 pb-4">
                     {selectedTab === "positions" && (
                       <MuiPositionChart 
                         year={selectedYear} 
@@ -331,7 +386,7 @@ const Analytics = () => {
                       Compare qualifying times across Q1, Q2, and Q3
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[550px] px-4 pb-4">
+                  <CardContent className="min-h-[400px] max-h-[600px] overflow-auto px-4 pb-4">
                     {selectedTab === "qualifying" && (
                       <MuiQualifyingChart 
                         year={selectedYear} 
@@ -348,9 +403,14 @@ const Analytics = () => {
                   style={cardStyle}
                 >
                   <CardHeader className="pb-2 pt-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <TrendingUpIcon className="h-4 w-4 text-primary" />
-                      <CardTitle className="text-base">Qualifying to Race Progression</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingUpIcon className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">Qualifying to Race Progression</CardTitle>
+                      </div>
+                      <Badge variant="outline" className="text-xs font-normal">
+                        Nivo Sankey
+                      </Badge>
                     </div>
                     <CardDescription className="text-xs">
                       Visualize progression from qualifying to race results
@@ -358,7 +418,7 @@ const Analytics = () => {
                   </CardHeader>
                   <CardContent className="h-[550px] px-4 pb-4">
                     {selectedTab === "progression" && (
-                      <ProgressionChart 
+                      <MuiSankeyChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
@@ -373,9 +433,14 @@ const Analytics = () => {
                   style={cardStyle}
                 >
                   <CardHeader className="pb-2 pt-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <Wrench className="h-4 w-4 text-primary" />
-                      <CardTitle className="text-base">Pit Stop Analysis</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wrench className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">Pit Stop Analysis</CardTitle>
+                      </div>
+                      <Badge variant="outline" className="text-xs font-normal">
+                        MUI X Data Grid
+                      </Badge>
                     </div>
                     <CardDescription className="text-xs">
                       Individual pit stop durations for each driver
@@ -383,7 +448,7 @@ const Analytics = () => {
                   </CardHeader>
                   <CardContent className="h-[550px] px-4 pb-4">
                     {selectedTab === "pitstops" && (
-                      <PitStopTable 
+                      <MuiPitStopTable 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
