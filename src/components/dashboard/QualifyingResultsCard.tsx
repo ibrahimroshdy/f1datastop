@@ -201,22 +201,17 @@ const QualifyingResultsCard = () => {
             {!isLoading && !error && circuitName && (
               <button
                 onClick={() => setIsDialogOpen(true)}
-                className={cn(
-                  "shrink-0 rounded-md border text-[10px] font-medium flex items-center gap-1 py-0.5 px-1.5 cursor-pointer transition-all",
-                  isGlass 
-                    ? "border-white/20 bg-white/5 hover:bg-white/10" 
-                    : "border-border bg-secondary/50 hover:bg-secondary hover:border-primary/50"
-                )}
+                className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:border-primary/50 transition-all"
               >
                 {countryCode && (
                   <ReactCountryFlag
                     countryCode={countryCode}
                     svg
-                    style={{ width: "12px", height: "auto" }}
+                    style={{ width: "14px", height: "auto" }}
                     title={countryName}
                   />
                 )}
-                <span className="hidden sm:inline">{circuitName}</span>
+                <span>{circuitName}</span>
               </button>
             )}
           </div>

@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { 
   BarChart3, Clock, TrendingUp, Flag, Wrench, 
   TrendingUpIcon, GitCompare, Cloud, Radio, 
-  Gauge, Table2, Trophy, Car, Info, Loader2,
+  Gauge, Trophy, Car, Info, Loader2,
   AlertCircle
 } from "lucide-react";
 
@@ -31,17 +31,17 @@ const YearComparisonAnalytics = lazy(() => import("@/components/analytics/YearCo
 const WeatherAnalysis = lazy(() => import("@/components/analytics/WeatherAnalysis"));
 const TeamRadio = lazy(() => import("@/components/analytics/TeamRadio"));
 const TelemetryDashboard = lazy(() => import("@/components/analytics/TelemetryDashboard"));
-const LapTimeTab = lazy(() => import("@/components/analytics/LapTimeTab"));
-const LapTimeCharts = lazy(() => import("@/components/analytics/LapTimeCharts"));
 const SessionResults = lazy(() => import("@/components/analytics/SessionResults"));
 const OvertakesAnalysis = lazy(() => import("@/components/analytics/OvertakesAnalysis"));
 
-// Loading fallback component
+// Loading fallback component - fills parent container
 const TabLoadingFallback = () => (
-  <div className="h-[400px] w-full flex flex-col items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-    <p className="text-muted-foreground text-sm">Loading data...</p>
-  </div>
+  <Card className="overflow-hidden">
+    <CardContent className="min-h-[400px] flex flex-col items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin mb-3 text-primary" />
+      <p className="text-muted-foreground text-sm">Loading analysis...</p>
+    </CardContent>
+  </Card>
 );
 
 // Get default year
@@ -161,8 +161,6 @@ const RaceAnalysis = () => {
     { id: 'weather', label: 'Weather', icon: Cloud, source: 'openf1' as const },
     { id: 'radio', label: 'Team Radio', icon: Radio, source: 'openf1' as const },
     { id: 'telemetry', label: 'Telemetry', icon: Gauge, source: 'openf1' as const },
-    { id: 'lapTable', label: 'Lap Table', icon: Table2, source: 'openf1' as const },
-    { id: 'lapCharts', label: 'Lap Charts', icon: BarChart3, source: 'openf1' as const },
     { id: 'results', label: 'Results', icon: Trophy, source: 'openf1' as const },
     { id: 'overtakes', label: 'Overtakes', icon: Car, source: 'openf1' as const },
   ];
@@ -299,42 +297,64 @@ const RaceAnalysis = () => {
             
             {/* Analysis Tabs */}
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-              {/* Desktop tabs */}
-              <div className="hidden lg:block">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-muted-foreground">Historical Data:</span>
-                  <DataSourceBadge source="ergast" showTooltip={false} />
-                </div>
-                <TabsList className={cn(
-                  "grid w-full grid-cols-5 mb-4",
-                  isGlass && "bg-white/5 border border-white/10"
+              {/* Desktop tabs - Compact pill style */}
+              <div className="hidden lg:block space-y-3">
+                {/* Historical Data Section */}
+                <div className={cn(
+                  "rounded-lg p-3",
+                  isGlass ? "bg-zinc-900/30 border border-zinc-800/50" : "bg-muted/30"
                 )}>
-                  {analyticsTabs.map(tab => (
-                    <TabsTrigger key={tab.id} value={tab.id} className="gap-1.5 text-xs">
-                      <tab.icon className="h-3.5 w-3.5" />
-                      <span>{tab.label}</span>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+                  <div className="flex items-center gap-2 mb-2">
+                    <DataSourceBadge source="ergast" showTooltip={false} />
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Historical Data</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {analyticsTabs.map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setSelectedTab(tab.id)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                          selectedTab === tab.id
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <tab.icon className="h-3 w-3" />
+                        <span>{tab.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 
+                {/* Live Telemetry Section */}
                 {hasOpenF1Data && (
-                  <>
+                  <div className={cn(
+                    "rounded-lg p-3",
+                    isGlass ? "bg-zinc-900/30 border border-zinc-800/50" : "bg-muted/30"
+                  )}>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs text-muted-foreground">Live Telemetry:</span>
                       <DataSourceBadge source="openf1" showTooltip={false} />
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Live Telemetry</span>
                     </div>
-                    <TabsList className={cn(
-                      "grid w-full grid-cols-7",
-                      isGlass && "bg-white/5 border border-white/10"
-                    )}>
+                    <div className="flex flex-wrap gap-1.5">
                       {liveDataTabs.map(tab => (
-                        <TabsTrigger key={tab.id} value={tab.id} className="gap-1.5 text-xs">
-                          <tab.icon className="h-3.5 w-3.5" />
+                        <button
+                          key={tab.id}
+                          onClick={() => setSelectedTab(tab.id)}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                            selectedTab === tab.id
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <tab.icon className="h-3 w-3" />
                           <span>{tab.label}</span>
-                        </TabsTrigger>
+                        </button>
                       ))}
-                    </TabsList>
-                  </>
+                    </div>
+                  </div>
                 )}
               </div>
               
@@ -525,50 +545,6 @@ const RaceAnalysis = () => {
                         </CardHeader>
                         <CardContent className="min-h-[500px] px-4 pb-4">
                           <TelemetryDashboard 
-                            year={selectedYear} 
-                            round={selectedRace}
-                            sessionKey={selectedSessionKey || undefined}
-                          />
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    <TabsContent value="lapTable" className="mt-4">
-                      <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                        <CardHeader className="pb-2 pt-3 px-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Table2 className="h-4 w-4 text-primary" />
-                              <CardTitle className="text-base">Lap Times Table</CardTitle>
-                            </div>
-                            <DataSourceBadge source="openf1" />
-                          </div>
-                          <CardDescription className="text-xs">Detailed sector and lap times for all drivers</CardDescription>
-                        </CardHeader>
-                        <CardContent className="min-h-[500px] px-4 pb-4">
-                          <LapTimeTab 
-                            year={selectedYear} 
-                            round={selectedRace}
-                            sessionKey={selectedSessionKey || undefined}
-                          />
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    <TabsContent value="lapCharts" className="mt-4">
-                      <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                        <CardHeader className="pb-2 pt-3 px-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <BarChart3 className="h-4 w-4 text-primary" />
-                              <CardTitle className="text-base">Lap Time Charts</CardTitle>
-                            </div>
-                            <DataSourceBadge source="openf1" />
-                          </div>
-                          <CardDescription className="text-xs">Visual comparison of lap times</CardDescription>
-                        </CardHeader>
-                        <CardContent className="min-h-[500px] px-4 pb-4">
-                          <LapTimeCharts 
                             year={selectedYear} 
                             round={selectedRace}
                             sessionKey={selectedSessionKey || undefined}

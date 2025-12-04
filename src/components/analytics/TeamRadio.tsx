@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Headphones, Play, Pause, RefreshCw } from "lucide-react";
+import { Headphones, Play, Pause, RefreshCw, Volume2, Loader2, Radio } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useOpenF1SessionFromErgast, useTeamRadio, useDrivers } from "@/hooks/useOpenF1Data";
 import { format } from 'date-fns';
-import DriverSelectionPanel from './charts/DriverSelectionPanel';
-import { Driver } from '@/hooks/useTelemetryData';
+import { useTheme } from '@/context/ThemeContext';
+import { cn } from '@/lib/utils';
 
 interface TeamRadioProps {
   year: number;
@@ -23,23 +22,21 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
   sessionType = "Race",
   sessionKey: externalSessionKey
 }) => {
-  const [selectedDrivers, setSelectedDrivers] = useState<number[]>([]);
+  const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
   const [currentRadio, setCurrentRadio] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { isGlass } = useTheme();
   
-  // After the useState declarations, add this hook to reset state when session changes
+  // Reset state when session changes
   useEffect(() => {
-    // Reset selected drivers and audio playback when session changes
-    setSelectedDrivers([]);
+    setSelectedDriver(null);
     setCurrentRadio(null);
     setIsPlaying(false);
     
     if (audioRef.current) {
       audioRef.current.pause();
     }
-    
-    console.log("Session changed in TeamRadio to:", externalSessionKey);
   }, [externalSessionKey]);
   
   // Get the OpenF1 session directly only if we don't have an external session key
@@ -61,49 +58,67 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
     isLoading: isDriversLoading
   } = useDrivers(effectiveSessionKey);
   
-  // Get team radio for selected drivers
+  // Get team radio for selected driver
   const {
     data: radioData,
     isLoading: isRadioLoading,
     error: radioError,
     refetch: refetchRadio
-  } = useTeamRadio(
-    effectiveSessionKey, 
-    selectedDrivers.length === 0 ? undefined : selectedDrivers[0]
-  );
+  } = useTeamRadio(effectiveSessionKey, selectedDriver || undefined);
+  
+  // Team colors mapping
+  const teamColors: { [key: string]: string } = {
+    "Red Bull Racing": "#3671C6",
+    "Ferrari": "#E8002D",
+    "Mercedes": "#27F4D2",
+    "McLaren": "#FF8000",
+    "Aston Martin": "#229971",
+    "Alpine": "#FF87BC", 
+    "Williams": "#64C4FF",
+    "RB": "#6692FF",
+    "Haas F1 Team": "#B6BABD",
+    "Kick Sauber": "#52E252"
+  };
   
   // Process available drivers
-  useEffect(() => {
-    if (driversData?.data && driversData.data.length > 0) {
-      // Auto-select first driver if none selected
-      if (selectedDrivers.length === 0) {
-        setSelectedDrivers([driversData.data[0].driver_number]);
-      }
-    }
-  }, [driversData, selectedDrivers]);
+  const drivers = useMemo(() => {
+    if (!driversData?.data) return [];
+    return driversData.data.map((driver: any) => ({
+      number: driver.driver_number,
+      code: driver.name_acronym || `${driver.first_name?.charAt(0)}${driver.last_name?.charAt(0)}`,
+      name: `${driver.first_name} ${driver.last_name}`,
+      team: driver.team_name || "Unknown",
+      color: teamColors[driver.team_name] || "#666666"
+    }));
+  }, [driversData]);
   
-  // Handle driver selection
-  const toggleDriverSelection = (driverNumber: number) => {
-    // Only allow one driver at a time for radio
-    setSelectedDrivers([driverNumber]);
-    
-    // Stop current playback
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-      setCurrentRadio(null);
+  // Auto-select first driver if none selected
+  useEffect(() => {
+    if (drivers.length > 0 && !selectedDriver) {
+      setSelectedDriver(drivers[0].number);
     }
-  };
+  }, [drivers, selectedDriver]);
+  
+  // Sort radio messages chronologically
+  const radioMessages = useMemo(() => {
+    if (!radioData?.data || radioData.data.length === 0) return [];
+    return [...radioData.data].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+  }, [radioData]);
+  
+  // Get current driver info
+  const currentDriverInfo = useMemo(() => {
+    return drivers.find(d => d.number === selectedDriver);
+  }, [drivers, selectedDriver]);
   
   // Play team radio
   const playRadio = (url: string) => {
     if (audioRef.current) {
       if (currentRadio === url && isPlaying) {
-        // Pause if already playing this radio
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
-        // Play new radio or resume paused
         if (currentRadio !== url) {
           audioRef.current.src = url;
           setCurrentRadio(url);
@@ -115,197 +130,179 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
     }
   };
   
-  // Organize radio messages by driver
-  const radioMessages = React.useMemo(() => {
-    if (!radioData?.data || radioData.data.length === 0) return [];
-    
-    // Sort messages chronologically
-    return [...radioData.data].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-  }, [radioData]);
-  
-  // Get driver info by number
-  const getDriverInfo = (driverNumber: number) => {
-    if (!driversData?.data) return null;
-    return driversData.data.find(d => d.driver_number === driverNumber);
-  };
-  
-  const teamColors: { [key: string]: string } = {
-    "Red Bull Racing": "#0600EF",
-    "Ferrari": "#DC0000",
-    "Mercedes": "#00D2BE",
-    "McLaren": "#FF8700",
-    "Aston Martin": "#006F62",
-    "Alpine": "#0090FF", 
-    "Williams": "#005AFF",
-    "RB": "#1E41FF",
-    "Haas F1 Team": "#FFFFFF",
-    "Kick Sauber": "#900000"
-  };
-  
-  // Map API drivers to our Driver interface
-  const mappedDrivers = React.useMemo(() => {
-    if (!driversData?.data) return [];
-    
-    return driversData.data.map((driver: any) => ({
-      driver_number: driver.driver_number,
-      name: `${driver.first_name} ${driver.last_name}`,
-      team_name: driver.team_name || "Unknown Team",
-      team_color: teamColors[driver.team_name] || "#CCCCCC",
-      name_acronym: driver.name_acronym,
-      isLoading: false,
-      isDataLoaded: false
-    })) as Driver[];
-  }, [driversData]);
-  
-  // Create a driverData object to show checkmarks in DriverSelectionPanel
-  const driverData = React.useMemo(() => {
-    const result: { [key: number]: any } = {};
-    
-    // Mark selected drivers as having data
-    selectedDrivers.forEach(driverNum => {
-      result[driverNum] = { length: 1 }; // Minimal data to trigger the checkmark
-    });
-    
-    return result;
-  }, [selectedDrivers]);
-  
-  const isLoading = isSessionLoading || isDriversLoading || isRadioLoading;
+  const isLoading = isSessionLoading || isDriversLoading;
   const hasError = !!radioError || (!isLoading && !effectiveSessionKey);
-  const hasNoData = !isLoading && (!radioData?.data || radioData.data.length === 0);
+  const hasNoData = !isLoading && !isRadioLoading && (!radioData?.data || radioData.data.length === 0);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+        <p className="text-sm text-muted-foreground">Loading team radio...</p>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="min-h-[300px] flex flex-col items-center justify-center p-4 text-center">
+        <Radio className="h-8 w-8 text-muted-foreground mb-3" />
+        <p className="text-muted-foreground font-medium">Team radio unavailable</p>
+        <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+          {year >= new Date().getFullYear() 
+            ? "Current season data may not be available yet"
+            : "Team radio is only available for races from 2023 onwards"}
+        </p>
+      </div>
+    );
+  }
   
   return (
-    <Card className="flex flex-col" style={{ height: '550px' }}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Headphones className="h-5 w-5" />
-            Team Radio
-          </CardTitle>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="flex-1 flex flex-col overflow-hidden">
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-          </div>
-        ) : hasError ? (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">
-              {radioError?.toString() || "No OpenF1 radio data available for this race."}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {year >= new Date().getFullYear() ? 
-                `${new Date().getFullYear()} season data is not yet fully available in the OpenF1 API. Please check back later or select a previous season.` :
-                "Team radio data is only available for recent races (2023 onwards)."}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="mb-4 shrink-0">
-              <div className="mb-2 text-sm text-muted-foreground">
-                Select a driver to view their team radio:
-              </div>
-              <DriverSelectionPanel 
-                drivers={mappedDrivers}
-                selectedDrivers={selectedDrivers}
-                onToggleDriver={toggleDriverSelection}
-                multiSelect={false}
-                driverData={driverData}
-              />
-            </div>
-            
-            {hasNoData ? (
-              <div className="py-8 text-center flex-1 flex flex-col items-center justify-center">
-                <p className="text-muted-foreground">No team radio available for this driver.</p>
-                {year >= new Date().getFullYear() && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {new Date().getFullYear()} season data is still being collected and may not be complete.
-                  </p>
-                )}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-4"
-                  onClick={() => refetchRadio()}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
-              </div>
-            ) : (
-              <>
-                <audio ref={audioRef} onEnded={() => setIsPlaying(false)} className="hidden" />
-                
-                <ScrollArea className="flex-1 h-[320px] rounded-md border">
-                  <div className="space-y-3 p-4">
-                    {radioMessages.map((message, idx) => {
-                      const driver = getDriverInfo(message.driver_number);
-                      const messageDate = new Date(message.date);
-                      const formattedTime = format(messageDate, 'HH:mm:ss');
-                      
-                      return (
-                        <div 
-                          key={idx} 
-                          className={`
-                            p-3 rounded-md border flex items-start justify-between
-                            ${currentRadio === message.recording_url ? 'bg-primary/5 border-primary' : 'bg-card'}
-                          `}
-                        >
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs bg-primary/10 px-2 py-0.5 rounded font-mono">
-                                {formattedTime}
-                              </span>
-                              <span className="text-xs font-medium">
-                                {driver?.name_acronym || `Driver ${message.driver_number}`}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 shrink-0"
-                            onClick={() => playRadio(message.recording_url)}
-                          >
-                            {currentRadio === message.recording_url && isPlaying ? (
-                              <Pause className="h-4 w-4" />
-                            ) : (
-                              <Play className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-                
-                <div className="text-xs text-muted-foreground mt-4 text-center shrink-0">
-                  Click the play button to listen to team radio messages
-                </div>
-              </>
+    <div className="space-y-4">
+      {/* Driver Selection Grid */}
+      <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+        {drivers.map((driver) => (
+          <button
+            key={driver.number}
+            onClick={() => {
+              setSelectedDriver(driver.number);
+              if (audioRef.current) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+                setCurrentRadio(null);
+              }
+            }}
+            className={cn(
+              "relative flex flex-col items-center justify-center p-1.5 rounded-md transition-all",
+              "border text-xs font-medium",
+              selectedDriver === driver.number
+                ? "border-primary/50 bg-primary/10"
+                : isGlass 
+                  ? "border-white/10 bg-white/5 hover:bg-white/10"
+                  : "border-border bg-muted/30 hover:bg-muted/50"
             )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+          >
+            <div 
+              className="w-2.5 h-2.5 rounded-full mb-0.5"
+              style={{ backgroundColor: driver.color }}
+            />
+            <span className="font-mono text-[10px]">{driver.code}</span>
+          </button>
+        ))}
+      </div>
+      
+      {/* Selected Driver Header */}
+      {currentDriverInfo && (
+        <div className={cn(
+          "flex items-center justify-between p-3 rounded-lg",
+          isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50"
+        )}>
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+              style={{ 
+                backgroundColor: currentDriverInfo.color,
+                color: ['#27F4D2', '#B6BABD', '#64C4FF', '#52E252'].includes(currentDriverInfo.color) ? '#000' : '#fff'
+              }}
+            >
+              {currentDriverInfo.number}
+            </div>
+            <div>
+              <p className="font-semibold">{currentDriverInfo.name}</p>
+              <p className="text-xs text-muted-foreground">{currentDriverInfo.team}</p>
+            </div>
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            {radioMessages.length} message{radioMessages.length !== 1 ? 's' : ''}
+          </Badge>
+        </div>
+      )}
+      
+      {/* Radio Messages List */}
+      {isRadioLoading ? (
+        <div className="min-h-[200px] flex items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      ) : hasNoData ? (
+        <div className="min-h-[200px] flex flex-col items-center justify-center text-center">
+          <Volume2 className="h-8 w-8 text-muted-foreground mb-2" />
+          <p className="text-muted-foreground text-sm">No team radio for this driver</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-3 h-7 text-xs"
+            onClick={() => refetchRadio()}
+          >
+            <RefreshCw className="h-3 w-3 mr-1.5" />
+            Retry
+          </Button>
+        </div>
+      ) : (
+        <>
+          <audio ref={audioRef} onEnded={() => setIsPlaying(false)} className="hidden" />
+          
+          <ScrollArea className="h-[280px] rounded-md border">
+            <div className="p-2 space-y-1.5">
+              {radioMessages.map((message, idx) => {
+                const messageDate = new Date(message.date);
+                const formattedTime = format(messageDate, 'HH:mm:ss');
+                const isActive = currentRadio === message.recording_url;
+                
+                return (
+                  <button 
+                    key={idx}
+                    onClick={() => playRadio(message.recording_url)}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-2.5 rounded-md transition-all",
+                      "hover:bg-muted/50 text-left",
+                      isActive && "bg-primary/10 border border-primary/30"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                      isActive && isPlaying 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted"
+                    )}>
+                      {isActive && isPlaying ? (
+                        <Pause className="h-3.5 w-3.5" />
+                      ) : (
+                        <Play className="h-3.5 w-3.5 ml-0.5" />
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {formattedTime}
+                        </span>
+                        {isActive && isPlaying && (
+                          <span className="flex gap-0.5">
+                            <span className="w-0.5 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+                            <span className="w-0.5 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+                            <span className="w-0.5 h-3 bg-primary rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Headphones className={cn(
+                      "h-4 w-4 shrink-0",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )} />
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+          
+          <p className="text-[10px] text-muted-foreground text-center">
+            Click to play/pause • Audio provided by OpenF1
+          </p>
+        </>
+      )}
+    </div>
   );
 };
 
-// Helper to determine if a color is light or dark for text contrast
-const isColorLight = (color: string): boolean => {
-  const hex = color.replace('#', '');
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  return brightness > 155;
-};
-
-export default TeamRadio; 
+export default TeamRadio;

@@ -89,18 +89,12 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
   // Render loading state
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center space-y-4 relative">
-        <Skeleton className="h-full w-full opacity-30" />
-        <div className="absolute flex flex-col items-center justify-center space-y-6 w-3/4 max-w-md p-6 rounded-lg bg-card border shadow-lg">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <div className="w-full space-y-2">
-            <Progress 
-              value={loadingProgress} 
-              className="h-2 w-full" 
-            />
-            <p className="text-sm text-muted-foreground text-center">
-              Loading qualifying data...
-            </p>
+      <div className="min-h-[300px] flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center justify-center space-y-3 max-w-xs">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="w-full space-y-2 text-center">
+            <span className="text-sm text-muted-foreground">Loading qualifying...</span>
+            <Progress value={loadingProgress} className="h-1.5 w-full" />
           </div>
         </div>
       </div>

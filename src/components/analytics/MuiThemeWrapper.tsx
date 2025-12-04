@@ -14,7 +14,8 @@ const MuiThemeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) 
         main: '#e10600', // F1 Red
       },
       background: {
-        default: 'transparent',
+        // Use rgba instead of 'transparent' - MUI DataGrid doesn't support transparent
+        default: baseTheme === 'light' ? 'rgba(255,255,255,0.01)' : 'rgba(15,15,20,0.01)',
         paper: baseTheme === 'light' ? 'rgba(255,255,255,0.8)' : 'rgba(15,15,20,0.8)',
       },
       text: {
@@ -30,7 +31,15 @@ const MuiThemeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) 
       MuiCssBaseline: {
         styleOverrides: {
           body: {
-            backgroundColor: 'transparent',
+            backgroundColor: baseTheme === 'light' ? 'rgba(255,255,255,0)' : 'rgba(0,0,0,0)',
+          },
+        },
+      },
+      MuiDataGrid: {
+        styleOverrides: {
+          root: {
+            backgroundColor: 'inherit',
+            border: 'none',
           },
         },
       },
@@ -46,4 +55,3 @@ const MuiThemeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) 
 };
 
 export default MuiThemeWrapper;
-

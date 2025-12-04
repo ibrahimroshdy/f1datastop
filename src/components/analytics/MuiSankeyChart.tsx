@@ -63,8 +63,12 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
     // Create node ID map for consistent referencing
     const nodeMap = new Map<string, any>();
     
-    // Build Nivo nodes with unique IDs
-    const nivoNodes = originalNodes.map((node: any) => {
+    // Group nodes by type and sort by position
+    const qualifyingNodes: any[] = [];
+    const gridNodes: any[] = [];
+    const raceNodes: any[] = [];
+    
+    originalNodes.forEach((node: any) => {
       const id = `${node.type}-${node.position}-${node.name}`;
       const nivoNode = {
         id,
@@ -80,37 +84,58 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
         color: getTeamColor(node.team || ''),
       };
       nodeMap.set(node.id, nivoNode);
-      return nivoNode;
-    });
-
-    // Build Nivo links
-    const nivoLinks = originalLinks.map((link: any) => {
-      const sourceNode = nodeMap.get(link.source) || originalNodes.find((n: any) => n.id === link.source);
-      const targetNode = nodeMap.get(link.target) || originalNodes.find((n: any) => n.id === link.target);
       
-      const sourceId = nodeMap.get(link.source)?.id || link.source;
-      const targetId = nodeMap.get(link.target)?.id || link.target;
-
-      return {
-        source: sourceId,
-        target: targetId,
-        value: link.value || 1,
-        color: getLinkColor(
-          { type: sourceNode?.type, position: sourceNode?.position, team: sourceNode?.team },
-          { type: targetNode?.type, position: targetNode?.position }
-        ),
-        // Store additional info for tooltips
-        driverName: link.fullName || link.name,
-        driverCode: link.code,
-        team: link.teamName,
-        qualifyingPosition: link.qualifyingPosition,
-        gridPosition: link.gridPosition,
-        racePosition: link.racePosition,
-        positionChange: link.positionChange,
-        status: link.status,
-        isDNF: link.isDNF,
-      };
+      // Group by type
+      if (node.type === 'qualifying') {
+        qualifyingNodes.push(nivoNode);
+      } else if (node.type === 'grid') {
+        gridNodes.push(nivoNode);
+      } else if (node.type === 'race') {
+        raceNodes.push(nivoNode);
+      }
     });
+    
+    // Sort each group by position (P1 first, P20 last)
+    qualifyingNodes.sort((a, b) => a.position - b.position);
+    gridNodes.sort((a, b) => a.position - b.position);
+    raceNodes.sort((a, b) => a.position - b.position);
+    
+    // Combine in order: qualifying, grid, race
+    // This order is crucial for Nivo's "input" sort to work correctly
+    const nivoNodes = [...qualifyingNodes, ...gridNodes, ...raceNodes];
+
+    // Build Nivo links - sort by source position to help maintain visual order
+    const nivoLinks = originalLinks
+      .map((link: any) => {
+        const sourceNode = nodeMap.get(link.source) || originalNodes.find((n: any) => n.id === link.source);
+        const targetNode = nodeMap.get(link.target) || originalNodes.find((n: any) => n.id === link.target);
+        
+        const sourceId = nodeMap.get(link.source)?.id || link.source;
+        const targetId = nodeMap.get(link.target)?.id || link.target;
+
+        return {
+          source: sourceId,
+          target: targetId,
+          value: link.value || 1,
+          sourcePosition: sourceNode?.position || 0,
+          color: getLinkColor(
+            { type: sourceNode?.type, position: sourceNode?.position, team: sourceNode?.team },
+            { type: targetNode?.type, position: targetNode?.position }
+          ),
+          // Store additional info for tooltips
+          driverName: link.fullName || link.name,
+          driverCode: link.code,
+          team: link.teamName,
+          qualifyingPosition: link.qualifyingPosition,
+          gridPosition: link.gridPosition,
+          racePosition: link.racePosition,
+          positionChange: link.positionChange,
+          status: link.status,
+          isDNF: link.isDNF,
+        };
+      })
+      // Sort links by source position to help maintain visual order
+      .sort((a, b) => a.sourcePosition - b.sourcePosition);
 
     return { nodes: nivoNodes, links: nivoLinks };
   }, [data]);
@@ -118,9 +143,9 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Loading progression data...</p>
+      <div className="min-h-[400px] flex flex-col items-center justify-center p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+        <p className="text-sm text-muted-foreground">Loading progression...</p>
       </div>
     );
   }
@@ -196,7 +221,10 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
           data={sankeyData}
           margin={{ top: 10, right: 100, bottom: 10, left: 100 }}
           align="justify"
-          sort="input"
+          sort={(a: any, b: any) => {
+            // Sort nodes by position within each layer (P1 at top, P20 at bottom)
+            return (a.position || 0) - (b.position || 0);
+          }}
           nodeOpacity={0.9}
           nodeHoverOpacity={1}
           nodeThickness={12}

@@ -63,6 +63,7 @@
     "dom-to-image-more": "^3.6.3",
     "embla-carousel-react": "^8.3.0",
     "firebase": "^11.6.0",
+    "framer-motion": "^12.23.25",
     "html2canvas": "^1.4.1",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",

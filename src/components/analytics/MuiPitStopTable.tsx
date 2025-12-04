@@ -276,9 +276,9 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Loading pit stop data...</p>
+      <div className="min-h-[400px] flex flex-col items-center justify-center p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+        <p className="text-sm text-muted-foreground">Loading pit stops...</p>
       </div>
     );
   }

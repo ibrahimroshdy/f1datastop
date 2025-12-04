@@ -222,41 +222,20 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
   // Render loading state with progress indicator
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center space-y-4 relative">
-        <F1ChartLoading chartType="line" height={350} />
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center justify-center space-y-4 w-3/4 max-w-md p-6 rounded-lg bg-card border shadow-lg">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-              <div className="relative p-3 bg-primary/10 rounded-full">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
+      <div className="min-h-[350px] flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center justify-center space-y-3 max-w-xs">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="w-full space-y-2 text-center">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <span>Loading lap times</span>
+              <span className="font-mono text-xs">{loadingProgress}%</span>
             </div>
-            
-            <div className="w-full space-y-3">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span className="font-medium">Loading lap times...</span>
-                <span className="font-mono tabular-nums">{loadingProgress}%</span>
-              </div>
-              <Progress 
-                value={loadingProgress} 
-                className="h-2 w-full" 
-              />
-              
-              {errorMessage ? (
-                <p className="text-amber-600 text-sm font-medium text-center">{errorMessage}</p>
-              ) : (
-                <p className="text-muted-foreground text-sm text-center">
-                  Fetching lap data for all drivers...
-                </p>
-              )}
-              
-              {retryCount > 0 && (
-                <p className="text-xs text-muted-foreground text-center">
-                  Rate limit reached. Retry {retryCount}/15
-                </p>
-              )}
-            </div>
+            <Progress value={loadingProgress} className="h-1.5 w-full" />
+            {retryCount > 0 && (
+              <p className="text-[10px] text-muted-foreground">
+                Rate limited. Retry {retryCount}/15
+              </p>
+            )}
           </div>
         </div>
       </div>

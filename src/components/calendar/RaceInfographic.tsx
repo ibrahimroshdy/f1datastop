@@ -29,7 +29,7 @@ import {
   useLapTimes
 } from "@/hooks/useF1Data";
 import { toast } from "sonner";
-import QualifyingToRaceChart from "@/components/dashboard/QualifyingToRaceChart";
+import MuiSankeyChart from "@/components/analytics/MuiSankeyChart";
 
 // Country name to ISO code mapping for emoji flags (works with html2canvas)
 const countryToCode: { [key: string]: string } = {
@@ -627,8 +627,8 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                   
             {/* Third Row: Qualifying to Race Progression Chart */}
             <div className="h-[500px]">
-              <QualifyingToRaceChart compact={false} />
-                  </div>
+              <MuiSankeyChart year={parseInt(race.season)} round={race.round} />
+            </div>
                   
             {/* Fourth Row: Additional Statistics */}
             <div className="grid grid-cols-4 gap-4">
