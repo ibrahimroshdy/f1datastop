@@ -192,19 +192,21 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
   return (
     <div className="h-full flex flex-col">
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mb-3 items-center text-xs">
-        <span className="text-muted-foreground">Position Change:</span>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-0.5 bg-emerald-500 rounded" />
-          <span className="text-muted-foreground">Gained</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-0.5 bg-red-500 rounded" />
-          <span className="text-muted-foreground">Lost</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-0.5 bg-blue-500 rounded" />
-          <span className="text-muted-foreground">Same</span>
+      <div className="flex justify-center flex-wrap gap-4 mb-4 items-center text-xs px-2 py-2">
+        <span className="text-muted-foreground font-medium">Position Change:</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-[3px] bg-emerald-500 rounded" />
+            <span className="text-muted-foreground">Gained</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-[3px] bg-red-500 rounded" />
+            <span className="text-muted-foreground">Lost</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-[3px] bg-blue-500 rounded" />
+            <span className="text-muted-foreground">Same</span>
+          </div>
         </div>
       </div>
 
@@ -342,6 +344,7 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
           }}
         />
       </div>
+      <div className="pb-6" />
     </div>
   );
 };

@@ -73,89 +73,83 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
   const isImminent = countdown.days === 0 && countdown.hours < 6;
 
   return (
-    <header className="mb-6 space-y-4">
-      {/* Main Header Row */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-        {/* Title Section */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
+    <header className="mb-4 md:mb-6 space-y-3 md:space-y-4">
+      {/* Main Header Row - Shadcn style */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        {/* Title Section - Cleaner, more minimal */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               Formula 1 
-              <span className="text-primary ml-2">{new Date().getFullYear()}</span>
-          </h1>
-            <GlassBadge variant="primary" size="sm" className="hidden sm:flex">
-              <Zap className="h-3 w-3 mr-1" />
-              Live Data
-            </GlassBadge>
+              <span className="text-primary ml-1.5">{new Date().getFullYear()}</span>
+            </h1>
           </div>
-          <div className="flex items-center gap-3">
-            <p className="text-muted-foreground text-sm">
-              Real-time race data, standings, and analytics
-            </p>
-            <BuyMeCoffeeWidget size="small" className="hidden md:flex" />
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Real-time race data, standings, and analytics
+          </p>
         </div>
 
-        {/* Next Race Card */}
+        {/* Next Race Card - More compact */}
         {nextRace && nextSession && (
           <GlassCard
             variant={isGlass ? "glow" : "default"}
             size="sm"
             hover="lift"
             className={cn(
-              "w-full lg:w-auto min-w-[280px] cursor-pointer group",
+              "w-full md:w-auto md:min-w-[280px] cursor-pointer group",
               isUrgent && "ring-1 ring-primary/50",
               isImminent && "animate-pulse-glow"
             )}
             onClick={() => setIsDialogOpen(true)}
           >
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-3 md:gap-4">
               {/* Race Info */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 md:gap-3 min-w-0 flex-1">
                 <div className={cn(
-                  "relative p-2 rounded-xl",
+                  "relative p-1.5 md:p-2 rounded-lg shrink-0",
                   isGlass ? "glass" : "bg-muted"
                 )}>
-                  <CountryFlag country={country} size={24} svg={true} />
+                  <CountryFlag country={country} size={20} svg={true} />
                   {isImminent && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-live-pulse" />
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full animate-live-pulse" />
                   )}
                 </div>
-                <div>
-                <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                    <span className="font-semibold text-xs md:text-sm truncate">
                       {removeFlag(raceName)}
                     </span>
                     <GlassBadge 
                       variant={isImminent ? "live" : isUrgent ? "warning" : "secondary"} 
                       size="sm"
+                      className="shrink-0"
                     >
                       {nextSession.shortName}
                     </GlassBadge>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                    <Calendar className="h-3 w-3" />
-                    <span>
+                  <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mt-0.5">
+                    <Calendar className="h-3 w-3 shrink-0" />
+                    <span className="truncate">
                       {sessionDate?.toLocaleDateString(undefined, {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric'
                       })}
                     </span>
-                    <Clock className="h-3 w-3 ml-1" />
-                    <span>
+                    <Clock className="h-3 w-3 shrink-0" />
+                    <span className="truncate">
                       {sessionDate?.toLocaleTimeString(undefined, {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
-                  </span>
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Countdown */}
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 font-mono text-xs">
+              <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                <div className="flex items-center gap-0.5 md:gap-1 font-mono text-[10px] md:text-xs">
                   <CountdownUnit value={countdown.days} label="d" urgent={isUrgent} />
                   <span className="text-muted-foreground">:</span>
                   <CountdownUnit value={countdown.hours} label="h" urgent={isUrgent} />
@@ -164,15 +158,15 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
                   <span className="text-muted-foreground hidden sm:inline">:</span>
                   <CountdownUnit value={countdown.seconds} label="s" urgent={isUrgent} className="hidden sm:flex" />
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all" />
+                <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
               </div>
             </div>
           </GlassCard>
         )}
       </div>
       
-      {/* Page Selector */}
-      <div className="pt-2">
+      {/* Page Selector - Only on tablet and mobile */}
+      <div className="pt-0.5">
         <PageSelector />
       </div>
       

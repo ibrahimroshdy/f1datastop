@@ -222,44 +222,44 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
           </CardTitle>
         </CardHeader>
         
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 md:space-y-4">
           {/* Season Progress */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">{currentYear} Championship Progress</span>
-              <Badge variant="secondary" className="font-mono text-xs">
+          <div className="space-y-2 md:space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs sm:text-sm font-medium text-foreground truncate">{currentYear} Championship Progress</span>
+              <Badge variant="secondary" className="font-mono text-[10px] sm:text-xs shrink-0">
                 {completedRaces.length}/{totalRaces}
               </Badge>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1.5 md:space-y-2">
               <Progress 
                 value={progressPercentage} 
-                className="h-2"
+                className="h-1.5 md:h-2"
                 indicatorClassName="bg-gradient-to-r from-red-600 to-red-500"
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground">
                 <span>{completedRaces.length} completed</span>
                 <span>{totalRaces - completedRaces.length} remaining</span>
               </div>
             </div>
             
             {/* Season Status */}
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <div className={`w-2 h-2 rounded-full ${statusColors.bg}`} />
-              <span className={`text-xs ${statusColors.text}`}>{seasonStatus.label}</span>
-              <div className={`w-2 h-2 rounded-full ${statusColors.bg}`} />
+            <div className="flex items-center justify-center gap-1.5 md:gap-2 pt-1.5 md:pt-2">
+              <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${statusColors.bg}`} />
+              <span className={`text-[10px] sm:text-xs ${statusColors.text}`}>{seasonStatus.label}</span>
+              <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${statusColors.bg}`} />
             </div>
           </div>
           
           {/* Next Sessions */}
-          <div className={`space-y-3 pt-4 border-t border-dashed ${statusColors.border}`}>
-            <div className="flex items-center gap-2">
-              <Clock className={`h-4 w-4 ${statusColors.text}`} />
-              <span className="text-sm font-medium text-foreground">Next Sessions</span>
+          <div className={`space-y-2 md:space-y-3 pt-3 md:pt-4 border-t border-dashed ${statusColors.border}`}>
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <Clock className={`h-3.5 w-3.5 md:h-4 md:w-4 ${statusColors.text} shrink-0`} />
+              <span className="text-xs sm:text-sm font-medium text-foreground">Next Sessions</span>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1.5 md:space-y-2">
               {upcomingSessions.length > 0 ? upcomingSessions.map((item, index) => {
                 const timeUntil = formatDistance(item.date, now, { addSuffix: false });
                 const isNext = index === 0;
@@ -267,25 +267,25 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
                   <div
                     key={item.race.round}
                     onClick={() => openRaceDetails(item.race)}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30 ${
+                    className={`flex items-center justify-between p-2 md:p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30 ${
                       isNext 
                         ? `bg-gradient-to-r from-purple-500/10 to-transparent border-purple-500/30` 
                         : 'border-border'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <CountryFlag country={item.country} size={16} svg={true} />
-                        <div>
-                          <div className="text-sm font-medium">{getRaceNameWithoutEmoji(item.raceName)}</div>
-                          <div className="text-xs text-muted-foreground">{item.session?.shortName || 'Race'}</div>
-                        </div>
+                    <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                      <div className="shrink-0">
+                        <CountryFlag country={item.country} size={14} svg={true} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs sm:text-sm font-medium truncate">{getRaceNameWithoutEmoji(item.raceName)}</div>
+                        <div className="text-[10px] sm:text-xs text-muted-foreground">{item.session?.shortName || 'Race'}</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs font-mono text-muted-foreground">in {timeUntil}</div>
+                    <div className="text-right shrink-0 ml-2">
+                      <div className="text-[10px] sm:text-xs font-mono text-muted-foreground">in {timeUntil}</div>
                       {isNext && (
-                        <Badge variant="outline" className="text-xs mt-1 border-purple-500/50 text-purple-600 dark:text-purple-400">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs mt-0.5 md:mt-1 border-purple-500/50 text-purple-600 dark:text-purple-400">
                           Next
                         </Badge>
                       )}
@@ -293,36 +293,36 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
                   </div>
                 );
               }) : (
-                <div className="text-center py-4 text-muted-foreground text-sm">Season complete</div>
+                <div className="text-center py-3 md:py-4 text-muted-foreground text-xs sm:text-sm">Season complete</div>
               )}
             </div>
           </div>
 
-          {/* Season Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border">
-            <div className="text-center p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
-              <div className="text-lg font-mono font-bold text-foreground">{completedRaces.length}</div>
-              <div className="text-xs text-muted-foreground">Races Done</div>
+          {/* Season Stats - Responsive grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4 pt-4 border-t border-border">
+            <div className="text-center p-2 sm:p-2.5 md:p-3 rounded-lg bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
+              <div className="text-base sm:text-lg font-mono font-bold text-foreground">{completedRaces.length}</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Races Done</div>
             </div>
-            <div className="text-center p-3 rounded-lg bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20">
-              <div className="text-lg font-mono font-bold text-foreground">{totalRaces - completedRaces.length}</div>
-              <div className="text-xs text-muted-foreground">Races Remaining</div>
+            <div className="text-center p-2 sm:p-2.5 md:p-3 rounded-lg bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20">
+              <div className="text-base sm:text-lg font-mono font-bold text-foreground">{totalRaces - completedRaces.length}</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Races Remaining</div>
             </div>
-            <div className="text-center p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-transparent border border-purple-500/20">
-              <div className="text-lg font-mono font-bold text-foreground">{sprintCount}</div>
-              <div className="text-xs text-muted-foreground">Sprint Weekends</div>
+            <div className="text-center p-2 sm:p-2.5 md:p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-transparent border border-purple-500/20">
+              <div className="text-base sm:text-lg font-mono font-bold text-foreground">{sprintCount}</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Sprint Weekends</div>
             </div>
-            <div className="text-center p-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20">
-              <div className="text-lg font-mono font-bold text-foreground">{longestBreakDays}d</div>
-              <div className="text-xs text-muted-foreground">Longest Gap</div>
+            <div className="text-center p-2 sm:p-2.5 md:p-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20">
+              <div className="text-base sm:text-lg font-mono font-bold text-foreground">{longestBreakDays}d</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Longest Gap</div>
             </div>
           </div>
 
           {/* Upcoming Calendar */}
-          <div className="space-y-2 pt-4 border-t border-border/50">
-            <div className="mb-2 text-sm font-medium text-foreground">Upcoming Calendar</div>
+          <div className="space-y-1.5 md:space-y-2 pt-3 md:pt-4 border-t border-border/50">
+            <div className="mb-1.5 md:mb-2 text-xs sm:text-sm font-medium text-foreground">Upcoming Calendar</div>
             
-            <div className={`space-y-2 pr-1 ${!expandedView ? "max-h-[200px] overflow-y-auto" : ""}`}>
+            <div className={`space-y-1.5 md:space-y-2 pr-1 ${!expandedView ? "max-h-[180px] sm:max-h-[200px] overflow-y-auto" : ""}`}>
               {(() => {
                 const excludedRounds = new Set((upcomingSessions || []).map((u: any) => u.race.round));
                 const upcoming = (raceSchedule?.data || []).filter((r: any) => new Date(r.date) >= now && !excludedRounds.has(r.round));
@@ -338,20 +338,22 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
                     <div
                       key={race.round}
                       onClick={() => openRaceDetails(race)}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/30 transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-1.5 md:p-2 rounded-lg hover:bg-accent/30 transition-colors cursor-pointer gap-2"
                     >
-                      <div className="flex items-center gap-2">
-                        <CountryFlag country={race.Circuit?.Location?.country || ''} size={14} svg={true} />
-                        <span className="text-sm">{getRaceNameWithoutEmoji(race.raceName)}</span>
+                      <div className="flex items-center gap-1.5 md:gap-2 min-w-0 flex-1">
+                        <div className="shrink-0">
+                          <CountryFlag country={race.Circuit?.Location?.country || ''} size={12} svg={true} />
+                        </div>
+                        <span className="text-xs sm:text-sm truncate">{getRaceNameWithoutEmoji(race.raceName)}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
                         {!!race.Sprint && (
-                          <Zap className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                          <Zap className="h-2.5 w-2.5 md:h-3 md:w-3 text-yellow-500 fill-yellow-500 shrink-0" />
                         )}
-                        <span className="text-xs text-muted-foreground font-mono">
+                        <span className="text-[10px] sm:text-xs text-muted-foreground font-mono">
                           {raceDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                         </span>
-                        <div className={`w-2 h-2 rounded-full ${typeColor.bg}`} />
+                        <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${typeColor.bg} shrink-0`} />
                       </div>
                     </div>
                   );

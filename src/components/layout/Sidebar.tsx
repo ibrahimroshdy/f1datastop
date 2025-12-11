@@ -246,8 +246,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
           // Visibility states for mobile
           isMediumOrSmaller && !sidebarOpen && "-translate-x-full",
           isMediumOrSmaller && sidebarOpen && "translate-x-0 w-60",
-          // Desktop positioning
-          !isMediumOrSmaller && "relative"
+          // Desktop positioning and visibility
+          !isMediumOrSmaller && !sidebarOpen && "-translate-x-full",
+          !isMediumOrSmaller && sidebarOpen && "relative translate-x-0"
         )}
       >
         {/* Logo and brand */}
@@ -389,7 +390,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
         {/* Collapse toggle button - desktop only */}
         {!isMediumOrSmaller && (
           <div className={cn(
-            "hidden md:flex items-center shrink-0 py-2",
+            "flex items-center shrink-0 py-2",
             isCollapsed ? "justify-center px-2" : "justify-end px-3",
             isGlass ? "border-t border-white/5" : "border-t border-sidebar-border"
           )}>

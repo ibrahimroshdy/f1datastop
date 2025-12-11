@@ -5,7 +5,8 @@ import { withCache } from './cache';
 // Supports common image formats in case some assets are avif/webp
 const localHeadshotModules = import.meta.glob('/src/assets/drivers-headshot/*.{png,avif,jpg,jpeg,webp}', {
   eager: true,
-  as: 'url'
+  query: '?url',
+  import: 'default'
 }) as Record<string, string>;
 
 const LOCAL_HEADSHOTS: Record<string, string> = {};

@@ -1,39 +1,34 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
 // Theme types
-export type ThemeMode = 'dark' | 'light' | 'dark-glass' | 'light-glass';
+export type ThemeMode = 'light' | 'dark' | 'dark-glass';
 
 // Check if a theme is a glass theme
 export const isGlassTheme = (theme: ThemeMode): boolean => {
-  return theme === 'dark-glass' || theme === 'light-glass';
+  return theme === 'dark-glass';
 };
 
 // Get the base theme (dark or light) from any theme mode
 export const getBaseTheme = (theme: ThemeMode): 'dark' | 'light' => {
-  return theme === 'light' || theme === 'light-glass' ? 'light' : 'dark';
+  return theme === 'light' ? 'light' : 'dark';
 };
 
 // Theme configuration for display
 export const themeConfig: Record<ThemeMode, { label: string; description: string; icon: string }> = {
-  dark: {
-    label: 'Dark',
-    description: 'Classic dark theme',
-    icon: '🌙',
-  },
   light: {
     label: 'Light',
     description: 'Clean light theme',
     icon: '☀️',
   },
+  dark: {
+    label: 'Dark',
+    description: 'Pure black dark theme',
+    icon: '🌙',
+  },
   'dark-glass': {
     label: 'Dark Glass',
     description: 'Premium dark with glass effects',
     icon: '🌑',
-  },
-  'light-glass': {
-    label: 'Light Glass',
-    description: 'Premium light with glass effects',
-    icon: '✨',
   },
 };
 
@@ -50,13 +45,22 @@ interface ThemeContextProps {
 const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
 
 // Theme cycle order
-const themeCycle: ThemeMode[] = ['dark', 'light', 'dark-glass', 'light-glass'];
+const themeCycle: ThemeMode[] = ['light', 'dark', 'dark-glass'];
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     // Check for stored theme preference
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('f1ds-theme') as ThemeMode | null;
+      // Migrate old themes
+      if (savedTheme === 'light-glass') {
+        localStorage.setItem('f1ds-theme', 'light');
+        return 'light';
+      }
+      if (savedTheme === 'slate') {
+        localStorage.setItem('f1ds-theme', 'dark');
+        return 'dark';
+      }
       if (savedTheme && themeCycle.includes(savedTheme)) {
         return savedTheme;
       }
@@ -73,7 +77,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const root = window.document.documentElement;
     
     // Remove all theme classes
-    root.classList.remove('light', 'dark', 'dark-glass', 'light-glass');
+    root.classList.remove('light', 'dark', 'dark-glass', 'light-glass', 'slate');
     
     // Add the current theme class
     root.classList.add(theme);
@@ -85,7 +89,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     const baseTheme = getBaseTheme(theme);
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', baseTheme === 'dark' ? '#15151e' : '#fafafa');
+      metaThemeColor.setAttribute('content', baseTheme === 'dark' ? '#0a0a0f' : '#fafafa');
     }
   }, [theme]);
 
@@ -117,7 +121,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       const isCurrentDark = getBaseTheme(current) === 'dark';
       
       if (isCurrentGlass) {
-        return isCurrentDark ? 'light-glass' : 'dark-glass';
+        return 'light'; // If glass, toggle to light (no light-glass anymore)
       }
       return isCurrentDark ? 'light' : 'dark';
     });
@@ -132,16 +136,21 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     });
   }, []);
 
-  // Toggle glass mode on/off (preserving dark/light)
+  // Toggle glass mode on/off (only works for dark themes)
   const toggleGlass = useCallback(() => {
     setThemeState((current) => {
-      const isCurrentDark = getBaseTheme(current) === 'dark';
       const isCurrentGlass = isGlassTheme(current);
       
       if (isCurrentGlass) {
-        return isCurrentDark ? 'dark' : 'light';
+        // If currently glass, return to dark
+        return 'dark';
       }
-      return isCurrentDark ? 'dark-glass' : 'light-glass';
+      // Only allow glass for dark themes
+      if (getBaseTheme(current) === 'dark') {
+        return 'dark-glass';
+      }
+      // For light, just return current
+      return current;
     });
   }, []);
 

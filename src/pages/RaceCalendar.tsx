@@ -10,7 +10,7 @@ import YearSelector from "@/components/common/YearSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import RaceInfographic from "@/components/calendar/RaceInfographic";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
-import { Calendar as CalendarIcon, Star, Download, Globe, List, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Star, Download, Globe, List, Loader2, Grid3x3, ChevronDown, ChevronUp } from "lucide-react";
 import CountryFlag from "@/components/common/CountryFlag";
 import CalendarAnalyticsTracker from "@/components/calendar/CalendarAnalyticsTracker";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ import { useTheme } from "@/context/ThemeContext";
 const F1GlobeContainer = lazy(() => import("@/components/calendar/map/F1GlobeContainer"));
 
 // View type for calendar
-type CalendarView = "list" | "globe";
+type CalendarView = "list" | "grid" | "globe";
 
 // Race type constants
 const SINGLE_RACE = "single";
@@ -30,7 +30,7 @@ const TRIPLE_HEADER = "triple";
 
 // Color mapping for race types - subtle, minimal
 const raceTypeColors = {
-  [SINGLE_RACE]: "bg-muted-foreground/60",
+  [SINGLE_RACE]: "bg-blue-500",
   [DOUBLE_HEADER]: "bg-green-500",
   [TRIPLE_HEADER]: "bg-purple-500",
   "summer-break": "bg-sky-400/50",
@@ -74,8 +74,22 @@ const RaceCalendar = () => {
   const [downloadingRace, setDownloadingRace] = useState<string | null>(null);
   const [infographicRace, setInfographicRace] = useState<any>(null);
   const [viewMode, setViewMode] = useState<CalendarView>("list");
+  const [expandedRaces, setExpandedRaces] = useState<Set<string>>(new Set());
   const infographicRef = useRef<HTMLDivElement>(null);
   const { isGlass } = useTheme();
+  
+  const toggleRaceExpansion = (raceRound: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setExpandedRaces(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(raceRound)) {
+        newSet.delete(raceRound);
+      } else {
+        newSet.add(raceRound);
+      }
+      return newSet;
+    });
+  };
   
   const { data: raceSchedule, isLoading } = useRaceSchedule(selectedYear);
   const currentDate = new Date();
@@ -334,7 +348,7 @@ const RaceCalendar = () => {
                   variant={viewMode === "list" ? "default" : "ghost"}
                   size="sm"
                   className={cn(
-                    "h-8 px-3 gap-1.5",
+                    "h-8 px-2 sm:px-3 gap-1.5",
                     viewMode === "list" && "bg-primary text-primary-foreground"
                   )}
                   onClick={() => setViewMode("list")}
@@ -343,10 +357,22 @@ const RaceCalendar = () => {
                   <span className="hidden sm:inline">List</span>
                 </Button>
                 <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-8 px-2 sm:px-3 gap-1.5",
+                    viewMode === "grid" && "bg-primary text-primary-foreground"
+                  )}
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Grid</span>
+                </Button>
+                <Button
                   variant={viewMode === "globe" ? "default" : "ghost"}
                   size="sm"
                   className={cn(
-                    "h-8 px-3 gap-1.5",
+                    "h-8 px-2 sm:px-3 gap-1.5",
                     viewMode === "globe" && "bg-primary text-primary-foreground"
                   )}
                   onClick={() => setViewMode("globe")}
@@ -359,25 +385,25 @@ const RaceCalendar = () => {
             </div>
         </div>
 
-          {/* Legend - Simple, inline (only show for list view) */}
-          {viewMode === "list" && (
-            <div className="flex flex-wrap gap-4 items-center text-sm">
-              <span className="text-muted-foreground font-medium">Legend:</span>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/60"></div>
-                <span className="text-muted-foreground">Single</span>
+          {/* Legend - Compact (only show for list and grid views) */}
+          {(viewMode === "list" || viewMode === "grid") && (
+            <div className="flex flex-wrap gap-2 sm:gap-3 items-center text-xs sm:text-sm">
+              <span className="text-muted-foreground font-medium hidden sm:inline">Legend:</span>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <span className="text-muted-foreground text-xs">Single</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                <span className="text-muted-foreground">Double Header</span>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <span className="text-muted-foreground text-xs">Double</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-purple-500"></div>
-                <span className="text-muted-foreground">Triple Header</span>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                <span className="text-muted-foreground text-xs">Triple</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                <span className="text-muted-foreground">Sprint</span>
+              <div className="flex items-center gap-1">
+                <Star className="w-2.5 h-2.5 fill-yellow-500 text-yellow-500" />
+                <span className="text-muted-foreground text-xs">Sprint</span>
               </div>
             </div>
           )}
@@ -399,11 +425,11 @@ const RaceCalendar = () => {
             </Suspense>
           )}
 
-          {/* Race Grid (List View) */}
+          {/* Compact List View */}
           {viewMode === "list" && (
-        <div className="mt-4">
+        <div className="mt-3">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
               {Array(6).fill(0).map((_, index) => (
                   <Card 
                     key={index} 
@@ -414,11 +440,10 @@ const RaceCalendar = () => {
                       WebkitBackdropFilter: 'blur(var(--glass-blur))',
                     } : undefined}
                   >
-                    <Skeleton className="h-1.5 w-full" />
-                    <CardContent className="p-4">
-                      <Skeleton className="h-6 w-3/4 mb-2" />
-                      <Skeleton className="h-4 w-1/2 mb-4" />
-                      <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-0.5 w-full" />
+                    <CardContent className="p-2.5 sm:p-3">
+                      <Skeleton className="h-4 w-3/4 mb-2" />
+                      <Skeleton className="h-3 w-1/2" />
                     </CardContent>
                   </Card>
               ))}
@@ -429,13 +454,13 @@ const RaceCalendar = () => {
               <p className="text-muted-foreground">No race schedule data available for {selectedYear}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-1.5 sm:space-y-2">
               {racesWithBreak.map((item, idx) => {
                 if (item.isSummerBreak) {
                   return (
-                      <div key={`summer-break-${idx}`} className="col-span-1 md:col-span-2 lg:col-span-3 flex items-center gap-3 my-2">
+                      <div key={`summer-break-${idx}`} className="flex items-center gap-2 sm:gap-3 my-2">
                         <div className="h-px flex-1 bg-border"></div>
-                        <span className="text-xs text-muted-foreground px-3 py-1 bg-muted rounded-full">
+                        <span className="text-[10px] sm:text-xs text-muted-foreground px-2 sm:px-3 py-1 bg-muted rounded-full">
                         Summer Break ({item.dates.start} - {item.dates.end})
                       </span>
                         <div className="h-px flex-1 bg-border"></div>
@@ -450,6 +475,186 @@ const RaceCalendar = () => {
                 const country = race.Circuit?.Location?.country || "";
                 const raceName = getRaceNameWithoutEmoji(race.raceName);
                 const circuitName = race.Circuit?.circuitName || "Unknown Circuit";
+                const raceType = raceTypes[index] || SINGLE_RACE;
+                const hasSprint = !!race.Sprint;
+                const isExpanded = expandedRaces.has(race.round);
+                
+                return (
+                  <Card 
+                    key={race.round} 
+                    className={cn(
+                      "overflow-hidden transition-all",
+                      status === "next" && "ring-1 ring-f1-red",
+                      isGlass && "border-white/10"
+                    )}
+                    style={isGlass ? {
+                      background: 'var(--glass-bg)',
+                      backdropFilter: 'blur(var(--glass-blur))',
+                      WebkitBackdropFilter: 'blur(var(--glass-blur))',
+                      boxShadow: 'var(--glass-shadow)'
+                    } : undefined}
+                  >
+                      {/* Top color bar */}
+                      <div className={`h-0.5 w-full ${raceTypeColors[raceType]}`}></div>
+                      
+                    <CardContent className="p-2.5 sm:p-3">
+                        {/* Compact Header - Always visible */}
+                        <div 
+                          className="flex justify-between items-center cursor-pointer"
+                          onClick={() => openRaceDetails(race)}
+                        >
+                          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                            <CountryFlag country={country} size={16} svg={true} className="shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 sm:gap-2">
+                                <h3 className="font-semibold text-xs sm:text-sm leading-tight truncate">{raceName}</h3>
+                                {hasSprint && (
+                                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500 shrink-0" />
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
+                                <span>Round {race.round}</span>
+                                <span>•</span>
+                                <span>{format(raceDate, 'dd MMM yyyy')}</span>
+                                {race.time && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{format(parseISO(`${race.date}T${race.time}`), 'HH:mm')}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge 
+                              variant={status === "next" ? "default" : "secondary"}
+                              className={cn(
+                                "text-[9px] sm:text-[10px] h-4 sm:h-4 px-1.5 sm:px-2",
+                                status === "next" && "bg-f1-red hover:bg-f1-red"
+                              )}
+                            >
+                              {status === "completed" ? "Done" : 
+                               status === "next" ? "Next" : 
+                               "Upcoming"}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => toggleRaceExpansion(race.round, e)}
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {/* Expanded Details */}
+                        {isExpanded && (
+                          <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-border/50 space-y-2">
+                            <div className="text-xs sm:text-sm text-muted-foreground">
+                              <p className="truncate">{circuitName}</p>
+                            </div>
+                            
+                            {/* Session badges */}
+                            <div className="flex flex-wrap gap-1 sm:gap-1.5">
+                              {hasSprint && (
+                                <Badge variant="outline" className="text-[9px] sm:text-[10px] h-4">Sprint</Badge>
+                              )}
+                              {race.Qualifying && (
+                                <Badge variant="outline" className="text-[9px] sm:text-[10px] h-4">Qualifying</Badge>
+                              )}
+                              {race.FirstPractice && (
+                                <Badge variant="outline" className="text-[9px] sm:text-[10px] h-4">Practice</Badge>
+                              )}
+                            </div>
+                            
+                            {/* Download button for completed races */}
+                            {status === "completed" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1.5"
+                                onClick={(e) => handleDirectDownload(race, e)}
+                                disabled={downloadingRace === race.round}
+                              >
+                                {downloadingRace === race.round ? (
+                                  <>
+                                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                    <span>Downloading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className="h-3 w-3" />
+                                    <span>Download Infographic</span>
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+          )}
+
+          {/* Grid View */}
+          {viewMode === "grid" && (
+        <div className="mt-3">
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
+              {Array(10).fill(0).map((_, index) => (
+                  <Card 
+                    key={index} 
+                    className={cn("overflow-hidden", isGlass && "border-white/10")}
+                    style={isGlass ? {
+                      background: 'var(--glass-bg)',
+                      backdropFilter: 'blur(var(--glass-blur))',
+                      WebkitBackdropFilter: 'blur(var(--glass-blur))',
+                    } : undefined}
+                  >
+                    <Skeleton className="h-0.5 w-full" />
+                    <CardContent className="p-2 sm:p-2.5">
+                      <Skeleton className="h-3.5 w-3/4 mb-1.5" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </CardContent>
+                  </Card>
+              ))}
+            </div>
+          ) : raceSchedule?.data?.length === 0 ? (
+              <div className="py-12 text-center border border-border rounded-lg">
+                <CalendarIcon className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">No race schedule data available for {selectedYear}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
+              {racesWithBreak.map((item, idx) => {
+                if (item.isSummerBreak) {
+                  return (
+                      <div key={`summer-break-${idx}`} className="col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-5 flex items-center gap-2 sm:gap-3 my-1.5 sm:my-2">
+                        <div className="h-px flex-1 bg-border"></div>
+                        <span className="text-[10px] sm:text-xs text-muted-foreground px-2 sm:px-3 py-1 bg-muted rounded-full">
+                        Summer Break ({item.dates.start} - {item.dates.end})
+                      </span>
+                        <div className="h-px flex-1 bg-border"></div>
+                    </div>
+                  );
+                }
+                
+                const race = item.race;
+                const index = item.index;
+                const status = getRaceStatus(race);
+                const raceDate = parseISO(race.date);
+                const country = race.Circuit?.Location?.country || "";
+                const raceName = getRaceNameWithoutEmoji(race.raceName);
                 const raceType = raceTypes[index] || SINGLE_RACE;
                 const hasSprint = !!race.Sprint;
                 
@@ -469,74 +674,39 @@ const RaceCalendar = () => {
                     } : undefined}
                     onClick={() => openRaceDetails(race)}
                   >
-                      {/* Top color bar - subtle */}
-                      <div className={`h-1 w-full ${raceTypeColors[raceType]}`}></div>
+                      {/* Top color bar */}
+                      <div className={`h-0.5 w-full ${raceTypeColors[raceType]}`}></div>
                       
-                    <CardContent className="p-4">
-                        {/* Header */}
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex items-center gap-2.5">
-                            <CountryFlag country={country} size={22} svg={true} />
-                            <div>
-                              <h3 className="font-semibold text-sm leading-tight">{raceName}</h3>
-                              <span className="text-xs text-muted-foreground">Round {race.round}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-1.5">
-                            {hasSprint && (
-                              <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
-                            )}
-                          <Badge 
-                              variant={status === "next" ? "default" : "secondary"}
-                              className={cn(
-                                "text-[10px] h-5",
-                                status === "next" && "bg-f1-red hover:bg-f1-red"
+                    <CardContent className="p-2 sm:p-2.5">
+                        <div className="flex flex-col items-center text-center gap-1.5 sm:gap-2">
+                          <CountryFlag country={country} size={20} svg={true} />
+                          <div className="w-full">
+                            <h3 className="font-semibold text-xs sm:text-sm leading-tight truncate mb-0.5">{raceName}</h3>
+                            <div className="flex items-center justify-center gap-1 text-[9px] sm:text-[10px] text-muted-foreground">
+                              <span>R{race.round}</span>
+                              {hasSprint && (
+                                <>
+                                  <span>•</span>
+                                  <Star className="h-2.5 w-2.5 fill-yellow-500 text-yellow-500" />
+                                </>
                               )}
-                            >
-                            {status === "completed" ? "Completed" : 
-                             status === "next" ? "Next Race" : 
+                            </div>
+                            <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-1">
+                              {format(raceDate, 'dd MMM')}
+                            </p>
+                          </div>
+                          <Badge 
+                            variant={status === "next" ? "default" : "secondary"}
+                            className={cn(
+                              "text-[9px] sm:text-[10px] h-4 px-1.5",
+                              status === "next" && "bg-f1-red hover:bg-f1-red"
+                            )}
+                          >
+                            {status === "completed" ? "Done" : 
+                             status === "next" ? "Next" : 
                              "Upcoming"}
                           </Badge>
-                            {status === "completed" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 w-6 p-0"
-                                onClick={(e) => handleDirectDownload(race, e)}
-                                disabled={downloadingRace === race.round}
-                              >
-                                {downloadingRace === race.round ? (
-                                  <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                  <Download className="h-3 w-3" />
-                                )}
-                              </Button>
-                            )}
-                          </div>
                         </div>
-                        
-                        {/* Circuit & Date */}
-                        <div className="space-y-1.5 text-sm text-muted-foreground">
-                          <p className="truncate">{circuitName}</p>
-                          <p>
-                            {format(raceDate, 'dd MMM yyyy')}
-                            {race.time && ` • ${format(parseISO(`${race.date}T${race.time}`), 'HH:mm')}`}
-                          </p>
-                        </div>
-                        
-                        {/* Session badges - minimal */}
-                        <div className="flex flex-wrap gap-1.5 mt-3">
-                          {hasSprint && (
-                            <Badge variant="outline" className="text-[10px] h-5">Sprint</Badge>
-                          )}
-                          {race.Qualifying && (
-                            <Badge variant="outline" className="text-[10px] h-5">Qualifying</Badge>
-                          )}
-                          {race.FirstPractice && (
-                            <Badge variant="outline" className="text-[10px] h-5">Practice</Badge>
-                          )}
-                      </div>
                     </CardContent>
                   </Card>
                 );

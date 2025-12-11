@@ -13,17 +13,11 @@ import { cn } from "@/lib/utils";
 
 // Theme icons mapping
 const themeIcons: Record<ThemeMode, React.ReactNode> = {
-  dark: <Moon className="h-4 w-4" />,
   light: <Sun className="h-4 w-4" />,
+  dark: <Moon className="h-4 w-4" />,
   "dark-glass": (
     <div className="relative">
       <Moon className="h-4 w-4" />
-      <Sparkles className="h-2 w-2 absolute -top-0.5 -right-0.5 text-primary" />
-    </div>
-  ),
-  "light-glass": (
-    <div className="relative">
-      <Sun className="h-4 w-4" />
       <Sparkles className="h-2 w-2 absolute -top-0.5 -right-0.5 text-primary" />
     </div>
   ),
@@ -57,8 +51,9 @@ const ThemeSelector = ({ className }: { className?: string }) => {
           variant="ghost"
           size="icon"
           className={cn(
-            "text-muted-foreground hover:text-foreground relative",
-            isGlass && "glass-button",
+            "h-8 w-8 text-muted-foreground hover:text-foreground relative rounded-md transition-colors",
+            isGlass && "glass-button hover:bg-white/5",
+            !isGlass && "hover:bg-accent",
             className
           )}
           aria-label="Select theme"
@@ -74,20 +69,6 @@ const ThemeSelector = ({ className }: { className?: string }) => {
         
         {/* Standard Themes */}
         <DropdownMenuItem
-          onClick={() => setTheme("dark")}
-          className={cn(
-            "flex items-center gap-2 cursor-pointer",
-            theme === "dark" && "bg-accent"
-          )}
-        >
-          <Moon className="h-4 w-4" />
-          <div className="flex flex-col">
-            <span className="text-sm">Dark</span>
-            <span className="text-xs text-muted-foreground">Classic dark theme</span>
-          </div>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem
           onClick={() => setTheme("light")}
           className={cn(
             "flex items-center gap-2 cursor-pointer",
@@ -98,6 +79,20 @@ const ThemeSelector = ({ className }: { className?: string }) => {
           <div className="flex flex-col">
             <span className="text-sm">Light</span>
             <span className="text-xs text-muted-foreground">Clean light theme</span>
+          </div>
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem
+          onClick={() => setTheme("dark")}
+          className={cn(
+            "flex items-center gap-2 cursor-pointer",
+            theme === "dark" && "bg-accent"
+          )}
+        >
+          <Moon className="h-4 w-4" />
+          <div className="flex flex-col">
+            <span className="text-sm">Dark</span>
+            <span className="text-xs text-muted-foreground">Pure black dark theme</span>
           </div>
         </DropdownMenuItem>
         
@@ -121,23 +116,6 @@ const ThemeSelector = ({ className }: { className?: string }) => {
           <div className="flex flex-col">
             <span className="text-sm">Dark Glass</span>
             <span className="text-xs text-muted-foreground">Premium dark with glass</span>
-          </div>
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem
-          onClick={() => setTheme("light-glass")}
-          className={cn(
-            "flex items-center gap-2 cursor-pointer",
-            theme === "light-glass" && "bg-accent"
-          )}
-        >
-          <div className="relative">
-            <Sun className="h-4 w-4" />
-            <Sparkles className="h-2 w-2 absolute -top-0.5 -right-0.5 text-primary" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm">Light Glass</span>
-            <span className="text-xs text-muted-foreground">Premium light with glass</span>
           </div>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -198,7 +176,7 @@ const ThemePreviewCard = ({
 }) => {
   const config = themeConfig[themeMode];
   const isDark = themeMode === "dark" || themeMode === "dark-glass";
-  const isGlass = themeMode === "dark-glass" || themeMode === "light-glass";
+  const isGlass = themeMode === "dark-glass";
 
   return (
     <button
@@ -253,7 +231,7 @@ const ThemePreviewCard = ({
 const ThemeSelectorPanel = ({ className }: { className?: string }) => {
   const { theme, setTheme } = useTheme();
 
-  const themes: ThemeMode[] = ["dark", "light", "dark-glass", "light-glass"];
+  const themes: ThemeMode[] = ["light", "dark", "dark-glass"];
 
   return (
     <div className={cn("grid grid-cols-2 sm:grid-cols-4 gap-3", className)}>

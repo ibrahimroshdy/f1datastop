@@ -153,7 +153,7 @@ const Index = () => {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="p-0 h-[450px]">
+              <CardContent className="p-0 h-[550px]">
                 {lastCompletedRace && (
                   <MuiSankeyChart 
                     year={lastCompletedRace.year} 

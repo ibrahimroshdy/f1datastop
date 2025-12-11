@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { 
   Dialog, 
   DialogContent,
@@ -14,13 +14,16 @@ import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Trophy, Flag, Clock, LineChart, Zap, BarChart3 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Trophy, Flag, Clock, LineChart, Zap, Calendar, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { TEAM_COLORS } from "@/constants/f1Colors";
-import RaceInfographic from "./RaceInfographic";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/context/ThemeContext";
+
+// Lazy load Sankey chart for performance
+const MuiSankeyChart = lazy(() => import("@/components/analytics/MuiSankeyChart"));
 
 // Function to determine the current year
 const getCurrentYear = () => new Date().getFullYear();
@@ -60,11 +63,9 @@ const getTeamColorStyle = (constructorId: string) => {
 const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   const [selectedTab, setSelectedTab] = useState("info");
   const [dialogOpenTime, setDialogOpenTime] = useState<number>(0);
-  const [showInfographic, setShowInfographic] = useState(false);
+  const navigate = useNavigate();
+  const { isGlass } = useTheme();
   const hasSprint = !!race?.Sprint;
-  
-  // Check if race is completed (for infographic availability)
-  const isRaceCompleted = race?.date ? parseISO(race.date) < new Date() : false;
   
   const { data: raceResults, isLoading: isResultsLoading } = useRaceResults(
     parseInt(race?.season || "0"), 
@@ -232,25 +233,113 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     );
   };
   
+  // Calculate race stats
+  const raceDate = race.date ? format(parseISO(race.date), 'MMM d') : '-';
+  const winner = raceResults?.data?.Results?.[0]?.Driver?.code || null;
+  const polePosition = qualifyingResults?.data?.QualifyingResults?.[0]?.Driver?.code || null;
+  const isRaceCompleted = race.date ? parseISO(race.date) < new Date() : false;
+
+  // Glass theme card style
+  const cardStyle = isGlass ? {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(var(--glass-blur))',
+    boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)',
+  } : undefined;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto p-4 sm:p-6">
-        <DialogHeader className="pb-2">
-          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
+      <DialogContent 
+        className={cn(
+          "sm:max-w-[640px] max-h-[90vh] overflow-y-auto p-4 sm:p-6",
+          isGlass && "border-white/10"
+        )}
+        style={isGlass ? cardStyle : undefined}
+      >
+        <DialogHeader className="pb-3">
+          <DialogTitle className="flex items-center gap-2 pr-8">
             {race.Circuit?.Location?.country && (
               <CountryFlag 
                 country={race.Circuit.Location.country} 
-                size={20}
+                size={18}
                 svg={true}
               />
             )}
             {getRaceNameWithoutEmoji(race.raceName)}
           </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
+          <DialogDescription className="text-xs">
             Round {race.round} of the {race.season} Formula 1 Season
           </DialogDescription>
         </DialogHeader>
         
+        {/* Compact Stats Row */}
+        <div className="grid grid-cols-4 gap-1.5 mb-3">
+          <div className={cn(
+            "text-center p-2 rounded-md",
+            isGlass ? "bg-white/5" : "bg-muted"
+          )}>
+            <Calendar className="h-3 w-3 mx-auto mb-0.5 text-blue-500" />
+            <p className="text-sm font-bold">{raceDate}</p>
+            <p className="text-[8px] text-muted-foreground">Race Date</p>
+          </div>
+          <div className={cn(
+            "text-center p-2 rounded-md",
+            isGlass ? "bg-white/5" : "bg-muted"
+          )}>
+            <Flag className="h-3 w-3 mx-auto mb-0.5 text-green-500" />
+            <p className="text-sm font-bold">R{race.round}</p>
+            <p className="text-[8px] text-muted-foreground">Round</p>
+          </div>
+          <div className={cn(
+            "text-center p-2 rounded-md",
+            isGlass ? "bg-white/5" : "bg-muted"
+          )}>
+            <Trophy className="h-3 w-3 mx-auto mb-0.5 text-yellow-500" />
+            <p className="text-sm font-bold">{winner || (isRaceCompleted ? "-" : "TBD")}</p>
+            <p className="text-[8px] text-muted-foreground">Winner</p>
+          </div>
+          <div className={cn(
+            "text-center p-2 rounded-md",
+            isGlass ? "bg-white/5" : "bg-muted"
+          )}>
+            {hasSprint ? (
+              <>
+                <Zap className="h-3 w-3 mx-auto mb-0.5 text-orange-500" />
+                <p className="text-sm font-bold">Yes</p>
+                <p className="text-[8px] text-muted-foreground">Sprint</p>
+              </>
+            ) : (
+              <>
+                <Clock className="h-3 w-3 mx-auto mb-0.5 text-purple-500" />
+                <p className="text-sm font-bold">{polePosition || (isRaceCompleted ? "-" : "TBD")}</p>
+                <p className="text-[8px] text-muted-foreground">Pole</p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Circuit & Location Info */}
+        <div className={cn(
+          "grid grid-cols-2 gap-1.5 mb-3 p-2 rounded-md",
+          isGlass ? "bg-white/5" : "bg-muted/50"
+        )}>
+          <div className="flex items-center gap-1.5">
+            <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[8px] text-muted-foreground">Circuit</p>
+              <p className="text-xs font-medium truncate">{race.Circuit?.circuitName || "-"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Flag className="h-3 w-3 text-muted-foreground shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[8px] text-muted-foreground">Location</p>
+              <p className="text-xs font-medium truncate">
+                {race.Circuit?.Location?.locality || "-"}, {race.Circuit?.Location?.country || "-"}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <Tabs 
           value={selectedTab} 
           onValueChange={(newTab) => {
@@ -265,164 +354,149 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
           }} 
           className="w-full"
         >
-          <TabsList className={`grid w-full ${hasSprint ? 'grid-cols-6' : 'grid-cols-4'} mb-2`}>
-            <TabsTrigger value="info" className="text-xs px-1 sm:px-2">Schedule</TabsTrigger>
+          <TabsList className={cn(
+            `grid w-full ${hasSprint ? 'grid-cols-6' : 'grid-cols-4'} mb-3 h-8 p-0.5`,
+            isGlass && "bg-white/5"
+          )}>
+            <TabsTrigger value="info" className="text-[10px] h-7 px-1.5">Schedule</TabsTrigger>
             {hasSprint && (
-              <TabsTrigger value="sprint-qualifying" className="text-xs px-1 sm:px-2">
-                <Zap className="h-3 w-3 mr-1" />
+              <TabsTrigger value="sprint-qualifying" className="text-[10px] h-7 px-1.5 gap-1">
+                <Zap className="h-2.5 w-2.5" />
                 <span className="hidden sm:inline">Sprint Q</span>
                 <span className="sm:hidden">SQ</span>
               </TabsTrigger>
             )}
             {hasSprint && (
-              <TabsTrigger value="sprint" className="text-xs px-1 sm:px-2">
-                <Zap className="h-3 w-3 mr-1" />
+              <TabsTrigger value="sprint" className="text-[10px] h-7 px-1.5 gap-1">
+                <Zap className="h-2.5 w-2.5" />
                 Sprint
               </TabsTrigger>
             )}
-            <TabsTrigger value="qualifying" className="text-xs px-1 sm:px-2">Qualifying</TabsTrigger>
-            <TabsTrigger value="results" className="text-xs px-1 sm:px-2">Results</TabsTrigger>
-            {isRaceCompleted && (
-              <TabsTrigger value="infographic" className="text-xs px-1 sm:px-2">
-                <BarChart3 className="h-3 w-3 mr-1" />
-                <span className="hidden sm:inline">Infographic</span>
-                <span className="sm:hidden">Info</span>
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="qualifying" className="text-[10px] h-7 px-1.5">Qualifying</TabsTrigger>
+            <TabsTrigger value="results" className="text-[10px] h-7 px-1.5">Results</TabsTrigger>
           </TabsList>
           
-          <div className="h-[350px] sm:h-[400px] md:h-[450px] overflow-y-auto">
-            <TabsContent value="info" className="space-y-3 h-full mt-0">
-              {/* Circuit & Race Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                  <h3 className="text-sm font-semibold mb-2">Circuit Information</h3>
-                  <p className="text-xs md:text-sm text-muted-foreground">Circuit: {race.Circuit?.circuitName || "-"}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Location: {race.Circuit?.Location?.locality || "-"}, {race.Circuit?.Location?.country || "-"}</p>
-              </div>
-              
-              <div>
-                  <h3 className="text-sm font-semibold mb-2">Race Date</h3>
-                  <div className="flex items-center gap-2">
-                    <Flag className="h-4 w-4 text-muted-foreground" />
-                    <p className="text-xs md:text-sm">
-                    {race.date ? format(parseISO(race.date), 'MMMM d, yyyy') : '-'} 
-                    {race.time ? ` at ${formatTime(race.time)}` : ''}
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="h-[600px] sm:h-[700px] overflow-y-auto">
+            <TabsContent value="info" className="space-y-2 h-full mt-0">
             
               {/* Weekend Schedule */}
-              <div className="border rounded-md p-3">
-                <h3 className="text-sm font-semibold mb-3">Weekend Schedule</h3>
-                <div className="space-y-2">
+              <div className={cn(
+                "rounded-md p-2.5 space-y-1.5",
+                isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50 border"
+              )}>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  <h3 className="text-xs font-semibold">Weekend Schedule</h3>
+                </div>
+                <div className="space-y-1.5">
                 {race.FirstPractice && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium">Practice 1</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.FirstPractice)}</p>
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium">Practice 1</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.FirstPractice)}</p>
                     </div>
-                    {getSessionStatusBadge(race.FirstPractice.date, race.FirstPractice.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.FirstPractice.date, race.FirstPractice.time)}
+                    </div>
                   </div>
                 )}
                 
                 {race.SecondPractice && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium">Practice 2</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.SecondPractice)}</p>
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium">Practice 2</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.SecondPractice)}</p>
                     </div>
-                    {getSessionStatusBadge(race.SecondPractice.date, race.SecondPractice.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.SecondPractice.date, race.SecondPractice.time)}
+                    </div>
                   </div>
                 )}
                 
                 {race.ThirdPractice && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium">Practice 3</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.ThirdPractice)}</p>
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium">Practice 3</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.ThirdPractice)}</p>
                     </div>
-                    {getSessionStatusBadge(race.ThirdPractice.date, race.ThirdPractice.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.ThirdPractice.date, race.ThirdPractice.time)}
+                    </div>
                   </div>
                 )}
                 
                 {race.SprintQualifying && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium flex items-center gap-1">
-                          <Zap className="h-3 w-3" />
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium flex items-center gap-1">
+                          <Zap className="h-2.5 w-2.5" />
                           Sprint Qualifying
                         </p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.SprintQualifying)}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.SprintQualifying)}</p>
                     </div>
-                    {getSessionStatusBadge(race.SprintQualifying.date, race.SprintQualifying.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.SprintQualifying.date, race.SprintQualifying.time)}
+                    </div>
                   </div>
                 )}
                 
                 {race.Sprint && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium flex items-center gap-1">
-                          <Zap className="h-3 w-3" />
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium flex items-center gap-1">
+                          <Zap className="h-2.5 w-2.5" />
                           Sprint Race
                         </p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.Sprint)}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.Sprint)}</p>
                     </div>
-                    {getSessionStatusBadge(race.Sprint.date, race.Sprint.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.Sprint.date, race.Sprint.time)}
+                    </div>
                   </div>
                 )}
                 
                 {race.Qualifying && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium">Qualifying</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.Qualifying)}</p>
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium">Qualifying</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.Qualifying)}</p>
                     </div>
-                    {getSessionStatusBadge(race.Qualifying.date, race.Qualifying.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.Qualifying.date, race.Qualifying.time)}
+                    </div>
                   </div>
                 )}
                 
-                <div className="flex justify-between items-center">
-                  <div>
-                      <p className="text-xs md:text-sm font-medium flex items-center gap-1">
-                        <Trophy className="h-3 w-3" />
+                <div className="flex justify-between items-center py-1 border-t pt-1.5 mt-1">
+                  <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium flex items-center gap-1">
+                        <Trophy className="h-2.5 w-2.5" />
                         Race
                       </p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race)}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race)}</p>
                   </div>
-                  {getSessionStatusBadge(race.date, race.time)}
+                  <div className="ml-2 shrink-0">
+                    {getSessionStatusBadge(race.date, race.time)}
+                  </div>
                 </div>
               </div>
             </div>
             
               {/* Action Buttons */}
-              <div className="mt-4 flex justify-end gap-2">
-              <Link to={`/race-info/${getCurrentYear()}/${race.round}`}>
-                  <Button 
-                    size="sm" 
-                    className="bg-f1-red hover:bg-f1-red/90 text-xs md:text-sm h-8"
-                    onClick={() => {
-                      if ((window as any).calendarAnalytics) {
-                        (window as any).calendarAnalytics.trackViewAnalysisClick(race);
-                      }
-                    }}
-                  >
-                    <LineChart className="h-3 w-3 mr-1.5" />
-                    View Analysis
+              <div className="mt-3 flex justify-end gap-2">
+                <Button 
+                  size="sm" 
+                  className="bg-f1-red hover:bg-f1-red/90 text-[10px] h-7 px-2"
+                  onClick={() => {
+                    if ((window as any).calendarAnalytics) {
+                      (window as any).calendarAnalytics.trackViewAnalysisClick(race);
+                    }
+                    navigate(`/race-analysis/${race.season}/${race.round}`);
+                  }}
+                >
+                  <LineChart className="h-2.5 w-2.5 mr-1" />
+                  View Analysis
                 </Button>
-              </Link>
-                {isRaceCompleted && (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="text-xs md:text-sm h-8"
-                    onClick={() => setSelectedTab("infographic")}
-                  >
-                    <BarChart3 className="h-3 w-3 mr-1.5" />
-                    Infographic
-                  </Button>
-                )}
             </div>
           </TabsContent>
           
@@ -438,7 +512,35 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                   <p className="text-muted-foreground text-xs md:text-sm">No results available for this race yet.</p>
               </div>
             ) : (
-                <div className="space-y-1">
+                <div className="space-y-3">
+                  {/* Sankey Chart - Qualifying to Grid to Result */}
+                  <div className={cn(
+                    "rounded-md overflow-hidden",
+                    isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50 border"
+                  )}>
+                    <div className="p-2 border-b">
+                      <h3 className="text-xs font-semibold">Position Progression</h3>
+                      <p className="text-[10px] text-muted-foreground">Qualifying → Grid → Race Result</p>
+                    </div>
+                    <div className="h-[500px] sm:h-[600px] w-full">
+                      <Suspense fallback={
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-primary mx-auto mb-2"></div>
+                            <p className="text-[10px] text-muted-foreground">Loading chart...</p>
+                          </div>
+                        </div>
+                      }>
+                        <MuiSankeyChart 
+                          year={parseInt(race.season)} 
+                          round={race.round} 
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                  
+                  {/* Results Table */}
+                  <div className="space-y-1">
                   {/* Mobile view (up to sm breakpoint) */}
                   <div className="sm:hidden">
                     {/* Mobile header row */}
@@ -510,6 +612,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                   ))}
                 </TableBody>
               </Table>
+                  </div>
                   </div>
                 </div>
             )}
@@ -806,22 +909,10 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             )}
           </TabsContent>
           
-          {isRaceCompleted && (
-            <TabsContent value="infographic" className="h-full overflow-hidden">
-              <div className="h-full overflow-y-auto">
-                <RaceInfographic 
-                  race={race}
-                  isVisible={selectedTab === "infographic"}
-                  onDownloadStart={() => console.log("Download started")}
-                  onDownloadComplete={() => console.log("Download completed")}
-                />
-              </div>
-            </TabsContent>
-          )}
           </div>
         </Tabs>
         
-        <DialogFooter>
+        <DialogFooter className="pt-2">
           <Button 
             variant="outline" 
             size="sm" 
@@ -836,7 +927,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               }
               onClose();
             }} 
-            className="text-xs md:text-sm h-8"
+            className="text-[10px] h-7 px-2"
           >
             Close
           </Button>

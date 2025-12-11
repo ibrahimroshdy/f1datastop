@@ -4,48 +4,48 @@
 
 @layer base {
   /* ============================================
-     DARK THEME (Default) - F1 DataStop
+     DARK THEME (Default) - Pure Black
      ============================================ */
   :root {
-    --background: 240 12% 8%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 98%;
 
-    --card: 240 12% 10%;
+    --card: 0 0% 3%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 12% 10%;
+    --popover: 0 0% 3%;
     --popover-foreground: 0 0% 98%;
 
     --primary: 0 100% 44%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 240 10% 15%;
+    --secondary: 0 0% 12%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 10% 16%;
+    --muted: 0 0% 12%;
     --muted-foreground: 0 0% 70%;
 
-    --accent: 240 8% 24%;
+    --accent: 0 0% 15%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 10% 18%;
-    --input: 240 10% 18%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
     --ring: 0 100% 44%;
 
     /* Sharper radius for professional look */
     --radius: 0.5rem;
 
     /* Sidebar */
-    --sidebar-background: 240 12% 6%;
-    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 0 100% 44%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 8% 16%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 8% 14%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 15%;
     --sidebar-ring: 0 100% 44%;
     
     /* Sidebar widths */
@@ -53,11 +53,11 @@
     --sidebar-expanded: 240px;
 
     /* Chart Design System */
-    --chart-background: 240 12% 10%;
-    --chart-grid: 240 10% 18%;
+    --chart-background: 0 0% 3%;
+    --chart-grid: 0 0% 15%;
     --chart-axis: 0 0% 70%;
-    --chart-tooltip-bg: 240 12% 8%;
-    --chart-tooltip-border: 240 10% 20%;
+    --chart-tooltip-bg: 0 0% 0%;
+    --chart-tooltip-border: 0 0% 15%;
     --chart-tooltip-text: 0 0% 98%;
     
     /* F1 Brand Colors */
@@ -218,50 +218,50 @@
      DARK GLASS THEME
      ============================================ */
   .dark-glass {
-    --background: 240 12% 8%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 98%;
 
-    --card: 240 12% 10%;
+    --card: 0 0% 3%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 12% 10%;
+    --popover: 0 0% 3%;
     --popover-foreground: 0 0% 98%;
 
     --primary: 0 100% 44%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 240 10% 15%;
+    --secondary: 0 0% 12%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 10% 16%;
+    --muted: 0 0% 12%;
     --muted-foreground: 0 0% 70%;
 
-    --accent: 240 8% 24%;
+    --accent: 0 0% 15%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 10% 20%;
-    --input: 240 10% 20%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
     --ring: 0 100% 44%;
 
     /* Sidebar - Dark Glass */
-    --sidebar-background: 240 12% 6%;
-    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 0 100% 44%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 8% 16%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 8% 18%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 15%;
     --sidebar-ring: 0 100% 44%;
 
     /* Chart Design System */
-    --chart-background: 240 12% 10%;
-    --chart-grid: 240 10% 18%;
+    --chart-background: 0 0% 3%;
+    --chart-grid: 0 0% 15%;
     --chart-axis: 0 0% 70%;
-    --chart-tooltip-bg: 240 12% 8%;
-    --chart-tooltip-border: 240 10% 20%;
+    --chart-tooltip-bg: 0 0% 0%;
+    --chart-tooltip-border: 0 0% 15%;
     --chart-tooltip-text: 0 0% 98%;
     
     /* F1 Brand Colors */
@@ -307,102 +307,6 @@
     --glass-mode: 1;
   }
 
-  /* ============================================
-     LIGHT GLASS THEME - Cool Blue-Tinted
-     ============================================ */
-  .light-glass {
-    /* Cooler, blue-tinted background */
-    --background: 210 25% 96%;
-    --foreground: 220 15% 15%;
-
-    /* Cards with subtle blue tint */
-    --card: 210 20% 99%;
-    --card-foreground: 220 15% 15%;
-
-    --popover: 210 20% 99%;
-    --popover-foreground: 220 15% 15%;
-
-    --primary: 0 100% 44%;
-    --primary-foreground: 0 0% 98%;
-
-    /* Cooler secondary/muted tones */
-    --secondary: 210 15% 95%;
-    --secondary-foreground: 220 15% 15%;
-
-    --muted: 210 15% 92%;
-    --muted-foreground: 220 10% 45%;
-
-    --accent: 210 15% 90%;
-    --accent-foreground: 220 15% 15%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    /* Cooler borders */
-    --border: 210 15% 85%;
-    --input: 210 15% 85%;
-    --ring: 0 100% 44%;
-
-    /* Sidebar - Light Glass with cool tones */
-    --sidebar-background: 210 20% 97%;
-    --sidebar-foreground: 220 15% 15%;
-    --sidebar-primary: 0 100% 44%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 15% 93%;
-    --sidebar-accent-foreground: 220 15% 15%;
-    --sidebar-border: 210 15% 88%;
-    --sidebar-ring: 0 100% 44%;
-
-    /* Chart Design System - Light Glass */
-    --chart-background: 210 20% 99%;
-    --chart-grid: 210 15% 90%;
-    --chart-axis: 220 10% 45%;
-    --chart-tooltip-bg: 210 20% 99%;
-    --chart-tooltip-border: 210 15% 88%;
-    --chart-tooltip-text: 220 15% 15%;
-    
-    /* F1 Brand Colors */
-    --f1-red: 0 100% 44%;
-    --f1-black: 220 20% 10%;
-    --f1-white: 0 0% 100%;
-    
-    /* Position Colors - Light Glass */
-    --position-gold: 45 93% 47%;
-    --position-silver: 0 0% 55%;
-    --position-bronze: 30 60% 35%;
-    
-    /* Status Colors - Light Glass */
-    --status-live: 0 84% 55%;
-    --status-completed: 142 71% 40%;
-    --status-upcoming: 217 91% 55%;
-    --status-cancelled: 0 0% 45%;
-
-    /* Glass Morphism Variables - Light Glass (Cool Blue Tint) */
-    --glass-bg: rgba(235, 242, 250, 0.65);
-    --glass-bg-hover: rgba(235, 242, 250, 0.8);
-    --glass-bg-active: rgba(235, 242, 250, 0.9);
-    --glass-border: rgba(180, 200, 220, 0.4);
-    --glass-border-hover: rgba(180, 200, 220, 0.6);
-    --glass-blur: 20px;
-    --glass-blur-lg: 40px;
-    --glass-shadow: 0 4px 24px rgba(100, 120, 150, 0.1);
-    --glass-shadow-lg: 0 8px 48px rgba(100, 120, 150, 0.15);
-    --glass-glow: 0 0 40px rgba(225, 6, 0, 0.08);
-    --glass-glow-subtle: 0 0 20px rgba(225, 6, 0, 0.04);
-    --glass-inner-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
-    --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, transparent 50%);
-
-    /* Premium Shadows - Light Glass */
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.12);
-    --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.15);
-    --shadow-glow: 0 0 25px rgba(225, 6, 0, 0.18);
-    --shadow-glow-lg: 0 0 50px rgba(225, 6, 0, 0.25);
-
-    --glass-mode: 1;
-  }
 }
 
 @layer base {
@@ -637,8 +541,7 @@
   }
 
   /* Glass mode override for premium cards */
-  .dark-glass .premium-card,
-  .light-glass .premium-card {
+  .dark-glass .premium-card {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -646,8 +549,7 @@
     box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
   }
 
-  .dark-glass .premium-card:hover,
-  .light-glass .premium-card:hover {
+  .dark-glass .premium-card:hover {
     background: var(--glass-bg-hover);
     border-color: var(--glass-border-hover);
     box-shadow: var(--glass-shadow-lg), var(--glass-glow-subtle);
@@ -693,8 +595,7 @@
   }
 
   /* Glass mode for race cards */
-  .dark-glass .race-card,
-  .light-glass .race-card {
+  .dark-glass .race-card {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -1000,26 +901,22 @@
 }
 
 /* Glass mode scrollbar */
-.dark-glass ::-webkit-scrollbar-track,
-.light-glass ::-webkit-scrollbar-track {
+.dark-glass ::-webkit-scrollbar-track {
   background: var(--glass-bg);
 }
 
-.dark-glass ::-webkit-scrollbar-thumb,
-.light-glass ::-webkit-scrollbar-thumb {
+.dark-glass ::-webkit-scrollbar-thumb {
   background: var(--glass-border);
 }
 
-.dark-glass ::-webkit-scrollbar-thumb:hover,
-.light-glass ::-webkit-scrollbar-thumb:hover {
+.dark-glass ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary) / 0.7);
 }
 
 /* ============================================
    BACKGROUND PATTERNS FOR GLASS MODES
    ============================================ */
-.dark-glass body,
-.light-glass body {
+.dark-glass body {
   position: relative;
 }
 
@@ -1034,21 +931,6 @@
     radial-gradient(ellipse at 20% 20%, rgba(225, 6, 0, 0.08) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 80%, rgba(225, 6, 0, 0.05) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 50%, rgba(100, 100, 255, 0.03) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: -1;
-}
-
-.light-glass body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(ellipse at 20% 20%, rgba(100, 140, 200, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(100, 140, 200, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(225, 6, 0, 0.03) 0%, transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
