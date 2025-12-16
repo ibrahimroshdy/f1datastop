@@ -133,7 +133,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           )}>
             {/* Animated page content */}
             <div className="animate-fade-in">
-              {children}
+          {children}
             </div>
           </div>
           

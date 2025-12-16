@@ -4,7 +4,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { getTeamColor } from "@/utils/teamUtils";
 import HeaderSection from "@/components/dashboard/HeaderSection";
 import CombinedStandingsCard from "@/components/dashboard/CombinedStandingsCard";
-import SeasonalReviewPanel from "@/components/dashboard/SeasonalReviewPanel";
+import SeasonChampionshipCard from "@/components/dashboard/SeasonChampionshipCard";
 import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
 import FastestPitStopCard from "@/components/dashboard/FastestPitStopCard";
 import QualifyingResultsCard from "@/components/dashboard/QualifyingResultsCard";
@@ -51,6 +51,14 @@ const Index = () => {
 
   const analytics = useAnalytics();
   const clarity = useClarity();
+
+  // Check if season is complete
+  const isSeasonComplete = useMemo(() => {
+    if (!raceSchedule?.data) return false;
+    const now = new Date();
+    const completedRaces = raceSchedule.data.filter((race: any) => new Date(race.date) < now);
+    return completedRaces.length === raceSchedule.data.length && completedRaces.length > 0;
+  }, [raceSchedule?.data]);
 
   // Get last completed race info
   const lastCompletedRace = useMemo(() => {
@@ -111,9 +119,9 @@ const Index = () => {
           <DashboardSkeleton />
         ) : (
           <div className="space-y-6 stagger-children">
-            {/* Top Row: Combined Standings & Seasonal Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-              <div className="lg:col-span-2">
+            {/* Top Row: Combined Standings & Season Overview */}
+            <div className={`grid grid-cols-1 gap-4 md:gap-6 ${isSeasonComplete ? '' : 'lg:grid-cols-3'}`}>
+              <div className={isSeasonComplete ? '' : 'lg:col-span-2'}>
                 <CombinedStandingsCard 
                   constructorStandings={constructorStandings} 
                   driverStandings={driverStandings}
@@ -121,7 +129,7 @@ const Index = () => {
                   onExpandChange={setStandingsExpanded}
                 />
               </div>
-              <SeasonalReviewPanel expandedView={standingsExpanded} />
+              {!isSeasonComplete && <SeasonChampionshipCard />}
             </div>
 
             {/* Second Row: Qualifying → Race Progression (full width) */}

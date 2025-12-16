@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { checkClarityStatus } from '../../integrations/clarity/clarityHelpers';
+import { useTheme } from '@/context/ThemeContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface ClarityStatusProps {
   projectId: string;
@@ -10,6 +14,7 @@ interface ClarityStatusProps {
  * Only use this component during development!
  */
 const ClarityStatus: React.FC<ClarityStatusProps> = ({ projectId }) => {
+  const { baseTheme, isGlass } = useTheme();
   const [status, setStatus] = useState({
     isAvailable: false,
     isLoaded: false,
@@ -58,101 +63,95 @@ const ClarityStatus: React.FC<ClarityStatusProps> = ({ projectId }) => {
   }
   
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: '10px',
-      left: '10px',
-      backgroundColor: '#f0f0f0',
-      padding: '10px',
-      border: '1px solid #ccc',
-      borderRadius: '5px',
-      zIndex: 9999,
-      fontSize: '12px',
-      maxWidth: '300px'
-    }}>
-      <h4 style={{ margin: '0 0 8px 0' }}>Microsoft Clarity Status</h4>
-      
-      <div style={{ marginBottom: '10px' }}>
-        <strong>Project ID:</strong> {projectId.substring(0, 4)}...{projectId.substring(projectId.length - 4)}
-      </div>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', marginBottom: '10px' }}>
+    <Card 
+      className={cn(
+        "fixed bottom-3 left-3 z-[9999] max-w-[300px] text-xs",
+        isGlass && "border-white/10"
+      )}
+      style={isGlass ? {
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(var(--glass-blur))',
+        boxShadow: 'var(--glass-shadow)'
+      } : undefined}
+    >
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">Microsoft Clarity Status</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
         <div>
-          <strong>Available:</strong>
-          <span style={{ color: status.isAvailable ? 'green' : 'red' }}>
-            {status.isAvailable ? ' ✓' : ' ✗'}
+          <strong className="text-foreground">Project ID:</strong>{' '}
+          <span className="text-muted-foreground">
+            {projectId.substring(0, 4)}...{projectId.substring(projectId.length - 4)}
           </span>
         </div>
         
-        <div>
-          <strong>Loaded:</strong>
-          <span style={{ color: status.isLoaded ? 'green' : 'red' }}>
-            {status.isLoaded ? ' ✓' : ' ✗'}
-          </span>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <strong className="text-foreground">Available:</strong>
+            <span className={status.isAvailable ? 'text-emerald-500' : 'text-red-500'}>
+              {status.isAvailable ? ' ✓' : ' ✗'}
+            </span>
+          </div>
+          
+          <div>
+            <strong className="text-foreground">Loaded:</strong>
+            <span className={status.isLoaded ? 'text-emerald-500' : 'text-red-500'}>
+              {status.isLoaded ? ' ✓' : ' ✗'}
+            </span>
+          </div>
+          
+          <div>
+            <strong className="text-foreground">Has Queue:</strong>
+            <span className={status.hasQueue ? 'text-emerald-500' : 'text-red-500'}>
+              {status.hasQueue ? ' ✓' : ' ✗'}
+            </span>
+          </div>
+          
+          <div>
+            <strong className="text-foreground">Queue Items:</strong>{' '}
+            <span className="text-muted-foreground">{status.queueLength}</span>
+          </div>
+          
+          <div>
+            <strong className="text-foreground">Functional:</strong>
+            <span className={status.isFullyFunctional ? 'text-emerald-500' : 'text-red-500'}>
+              {status.isFullyFunctional ? ' ✓' : ' ✗'}
+            </span>
+          </div>
+          
+          <div>
+            <strong className="text-foreground">NPM Package:</strong>
+            <span className={status.isNpmPackageAvailable ? 'text-emerald-500' : 'text-red-500'}>
+              {status.isNpmPackageAvailable ? ' ✓' : ' ✗'}
+            </span>
+          </div>
         </div>
         
-        <div>
-          <strong>Has Queue:</strong>
-          <span style={{ color: status.hasQueue ? 'green' : 'red' }}>
-            {status.hasQueue ? ' ✓' : ' ✗'}
-          </span>
+        <div className="flex gap-2">
+          <Button 
+            onClick={checkStatus}
+            size="sm"
+            variant="default"
+            className="flex-1 h-7 text-[10px]"
+          >
+            Check Now
+          </Button>
+          
+          <Button 
+            onClick={sendTestEvent}
+            size="sm"
+            variant="default"
+            className="flex-1 h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700"
+          >
+            Send Test Event
+          </Button>
         </div>
         
-        <div>
-          <strong>Queue Items:</strong> {status.queueLength}
+        <div className="text-[10px] text-muted-foreground text-center">
+          Last checked: {status.lastChecked.toLocaleTimeString()}
         </div>
-        
-        <div>
-          <strong>Functional:</strong>
-          <span style={{ color: status.isFullyFunctional ? 'green' : 'red' }}>
-            {status.isFullyFunctional ? ' ✓' : ' ✗'}
-          </span>
-        </div>
-        
-        <div>
-          <strong>NPM Package:</strong>
-          <span style={{ color: status.isNpmPackageAvailable ? 'green' : 'red' }}>
-            {status.isNpmPackageAvailable ? ' ✓' : ' ✗'}
-          </span>
-        </div>
-      </div>
-      
-      <div style={{ display: 'flex', gap: '5px', marginBottom: '5px' }}>
-        <button 
-          onClick={checkStatus}
-          style={{
-            padding: '5px 10px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '3px',
-            cursor: 'pointer',
-            flex: 1
-          }}
-        >
-          Check Now
-        </button>
-        
-        <button 
-          onClick={sendTestEvent}
-          style={{
-            padding: '5px 10px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '3px',
-            cursor: 'pointer',
-            flex: 1
-          }}
-        >
-          Send Test Event
-        </button>
-      </div>
-      
-      <div style={{ fontSize: '10px', color: '#666', textAlign: 'center' }}>
-        Last checked: {status.lastChecked.toLocaleTimeString()}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -260,7 +260,7 @@ const Profile = () => {
                   <div className="pt-2 mt-auto">
                     <Button 
                       type="submit" 
-                      className="bg-f1-red hover:bg-red-700"
+                      className="bg-primary hover:bg-primary/90"
                       disabled={isUpdating}
                     >
                       {isUpdating ? "Saving..." : "Save Changes"}

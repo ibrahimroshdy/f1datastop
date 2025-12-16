@@ -470,7 +470,7 @@ const CombinedStandingsCard = ({
                         </TableCell>
                         <TableCell className="text-center py-2 px-2 lg:p-4">
                           {Number(standing.wins || 0) > 0 ? (
-                            <div className="inline-flex items-center justify-center gap-1 text-xs font-medium text-yellow-500">
+                            <div className="inline-flex items-center justify-center gap-1 text-xs font-medium text-primary">
                               <Trophy className="h-3 w-3" />
                               <span>{standing.wins}</span>
                             </div>

@@ -14,7 +14,7 @@ import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Trophy, Flag, Clock, LineChart, Zap, Calendar, MapPin } from "lucide-react";
+import { Trophy, Flag, Clock, LineChart, Zap, Calendar, MapPin, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
@@ -153,6 +153,13 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         case 'qualifying':
           if (qualifyingResults?.data?.QualifyingResults?.length) {
             (window as any).calendarAnalytics.trackRaceResultsView(race, 'qualifying', qualifyingResults.data.QualifyingResults.length);
+          }
+          break;
+        case 'distribution':
+          if (raceResults?.data?.Results?.length || sprintResults?.data?.SprintResults?.length) {
+            (window as any).calendarAnalytics.trackRaceResultsView(race, 'distribution', 
+              (raceResults?.data?.Results?.length || 0) + (sprintResults?.data?.SprintResults?.length || 0)
+            );
           }
           break;
 
@@ -355,7 +362,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
           className="w-full"
         >
           <TabsList className={cn(
-            `grid w-full ${hasSprint ? 'grid-cols-6' : 'grid-cols-4'} mb-3 h-8 p-0.5`,
+            `grid w-full ${hasSprint ? 'grid-cols-7' : 'grid-cols-5'} mb-3 h-8 p-0.5`,
             isGlass && "bg-white/5"
           )}>
             <TabsTrigger value="info" className="text-[10px] h-7 px-1.5">Schedule</TabsTrigger>
@@ -374,6 +381,9 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             )}
             <TabsTrigger value="qualifying" className="text-[10px] h-7 px-1.5">Qualifying</TabsTrigger>
             <TabsTrigger value="results" className="text-[10px] h-7 px-1.5">Results</TabsTrigger>
+            <TabsTrigger value="distribution" className="text-[10px] h-7 px-1.5">
+              Distribution
+            </TabsTrigger>
           </TabsList>
           
           <div className="h-[600px] sm:h-[700px] overflow-y-auto">
@@ -907,6 +917,166 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                   </div>
                 </div>
             )}
+          </TabsContent>
+          
+          <TabsContent value="distribution" className="h-full">
+            {(() => {
+              // Calculate constructor points from race results
+              const raceConstructorPoints: Record<string, { name: string; racePoints: number; sprintPoints: number; totalPoints: number; color: string }> = {};
+              
+              // Process race results
+              if (raceResults?.data?.Results) {
+                raceResults.data.Results.forEach((result: any) => {
+                  const constructorId = result.Constructor.constructorId;
+                  const points = parseFloat(result.points) || 0;
+                  
+                  if (!raceConstructorPoints[constructorId]) {
+                    raceConstructorPoints[constructorId] = {
+                      name: result.Constructor.name,
+                      racePoints: 0,
+                      sprintPoints: 0,
+                      totalPoints: 0,
+                      color: getTeamColor(constructorId)
+                    };
+                  }
+                  raceConstructorPoints[constructorId].racePoints += points;
+                  raceConstructorPoints[constructorId].totalPoints += points;
+                });
+              }
+              
+              // Process sprint results if available
+              if (sprintResults?.data?.SprintResults) {
+                sprintResults.data.SprintResults.forEach((result: any) => {
+                  const constructorId = result.Constructor.constructorId;
+                  const points = parseFloat(result.points) || 0;
+                  
+                  if (!raceConstructorPoints[constructorId]) {
+                    raceConstructorPoints[constructorId] = {
+                      name: result.Constructor.name,
+                      racePoints: 0,
+                      sprintPoints: 0,
+                      totalPoints: 0,
+                      color: getTeamColor(constructorId)
+                    };
+                  }
+                  raceConstructorPoints[constructorId].sprintPoints += points;
+                  raceConstructorPoints[constructorId].totalPoints += points;
+                });
+              }
+              
+              // Convert to array and sort by total points
+              const constructorPointsArray = Object.values(raceConstructorPoints)
+                .sort((a, b) => b.totalPoints - a.totalPoints);
+              
+              const isLoading = isResultsLoading || (hasSprint && isSprintLoading);
+              
+              if (isLoading) {
+                return (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                );
+              }
+              
+              if (constructorPointsArray.length === 0) {
+                return (
+                  <div className="py-8 text-center">
+                    <p className="text-muted-foreground text-xs md:text-sm">No points distribution available yet.</p>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="space-y-3">
+                  <div className={cn(
+                    "rounded-md p-2.5",
+                    isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50 border"
+                  )}>
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <BarChart3 className="h-3 w-3 text-muted-foreground" />
+                      <h3 className="text-xs font-semibold">Constructor Points Distribution</h3>
+                    </div>
+                    
+                    {/* Mobile view */}
+                    <div className="sm:hidden space-y-2">
+                      {constructorPointsArray.map((constructor, index) => (
+                        <div 
+                          key={index}
+                          className={cn(
+                            "p-2 rounded-md border",
+                            isGlass ? "bg-white/5 border-white/10" : "bg-background border-border"
+                          )}
+                          style={{ borderLeft: `4px solid ${constructor.color}` }}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span 
+                              className="text-xs font-medium"
+                              style={{ color: constructor.color }}
+                            >
+                              {constructor.name}
+                            </span>
+                            <span className="text-xs font-bold text-primary">
+                              {constructor.totalPoints} pts
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                            <span>Race: {constructor.racePoints} pts</span>
+                            {hasSprint && (
+                              <span>Sprint: {constructor.sprintPoints} pts</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Desktop view */}
+                    <div className="hidden sm:block">
+                      <Table className="w-full">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-10 text-xs md:text-sm py-2">Pos</TableHead>
+                            <TableHead className="text-xs md:text-sm py-2">Constructor</TableHead>
+                            <TableHead className="text-right text-xs md:text-sm py-2">Race Points</TableHead>
+                            {hasSprint && (
+                              <TableHead className="text-right text-xs md:text-sm py-2">Sprint Points</TableHead>
+                            )}
+                            <TableHead className="text-right text-xs md:text-sm py-2 font-bold">Total Points</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {constructorPointsArray.map((constructor, index) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium text-xs md:text-sm py-1 md:py-2">
+                                {index + 1}
+                              </TableCell>
+                              <TableCell 
+                                className="text-xs md:text-sm py-1 md:py-2 font-medium"
+                                style={{ color: constructor.color, borderLeft: `4px solid ${constructor.color}`, paddingLeft: '0.5rem' }}
+                              >
+                                {constructor.name}
+                              </TableCell>
+                              <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                                {constructor.racePoints}
+                              </TableCell>
+                              {hasSprint && (
+                                <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                                  {constructor.sprintPoints}
+                                </TableCell>
+                              )}
+                              <TableCell className="text-right text-xs md:text-sm py-1 md:py-2 font-bold text-primary">
+                                {constructor.totalPoints}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </TabsContent>
           
           </div>

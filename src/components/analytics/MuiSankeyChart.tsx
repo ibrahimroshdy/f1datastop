@@ -81,6 +81,7 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
         fullName: node.fullName,
         status: node.status,
         isDNF: node.isDNF,
+        points: node.points,
         color: getTeamColor(node.team || ''),
       };
       nodeMap.set(node.id, nivoNode);
@@ -132,6 +133,7 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
           positionChange: link.positionChange,
           status: link.status,
           isDNF: link.isDNF,
+          points: link.points,
         };
       })
       // Sort links by source position to help maintain visual order
@@ -277,6 +279,12 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
                 </span>
                 <span className="font-mono font-medium">P{node.position}</span>
               </div>
+              {node.type === 'race' && node.points !== undefined && node.points > 0 && (
+                <div className="flex justify-between gap-4 mt-1">
+                  <span className="text-muted-foreground">Points:</span>
+                  <span className="font-mono font-medium text-primary">{node.points}</span>
+                </div>
+              )}
               {node.isDNF && node.status && (
                 <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">
                   {node.status}
@@ -333,6 +341,12 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
                     <span className="text-muted-foreground">Change:</span>
                     <span className={cn("font-mono font-medium", changeColor)}>{changeText}</span>
                   </div>
+                  {isGridToRace && link.points !== undefined && link.points > 0 && (
+                    <div className="flex justify-between gap-4 mt-1 pt-1 border-t border-muted">
+                      <span className="text-muted-foreground">Points:</span>
+                      <span className="font-mono font-medium text-primary">{link.points}</span>
+                    </div>
+                  )}
                 </div>
                 {link.isDNF && link.status && (
                   <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">

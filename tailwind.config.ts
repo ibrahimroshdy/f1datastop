@@ -66,7 +66,7 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				// F1 specific colors
-				"f1-red": "#e10600",
+				"f1-red": "#9333ea",
 				"f1-black": "#15151e",
 				"f1-gray": "#d2d2d2",
 				"f1-dark": "#252530",

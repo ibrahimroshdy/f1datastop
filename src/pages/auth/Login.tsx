@@ -9,6 +9,7 @@ import { Eye, EyeOff, ArrowLeft, Mail, Twitter } from 'lucide-react';
 import f1Logo from '@/assets/f1-logo.svg';
 import { useTheme } from '@/context/ThemeContext';
 import BuyMeCoffeeWidget from '@/components/common/BuyMeCoffeeWidget';
+import { cn } from '@/lib/utils';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -18,7 +19,7 @@ const Login = () => {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signIn, resetPassword, signInWithX } = useAuth();
-  const { theme } = useTheme();
+  const { theme, isGlass } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,14 +51,14 @@ const Login = () => {
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   return (
-    <div className={`flex items-center justify-center min-h-screen p-4 ${theme === 'dark' ? 'bg-f1-black' : 'bg-gray-100'}`}>
+    <div className="flex items-center justify-center min-h-screen p-4 bg-background">
       <BuyMeCoffeeWidget size="large" position="fixed" />
       
       <div className="w-full max-w-md">
         <div className="mb-6">
           <Link 
             to="/" 
-            className={`inline-flex items-center ${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+            className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Return to Dashboard
@@ -81,7 +82,18 @@ const Login = () => {
           </a>
         </div>
         
-        <Card className={`w-full ${theme === 'dark' ? 'bg-f1-dark border-gray-800' : 'bg-white border-gray-200'}`}>
+        <Card 
+          className={cn(
+            "w-full",
+            isGlass && "border-white/10"
+          )}
+          style={isGlass ? {
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(var(--glass-blur))',
+            WebkitBackdropFilter: 'blur(var(--glass-blur))',
+            boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
+          } : undefined}
+        >
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <img src={f1Logo} alt="F1 DataStop" className="w-16 h-16" />
@@ -89,7 +101,7 @@ const Login = () => {
             <CardTitle className="text-2xl font-bold">
               {showForgotPassword ? "Reset Password" : "Sign In"}
             </CardTitle>
-            <CardDescription className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+            <CardDescription className="text-muted-foreground">
               {showForgotPassword 
                 ? "Enter your email address to receive a password reset link"
                 : "Enter your email and password to access your account"
@@ -108,13 +120,13 @@ const Login = () => {
                     value={forgotPasswordEmail}
                     onChange={(e) => setForgotPasswordEmail(e.target.value)}
                     required
-                    className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}
+                    className="bg-background"
                   />
                 </div>
                 <div className="flex flex-col space-y-2">
                   <Button 
                     type="submit" 
-                    className="w-full bg-f1-red hover:bg-red-700" 
+                    className="w-full bg-primary hover:bg-primary/90" 
                     disabled={isLoading}
                   >
                     {isLoading ? "Sending..." : "Send Reset Link"}
@@ -123,7 +135,7 @@ const Login = () => {
                     type="button"
                     variant="ghost"
                     onClick={() => setShowForgotPassword(false)}
-                    className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}
+                    className="text-muted-foreground"
                   >
                     Back to Login
                   </Button>
@@ -142,9 +154,9 @@ const Login = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className={`pl-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}`}
+                        className="pl-10 bg-background"
                       />
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -153,7 +165,7 @@ const Login = () => {
                       <Button 
                         type="button"
                         variant="link" 
-                        className="text-sm text-f1-red p-0 h-auto"
+                        className="text-sm text-primary p-0 h-auto"
                         onClick={() => setShowForgotPassword(true)}
                       >
                         Forgot Password?
@@ -167,12 +179,12 @@ const Login = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        className={`pr-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}`}
+                        className="pr-10 bg-background"
                       />
                       <button
                         type="button"
                         onClick={togglePasswordVisibility}
-                        className={`absolute inset-y-0 right-0 pr-3 flex items-center ${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
@@ -180,7 +192,7 @@ const Login = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-f1-red hover:bg-red-700" 
+                    className="w-full bg-primary hover:bg-primary/90" 
                     disabled={isLoading}
                   >
                     {isLoading ? "Signing in..." : "Sign In"}
@@ -189,13 +201,17 @@ const Login = () => {
 
                 {/* X/Twitter Login Button */}
                 <div className="relative flex items-center justify-center mt-4">
-                  <div className={`absolute border-t ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'} w-full`}></div>
-                  <span className={`relative ${theme === 'dark' ? 'bg-f1-dark text-gray-400' : 'bg-white text-gray-500'} px-2 text-xs`}>OR</span>
+                  <div className="absolute border-t border-border w-full"></div>
+                  <span className={cn(
+                    "relative px-2 text-xs text-muted-foreground",
+                    isGlass ? "bg-[var(--glass-bg)]" : "bg-background"
+                  )}>OR</span>
                 </div>
 
                 <Button
                   type="button"
-                  className={`w-full mt-4 text-white flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-700 hover:bg-gray-600'}`}
+                  variant="outline"
+                  className="w-full mt-4 flex items-center justify-center"
                   onClick={() => signInWithX()}
                   disabled={isLoading}
                 >
@@ -206,9 +222,9 @@ const Login = () => {
             )}
           </CardContent>
           <CardFooter className="flex justify-center">
-            <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <Link to="/auth/signup" className="text-f1-red hover:underline">
+              <Link to="/auth/signup" className="text-primary hover:underline">
                 Sign up
               </Link>
             </p>

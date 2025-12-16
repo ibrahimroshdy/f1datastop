@@ -4,7 +4,13 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { useTheme } from '@/context/ThemeContext';
 
 // Create MUI theme that respects the app's theme
-const MuiThemeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface MuiThemeWrapperProps {
+  children: React.ReactNode;
+  // Explicitly ignore data-lov-* props that may be passed by dev tools
+  [key: string]: any;
+}
+
+const MuiThemeWrapper: React.FC<MuiThemeWrapperProps> = ({ children }) => {
   const { baseTheme } = useTheme();
   
   const muiTheme = React.useMemo(() => createTheme({
@@ -35,6 +41,7 @@ const MuiThemeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) 
           },
         },
       },
+      // @ts-ignore - MuiDataGrid types may not be available in all MUI versions
       MuiDataGrid: {
         styleOverrides: {
           root: {

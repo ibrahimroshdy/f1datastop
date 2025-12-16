@@ -1,27 +1,300 @@
-import React, { useState, useRef, lazy, Suspense } from "react";
+import React, { useState, useRef, lazy, Suspense, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO, differenceInDays, getMonth, getWeek, getYear, addDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useRaceSchedule } from "@/hooks/useF1Data";
+import { useRaceSchedule, useRaceResults, useSprintResults } from "@/hooks/useF1Data";
 import YearSelector from "@/components/common/YearSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import RaceInfographic from "@/components/calendar/RaceInfographic";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
-import { Calendar as CalendarIcon, Star, Download, Globe, List, Loader2, Grid3x3, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar as CalendarIcon, Star, Download, Globe, List, Loader2, Grid3x3, ChevronDown, ChevronUp, BarChart3, Clock, MapPin, Flag } from "lucide-react";
 import CountryFlag from "@/components/common/CountryFlag";
 import CalendarAnalyticsTracker from "@/components/calendar/CalendarAnalyticsTracker";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeContext";
+import { getTeamColorById } from "@/constants/f1Colors";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Lazy load the globe component for better performance
 const F1GlobeContainer = lazy(() => import("@/components/calendar/map/F1GlobeContainer"));
 
 // View type for calendar
-type CalendarView = "list" | "grid" | "globe";
+type CalendarView = "list" | "grid" | "globe" | "distribution";
+
+// Points Distribution View Component
+interface PointsDistributionViewProps {
+  selectedYear: number;
+  raceSchedule: any[];
+  isLoading: boolean;
+  isGlass: boolean;
+}
+
+const PointsDistributionView = ({ selectedYear, raceSchedule, isLoading, isGlass }: PointsDistributionViewProps) => {
+  const [raceResultsData, setRaceResultsData] = useState<Record<string, any>>({});
+  const [sprintResultsData, setSprintResultsData] = useState<Record<string, any>>({});
+  const [loadingRaces, setLoadingRaces] = useState<Set<string>>(new Set());
+  
+  // Fetch results for all races
+  useEffect(() => {
+    if (!raceSchedule.length) return;
+    
+    const fetchAllResults = async () => {
+      const results: Record<string, any> = {};
+      const sprints: Record<string, any> = {};
+      const loading = new Set<string>();
+      
+      for (const race of raceSchedule) {
+        const raceKey = `${race.season}-${race.round}`;
+        loading.add(raceKey);
+        
+        try {
+          // Fetch race results
+          const raceRes = await fetch(`https://api.jolpi.ca/ergast/f1/${race.season}/${race.round}/results.json`);
+          if (raceRes.ok) {
+            const raceData = await raceRes.json();
+            results[raceKey] = raceData.MRData?.RaceTable?.Races?.[0] || null;
+          }
+          
+          // Fetch sprint results if race has sprint
+          if (race.Sprint) {
+            const sprintRes = await fetch(`https://api.jolpi.ca/ergast/f1/${race.season}/${race.round}/sprint.json`);
+            if (sprintRes.ok) {
+              const sprintData = await sprintRes.json();
+              sprints[raceKey] = sprintData.MRData?.RaceTable?.Races?.[0] || null;
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch results for ${raceKey}:`, error);
+        } finally {
+          loading.delete(raceKey);
+        }
+      }
+      
+      setRaceResultsData(results);
+      setSprintResultsData(sprints);
+      setLoadingRaces(loading);
+    };
+    
+    fetchAllResults();
+  }, [raceSchedule]);
+  
+  // Calculate points per constructor per race
+  const distributionData = useMemo(() => {
+    if (!raceSchedule.length) return [];
+    
+    const constructorPoints: Record<string, Record<string, number>> = {};
+    const raceData: Array<{
+      country: string;
+      raceName: string;
+      round: string;
+      constructors: Array<{ name: string; points: number; color: string }>;
+      totalPoints: number;
+    }> = [];
+    
+    raceSchedule.forEach((race) => {
+      const raceKey = `${race.season}-${race.round}`;
+      const raceResults = raceResultsData[raceKey];
+      const sprintResults = sprintResultsData[raceKey];
+      
+      if (!raceResults?.Results) return;
+      
+      const country = race.Circuit?.Location?.country || "";
+      const raceName = getRaceNameWithoutEmoji(race.raceName);
+      const round = race.round;
+      
+      const constructorPointsForRace: Record<string, { name: string; points: number; color: string }> = {};
+      let totalPoints = 0;
+      
+      // Process race results
+      raceResults.Results.forEach((result: any) => {
+        const constructorId = result.Constructor.constructorId;
+        const points = parseFloat(result.points) || 0;
+        
+        if (!constructorPointsForRace[constructorId]) {
+          constructorPointsForRace[constructorId] = {
+            name: result.Constructor.name,
+            points: 0,
+            color: getTeamColorById(constructorId)
+          };
+        }
+        constructorPointsForRace[constructorId].points += points;
+        totalPoints += points;
+      });
+      
+      // Process sprint results if available
+      if (sprintResults?.SprintResults) {
+        sprintResults.SprintResults.forEach((result: any) => {
+          const constructorId = result.Constructor.constructorId;
+          const points = parseFloat(result.points) || 0;
+          
+          if (!constructorPointsForRace[constructorId]) {
+            constructorPointsForRace[constructorId] = {
+              name: result.Constructor.name,
+              points: 0,
+              color: getTeamColorById(constructorId)
+            };
+          }
+          constructorPointsForRace[constructorId].points += points;
+          totalPoints += points;
+        });
+      }
+      
+      // Convert to array and sort by points
+      const constructors = Object.values(constructorPointsForRace)
+        .filter(c => c.points > 0)
+        .sort((a, b) => b.points - a.points);
+      
+      raceData.push({
+        country,
+        raceName,
+        round,
+        constructors,
+        totalPoints
+      });
+    });
+    
+    return raceData;
+  }, [raceSchedule, raceResultsData, sprintResultsData]);
+  
+  // Get all unique constructors for legend (must be before early returns)
+  const uniqueConstructors = useMemo(() => {
+    if (distributionData.length === 0) return [];
+    const constructorMap = new Map<string, { name: string; color: string }>();
+    distributionData.forEach(race => {
+      race.constructors.forEach(constructor => {
+        if (constructor.points > 0 && !constructorMap.has(constructor.name)) {
+          constructorMap.set(constructor.name, {
+            name: constructor.name,
+            color: constructor.color
+          });
+        }
+      });
+    });
+    return Array.from(constructorMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [distributionData]);
+  
+  const isDataLoading = loadingRaces.size > 0 || isLoading;
+  
+  if (isDataLoading && Object.keys(raceResultsData).length === 0) {
+    return (
+      <div className={cn(
+        "rounded-xl border p-6",
+        isGlass && "border-white/10 bg-white/5"
+      )}>
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading points distribution...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (distributionData.length === 0) {
+    return (
+      <div className={cn(
+        "rounded-xl border p-6",
+        isGlass && "border-white/10 bg-white/5"
+      )}>
+        <p className="text-sm text-muted-foreground text-center">No distribution data available yet.</p>
+      </div>
+    );
+  }
+  
+  const maxPoints = Math.max(...distributionData.map(d => d.totalPoints));
+  
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Card className={cn("w-full", isGlass && "border-white/10")} style={isGlass ? {
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(var(--glass-blur))',
+        boxShadow: 'var(--glass-shadow)'
+      } : undefined}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Points Distribution
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Legend */}
+          {uniqueConstructors.length > 0 && (
+            <div className="mb-4 pb-4 border-b border-border">
+              <div className="flex flex-wrap gap-3 items-center">
+                <span className="text-xs font-medium text-muted-foreground">Teams:</span>
+                {uniqueConstructors.map((constructor) => (
+                  <div
+                    key={constructor.name}
+                    className="flex items-center gap-1.5"
+                  >
+                    <div
+                      className="w-3 h-3 rounded-sm shrink-0"
+                      style={{ backgroundColor: constructor.color }}
+                    />
+                    <span className="text-xs text-muted-foreground">{constructor.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className="space-y-2">
+            {distributionData.map((race) => {
+              const maxRacePoints = Math.max(...distributionData.map(d => d.totalPoints));
+              
+              return (
+                <div key={`${race.country}-${race.round}`} className="flex items-center gap-3">
+                  {/* Country Flag */}
+                  <CountryFlag country={race.country} size={24} svg={true} className="shrink-0" />
+                  
+                  {/* Stacked Bar Chart */}
+                  <div className="relative flex-1 h-8 bg-muted/30 rounded overflow-hidden">
+                    <div className="absolute inset-0 flex">
+                      {race.constructors
+                        .filter(c => c.points > 0)
+                        .map((constructor, idx, arr) => {
+                          const width = (constructor.points / race.totalPoints) * 100;
+                          const isLast = idx === arr.length - 1;
+                          return (
+                            <Tooltip key={`${race.round}-${constructor.name}-${idx}`}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="h-full transition-all cursor-pointer hover:opacity-80 relative z-10"
+                                  style={{
+                                    width: `${width}%`,
+                                    backgroundColor: constructor.color,
+                                    minWidth: constructor.points > 0 ? '2px' : '0',
+                                    borderRight: isLast ? 'none' : '1px solid rgba(255, 255, 255, 0.4)',
+                                    boxShadow: isLast ? 'none' : 'inset -1px 0 0 rgba(0, 0, 0, 0.3)'
+                                  }}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs z-50">
+                                <div className="font-semibold">{constructor.name}</div>
+                                <div className="text-muted-foreground">{constructor.points} points</div>
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })}
+                    </div>
+                  </div>
+                  
+                  {/* Total Points */}
+                  <span className="text-sm font-bold text-primary shrink-0 min-w-[3rem] text-right">{race.totalPoints}</span>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
+  );
+};
 
 // Race type constants
 const SINGLE_RACE = "single";
@@ -380,6 +653,18 @@ const RaceCalendar = () => {
                   <Globe className="h-4 w-4" />
                   <span className="hidden sm:inline">Globe</span>
                 </Button>
+                <Button
+                  variant={viewMode === "distribution" ? "default" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "h-8 px-2 sm:px-3 gap-1.5",
+                    viewMode === "distribution" && "bg-primary text-primary-foreground"
+                  )}
+                  onClick={() => setViewMode("distribution")}
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Distribution</span>
+                </Button>
               </div>
               <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
             </div>
@@ -500,28 +785,39 @@ const RaceCalendar = () => {
                     <CardContent className="p-2.5 sm:p-3">
                         {/* Compact Header - Always visible */}
                         <div 
-                          className="flex justify-between items-center cursor-pointer"
+                          className="flex justify-between items-start gap-2 cursor-pointer"
                           onClick={() => openRaceDetails(race)}
                         >
-                          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
-                            <CountryFlag country={country} size={16} svg={true} className="shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 sm:gap-2">
-                                <h3 className="font-semibold text-xs sm:text-sm leading-tight truncate">{raceName}</h3>
+                          <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
+                            <CountryFlag country={country} size={20} svg={true} className="shrink-0 mt-0.5" />
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                <h3 className="font-semibold text-sm sm:text-base leading-tight">{raceName}</h3>
                                 {hasSprint && (
-                                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500 shrink-0" />
+                                  <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 shrink-0" />
                                 )}
                               </div>
-                              <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
-                                <span>Round {race.round}</span>
+                              <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
+                                <div className="flex items-center gap-1">
+                                  <Flag className="h-3 w-3" />
+                                  <span className="truncate">{circuitName}</span>
+                                </div>
                                 <span>•</span>
-                                <span>{format(raceDate, 'dd MMM yyyy')}</span>
+                                <div className="flex items-center gap-1">
+                                  <CalendarIcon className="h-3 w-3" />
+                                  <span>{format(raceDate, 'dd MMM yyyy')}</span>
+                                </div>
                                 {race.time && (
                                   <>
                                     <span>•</span>
-                                    <span>{format(parseISO(`${race.date}T${race.time}`), 'HH:mm')}</span>
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      <span>{format(parseISO(`${race.date}T${race.time}`), 'HH:mm')}</span>
+                                    </div>
                                   </>
                                 )}
+                                <span>•</span>
+                                <span className="font-medium">R{race.round}</span>
                               </div>
                             </div>
                           </div>
@@ -530,8 +826,8 @@ const RaceCalendar = () => {
                             <Badge 
                               variant={status === "next" ? "default" : "secondary"}
                               className={cn(
-                                "text-[9px] sm:text-[10px] h-4 sm:h-4 px-1.5 sm:px-2",
-                                status === "next" && "bg-f1-red hover:bg-f1-red"
+                                "text-[9px] sm:text-[10px] h-5 sm:h-5 px-2 sm:px-2.5",
+                                status === "next" && "bg-primary hover:bg-primary/90"
                               )}
                             >
                               {status === "completed" ? "Done" : 
@@ -714,6 +1010,16 @@ const RaceCalendar = () => {
             </div>
           )}
         </div>
+          )}
+
+          {/* Distribution View */}
+          {viewMode === "distribution" && (
+            <PointsDistributionView 
+              selectedYear={selectedYear}
+              raceSchedule={raceSchedule?.data || []}
+              isLoading={isLoading}
+              isGlass={isGlass}
+            />
           )}
       </div>
       

@@ -236,7 +236,7 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
               <Progress 
                 value={progressPercentage} 
                 className="h-1.5 md:h-2"
-                indicatorClassName="bg-gradient-to-r from-red-600 to-red-500"
+                indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-500"
               />
               <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground">
                 <span>{completedRaces.length} completed</span>
