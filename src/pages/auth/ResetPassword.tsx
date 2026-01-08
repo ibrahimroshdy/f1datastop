@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
 import f1Logo from '@/assets/f1-logo.svg';
+import { useTheme } from '@/context/ThemeContext';
+import { cn } from '@/lib/utils';
 
 const ResetPassword = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +21,7 @@ const ResetPassword = () => {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordMismatchError, setPasswordMismatchError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const { isGlass } = useTheme();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -61,12 +64,12 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-f1-black p-4">
+    <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-6">
           <Link 
             to="/" 
-            className="inline-flex items-center text-gray-400 hover:text-white transition-colors"
+            className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Return to Dashboard
@@ -77,12 +80,23 @@ const ResetPassword = () => {
           <img src={f1Logo} alt="F1 DataStop" className="w-20 h-20" />
         </div>
         
-        <Card className="w-full bg-f1-dark border-gray-800">
+        <Card 
+          className={cn(
+            "w-full",
+            isGlass && "border-white/10"
+          )}
+          style={isGlass ? {
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(var(--glass-blur))',
+            WebkitBackdropFilter: 'blur(var(--glass-blur))',
+            boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
+          } : undefined}
+        >
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-bold">
               {token ? "Reset Password" : "Request Password Reset"}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-muted-foreground">
               {token
                 ? "Enter your new password"
                 : isEmailSent
@@ -93,7 +107,7 @@ const ResetPassword = () => {
           <CardContent>
             {!token ? (
               isEmailSent ? (
-                <div className="text-center text-gray-400">
+                <div className="text-center text-muted-foreground">
                   <CheckCircle className="mx-auto h-6 w-6 text-green-500 mb-2" />
                   <p>Password reset link has been sent to your email.</p>
                 </div>
@@ -108,12 +122,12 @@ const ResetPassword = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="bg-gray-800 border-gray-700"
+                      className="bg-background"
                     />
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-f1-red hover:bg-red-700"
+                    className="w-full bg-primary hover:bg-primary/90"
                     disabled={isLoading}
                   >
                     {isLoading ? "Sending..." : "Send Reset Link"}
@@ -121,10 +135,10 @@ const ResetPassword = () => {
                 </form>
               )
             ) : resetSuccess ? (
-              <div className="text-center text-gray-400">
+              <div className="text-center text-muted-foreground">
                 <CheckCircle className="mx-auto h-6 w-6 text-green-500 mb-2" />
                 <p>Your password has been successfully reset.</p>
-                <Link to="/auth/login" className="text-f1-red hover:underline">
+                <Link to="/auth/login" className="text-primary hover:underline">
                   Return to Login
                 </Link>
               </div>
@@ -139,7 +153,7 @@ const ResetPassword = () => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
-                    className="bg-gray-800 border-gray-700"
+                    className="bg-background"
                   />
                 </div>
                 <div className="space-y-2">
@@ -151,15 +165,15 @@ const ResetPassword = () => {
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     required
-                    className="bg-gray-800 border-gray-700"
+                    className="bg-background"
                   />
                 </div>
                 {passwordMismatchError && (
-                  <p className="text-sm text-red-500">{passwordMismatchError}</p>
+                  <p className="text-sm text-destructive">{passwordMismatchError}</p>
                 )}
                 <Button
                   type="submit"
-                  className="w-full bg-f1-red hover:bg-red-700"
+                  className="w-full bg-primary hover:bg-primary/90"
                   disabled={isLoading}
                 >
                   {isLoading ? "Resetting..." : "Reset Password"}
@@ -168,7 +182,7 @@ const ResetPassword = () => {
             )}
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Link to="/auth/login" className="text-sm text-gray-400 hover:text-f1-red hover:underline">
+            <Link to="/auth/login" className="text-sm text-muted-foreground hover:text-primary hover:underline">
               Return to Login
             </Link>
           </CardFooter>

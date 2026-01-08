@@ -16,7 +16,7 @@ const AuthBlurOverlay: React.FC = () => {
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
           <Button 
-            className="bg-f1-red hover:bg-red-700" 
+            className="bg-primary hover:bg-primary/90" 
             onClick={() => navigate("/auth/login")}
           >
             Log in

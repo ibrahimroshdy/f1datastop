@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { 
   Dialog, 
   DialogContent,
@@ -14,11 +14,16 @@ import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Trophy, Flag, Clock, LineChart, Zap } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Trophy, Flag, Clock, LineChart, Zap, Calendar, MapPin, BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { TEAM_COLORS } from "@/constants/f1Colors";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/context/ThemeContext";
+
+// Lazy load Sankey chart for performance
+const MuiSankeyChart = lazy(() => import("@/components/analytics/MuiSankeyChart"));
 
 // Function to determine the current year
 const getCurrentYear = () => new Date().getFullYear();
@@ -58,6 +63,8 @@ const getTeamColorStyle = (constructorId: string) => {
 const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   const [selectedTab, setSelectedTab] = useState("info");
   const [dialogOpenTime, setDialogOpenTime] = useState<number>(0);
+  const navigate = useNavigate();
+  const { isGlass } = useTheme();
   const hasSprint = !!race?.Sprint;
   
   const { data: raceResults, isLoading: isResultsLoading } = useRaceResults(
@@ -148,6 +155,13 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             (window as any).calendarAnalytics.trackRaceResultsView(race, 'qualifying', qualifyingResults.data.QualifyingResults.length);
           }
           break;
+        case 'distribution':
+          if (raceResults?.data?.Results?.length || sprintResults?.data?.SprintResults?.length) {
+            (window as any).calendarAnalytics.trackRaceResultsView(race, 'distribution', 
+              (raceResults?.data?.Results?.length || 0) + (sprintResults?.data?.SprintResults?.length || 0)
+            );
+          }
+          break;
 
       }
     }
@@ -197,9 +211,9 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     const now = new Date();
     
     if (sessionDateTime < now) {
-      return <Badge className="bg-green-600 text-[10px] px-1 py-0 sm:px-2 sm:py-0.5">Completed</Badge>;
+      return <Badge variant="secondary" className="text-[10px] px-1.5 py-0 sm:px-2 sm:py-0.5">Completed</Badge>;
     } else {
-      return <Badge variant="outline" className="text-[10px] px-1 py-0 sm:px-2 sm:py-0.5">Upcoming</Badge>;
+      return <Badge variant="outline" className="text-[10px] px-1.5 py-0 sm:px-2 sm:py-0.5">Upcoming</Badge>;
     }
   };
   
@@ -226,25 +240,113 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     );
   };
   
+  // Calculate race stats
+  const raceDate = race.date ? format(parseISO(race.date), 'MMM d') : '-';
+  const winner = raceResults?.data?.Results?.[0]?.Driver?.code || null;
+  const polePosition = qualifyingResults?.data?.QualifyingResults?.[0]?.Driver?.code || null;
+  const isRaceCompleted = race.date ? parseISO(race.date) < new Date() : false;
+
+  // Glass theme card style
+  const cardStyle = isGlass ? {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(var(--glass-blur))',
+    boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)',
+  } : undefined;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[85vw] lg:max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto p-3 sm:p-6">
-        <DialogHeader className="pb-1 sm:pb-2">
-          <DialogTitle className="flex items-center gap-1 sm:gap-2 text-base sm:text-lg md:text-xl">
+      <DialogContent 
+        className={cn(
+          "sm:max-w-[640px] max-h-[90vh] overflow-y-auto p-4 sm:p-6",
+          isGlass && "border-white/10"
+        )}
+        style={isGlass ? cardStyle : undefined}
+      >
+        <DialogHeader className="pb-3">
+          <DialogTitle className="flex items-center gap-2 pr-8">
             {race.Circuit?.Location?.country && (
               <CountryFlag 
                 country={race.Circuit.Location.country} 
-                size={20}
+                size={18}
                 svg={true}
               />
             )}
             {getRaceNameWithoutEmoji(race.raceName)}
           </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
+          <DialogDescription className="text-xs">
             Round {race.round} of the {race.season} Formula 1 Season
           </DialogDescription>
         </DialogHeader>
         
+        {/* Compact Stats Row */}
+        <div className="grid grid-cols-4 gap-1.5 mb-3">
+          <div className={cn(
+            "text-center p-2 rounded-md",
+            isGlass ? "bg-white/5" : "bg-muted"
+          )}>
+            <Calendar className="h-3 w-3 mx-auto mb-0.5 text-blue-500" />
+            <p className="text-sm font-bold">{raceDate}</p>
+            <p className="text-[8px] text-muted-foreground">Race Date</p>
+          </div>
+          <div className={cn(
+            "text-center p-2 rounded-md",
+            isGlass ? "bg-white/5" : "bg-muted"
+          )}>
+            <Flag className="h-3 w-3 mx-auto mb-0.5 text-green-500" />
+            <p className="text-sm font-bold">R{race.round}</p>
+            <p className="text-[8px] text-muted-foreground">Round</p>
+          </div>
+          <div className={cn(
+            "text-center p-2 rounded-md",
+            isGlass ? "bg-white/5" : "bg-muted"
+          )}>
+            <Trophy className="h-3 w-3 mx-auto mb-0.5 text-yellow-500" />
+            <p className="text-sm font-bold">{winner || (isRaceCompleted ? "-" : "TBD")}</p>
+            <p className="text-[8px] text-muted-foreground">Winner</p>
+          </div>
+          <div className={cn(
+            "text-center p-2 rounded-md",
+            isGlass ? "bg-white/5" : "bg-muted"
+          )}>
+            {hasSprint ? (
+              <>
+                <Zap className="h-3 w-3 mx-auto mb-0.5 text-orange-500" />
+                <p className="text-sm font-bold">Yes</p>
+                <p className="text-[8px] text-muted-foreground">Sprint</p>
+              </>
+            ) : (
+              <>
+                <Clock className="h-3 w-3 mx-auto mb-0.5 text-purple-500" />
+                <p className="text-sm font-bold">{polePosition || (isRaceCompleted ? "-" : "TBD")}</p>
+                <p className="text-[8px] text-muted-foreground">Pole</p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Circuit & Location Info */}
+        <div className={cn(
+          "grid grid-cols-2 gap-1.5 mb-3 p-2 rounded-md",
+          isGlass ? "bg-white/5" : "bg-muted/50"
+        )}>
+          <div className="flex items-center gap-1.5">
+            <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[8px] text-muted-foreground">Circuit</p>
+              <p className="text-xs font-medium truncate">{race.Circuit?.circuitName || "-"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Flag className="h-3 w-3 text-muted-foreground shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[8px] text-muted-foreground">Location</p>
+              <p className="text-xs font-medium truncate">
+                {race.Circuit?.Location?.locality || "-"}, {race.Circuit?.Location?.country || "-"}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <Tabs 
           value={selectedTab} 
           onValueChange={(newTab) => {
@@ -259,146 +361,152 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
           }} 
           className="w-full"
         >
-          <TabsList className={`grid w-full ${hasSprint ? 'grid-cols-5' : 'grid-cols-3'} mb-1`}>
-            <TabsTrigger value="info" className="text-xs sm:text-sm px-1 sm:px-2">Schedule</TabsTrigger>
+          <TabsList className={cn(
+            `grid w-full ${hasSprint ? 'grid-cols-7' : 'grid-cols-5'} mb-3 h-8 p-0.5`,
+            isGlass && "bg-white/5"
+          )}>
+            <TabsTrigger value="info" className="text-[10px] h-7 px-1.5">Schedule</TabsTrigger>
             {hasSprint && (
-              <TabsTrigger value="sprint-qualifying" className="text-xs sm:text-sm px-1 sm:px-2">
-                <span className="flex items-center gap-1">
-                  <Zap className="h-3 w-3" />
-                  <span>Sprint Q</span>
-                </span>
+              <TabsTrigger value="sprint-qualifying" className="text-[10px] h-7 px-1.5 gap-1">
+                <Zap className="h-2.5 w-2.5" />
+                <span className="hidden sm:inline">Sprint Q</span>
+                <span className="sm:hidden">SQ</span>
               </TabsTrigger>
             )}
             {hasSprint && (
-              <TabsTrigger value="sprint" className="text-xs sm:text-sm px-1 sm:px-2">
-                <span className="flex items-center gap-1">
-                  <Zap className="h-3 w-3" />
-                  <span>Sprint</span>
-                </span>
+              <TabsTrigger value="sprint" className="text-[10px] h-7 px-1.5 gap-1">
+                <Zap className="h-2.5 w-2.5" />
+                Sprint
               </TabsTrigger>
             )}
-            <TabsTrigger value="qualifying" className="text-xs sm:text-sm px-1 sm:px-2">Qualifying</TabsTrigger>
-            <TabsTrigger value="results" className="text-xs sm:text-sm px-1 sm:px-2">Race Results</TabsTrigger>
+            <TabsTrigger value="qualifying" className="text-[10px] h-7 px-1.5">Qualifying</TabsTrigger>
+            <TabsTrigger value="results" className="text-[10px] h-7 px-1.5">Results</TabsTrigger>
+            <TabsTrigger value="distribution" className="text-[10px] h-7 px-1.5">
+              Distribution
+            </TabsTrigger>
           </TabsList>
           
-          <div className="h-[350px] sm:h-[400px] md:h-[450px] overflow-y-auto">
-            <TabsContent value="info" className="space-y-3 h-full">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
-              <div>
-                  <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Circuit Information</h3>
-                  <p className="text-xs md:text-sm text-muted-foreground">Circuit: {race.Circuit?.circuitName || "-"}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Location: {race.Circuit?.Location?.locality || "-"}, {race.Circuit?.Location?.country || "-"}</p>
-              </div>
-              
-              <div>
-                  <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-2">Race Date</h3>
-                  <div className="flex items-center gap-1 md:gap-2">
-                    <Flag className="h-3 w-3 md:h-4 md:w-4" />
-                    <p className="text-xs md:text-sm">
-                    {race.date ? format(parseISO(race.date), 'MMMM d, yyyy') : '-'} 
-                    {race.time ? ` at ${formatTime(race.time)}` : ''}
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="h-[600px] sm:h-[700px] overflow-y-auto">
+            <TabsContent value="info" className="space-y-2 h-full mt-0">
             
-              <div className="border rounded-md p-2 md:p-4">
-                <h3 className="text-sm md:text-lg font-semibold mb-1 md:mb-4">Weekend Schedule</h3>
-                <div className="space-y-1 md:space-y-3">
+              {/* Weekend Schedule */}
+              <div className={cn(
+                "rounded-md p-2.5 space-y-1.5",
+                isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50 border"
+              )}>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                  <h3 className="text-xs font-semibold">Weekend Schedule</h3>
+                </div>
+                <div className="space-y-1.5">
                 {race.FirstPractice && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium">Practice 1</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.FirstPractice)}</p>
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium">Practice 1</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.FirstPractice)}</p>
                     </div>
-                    {getSessionStatusBadge(race.FirstPractice.date, race.FirstPractice.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.FirstPractice.date, race.FirstPractice.time)}
+                    </div>
                   </div>
                 )}
                 
                 {race.SecondPractice && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium">Practice 2</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.SecondPractice)}</p>
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium">Practice 2</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.SecondPractice)}</p>
                     </div>
-                    {getSessionStatusBadge(race.SecondPractice.date, race.SecondPractice.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.SecondPractice.date, race.SecondPractice.time)}
+                    </div>
                   </div>
                 )}
                 
                 {race.ThirdPractice && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium">Practice 3</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.ThirdPractice)}</p>
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium">Practice 3</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.ThirdPractice)}</p>
                     </div>
-                    {getSessionStatusBadge(race.ThirdPractice.date, race.ThirdPractice.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.ThirdPractice.date, race.ThirdPractice.time)}
+                    </div>
                   </div>
                 )}
                 
                 {race.SprintQualifying && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium flex items-center gap-1">
-                          <Zap className="h-3 w-3" />
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium flex items-center gap-1">
+                          <Zap className="h-2.5 w-2.5" />
                           Sprint Qualifying
                         </p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.SprintQualifying)}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.SprintQualifying)}</p>
                     </div>
-                    {getSessionStatusBadge(race.SprintQualifying.date, race.SprintQualifying.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.SprintQualifying.date, race.SprintQualifying.time)}
+                    </div>
                   </div>
                 )}
                 
                 {race.Sprint && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium flex items-center gap-1">
-                          <Zap className="h-3 w-3" />
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium flex items-center gap-1">
+                          <Zap className="h-2.5 w-2.5" />
                           Sprint Race
                         </p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.Sprint)}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.Sprint)}</p>
                     </div>
-                    {getSessionStatusBadge(race.Sprint.date, race.Sprint.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.Sprint.date, race.Sprint.time)}
+                    </div>
                   </div>
                 )}
                 
                 {race.Qualifying && (
-                  <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-xs md:text-sm font-medium">Qualifying</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race.Qualifying)}</p>
+                  <div className="flex justify-between items-center py-1">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium">Qualifying</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race.Qualifying)}</p>
                     </div>
-                    {getSessionStatusBadge(race.Qualifying.date, race.Qualifying.time)}
+                    <div className="ml-2 shrink-0">
+                      {getSessionStatusBadge(race.Qualifying.date, race.Qualifying.time)}
+                    </div>
                   </div>
                 )}
                 
-                <div className="flex justify-between items-center">
-                  <div>
-                      <p className="text-xs md:text-sm font-medium flex items-center gap-1">
-                        <Trophy className="h-3 w-3" />
+                <div className="flex justify-between items-center py-1 border-t pt-1.5 mt-1">
+                  <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium flex items-center gap-1">
+                        <Trophy className="h-2.5 w-2.5" />
                         Race
                       </p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{getSessionDate(race)}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{getSessionDate(race)}</p>
                   </div>
-                  {getSessionStatusBadge(race.date, race.time)}
+                  <div className="ml-2 shrink-0">
+                    {getSessionStatusBadge(race.date, race.time)}
+                  </div>
                 </div>
               </div>
             </div>
             
-              <div className="mt-2 md:mt-4 flex justify-end">
-              <Link to={`/race-info/${getCurrentYear()}/${race.round}`}>
-                  <Button 
-                    size="sm" 
-                    className="bg-f1-red hover:bg-f1-red/90 text-xs md:text-sm h-7 sm:h-9"
-                    onClick={() => {
-                      if ((window as any).calendarAnalytics) {
-                        (window as any).calendarAnalytics.trackViewAnalysisClick(race);
-                      }
-                    }}
-                  >
-                    <LineChart className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                    View Analysis
+              {/* Action Buttons */}
+              <div className="mt-3 flex justify-end gap-2">
+                <Button 
+                  size="sm" 
+                  className="bg-f1-red hover:bg-f1-red/90 text-[10px] h-7 px-2"
+                  onClick={() => {
+                    if ((window as any).calendarAnalytics) {
+                      (window as any).calendarAnalytics.trackViewAnalysisClick(race);
+                    }
+                    navigate(`/race-analysis/${race.season}/${race.round}`);
+                  }}
+                >
+                  <LineChart className="h-2.5 w-2.5 mr-1" />
+                  View Analysis
                 </Button>
-              </Link>
             </div>
           </TabsContent>
           
@@ -414,7 +522,35 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                   <p className="text-muted-foreground text-xs md:text-sm">No results available for this race yet.</p>
               </div>
             ) : (
-                <div className="space-y-1">
+                <div className="space-y-3">
+                  {/* Sankey Chart - Qualifying to Grid to Result */}
+                  <div className={cn(
+                    "rounded-md overflow-hidden",
+                    isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50 border"
+                  )}>
+                    <div className="p-2 border-b">
+                      <h3 className="text-xs font-semibold">Position Progression</h3>
+                      <p className="text-[10px] text-muted-foreground">Qualifying → Grid → Race Result</p>
+                    </div>
+                    <div className="h-[500px] sm:h-[600px] w-full">
+                      <Suspense fallback={
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-primary mx-auto mb-2"></div>
+                            <p className="text-[10px] text-muted-foreground">Loading chart...</p>
+                          </div>
+                        </div>
+                      }>
+                        <MuiSankeyChart 
+                          year={parseInt(race.season)} 
+                          round={race.round} 
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                  
+                  {/* Results Table */}
+                  <div className="space-y-1">
                   {/* Mobile view (up to sm breakpoint) */}
                   <div className="sm:hidden">
                     {/* Mobile header row */}
@@ -486,6 +622,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                   ))}
                 </TableBody>
               </Table>
+                  </div>
                   </div>
                 </div>
             )}
@@ -781,10 +918,171 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                 </div>
             )}
           </TabsContent>
+          
+          <TabsContent value="distribution" className="h-full">
+            {(() => {
+              // Calculate constructor points from race results
+              const raceConstructorPoints: Record<string, { name: string; racePoints: number; sprintPoints: number; totalPoints: number; color: string }> = {};
+              
+              // Process race results
+              if (raceResults?.data?.Results) {
+                raceResults.data.Results.forEach((result: any) => {
+                  const constructorId = result.Constructor.constructorId;
+                  const points = parseFloat(result.points) || 0;
+                  
+                  if (!raceConstructorPoints[constructorId]) {
+                    raceConstructorPoints[constructorId] = {
+                      name: result.Constructor.name,
+                      racePoints: 0,
+                      sprintPoints: 0,
+                      totalPoints: 0,
+                      color: getTeamColor(constructorId)
+                    };
+                  }
+                  raceConstructorPoints[constructorId].racePoints += points;
+                  raceConstructorPoints[constructorId].totalPoints += points;
+                });
+              }
+              
+              // Process sprint results if available
+              if (sprintResults?.data?.SprintResults) {
+                sprintResults.data.SprintResults.forEach((result: any) => {
+                  const constructorId = result.Constructor.constructorId;
+                  const points = parseFloat(result.points) || 0;
+                  
+                  if (!raceConstructorPoints[constructorId]) {
+                    raceConstructorPoints[constructorId] = {
+                      name: result.Constructor.name,
+                      racePoints: 0,
+                      sprintPoints: 0,
+                      totalPoints: 0,
+                      color: getTeamColor(constructorId)
+                    };
+                  }
+                  raceConstructorPoints[constructorId].sprintPoints += points;
+                  raceConstructorPoints[constructorId].totalPoints += points;
+                });
+              }
+              
+              // Convert to array and sort by total points
+              const constructorPointsArray = Object.values(raceConstructorPoints)
+                .sort((a, b) => b.totalPoints - a.totalPoints);
+              
+              const isLoading = isResultsLoading || (hasSprint && isSprintLoading);
+              
+              if (isLoading) {
+                return (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                );
+              }
+              
+              if (constructorPointsArray.length === 0) {
+                return (
+                  <div className="py-8 text-center">
+                    <p className="text-muted-foreground text-xs md:text-sm">No points distribution available yet.</p>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="space-y-3">
+                  <div className={cn(
+                    "rounded-md p-2.5",
+                    isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50 border"
+                  )}>
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <BarChart3 className="h-3 w-3 text-muted-foreground" />
+                      <h3 className="text-xs font-semibold">Constructor Points Distribution</h3>
+                    </div>
+                    
+                    {/* Mobile view */}
+                    <div className="sm:hidden space-y-2">
+                      {constructorPointsArray.map((constructor, index) => (
+                        <div 
+                          key={index}
+                          className={cn(
+                            "p-2 rounded-md border",
+                            isGlass ? "bg-white/5 border-white/10" : "bg-background border-border"
+                          )}
+                          style={{ borderLeft: `4px solid ${constructor.color}` }}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span 
+                              className="text-xs font-medium"
+                              style={{ color: constructor.color }}
+                            >
+                              {constructor.name}
+                            </span>
+                            <span className="text-xs font-bold text-primary">
+                              {constructor.totalPoints} pts
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                            <span>Race: {constructor.racePoints} pts</span>
+                            {hasSprint && (
+                              <span>Sprint: {constructor.sprintPoints} pts</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Desktop view */}
+                    <div className="hidden sm:block">
+                      <Table className="w-full">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-10 text-xs md:text-sm py-2">Pos</TableHead>
+                            <TableHead className="text-xs md:text-sm py-2">Constructor</TableHead>
+                            <TableHead className="text-right text-xs md:text-sm py-2">Race Points</TableHead>
+                            {hasSprint && (
+                              <TableHead className="text-right text-xs md:text-sm py-2">Sprint Points</TableHead>
+                            )}
+                            <TableHead className="text-right text-xs md:text-sm py-2 font-bold">Total Points</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {constructorPointsArray.map((constructor, index) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-medium text-xs md:text-sm py-1 md:py-2">
+                                {index + 1}
+                              </TableCell>
+                              <TableCell 
+                                className="text-xs md:text-sm py-1 md:py-2 font-medium"
+                                style={{ color: constructor.color, borderLeft: `4px solid ${constructor.color}`, paddingLeft: '0.5rem' }}
+                              >
+                                {constructor.name}
+                              </TableCell>
+                              <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                                {constructor.racePoints}
+                              </TableCell>
+                              {hasSprint && (
+                                <TableCell className="text-right text-xs md:text-sm py-1 md:py-2">
+                                  {constructor.sprintPoints}
+                                </TableCell>
+                              )}
+                              <TableCell className="text-right text-xs md:text-sm py-1 md:py-2 font-bold text-primary">
+                                {constructor.totalPoints}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </TabsContent>
+          
           </div>
         </Tabs>
         
-        <DialogFooter>
+        <DialogFooter className="pt-2">
           <Button 
             variant="outline" 
             size="sm" 
@@ -799,7 +1097,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               }
               onClose();
             }} 
-            className="text-xs md:text-sm h-7 sm:h-9"
+            className="text-[10px] h-7 px-2"
           >
             Close
           </Button>

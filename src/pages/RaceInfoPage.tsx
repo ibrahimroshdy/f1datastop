@@ -27,8 +27,6 @@ interface SessionOption {
 const TelemetryDashboard = lazy(() => import('@/components/analytics/TelemetryDashboard'));
 const WeatherAnalysis = lazy(() => import('@/components/analytics/WeatherAnalysis'));
 const TeamRadio = lazy(() => import('@/components/analytics/TeamRadio'));
-const LapTimeTab = lazy(() => import('@/components/analytics/LapTimeTab'));
-const LapTimeCharts = lazy(() => import('@/components/analytics/LapTimeCharts'));
 const SessionResults = lazy(() => import('@/components/analytics/SessionResults'));
 const OvertakesAnalysis = lazy(() => import('@/components/analytics/OvertakesAnalysis'));
 
@@ -316,8 +314,6 @@ const RaceInfoPage = () => {
                         <SelectItem value="weather">Weather</SelectItem>
                         <SelectItem value="radio">Team Radio</SelectItem>
                         <SelectItem value="telemetry">Telemetry</SelectItem>
-                        <SelectItem value="lap-time">Laptimes Table</SelectItem>
-                        <SelectItem value="lap-charts">Laptimes Charts</SelectItem>
                         <SelectItem value="results">Results</SelectItem>
                         <SelectItem value="overtakes">Overtakes</SelectItem>
                       </SelectContent>
@@ -325,12 +321,10 @@ const RaceInfoPage = () => {
                   </div>
                   
                   {/* Regular tabs for larger screens */}
-                  <TabsList className="hidden md:grid grid-cols-7 w-full">
+                  <TabsList className="hidden md:grid grid-cols-5 w-full">
                     <TabsTrigger value="weather">Weather</TabsTrigger>
                     <TabsTrigger value="radio">Team Radio</TabsTrigger>
                     <TabsTrigger value="telemetry">Telemetry</TabsTrigger>
-                    <TabsTrigger value="lap-time">Laptimes Table</TabsTrigger>
-                    <TabsTrigger value="lap-charts">Laptimes Charts</TabsTrigger>
                     <TabsTrigger value="results">Results</TabsTrigger>
                     <TabsTrigger value="overtakes">Overtakes</TabsTrigger>
                   </TabsList>
@@ -418,61 +412,6 @@ const RaceInfoPage = () => {
                       )}
                     </TabsContent>
                     
-                    <TabsContent value="lap-time" className="space-y-4">
-                      {activeTab === "lap-time" && (
-                        <>
-                          <LapTimeTab 
-                            year={selectedYear} 
-                            round={selectedRound}
-                            sessionType={selectedSession?.session_type || undefined}
-                            sessionKey={selectedSessionKey || undefined}
-                          />
-                          
-                          <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
-                            <div className="flex items-start gap-2">
-                              <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                              <div>
-                                <p className="font-medium mb-1">About Laptimes Table</p>
-                                <p className="text-muted-foreground">
-                                  The laptimes table displays detailed lap and sector times for each driver. Purple highlights indicate 
-                                  the fastest time overall, while green shows the fastest time for each driver. Use the "Show Fastest Times" 
-                                  button to filter and view only the laps with the fastest sector times for each driver.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="lap-charts" className="space-y-4">
-                      {activeTab === "lap-charts" && (
-                        <>
-                          <LapTimeCharts 
-                            year={selectedYear} 
-                            round={selectedRound}
-                            sessionType={selectedSession?.session_type || undefined}
-                            sessionKey={selectedSessionKey || undefined}
-                          />
-                          
-                          <div className="bg-primary-foreground/5 rounded-lg p-4 text-sm">
-                            <div className="flex items-start gap-2">
-                              <HelpCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                              <div>
-                                <p className="font-medium mb-1">About Laptimes Charts</p>
-                                <p className="text-muted-foreground">
-                                  The laptimes charts provide a visual representation of driver performance throughout the race.
-                                  Compare lap times across multiple drivers with the first selected driver shown as a solid line
-                                  and others as dashed lines. This helps identify performance trends, consistency, and the
-                                  impact of race events on lap times.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </TabsContent>
-
                     <TabsContent value="results" className="space-y-4">
                       {activeTab === "results" && (
                         <>

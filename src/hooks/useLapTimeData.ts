@@ -205,13 +205,11 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
     setHoveredDriver(driverCode);
   };
 
-  // Calculate visible drivers (either all selected or just the hovered one)
+  // Visible drivers - always show all selected drivers
+  // Hovering only highlights, doesn't filter (to prevent chart flickering)
   const visibleDrivers = useMemo(() => {
-    if (hoveredDriver) {
-      return selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers;
-    }
     return selectedDrivers;
-  }, [hoveredDriver, selectedDrivers]);
+  }, [selectedDrivers]);
 
   // Helper function to convert lap time string to seconds
   const convertLapTimeToSeconds = (lapTimeStr: string): number => {
@@ -257,6 +255,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
   };
 
   // Memoize chart data to avoid recalculations
+  // Includes both lap time and position for each driver
   const chartData = useMemo(() => {
     if (!lapTimesData?.data?.Races?.[0]?.Laps || !fastestLapTime) {
       return [];
@@ -274,10 +273,14 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
         const driver = availableDrivers.find(d => d.driverId === timing.driverId);
         if (driver) {
           const lapTime = convertLapTimeToSeconds(timing.time);
+          const position = parseInt(timing.position) || 0;
           
-          // Only use absolute mode for now to avoid axis issues
+          // Store lap time for charting
           lapData[driver.code] = lapTime;
-          lapData[`${driver.code}_original`] = lapTime; // Store original time for tooltips
+          // Store original time string for tooltips
+          lapData[`${driver.code}_original`] = timing.time;
+          // Store position for tooltips
+          lapData[`${driver.code}_position`] = position;
         }
       });
       

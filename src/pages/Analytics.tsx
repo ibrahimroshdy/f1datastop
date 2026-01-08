@@ -1,37 +1,43 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import YearSelector from "@/components/common/YearSelector";
-import LapTimeChart from "@/components/analytics/LapTimeChart";
-import PositionChangeChart from "@/components/analytics/PositionChangeChart";
-import QualifyingChart from "@/components/analytics/QualifyingChart";
-import PitStopTable from "@/components/analytics/PitStopTable";
-import ProgressionChart from "@/components/analytics/ProgressionChart";
+// MUI X Charts versions
+import MuiLapTimeChart from "@/components/analytics/MuiLapTimeChart";
+import MuiPositionChart from "@/components/analytics/MuiPositionChart";
+import MuiQualifyingChart from "@/components/analytics/MuiQualifyingChart";
+import MuiPitStopTable from "@/components/analytics/MuiPitStopTable";
+import MuiSankeyChart from "@/components/analytics/MuiSankeyChart";
 import YearComparisonAnalytics from "@/components/analytics/YearComparisonAnalytics";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, Loader2, GitCompare, Clock, TrendingUp, Timer, Flag, Wrench, TrendingUpIcon } from "lucide-react";
+import { Info, Loader2, GitCompare, Clock, TrendingUp, Timer, Flag, Wrench, TrendingUpIcon, BarChart3, MapPin, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import CountryFlag from "@/components/common/CountryFlag";
 
-// Function to determine the most appropriate default year
+// Function to determine the most appropriate default year - always use current year
 const getDefaultYear = () => {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth(); // 0-based (0 = January)
-  
-  // If we're in the early months of the year (before April), 
-  // use previous year as default as current season might have too few races
-  return (currentMonth < 3) ? currentYear - 1 : currentYear;
+  return new Date().getFullYear();
 };
 
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(getDefaultYear());
   const [selectedTab, setSelectedTab] = useState<string>("lapTimes");
   const [selectedRace, setSelectedRace] = useState<string>("1");
+  const { isGlass, baseTheme } = useTheme();
+  const isDark = baseTheme === 'dark';
   
   const { data: raceScheduleData, isLoading: isRaceScheduleLoading } = useRaceSchedule(selectedYear);
+  
+  // Get currently selected race info
+  const selectedRaceInfo = useMemo(() => {
+    if (!raceScheduleData?.data) return null;
+    return raceScheduleData.data.find((race: any) => race.round === selectedRace);
+  }, [raceScheduleData, selectedRace]);
   
   // Handler for year changes
   const handleYearChange = (year: number) => {
@@ -65,92 +71,187 @@ const Analytics = () => {
     return raceName;
   };
 
+  // Glass styling
+  const cardStyle = isGlass ? {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(var(--glass-blur))',
+    WebkitBackdropFilter: 'blur(var(--glass-blur))',
+    boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
+  } : undefined;
+
   return (
     <MainLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <h1 className="text-3xl font-bold">F1 Analytics</h1>
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "p-2 rounded-lg",
+              isGlass ? "bg-primary/10" : "bg-primary/10"
+            )}>
+              <BarChart3 className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">F1 Analytics</h1>
+              <p className="text-sm text-muted-foreground">
+                Comprehensive race data analysis
+              </p>
+            </div>
+          </div>
         </div>
         
-        <p className="text-sm text-muted-foreground -mt-4 mb-4">
-          View comprehensive race data including lap times, position changes, qualifying, and pit stops.
-        </p>
-        
         <Tabs defaultValue="raceAnalytics" className="w-full">
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="raceAnalytics">Race Analytics</TabsTrigger>
-            <TabsTrigger value="seasonComparison">Season Comparison</TabsTrigger>
+          <TabsList className={cn(
+            "grid grid-cols-2 w-full",
+            isGlass && "bg-white/5 border border-white/10"
+          )}>
+            <TabsTrigger value="raceAnalytics" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Race Analytics
+            </TabsTrigger>
+            <TabsTrigger value="seasonComparison" className="gap-2">
+              <GitCompare className="h-4 w-4" />
+              Season Comparison
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="raceAnalytics" className="mt-6">
-            <Alert className="mb-4 bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Analyze detailed race data including lap times, position changes, qualifying performance, and pit stop strategies for any race in the selected season.
-              </AlertDescription>
-            </Alert>
+          <TabsContent value="raceAnalytics" className="mt-6 space-y-4">
+            {/* Info Alert */}
+            <div className={cn(
+              "flex items-start gap-3 p-3 rounded-lg border text-sm",
+              isGlass 
+                ? "bg-blue-500/10 border-blue-500/20 text-blue-300" 
+                : "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300"
+            )}>
+              <Info className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                Analyze detailed race data including lap times, position changes, qualifying performance, and pit stop strategies.
+              </span>
+            </div>
 
-            <Card className="mb-6">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Race Selection</CardTitle>
-                <CardDescription>Select the season and race to analyze</CardDescription>
+            {/* Race Selection Card */}
+            <Card 
+              className={cn("overflow-hidden", isGlass && "border-white/10")}
+              style={cardStyle}
+            >
+              <CardHeader className="pb-3 pt-4 px-4">
+                <div className="flex items-center gap-2">
+                  <Flag className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-base">Race Selection</CardTitle>
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-4">
-                    <div className="w-full xs:w-auto">
-                      <label className="text-sm font-medium mb-1 block">Year</label>
-                      <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
-                    </div>
-                    <div className="w-full xs:w-auto flex-1">
-                      <label className="text-sm font-medium mb-1 block">Race</label>
-                      {isRaceScheduleLoading ? (
-                        <div className="w-full flex items-center space-x-2">
-                          <Skeleton className="h-10 w-full" />
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        </div>
-                      ) : (
-                        <Select value={selectedRace} onValueChange={handleRaceChange}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select race" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {raceScheduleData?.data?.map((race: any) => (
-                              <SelectItem key={race.round} value={race.round}>
+              <CardContent className="px-4 pb-4">
+                <div className="flex flex-wrap gap-4">
+                  <div className="w-full sm:w-auto">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Season</label>
+                    <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
+                  </div>
+                  <div className="w-full sm:flex-1 sm:min-w-[200px]">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Grand Prix</label>
+                    {isRaceScheduleLoading ? (
+                      <div className="w-full flex items-center gap-2">
+                        <Skeleton className="h-10 w-full" />
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <Select value={selectedRace} onValueChange={handleRaceChange}>
+                        <SelectTrigger className={cn(
+                          "w-full",
+                          isGlass && "bg-white/5 border-white/10"
+                        )}>
+                          <SelectValue placeholder="Select race" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {raceScheduleData?.data?.map((race: any) => (
+                            <SelectItem key={race.round} value={race.round}>
+                              <span className="flex items-center gap-2">
+                                <span className="text-muted-foreground text-xs">R{race.round}</span>
                                 {race.Circuit?.circuitName || cleanRaceName(race.raceName)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
             
+            {/* Circuit Info Display */}
+            {selectedRaceInfo && (
+              <div className={cn(
+                "flex flex-wrap items-center gap-4 p-3 rounded-lg border text-sm",
+                isDark 
+                  ? "bg-zinc-900/50 border-zinc-800" 
+                  : "bg-zinc-50 border-zinc-200",
+                isGlass && "bg-white/5 border-white/10"
+              )}>
+                {/* Country flag and race name */}
+                <div className="flex items-center gap-2">
+                  <CountryFlag 
+                    country={selectedRaceInfo.Circuit?.Location?.country || ''} 
+                    className="h-4 w-6"
+                  />
+                  <span className="font-semibold">{cleanRaceName(selectedRaceInfo.raceName)}</span>
+                </div>
+                
+                {/* Circuit name */}
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span className="text-xs">{selectedRaceInfo.Circuit?.circuitName}</span>
+                </div>
+                
+                {/* Location */}
+                <div className="text-xs text-muted-foreground">
+                  {selectedRaceInfo.Circuit?.Location?.locality}, {selectedRaceInfo.Circuit?.Location?.country}
+                </div>
+                
+                {/* Date */}
+                <div className="flex items-center gap-1.5 text-muted-foreground ml-auto">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="text-xs">
+                    {new Date(selectedRaceInfo.date).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </span>
+                </div>
+                
+                {/* Round badge */}
+                <Badge variant="outline" className="text-xs">
+                  Round {selectedRaceInfo.round}
+                </Badge>
+              </div>
+            )}
+            
+            {/* Analysis Tabs */}
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
               {/* Tabs for larger screens */}
               <div className="hidden md:block">
-                <TabsList className="grid w-full grid-cols-5">
-                  <TabsTrigger value="lapTimes" className="flex gap-2 items-center">
-                    <Clock className="h-4 w-4" />
-                    <span>Race Times</span>
+                <TabsList className={cn(
+                  "grid w-full grid-cols-5",
+                  isGlass && "bg-white/5 border border-white/10"
+                )}>
+                  <TabsTrigger value="lapTimes" className="gap-1.5 text-xs">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>Lap Times</span>
                   </TabsTrigger>
-                  <TabsTrigger value="positions" className="flex gap-2 items-center">
-                    <TrendingUp className="h-4 w-4" />
-                    <span>Race Position Changes</span>
+                  <TabsTrigger value="positions" className="gap-1.5 text-xs">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    <span>Positions</span>
                   </TabsTrigger>
-                  <TabsTrigger value="qualifying" className="flex gap-2 items-center">
-                    <Flag className="h-4 w-4" />
+                  <TabsTrigger value="qualifying" className="gap-1.5 text-xs">
+                    <Flag className="h-3.5 w-3.5" />
                     <span>Qualifying</span>
                   </TabsTrigger>
-                  <TabsTrigger value="progression" className="flex gap-2 items-center">
-                    <TrendingUpIcon className="h-4 w-4" />
-                    <span>Quali to Race</span>
+                  <TabsTrigger value="progression" className="gap-1.5 text-xs">
+                    <TrendingUpIcon className="h-3.5 w-3.5" />
+                    <span>Quali → Race</span>
                   </TabsTrigger>
-                  <TabsTrigger value="pitstops" className="flex gap-2 items-center">
-                    <Wrench className="h-4 w-4" />
+                  <TabsTrigger value="pitstops" className="gap-1.5 text-xs">
+                    <Wrench className="h-3.5 w-3.5" />
                     <span>Pit Stops</span>
                   </TabsTrigger>
                 </TabsList>
@@ -159,20 +260,23 @@ const Analytics = () => {
               {/* Dropdown for mobile screens */}
               <div className="block md:hidden mb-4">
                 <Select value={selectedTab} onValueChange={setSelectedTab}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className={cn(
+                    "w-full",
+                    isGlass && "bg-white/5 border-white/10"
+                  )}>
                     <SelectValue placeholder="Select analysis" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="lapTimes">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
-                        <span>Race Times</span>
+                        <span>Lap Times</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="positions">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="h-4 w-4" />
-                        <span>Race Position Changes</span>
+                        <span>Position Changes</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="qualifying">
@@ -197,17 +301,28 @@ const Analytics = () => {
                 </Select>
               </div>
               
-              <TabsContent value="lapTimes" className="space-y-4 mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Race Time Analysis</CardTitle>
-                    <CardDescription>
-                      Compare lap-by-lap times between drivers during a race.
+              <TabsContent value="lapTimes" className="mt-4">
+                <Card 
+                  className={cn("overflow-hidden", isGlass && "border-white/10")}
+                  style={cardStyle}
+                >
+                  <CardHeader className="pb-2 pt-3 px-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">Lap Time Analysis</CardTitle>
+                      </div>
+                      <Badge variant="outline" className="text-xs font-normal">
+                        MUI X Charts
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Compare lap-by-lap times between drivers
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[600px]">
+                  <CardContent className="min-h-[480px] px-4 pb-4">
                     {selectedTab === "lapTimes" && (
-                      <LapTimeChart 
+                      <MuiLapTimeChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
@@ -216,17 +331,28 @@ const Analytics = () => {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="positions" className="space-y-4 mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Race Position Changes</CardTitle>
-                    <CardDescription>
-                      Track how drivers' positions change throughout the race.
+              <TabsContent value="positions" className="mt-4">
+                <Card 
+                  className={cn("overflow-hidden", isGlass && "border-white/10")}
+                  style={cardStyle}
+                >
+                  <CardHeader className="pb-2 pt-3 px-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">Position Changes</CardTitle>
+                      </div>
+                      <Badge variant="outline" className="text-xs font-normal">
+                        MUI X Charts
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Track how positions change throughout the race
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[600px] p-4">
+                  <CardContent className="min-h-[480px] px-4 pb-4">
                     {selectedTab === "positions" && (
-                      <PositionChangeChart 
+                      <MuiPositionChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
@@ -235,17 +361,28 @@ const Analytics = () => {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="qualifying" className="space-y-4 mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Qualifying Analysis</CardTitle>
-                    <CardDescription>
-                      Compare qualifying lap times across Q1, Q2, and Q3 sessions.
+              <TabsContent value="qualifying" className="mt-4">
+                <Card 
+                  className={cn("overflow-hidden", isGlass && "border-white/10")}
+                  style={cardStyle}
+                >
+                  <CardHeader className="pb-2 pt-3 px-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Flag className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">Qualifying Analysis</CardTitle>
+                      </div>
+                      <Badge variant="outline" className="text-xs font-normal">
+                        MUI X Charts
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Compare qualifying times across Q1, Q2, and Q3
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[600px] p-4">
+                  <CardContent className="min-h-[400px] max-h-[600px] overflow-auto px-4 pb-4">
                     {selectedTab === "qualifying" && (
-                      <QualifyingChart 
+                      <MuiQualifyingChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
@@ -254,17 +391,28 @@ const Analytics = () => {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="progression" className="space-y-4 mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Qualifying to Race Progression</CardTitle>
-                    <CardDescription>
-                      Visualize how drivers progress from qualifying positions to race results.
+              <TabsContent value="progression" className="mt-4">
+                <Card 
+                  className={cn("overflow-hidden", isGlass && "border-white/10")}
+                  style={cardStyle}
+                >
+                  <CardHeader className="pb-2 pt-3 px-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingUpIcon className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">Qualifying to Race Progression</CardTitle>
+                      </div>
+                      <Badge variant="outline" className="text-xs font-normal">
+                        Nivo Sankey
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Visualize progression from qualifying to race results
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[600px] p-4">
+                  <CardContent className="h-[550px] px-4 pb-4">
                     {selectedTab === "progression" && (
-                      <ProgressionChart 
+                      <MuiSankeyChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
@@ -273,17 +421,28 @@ const Analytics = () => {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="pitstops" className="space-y-4 mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Pit Stop Analysis</CardTitle>
-                    <CardDescription>
-                      Individual pit stop durations for each driver. Duration includes pit entry, exit and red flag time, if necessary (MM:ss.sss format).
+              <TabsContent value="pitstops" className="mt-4">
+                <Card 
+                  className={cn("overflow-hidden", isGlass && "border-white/10")}
+                  style={cardStyle}
+                >
+                  <CardHeader className="pb-2 pt-3 px-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wrench className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base">Pit Stop Analysis</CardTitle>
+                      </div>
+                      <Badge variant="outline" className="text-xs font-normal">
+                        MUI X Data Grid
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Individual pit stop durations for each driver
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="h-[600px] p-4">
+                  <CardContent className="h-[550px] px-4 pb-4">
                     {selectedTab === "pitstops" && (
-                      <PitStopTable 
+                      <MuiPitStopTable 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
@@ -295,12 +454,18 @@ const Analytics = () => {
           </TabsContent>
           
           <TabsContent value="seasonComparison" className="mt-6">
-            <Alert className="mb-4 bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800">
-              <GitCompare className="h-4 w-4 mr-2 flex-shrink-0" />
-              <AlertDescription className="pl-0">
+            {/* Info Alert */}
+            <div className={cn(
+              "flex items-start gap-3 p-3 rounded-lg border text-sm mb-4",
+              isGlass 
+                ? "bg-amber-500/10 border-amber-500/20 text-amber-300" 
+                : "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300"
+            )}>
+              <GitCompare className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
                 Compare lap times, position changes, and qualifying data between different seasons to see how performance has evolved.
-              </AlertDescription>
-            </Alert>
+              </span>
+            </div>
             
             <YearComparisonAnalytics />
           </TabsContent>

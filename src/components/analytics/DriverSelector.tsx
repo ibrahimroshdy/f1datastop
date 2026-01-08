@@ -1,12 +1,14 @@
 import React from 'react';
-import { Badge } from "@/components/ui/badge";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
+import { Zap } from "lucide-react";
 
 interface Driver {
   driverId: string;
   code: string;
   name: string;
+  lastName?: string;
   team: string;
   finishPosition: number;
   hasFastestLap?: boolean;
@@ -22,6 +24,14 @@ interface DriverSelectorProps {
   getAverageTime: (driverCode: string) => number | null;
 }
 
+// Format time function
+const formatTime = (seconds: number): string => {
+  if (!seconds) return "";
+  const mins = Math.floor(seconds / 60);
+  const secs = (seconds % 60).toFixed(1);
+  return `${mins}:${secs.padStart(4, '0')}`;
+};
+
 const DriverSelector: React.FC<DriverSelectorProps> = ({
   availableDrivers,
   selectedDrivers,
@@ -31,85 +41,96 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
   fastestLapTime,
   getAverageTime
 }) => {
+  const { baseTheme } = useTheme();
+  const isDark = baseTheme === 'dark';
+
+  // Track teammates for line indicator
+  const teamDriverCounts: { [team: string]: number } = {};
+
   return (
-    <div className="flex flex-col gap-3">
-      {/* Legend */}
-      <div className="flex flex-wrap gap-2 items-center text-sm">
-        <span className="font-medium">Fastest Lap:</span>
-        <Badge className="flex items-center gap-1 bg-purple-600 text-white">
-          FL
-        </Badge>
+    <div className="flex flex-col gap-1">
+      {/* Compact grid of driver chips */}
+      <div className={cn(
+        "grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-0.5 p-1 rounded border",
+        isDark ? "bg-zinc-900/30 border-zinc-800" : "bg-zinc-50/50 border-zinc-200"
+      )}>
+        {availableDrivers.map(driver => {
+          const isSelected = selectedDrivers.includes(driver.code);
+          const averageTime = getAverageTime(driver.code);
+          const hasFastestLap = fastestLapTime && driver.code === fastestLapTime.driver;
+          const teamColor = TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666";
+          
+          // Track which teammate this is
+          const currentCount = teamDriverCounts[driver.team] || 0;
+          teamDriverCounts[driver.team] = currentCount + 1;
+          const isSecondTeammate = currentCount > 0;
+          
+          // Calculate gap to fastest
+          const gapToFastest = (averageTime && fastestLapTime) 
+            ? (averageTime - fastestLapTime.time).toFixed(1) 
+            : null;
+          
+          return (
+            <button
+              key={driver.code}
+              className={cn(
+                "flex items-center justify-between gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium transition-all",
+                isSelected
+                  ? isDark
+                    ? "bg-zinc-800 text-white"
+                    : "bg-white text-zinc-900 shadow-sm"
+                  : isDark
+                    ? "bg-transparent text-zinc-500 hover:bg-zinc-800/50"
+                    : "bg-transparent text-zinc-400 hover:bg-zinc-100",
+                hasFastestLap && isSelected && "ring-1 ring-purple-500/30"
+              )}
+              onClick={() => onDriverToggle(driver.code)}
+              style={{ 
+                opacity: isSelected ? 1 : 0.6,
+                borderLeft: `2px solid ${teamColor}`,
+              }}
+            >
+              {/* Left: Team dot + Code */}
+              <div className="flex items-center gap-0.5">
+                <div 
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full shrink-0",
+                    isSecondTeammate && "ring-1 ring-offset-0",
+                    isSecondTeammate && (isDark ? "ring-zinc-400" : "ring-zinc-500")
+                  )}
+                  style={{ backgroundColor: teamColor }}
+                />
+                <span className={cn("font-bold", hasFastestLap && "text-purple-400")}>
+                  {driver.code}
+                </span>
+                {hasFastestLap && <Zap className="h-2 w-2 text-purple-400" fill="currentColor" />}
+              </div>
+              
+              {/* Right: Position or time */}
+              <span className="text-[8px] font-mono text-muted-foreground">
+                P{driver.finishPosition}
+              </span>
+            </button>
+          );
+        })}
       </div>
       
-      {/* Scrollable driver grid */}
-      <ScrollArea className="h-auto max-h-[180px] border rounded-md border-gray-200 dark:border-gray-800 p-2">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-          {availableDrivers.map(driver => {
-            const isSelected = selectedDrivers.includes(driver.code);
-            const averageTime = getAverageTime(driver.code);
-            const hasFastestLap = fastestLapTime && driver.code === fastestLapTime.driver;
-            const teamColor = TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666";
-            
-            return (
-              <button
-                key={driver.code}
-                className={`p-2 rounded text-xs flex flex-col transition-all duration-200 ${
-                  isSelected
-                    ? 'bg-gray-800 text-white outline outline-2 outline-gray-400'
-                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-                onClick={() => onDriverToggle(driver.code)}
-                onMouseEnter={() => onDriverHover && onDriverHover(driver.code)}
-                onMouseLeave={() => onDriverHover && onDriverHover(null)}
-                style={{
-                  borderLeft: `4px solid ${teamColor}`,
-                  opacity: isSelected || !onDriverHover ? 1 : 0.7,
-                }}
-              >
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold">{driver.code}</span>
-                  <div className="flex items-center">
-                    <span className="text-[10px] opacity-70 mr-1">P{driver.finishPosition}</span>
-                    {hasFastestLap && (
-                      <Badge className="bg-purple-600 text-[0.65rem] px-1.5 py-0 h-4">
-                        FL
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                
-                {averageTime !== null && (
-                  <div className="grid grid-cols-2 gap-1 w-full text-[10px]">
-                    <div className="flex items-center justify-between border-r pr-1">
-                      <span className="opacity-70">Avg:</span>
-                      <span className="font-medium">
-                        {displayMode === 'absolute' ? formatTime(averageTime) : `+${(averageTime - (fastestLapTime?.time || 0)).toFixed(3)}`}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pl-1">
-                      <span className="opacity-70">Gap:</span>
-                      <span className="font-medium">
-                        {fastestLapTime ? `+${((averageTime || 0) - fastestLapTime.time > 0 ? ((averageTime || 0) - fastestLapTime.time).toFixed(3) : 0)}s` : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </ScrollArea>
+      {/* Inline legend */}
+      <div className="flex items-center gap-2 text-[8px] text-muted-foreground px-0.5">
+        <span className="flex items-center gap-0.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-zinc-500" />1st
+        </span>
+        <span className="flex items-center gap-0.5">
+          <div className={cn("w-1.5 h-1.5 rounded-full bg-zinc-500 ring-1", isDark ? "ring-zinc-400" : "ring-zinc-500")} />2nd
+        </span>
+        {fastestLapTime && (
+          <span className="flex items-center gap-0.5 text-purple-500">
+            <Zap className="h-2 w-2" fill="currentColor" />FL
+          </span>
+        )}
+      </div>
     </div>
   );
-};
-
-// Format time function
-const formatTime = (seconds: number): string => {
-  if (!seconds) return "N/A";
-  
-  const mins = Math.floor(seconds / 60);
-  const secs = (seconds % 60).toFixed(3);
-  return `${mins}:${secs.padStart(6, '0')}`;
 };
 
 export default DriverSelector;

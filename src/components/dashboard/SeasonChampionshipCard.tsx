@@ -1,0 +1,302 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { CalendarDays, Clock } from "lucide-react";
+import { useState, useMemo } from "react";
+import { formatDistance, parseISO, differenceInDays, getMonth, getWeek, getYear } from "date-fns";
+import { useRaceSchedule, useNextRace } from "@/hooks/useF1Data";
+import CountryFlag from "@/components/common/CountryFlag";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { getNextSession } from "@/utils/nextSessionUtils";
+import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
+
+interface SeasonChampionshipCardProps {
+  year?: number;
+}
+
+const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
+  const currentYear = year || new Date().getFullYear();
+  const { data: raceSchedule, isLoading: scheduleLoading } = useRaceSchedule(currentYear);
+  const { data: nextRace, isLoading: nextRaceLoading } = useNextRace(currentYear);
+  const [selectedRace, setSelectedRace] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { isGlass } = useTheme();
+  
+  const now = new Date();
+  const completedRaces = raceSchedule?.data?.filter((race: any) => new Date(race.date) < now) || [];
+  const totalRaces = raceSchedule?.data?.length || 24;
+  const remainingRaces = totalRaces - completedRaces.length;
+  const progressPercentage = (completedRaces.length / totalRaces) * 100;
+  
+  // Check if season is complete
+  const isSeasonComplete = remainingRaces === 0 && completedRaces.length > 0;
+  
+  // Get next 3 upcoming sessions
+  const getUpcomingSessions = () => {
+    if (!raceSchedule?.data) return [];
+    const upcoming = raceSchedule.data
+      .filter((race: any) => new Date(race.date) >= now)
+      .slice(0, 3);
+    return upcoming.map((race: any) => {
+      const { session, raceName, country } = getNextSession(race);
+      return {
+        race,
+        session,
+        raceName,
+        country,
+        date: new Date(session?.date + "T" + (session?.time || "00:00:00Z"))
+      };
+    });
+  };
+  
+  const upcomingSessions = getUpcomingSessions();
+
+  // Race type constants
+  const SINGLE_RACE = "single";
+  const DOUBLE_HEADER = "double";
+  const TRIPLE_HEADER = "triple";
+  
+  const raceTypeColors: Record<string, { bg: string; text: string; border: string }> = {
+    [SINGLE_RACE]: { bg: "bg-muted-foreground/50", text: "text-muted-foreground", border: "border-muted" },
+    [DOUBLE_HEADER]: { bg: "bg-green-500", text: "text-green-500", border: "border-green-500/30" },
+    [TRIPLE_HEADER]: { bg: "bg-purple-500", text: "text-purple-500", border: "border-purple-500/30" },
+    "summer-break": { bg: "bg-sky-400", text: "text-sky-400", border: "border-sky-400/30" },
+  };
+
+  const areConsecutiveWeekends = (date1: Date, date2: Date): boolean => {
+    const week1 = getWeek(date1);
+    const week2 = getWeek(date2);
+    const year1 = getYear(date1);
+    const year2 = getYear(date2);
+    if (year1 === year2) return week2 - week1 === 1;
+    return year2 > year1 && week1 >= 52 && week2 <= 1;
+  };
+
+  const computeSeasonStatus = () => {
+    const races = raceSchedule?.data || [];
+    if (races.length === 0) return { label: "Season", type: SINGLE_RACE };
+
+    const nowTs = now.getTime();
+    let nextIdx = races.findIndex((r: any) => {
+      const dt = r.time ? parseISO(`${r.date}T${r.time}`) : parseISO(`${r.date}T00:00:00Z`);
+      return dt.getTime() >= nowTs;
+    });
+    if (nextIdx === -1) nextIdx = races.length - 1;
+
+    const prevIdx = Math.max(0, nextIdx - 1);
+    const nextRaceData = races[nextIdx];
+    const prevRace = races[prevIdx];
+    const nextDate = nextRaceData ? (nextRaceData.time ? parseISO(`${nextRaceData.date}T${nextRaceData.time}`) : parseISO(`${nextRaceData.date}T00:00:00Z`)) : null;
+    const prevDate = prevRace ? (prevRace.time ? parseISO(`${prevRace.date}T${prevRace.time}`) : parseISO(`${prevRace.date}T00:00:00Z`)) : null;
+
+    let isSummerBreak = false;
+    if (prevDate && nextDate) {
+      const daysGap = differenceInDays(nextDate, prevDate);
+      const isAugust = getMonth(prevDate) === 7 || getMonth(nextDate) === 7;
+      const threshold = isAugust ? 14 : 21;
+      const betweenPrevNext = prevDate.getTime() <= nowTs && nowTs <= nextDate.getTime();
+      if (betweenPrevNext && daysGap > threshold) isSummerBreak = true;
+    }
+
+    if (isSummerBreak) return { label: "Summer Break", type: "summer-break" };
+
+    let start = nextIdx;
+    let end = nextIdx;
+    while (start > 0) {
+      const d1 = parseISO(races[start - 1].date);
+      const d2 = parseISO(races[start].date);
+      if (areConsecutiveWeekends(d1, d2)) start -= 1; else break;
+    }
+    while (end < races.length - 1) {
+      const d1 = parseISO(races[end].date);
+      const d2 = parseISO(races[end + 1].date);
+      if (areConsecutiveWeekends(d1, d2)) end += 1; else break;
+    }
+    const clusterLen = end - start + 1;
+    const headerType = clusterLen >= 3 ? TRIPLE_HEADER : clusterLen === 2 ? DOUBLE_HEADER : SINGLE_RACE;
+    const label = headerType === TRIPLE_HEADER ? "Triple Header" : headerType === DOUBLE_HEADER ? "Double Header" : "Single Race";
+    return { label, type: headerType };
+  };
+
+  const seasonStatus = computeSeasonStatus();
+  const statusColors = raceTypeColors[seasonStatus.type] || raceTypeColors[SINGLE_RACE];
+  const sprintCount = (raceSchedule?.data || []).filter((r: any) => !!r.Sprint).length;
+  
+  // Calculate longest gap
+  const longestBreakDays = useMemo(() => {
+    const races = raceSchedule?.data || [];
+    let maxGap = 0;
+    for (let i = 0; i < races.length - 1; i++) {
+      const a = parseISO(races[i].date);
+      const b = parseISO(races[i + 1].date);
+      maxGap = Math.max(maxGap, differenceInDays(b, a));
+    }
+    return maxGap;
+  }, [raceSchedule?.data]);
+  
+  const openRaceDetails = (race: any) => {
+    setSelectedRace(race);
+    setIsDialogOpen(true);
+  };
+  
+  const glassStyle = isGlass ? {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(var(--glass-blur))',
+    WebkitBackdropFilter: 'blur(var(--glass-blur))',
+    boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
+  } : undefined;
+
+  const isLoading = scheduleLoading || nextRaceLoading;
+
+  if (isLoading) {
+    return (
+      <Card 
+        className={cn("h-full", isGlass && "border-white/10")}
+        style={glassStyle}
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            Season Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Hide the card when season is complete
+  if (isSeasonComplete) {
+    return null;
+  }
+  
+  return (
+    <>
+      <Card 
+        className={cn("h-full", isGlass && "border-white/10")}
+        style={glassStyle}
+      >
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            Season Overview
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          {/* Season Progress */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium text-foreground">{currentYear} Championship Progress</span>
+              <Badge variant="secondary" className="font-mono text-xs">
+                {completedRaces.length}/{totalRaces}
+              </Badge>
+            </div>
+            
+            <div className="space-y-2">
+              <Progress 
+                value={progressPercentage} 
+                className="h-2"
+                indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-500"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{completedRaces.length} completed</span>
+                <span>{remainingRaces} remaining</span>
+              </div>
+            </div>
+            
+            {/* Season Status */}
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <div className={`w-2 h-2 rounded-full ${statusColors.bg}`} />
+              <span className={`text-xs font-medium ${statusColors.text}`}>{seasonStatus.label}</span>
+              <div className={`w-2 h-2 rounded-full ${statusColors.bg}`} />
+            </div>
+          </div>
+          
+          {/* Next Sessions */}
+          <div className={`space-y-3 pt-4 border-t border-dashed ${statusColors.border}`}>
+            <div className="flex items-center gap-2">
+              <Clock className={`h-4 w-4 ${statusColors.text}`} />
+              <span className="text-sm font-medium text-foreground">Next Sessions</span>
+            </div>
+            
+            <div className="space-y-2">
+              {upcomingSessions.map((item, index) => {
+                const timeUntil = formatDistance(item.date, now, { addSuffix: false });
+                const isNext = index === 0;
+                return (
+                  <div
+                    key={item.race.round}
+                    onClick={() => openRaceDetails(item.race)}
+                    className={cn(
+                      "flex items-center justify-between p-2.5 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30",
+                      isNext 
+                        ? "bg-gradient-to-r from-purple-500/10 to-transparent border-purple-500/30" 
+                        : "border-border"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <CountryFlag country={item.country} size={16} svg={true} />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium truncate">{getRaceNameWithoutEmoji(item.raceName)}</div>
+                        <div className="text-xs text-muted-foreground">{item.session?.shortName || 'Race'}</div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      <div className="text-xs font-mono text-muted-foreground">in {timeUntil}</div>
+                      {isNext && (
+                        <Badge variant="outline" className="text-[10px] mt-1 border-purple-500/50 text-purple-600 dark:text-purple-400">
+                          Next
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Season Stats */}
+          <div className="grid grid-cols-4 gap-2 pt-4 border-t border-border">
+            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
+              <div className="text-lg font-mono font-bold text-foreground">{completedRaces.length}</div>
+              <div className="text-[10px] text-muted-foreground">Done</div>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20">
+              <div className="text-lg font-mono font-bold text-foreground">{remainingRaces}</div>
+              <div className="text-[10px] text-muted-foreground">Left</div>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-yellow-500/10 to-transparent border border-yellow-500/20">
+              <div className="text-lg font-mono font-bold text-foreground">{sprintCount}</div>
+              <div className="text-[10px] text-muted-foreground">Sprints</div>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20">
+              <div className="text-lg font-mono font-bold text-foreground">{longestBreakDays}d</div>
+              <div className="text-[10px] text-muted-foreground">Max Gap</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Race Detail Dialog */}
+      {selectedRace && (
+        <RaceDetailDialog 
+          isOpen={isDialogOpen} 
+          onClose={() => { setSelectedRace(null); setIsDialogOpen(false); }} 
+          race={selectedRace} 
+        />
+      )}
+    </>
+  );
+};
+
+export default SeasonChampionshipCard;

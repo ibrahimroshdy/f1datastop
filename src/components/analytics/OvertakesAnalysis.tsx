@@ -1,9 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Car } from "lucide-react";
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Car, Loader2, AlertCircle, Trophy, Users, Zap, Play, Pause, RotateCcw, Flag, ChevronUp, ChevronDown, Wrench, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { usePositionData, useDrivers, useOvertakes, useLaps, useStartingGrid, useOpenF1SessionFromErgast } from "@/hooks/useOpenF1Data";
-import RaceAnimationFlow from './RaceAnimationFlow';
-import DriverStatsGrid from './DriverStatsGrid';
+import { getRaceResults, getPitStops as getErgastPitStops } from "@/services/f1Service";
+import { LineChart } from '@mui/x-charts/LineChart';
+import { useTheme } from '@/context/ThemeContext';
+import { cn } from '@/lib/utils';
+import MuiThemeWrapper from './MuiThemeWrapper';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface OvertakesAnalysisProps {
   year: number;
@@ -12,355 +19,686 @@ interface OvertakesAnalysisProps {
   sessionName?: string;
 }
 
-interface PositionSnapshot {
-  timestamp: Date;
-  positions: { [driverNumber: number]: number };
-  overtakes: Array<{
-    overtaking: number;
-    overtaken: number;
-    position: number;
-  }>;
-  lapNumber?: number;
-  totalLaps?: number;
-}
-
 interface DriverInfo {
   number: number;
   name: string;
   acronym: string;
   team: string;
   color: string;
+  gridPosition: number;
+  finalPosition: number;
 }
+
+interface PitStopInfo {
+  driver: string;
+  driverNumber: number;
+  lap: number;
+  duration: string;
+  stop: number;
+}
+
+interface DriverStats {
+  driver_number: number;
+  acronym: string;
+  team: string;
+  color: string;
+  overtakes_made: number;
+  overtakes_suffered: number;
+  net_overtakes: number;
+  starting_position: number;
+  final_position: number;
+  position_change: number;
+  status: 'running' | 'dnf';
+}
+
+// F1 Team Colors 2024
+const teamColors: { [key: string]: string } = {
+  "Red Bull Racing": "#3671C6",
+  "red_bull": "#3671C6",
+  "Ferrari": "#E8002D", 
+  "ferrari": "#E8002D",
+  "Mercedes": "#27F4D2",
+  "mercedes": "#27F4D2",
+  "McLaren": "#FF8000",
+  "mclaren": "#FF8000",
+  "Aston Martin": "#229971",
+  "aston_martin": "#229971",
+  "Alpine": "#FF87BC",
+  "alpine": "#FF87BC",
+  "Williams": "#64C4FF",
+  "williams": "#64C4FF",
+  "RB": "#6692FF",
+  "rb": "#6692FF",
+  "Haas F1 Team": "#B6BABD",
+  "haas": "#B6BABD",
+  "Kick Sauber": "#52E252",
+  "sauber": "#52E252"
+};
 
 const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
   year,
   round,
   sessionKey: externalSessionKey,
-  sessionName = "Race"
 }) => {
   const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
-  const [focusMode, setFocusMode] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("animation");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentProgress, setCurrentProgress] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState(2);
+  const [ergastData, setErgastData] = useState<{ results: any[]; pitStops: PitStopInfo[] }>({ results: [], pitStops: [] });
+  const [isErgastLoading, setIsErgastLoading] = useState(true);
+  const animationRef = useRef<number>();
+  const lastUpdateRef = useRef<number>(0);
+  
+  const { isGlass, baseTheme } = useTheme();
+  const isDark = baseTheme === 'dark';
 
-  // Get the OpenF1 session (always call this hook)
-  const { 
-    data: sessionData, 
-    isLoading: isSessionLoading 
-  } = useOpenF1SessionFromErgast(year, round, "Race");
+  // Fetch Ergast data for accurate grid positions and pit stops
+  useEffect(() => {
+    const fetchErgastData = async () => {
+      setIsErgastLoading(true);
+      try {
+        const [resultsRes, pitStopsRes] = await Promise.all([
+          getRaceResults(year, round),
+          getErgastPitStops(year, round)
+        ]);
 
-  // Use the external session key if provided, otherwise use the one from the hook
+        const results = resultsRes?.data?.Results || [];
+        
+        // Process pit stops
+        const pitStopsByDriver: { [driver: string]: number } = {};
+        const pitStops: PitStopInfo[] = (pitStopsRes?.data?.Races?.[0]?.PitStops || []).map((ps: any) => {
+          pitStopsByDriver[ps.driverId] = (pitStopsByDriver[ps.driverId] || 0) + 1;
+          return {
+            driver: ps.driverId,
+            driverNumber: 0, // Will be mapped later
+            lap: parseInt(ps.lap, 10),
+            duration: ps.duration,
+            stop: pitStopsByDriver[ps.driverId]
+          };
+        });
+
+        setErgastData({ results, pitStops });
+      } catch (error) {
+        console.error('Error fetching Ergast data:', error);
+      } finally {
+        setIsErgastLoading(false);
+      }
+    };
+
+    if (year && round) {
+      fetchErgastData();
+    }
+  }, [year, round]);
+
+  const { data: sessionData, isLoading: isSessionLoading } = useOpenF1SessionFromErgast(year, round, "Race");
   const effectiveSessionKey = externalSessionKey || sessionData?.data?.session_key || 0;
 
-  // ALWAYS call these data hooks unconditionally
   const { data: positionData, isLoading: isPositionLoading } = usePositionData(effectiveSessionKey);
   const { data: driversData, isLoading: isDriversLoading } = useDrivers(effectiveSessionKey);
   const { data: overtakesData, isLoading: isOvertakesLoading } = useOvertakes(effectiveSessionKey);
   const { data: lapsData, isLoading: isLapsLoading } = useLaps(effectiveSessionKey);
   const { data: startingGridData, isLoading: isStartingGridLoading } = useStartingGrid(effectiveSessionKey);
-  
-  // Debug the starting grid data
-  console.log(`Starting grid debug - sessionKey: ${effectiveSessionKey}, loading: ${isStartingGridLoading}, data:`, startingGridData);
 
-  // Team colors mapping
-  const teamColors: { [key: string]: string } = {
-    "Red Bull Racing": "#1E90FF",
-    "Ferrari": "#FF0000", 
-    "Mercedes": "#00D2BE",
-    "McLaren": "#FF8700",
-    "Aston Martin": "#006F62",
-    "Alpine": "#0090FF",
-    "Williams": "#005AFF",
-    "RB": "#1E41FF",
-    "Haas F1 Team": "#FFFFFF",
-    "Kick Sauber": "#32CD32"
-  };
-
-  // Process driver information
+  // Build driver map with grid positions from Ergast (more reliable)
   const drivers = useMemo((): { [key: number]: DriverInfo } => {
-    if (!driversData?.data) {
-      console.log('No drivers data available');
-      return {};
-    }
-    
-    console.log(`Processing ${driversData.data.length} drivers from API`);
+    if (!driversData?.data) return {};
     
     const driverMap: { [key: number]: DriverInfo } = {};
+    
     driversData.data.forEach((driver: any) => {
+      // Find matching Ergast result for grid position
+      const ergastResult = ergastData.results.find((r: any) => 
+        r.Driver?.code === driver.name_acronym ||
+        r.Driver?.driverId?.toLowerCase().includes(driver.last_name?.toLowerCase())
+      );
+      
       driverMap[driver.driver_number] = {
         number: driver.driver_number,
         name: `${driver.first_name} ${driver.last_name}`,
-        acronym: driver.name_acronym || `${driver.first_name.charAt(0)}${driver.last_name.charAt(0)}${driver.driver_number}`,
+        acronym: driver.name_acronym || `${driver.first_name?.charAt(0)}${driver.last_name?.charAt(0)}`,
         team: driver.team_name || 'Unknown',
-        color: teamColors[driver.team_name] || '#666666'
+        color: teamColors[driver.team_name] || teamColors[driver.team_name?.toLowerCase().replace(/\s+/g, '_')] || '#666666',
+        gridPosition: ergastResult ? parseInt(ergastResult.grid) : 20,
+        finalPosition: ergastResult ? parseInt(ergastResult.position) : 20
       };
-      console.log(`Driver ${driver.driver_number}: ${driver.first_name} ${driver.last_name} (${driver.team_name})`);
     });
     
-    console.log(`Created driver map with ${Object.keys(driverMap).length} drivers`);
     return driverMap;
-  }, [driversData]);
+  }, [driversData, ergastData.results]);
 
-  // Precompute related drivers based on overtakes data for the selected driver
-  const relatedDrivers = useMemo((): Set<number> => {
-    const related = new Set<number>();
-    if (!selectedDriver) return related;
-    const list: any[] = overtakesData?.data || [];
-    for (const o of list) {
-      if (o.overtaking_driver_number === selectedDriver) {
-        related.add(o.overtaken_driver_number);
-      }
-      if (o.overtaken_driver_number === selectedDriver) {
-        related.add(o.overtaking_driver_number);
-      }
-    }
-    return related;
-  }, [selectedDriver, overtakesData]);
+  // Map pit stops to driver numbers
+  const pitStopsWithNumbers = useMemo(() => {
+    return ergastData.pitStops.map(ps => {
+      const driver = Object.values(drivers).find(d => 
+        d.acronym.toLowerCase() === ps.driver.substring(0, 3).toLowerCase() ||
+        d.name.toLowerCase().includes(ps.driver.toLowerCase())
+      );
+      return { ...ps, driverNumber: driver?.number || 0 };
+    }).filter(ps => ps.driverNumber > 0);
+  }, [ergastData.pitStops, drivers]);
 
-  // Process position data into snapshots with lap information
-  const positionSnapshots = useMemo((): PositionSnapshot[] => {
-    // POSITION DATA is now the primary source - we need it to initialize drivers
-    if (!positionData?.data) return [];
+  const totalLaps = useMemo(() => {
+    if (!lapsData?.data) return 0;
+    return Math.max(...lapsData.data.map((lap: any) => lap.lap_number || 0));
+  }, [lapsData]);
 
-    const positionsByTime: { [timestamp: string]: { [driverNumber: number]: number } } = {};
-    const overtakesByTime: { [timestamp: string]: Array<{overtaking: number, overtaken: number, position: number}> } = {};
-    const lapsByTime: { [timestamp: string]: number } = {};
+  // Build position data by lap
+  const positionsByLap = useMemo(() => {
+    if (!positionData?.data || !lapsData?.data) return {};
     
-    // Process position data - this is our primary source
-    // Only include valid positions (1-20, or reasonable race positions)
-    positionData.data.forEach((pos: any) => {
-      // Filter out invalid positions
-      if (!pos.position || pos.position < 1 || pos.position > 25) {
-        return; // Skip invalid position data
+    const lapTimestamps: { [lap: number]: Date } = {};
+    lapsData.data.forEach((lap: any) => {
+      if (lap.lap_number && lap.date_start) {
+        lapTimestamps[lap.lap_number] = new Date(lap.date_start);
       }
-      
-      const timestamp = new Date(pos.date).toISOString();
-      if (!positionsByTime[timestamp]) positionsByTime[timestamp] = {};
-      positionsByTime[timestamp][pos.driver_number] = pos.position;
     });
-
-    // Process overtakes data for statistics (optional)
-    if (overtakesData?.data) {
-      overtakesData.data.forEach((overtake: any) => {
-        const timestamp = new Date(overtake.date).toISOString();
-        if (!overtakesByTime[timestamp]) overtakesByTime[timestamp] = [];
-        overtakesByTime[timestamp].push({
-          overtaking: overtake.overtaking_driver_number,
-          overtaken: overtake.overtaken_driver_number,
-          position: overtake.position
-        });
-      });
-    }
-
-    // Process lap data to map timestamps to lap numbers
-    if (lapsData?.data) {
-      lapsData.data.forEach((lap: any) => {
-        if (lap.date_start) {
-          const timestamp = new Date(lap.date_start).toISOString();
-          lapsByTime[timestamp] = lap.lap_number;
-        }
-      });
-    }
-
-    // Calculate total laps
-    const totalLaps = lapsData?.data ? Math.max(...lapsData.data.map((lap: any) => lap.lap_number || 0)) : 0;
-
-    // Create initial snapshot - combine starting grid with all drivers that appear in data
-    const initialPositions: { [driverNumber: number]: number } = {};
     
-    // Add from starting grid if available
+    const positionsByDriver: { [driverNumber: number]: { [lap: number]: number } } = {};
+    
+    // Initialize with grid positions from Ergast (lap 0)
+    Object.entries(drivers).forEach(([numStr, driver]) => {
+      const num = parseInt(numStr);
+      positionsByDriver[num] = { 0: driver.gridPosition };
+    });
+    
+    // Also try OpenF1 starting grid as fallback
     if (startingGridData?.data) {
-      startingGridData.data.forEach((gridEntry: any) => {
-        initialPositions[gridEntry.driver_number] = gridEntry.position;
-      });
-    }
-    
-    // If no starting grid, create initial positions from first appearance of each driver
-    if (Object.keys(initialPositions).length === 0) {
-      console.log('No starting grid data, creating initial positions from position data');
-      const allDriversInRace = new Set<number>();
-      
-      // Collect all drivers that appear in position data
-      Object.values(positionsByTime).forEach(positions => {
-        Object.keys(positions).forEach(driverNum => {
-          allDriversInRace.add(parseInt(driverNum));
-        });
-      });
-      
-      // Create initial positions for each driver based on their first appearance
-      let position = 1;
-      Array.from(allDriversInRace).sort((a, b) => a - b).forEach(driverNum => {
-        if (position <= 20) {
-          initialPositions[driverNum] = position++;
+      startingGridData.data.forEach((grid: any) => {
+        if (!positionsByDriver[grid.driver_number]) {
+          positionsByDriver[grid.driver_number] = {};
+        }
+        // Only use if we don't have Ergast data
+        if (!positionsByDriver[grid.driver_number][0] || positionsByDriver[grid.driver_number][0] === 20) {
+          positionsByDriver[grid.driver_number][0] = grid.position;
         }
       });
-      
-      console.log(`Created initial positions for ${Object.keys(initialPositions).length} drivers:`, 
-        Object.entries(initialPositions).map(([num, pos]) => `${num}:P${pos}`).join(', '));
     }
-
-    const timestamps = Object.keys(positionsByTime).sort();
-    const snapshots: PositionSnapshot[] = [];
     
-    // Add initial snapshot if we have any starting positions
-    if (Object.keys(initialPositions).length > 0) {
-      snapshots.push({
-        timestamp: new Date(timestamps[0] || Date.now()),
-        positions: initialPositions,
-        overtakes: [],
-        lapNumber: 1,
-        totalLaps: totalLaps
+    // Process position changes throughout the race
+    positionData.data.forEach((pos: any) => {
+      if (!pos.position || pos.position < 1 || pos.position > 25) return;
+      const posDate = new Date(pos.date);
+      let closestLap = 1;
+      let minDiff = Infinity;
+      Object.entries(lapTimestamps).forEach(([lapNum, lapDate]) => {
+        const diff = Math.abs(posDate.getTime() - lapDate.getTime());
+        if (diff < minDiff) { minDiff = diff; closestLap = parseInt(lapNum); }
       });
-    }
-
-    let lastPositions: { [driverNumber: number]: number } = { ...initialPositions };
-    let currentLap = 1;
-
-    timestamps.forEach((timestamp, index) => {
-      const currentPositions = { ...lastPositions, ...positionsByTime[timestamp] };
-      
-      // Try to determine lap number from timestamp
-      const lapNumber = lapsByTime[timestamp] || currentLap;
-      
-      // Update current lap for next iteration
-      if (lapsByTime[timestamp]) {
-        currentLap = lapsByTime[timestamp];
-      } else if (index > 0) {
-        // Estimate lap based on race progress
-        const progress = index / (timestamps.length - 1);
-        currentLap = Math.max(1, Math.floor(progress * totalLaps));
-      }
-
-      snapshots.push({
-        timestamp: new Date(timestamp),
-        positions: currentPositions,
-        overtakes: overtakesByTime[timestamp] || [],
-        lapNumber: lapNumber,
-        totalLaps: totalLaps
-      });
-      lastPositions = currentPositions;
+      if (!positionsByDriver[pos.driver_number]) positionsByDriver[pos.driver_number] = {};
+      positionsByDriver[pos.driver_number][closestLap] = pos.position;
     });
+    
+    return positionsByDriver;
+  }, [positionData, lapsData, startingGridData, drivers]);
 
-    console.log(`Created ${snapshots.length} position snapshots`);
-    if (snapshots.length > 0) {
-      const firstSnapshot = snapshots[0];
-      const lastSnapshot = snapshots[snapshots.length - 1];
-      console.log(`First snapshot: ${Object.keys(firstSnapshot.positions).length} drivers, positions:`, 
-        Object.entries(firstSnapshot.positions).map(([num, pos]) => `${num}:P${pos}`).join(', '));
-      console.log(`Last snapshot: ${Object.keys(lastSnapshot.positions).length} drivers`);
-    }
-    return snapshots;
-  }, [positionData, overtakesData, lapsData, startingGridData]);
+  const currentLap = useMemo(() => Math.floor((currentProgress / 100) * totalLaps), [currentProgress, totalLaps]);
+  const previousLap = useMemo(() => Math.max(0, currentLap - 1), [currentLap]);
 
-  const isLoading = isSessionLoading || isPositionLoading || isDriversLoading || isOvertakesLoading || isLapsLoading || isStartingGridLoading;
-
-  // Show loading if we're still fetching session data and don't have an external key
-  const showSessionLoading = !externalSessionKey && isSessionLoading;
-  
-  // If we don't have a valid session key, show error
-  const showNoSessionError = !effectiveSessionKey && !isLoading;
-  
-  // Show general loading
-  const showGeneralLoading = isLoading && effectiveSessionKey;
-  
-  // Show no data error only if we have no position data (overtakes are optional)
-  const showNoDataError = !isLoading && effectiveSessionKey && (!positionData?.data || positionData.data.length === 0);
-
-  if (showSessionLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-pulse text-muted-foreground">Loading session data...</div>
-        </div>
-      </div>
+  // Current positions with movement indicators
+  const currentPositions = useMemo(() => {
+    const positions: { 
+      driverNumber: number; 
+      position: number; 
+      previousPosition: number; 
+      gridPosition: number;
+      driver: DriverInfo; 
+      posChange: number;
+      totalChange: number;
+      hasPitStop: boolean;
+    }[] = [];
+    
+    // Get pit stops on current lap
+    const currentLapPitStops = new Set(
+      pitStopsWithNumbers.filter(ps => ps.lap === currentLap).map(ps => ps.driverNumber)
     );
-  }
+    
+    Object.entries(positionsByLap).forEach(([driverNum, lapPositions]) => {
+      const driverNumber = parseInt(driverNum);
+      const driver = drivers[driverNumber];
+      if (!driver) return;
+      
+      let position = 20, previousPosition = 20;
+      for (let lap = currentLap; lap >= 0; lap--) { 
+        if (lapPositions[lap] !== undefined) { 
+          position = lapPositions[lap]; 
+          break; 
+        } 
+      }
+      for (let lap = previousLap; lap >= 0; lap--) { 
+        if (lapPositions[lap] !== undefined) { 
+          previousPosition = lapPositions[lap]; 
+          break; 
+        } 
+      }
+      
+      const gridPosition = driver.gridPosition;
+      const posChange = previousPosition - position;
+      const totalChange = gridPosition - position;
+      
+      positions.push({ 
+        driverNumber, 
+        position, 
+        previousPosition, 
+        gridPosition,
+        driver, 
+        posChange,
+        totalChange,
+        hasPitStop: currentLapPitStops.has(driverNumber)
+      });
+    });
+    
+    return positions.sort((a, b) => a.position - b.position);
+  }, [positionsByLap, drivers, currentLap, previousLap, pitStopsWithNumbers]);
 
-  if (showNoSessionError) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No session data available</p>
-      </div>
-    );
-  }
+  // Driver statistics
+  const driverStats = useMemo((): DriverStats[] => {
+    if (!drivers || Object.keys(drivers).length === 0) return [];
+    const stats: DriverStats[] = [];
+    
+    Object.values(drivers).forEach(driver => {
+      const driverPositions = positionsByLap[driver.number] || {};
+      const startPos = driver.gridPosition;
+      const finalPos = driver.finalPosition;
+      
+      let overtakesMade = 0, overtakesSuffered = 0;
+      if (overtakesData?.data) {
+        overtakesData.data.forEach((ot: any) => {
+          if (ot.overtaking_driver_number === driver.number) overtakesMade++;
+          if (ot.overtaken_driver_number === driver.number) overtakesSuffered++;
+        });
+      }
+      
+      // Check if DNF from Ergast
+      const ergastResult = ergastData.results.find((r: any) => 
+        r.Driver?.code === driver.acronym
+      );
+      const status = ergastResult?.status === 'Finished' || ergastResult?.status?.includes('+') ? 'running' : 'dnf';
+      
+      stats.push({ 
+        driver_number: driver.number, 
+        acronym: driver.acronym, 
+        team: driver.team, 
+        color: driver.color, 
+        overtakes_made: overtakesMade, 
+        overtakes_suffered: overtakesSuffered, 
+        net_overtakes: overtakesMade - overtakesSuffered, 
+        starting_position: startPos, 
+        final_position: finalPos, 
+        position_change: startPos - finalPos, 
+        status 
+      });
+    });
+    return stats.sort((a, b) => a.final_position - b.final_position);
+  }, [drivers, positionsByLap, overtakesData, ergastData.results]);
 
-  if (showGeneralLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Car className="h-5 w-5" />
-            Overtakes Analysis
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <Car className="h-8 w-8 mx-auto mb-2 animate-pulse" />
-              <p className="text-muted-foreground">Loading race data...</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Animation loop
+  useEffect(() => {
+    if (!isPlaying) return;
+    const animate = (timestamp: number) => {
+      const deltaTime = timestamp - lastUpdateRef.current;
+      if (deltaTime >= (1000 / (playbackSpeed * 8))) {
+        setCurrentProgress(prev => { const next = prev + 0.25 * playbackSpeed; return next >= 100 ? 100 : next; });
+        lastUpdateRef.current = timestamp;
+      }
+      if (currentProgress < 100) animationRef.current = requestAnimationFrame(animate);
+      else setIsPlaying(false);
+    };
+    animationRef.current = requestAnimationFrame(animate);
+    return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current); };
+  }, [isPlaying, playbackSpeed, currentProgress]);
 
-  if (showNoDataError) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Car className="h-5 w-5" />
-            Overtakes Analysis
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No position data available for this session</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Chart data for position progression
+  const positionChartData = useMemo(() => {
+    if (!drivers || Object.keys(positionsByLap).length === 0) return { laps: [], series: [] };
+    const laps = Array.from({ length: totalLaps + 1 }, (_, i) => i);
+    const series: Array<{ data: (number | null)[]; label: string; color: string; id: string }> = [];
+    const driversToShow = selectedDriver ? [selectedDriver] : Object.keys(drivers).map(Number).slice(0, 10);
+    driversToShow.forEach(driverNumber => {
+      const driver = drivers[driverNumber]; if (!driver) return;
+      const driverPositions = positionsByLap[driverNumber] || {};
+      let lastKnownPos: number | null = null;
+      const data = laps.map(lap => { if (driverPositions[lap] !== undefined) lastKnownPos = driverPositions[lap]; return lastKnownPos; });
+      series.push({ data, label: driver.acronym, color: driver.color, id: `driver-${driverNumber}` });
+    });
+    return { laps, series };
+  }, [drivers, positionsByLap, totalLaps, selectedDriver]);
 
+  const isLoading = isSessionLoading || isPositionLoading || isDriversLoading || isOvertakesLoading || isLapsLoading || isStartingGridLoading || isErgastLoading;
   const totalOvertakes = overtakesData?.data?.length || 0;
+  const totalPitStops = pitStopsWithNumbers.length;
+
+  // Render position change indicator
+  const PositionChangeIndicator = ({ change, type }: { change: number; type: 'lap' | 'total' }) => {
+    if (change === 0) return null;
+    const isGain = change > 0;
+    return (
+      <div className={cn(
+        "flex items-center gap-0.5 text-[10px] font-bold",
+        isGain ? "text-green-500" : "text-red-500"
+      )}>
+        {isGain ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+        <span>{Math.abs(change)}</span>
+      </div>
+    );
+  };
+
+  if (isLoading) return (
+    <div className="min-h-[400px] flex flex-col items-center justify-center p-4">
+      <Car className="h-8 w-8 text-primary mb-2 animate-pulse" />
+      <p className="text-sm text-muted-foreground">Loading race data...</p>
+    </div>
+  );
+  
+  if (!effectiveSessionKey) return (
+    <div className="min-h-[300px] flex flex-col items-center justify-center p-4 text-center">
+      <AlertCircle className="h-8 w-8 text-muted-foreground mb-3" />
+      <p className="text-muted-foreground">No session data available</p>
+    </div>
+  );
+  
+  if (!positionData?.data || positionData.data.length === 0) return (
+    <div className="min-h-[300px] flex flex-col items-center justify-center p-4 text-center">
+      <Car className="h-8 w-8 text-muted-foreground mb-3" />
+      <p className="text-muted-foreground">No position data available</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Global controls */}
-      <div className="flex items-center justify-end gap-2 flex-wrap">
-        <button
-          className={`px-2.5 sm:px-3 py-1.5 rounded text-[11px] sm:text-xs border transition-colors ${
-            focusMode ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-foreground border-border hover:bg-muted/80'
-          } ${!selectedDriver ? 'opacity-50 cursor-not-allowed' : ''}`}
-          onClick={() => selectedDriver && setFocusMode((v) => !v)}
-          title="Show only the selected driver and their direct overtake rivals"
-        >
-          Focus {focusMode ? 'On' : 'Off'}{!selectedDriver ? ' (select a driver)' : ''}
-        </button>
+    <div className="space-y-4">
+      {/* Stats Row */}
+      <div className="grid grid-cols-5 gap-2">
+        {[
+          { label: 'Overtakes', value: totalOvertakes, icon: Zap, color: 'text-primary' },
+          { label: 'Pit Stops', value: totalPitStops, icon: Wrench, color: 'text-amber-500' },
+          { label: 'Laps', value: totalLaps, icon: Flag, color: 'text-muted-foreground' },
+          { label: 'Drivers', value: Object.keys(drivers).length, icon: Users, color: 'text-muted-foreground' },
+          { label: 'Leader', value: currentPositions[0]?.driver.acronym || '-', icon: Trophy, color: 'text-yellow-500' },
+        ].map(stat => (
+          <div key={stat.label} className={cn("rounded-lg p-2 text-center", isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50")}>
+            <stat.icon className={cn("h-4 w-4 mx-auto mb-1", stat.color)} />
+            <div className="text-lg font-bold">{stat.value}</div>
+            <div className="text-[9px] text-muted-foreground uppercase">{stat.label}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Race Animation Flow */}
-      <RaceAnimationFlow 
-        drivers={drivers}
-        positionSnapshots={positionSnapshots}
-        totalOvertakes={totalOvertakes}
-        selectedDriver={selectedDriver}
-        onDriverSelect={setSelectedDriver}
-        startingGridData={startingGridData}
-        relatedDrivers={relatedDrivers}
-        focusMode={focusMode}
-      />
-      
-      {/* Driver Statistics Grid */}
-      <DriverStatsGrid 
-        drivers={drivers}
-        positionSnapshots={positionSnapshots}
-        overtakesData={overtakesData?.data || []}
-        selectedDriver={selectedDriver}
-        onDriverSelect={setSelectedDriver}
-        startingGridData={startingGridData}
-        relatedDrivers={relatedDrivers}
-        focusMode={focusMode}
-      />
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className={cn("inline-flex h-8", isGlass && "bg-white/5 border border-white/10")}>
+          <TabsTrigger value="animation" className="text-xs px-3">Race Replay</TabsTrigger>
+          <TabsTrigger value="position" className="text-xs px-3">Position Chart</TabsTrigger>
+          <TabsTrigger value="stats" className="text-xs px-3">Results</TabsTrigger>
+        </TabsList>
+
+        {/* Race Replay - Animated Timing Tower */}
+        <TabsContent value="animation" className="mt-3 space-y-3">
+          {/* Controls */}
+          <div className={cn("flex items-center gap-3 p-2 rounded-lg", isDark ? "bg-zinc-900" : "bg-slate-100")}>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setIsPlaying(false); setCurrentProgress(0); }}>
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+            <Button size="sm" className={cn("h-9 w-9 rounded-full p-0", isPlaying ? "bg-red-500" : "bg-green-500")} onClick={() => setIsPlaying(!isPlaying)}>
+              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+            </Button>
+            <Slider value={[currentProgress]} onValueChange={([v]) => setCurrentProgress(v)} max={100} step={0.5} className="flex-1" />
+            <div className={cn("px-2 py-1 rounded font-mono text-xs font-bold min-w-[70px] text-center", isDark ? "bg-black text-white" : "bg-slate-900 text-white")}>
+              LAP {currentLap}/{totalLaps}
+            </div>
+            <div className="flex gap-0.5">
+              {[1, 2, 4].map(s => (
+                <button key={s} onClick={() => setPlaybackSpeed(s)} className={cn("w-6 h-6 rounded text-[10px] font-bold transition-colors", playbackSpeed === s ? "bg-primary text-white" : isDark ? "bg-zinc-800 text-zinc-500 hover:bg-zinc-700" : "bg-slate-200 text-slate-500 hover:bg-slate-300")}>
+                  {s}x
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Timing Tower */}
+          <div className={cn("rounded-xl overflow-hidden", isDark ? "bg-gradient-to-b from-zinc-950 to-zinc-900" : "bg-gradient-to-b from-slate-50 to-white border border-slate-200")}>
+            {/* Header */}
+            <div className={cn("flex items-center justify-between px-3 py-2 border-b", isDark ? "border-zinc-800 bg-black/50" : "border-slate-200 bg-slate-100")}>
+              <div className="flex items-center gap-2">
+                <div className={cn("w-2 h-2 rounded-full animate-pulse", isPlaying ? "bg-red-500" : "bg-green-500")} />
+                <span className="text-xs font-medium">{isPlaying ? 'LIVE' : 'PAUSED'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>GRID</span>
+                <ArrowUp className="h-3 w-3 text-green-500" />
+                <ArrowDown className="h-3 w-3 text-red-500" />
+                <span>NOW</span>
+              </div>
+            </div>
+
+            {/* Driver List */}
+            <div className="p-2 space-y-0.5">
+              <AnimatePresence>
+                {currentPositions.slice(0, 20).map((item) => {
+                  const isGaining = item.posChange > 0;
+                  const isLosing = item.posChange < 0;
+                  
+                  return (
+                    <motion.div
+                      key={item.driverNumber}
+                      layout
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ 
+                        opacity: 1, 
+                        x: 0,
+                        backgroundColor: isGaining ? 'rgba(34, 197, 94, 0.15)' : isLosing ? 'rgba(239, 68, 68, 0.15)' : 'transparent'
+                      }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ 
+                        layout: { type: "spring", stiffness: 350, damping: 30 },
+                        backgroundColor: { duration: 0.5 }
+                      }}
+                      className={cn(
+                        "flex items-center gap-2 px-2 py-1.5 rounded-lg",
+                        isDark ? "hover:bg-white/5" : "hover:bg-slate-100"
+                      )}
+                    >
+                      {/* Position Badge */}
+                      <div className={cn(
+                        "w-7 h-7 rounded flex items-center justify-center text-xs font-bold shrink-0",
+                        item.position === 1 && "bg-gradient-to-br from-yellow-400 to-yellow-600 text-black",
+                        item.position === 2 && "bg-gradient-to-br from-slate-300 to-slate-500 text-black",
+                        item.position === 3 && "bg-gradient-to-br from-amber-500 to-amber-700 text-white",
+                        item.position > 3 && (isDark ? "bg-zinc-800 text-zinc-400" : "bg-slate-200 text-slate-600")
+                      )}>
+                        {item.position}
+                      </div>
+
+                      {/* Team Color Bar */}
+                      <div className="w-1 h-6 rounded-full" style={{ backgroundColor: item.driver.color }} />
+
+                      {/* Driver Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm">{item.driver.acronym}</span>
+                          <span className="text-[10px] text-muted-foreground truncate">{item.driver.team}</span>
+                        </div>
+                      </div>
+
+                      {/* Grid Position */}
+                      <div className="text-[10px] text-muted-foreground font-mono w-6 text-center">
+                        P{item.gridPosition}
+                      </div>
+
+                      {/* Total Change from Grid */}
+                      <div className="w-10 flex justify-center">
+                        {item.totalChange !== 0 ? (
+                          <div className={cn(
+                            "flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-bold",
+                            item.totalChange > 0 ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                          )}>
+                            {item.totalChange > 0 ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            {Math.abs(item.totalChange)}
+                          </div>
+                        ) : (
+                          <Minus className="h-3 w-3 text-muted-foreground" />
+                        )}
+                      </div>
+
+                      {/* Pit Stop Indicator */}
+                      {item.hasPitStop && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 text-[10px] font-bold"
+                        >
+                          <Wrench className="h-3 w-3" />
+                          PIT
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+
+            {/* Race Complete Banner */}
+            {currentProgress >= 100 && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn("flex items-center justify-center gap-2 py-3 border-t", isDark ? "border-zinc-800 bg-black/50" : "border-slate-200 bg-slate-50")}
+              >
+                <Flag className="h-4 w-4 text-primary" />
+                <span className="font-bold">CHEQUERED FLAG</span>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Pit Stop Timeline */}
+          {pitStopsWithNumbers.length > 0 && (
+            <div className={cn("rounded-lg p-3", isGlass ? "bg-white/5 border border-white/10" : "bg-muted/30")}>
+              <div className="flex items-center gap-2 mb-2">
+                <Wrench className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Pit Stops</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {pitStopsWithNumbers.filter(ps => ps.lap <= currentLap).slice(-10).map((ps, idx) => {
+                  const driver = drivers[ps.driverNumber];
+                  return (
+                    <Badge 
+                      key={`${ps.driver}-${ps.stop}`} 
+                      variant="outline" 
+                      className="text-[9px] px-1.5 py-0.5 gap-1"
+                      style={{ borderColor: driver?.color }}
+                    >
+                      <span className="font-bold" style={{ color: driver?.color }}>{driver?.acronym || ps.driver}</span>
+                      <span className="text-muted-foreground">L{ps.lap}</span>
+                      <span className="font-mono text-amber-500">{ps.duration}s</span>
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Position Chart */}
+        <TabsContent value="position" className="mt-3 space-y-3">
+          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
+            {Object.values(drivers).slice(0, 20).map(driver => (
+              <button 
+                key={driver.number} 
+                onClick={() => setSelectedDriver(selectedDriver === driver.number ? null : driver.number)}
+                className={cn(
+                  "flex items-center gap-1 px-1.5 py-1 rounded-full text-[10px] font-medium transition-all",
+                  selectedDriver === driver.number ? "ring-2" : "opacity-70 hover:opacity-100", 
+                  isGlass ? "bg-white/5" : "bg-muted/50"
+                )}
+                style={{ borderColor: driver.color, color: selectedDriver === driver.number ? driver.color : undefined }}
+              >
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: driver.color }} />
+                {driver.acronym}
+              </button>
+            ))}
+          </div>
+          <MuiThemeWrapper>
+            <div className="h-[300px]">
+              <LineChart
+                xAxis={[{ data: positionChartData.laps, label: 'Lap', scaleType: 'linear', min: 0, max: totalLaps, tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' } }]}
+                yAxis={[{ label: 'Position', min: 1, max: 20, reverse: true, tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' } }]}
+                series={positionChartData.series.map(s => ({ ...s, showMark: false, curve: 'stepAfter' as const }))}
+                height={300} 
+                margin={{ left: 40, right: 20, top: 10, bottom: 35 }}
+                slotProps={{ legend: { hidden: true } }}
+                grid={{ vertical: true, horizontal: true }}
+              />
+            </div>
+          </MuiThemeWrapper>
+        </TabsContent>
+
+        {/* Final Results */}
+        <TabsContent value="stats" className="mt-3">
+          {/* Podium */}
+          <div className="flex items-end justify-center gap-3 h-32 mb-4">
+            {[1, 0, 2].map((idx) => {
+              const stat = driverStats[idx];
+              if (!stat) return null;
+              const heights = ['h-24', 'h-20', 'h-16'];
+              const sizes = ['w-14 h-14', 'w-12 h-12', 'w-12 h-12'];
+              return (
+                <motion.div 
+                  key={stat.driver_number} 
+                  initial={{ y: 50, opacity: 0 }} 
+                  animate={{ y: 0, opacity: 1 }} 
+                  transition={{ delay: idx * 0.1 }} 
+                  className="flex flex-col items-center"
+                >
+                  {idx === 0 && <Trophy className="h-4 w-4 text-yellow-500 mb-1" />}
+                  <div 
+                    className={cn(sizes[idx], "rounded-full flex items-center justify-center text-white font-bold text-sm mb-1 shadow-lg", idx === 0 && "ring-2 ring-yellow-500")} 
+                    style={{ backgroundColor: stat.color }}
+                  >
+                    {stat.acronym}
+                  </div>
+                  <div className={cn(heights[idx], "w-16 rounded-t flex flex-col items-center justify-center", 
+                    idx === 0 ? "bg-gradient-to-b from-yellow-400 to-yellow-600" : 
+                    idx === 1 ? "bg-gradient-to-b from-slate-300 to-slate-500" : 
+                    "bg-gradient-to-b from-amber-500 to-amber-700"
+                  )}>
+                    <span className="text-xl font-bold text-white">{stat.final_position}</span>
+                    {stat.position_change !== 0 && (
+                      <span className={cn("text-[10px] font-bold", stat.position_change > 0 ? "text-green-200" : "text-red-200")}>
+                        {stat.position_change > 0 ? '+' : ''}{stat.position_change}
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+          
+          {/* Results Grid */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-1.5">
+            {driverStats.slice(3).map((stat) => (
+              <div 
+                key={stat.driver_number} 
+                className={cn("rounded-lg overflow-hidden", isDark ? "bg-zinc-900" : "bg-white border border-slate-200")}
+              >
+                <div className="h-1" style={{ backgroundColor: stat.color }} />
+                <div className="p-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground text-xs">P{stat.final_position}</span>
+                    {stat.position_change !== 0 && (
+                      <span className={cn("text-[9px] font-bold flex items-center gap-0.5", stat.position_change > 0 ? "text-green-500" : "text-red-500")}>
+                        {stat.position_change > 0 ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
+                        {Math.abs(stat.position_change)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="font-bold text-sm">{stat.acronym}</div>
+                  <div className="text-[9px] text-muted-foreground">
+                    Grid: P{stat.starting_position}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

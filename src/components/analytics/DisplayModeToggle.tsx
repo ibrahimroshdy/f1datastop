@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
+import { ArrowLeftRight } from 'lucide-react';
 
 interface DisplayModeToggleProps {
   displayMode: 'absolute' | 'gap';
@@ -12,10 +12,11 @@ const DisplayModeToggle: React.FC<DisplayModeToggleProps> = ({ displayMode, onTo
     <Button 
       onClick={onToggle}
       variant="outline"
-      className="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300 font-medium text-sm"
       size="sm"
+      className="h-7 gap-1.5 text-xs"
     >
-      Show {displayMode === 'absolute' ? 'Gap Times' : 'Absolute Times'}
+      <ArrowLeftRight className="h-3.5 w-3.5" />
+      {displayMode === 'absolute' ? 'Gap Times' : 'Lap Times'}
     </Button>
   );
 };

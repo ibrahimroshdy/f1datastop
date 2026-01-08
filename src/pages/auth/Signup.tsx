@@ -10,6 +10,7 @@ import ReCaptcha from '@/components/auth/ReCaptcha';
 import { RECAPTCHA } from '@/constants/apiConfig';
 import f1Logo from '@/assets/f1-logo.svg';
 import { useTheme } from '@/context/ThemeContext';
+import { cn } from '@/lib/utils';
 
 const Signup = () => {
   const [firstName, setFirstName] = useState('');
@@ -25,7 +26,7 @@ const Signup = () => {
   const [error, setError] = useState<string | null>(null);
   
   const { signUp, signInWithX } = useAuth();
-  const { theme } = useTheme();
+  const { theme, isGlass } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +65,7 @@ const Signup = () => {
   };
 
   return (
-    <div className={`flex items-center justify-center min-h-screen p-4 ${theme === 'dark' ? 'bg-f1-black' : 'bg-gray-100'}`}>
+    <div className="flex items-center justify-center min-h-screen p-4 bg-background">
       {/* Buy Me A Coffee widget */}
       <div className="fixed right-5 bottom-5 z-50">
         <a 
@@ -86,7 +87,7 @@ const Signup = () => {
         <div className="mb-6">
           <Link 
             to="/" 
-            className={`inline-flex items-center ${theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+            className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Return to Dashboard
@@ -110,13 +111,24 @@ const Signup = () => {
           </a>
         </div>
         
-        <Card className={`w-full ${theme === 'dark' ? 'bg-f1-dark border-gray-800' : 'bg-white border-gray-200'}`}>
+        <Card 
+          className={cn(
+            "w-full",
+            isGlass && "border-white/10"
+          )}
+          style={isGlass ? {
+            background: 'var(--glass-bg)',
+            backdropFilter: 'blur(var(--glass-blur))',
+            WebkitBackdropFilter: 'blur(var(--glass-blur))',
+            boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
+          } : undefined}
+        >
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <img src={f1Logo} alt="F1 DataStop" className="w-16 h-16" />
             </div>
             <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-            <CardDescription className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+            <CardDescription className="text-muted-foreground">
               Enter your information to create an account
             </CardDescription>
           </CardHeader>
@@ -131,7 +143,7 @@ const Signup = () => {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
-                    className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}
+                    className="bg-background"
                   />
                 </div>
                 <div className="space-y-2">
@@ -142,7 +154,7 @@ const Signup = () => {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required
-                    className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}
+                    className="bg-background"
                   />
                 </div>
               </div>
@@ -154,7 +166,7 @@ const Signup = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}
+                  className="bg-background"
                 />
               </div>
               <div className="space-y-2">
@@ -166,7 +178,7 @@ const Signup = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className={theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}
+                  className="bg-background"
                 />
               </div>
               <div className="space-y-2">
@@ -179,12 +191,12 @@ const Signup = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className={`pr-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}`}
+                    className="pr-10 bg-background"
                   />
                   <button
                     type="button"
                     onClick={togglePasswordVisibility}
-                    className={`absolute inset-y-0 right-0 pr-3 flex items-center ${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -200,12 +212,12 @@ const Signup = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    className={`pr-10 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}`}
+                    className="pr-10 bg-background"
                   />
                   <button
                     type="button"
                     onClick={toggleConfirmPasswordVisibility}
-                    className={`absolute inset-y-0 right-0 pr-3 flex items-center ${theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
                   >
                     {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -222,27 +234,27 @@ const Signup = () => {
               </div>
               
               {error && (
-                <div className="p-3 rounded-md bg-red-900/50 border border-red-800 text-white text-sm">
+                <div className="p-3 rounded-md bg-destructive/20 border border-destructive/50 text-destructive-foreground text-sm">
                   {error}
                 </div>
               )}
               
               <Button 
                 type="submit" 
-                className="w-full bg-f1-red hover:bg-red-700" 
+                className="w-full bg-primary hover:bg-primary/90" 
                 disabled={isLoading}
               >
                 {isLoading ? "Creating account..." : "Sign up"}
               </Button>
               
               {/* reCAPTCHA privacy notice */}
-              <div className={`text-xs mt-2 text-center ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+              <div className="text-xs mt-2 text-center text-muted-foreground">
                 This site is protected by reCAPTCHA and the Google{" "}
                 <a 
                   href="https://policies.google.com/privacy"
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className={theme === 'dark' ? 'text-gray-400 hover:text-gray-300 underline' : 'text-gray-600 hover:text-gray-800 underline'}
+                  className="text-primary hover:underline"
                 >
                   Privacy Policy
                 </a>{" "}
@@ -251,7 +263,7 @@ const Signup = () => {
                   href="https://policies.google.com/terms"
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className={theme === 'dark' ? 'text-gray-400 hover:text-gray-300 underline' : 'text-gray-600 hover:text-gray-800 underline'}
+                  className="text-primary hover:underline"
                 >
                   Terms of Service
                 </a>{" "}
@@ -260,13 +272,17 @@ const Signup = () => {
 
               {/* X/Twitter Signup Button */}
               <div className="relative flex items-center justify-center mt-4">
-                <div className={`absolute border-t ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'} w-full`}></div>
-                <span className={`relative ${theme === 'dark' ? 'bg-f1-dark text-gray-400' : 'bg-white text-gray-500'} px-2 text-xs`}>OR</span>
+                <div className="absolute border-t border-border w-full"></div>
+                <span className={cn(
+                  "relative px-2 text-xs text-muted-foreground",
+                  isGlass ? "bg-[var(--glass-bg)]" : "bg-background"
+                )}>OR</span>
               </div>
 
               <Button
                 type="button"
-                className={`w-full mt-4 text-white flex items-center justify-center ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-700 hover:bg-gray-600'}`}
+                variant="outline"
+                className="w-full mt-4 flex items-center justify-center"
                 onClick={() => signInWithX()}
                 disabled={isLoading}
               >
@@ -276,9 +292,9 @@ const Signup = () => {
             </form>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link to="/auth/login" className="text-f1-red hover:underline">
+              <Link to="/auth/login" className="text-primary hover:underline">
                 Sign in
               </Link>
             </p>

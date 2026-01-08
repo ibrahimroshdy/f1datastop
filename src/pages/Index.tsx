@@ -1,17 +1,23 @@
-import { Loader2 } from "lucide-react";
 import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults, useLastRacePitStops } from "@/hooks/useF1Data";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { getTeamColor, getCountryFlag } from "@/utils/teamUtils";
+import { getTeamColor } from "@/utils/teamUtils";
 import HeaderSection from "@/components/dashboard/HeaderSection";
-import CombinedStandingsCard, { CombinedStandingsCardProps } from "@/components/dashboard/CombinedStandingsCard";
-import SeasonalReviewPanel from "@/components/dashboard/SeasonalReviewPanel";
+import CombinedStandingsCard from "@/components/dashboard/CombinedStandingsCard";
+import SeasonChampionshipCard from "@/components/dashboard/SeasonChampionshipCard";
 import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
-import LastRaceResultsChart from "@/components/dashboard/LastRaceResultsChart";
-import LapTimesChart from "@/components/dashboard/LapTimesChart";
 import FastestPitStopCard from "@/components/dashboard/FastestPitStopCard";
 import QualifyingResultsCard from "@/components/dashboard/QualifyingResultsCard";
-import QualifyingToRaceChart from "@/components/dashboard/QualifyingToRaceChart";
+import MuiSankeyChart from "@/components/analytics/MuiSankeyChart";
+import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import { useTheme } from "@/context/ThemeContext";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { GitCompare } from "lucide-react";
+import ReactCountryFlag from "react-country-flag";
+import { getCountryCode } from "@/components/common/CountryFlag";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { F1Skeleton } from "@/components/f1";
+import { F1EmptyState } from "@/components/f1/F1EmptyState";
 
 import useAnalytics from '@/hooks/useAnalytics';
 import useClarity from '@/hooks/useClarity';
@@ -38,12 +44,48 @@ const Index = () => {
     isLoading: isPitStopsLoading
   } = useLastRacePitStops();
 
+  const { isGlass } = useTheme();
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading || isPitStopsLoading;
   const [isOffline, setIsOffline] = useState(false);
   const [standingsExpanded, setStandingsExpanded] = useState(false);
+  const [isSankeyDialogOpen, setIsSankeyDialogOpen] = useState(false);
 
   const analytics = useAnalytics();
   const clarity = useClarity();
+
+  // Check if season is complete
+  const isSeasonComplete = useMemo(() => {
+    if (!raceSchedule?.data) return false;
+    const now = new Date();
+    const completedRaces = raceSchedule.data.filter((race: any) => new Date(race.date) < now);
+    return completedRaces.length === raceSchedule.data.length && completedRaces.length > 0;
+  }, [raceSchedule?.data]);
+
+  // Get last completed race info
+  const lastCompletedRace = useMemo(() => {
+    if (!raceSchedule?.data) return null;
+    const races = raceSchedule.data;
+    const now = new Date();
+    const completedRaces = races.filter((race: any) => new Date(race.date) < now);
+    if (completedRaces.length === 0) return null;
+    const lastRace = completedRaces[completedRaces.length - 1];
+    return {
+      year: parseInt(lastRace.season),
+      round: lastRace.round,
+      raceName: getRaceNameWithoutEmoji(lastRace.raceName),
+      country: lastRace.Circuit?.Location?.country || "",
+      countryCode: getCountryCode(lastRace.Circuit?.Location?.country || "") || "",
+      raceData: lastRace, // Full race data for the dialog
+    };
+  }, [raceSchedule?.data]);
+
+  // Glass styling
+  const glassStyle = isGlass ? {
+    background: 'var(--glass-bg)',
+    backdropFilter: 'blur(var(--glass-blur))',
+    WebkitBackdropFilter: 'blur(var(--glass-blur))',
+    border: '1px solid var(--glass-border)',
+  } : {};
 
   useEffect(() => {
     if (driverStandings?.error || constructorStandings?.error || raceSchedule?.error || lastRaceResults?.error) {
@@ -60,7 +102,7 @@ const Index = () => {
     );
 
     clarity.setTag('page_type', 'homepage');
-    clarity.setTag('page_version', 'v1');
+    clarity.setTag('page_version', 'v2');
   }, [analytics, clarity]);
 
   const nextRace = raceSchedule?.data?.find(race => {
@@ -70,18 +112,17 @@ const Index = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-0 bg-background text-foreground">
+      <div className="min-h-0 bg-transparent text-foreground">
+        {/* Hero Header Section */}
         <HeaderSection nextRace={nextRace} isOffline={isOffline} />
 
         {isLoading ? (
-          <div className="flex items-center justify-center h-96">
-            <Loader2 className="w-12 h-12 animate-spin text-primary" />
-          </div>
+          <DashboardSkeleton />
         ) : (
-          <div className="space-y-6">
-            {/* Top Row: Combined Standings & Seasonal Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
+          <div className="space-y-6 stagger-children">
+            {/* Top Row: Combined Standings & Season Overview */}
+            <div className={`grid grid-cols-1 gap-4 md:gap-6 ${isSeasonComplete ? '' : 'lg:grid-cols-3'}`}>
+              <div className={isSeasonComplete ? '' : 'lg:col-span-2'}>
                 <CombinedStandingsCard 
                   constructorStandings={constructorStandings} 
                   driverStandings={driverStandings}
@@ -89,38 +130,57 @@ const Index = () => {
                   onExpandChange={setStandingsExpanded}
                 />
               </div>
-              <SeasonalReviewPanel expandedView={standingsExpanded} />
+              {!isSeasonComplete && <SeasonChampionshipCard />}
             </div>
 
-            {/* Second Row, top half: 2/3 Qualifying → Race Progression and 1/3 Race Progression */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 items-stretch gap-2 md:gap-3">
-              {/* Left (2/3): Qualifying → Race Progression */}
-              <div className="h-full lg:col-span-2">
-                <QualifyingToRaceChart compact />
-              </div>
-              {/* Right (1/3): Race Progression */}
-              <div className="lg:col-span-1">
-                <LastRaceResultsChart
-                  lastRaceResults={lastRaceResults}
-                  isResultsLoading={isResultsLoading}
-                  getTeamColor={getTeamColor}
-                  compact
-                />
-              </div>
-            </div>
-
-            {/* Second Row, bottom half: Lap Times full width */}
-            <div>
-              <LapTimesChart
-                lastRaceResults={lastRaceResults}
-                isResultsLoading={isResultsLoading}
-                getTeamColor={getTeamColor}
-                compact
-              />
-            </div>
+            {/* Second Row: Qualifying → Race Progression (full width) */}
+            <Card className="bg-card border-border" style={glassStyle}>
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <CardTitle className="flex items-center gap-2">
+                      <GitCompare className="h-5 w-5 text-primary" />
+                      Qualifying to Race Progression
+                    </CardTitle>
+                    <CardDescription>
+                      How drivers progressed from qualifying to race positions
+                    </CardDescription>
+                  </div>
+                  {lastCompletedRace && (
+                    <button 
+                      onClick={() => setIsSankeyDialogOpen(true)}
+                      className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:border-primary/50 transition-all"
+                    >
+                      <ReactCountryFlag
+                        countryCode={lastCompletedRace.countryCode}
+                        svg
+                        style={{ width: "14px", height: "auto" }}
+                        title={lastCompletedRace.country}
+                      />
+                      <span>{lastCompletedRace.raceName}</span>
+                    </button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="p-0 h-[550px]">
+                {lastCompletedRace ? (
+                  <MuiSankeyChart 
+                    year={lastCompletedRace.year} 
+                    round={lastCompletedRace.round} 
+                  />
+                ) : (
+                  <F1EmptyState 
+                    type="season-start"
+                    title="Season Starting Soon"
+                    description="Qualifying to race progression will appear here once the first race is completed."
+                    size="md"
+                  />
+                )}
+              </CardContent>
+            </Card>
 
             {/* Third Row: Race Data Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               <QualifyingResultsCard />
               <LastRaceResultsCard
                 lastRaceResults={lastRaceResults}
@@ -132,7 +192,43 @@ const Index = () => {
           </div>
         )}
       </div>
+      
+      {/* Race Detail Dialog for Sankey Chart */}
+      {lastCompletedRace?.raceData && (
+        <RaceDetailDialog 
+          isOpen={isSankeyDialogOpen} 
+          onClose={() => setIsSankeyDialogOpen(false)} 
+          race={lastCompletedRace.raceData} 
+        />
+      )}
     </MainLayout>
+  );
+};
+
+// Dashboard Loading Skeleton
+const DashboardSkeleton = () => {
+  const { isGlass } = useTheme();
+  
+  return (
+    <div className="space-y-6">
+      {/* Top Row Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-2">
+          <F1Skeleton variant="card" className="h-[400px]" />
+        </div>
+        <F1Skeleton variant="card" className="h-[400px]" />
+      </div>
+      
+      {/* Second Row Skeleton */}
+      <F1Skeleton variant="chart" className="h-[500px]" />
+      
+      {/* Third Row Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <F1Skeleton variant="card" className="h-[300px]" />
+        <F1Skeleton variant="card" className="h-[300px]" />
+        <F1Skeleton variant="card" className="h-[300px]" />
+      </div>
+    </div>
   );
 };
 

@@ -15,6 +15,7 @@ import CountriesLayer from "@/components/calendar/map/CountriesLayer";
 
 const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [containerReady, setContainerReady] = useState(false);
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [sceneData, setSceneData] = useState<any>(null);
   const [hoveredRace, setHoveredRace] = useState<Race | null>(null);
@@ -30,6 +31,13 @@ const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
   
   const { isLoading, data } = useRaceSchedule(selectedYear);
   const races = data?.data || [];
+
+  // Track when container is ready
+  useEffect(() => {
+    if (containerRef.current) {
+      setContainerReady(true);
+    }
+  }, []);
 
   // Handle scene creation
   const handleSceneCreated = useCallback((data) => {
@@ -99,7 +107,7 @@ const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
     <div className="relative w-full h-[70vh] rounded-xl overflow-hidden bg-gray-900 border border-gray-800">
       {/* Globe container */}
       <div ref={containerRef} className="absolute inset-0">
-        {containerRef.current && (
+        {containerReady && (
           <GlobeScene 
             containerRef={containerRef} 
             onSceneCreated={handleSceneCreated}

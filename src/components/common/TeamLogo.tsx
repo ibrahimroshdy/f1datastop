@@ -46,6 +46,11 @@ const TeamLogo = ({
   const { theme } = useTheme();
   const isDark = theme === "dark";
   
+  // Handle undefined/null constructorId
+  if (!constructorId) {
+    return <span className={`text-sm ${className}`}>{alt || 'Unknown'}</span>;
+  }
+  
   // Normalize constructor ID
   const normalizedId = constructorId.toLowerCase().replace("_", "");
   

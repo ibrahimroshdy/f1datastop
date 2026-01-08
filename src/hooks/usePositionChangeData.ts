@@ -11,6 +11,8 @@ export interface Driver {
   team: string;
   finishPosition: number;
   grid: number;
+  status?: string; // Race finish status
+  isDNF?: boolean; // Did Not Finish flag
 }
 
 export interface PositionChangeSummary {
@@ -18,6 +20,8 @@ export interface PositionChangeSummary {
   end: number;
   change: number;
   improved: boolean;
+  isDNF?: boolean;
+  status?: string;
 }
 
 export const usePositionChangeData = (year: number, round: string) => {
@@ -79,14 +83,45 @@ export const usePositionChangeData = (year: number, round: string) => {
   // Set only the first driver selected by default
   useEffect(() => {
     if (raceResultsData?.data?.Results && raceResultsData.data.Results.length > 0) {
-      const drivers = raceResultsData.data.Results.map((result: any) => ({
-        driverId: result.Driver.driverId,
-        code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
-        name: `${result.Driver.givenName} ${result.Driver.familyName}`,
-        team: result.Constructor?.constructorId || "unknown",
-        finishPosition: parseInt(result.position) || 0,
-        grid: parseInt(result.grid) || 0,
-      }));
+      const drivers = raceResultsData.data.Results.map((result: any) => {
+        // Determine DNF status from the status field
+        const status = result.status || '';
+        
+        // Statuses that indicate the driver finished the race (not DNF)
+        const finishedStatuses = ['Finished', 'finished'];
+        const isFinished = finishedStatuses.includes(status) || status.includes('+') || status.includes('Lap');
+        
+        // Known DNF statuses from Ergast API
+        const dnfStatuses = [
+          'Accident', 'Collision', 'Collision damage', 'Engine', 'Gearbox', 'Transmission',
+          'Hydraulics', 'Brakes', 'Suspension', 'Retired', 'Electrical', 'Mechanical',
+          'Wheel', 'Tyre', 'Puncture', 'Overheating', 'Power Unit', 'ERS', 'Turbo',
+          'Oil pressure', 'Fuel pressure', 'Fuel pump', 'Water pressure', 'Clutch',
+          'Driveshaft', 'Electronics', 'Throttle', 'Steering', 'Spun off', 'Damage',
+          'Did not start', 'Did not finish', 'Disqualified', 'Excluded', 'Withdrew',
+          'Not classified', 'Illness', 'Injury', 'Safety'
+        ];
+        
+        // Check if status matches a known DNF pattern
+        const isDNF = !isFinished && (
+          dnfStatuses.some(dnfStatus => 
+            status.toLowerCase().includes(dnfStatus.toLowerCase())
+          ) || 
+          // If position is 0 and status isn't empty and we know they didn't finish
+          (parseInt(result.position) === 0 && status !== '')
+        );
+        
+        return {
+          driverId: result.Driver.driverId,
+          code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
+          name: `${result.Driver.givenName} ${result.Driver.familyName}`,
+          team: result.Constructor?.constructorId || "unknown",
+          finishPosition: parseInt(result.position) || 0,
+          grid: parseInt(result.grid) || 0,
+          status,
+          isDNF,
+        };
+      });
       
       setAvailableDrivers(drivers);
       
@@ -127,13 +162,11 @@ export const usePositionChangeData = (year: number, round: string) => {
     setHoveredDriver(driverCode);
   };
 
-  // Calculate visible drivers (either all selected or just the hovered one)
+  // Visible drivers - always show all selected drivers
+  // Hovering only highlights, doesn't filter (to prevent chart flickering)
   const visibleDrivers = useMemo(() => {
-    if (hoveredDriver) {
-      return selectedDrivers.includes(hoveredDriver) ? [hoveredDriver] : selectedDrivers;
-    }
     return selectedDrivers;
-  }, [hoveredDriver, selectedDrivers]);
+  }, [selectedDrivers]);
 
   // Memoize chart data to avoid recalculations
   const chartData = useMemo(() => {
@@ -167,23 +200,49 @@ export const usePositionChangeData = (year: number, round: string) => {
   }, [lapTimesData, availableDrivers]);
 
   // Find starting and final positions for each driver
+  // Use race results for accurate finish data, not lap data
   const getPositionChangeSummary = (driverCode: string): PositionChangeSummary | null => {
-    if (chartData.length === 0) return null;
+    const driver = availableDrivers.find(d => d.code === driverCode);
+    if (!driver) return null;
     
-    const firstLap = chartData[0];
-    const lastLap = chartData[chartData.length - 1];
+    // Get starting position from grid
+    const startPos = driver.grid || 0;
     
-    if (!firstLap[driverCode] || !lastLap[driverCode]) return null;
+    // Get end position from race results (not lap data)
+    const endPos = driver.finishPosition || 0;
     
-    const startPos = firstLap[driverCode];
-    const endPos = lastLap[driverCode];
+    // Use the isDNF flag from race results
+    const isDNF = driver.isDNF;
+    
+    if (startPos === 0) {
+      // No grid position data - check if we have lap data
+      if (chartData.length === 0) return null;
+      const firstLap = chartData[0];
+      if (!firstLap[driverCode]) return null;
+      
+      // Use first lap position as start
+      const lapStartPos = firstLap[driverCode];
+      const posChange = lapStartPos - endPos;
+      
+      return {
+        start: lapStartPos,
+        end: isDNF ? 0 : endPos,
+        change: isDNF ? 0 : posChange,
+        improved: !isDNF && posChange > 0,
+        isDNF,
+        status: driver.status,
+      };
+    }
+    
     const posChange = startPos - endPos;
     
     return {
       start: startPos,
-      end: endPos,
-      change: posChange,
-      improved: posChange > 0
+      end: isDNF ? 0 : endPos,
+      change: isDNF ? 0 : posChange,
+      improved: !isDNF && posChange > 0,
+      isDNF,
+      status: driver.status,
     };
   };
 

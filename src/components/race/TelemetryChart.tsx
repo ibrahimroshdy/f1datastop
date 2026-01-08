@@ -1,138 +1,215 @@
-
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LineChart, Line, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { XAxis, YAxis } from "@/utils/rechartsWrapper";
-import { useState } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { useTelemetryData } from "@/hooks/useTelemetryData";
+import { useF1Metadata } from "@/hooks/useF1Metadata";
+import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-const TelemetryChart = () => {
-  const [selectedDriver, setSelectedDriver] = useState("1");
+interface TelemetryChartProps {
+  sessionKey?: number;
+}
 
-  // Mock telemetry data for a single lap
-  const telemetryData = [
-    { distance: "0", speed: 84, throttle: 30, brake: 70, gear: 1, drs: 0 },
-    { distance: "100", speed: 120, throttle: 100, brake: 0, gear: 2, drs: 0 },
-    { distance: "200", speed: 160, throttle: 100, brake: 0, gear: 3, drs: 0 },
-    { distance: "300", speed: 210, throttle: 100, brake: 0, gear: 4, drs: 0 },
-    { distance: "400", speed: 240, throttle: 100, brake: 0, gear: 5, drs: 0 },
-    { distance: "500", speed: 280, throttle: 100, brake: 0, gear: 6, drs: 0 },
-    { distance: "600", speed: 310, throttle: 100, brake: 0, gear: 7, drs: 0 },
-    { distance: "700", speed: 320, throttle: 100, brake: 0, gear: 8, drs: 1 },
-    { distance: "800", speed: 325, throttle: 100, brake: 0, gear: 8, drs: 1 },
-    { distance: "900", speed: 330, throttle: 100, brake: 0, gear: 8, drs: 1 },
-    { distance: "1000", speed: 335, throttle: 100, brake: 0, gear: 8, drs: 1 },
-    { distance: "1100", speed: 120, throttle: 0, brake: 100, gear: 3, drs: 0 },
-    { distance: "1200", speed: 80, throttle: 0, brake: 100, gear: 2, drs: 0 },
-    { distance: "1300", speed: 60, throttle: 0, brake: 90, gear: 1, drs: 0 },
-    { distance: "1400", speed: 70, throttle: 40, brake: 0, gear: 2, drs: 0 },
-    { distance: "1500", speed: 120, throttle: 100, brake: 0, gear: 3, drs: 0 },
-    { distance: "1600", speed: 180, throttle: 100, brake: 0, gear: 4, drs: 0 },
-    { distance: "1700", speed: 220, throttle: 100, brake: 0, gear: 5, drs: 0 },
-    { distance: "1800", speed: 260, throttle: 100, brake: 0, gear: 6, drs: 0 },
-    { distance: "1900", speed: 290, throttle: 100, brake: 0, gear: 7, drs: 0 },
-    { distance: "2000", speed: 310, throttle: 100, brake: 0, gear: 8, drs: 0 },
-  ];
+const TelemetryChart = ({ sessionKey = 9158 }: TelemetryChartProps) => { // Default to a recent session (e.g. 9158) if not provided
+  const [selectedDriver1, setSelectedDriver1] = useState<string>("");
+  const [selectedDriver2, setSelectedDriver2] = useState<string>("");
+  const [telemetryMetric, setTelemetryMetric] = useState<"speed" | "throttle" | "brake" | "rpm" | "gear" | "drs">("speed");
 
-  const drivers = [
-    { value: "1", label: "Verstappen", color: "#0600EF" },
-    { value: "16", label: "Leclerc", color: "#DC0000" },
-    { value: "4", label: "Norris", color: "#FF8700" },
-    { value: "44", label: "Hamilton", color: "#00D2BE" },
-    { value: "11", label: "Perez", color: "#0600EF" },
-    { value: "55", label: "Sainz", color: "#DC0000" },
-  ];
+  // Use new metadata hook for drivers and colors
+  const { drivers, getDriverColor, isLoading: isMetadataLoading } = useF1Metadata();
 
-  const getDriverColor = (driverId: string) => {
-    return drivers.find(d => d.value === driverId)?.color || "#FFFFFF";
+  // Manage selected drivers for the hook
+  const selectedDriversList = [
+    selectedDriver1 ? parseInt(selectedDriver1) : null,
+    selectedDriver2 ? parseInt(selectedDriver2) : null
+  ].filter((d): d is number => d !== null);
+
+  // Fetch telemetry data
+  const {
+    telemetryData,
+    isLoading: isTelemetryLoading,
+    hasData
+  } = useTelemetryData(sessionKey, selectedDriversList);
+
+  // Set default drivers once metadata is loaded
+  useEffect(() => {
+    if (drivers.length > 0 && !selectedDriver1 && !selectedDriver2) {
+      // Default to top 2 drivers or first 2 in list
+      const d1 = drivers.find(d => d.code === "VER")?.permanentNumber || drivers[0]?.permanentNumber;
+      const d2 = drivers.find(d => d.code === "LEC")?.permanentNumber || drivers[1]?.permanentNumber;
+
+      if (d1) setSelectedDriver1(d1);
+      if (d2) setSelectedDriver2(d2);
+    }
+  }, [drivers, selectedDriver1, selectedDriver2]);
+
+  // Prepare chart data
+  // We need to merge data points based on time or distance (using time here for simplicity)
+  // This is a simplified merge; a more robust one would interpolate
+  const chartData: any[] = [];
+  if (hasData) {
+    const d1Data = selectedDriver1 ? telemetryData[parseInt(selectedDriver1)] || [] : [];
+    const d2Data = selectedDriver2 ? telemetryData[parseInt(selectedDriver2)] || [] : [];
+
+    // Use the longer dataset as base or merge
+    const maxLength = Math.max(d1Data.length, d2Data.length);
+    for (let i = 0; i < maxLength; i++) {
+      const p1 = d1Data[i];
+      const p2 = d2Data[i];
+      // Assuming roughly synchronized data for demo; real implementation needs time alignment
+      if (p1 || p2) {
+        chartData.push({
+          time: p1?.time || p2?.time, // Use available time
+          driver1: p1 ? p1[telemetryMetric] : null,
+          driver2: p2 ? p2[telemetryMetric] : null,
+        });
+      }
+    }
+  }
+
+  const getDriverName = (number: string) => {
+    const driver = drivers.find(d => d.permanentNumber === number);
+    return driver ? `${driver.givenName} ${driver.familyName}` : number;
+  };
+
+  const getDriverCode = (number: string) => {
+    const driver = drivers.find(d => d.permanentNumber === number);
+    return driver ? driver.code : number;
   };
 
   return (
-    <Card className="race-card p-4">
-      <CardContent className="p-0">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-bold">Telemetry Data</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-400">Driver:</span>
-            <Select value={selectedDriver} onValueChange={setSelectedDriver}>
-              <SelectTrigger className="w-[180px] bg-f1-dark border-gray-800">
-                <SelectValue placeholder="Select driver" />
+    <Card className="col-span-3">
+      <CardHeader>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <CardTitle>Telemetry Analysis</CardTitle>
+            <CardDescription>Real-time car performance data</CardDescription>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Select value={selectedDriver1} onValueChange={setSelectedDriver1}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Driver 1" />
               </SelectTrigger>
-              <SelectContent className="bg-f1-dark border-gray-800">
+              <SelectContent>
                 {drivers.map((driver) => (
-                  <SelectItem key={driver.value} value={driver.value}>
+                  <SelectItem key={`d1-${driver.driverId}`} value={driver.permanentNumber}>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: driver.color }}></div>
-                      <span>
-                        {driver.label} (#{driver.value})
-                      </span>
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: getDriverColor(driver.driverId) }}
+                      />
+                      {driver.code}
                     </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={selectedDriver2} onValueChange={setSelectedDriver2}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Driver 2" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {drivers.map((driver) => (
+                  <SelectItem key={`d2-${driver.driverId}`} value={driver.permanentNumber}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: getDriverColor(driver.driverId) }}
+                      />
+                      {driver.code}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={telemetryMetric} onValueChange={(v: any) => setTelemetryMetric(v)}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Metric" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="speed">Speed</SelectItem>
+                <SelectItem value="throttle">Throttle</SelectItem>
+                <SelectItem value="brake">Brake</SelectItem>
+                <SelectItem value="rpm">RPM</SelectItem>
+                <SelectItem value="gear">Gear</SelectItem>
+                <SelectItem value="drs">DRS</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        
-        <div className="h-[400px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={telemetryData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-              <XAxis 
-                dataKey="distance" 
-                stroke="#888" 
-                xAxisId="telemetry"
-              />
-              <YAxis 
-                stroke="#888" 
-                yAxisId="telemetry"
-              />
-              <Tooltip 
-                contentStyle={{ backgroundColor: "#15151e", borderColor: "#333" }}
-                labelStyle={{ color: "#fff" }}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="speed" 
-                stroke={getDriverColor(selectedDriver)} 
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 6 }}
-                xAxisId="telemetry"
-                yAxisId="telemetry"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="throttle" 
-                stroke="#4CAF50" 
-                strokeWidth={1.5}
-                dot={false}
-                xAxisId="telemetry"
-                yAxisId="telemetry"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="brake" 
-                stroke="#F44336" 
-                strokeWidth={1.5}
-                dot={false}
-                xAxisId="telemetry"
-                yAxisId="telemetry"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="drs" 
-                stroke="#E10600" 
-                strokeWidth={1.5}
-                dot={false}
-                xAxisId="telemetry"
-                yAxisId="telemetry"
-              />
-            </LineChart>
-          </ResponsiveContainer>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[350px] w-full">
+          {isTelemetryLoading || isMetadataLoading ? (
+            <div className="h-full w-full flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Loading telemetry...</span>
+            </div>
+          ) : !hasData ? (
+            <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+              No telemetry data available for selected drivers.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                <XAxis
+                  dataKey="time"
+                  label={{ value: 'Time (s)', position: 'insideBottomRight', offset: -10 }}
+                  tickFormatter={(val) => typeof val === 'number' ? val.toFixed(1) : val}
+                />
+                <YAxis />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
+                  labelStyle={{ color: '#9ca3af' }}
+                  formatter={(value: number) => [value, telemetryMetric.toUpperCase()]}
+                  labelFormatter={(label) => `Time: ${Number(label).toFixed(3)}s`}
+                />
+                <Legend />
+                {selectedDriver1 && (
+                  <Line
+                    type="monotone"
+                    dataKey="driver1"
+                    name={getDriverCode(selectedDriver1)}
+                    stroke={getDriverColor(drivers.find(d => d.permanentNumber === selectedDriver1)?.driverId || "")}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 6 }}
+                  />
+                )}
+                {selectedDriver2 && selectedDriver2 !== "none" && (
+                  <Line
+                    type="monotone"
+                    dataKey="driver2"
+                    name={getDriverCode(selectedDriver2)}
+                    stroke={getDriverColor(drivers.find(d => d.permanentNumber === selectedDriver2)?.driverId || "")}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 6 }}
+                  />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 justify-center">
+          {selectedDriver1 && (
+            <Badge variant="outline" className="flex items-center gap-2 pl-1">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getDriverColor(drivers.find(d => d.permanentNumber === selectedDriver1)?.driverId || "") }} />
+              {getDriverName(selectedDriver1)}
+            </Badge>
+          )}
+          {selectedDriver2 && selectedDriver2 !== "none" && (
+            <Badge variant="outline" className="flex items-center gap-2 pl-1">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getDriverColor(drivers.find(d => d.permanentNumber === selectedDriver2)?.driverId || "") }} />
+              {getDriverName(selectedDriver2)}
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -642,6 +642,7 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
           const driverName = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
           const team = driver.Constructor.constructorId;
           const teamName = driver.Constructor.name;
+          const points = parseFloat(driver.points) || 0;
           
           // Handle DNFs
           const status = driver.status;
@@ -668,7 +669,8 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
             position: racePosition,
             type: 'race',
             status,
-            isDNF
+            isDNF,
+            points
           });
           
           // Find matching qualifying result for this driver
@@ -694,7 +696,8 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
               racePosition,
               positionChange: qualifyingPosition - gridPosition,
               status,
-              isDNF
+              isDNF,
+              points: 0 // No points for qualifying to grid
             });
             
             // Link from grid to race
@@ -712,7 +715,8 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
               racePosition,
               positionChange: gridPosition - racePosition,
               status,
-              isDNF
+              isDNF,
+              points // Points from race result
             });
           }
         });

@@ -18,6 +18,7 @@ import initConsoleFilters from "./utils/errorFilter";
 import Index from "./pages/Index";
 import RaceCalendar from "./pages/RaceCalendar";
 import Analytics from "./pages/Analytics";
+import RaceAnalysis from "./pages/RaceAnalysis";
 import Drivers from "./pages/Drivers";
 import Constructors from "./pages/Constructors";
 import Developers from "./pages/Developers";
@@ -149,23 +150,27 @@ const App = () => (
                       <Routes>
                         {/* Public Routes */}
                         <Route path="/" element={<Index />} />
-                         <Route path="/calendar" element={<RaceCalendar />} />
+                        <Route path="/calendar" element={<RaceCalendar />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="/privacy" element={<Privacy />} />
-                        {/* Make Analytics public */}
-                        <Route path="/analytics" element={<Analytics />} />
+                        {/* Race Infographic Page */}
+                        <Route 
+                          path="/infographic/:year/:round" 
+                          element={<Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div></div>}>
+                            {React.createElement(React.lazy(() => import('./pages/RaceInfographicPage')))}
+                          </Suspense>} 
+                        />
+                        {/* Race Analysis - Unified page */}
+                        <Route path="/race-analysis" element={<RaceAnalysis />} />
+                        <Route path="/race-analysis/:year/:round" element={<RaceAnalysis />} />
+                        
+                        {/* Legacy Analytics route - redirect to race-analysis */}
+                        <Route path="/analytics" element={<Navigate to="/race-analysis" replace />} />
+                        
                         {/* Make Drivers and Constructors public */}
                         <Route path="/drivers" element={<Drivers />} />
                         <Route path="/constructors" element={<Constructors />} />
                         <Route path="*" element={<NotFound />} />
-                        
-                        {/* Trivia Game Route */}
-                        <Route 
-                          path="/trivia" 
-                          element={<Suspense fallback={<div>Loading...</div>}>
-                            {React.createElement(React.lazy(() => import('./pages/Trivia')))}
-                          </Suspense>} 
-                        />
                         
                         {/* Embed Routes */}
                         <Route 
@@ -196,7 +201,9 @@ const App = () => (
                         
                         {/* Protected routes with blur effect for non-authenticated users */}
                         <Route element={<ProtectedRoute />}>
-                          <Route path="/race-info/:year/:round" element={<RaceInfoPage />} />
+                          {/* Legacy Race Info routes - redirect to race-analysis */}
+                          <Route path="/race-info/:year/:round" element={<Navigate to="/race-analysis" replace />} />
+                          <Route path="/race-info" element={<Navigate to="/race-analysis" replace />} />
                           <Route path="/profile" element={<Profile />} />
                           <Route path="/developers" element={<Developers />} />
                         </Route>
