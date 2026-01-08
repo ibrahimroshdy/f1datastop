@@ -44,12 +44,9 @@ const TabLoadingFallback = () => (
   </Card>
 );
 
-// Get default year
+// Get default year - always use current year
 const getDefaultYear = () => {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth();
-  return currentMonth < 3 ? currentYear - 1 : currentYear;
+  return new Date().getFullYear();
 };
 
 interface SessionOption {

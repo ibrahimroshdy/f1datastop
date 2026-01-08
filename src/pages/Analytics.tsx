@@ -19,15 +19,9 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import CountryFlag from "@/components/common/CountryFlag";
 
-// Function to determine the most appropriate default year
+// Function to determine the most appropriate default year - always use current year
 const getDefaultYear = () => {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth(); // 0-based (0 = January)
-  
-  // If we're in the early months of the year (before April), 
-  // use previous year as default as current season might have too few races
-  return (currentMonth < 3) ? currentYear - 1 : currentYear;
+  return new Date().getFullYear();
 };
 
 const Analytics = () => {

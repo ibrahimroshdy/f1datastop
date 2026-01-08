@@ -13,6 +13,7 @@ import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import { F1EmptyState } from "@/components/f1/F1EmptyState";
 
 interface QualifyingResult {
   position: number;
@@ -157,7 +158,8 @@ const QualifyingResultsCard = () => {
       );
       
       if (racesWithCompletedQualifying.length === 0) {
-        setError("No completed qualifying sessions found");
+        // Season hasn't started yet - show empty state instead of error
+        setError(null);
         setIsLoading(false);
       } else {
         const lastQualifyingRace = racesWithCompletedQualifying[racesWithCompletedQualifying.length - 1];
@@ -250,6 +252,13 @@ const QualifyingResultsCard = () => {
               <AlertTitle>{isPendingData ? "Processing" : "Error"}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
+          ) : qualifyingResults.length === 0 && !error ? (
+            <F1EmptyState 
+              type="season-start"
+              title="Qualifying Starting Soon"
+              description="Qualifying results will appear here once the first session is completed."
+              size="sm"
+            />
           ) : (
             <div className="space-y-3 max-w-3xl mx-auto">
               {qualifyingResults.map((result) => {

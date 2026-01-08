@@ -12,6 +12,7 @@ import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import { F1EmptyState } from "@/components/f1/F1EmptyState";
 
 // Helper function to format pit stop duration
 const formatPitStopDuration = (durationInSeconds: number): string => {
@@ -134,7 +135,15 @@ const FastestPitStopCard = () => {
           setFastestPitStops(pitStops);
           setError(null);
         } else {
-          setError("No pit stop data available");
+          // Check if season hasn't started yet
+          const hasCompletedRaces = raceScheduleData?.data?.some((race: any) => new Date(race.date) < new Date());
+          if (!hasCompletedRaces) {
+            // Season hasn't started - don't show error
+            setError(null);
+          } else {
+            // Season has started but no pit stop data - this might be a real issue
+            setError("No pit stop data available");
+          }
         }
         
         if (raceScheduleData?.data) {
@@ -156,7 +165,14 @@ const FastestPitStopCard = () => {
         setError("Error processing pit stop data");
       }
     } else if (!lastRaceResult.isLoading && !lastRacePitStops.isLoading) {
-      setError("No pit stop data available");
+      // Check if season hasn't started yet
+      const hasCompletedRaces = raceScheduleData?.data?.some((race: any) => new Date(race.date) < new Date());
+      if (!hasCompletedRaces) {
+        // Season hasn't started - don't show error
+        setError(null);
+      } else {
+        setError("No pit stop data available");
+      }
     }
   }, [lastRaceResult.data, lastRacePitStops.data, lastRaceResult.isLoading, lastRacePitStops.isLoading, raceScheduleData]);
 
@@ -234,6 +250,13 @@ const FastestPitStopCard = () => {
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
+          ) : fastestPitStops.length === 0 && !error ? (
+            <F1EmptyState 
+              type="season-start"
+              title="Pit Stop Data Coming Soon"
+              description="Pit stop times will appear here once the first race is completed."
+              size="sm"
+            />
           ) : (
             <div className="space-y-3">
               {fastestPitStops.map((stop, index) => {

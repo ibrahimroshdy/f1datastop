@@ -17,6 +17,7 @@ import ReactCountryFlag from "react-country-flag";
 import { getCountryCode } from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { F1Skeleton } from "@/components/f1";
+import { F1EmptyState } from "@/components/f1/F1EmptyState";
 
 import useAnalytics from '@/hooks/useAnalytics';
 import useClarity from '@/hooks/useClarity';
@@ -162,10 +163,17 @@ const Index = () => {
                 </div>
               </CardHeader>
               <CardContent className="p-0 h-[550px]">
-                {lastCompletedRace && (
+                {lastCompletedRace ? (
                   <MuiSankeyChart 
                     year={lastCompletedRace.year} 
                     round={lastCompletedRace.round} 
+                  />
+                ) : (
+                  <F1EmptyState 
+                    type="season-start"
+                    title="Season Starting Soon"
+                    description="Qualifying to race progression will appear here once the first race is completed."
+                    size="md"
                   />
                 )}
               </CardContent>
