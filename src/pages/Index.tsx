@@ -88,10 +88,15 @@ const Index = () => {
   } : {};
 
   useEffect(() => {
-    if (driverStandings?.error || constructorStandings?.error || raceSchedule?.error || lastRaceResults?.error) {
-      setIsOffline(true);
-    }
-  }, [driverStandings, constructorStandings, raceSchedule, lastRaceResults]);
+    // Only show offline warning for critical API failures (standings and schedule)
+    // Don't show offline for "no data" scenarios like early season with no completed races
+    const hasCriticalError = 
+      (driverStandings?.error && !driverStandings?.data) || 
+      (constructorStandings?.error && !constructorStandings?.data) || 
+      (raceSchedule?.error && !raceSchedule?.data);
+    
+    setIsOffline(hasCriticalError);
+  }, [driverStandings, constructorStandings, raceSchedule]);
 
   useEffect(() => {
     analytics.trackContentView(
