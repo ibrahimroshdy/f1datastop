@@ -1,7 +1,11 @@
 /**
  * API Configuration Constants
  * This file contains all API endpoints, function URLs, and other API-related configuration.
+ * In development, Ergast requests are proxied via Vite to avoid CORS (see vite.config.ts).
  */
+
+// Ergast root (no /f1) - used by f1Service and embeddables
+const ERGAST_BASE = import.meta.env.DEV ? "/api/ergast" : "https://api.jolpi.ca/ergast";
 
 // Supabase Function URLs
 export const SUPABASE_FUNCTIONS = {
@@ -11,7 +15,8 @@ export const SUPABASE_FUNCTIONS = {
 
 // F1 API Base URLs
 export const F1_API = {
-  ERGAST: "https://api.jolpi.ca/ergast/f1",
+  ERGAST: `${ERGAST_BASE}/f1`,
+  ERGAST_BASE,
   OPENF1: "https://api.openf1.org/v1",
 };
 

@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { Sankey } from '@nivo/sankey';
 import { useQualifyingToRaceDataByRound } from '@/hooks/useF1Data';
-import { TEAM_COLORS } from '@/constants/f1Colors';
+import { TEAM_COLORS, colorWithAlpha } from '@/constants/f1Colors';
 import { useTheme } from '@/context/ThemeContext';
 import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -128,15 +128,26 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
 
         const value = toValidNumber(link.value, 1);
 
+        const linkColor = getLinkColor(
+          { type: sourceNode?.type, position: sourceNode?.position, team: sourceNode?.team },
+          { type: targetNode?.type, position: targetNode?.position }
+        );
+        // Dim only the Grid→Race segment for DNF/DNS/Retired (not the line from Quali→Grid, not the nodes)
+        const isGridToRace = sourceNode?.type === 'grid' && targetNode?.type === 'race';
+        const statusStr = link.status ? String(link.status).toLowerCase() : '';
+        const shouldDimLine =
+          isGridToRace &&
+          (link.isDNF === true ||
+            statusStr.includes('retired') ||
+            statusStr.includes('did not start'));
+        const finalColor = shouldDimLine ? colorWithAlpha(linkColor, 0.26) : linkColor;
+
         return {
           source: sourceId,
           target: targetId,
           value,
           sourcePosition: Number.isFinite(Number(sourceNode?.position)) ? Number(sourceNode.position) : 0,
-          color: getLinkColor(
-            { type: sourceNode?.type, position: sourceNode?.position, team: sourceNode?.team },
-            { type: targetNode?.type, position: targetNode?.position }
-          ),
+          color: finalColor,
           driverName: link.fullName || link.name,
           driverCode: link.code,
           team: link.teamName,
@@ -247,6 +258,9 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
         sankeyData={sankeyData}
         isDark={isDark}
       />
+      <p className="text-[10px] text-muted-foreground text-center mt-2 px-2">
+        Drivers without a qualifying time (e.g. pit lane start) appear only in Grid and Race.
+      </p>
       <div className="pb-6" />
     </div>
   );

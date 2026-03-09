@@ -23,6 +23,12 @@ export default defineConfig(({ mode }) => {
           console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
         });
       }
+    },
+    '/api/ergast': {
+      target: 'https://api.jolpi.ca/ergast',
+      changeOrigin: true,
+      rewrite: (path: string) => path.replace(/^\/api\/ergast/, ''),
+      secure: true,
     }
   };
 

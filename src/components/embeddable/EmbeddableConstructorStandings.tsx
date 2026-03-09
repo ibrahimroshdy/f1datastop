@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Spinner } from '../ui/spinner';
 import { cn } from '../../lib/utils';
 import { TEAM_COLORS } from '../../constants/f1Colors';
+import { F1_API } from '../../constants/apiConfig';
 
 // Interfaces
 interface EmbeddableConstructorStandingsProps {
@@ -56,7 +57,7 @@ const EmbeddableConstructorStandings: React.FC<EmbeddableConstructorStandingsPro
 
     try {
       console.log('Fetching constructor standings for season:', season);
-      const BASE_URL = "https://api.jolpi.ca/ergast";
+      const BASE_URL = F1_API.ERGAST_BASE;
       const response = await fetch(`${BASE_URL}/f1/${season}/constructorStandings.json`, {
         mode: 'cors',
         headers: {

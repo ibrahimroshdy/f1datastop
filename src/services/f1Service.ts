@@ -1,7 +1,8 @@
 import { toast } from "sonner";
 import { getCountryFlag, addFlagToRaceName } from "@/utils/countryUtils";
+import { F1_API } from "@/constants/apiConfig";
 
-const BASE_URL = "https://api.jolpi.ca/ergast";
+const BASE_URL = F1_API.ERGAST_BASE;
 
 // Get the current F1 season year
 const getCurrentSeason = () => new Date().getFullYear();

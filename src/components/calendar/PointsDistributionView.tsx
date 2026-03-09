@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, BarChart3 } from "lucide-react";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { getTeamColorById } from "@/constants/f1Colors";
+import { F1_API } from "@/constants/apiConfig";
 import CountryFlag from "@/components/common/CountryFlag";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -38,7 +39,7 @@ const PointsDistributionView = ({
 
         try {
           const raceRes = await fetch(
-            `https://api.jolpi.ca/ergast/f1/${race.season}/${race.round}/results.json`
+            `${F1_API.ERGAST}/${race.season}/${race.round}/results.json`
           );
           if (raceRes.ok) {
             const raceData = await raceRes.json();
@@ -47,7 +48,7 @@ const PointsDistributionView = ({
 
           if (race.Sprint) {
             const sprintRes = await fetch(
-              `https://api.jolpi.ca/ergast/f1/${race.season}/${race.round}/sprint.json`
+              `${F1_API.ERGAST}/${race.season}/${race.round}/sprint.json`
             );
             if (sprintRes.ok) {
               const sprintData = await sprintRes.json();

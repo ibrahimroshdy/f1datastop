@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Spinner } from '../ui/spinner';
 import { cn } from '../../lib/utils';
 import { TEAM_COLORS } from '../../constants/f1Colors';
+import { F1_API } from '../../constants/apiConfig';
 
 // Define interfaces for the component props and API responses
 interface EmbeddableDriverStandingsProps {
@@ -83,8 +84,8 @@ export default function EmbeddableDriverStandings({
     setError(null);
     
     try {
-      // Use the f1Service pattern from the codebase
-      const BASE_URL = "https://api.jolpi.ca/ergast";
+      // Use the f1Service pattern from the codebase (proxy in dev to avoid CORS)
+      const BASE_URL = F1_API.ERGAST_BASE;
       
       // Fetch without specifying a round to get the latest data
       const response = await fetch(`${BASE_URL}/f1/${season}/driverStandings.json`, {

@@ -564,14 +564,17 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
     queryKey: ['qualifyingToRaceData', year, round],
     queryFn: async () => {
       try {
-        // First get qualifying data
-        const qualifyingResponse = await fetch(`${F1_API.ERGAST}/${year}/${round}/qualifying.json`);
-        if (!qualifyingResponse.ok) {
-          throw new Error('Failed to fetch qualifying data');
+        // Race results are required; qualifying is optional (if missing/fails, we use grid position as "quali" for all)
+        let qualifyingData: any = { MRData: { RaceTable: { Races: [] } } };
+        try {
+          const qualifyingResponse = await fetch(`${F1_API.ERGAST}/${year}/${round}/qualifying.json`);
+          if (qualifyingResponse.ok) {
+            qualifyingData = await qualifyingResponse.json();
+          }
+        } catch (_) {
+          // Qualifying fetch failed (e.g. CORS); continue with race-only data
         }
-        const qualifyingData = await qualifyingResponse.json();
-        
-        // Then get race results
+
         const raceResponse = await fetch(`${F1_API.ERGAST}/${year}/${round}/results.json`);
         if (!raceResponse.ok) {
           throw new Error('Failed to fetch race results');
@@ -581,25 +584,28 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
         // Get race data for info
         const raceInfo = raceData.MRData.RaceTable.Races[0] || null;
         
-        // Process the data for the Sankey diagram
-        if (!qualifyingData.MRData.RaceTable?.Races?.length || !raceData.MRData.RaceTable?.Races?.length) {
+        // Process the data for the Sankey diagram (race results required; qualifying optional)
+        if (!raceData.MRData?.RaceTable?.Races?.length) {
           return {
             processedData: null,
             raceData: raceInfo,
-            error: "No qualifying or race data available for this race"
+            error: "No race data available"
           };
         }
         
-        const qualifying = qualifyingData.MRData.RaceTable.Races[0].QualifyingResults || [];
+        const qualifying = qualifyingData?.MRData?.RaceTable?.Races?.[0]?.QualifyingResults || [];
         const raceResults = raceData.MRData.RaceTable.Races[0].Results || [];
         
-        if (!qualifying.length || !raceResults.length) {
+        if (!raceResults.length) {
           return {
             processedData: null,
             raceData: raceInfo,
-            error: "Incomplete qualifying or race data"
+            error: "No race results"
           };
         }
+
+        // Optional: if no qualifying data, we can still build from race results using grid-as-quali
+        const hasQualifying = qualifying.length > 0;
         
         // Create nodes for qualifying, grid, and race positions
         const nodes = [];
@@ -609,19 +615,24 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
         const gridIdPrefix = "G";
         const raceIdPrefix = "R";
 
-        // Build a lookup from driverId -> qualifying position
+        // Build a lookup from driverId -> qualifying position (from API)
         const qualiByDriverId = new Map<string, number>();
-        qualifying.forEach((driver) => {
-          if (driver.position) {
-            qualiByDriverId.set(driver.Driver.driverId, parseInt(driver.position));
-          }
-        });
+        if (hasQualifying) {
+          qualifying.forEach((driver: any) => {
+            if (driver.position) {
+              qualiByDriverId.set(driver.Driver.driverId, parseInt(driver.position));
+            }
+          });
+        }
 
-        // Track which qualifying positions are actually linked to a grid/race
-        const linkedQualiPositions = new Set<number>();
+        // Find max qualifying position so we can assign synthetic grid positions (20, 21, ...) for drivers without quali/grid
+        const maxQualiPosition = hasQualifying
+          ? Math.max(...Array.from(qualiByDriverId.values()), 0)
+          : 0;
+        let nextSyntheticGrid = Math.max(maxQualiPosition + 1, 20);
         
-        // Process race results first to determine grid positions and links
-        raceResults.forEach((driver) => {
+        // Process every race result: ensure each driver has grid position (API, quali fallback, or synthetic)
+        raceResults.forEach((driver: any) => {
           if (!driver.position) return;
           
           const racePosition = parseInt(driver.position);
@@ -633,18 +644,20 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
           const status = driver.status;
           const isDNF = status !== "Finished" && !status.includes("+");
 
-          // Resolve grid position: use API value, fall back to qualifying position
-          const qualiPos = qualiByDriverId.get(driver.Driver.driverId);
-          let gridPosition: number | null = null;
+          const qualiPos = qualiByDriverId.get(driver.Driver.driverId) ?? null;
+          let gridPosition: number;
           if (driver.grid != null && driver.grid !== "" && !isNaN(parseInt(driver.grid))) {
             gridPosition = parseInt(driver.grid);
           } else if (qualiPos != null) {
             gridPosition = qualiPos;
+          } else {
+            gridPosition = nextSyntheticGrid++;
           }
 
-          // Skip drivers with no determinable grid position (e.g. DNS with no quali)
-          if (gridPosition == null) return;
+          // Qualifying position for chart: use actual quali if available, else grid (so they appear in Qualifying column)
+          const qualifyingPosition = qualiPos ?? gridPosition;
 
+          // Grid node
           nodes.push({
             id: `${gridIdPrefix}${gridPosition}`,
             name: driverCode,
@@ -655,6 +668,7 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
             type: 'grid'
           });
           
+          // Race node
           nodes.push({
             id: `${raceIdPrefix}${racePosition}`,
             name: driverCode,
@@ -667,30 +681,25 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
             isDNF,
             points
           });
-          
-          const qualifyingPosition = qualiPos ?? gridPosition;
 
-          if (qualiPos != null) {
-            linkedQualiPositions.add(qualiPos);
-
-            links.push({
-              source: `${qualifyingIdPrefix}${qualiPos}`,
-              target: `${gridIdPrefix}${gridPosition}`,
-              value: 1,
-              name: driverCode,
-              code: driverCode,
-              fullName: driverName,
-              team,
-              teamName,
-              qualifyingPosition: qualiPos,
-              gridPosition,
-              racePosition,
-              positionChange: qualiPos - gridPosition,
-              status,
-              isDNF,
-              points: 0
-            });
-          }
+          // Quali -> Grid link for every driver (use grid as "quali" when no quali result)
+          links.push({
+            source: `${qualifyingIdPrefix}${qualifyingPosition}`,
+            target: `${gridIdPrefix}${gridPosition}`,
+            value: 1,
+            name: driverCode,
+            code: driverCode,
+            fullName: driverName,
+            team,
+            teamName,
+            qualifyingPosition,
+            gridPosition,
+            racePosition,
+            positionChange: qualifyingPosition - gridPosition,
+            status,
+            isDNF,
+            points: 0
+          });
           
           links.push({
             source: `${gridIdPrefix}${gridPosition}`,
@@ -711,21 +720,60 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
           });
         });
 
-        // Only add qualifying nodes that are linked (prevents orphan nodes causing NaN)
-        qualifying.forEach((driver) => {
-          if (!driver.position) return;
-          const position = parseInt(driver.position);
-          if (!linkedQualiPositions.has(position)) return;
-          
-          nodes.push({
-            id: `${qualifyingIdPrefix}${position}`,
-            name: driver.Driver.code,
-            fullName: `${driver.Driver.givenName} ${driver.Driver.familyName}`,
-            team: driver.Constructor.constructorId,
-            teamName: driver.Constructor.name,
-            position,
-            type: 'qualifying'
+        // Build qualifying nodes: from API for drivers who qualified, and synthetic for the rest (from link driver info)
+        const qualiNodeByPosition = new Map<number, { id: string; name: string; fullName: string; team: string; teamName: string; position: number }>();
+        
+        if (hasQualifying) {
+          qualifying.forEach((driver: any) => {
+            if (!driver.position) return;
+            const position = parseInt(driver.position);
+            qualiNodeByPosition.set(position, {
+              id: `${qualifyingIdPrefix}${position}`,
+              name: driver.Driver.code,
+              fullName: `${driver.Driver.givenName} ${driver.Driver.familyName}`,
+              team: driver.Constructor.constructorId,
+              teamName: driver.Constructor.name,
+              position
+            });
           });
+        }
+
+        // Add qualifying node for every position used as link source (from API or synthetic from link)
+        const qualifyingPositionsUsed = new Set<number>();
+        links.forEach((link: any) => {
+          if (link.source.startsWith(qualifyingIdPrefix)) {
+            const pos = parseInt(link.source.slice(1), 10);
+            if (!isNaN(pos)) qualifyingPositionsUsed.add(pos);
+          }
+        });
+
+        qualifyingPositionsUsed.forEach((position) => {
+          if (qualiNodeByPosition.has(position)) {
+            const n = qualiNodeByPosition.get(position)!;
+            nodes.push({
+              id: n.id,
+              name: n.name,
+              fullName: n.fullName,
+              team: n.team,
+              teamName: n.teamName,
+              position: n.position,
+              type: 'qualifying'
+            });
+            return;
+          }
+          // Synthetic: use driver info from the link that has this quali position as source
+          const link = links.find((l: any) => l.source === `${qualifyingIdPrefix}${position}`);
+          if (link) {
+            nodes.push({
+              id: `${qualifyingIdPrefix}${position}`,
+              name: link.name,
+              fullName: link.fullName,
+              team: link.team,
+              teamName: link.teamName,
+              position,
+              type: 'qualifying'
+            });
+          }
         });
         
         return {
