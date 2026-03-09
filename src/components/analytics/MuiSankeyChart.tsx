@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useCallback } from 'react';
-import { ResponsiveSankey } from '@nivo/sankey';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { Sankey } from '@nivo/sankey';
 import { useQualifyingToRaceDataByRound } from '@/hooks/useF1Data';
 import { TEAM_COLORS } from '@/constants/f1Colors';
 import { useTheme } from '@/context/ThemeContext';
@@ -8,6 +8,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+
+// Ensure a value is a finite number >= minVal (prevents NaN in Nivo layout/animations)
+const toValidNumber = (v: unknown, minVal: number = 1): number => {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < minVal) return minVal;
+  return n;
+};
 
 interface MuiSankeyChartProps {
   year: number;
@@ -70,11 +77,12 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
     
     originalNodes.forEach((node: any) => {
       const id = `${node.type}-${node.position}-${node.name}`;
+      const position = toValidNumber(node.position, 0);
       const nivoNode = {
         id,
         originalId: node.id,
         name: node.name,
-        position: node.position,
+        position,
         type: node.type,
         team: node.team,
         teamName: node.teamName,
@@ -106,24 +114,29 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
     const nivoNodes = [...qualifyingNodes, ...gridNodes, ...raceNodes];
 
     // Build Nivo links - sort by source position to help maintain visual order
+    // Only include links where both source and target exist; ensure value is finite and >= 1 to avoid NaN in layout
+    const nodeIds = new Set(nivoNodes.map((n: any) => n.id));
     const nivoLinks = originalLinks
       .map((link: any) => {
         const sourceNode = nodeMap.get(link.source) || originalNodes.find((n: any) => n.id === link.source);
         const targetNode = nodeMap.get(link.target) || originalNodes.find((n: any) => n.id === link.target);
-        
+
         const sourceId = nodeMap.get(link.source)?.id || link.source;
         const targetId = nodeMap.get(link.target)?.id || link.target;
+
+        if (!nodeIds.has(sourceId) || !nodeIds.has(targetId)) return null;
+
+        const value = toValidNumber(link.value, 1);
 
         return {
           source: sourceId,
           target: targetId,
-          value: link.value || 1,
-          sourcePosition: sourceNode?.position || 0,
+          value,
+          sourcePosition: Number.isFinite(Number(sourceNode?.position)) ? Number(sourceNode.position) : 0,
           color: getLinkColor(
             { type: sourceNode?.type, position: sourceNode?.position, team: sourceNode?.team },
             { type: targetNode?.type, position: targetNode?.position }
           ),
-          // Store additional info for tooltips
           driverName: link.fullName || link.name,
           driverCode: link.code,
           team: link.teamName,
@@ -136,10 +149,20 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
           points: link.points,
         };
       })
-      // Sort links by source position to help maintain visual order
-      .sort((a, b) => a.sourcePosition - b.sourcePosition);
+      .filter(Boolean)
+      .sort((a: any, b: any) => (a.sourcePosition || 0) - (b.sourcePosition || 0));
 
-    return { nodes: nivoNodes, links: nivoLinks };
+    // Safety: remove orphan nodes (no links) to prevent d3-sankey NaN
+    const linkedNodeIds = new Set<string>();
+    nivoLinks.forEach((l: any) => {
+      linkedNodeIds.add(l.source);
+      linkedNodeIds.add(l.target);
+    });
+    const connectedNodes = nivoNodes.filter((n: any) => linkedNodeIds.has(n.id));
+
+    if (connectedNodes.length === 0 || nivoLinks.length === 0) return null;
+
+    return { nodes: connectedNodes, links: nivoLinks };
   }, [data]);
 
   // Loading state
@@ -219,16 +242,53 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
         <span className="text-muted-foreground font-medium">Race</span>
       </div>
 
-      {/* Sankey Chart */}
-      <div className="flex-1 min-h-[400px]">
-        <ResponsiveSankey
+      {/* Sankey Chart - only render when container has non-zero size to avoid NaN in Nivo layout */}
+      <SankeyWithDimensionGuard
+        sankeyData={sankeyData}
+        isDark={isDark}
+      />
+      <div className="pb-6" />
+    </div>
+  );
+};
+
+function SankeyWithDimensionGuard({
+  sankeyData,
+  isDark,
+}: {
+  sankeyData: { nodes: any[]; links: any[] };
+  isDark: boolean;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      setDimensions((prev) => (prev.width === w && prev.height === h ? prev : { width: w, height: h }));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const hasSize = dimensions.width >= 50 && dimensions.height >= 50;
+
+  return (
+    <div ref={containerRef} className="flex-1 min-h-[400px]" style={{ minHeight: 400 }}>
+      {hasSize ? (
+        <Sankey
+          width={dimensions.width}
+          height={dimensions.height}
           data={sankeyData}
           margin={{ top: 10, right: 100, bottom: 10, left: 100 }}
           align="justify"
-          sort={(a: any, b: any) => {
-            // Sort nodes by position within each layer (P1 at top, P20 at bottom)
-            return (a.position || 0) - (b.position || 0);
-          }}
+          animate={false}
+          sort={(a: any, b: any) => (a.position ?? 0) - (b.position ?? 0)}
           nodeOpacity={0.9}
           nodeHoverOpacity={1}
           nodeThickness={12}
@@ -245,16 +305,9 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
           labelOrientation="horizontal"
           labelPadding={12}
           labelTextColor={isDark ? '#a1a1aa' : '#666'}
-          label={(node: any) => {
-            // Only show labels for qualifying and race nodes
-            if (node.type === 'grid') return '';
-            return `P${node.position} ${node.name}`;
-          }}
+          label={(node: any) => (node.type === 'grid' ? '' : `P${node.position} ${node.name}`)}
           theme={{
-            text: {
-              fontSize: 10,
-              fill: isDark ? '#a1a1aa' : '#666',
-            },
+            text: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
             tooltip: {
               container: {
                 background: isDark ? 'hsl(222 47% 11%)' : '#fff',
@@ -286,37 +339,22 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
                 </div>
               )}
               {node.isDNF && node.status && (
-                <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">
-                  {node.status}
-                </div>
+                <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">{node.status}</div>
               )}
             </div>
           )}
           linkTooltip={({ link }: any) => {
-            const sourceNode = sankeyData.nodes.find(n => n.id === link.source.id);
-            const targetNode = sankeyData.nodes.find(n => n.id === link.target.id);
-            
+            const sourceNode = sankeyData.nodes.find((n: any) => n.id === link.source.id);
+            const targetNode = sankeyData.nodes.find((n: any) => n.id === link.target.id);
             const isQualiToGrid = sourceNode?.type === 'qualifying' && targetNode?.type === 'grid';
             const isGridToRace = sourceNode?.type === 'grid' && targetNode?.type === 'race';
-
             let change = 0;
             let changeText = 'No change';
             let changeColor = 'text-blue-500';
-
-            if (isQualiToGrid) {
-              change = (sourceNode?.position || 0) - (targetNode?.position || 0);
-            } else if (isGridToRace) {
-              change = (sourceNode?.position || 0) - (targetNode?.position || 0);
-            }
-
-            if (change > 0) {
-              changeText = `+${change} positions`;
-              changeColor = 'text-emerald-500';
-            } else if (change < 0) {
-              changeText = `${change} positions`;
-              changeColor = 'text-red-500';
-            }
-
+            if (isQualiToGrid) change = (sourceNode?.position ?? 0) - (targetNode?.position ?? 0);
+            else if (isGridToRace) change = (sourceNode?.position ?? 0) - (targetNode?.position ?? 0);
+            if (change > 0) { changeText = `+${change} positions`; changeColor = 'text-emerald-500'; }
+            else if (change < 0) { changeText = `${change} positions`; changeColor = 'text-red-500'; }
             return (
               <div className={cn(
                 "px-3 py-2 rounded-lg shadow-lg text-xs",
@@ -326,15 +364,11 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
                 <div className="text-muted-foreground mb-2">{link.team || link.source.teamName}</div>
                 <div className="space-y-1">
                   <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">
-                      {isQualiToGrid ? 'Qualifying:' : 'Grid:'}
-                    </span>
+                    <span className="text-muted-foreground">{isQualiToGrid ? 'Qualifying:' : 'Grid:'}</span>
                     <span className="font-mono font-medium">P{sourceNode?.position}</span>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">
-                      {isQualiToGrid ? 'Grid:' : 'Race:'}
-                    </span>
+                    <span className="text-muted-foreground">{isQualiToGrid ? 'Grid:' : 'Race:'}</span>
                     <span className="font-mono font-medium">P{targetNode?.position}</span>
                   </div>
                   <div className="flex justify-between gap-4">
@@ -349,19 +383,16 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
                   )}
                 </div>
                 {link.isDNF && link.status && (
-                  <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">
-                    {link.status}
-                  </div>
+                  <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">{link.status}</div>
                 )}
               </div>
             );
           }}
         />
-      </div>
-      <div className="pb-6" />
+      ) : null}
     </div>
   );
-};
+}
 
 export default MuiSankeyChart;
 

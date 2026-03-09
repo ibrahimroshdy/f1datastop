@@ -7,17 +7,18 @@
  */
 export const convertLapTimeToSeconds = (lapTime: string): number => {
   if (!lapTime) return 0;
-  
-  const parts = lapTime.includes(':') 
-    ? lapTime.split(':') 
+
+  const parts = lapTime.includes(':')
+    ? lapTime.split(':')
     : ['0', lapTime];
-  
+
   if (parts.length !== 2) return 0;
-  
+
   const minutes = parseFloat(parts[0]);
   const seconds = parseFloat(parts[1]);
-  
-  return minutes * 60 + seconds;
+  const total = minutes * 60 + seconds;
+
+  return Number.isFinite(total) ? total : 0;
 };
 
 /**

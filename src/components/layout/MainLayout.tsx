@@ -84,6 +84,13 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       // Glass mode background effects
       isGlass && "relative"
     )}>
+      {/* Skip link for keyboard/screen reader users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Skip to main content
+      </a>
       {/* Background gradient mesh for glass modes */}
       {isGlass && (
         <div 
@@ -122,7 +129,10 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         <TopBar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         
         {/* Main content */}
-        <main className={cn(
+        <main
+          id="main-content"
+          role="main"
+          className={cn(
           "flex-1 overflow-y-auto overflow-x-hidden",
           "transition-all duration-300"
         )}>

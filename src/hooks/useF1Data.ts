@@ -605,50 +605,46 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
         const nodes = [];
         const links = [];
         
-        // Create unique IDs for nodes
         const qualifyingIdPrefix = "Q";
         const gridIdPrefix = "G";
         const raceIdPrefix = "R";
+
+        // Build a lookup from driverId -> qualifying position
+        const qualiByDriverId = new Map<string, number>();
+        qualifying.forEach((driver) => {
+          if (driver.position) {
+            qualiByDriverId.set(driver.Driver.driverId, parseInt(driver.position));
+          }
+        });
+
+        // Track which qualifying positions are actually linked to a grid/race
+        const linkedQualiPositions = new Set<number>();
         
-        // Process qualifying nodes
-        qualifying.forEach((driver, index) => {
+        // Process race results first to determine grid positions and links
+        raceResults.forEach((driver) => {
           if (!driver.position) return;
           
-          const position = parseInt(driver.position);
-          
-          const driverCode = driver.Driver.code;
-          const driverName = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
-          const team = driver.Constructor.constructorId;
-          const teamName = driver.Constructor.name;
-          
-          nodes.push({
-            id: `${qualifyingIdPrefix}${position}`,
-            name: driverCode,
-            fullName: driverName,
-            team,
-            teamName,
-            position,
-            type: 'qualifying'
-          });
-        });
-        
-        // Process grid and race nodes and create links
-        raceResults.forEach((driver, index) => {
-          if (!driver.position || !driver.grid) return;
-          
           const racePosition = parseInt(driver.position);
-          const gridPosition = parseInt(driver.grid);
           const driverCode = driver.Driver.code;
           const driverName = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
           const team = driver.Constructor.constructorId;
           const teamName = driver.Constructor.name;
           const points = parseFloat(driver.points) || 0;
-          
-          // Handle DNFs
           const status = driver.status;
           const isDNF = status !== "Finished" && !status.includes("+");
-          
-          // Add grid node
+
+          // Resolve grid position: use API value, fall back to qualifying position
+          const qualiPos = qualiByDriverId.get(driver.Driver.driverId);
+          let gridPosition: number | null = null;
+          if (driver.grid != null && driver.grid !== "" && !isNaN(parseInt(driver.grid))) {
+            gridPosition = parseInt(driver.grid);
+          } else if (qualiPos != null) {
+            gridPosition = qualiPos;
+          }
+
+          // Skip drivers with no determinable grid position (e.g. DNS with no quali)
+          if (gridPosition == null) return;
+
           nodes.push({
             id: `${gridIdPrefix}${gridPosition}`,
             name: driverCode,
@@ -659,7 +655,6 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
             type: 'grid'
           });
           
-          // Add race node
           nodes.push({
             id: `${raceIdPrefix}${racePosition}`,
             name: driverCode,
@@ -673,52 +668,64 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
             points
           });
           
-          // Find matching qualifying result for this driver
-          const qualifyingResult = qualifying.find(q => 
-            q.Driver.driverId === driver.Driver.driverId
-          );
-          
-          if (qualifyingResult) {
-            const qualifyingPosition = parseInt(qualifyingResult.position);
-            
-            // Link from qualifying to grid
+          const qualifyingPosition = qualiPos ?? gridPosition;
+
+          if (qualiPos != null) {
+            linkedQualiPositions.add(qualiPos);
+
             links.push({
-              source: `${qualifyingIdPrefix}${qualifyingPosition}`,
+              source: `${qualifyingIdPrefix}${qualiPos}`,
               target: `${gridIdPrefix}${gridPosition}`,
-              value: 1, // Uniform value for consistent link width
+              value: 1,
               name: driverCode,
               code: driverCode,
               fullName: driverName,
               team,
               teamName,
-              qualifyingPosition,
+              qualifyingPosition: qualiPos,
               gridPosition,
               racePosition,
-              positionChange: qualifyingPosition - gridPosition,
+              positionChange: qualiPos - gridPosition,
               status,
               isDNF,
-              points: 0 // No points for qualifying to grid
-            });
-            
-            // Link from grid to race
-            links.push({
-              source: `${gridIdPrefix}${gridPosition}`,
-              target: `${raceIdPrefix}${racePosition}`,
-              value: 1, // Uniform value for consistent link width
-              name: driverCode,
-              code: driverCode,
-              fullName: driverName,
-              team,
-              teamName,
-              qualifyingPosition,
-              gridPosition,
-              racePosition,
-              positionChange: gridPosition - racePosition,
-              status,
-              isDNF,
-              points // Points from race result
+              points: 0
             });
           }
+          
+          links.push({
+            source: `${gridIdPrefix}${gridPosition}`,
+            target: `${raceIdPrefix}${racePosition}`,
+            value: 1,
+            name: driverCode,
+            code: driverCode,
+            fullName: driverName,
+            team,
+            teamName,
+            qualifyingPosition,
+            gridPosition,
+            racePosition,
+            positionChange: gridPosition - racePosition,
+            status,
+            isDNF,
+            points
+          });
+        });
+
+        // Only add qualifying nodes that are linked (prevents orphan nodes causing NaN)
+        qualifying.forEach((driver) => {
+          if (!driver.position) return;
+          const position = parseInt(driver.position);
+          if (!linkedQualiPositions.has(position)) return;
+          
+          nodes.push({
+            id: `${qualifyingIdPrefix}${position}`,
+            name: driver.Driver.code,
+            fullName: `${driver.Driver.givenName} ${driver.Driver.familyName}`,
+            team: driver.Constructor.constructorId,
+            teamName: driver.Constructor.name,
+            position,
+            type: 'qualifying'
+          });
         });
         
         return {

@@ -47,6 +47,9 @@ const NATIONALITY_TO_CODE: Record<string, string> = {
   "South African": "ZA", "New Zealander": "NZ",
 };
 
+const DEFAULT_CONSTRUCTORS_VISIBLE = 11; // F1 can have 10–11+ teams; show 11 by default
+const DEFAULT_DRIVERS_VISIBLE = 10;
+
 const getNationalityCode = (nationality: string | undefined): string => {
   if (!nationality) return "";
   return NATIONALITY_TO_CODE[nationality] || getCountryCode(nationality) || "";
@@ -141,9 +144,13 @@ const CombinedStandingsCard = ({
   // Get toggle text based on current tab
   const getToggleText = () => {
     if (tab === "drivers") {
-      return showAll ? "Show Top 10" : "Show All Drivers";
+      return showAll ? `Show Top ${DEFAULT_DRIVERS_VISIBLE}` : "Show All Drivers";
     }
-    return showAll ? "Show Top 10" : "Show All Teams";
+    const totalTeams = constructorStandings?.data?.length || 0;
+    if (totalTeams <= DEFAULT_CONSTRUCTORS_VISIBLE) {
+      return showAll ? "Collapse" : "Show All Teams";
+    }
+    return showAll ? `Show Top ${DEFAULT_CONSTRUCTORS_VISIBLE}` : "Show All Teams";
   };
 
   // Get footer text based on current tab
@@ -260,19 +267,22 @@ const CombinedStandingsCard = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(constructorStandings?.data || []).slice(0, showAll ? undefined : 10).map((team: any, idx: number) => {
+                    {(constructorStandings?.data || []).slice(0, showAll ? undefined : DEFAULT_CONSTRUCTORS_VISIBLE).map((team: any, idx: number) => {
                       const teamIdRaw = team.Constructor?.constructorId || "default";
                       const teamId = normalizeTeamId(teamIdRaw);
                       const borderColor = getTeamHexColor(teamId);
                       const totalPts = Number(team.points || 0);
                       const drivers = driversByTeam[teamId] || [];
-                      const { toLeader, toNext } = getGaps(idx, constructorStandings?.data || []);
+                      const fullList = constructorStandings?.data || [];
+                      const { toLeader, toNext } = getGaps(idx, fullList);
+                      const aheadPosition = idx > 0 ? (fullList[idx - 1]?.position || idx) : null;
                       const progressPct = constructorLeaderPoints > 0 ? (totalPts / constructorLeaderPoints) * 100 : 0;
+                      const displayPosition = team.position || (idx + 1);
                       
                       return (
-                        <TableRow key={team.position} className="border-border">
+                        <TableRow key={displayPosition} className="border-border">
                           <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
-                            {team.position}
+                            {displayPosition}
                           </TableCell>
                           <TableCell className="py-2 px-1 lg:p-4">
                             <div className="space-y-1">
@@ -322,7 +332,7 @@ const CombinedStandingsCard = ({
                             {idx > 0 && (
                               <div className="flex flex-col items-end gap-0.5">
                                 <span>To Leader: {toLeader}</span>
-                                <span>To P{idx}: {toNext}</span>
+                                <span>To P{aheadPosition ?? idx}: {toNext}</span>
                               </div>
                             )}
                           </TableCell>
@@ -335,20 +345,23 @@ const CombinedStandingsCard = ({
 
               {/* Mobile Card View */}
               <div className="lg:hidden space-y-2">
-                {(constructorStandings?.data || []).slice(0, showAll ? undefined : 10).map((team: any, idx: number) => {
+                {(constructorStandings?.data || []).slice(0, showAll ? undefined : DEFAULT_CONSTRUCTORS_VISIBLE).map((team: any, idx: number) => {
                   const teamIdRaw = team.Constructor?.constructorId || "default";
                   const teamId = normalizeTeamId(teamIdRaw);
                   const borderColor = getTeamHexColor(teamId);
                   const totalPts = Number(team.points || 0);
                   const drivers = driversByTeam[teamId] || [];
-                  const { toLeader, toNext } = getGaps(idx, constructorStandings?.data || []);
+                  const fullList = constructorStandings?.data || [];
+                  const { toLeader, toNext } = getGaps(idx, fullList);
+                  const aheadPosition = idx > 0 ? (fullList[idx - 1]?.position || idx) : null;
                   const progressPct = constructorLeaderPoints > 0 ? (totalPts / constructorLeaderPoints) * 100 : 0;
+                  const displayPosition = team.position || (idx + 1);
                   
                   return (
-                    <div key={team.position} className="rounded-md border border-border p-3">
+                    <div key={displayPosition} className="rounded-md border border-border p-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="text-xs text-muted-foreground w-5">{team.position}</div>
+                          <div className="text-xs text-muted-foreground w-6">{displayPosition}</div>
                           <TeamLogo constructorId={teamId} alt={team.Constructor?.name} size="sm" />
                           <div 
                             className="font-medium truncate"
@@ -382,7 +395,7 @@ const CombinedStandingsCard = ({
                       {idx > 0 && (
                         <div className="mt-2 text-[10px] text-muted-foreground text-right">
                           <div>To Leader: {toLeader}</div>
-                          <div>To P{idx}: {toNext}</div>
+                          <div>To P{aheadPosition ?? idx}: {toNext}</div>
                         </div>
                       )}
                       
@@ -417,7 +430,7 @@ const CombinedStandingsCard = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {(driverStandings?.data || []).slice(0, showAll ? undefined : 10).map((standing: any, idx: number) => {
+                    {(driverStandings?.data || []).slice(0, showAll ? undefined : DEFAULT_DRIVERS_VISIBLE).map((standing: any, idx: number) => {
                     const currentConstructor = standing.Constructors?.length
                       ? standing.Constructors[standing.Constructors.length - 1]
                       : null;
@@ -426,13 +439,16 @@ const CombinedStandingsCard = ({
                     const points = Number(standing.points || 0);
                       const teamPoints = teamPointsMap[teamId] || 0;
                       const contrib = teamPoints > 0 ? Math.round((points / teamPoints) * 100) : 0;
-                      const { toLeader, toNext } = getGaps(idx, driverStandings?.data || []);
+                      const fullList = driverStandings?.data || [];
+                      const { toLeader, toNext } = getGaps(idx, fullList);
+                      const aheadPosition = idx > 0 ? (fullList[idx - 1]?.position || idx) : null;
                       const progressPct = driverLeaderPoints > 0 ? (points / driverLeaderPoints) * 100 : 0;
+                      const displayPosition = standing.position || (idx + 1);
                       
                     return (
-                      <TableRow key={standing.position} className="border-border">
+                      <TableRow key={displayPosition} className="border-border">
                         <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
-                          {standing.position}
+                          {displayPosition}
                         </TableCell>
                         <TableCell className="py-2 px-1 lg:p-4">
                           <div className="space-y-1">
@@ -482,7 +498,7 @@ const CombinedStandingsCard = ({
                             {idx > 0 && (
                             <div className="flex flex-col items-end gap-0.5">
                               <span>To Leader: {toLeader}</span>
-                                <span>To P{idx}: {toNext}</span>
+                                <span>To P{aheadPosition ?? idx}: {toNext}</span>
             </div>
                           )}
                         </TableCell>
@@ -498,7 +514,7 @@ const CombinedStandingsCard = ({
 
               {/* Mobile Card View */}
             <div className="lg:hidden space-y-2">
-                {(driverStandings?.data || []).slice(0, showAll ? undefined : 10).map((standing: any, idx: number) => {
+                {(driverStandings?.data || []).slice(0, showAll ? undefined : DEFAULT_DRIVERS_VISIBLE).map((standing: any, idx: number) => {
                 const currentConstructor = standing.Constructors?.length
                   ? standing.Constructors[standing.Constructors.length - 1]
                   : null;
@@ -507,14 +523,17 @@ const CombinedStandingsCard = ({
                 const points = Number(standing.points || 0);
                   const teamPoints = teamPointsMap[teamId] || 0;
                   const contrib = teamPoints > 0 ? Math.round((points / teamPoints) * 100) : 0;
-                  const { toLeader, toNext } = getGaps(idx, driverStandings?.data || []);
+                  const fullList = driverStandings?.data || [];
+                  const { toLeader, toNext } = getGaps(idx, fullList);
+                  const aheadPosition = idx > 0 ? (fullList[idx - 1]?.position || idx) : null;
                   const progressPct = driverLeaderPoints > 0 ? (points / driverLeaderPoints) * 100 : 0;
+                  const displayPosition = standing.position || (idx + 1);
                   
     return (
-                    <div key={standing.position} className="rounded-md border border-border p-3">
+                    <div key={displayPosition} className="rounded-md border border-border p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="text-xs text-muted-foreground w-5">{standing.position}</div>
+                        <div className="text-xs text-muted-foreground w-6">{displayPosition}</div>
                         <div className="flex items-center gap-2 min-w-0">
                             <TeamLogo constructorId={teamId} alt={currentConstructor?.name} size="sm" />
                           <ReactCountryFlag
@@ -533,7 +552,7 @@ const CombinedStandingsCard = ({
                               {idx > 0 && (
                               <div className="mt-1 text-[10px] text-muted-foreground">
                                 <div>To Leader: {toLeader}</div>
-                                  <div>To P{idx}: {toNext}</div>
+                                  <div>To P{aheadPosition ?? idx}: {toNext}</div>
                     </div>
                             )}
                     </div>
@@ -578,18 +597,21 @@ const CombinedStandingsCard = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {(constructorStandings?.data || []).slice(0, showAll ? undefined : 10).map((team: any, idx: number) => {
+                    {(constructorStandings?.data || []).slice(0, showAll ? undefined : DEFAULT_CONSTRUCTORS_VISIBLE).map((team: any, idx: number) => {
                       const teamIdRaw = team.Constructor?.constructorId || "default";
                       const teamId = normalizeTeamId(teamIdRaw);
                     const borderColor = getTeamHexColor(teamId);
                       const totalPts = Number(team.points || 0);
-                      const { toLeader, toNext } = getGaps(idx, constructorStandings?.data || []);
+                      const fullList = constructorStandings?.data || [];
+                      const { toLeader, toNext } = getGaps(idx, fullList);
+                      const aheadPosition = idx > 0 ? (fullList[idx - 1]?.position || idx) : null;
                       const progressPct = constructorLeaderPoints > 0 ? (totalPts / constructorLeaderPoints) * 100 : 0;
+                      const displayPosition = team.position || (idx + 1);
                       
                     return (
-                      <TableRow key={team.position} className="border-border">
+                      <TableRow key={displayPosition} className="border-border">
                         <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
-                          {team.position}
+                          {displayPosition}
                         </TableCell>
                         <TableCell className="py-2 px-1 lg:p-4">
                           <div className="space-y-1">
@@ -617,7 +639,7 @@ const CombinedStandingsCard = ({
                             {idx > 0 && (
                             <div className="flex flex-col items-end gap-0.5">
                               <span>To Leader: {toLeader}</span>
-                                <span>To P{idx}: {toNext}</span>
+                                <span>To P{aheadPosition ?? idx}: {toNext}</span>
                             </div>
                           )}
                         </TableCell>
@@ -630,19 +652,22 @@ const CombinedStandingsCard = ({
 
               {/* Mobile Card View */}
             <div className="lg:hidden space-y-2">
-                {(constructorStandings?.data || []).slice(0, showAll ? undefined : 10).map((team: any, idx: number) => {
+                {(constructorStandings?.data || []).slice(0, showAll ? undefined : DEFAULT_CONSTRUCTORS_VISIBLE).map((team: any, idx: number) => {
                   const teamIdRaw = team.Constructor?.constructorId || "default";
                   const teamId = normalizeTeamId(teamIdRaw);
                 const borderColor = getTeamHexColor(teamId);
                   const totalPts = Number(team.points || 0);
-                  const { toLeader, toNext } = getGaps(idx, constructorStandings?.data || []);
+                  const fullList = constructorStandings?.data || [];
+                  const { toLeader, toNext } = getGaps(idx, fullList);
+                  const aheadPosition = idx > 0 ? (fullList[idx - 1]?.position || idx) : null;
                   const progressPct = constructorLeaderPoints > 0 ? (totalPts / constructorLeaderPoints) * 100 : 0;
+                  const displayPosition = team.position || (idx + 1);
                   
   return (
-                  <div key={team.position} className="rounded-md border border-border p-3">
+                  <div key={displayPosition} className="rounded-md border border-border p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="text-xs text-muted-foreground w-5">{team.position}</div>
+                        <div className="text-xs text-muted-foreground w-6">{displayPosition}</div>
                         <TeamLogo constructorId={teamId} alt={team.Constructor?.name} size="sm" />
                         <div
                           className="font-medium truncate"
@@ -660,7 +685,7 @@ const CombinedStandingsCard = ({
                       {idx > 0 && (
                       <div className="mt-2 text-[10px] text-muted-foreground text-right">
                         <div>To Leader: {toLeader}</div>
-                          <div>To P{idx}: {toNext}</div>
+                          <div>To P{aheadPosition ?? idx}: {toNext}</div>
                 </div>
                     )}
                       

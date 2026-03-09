@@ -1,0 +1,25 @@
+---
+description: F1 DataStop design philosophy and design system reference
+globs: src/**/*.tsx, src/**/*.ts
+alwaysApply: true
+---
+
+# F1 DataStop Design System
+
+When editing UI, components, or styling in this codebase:
+
+1. **Design philosophy**: Follow the principles in `.cursor/DESIGN_PHILOSOPHY.md` (information density, F1 branding, glass only in Dark Glass theme, dark-first, compact & clean, motion & feedback).
+
+2. **Components**: Use the component hierarchy and patterns in `.cursor/COMPONENT_ARCHITECTURE.md`. Prefer **F1Card** (with variant `default` | `glass` | `gradient` | `team-accent`) for content cards; use base shadcn **Card** only for generic layout. Do not use the deprecated **GlassCard** for new code—use **F1Card** with `variant="glass"` and `glassVariant` instead.
+
+3. **Empty / error / loading**: Use **F1EmptyState**, **F1ErrorState**, and **F1Skeleton** from `@/components/f1`. Do not add new one-off empty or error components.
+
+4. **Charts**: Wrap MUI charts in **MuiThemeWrapper**; use design tokens and patterns from `.cursor/DATA_VISUALIZATION.md`.
+
+5. **Theme**: Use **useTheme()** from `@/context/ThemeContext` for theme-dependent UI. Glass styling only when `isGlass` is true. See `.cursor/THEME_SYSTEM.md`.
+
+6. **Patterns**: Follow `.cursor/UI_PATTERNS.md` for cards, empty states, modals, tabs, and responsive behavior.
+
+7. **Accessibility**: Meet `.cursor/ACCESSIBILITY.md` (labels, keyboard, focus, contrast). Use forwardRef for components used with Radix `asChild` (e.g. Badge).
+
+Reference the full markdown docs in `.cursor/` for detailed standards.

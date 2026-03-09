@@ -127,37 +127,34 @@ const FastestPitStopCard = () => {
   const { data: raceScheduleData } = useRaceSchedule();
 
   useEffect(() => {
+    if (raceScheduleData?.data) {
+      const races = raceScheduleData.data;
+      const now = new Date();
+      const completedRaces = races.filter((race: any) => new Date(race.date) < now);
+
+      if (completedRaces.length > 0) {
+        const lastRaceData = completedRaces[completedRaces.length - 1];
+        setRaceName(getRaceNameWithoutEmoji(lastRaceData.raceName));
+        const country = lastRaceData.Circuit?.Location?.country || "";
+        setCountryName(country);
+        setCountryCode(getCountryCode(country) || "");
+        setLastRace(lastRaceData);
+      }
+    }
+
     if (lastRaceResult.data && lastRacePitStops.data) {
       try {
         const pitStops = processDriverFastestPitStops(lastRaceResult.data, lastRacePitStops.data);
-        
+
         if (pitStops.length > 0) {
           setFastestPitStops(pitStops);
           setError(null);
         } else {
-          // Check if season hasn't started yet
           const hasCompletedRaces = raceScheduleData?.data?.some((race: any) => new Date(race.date) < new Date());
           if (!hasCompletedRaces) {
-            // Season hasn't started - don't show error
             setError(null);
           } else {
-            // Season has started but no pit stop data - this might be a real issue
-            setError("No pit stop data available");
-          }
-        }
-        
-        if (raceScheduleData?.data) {
-          const races = raceScheduleData.data;
-          const now = new Date();
-          const completedRaces = races.filter((race: any) => new Date(race.date) < now);
-          
-          if (completedRaces.length > 0) {
-            const lastRaceData = completedRaces[completedRaces.length - 1];
-            setRaceName(getRaceNameWithoutEmoji(lastRaceData.raceName));
-            const country = lastRaceData.Circuit?.Location?.country || "";
-            setCountryName(country);
-            setCountryCode(getCountryCode(country) || "");
-            setLastRace(lastRaceData);
+            setError("pending");
           }
         }
       } catch (err) {
@@ -165,13 +162,11 @@ const FastestPitStopCard = () => {
         setError("Error processing pit stop data");
       }
     } else if (!lastRaceResult.isLoading && !lastRacePitStops.isLoading) {
-      // Check if season hasn't started yet
       const hasCompletedRaces = raceScheduleData?.data?.some((race: any) => new Date(race.date) < new Date());
       if (!hasCompletedRaces) {
-        // Season hasn't started - don't show error
         setError(null);
       } else {
-        setError("No pit stop data available");
+        setError("pending");
       }
     }
   }, [lastRaceResult.data, lastRacePitStops.data, lastRaceResult.isLoading, lastRacePitStops.isLoading, raceScheduleData]);
@@ -201,7 +196,7 @@ const FastestPitStopCard = () => {
             </div>
             
             {/* GP Badge - Top Right */}
-            {!isLoading && !error && raceName && (
+            {!isLoading && (!error || error === "pending") && raceName && (
               <button
                 onClick={() => setIsDialogOpen(true)}
                 className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:border-primary/50 transition-all"
@@ -244,12 +239,19 @@ const FastestPitStopCard = () => {
                 <Skeleton key={i} className="h-11 w-full" />
               ))}
             </div>
-          ) : error && fastestPitStops.length === 0 ? (
+          ) : error && error !== "pending" && fastestPitStops.length === 0 ? (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
+          ) : error === "pending" && fastestPitStops.length === 0 ? (
+            <F1EmptyState
+              type="season-start"
+              title="Pit Stop Data Pending"
+              description="Pit stop data for the latest race is still being processed. Check back shortly."
+              size="sm"
+            />
           ) : fastestPitStops.length === 0 && !error ? (
             <F1EmptyState 
               type="season-start"

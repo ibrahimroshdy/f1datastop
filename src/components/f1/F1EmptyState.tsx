@@ -25,6 +25,7 @@ type EmptyStateType =
   | "no-chart-data"
   | "no-search-results"
   | "loading-failed"
+  | "coming-soon"
   | "custom";
 
 interface F1EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -99,6 +100,11 @@ const emptyStateConfig: Record<EmptyStateType, {
     icon: RefreshCw,
     title: "Failed to Load",
     description: "Something went wrong while loading the data. Please try again.",
+  },
+  "coming-soon": {
+    icon: Clock,
+    title: "Coming Soon",
+    description: "This feature or data will be available soon.",
   },
   "custom": {
     icon: FileQuestion,
@@ -247,11 +253,22 @@ const LoadingFailedEmpty = ({ onRetry }: { onRetry: () => void }) => (
   />
 );
 
+const ComingSoonEmpty = ({ title, description }: { title?: string; description?: string }) => (
+  <F1EmptyState 
+    type="coming-soon"
+    title={title}
+    description={description}
+  />
+);
+
+export type { EmptyStateType };
+
 export { 
   F1EmptyState, 
   SeasonStartEmpty, 
   NoRaceResultsEmpty, 
   NoChartDataEmpty,
-  LoadingFailedEmpty 
+  LoadingFailedEmpty,
+  ComingSoonEmpty
 };
 

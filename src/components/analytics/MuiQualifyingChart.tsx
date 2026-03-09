@@ -48,7 +48,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
 
   // Get data for a specific session
   const getSessionData = (session: 'Q1' | 'Q2' | 'Q3') => {
-    const sessionKey = session === 'Q1' ? 'q1Time' : 
+    const sessionKey = session === 'Q1' ? 'q1Time' :
                        session === 'Q2' ? 'q2Time' : 'q3Time';
 
     const driversWithTimes = availableDrivers
@@ -56,10 +56,15 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
       .sort((a, b) => (a[sessionKey] || 999) - (b[sessionKey] || 999));
 
     const labels = driversWithTimes.map(d => d.code);
-    const times = driversWithTimes.map(d => d[sessionKey] as number);
+    const rawTimes = driversWithTimes.map(d => d[sessionKey] as number);
+    // Sanitize to finite numbers to avoid NaN in SVG/animation
+    const times = rawTimes.map(t => (typeof t === 'number' && Number.isFinite(t) ? t : 0));
     const colors = driversWithTimes.map(d => TEAM_COLORS[d.team] || DRIVER_COLORS[d.code] || "#666");
     const fastestSessionTime = times.length > 0 ? Math.min(...times) : 0;
-    const gaps = times.map(t => t - fastestSessionTime);
+    const gaps = times.map(t => {
+      const gap = t - fastestSessionTime;
+      return Number.isFinite(gap) ? gap : 0;
+    });
 
     return { labels, times, gaps, colors, fastestSessionTime, driversWithTimes };
   };
@@ -212,11 +217,26 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
         }}
         slots={{
           bar: (props) => {
-            const idx = props.ownerState.dataIndex;
+            const idx = props.ownerState?.dataIndex;
             const color = idx !== undefined && idx >= 0 ? sessionData.colors[idx] : '#e10600';
+            // Sanitize rect geometry so SVG never receives NaN (avoids "Expected length, NaN" and animation NaN)
+            const x = Number(props.x);
+            const y = Number(props.y);
+            const w = Number(props.width);
+            const h = Number(props.height);
+            const { transform, ...restProps } = props as { transform?: string; [k: string]: unknown };
+            const safeTransform =
+              transform && typeof transform === 'string' && !transform.includes('NaN')
+                ? transform
+                : undefined;
             return (
               <rect
-                {...props}
+                {...restProps}
+                x={Number.isFinite(x) ? x : 0}
+                y={Number.isFinite(y) ? y : 0}
+                width={Number.isFinite(w) && w >= 0 ? w : 0}
+                height={Number.isFinite(h) && h >= 0 ? h : 0}
+                {...(safeTransform ? { transform: safeTransform } : {})}
                 fill={color}
                 rx={2}
                 ry={2}

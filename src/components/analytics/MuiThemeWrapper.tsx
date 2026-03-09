@@ -10,8 +10,10 @@ interface MuiThemeWrapperProps {
   [key: string]: any;
 }
 
-const MuiThemeWrapper: React.FC<MuiThemeWrapperProps> = ({ children }) => {
+const MuiThemeWrapper: React.FC<MuiThemeWrapperProps> = (props) => {
   const { baseTheme } = useTheme();
+  // Only pass theme and children to MUI ThemeProvider; omit data-lov-* and other pass-through props to avoid prop warnings
+  const { children } = props;
   
   const muiTheme = React.useMemo(() => createTheme({
     palette: {
@@ -54,10 +56,12 @@ const MuiThemeWrapper: React.FC<MuiThemeWrapperProps> = ({ children }) => {
   }), [baseTheme]);
 
   return (
-    <ThemeProvider theme={muiTheme}>
-      <CssBaseline enableColorScheme />
-      {children}
-    </ThemeProvider>
+    <span style={{ display: 'contents' }} data-mui-theme-wrapper>
+      <ThemeProvider theme={muiTheme}>
+        <CssBaseline enableColorScheme />
+        {children}
+      </ThemeProvider>
+    </span>
   );
 };
 

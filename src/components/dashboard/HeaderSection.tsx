@@ -9,8 +9,8 @@ import BuyMeCoffeeWidget from "@/components/common/BuyMeCoffeeWidget";
 import { getNextSession } from "@/utils/nextSessionUtils";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
-import { GlassCard } from "@/components/glass";
 import { GlassBadge } from "@/components/glass";
+import { F1Card } from "@/components/f1";
 
 interface HeaderSectionProps {
   nextRace: any;
@@ -91,8 +91,9 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
 
         {/* Next Race Card - More compact */}
         {nextRace && nextSession && (
-          <GlassCard
-            variant={isGlass ? "glow" : "default"}
+          <F1Card
+            variant="glass"
+            glassVariant={isGlass ? "glow" : "default"}
             size="sm"
             hover="lift"
             className={cn(
@@ -101,6 +102,7 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
               isImminent && "animate-pulse-glow"
             )}
             onClick={() => setIsDialogOpen(true)}
+            aria-label={nextSession && sessionDate ? `Next session: ${removeFlag(raceName)} on ${sessionDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} at ${sessionDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}. Countdown: ${countdown.days}d ${countdown.hours}h ${countdown.minutes}m ${countdown.seconds}s. Click to view race details.` : undefined}
           >
             <div className="flex items-center justify-between gap-3 md:gap-4">
               {/* Race Info */}
@@ -161,7 +163,7 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
                 <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
               </div>
             </div>
-          </GlassCard>
+          </F1Card>
         )}
       </div>
       
