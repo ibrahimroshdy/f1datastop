@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { Sankey } from '@nivo/sankey';
 import { useQualifyingToRaceDataByRound } from '@/hooks/useF1Data';
-import { TEAM_COLORS, colorWithAlpha } from '@/constants/f1Colors';
+import { TEAM_COLORS } from '@/constants/f1Colors';
 import { useTheme } from '@/context/ThemeContext';
 import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -132,22 +132,22 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
           { type: sourceNode?.type, position: sourceNode?.position, team: sourceNode?.team },
           { type: targetNode?.type, position: targetNode?.position }
         );
-        // Dim only the Grid→Race segment for DNF/DNS/Retired (not the line from Quali→Grid, not the nodes)
+        // Mark Grid→Race links for DNF/DNS/Retired so we can dim them (Nivo overwrites link color, so we dim via DOM in useEffect)
         const isGridToRace = sourceNode?.type === 'grid' && targetNode?.type === 'race';
         const statusStr = link.status ? String(link.status).toLowerCase() : '';
-        const shouldDimLine =
+        const dimLine =
           isGridToRace &&
           (link.isDNF === true ||
             statusStr.includes('retired') ||
             statusStr.includes('did not start'));
-        const finalColor = shouldDimLine ? colorWithAlpha(linkColor, 0.26) : linkColor;
 
         return {
           source: sourceId,
           target: targetId,
           value,
           sourcePosition: Number.isFinite(Number(sourceNode?.position)) ? Number(sourceNode.position) : 0,
-          color: finalColor,
+          color: linkColor,
+          dimLine: !!dimLine,
           driverName: link.fullName || link.name,
           driverCode: link.code,
           team: link.teamName,
@@ -289,6 +289,29 @@ function SankeyWithDimensionGuard({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // Dim Grid→Race lines for DNF/DNS/Retired by setting fill-opacity on the SVG paths (Nivo overwrites link color so we can't do it via data)
+  useEffect(() => {
+    if (!sankeyData?.links?.length || dimensions.width < 50) return;
+    const wrapper = containerRef.current;
+    if (!wrapper) return;
+    const raf = requestAnimationFrame(() => {
+      const svg = wrapper.querySelector('svg');
+      if (!svg) return;
+      const paths = Array.from(svg.querySelectorAll('path'));
+      // One path per link in same order as sankeyData.links
+      sankeyData.links.forEach((link: any, i: number) => {
+        const path = paths[i];
+        if (!path) return;
+        if (link.dimLine) {
+          path.style.fillOpacity = '0.2';
+        } else {
+          path.style.fillOpacity = '';
+        }
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [sankeyData, dimensions.width]);
 
   const hasSize = dimensions.width >= 50 && dimensions.height >= 50;
 

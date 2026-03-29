@@ -1,11 +1,22 @@
 /**
  * API Configuration Constants
  * This file contains all API endpoints, function URLs, and other API-related configuration.
- * In development, Ergast requests are proxied via Vite to avoid CORS (see vite.config.ts).
+ *
+ * Ergast (Jolpica mirror) often does not send CORS headers, so browsers block direct calls from
+ * localhost or your deployed domain. Use:
+ * - Dev: Vite proxies `/api/ergast` → `https://api.jolpi.ca/ergast` (see vite.config.ts; also enabled for `vite preview`).
+ * - Production: set `VITE_ERGAST_BASE=/api/ergast` and add a host rewrite (e.g. vercel.json) OR set
+ *   `VITE_ERGAST_BASE=https://your-server.com/ergast-proxy` to your own proxy.
+ *
+ * Optional override (full origin + path prefix, no trailing slash): e.g. `https://api.jolpi.ca/ergast`
  */
-
-// Ergast root (no /f1) - used by f1Service and embeddables
-const ERGAST_BASE = import.meta.env.DEV ? "/api/ergast" : "https://api.jolpi.ca/ergast";
+const envErgast = import.meta.env.VITE_ERGAST_BASE as string | undefined;
+const ERGAST_BASE =
+  envErgast && envErgast.length > 0
+    ? envErgast.replace(/\/$/, "")
+    : import.meta.env.DEV
+      ? "/api/ergast"
+      : "https://api.jolpi.ca/ergast";
 
 // Supabase Function URLs
 export const SUPABASE_FUNCTIONS = {

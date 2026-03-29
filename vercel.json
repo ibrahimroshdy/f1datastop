@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/ergast/:path*",
+      "destination": "https://api.jolpi.ca/ergast/:path*"
+    }
+  ]
+}

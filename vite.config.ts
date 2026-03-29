@@ -38,6 +38,11 @@ export default defineConfig(({ mode }) => {
       port: 8080,
       proxy: mode === 'development' ? devProxy : undefined
     },
+    // Same proxy for `vite preview` so Ergast works (dev uses /api/ergast; preview must too)
+    preview: {
+      port: 8080,
+      proxy: devProxy,
+    },
     plugins: [
       react(),
       mode === 'development' &&
