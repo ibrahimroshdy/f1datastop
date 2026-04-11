@@ -9,6 +9,9 @@ import {
 } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 
 const GlobeControls = ({ 
   showPaths, 
@@ -16,18 +19,28 @@ const GlobeControls = ({
   detailLevel,
   onChangeDetailLevel 
 }: GlobeControlsProps) => {
+  const { isGlass } = useTheme();
+  const shell = cn(
+    "shadow-sm",
+    isGlass ? "border-white/10 bg-background/70 backdrop-blur-md" : "border-border bg-card/90 backdrop-blur-sm"
+  );
+
   return (
-    <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+    <div className="absolute bottom-3 right-3 z-20 flex gap-2 sm:bottom-4 sm:right-4">
       <Tooltip>
         <TooltipTrigger asChild>
-          <button 
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            className={cn("h-10 w-10 border", shell)}
             onClick={onTogglePaths}
-            className="p-2 bg-black/60 backdrop-blur-sm border border-gray-700 rounded-md text-white hover:bg-black/80 transition-colors"
           >
             {showPaths ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-          </button>
+            <span className="sr-only">{showPaths ? "Hide race paths" : "Show race paths"}</span>
+          </Button>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent side="left">
           {showPaths ? "Hide race paths" : "Show race paths"}
         </TooltipContent>
       </Tooltip>
@@ -36,36 +49,46 @@ const GlobeControls = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <PopoverTrigger asChild>
-              <button 
-                className="p-2 bg-black/60 backdrop-blur-sm border border-gray-700 rounded-md text-white hover:bg-black/80 transition-colors"
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className={cn("h-10 w-10 border", shell)}
               >
                 <Settings2 className="h-5 w-5" />
-              </button>
+                <span className="sr-only">Globe settings</span>
+              </Button>
             </PopoverTrigger>
           </TooltipTrigger>
-          <TooltipContent>
-            Globe settings
-          </TooltipContent>
+          <TooltipContent side="left">Globe quality</TooltipContent>
         </Tooltip>
-        <PopoverContent className="w-60 bg-black/80 backdrop-blur-sm border border-gray-700 text-white">
-          <div className="space-y-2 p-2">
-            <h4 className="font-medium text-xs uppercase text-gray-400">Globe Settings</h4>
+        <PopoverContent className="w-64 border-border bg-popover p-3 text-popover-foreground" align="end">
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Globe quality
+            </h4>
             <RadioGroup 
               value={detailLevel} 
               onValueChange={value => onChangeDetailLevel(value as GlobeDetailLevel)}
-              className="mt-2"
+              className="grid gap-2"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="low" id="low" className="border-white" />
-                <Label htmlFor="low">Low Detail (Fastest)</Label>
+                <RadioGroupItem value="low" id="globe-low" />
+                <Label htmlFor="globe-low" className="text-sm font-normal leading-none">
+                  Low — fastest
+                </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="medium" id="medium" className="border-white" />
-                <Label htmlFor="medium">Medium Detail</Label>
+                <RadioGroupItem value="medium" id="globe-medium" />
+                <Label htmlFor="globe-medium" className="text-sm font-normal leading-none">
+                  Medium — balanced
+                </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="high" id="high" className="border-white" />
-                <Label htmlFor="high">High Detail (Slowest)</Label>
+                <RadioGroupItem value="high" id="globe-high" />
+                <Label htmlFor="globe-high" className="text-sm font-normal leading-none">
+                  High — smoothest
+                </Label>
               </div>
             </RadioGroup>
           </div>

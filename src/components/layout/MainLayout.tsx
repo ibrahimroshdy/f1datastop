@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils";
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  /** When false, the global marketing/footer chrome is omitted (e.g. live timing). Default true. */
+  showFooter?: boolean;
 }
 
-const MainLayout = ({ children }: MainLayoutProps) => {
+const MainLayout = ({ children, showFooter = true }: MainLayoutProps) => {
   const isMediumOrSmaller = useIsMediumOrSmaller();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { isGlass, baseTheme } = useTheme();
@@ -147,8 +149,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             </div>
           </div>
           
-          {/* Footer */}
-          <Footer />
+          {showFooter ? <Footer /> : null}
         </main>
       </div>
     </div>

@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { Progress } from "@/components/ui/progress";
 import { useDriverStandings } from "@/hooks/useF1Data";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
 import { Users } from "lucide-react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import TeamLogo from "@/components/common/TeamLogo";
@@ -16,6 +17,9 @@ const normalizeTeamId = (teamId: string) => {
 };
 
 const DriverStandings = () => {
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   const { data: driverStandings } = useDriverStandings();
   const drivers = driverStandings?.data || [];
   const leaderPoints = useMemo(() => Number(drivers?.[0]?.points || 0), [drivers]);
@@ -38,14 +42,17 @@ const DriverStandings = () => {
   }, [drivers]);
 
   return (
-    <Card className="bg-card border-border h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
+    <F1Card
+      variant={surfaceVariant}
+      glassVariant={surfaceGlass}
+      className="h-full border-border bg-card p-0"
+    >
+      <F1CardHeader className="pb-2">
+        <F1CardTitle icon={<Users className="h-5 w-5" />} className="text-base font-semibold">
           Top Drivers (Compact)
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </F1CardTitle>
+      </F1CardHeader>
+      <F1CardContent>
         <div className="space-y-2 lg:space-y-3">
           {(drivers?.slice(0, 7) || []).map((standing: any, idx: number) => {
             const team = (standing.Constructors || [])[ (standing.Constructors || []).length - 1];
@@ -96,8 +103,8 @@ const DriverStandings = () => {
             );
           })}
         </div>
-      </CardContent>
-    </Card>
+      </F1CardContent>
+    </F1Card>
   );
 };
 

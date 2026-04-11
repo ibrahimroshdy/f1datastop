@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
@@ -24,6 +24,8 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
   const [selectedRace, setSelectedRace] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   
   const now = new Date();
   const completedRaces = raceSchedule?.data?.filter((race: any) => new Date(race.date) < now) || [];
@@ -142,35 +144,28 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
     setIsDialogOpen(true);
   };
   
-  const glassStyle = isGlass ? {
-    background: 'var(--glass-bg)',
-    backdropFilter: 'blur(var(--glass-blur))',
-    WebkitBackdropFilter: 'blur(var(--glass-blur))',
-    boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-  } : undefined;
-
   const isLoading = scheduleLoading || nextRaceLoading;
 
   if (isLoading) {
     return (
-      <Card 
-        className={cn("h-full", isGlass && "border-white/10")}
-        style={glassStyle}
+      <F1Card
+        variant={surfaceVariant}
+        glassVariant={surfaceGlass}
+        className={cn("h-full p-0", isGlass && "border-white/10")}
       >
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-primary" />
+        <F1CardHeader className="pb-3">
+          <F1CardTitle icon={<CalendarDays className="h-5 w-5" />} className="text-base font-semibold">
             Season Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </F1CardTitle>
+        </F1CardHeader>
+        <F1CardContent>
           <div className="space-y-4">
             <Skeleton className="h-6 w-full" />
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-16 w-full" />
           </div>
-        </CardContent>
-      </Card>
+        </F1CardContent>
+      </F1Card>
     );
   }
   
@@ -181,18 +176,18 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
   
   return (
     <>
-      <Card 
-        className={cn("h-full", isGlass && "border-white/10")}
-        style={glassStyle}
+      <F1Card
+        variant={surfaceVariant}
+        glassVariant={surfaceGlass}
+        className={cn("h-full p-0", isGlass && "border-white/10")}
       >
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-primary" />
+        <F1CardHeader className="pb-3">
+          <F1CardTitle icon={<CalendarDays className="h-5 w-5" />} className="text-base font-semibold">
             Season Overview
-          </CardTitle>
-        </CardHeader>
+          </F1CardTitle>
+        </F1CardHeader>
         
-        <CardContent className="space-y-4">
+        <F1CardContent className="space-y-4">
           {/* Season Progress */}
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
@@ -284,8 +279,8 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
               <div className="text-[10px] text-muted-foreground">Max Gap</div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </F1CardContent>
+      </F1Card>
       
       {/* Race Detail Dialog */}
       {selectedRace && (

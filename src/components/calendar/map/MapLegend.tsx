@@ -1,38 +1,53 @@
 import { Info } from "lucide-react";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 
 const MapLegend = () => {
+  const { isGlass } = useTheme();
+  const variant = isGlass ? ("glass" as const) : ("default" as const);
+  const glassVariant = isGlass ? ("panel" as const) : ("default" as const);
+
   return (
-    <div className="absolute bottom-4 left-4 p-3 bg-card/90 border border-border text-foreground z-20 rounded-lg text-xs max-w-[280px] backdrop-blur-sm">
-      <div className="flex items-center gap-2 mb-2">
-        <Info className="h-4 w-4 text-muted-foreground" />
-        <span className="font-medium">Race Legend</span>
-      </div>
-      <div className="grid grid-cols-1 gap-1.5">
+    <F1Card
+      variant={variant}
+      glassVariant={glassVariant}
+      className={cn(
+        "absolute bottom-3 left-3 z-20 max-w-[min(100%,280px)] p-0 text-xs shadow-md sm:bottom-4 sm:left-4",
+        isGlass && "border-white/10"
+      )}
+    >
+      <F1CardHeader className="space-y-0 pb-2 pt-3">
+        <F1CardTitle icon={<Info className="h-4 w-4" />} className="text-xs font-semibold sm:text-sm">
+          Markers & paths
+        </F1CardTitle>
+      </F1CardHeader>
+      <F1CardContent className="space-y-1.5 pb-3 pt-0 text-muted-foreground">
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-          <span className="text-muted-foreground">First Race</span>
+          <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-green-500" />
+          <span>Opening round</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-f1-red"></div>
-          <span className="text-muted-foreground">Upcoming Race</span>
+          <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
+          <span>Upcoming</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground"></div>
-          <span className="text-muted-foreground">Completed Race</span>
+          <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-muted-foreground/80" />
+          <span>Completed</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-0.5 w-8 bg-f1-red/70"></div>
-          <span className="text-muted-foreground">Upcoming Path</span>
+          <div className="h-0.5 w-8 shrink-0 rounded-full bg-primary/70" />
+          <span>Upcoming leg</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-0.5 w-8 bg-muted-foreground/70"></div>
-          <span className="text-muted-foreground">Completed Path</span>
+          <div className="h-0.5 w-8 shrink-0 rounded-full bg-muted-foreground/60" />
+          <span>Completed leg</span>
         </div>
-      </div>
-      <div className="text-muted-foreground/70 text-[10px] mt-2 pt-2 border-t border-border">
-        Click markers for details. Drag to rotate, scroll to zoom.
-      </div>
-    </div>
+        <p className="mt-2 border-t border-border/60 pt-2 text-[10px] leading-snug text-muted-foreground/90">
+          Drag to orbit · Scroll to zoom · Click a pin for details
+        </p>
+      </F1CardContent>
+    </F1Card>
   );
 };
 

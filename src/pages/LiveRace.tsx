@@ -7,7 +7,7 @@ import LiveRaceInfo from "@/components/race/LiveRaceInfo";
 
 const LiveRace = () => {
   return (
-    <MainLayout>
+    <MainLayout showFooter={false}>
       <div className="space-y-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">

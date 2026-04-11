@@ -1,82 +1,77 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Race, GlobeDetailLevel, RaceMapProps } from "@/components/calendar/map/types";
+import { format, parseISO } from "date-fns";
+import { Race, GlobeSceneData, RaceMapProps } from "@/components/calendar/map/types";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import MapLoadingOverlay from "@/components/calendar/map/MapLoadingOverlay";
 import MapLegend from "@/components/calendar/map/MapLegend";
 import SelectedRaceInfo from "@/components/calendar/map/SelectedRaceInfo";
 import GlobeControls from "@/components/calendar/map/GlobeControls";
-import { Globe, Search } from "lucide-react";
-import { toast } from "sonner";
+import { Search, Sparkles } from "lucide-react";
 import GlobeScene from "@/components/calendar/map/GlobeScene";
 import RaceMarkers from "@/components/calendar/map/RaceMarkers";
 import PathsLayer from "@/components/calendar/map/PathsLayer";
 import CountriesLayer from "@/components/calendar/map/CountriesLayer";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 
-const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
+const F1GlobeContainer = ({ selectedYear, onYearChange: _onYearChange }: RaceMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerReady, setContainerReady] = useState(false);
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
-  const [sceneData, setSceneData] = useState<any>(null);
+  const [sceneData, setSceneData] = useState<GlobeSceneData | null>(null);
   const [hoveredRace, setHoveredRace] = useState<Race | null>(null);
-  const [hoverPoint, setHoverPoint] = useState<{x: number, y: number} | null>(null);
+  const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showPaths, setShowPaths] = useState<boolean>(true);
-  const [detailLevel, setDetailLevel] = useState<GlobeDetailLevel>('medium');
+  const [detailLevel, setDetailLevel] = useState<"low" | "medium" | "high">("medium");
   const [filterStatus, setFilterStatus] = useState({
     first: true,
     upcoming: true,
     completed: true
   });
+  const { isGlass } = useTheme();
   
   const { isLoading, data } = useRaceSchedule(selectedYear);
   const races = data?.data || [];
 
-  // Track when container is ready
   useEffect(() => {
     if (containerRef.current) {
       setContainerReady(true);
     }
   }, []);
 
-  // Handle scene creation
-  const handleSceneCreated = useCallback((data) => {
+  const handleSceneCreated = useCallback((data: GlobeSceneData) => {
     setSceneData(data);
   }, []);
 
-  // Handle race selection
   const handleRaceSelect = useCallback((race: Race) => {
     setSelectedRace(race);
-    
-    toast.success(`Selected: ${race.raceName}`, {
-      description: `Round ${race.round} - ${race.date}`
-    });
   }, []);
 
-  // Handle filter toggle
-  const toggleFilter = (filter: 'first' | 'upcoming' | 'completed') => {
+  const toggleFilter = (filter: "first" | "upcoming" | "completed") => {
     setFilterStatus(prev => ({
       ...prev,
       [filter]: !prev[filter]
     }));
   };
   
-  // Toggle paths visibility
   const handleTogglePaths = () => {
     setShowPaths(prev => !prev);
   };
   
-  // Handle detail level change
-  const handleDetailLevelChange = (level: GlobeDetailLevel) => {
+  const handleDetailLevelChange = (level: "low" | "medium" | "high") => {
     setDetailLevel(level);
   };
 
-  // Filter races based on search and status
   const getFilteredRaces = () => {
     if (!races || races.length === 0) return [];
     
     return races.filter(race => {
-      // Apply search filter
       if (searchTerm) {
         const searchTermLower = searchTerm.toLowerCase();
         const raceNameMatch = race.raceName.toLowerCase().includes(searchTermLower);
@@ -88,7 +83,6 @@ const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
         }
       }
 
-      // Apply status filters
       const round = parseInt(race.round);
       const raceDate = new Date(race.date);
       const today = new Date();
@@ -102,11 +96,26 @@ const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
   };
 
   const filteredRaces = getFilteredRaces();
+  const filterActive =
+    filteredRaces.length !== races.length ||
+    !filterStatus.first ||
+    !filterStatus.upcoming ||
+    !filterStatus.completed ||
+    Boolean(searchTerm.trim());
+
+  const shellBorder = isGlass ? "border-white/10" : "border-border";
+  const shellBg = isGlass ? "glass-panel" : "bg-card";
 
   return (
-    <div className="relative w-full h-[70vh] rounded-xl overflow-hidden bg-gray-900 border border-gray-800">
-      {/* Globe container */}
-      <div ref={containerRef} className="absolute inset-0">
+    <div
+      className={cn(
+        "relative w-full overflow-hidden rounded-xl border shadow-md",
+        "h-[min(70vh,780px)] min-h-[min(70vh,420px)]",
+        shellBorder,
+        shellBg
+      )}
+    >
+      <div ref={containerRef} className="absolute inset-0 bg-[#0a0a0c]">
         {containerReady && (
           <GlobeScene 
             containerRef={containerRef} 
@@ -116,8 +125,7 @@ const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
         )}
       </div>
       
-      {/* Race markers and paths */}
-      {sceneData && sceneData.globe && (
+      {sceneData?.globe && (
         <>
           <RaceMarkers 
             races={filteredRaces} 
@@ -146,21 +154,91 @@ const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
         </>
       )}
 
-      {/* Search and filters */}
-      <div className="absolute top-4 left-4 z-20 flex gap-2">
-        <div className="relative">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <input
-            type="text"
-            placeholder="Search races..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 pr-4 py-2 bg-black/60 backdrop-blur-sm border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-f1-red"
-          />
+      {/* Top chrome — theme-aware, works on glass + default */}
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-background/95 via-background/70 to-transparent pb-10 pt-3 sm:pt-4"
+        )}
+      >
+        <div className="pointer-events-auto mx-auto flex w-full max-w-[1600px] flex-col gap-3 px-3 sm:flex-row sm:items-start sm:justify-between sm:px-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:max-w-md">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <Sparkles className="h-4 w-4" aria-hidden />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Season globe
+                </p>
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <span className="truncate text-sm font-semibold text-foreground sm:text-base">
+                    {selectedYear} calendar
+                  </span>
+                  <Badge variant="secondary" className="h-5 shrink-0 px-1.5 text-[10px] font-normal tabular-nums">
+                    {races.length ? `${filteredRaces.length}/${races.length}` : "—"} races
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            <div className="relative w-full max-w-sm">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                type="search"
+                placeholder="Search by race or location…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={cn(
+                  "h-9 border-border bg-background/85 pl-9 text-sm shadow-sm backdrop-blur-sm",
+                  isGlass && "border-white/10 bg-background/60"
+                )}
+                aria-label="Search races on globe"
+              />
+            </div>
+            {filterActive && (
+              <p className="text-[10px] text-muted-foreground sm:text-xs">
+                Filters or search are hiding some rounds. Toggle chips to show everything.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
+            <Button
+              type="button"
+              size="sm"
+              variant={filterStatus.first ? "default" : "outline"}
+              className="h-8 gap-1.5"
+              onClick={() => toggleFilter("first")}
+            >
+              <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden />
+              First
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={filterStatus.upcoming ? "default" : "outline"}
+              className="h-8 gap-1.5"
+              onClick={() => toggleFilter("upcoming")}
+            >
+              <span className="h-2 w-2 rounded-full bg-orange-500" aria-hidden />
+              Upcoming
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={filterStatus.completed ? "default" : "outline"}
+              className="h-8 gap-1.5"
+              onClick={() => toggleFilter("completed")}
+            >
+              <span className="h-2 w-2 rounded-full bg-muted-foreground" aria-hidden />
+              Done
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Globe controls */}
       <GlobeControls 
         showPaths={showPaths}
         onTogglePaths={handleTogglePaths}
@@ -168,35 +246,8 @@ const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
         onChangeDetailLevel={handleDetailLevelChange}
       />
 
-      {/* Filter buttons */}
-      <div className="absolute top-4 right-4 z-20 flex gap-2">
-        <button 
-          onClick={() => toggleFilter('first')} 
-          className={`flex items-center gap-1 px-3 py-1.5 rounded-md backdrop-blur-sm text-sm ${filterStatus.first ? 'bg-green-800/80 text-white' : 'bg-black/60 text-gray-400 border-gray-700 border'}`}
-        >
-          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          First
-        </button>
-        <button 
-          onClick={() => toggleFilter('upcoming')} 
-          className={`flex items-center gap-1 px-3 py-1.5 rounded-md backdrop-blur-sm text-sm ${filterStatus.upcoming ? 'bg-red-900/80 text-white' : 'bg-black/60 text-gray-400 border-gray-700 border'}`}
-        >
-          <div className="w-2 h-2 rounded-full bg-red-600"></div>
-          Upcoming
-        </button>
-        <button 
-          onClick={() => toggleFilter('completed')} 
-          className={`flex items-center gap-1 px-3 py-1.5 rounded-md backdrop-blur-sm text-sm ${filterStatus.completed ? 'bg-gray-700/80 text-white' : 'bg-black/60 text-gray-400 border-gray-700 border'}`}
-        >
-          <div className="w-2 h-2 rounded-full bg-white"></div>
-          Completed
-        </button>
-      </div>
-      
-      {/* Loading overlay */}
       {isLoading && <MapLoadingOverlay />}
       
-      {/* Selected race info overlay */}
       {selectedRace && (
         <SelectedRaceInfo 
           race={selectedRace} 
@@ -204,24 +255,36 @@ const F1GlobeContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
         />
       )}
       
-      {/* Hover tooltip */}
-      {hoveredRace && hoverPoint && (
+      {hoveredRace && hoverPoint && !selectedRace && (
         <div 
-          className="absolute z-30 bg-black/80 backdrop-blur-sm border border-gray-700 rounded-md p-2 text-xs text-white shadow-lg pointer-events-none"
+          role="tooltip"
+          className={cn(
+            "pointer-events-none absolute z-30 max-w-[220px] rounded-lg border p-2.5 text-xs shadow-lg",
+            isGlass
+              ? "glass-panel border-white/10 text-foreground"
+              : "border-border bg-popover text-popover-foreground"
+          )}
           style={{
             left: `${hoverPoint.x}px`,
-            top: `${hoverPoint.y - 80}px`,
-            transform: 'translate(-50%, -100%)'
+            top: `${hoverPoint.y - 12}px`,
+            transform: "translate(-50%, -100%)"
           }}
         >
-          <div className="font-bold">{hoveredRace.raceName}</div>
-          <div className="text-gray-300 mt-1">{hoveredRace.date}</div>
-          <div className="text-gray-300">{hoveredRace.Circuit.Location.locality}, {hoveredRace.Circuit.Location.country}</div>
-          <div className="text-gray-400 text-[10px] mt-1">Round {hoveredRace.round}</div>
+          <div className="font-semibold leading-tight">
+            {getRaceNameWithoutEmoji(hoveredRace.raceName)}
+          </div>
+          <div className="mt-1 text-[11px] text-muted-foreground">
+            {format(parseISO(hoveredRace.date), "EEE d MMM yyyy")}
+          </div>
+          <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            {hoveredRace.Circuit.Location.locality}, {hoveredRace.Circuit.Location.country}
+          </div>
+          <div className="mt-1 font-mono text-[10px] text-muted-foreground/80">
+            Round {hoveredRace.round}
+          </div>
         </div>
       )}
       
-      {/* Legend */}
       <MapLegend />
     </div>
   );

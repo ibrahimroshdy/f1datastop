@@ -16,11 +16,10 @@ const GlobeScene = ({ containerRef, onSceneCreated, detailLevel }: GlobeScenePro
     if (!containerRef.current || isInitializedRef.current) return;
     
     isInitializedRef.current = true;
-    console.log("Initializing globe scene");
     
-    // Create scene
+    // Create scene — near-zinc backdrop so UI chrome and Earth read clearly
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0e17);
+    scene.background = new THREE.Color(0x0a0a0c);
     
     // Create camera
     const camera = new THREE.PerspectiveCamera(
@@ -120,9 +119,9 @@ const GlobeScene = ({ containerRef, onSceneCreated, detailLevel }: GlobeScenePro
     // Add soft glow effect
     const glowGeometry = new THREE.SphereGeometry(1.02, 32, 32);
     const glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0x3a5e8c,
+      color: 0xc8102e,
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.08,
       side: THREE.BackSide
     });
     const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
@@ -175,7 +174,6 @@ const GlobeScene = ({ containerRef, onSceneCreated, detailLevel }: GlobeScenePro
     
     // Cleanup function - only runs on actual unmount
     return () => {
-      console.log("Cleaning up globe scene");
       window.removeEventListener('resize', handleResize);
       
       // Only cleanup if we actually have a renderer

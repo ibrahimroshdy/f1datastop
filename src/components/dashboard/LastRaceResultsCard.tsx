@@ -1,5 +1,5 @@
 import { Clock, Flag } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader } from "@/components/f1";
 import { Badge } from "@/components/ui/badge";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import ReactCountryFlag from "react-country-flag";
@@ -30,6 +30,7 @@ const getTeamHexColor = (teamId: string): string => {
 const LastRaceResultsCard = ({
   lastRaceResults,
   isResultsLoading,
+  getTeamColor: _getTeamColor,
 }: LastRaceResultsCardProps) => {
   const [raceName, setRaceName] = useState<string>("");
   const [countryName, setCountryName] = useState<string>("");
@@ -38,6 +39,8 @@ const LastRaceResultsCard = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: raceScheduleData } = useRaceSchedule();
   const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   
   useEffect(() => {
     if (raceScheduleData?.data) {
@@ -74,19 +77,12 @@ const LastRaceResultsCard = ({
 
   return (
     <>
-      <Card 
-        className={cn(
-          "h-full overflow-hidden",
-          isGlass && "border-white/10"
-        )}
-        style={isGlass ? {
-          background: 'var(--glass-bg)',
-          backdropFilter: 'blur(var(--glass-blur))',
-          WebkitBackdropFilter: 'blur(var(--glass-blur))',
-          boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-        } : undefined}
+      <F1Card
+        variant={surfaceVariant}
+        glassVariant={surfaceGlass}
+        className={cn("h-full overflow-hidden p-0", isGlass && "border-white/10")}
       >
-        <CardHeader className="pb-2 pt-3 px-4">
+        <F1CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary shrink-0" />
@@ -128,9 +124,9 @@ const LastRaceResultsCard = ({
                         </div>
                       </div>
           )}
-        </CardHeader>
+        </F1CardHeader>
         
-        <CardContent className="px-2">
+        <F1CardContent className="px-2">
           {isResultsLoading ? (
             <StandingsSkeleton rows={5} />
           ) : !lastRaceResults?.data?.raceName ? (
@@ -185,8 +181,8 @@ const LastRaceResultsCard = ({
               
             </div>
           )}
-        </CardContent>
-      </Card>
+        </F1CardContent>
+      </F1Card>
       
       {/* Race Detail Dialog */}
       {lastRace && (

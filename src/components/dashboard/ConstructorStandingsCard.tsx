@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
 import { Progress } from "@/components/ui/progress";
 import { Caravan, Users } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -20,7 +21,13 @@ const normalizeTeamId = (teamId: string) => {
 
 const getTeamHex = (teamId: string) => TEAM_COLORS[normalizeTeamId(teamId)] || TEAM_COLORS.default;
 
-const ConstructorStandingsCard = ({ constructorStandings }: ConstructorStandingsCardProps) => {
+const ConstructorStandingsCard = ({
+  constructorStandings,
+  getTeamColor: _getTeamColor,
+}: ConstructorStandingsCardProps) => {
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   const [showAllConstructors, setShowAllConstructors] = useState<boolean>(false);
 
   const teamsToShow = useMemo(() => {
@@ -31,13 +38,16 @@ const ConstructorStandingsCard = ({ constructorStandings }: ConstructorStandings
   const leaderPoints = useMemo(() => Number(constructorStandings?.data?.[0]?.points || 0), [constructorStandings?.data]);
 
   return (
-    <Card className="bg-card border-border h-full">
-      <CardHeader className="pb-2">
+    <F1Card
+      variant={surfaceVariant}
+      glassVariant={surfaceGlass}
+      className="h-full border-border bg-card p-0"
+    >
+      <F1CardHeader className="pb-2">
         <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center gap-2">
-            <Caravan className="h-5 w-5 text-primary" />
+          <F1CardTitle icon={<Caravan className="h-5 w-5" />} className="text-base font-semibold">
             Constructor Standings
-          </CardTitle>
+          </F1CardTitle>
           <button
             onClick={() => setShowAllConstructors((s) => !s)}
             className="text-xs lg:text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
@@ -47,8 +57,8 @@ const ConstructorStandingsCard = ({ constructorStandings }: ConstructorStandings
             <span className="lg:hidden">{showAllConstructors ? "Top 8" : "All"}</span>
           </button>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
+      </F1CardHeader>
+      <F1CardContent className="pt-0">
         <Table>
           <TableHeader>
             <TableRow className="border-border">
@@ -110,8 +120,8 @@ const ConstructorStandingsCard = ({ constructorStandings }: ConstructorStandings
           <span className="text-xs text-muted-foreground">Constructor Championship</span>
           <div className="w-2 h-2 rounded-full bg-purple-500/50" />
         </div>
-      </CardContent>
-    </Card>
+      </F1CardContent>
+    </F1Card>
   );
 };
 
