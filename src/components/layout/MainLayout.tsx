@@ -133,12 +133,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           id="main-content"
           role="main"
           className={cn(
-          "flex-1 overflow-y-auto overflow-x-hidden",
-          "transition-all duration-300"
-        )}>
+            "flex-1 overflow-y-auto overflow-x-hidden",
+            "transition-[padding] duration-300 ease-out"
+          )}>
           {/* Content wrapper with padding */}
           <div className={cn(
-            "min-h-full p-4 md:p-6",
+            "min-h-full p-4 md:p-6 lg:px-8",
             isGlass && "relative"
           )}>
             {/* Animated page content */}
