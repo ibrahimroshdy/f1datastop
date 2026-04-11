@@ -14,6 +14,7 @@ import { useRaceSchedule } from "@/hooks/useF1Data";
 import { useSessionsByYear } from "@/hooks/useOpenF1Data";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import { F1Card, F1CardContent } from "@/components/f1";
 import { 
   BarChart3, Clock, TrendingUp, Flag, Wrench, 
   TrendingUpIcon, GitCompare, Cloud, Radio, 
@@ -34,16 +35,6 @@ const TelemetryDashboard = lazy(() => import("@/components/analytics/TelemetryDa
 const SessionResults = lazy(() => import("@/components/analytics/SessionResults"));
 const OvertakesAnalysis = lazy(() => import("@/components/analytics/OvertakesAnalysis"));
 
-// Loading fallback component - fills parent container
-const TabLoadingFallback = () => (
-  <Card className="overflow-hidden">
-    <CardContent className="min-h-[400px] flex flex-col items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin mb-3 text-primary" />
-      <p className="text-muted-foreground text-sm">Loading analysis...</p>
-    </CardContent>
-  </Card>
-);
-
 // Get default year - always use current year
 const getDefaultYear = () => {
   return new Date().getFullYear();
@@ -57,6 +48,39 @@ interface SessionOption {
   date_end: string;
   meeting_key: number;
 }
+
+type RaceScheduleEntry = {
+  round: string;
+  raceName: string;
+  date: string;
+  Circuit?: { circuitName?: string; Location?: { country?: string } };
+};
+
+type OpenF1SessionEntry = {
+  date_start: string;
+  session_key: number;
+  session_type: string;
+  meeting_key: number;
+  session_name: string;
+  date_end: string;
+};
+
+/** Lazy tab content fallback — uses theme-aware F1Card */
+const TabLoadingFallback = () => {
+  const { isGlass } = useTheme();
+  return (
+    <F1Card
+      variant={isGlass ? "glass" : "default"}
+      glassVariant={isGlass ? "panel" : "default"}
+      className="overflow-hidden"
+    >
+      <F1CardContent className="min-h-[400px] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground text-sm">Loading analysis...</p>
+      </F1CardContent>
+    </F1Card>
+  );
+};
 
 const RaceAnalysis = () => {
   const { year: urlYear, round: urlRound } = useParams();
@@ -80,7 +104,7 @@ const RaceAnalysis = () => {
   // Get current race info
   const currentRace = React.useMemo(() => {
     if (!raceScheduleData?.data) return null;
-    return raceScheduleData.data.find((r: any) => r.round === selectedRace);
+    return raceScheduleData.data.find((r: RaceScheduleEntry) => r.round === selectedRace);
   }, [raceScheduleData, selectedRace]);
   
   // Process OpenF1 sessions for the selected race
@@ -92,7 +116,7 @@ const RaceAnalysis = () => {
     
     // Find matching meeting by date or name
     const raceDate = new Date(currentRace.date);
-    const matchingSessions = openF1SessionsData.data.filter((session: any) => {
+    const matchingSessions = openF1SessionsData.data.filter((session: OpenF1SessionEntry) => {
       const sessionDate = new Date(session.date_start);
       // Match if within same week
       const daysDiff = Math.abs((sessionDate.getTime() - raceDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -101,12 +125,13 @@ const RaceAnalysis = () => {
     
     if (matchingSessions.length > 0) {
       const sortedSessions = [...matchingSessions].sort(
-        (a: any, b: any) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime()
+        (a: OpenF1SessionEntry, b: OpenF1SessionEntry) =>
+          new Date(a.date_start).getTime() - new Date(b.date_start).getTime()
       );
       setAvailableSessions(sortedSessions);
       
       // Default to Race session
-      const raceSession = sortedSessions.find((s: any) => s.session_type === "Race");
+      const raceSession = sortedSessions.find((s: OpenF1SessionEntry) => s.session_type === "Race");
       if (raceSession && !selectedSessionKey) {
         setSelectedSessionKey(raceSession.session_key);
       } else if (!selectedSessionKey && sortedSessions.length > 0) {
@@ -253,7 +278,7 @@ const RaceAnalysis = () => {
                           <SelectValue placeholder="Select race" />
                         </SelectTrigger>
                         <SelectContent>
-                          {raceScheduleData?.data?.map((race: any) => (
+                          {raceScheduleData?.data?.map((race: RaceScheduleEntry) => (
                             <SelectItem key={race.round} value={race.round}>
                               <span className="flex items-center gap-2">
                                 <CountryFlag country={race.Circuit?.Location?.country || ''} size={14} />

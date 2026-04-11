@@ -1,6 +1,8 @@
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useTheme } from "@/context/ThemeContext";
+import { F1Card } from "@/components/f1";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,7 +16,33 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import TeamLogo from "@/components/common/TeamLogo";
 import YearSelector from "@/components/common/YearSelector";
 
+type ConstructorListEntry = {
+  position: string;
+  points: string;
+  wins: string;
+  Constructor: {
+    constructorId: string;
+    name: string;
+    nationality: string;
+  };
+};
+
+type DriverStandingForTeam = {
+  position: string;
+  Driver: {
+    driverId: string;
+    givenName: string;
+    familyName: string;
+    code: string;
+    permanentNumber?: string;
+  };
+  Constructors: Array<{ constructorId: string }>;
+};
+
 const Constructors = () => {
+  const { isGlass } = useTheme();
+  const cardVariant = isGlass ? "glass" : "default";
+  const glassVariant = isGlass ? "panel" : "default";
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const { data: constructorStandings, isLoading } = useConstructorStandings(selectedYear);
@@ -22,7 +50,7 @@ const Constructors = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter constructors based on search query
-  const filteredConstructors = constructorStandings?.data.filter((constructor: any) => {
+  const filteredConstructors = constructorStandings?.data.filter((constructor: ConstructorListEntry) => {
     return constructor.Constructor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       constructor.Constructor.nationality.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -30,13 +58,13 @@ const Constructors = () => {
   // Group drivers by constructor
   const getTeamDrivers = (constructorId: string) => {
     if (!driverStandings?.data) return [];
-    return driverStandings.data.filter((driver: any) => 
-      driver.Constructors.some((c: any) => c.constructorId === constructorId)
+    return driverStandings.data.filter((driver: DriverStandingForTeam) =>
+      driver.Constructors.some((c) => c.constructorId === constructorId)
     );
   };
 
   // Determine if a constructor is the champion for the year
-  const isChampion = (constructor: any, year: number) => {
+  const isChampion = (constructor: ConstructorListEntry, year: number) => {
     // If it's the current year, check if they're leading
     if (year === currentYear) {
       return constructor.position === "1";
@@ -79,7 +107,12 @@ const Constructors = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {Array(10).fill(0).map((_, i) => (
-              <Card key={i} className="overflow-hidden">
+              <F1Card
+                key={i}
+                variant={cardVariant}
+                glassVariant={glassVariant}
+                className="overflow-hidden"
+              >
                 <CardHeader>
                   <div className="flex items-center gap-4">
                     <Skeleton className="h-16 w-16 rounded-full" />
@@ -96,12 +129,12 @@ const Constructors = () => {
                     <Skeleton className="h-4 w-1/2" />
                   </div>
                 </CardContent>
-              </Card>
+              </F1Card>
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredConstructors?.map((constructor: any) => {
+            {filteredConstructors?.map((constructor) => {
               const teamColor = TEAM_COLORS[constructor.Constructor.constructorId] || TEAM_COLORS.default;
               const teamDrivers = getTeamDrivers(constructor.Constructor.constructorId);
               const teamIsChampion = isChampion(constructor, selectedYear);
@@ -163,7 +196,7 @@ const Constructors = () => {
                     <div>
                       <h4 className="font-medium mb-2">Drivers</h4>
                       <div className="space-y-2">
-                        {teamDrivers.map((driver: any) => (
+                        {teamDrivers.map((driver: DriverStandingForTeam) => (
                           <div key={driver.Driver.driverId} className="flex items-center gap-2 p-2 rounded-md bg-accent/30">
                             <div className="w-1 h-full rounded-full" style={{ backgroundColor: teamColor }}></div>
                             <div>

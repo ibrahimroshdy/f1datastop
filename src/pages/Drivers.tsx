@@ -1,21 +1,37 @@
 
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card } from "@/components/ui/card";
 import { useDriverStandings } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTheme } from "@/context/ThemeContext";
+import { F1Card } from "@/components/f1";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import DriverCard from "@/components/drivers/DriverCard";
 import YearSelector from "@/components/common/YearSelector";
 
+type DriverStandingEntry = {
+  position: string;
+  points: string;
+  Driver: {
+    driverId: string;
+    givenName: string;
+    familyName: string;
+    code: string;
+  };
+  Constructors: Array<{ constructorId?: string; name: string }>;
+};
+
 const Drivers = () => {
+  const { isGlass } = useTheme();
+  const cardVariant = isGlass ? "glass" : "default";
+  const glassVariant = isGlass ? "panel" : "default";
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const { data: driverStandings, isLoading } = useDriverStandings(selectedYear);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredDrivers = driverStandings?.data.filter((driver: any) => {
+  const filteredDrivers = driverStandings?.data.filter((driver: DriverStandingEntry) => {
     const fullName = `${driver.Driver.givenName} ${driver.Driver.familyName}`.toLowerCase();
     return fullName.includes(searchQuery.toLowerCase()) || 
       driver.Driver.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -25,7 +41,7 @@ const Drivers = () => {
   // Compute total constructor points map from all standings
   const constructorIdToTotalPoints = new Map<string, number>();
   if (driverStandings?.data) {
-    for (const driver of driverStandings.data) {
+    for (const driver of driverStandings.data as DriverStandingEntry[]) {
       const currentConstructor = driver.Constructors.length > 0
         ? driver.Constructors[driver.Constructors.length - 1]
         : null;
@@ -62,7 +78,12 @@ const Drivers = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array(9).fill(0).map((_, i) => (
-              <Card key={i} className="overflow-hidden">
+              <F1Card
+                key={i}
+                variant={cardVariant}
+                glassVariant={glassVariant}
+                className="overflow-hidden"
+              >
                 <div className="p-6">
                   <div className="flex items-center gap-4">
                     <Skeleton className="h-16 w-16 rounded-full" />
@@ -76,12 +97,12 @@ const Drivers = () => {
                     <Skeleton className="h-4 w-3/4" />
                   </div>
                 </div>
-              </Card>
+              </F1Card>
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredDrivers?.map((driver: any) => {
+            {filteredDrivers?.map((driver) => {
               const currentConstructor = driver.Constructors.length > 0
                 ? driver.Constructors[driver.Constructors.length - 1]
                 : null;
