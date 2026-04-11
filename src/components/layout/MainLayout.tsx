@@ -134,7 +134,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           role="main"
           className={cn(
             "flex-1 overflow-y-auto overflow-x-hidden",
-            "transition-[padding] duration-300 ease-out"
+            "transition-all duration-300"
           )}>
           {/* Content wrapper with padding */}
           <div className={cn(
