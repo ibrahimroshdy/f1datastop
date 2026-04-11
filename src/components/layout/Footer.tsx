@@ -48,7 +48,7 @@ const Footer = () => {
         ? "glass-panel border-t border-white/5" 
         : "bg-card border-t border-border"
     )}>
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-6 lg:px-8 py-8 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {/* Brand section */}
           <div className="lg:col-span-1">
