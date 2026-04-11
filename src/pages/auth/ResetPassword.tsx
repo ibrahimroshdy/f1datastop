@@ -4,7 +4,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardFooter,
+  F1CardHeader,
+  F1CardTitle,
+} from '@/components/f1';
 import { Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
 import f1Logo from '@/assets/f1-logo.svg';
 import { useTheme } from '@/context/ThemeContext';
@@ -80,31 +87,24 @@ const ResetPassword = () => {
           <img src={f1Logo} alt="F1 DataStop" className="w-20 h-20" />
         </div>
         
-        <Card 
-          className={cn(
-            "w-full",
-            isGlass && "border-white/10"
-          )}
-          style={isGlass ? {
-            background: 'var(--glass-bg)',
-            backdropFilter: 'blur(var(--glass-blur))',
-            WebkitBackdropFilter: 'blur(var(--glass-blur))',
-            boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-          } : undefined}
+        <F1Card
+          variant={isGlass ? "glass" : "default"}
+          glassVariant={isGlass ? "panel" : "default"}
+          className={cn("w-full p-0", isGlass && "border-white/10")}
         >
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">
+          <F1CardHeader className="space-y-1 text-center">
+            <F1CardTitle className="!text-2xl justify-center">
               {token ? "Reset Password" : "Request Password Reset"}
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
+            </F1CardTitle>
+            <F1CardDescription className="text-muted-foreground">
               {token
                 ? "Enter your new password"
                 : isEmailSent
                   ? "Check your email for a password reset link."
                   : "Enter your email to receive a password reset link"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </F1CardDescription>
+          </F1CardHeader>
+          <F1CardContent>
             {!token ? (
               isEmailSent ? (
                 <div className="text-center text-muted-foreground">
@@ -180,13 +180,13 @@ const ResetPassword = () => {
                 </Button>
               </form>
             )}
-          </CardContent>
-          <CardFooter className="flex justify-center">
+          </F1CardContent>
+          <F1CardFooter className="flex justify-center border-t-0 pt-2">
             <Link to="/auth/login" className="text-sm text-muted-foreground hover:text-primary hover:underline">
               Return to Login
             </Link>
-          </CardFooter>
-        </Card>
+          </F1CardFooter>
+        </F1Card>
       </div>
     </div>
   );

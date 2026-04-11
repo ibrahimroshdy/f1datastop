@@ -1,8 +1,13 @@
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useTheme } from "@/context/ThemeContext";
-import { F1Card } from "@/components/f1";
+import {
+  F1Card,
+  F1CardContent,
+  F1CardFooter,
+  F1CardHeader,
+  F1CardTitle,
+} from "@/components/f1";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -15,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import TeamLogo from "@/components/common/TeamLogo";
 import YearSelector from "@/components/common/YearSelector";
+import { cn } from "@/lib/utils";
 
 type ConstructorListEntry = {
   position: string;
@@ -24,6 +30,7 @@ type ConstructorListEntry = {
     constructorId: string;
     name: string;
     nationality: string;
+    url?: string;
   };
 };
 
@@ -113,7 +120,7 @@ const Constructors = () => {
                 glassVariant={glassVariant}
                 className="overflow-hidden"
               >
-                <CardHeader>
+                <F1CardHeader>
                   <div className="flex items-center gap-4">
                     <Skeleton className="h-16 w-16 rounded-full" />
                     <div className="space-y-2">
@@ -121,14 +128,14 @@ const Constructors = () => {
                       <Skeleton className="h-4 w-32" />
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
+                </F1CardHeader>
+                <F1CardContent>
                   <div className="space-y-4">
                     <Skeleton className="h-4 w-full" />
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
                   </div>
-                </CardContent>
+                </F1CardContent>
               </F1Card>
             ))}
           </div>
@@ -140,12 +147,17 @@ const Constructors = () => {
               const teamIsChampion = isChampion(constructor, selectedYear);
 
               return (
-                <Card 
-                  key={constructor.Constructor.constructorId} 
-                  className="overflow-hidden border-t-4 hover:shadow-md transition-shadow"
+                <F1Card
+                  key={constructor.Constructor.constructorId}
+                  variant={cardVariant}
+                  glassVariant={glassVariant}
+                  className={cn(
+                    "overflow-hidden border-t-4 p-0 hover:shadow-md transition-shadow",
+                    isGlass ? "border-white/10" : "border-border"
+                  )}
                   style={{ borderTopColor: teamColor }}
                 >
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <F1CardHeader className="flex flex-row items-center justify-between pb-2">
                     <div className="flex items-center gap-3">
                       <TooltipProvider>
                         <Tooltip>
@@ -168,9 +180,9 @@ const Constructors = () => {
                       </TooltipProvider>
                       <div>
                         <div className="flex items-center gap-2">
-                          <CardTitle className="text-xl">
+                          <F1CardTitle className="text-xl !font-semibold">
                             {constructor.Constructor.name}
-                          </CardTitle>
+                          </F1CardTitle>
                           {teamIsChampion && selectedYear < currentYear && (
                             <Badge className="bg-yellow-500 text-black">Champion</Badge>
                           )}
@@ -179,9 +191,9 @@ const Constructors = () => {
                       </div>
                     </div>
                     <Badge variant="outline" className="bg-secondary text-secondary-foreground">P{constructor.position}</Badge>
-                  </CardHeader>
+                  </F1CardHeader>
                   
-                  <CardContent>
+                  <F1CardContent>
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
                         <p className="text-muted-foreground text-sm">Points</p>
@@ -211,19 +223,19 @@ const Constructors = () => {
                         ))}
                       </div>
                     </div>
-                  </CardContent>
+                  </F1CardContent>
                   
-                  <CardFooter>
+                  <F1CardFooter className="flex justify-start border-t pt-4">
                     <a 
                       href={constructor.Constructor.url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-sm text-f1-red hover:underline"
+                      className="text-sm text-primary hover:underline"
                     >
                       View Team Profile
                     </a>
-                  </CardFooter>
-                </Card>
+                  </F1CardFooter>
+                </F1Card>
               );
             })}
           </div>
