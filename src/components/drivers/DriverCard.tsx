@@ -1,5 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardFooter,
+  F1CardHeader,
+  F1CardTitle,
+} from "@/components/f1";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Info, Trophy, TrendingUp, ChevronDown, ChevronUp, Flag, Calendar, Target, List, BarChart3, X } from "lucide-react";
@@ -82,14 +89,18 @@ const PositionProgressionChart = ({ history, teamColor, isGlass }: PositionProgr
   }
 
   return (
-    <Card className={cn(isGlass && "bg-white/5 border-white/10")}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium">Season Position Trend</CardTitle>
-        <CardDescription>
+    <F1Card
+      variant={isGlass ? "glass" : "default"}
+      glassVariant={isGlass ? "panel" : "default"}
+      className={cn("p-0", isGlass && "border-white/10")}
+    >
+      <F1CardHeader className="pb-2">
+        <F1CardTitle className="!text-sm !font-medium">Season Position Trend</F1CardTitle>
+        <F1CardDescription>
           Race finishing positions throughout the season
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pb-2">
+        </F1CardDescription>
+      </F1CardHeader>
+      <F1CardContent className="pb-2">
         <ChartContainer config={chartConfig} className="h-[180px] w-full">
           <LineChart
             data={chartData}
@@ -202,8 +213,8 @@ const PositionProgressionChart = ({ history, teamColor, isGlass }: PositionProgr
             />
           </LineChart>
         </ChartContainer>
-      </CardContent>
-      <CardFooter className="flex-col items-start gap-2 text-sm pt-0">
+      </F1CardContent>
+      <F1CardFooter className="flex-col items-start gap-2 text-sm pt-0 border-t-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
@@ -233,12 +244,13 @@ const PositionProgressionChart = ({ history, teamColor, isGlass }: PositionProgr
             <span className="text-red-500">{stats.dnfs} DNF{stats.dnfs > 1 ? 's' : ''}</span>
           )}
         </div>
-      </CardFooter>
-    </Card>
+      </F1CardFooter>
+    </F1Card>
   );
 };
 
 interface DriverCardProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Ergast driver standing row
   driver: any;
   teamTotalPoints?: number;
   seasonYear?: number;
@@ -330,14 +342,6 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
 
     loadDriverImage();
   }, [driver.Driver.driverId, headshotUrl]);
-
-  // Glass styling
-  const cardStyle = isGlass ? {
-    background: 'var(--glass-bg)',
-    backdropFilter: 'blur(var(--glass-blur))',
-    WebkitBackdropFilter: 'blur(var(--glass-blur))',
-    boxShadow: 'var(--glass-shadow)'
-  } : undefined;
 
   // Calculate best, worst positions and DNF count
   const bestPosition = useMemo(() => {
@@ -588,17 +592,16 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
 
   return (
     <>
-      <Card 
+      <F1Card
+        variant={isGlass ? "glass" : "default"}
+        glassVariant={isGlass ? "panel" : "default"}
         className={cn(
-          "overflow-hidden border-t-4 hover:shadow-md transition-shadow",
-          isGlass && "border-white/10"
+          "overflow-hidden border-t-4 p-0 hover:shadow-md transition-shadow",
+          isGlass ? "border-white/10" : "border-border"
         )}
-        style={{ 
-          borderTopColor: teamColor,
-          ...(isGlass ? cardStyle : {})
-        }}
+        style={{ borderTopColor: teamColor }}
       >
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <F1CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
             <Avatar className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: teamColor }}>
               {cachedImageUrl && (
@@ -624,8 +627,8 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
           <Badge variant="outline" className={cn("bg-card", isGlass && "bg-white/10 border-white/20")}>
             P{driver.position}
           </Badge>
-        </CardHeader>
-        <CardContent className="pb-2">
+        </F1CardHeader>
+        <F1CardContent className="pb-2">
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <p className="text-muted-foreground">Points</p>
@@ -649,8 +652,8 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
               </div>
             )}
           </div>
-        </CardContent>
-        <CardFooter className="pt-2">
+        </F1CardContent>
+        <F1CardFooter className="border-t-0 pt-2">
           <Button 
             variant="outline" 
             className={cn("w-full", isGlass && "bg-white/5 border-white/20 hover:bg-white/10")}
@@ -659,17 +662,16 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
           >
             <Info className="h-4 w-4 mr-2" /> Driver Details
           </Button>
-        </CardFooter>
-      </Card>
+        </F1CardFooter>
+      </F1Card>
 
       {isMobile ? (
         <Drawer open={showDetails} onOpenChange={setShowDetails}>
           <DrawerContent 
             className={cn(
               "mx-auto w-full max-w-md rounded-t-lg max-h-[85vh] p-0",
-              isGlass && "border-white/10"
+              isGlass && "border-white/10 glass-panel"
             )}
-            style={isGlass ? cardStyle : undefined}
           >
             <DrawerHeader className="relative px-4 py-3 border-b sticky top-0 bg-background z-10">
               <DrawerClose asChild>
@@ -704,9 +706,8 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
           <DialogContent 
             className={cn(
               "sm:max-w-[640px] max-h-[90vh] overflow-y-auto",
-              isGlass && "border-white/10"
+              isGlass && "border-white/10 glass-panel"
             )}
-            style={isGlass ? cardStyle : undefined}
           >
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 pr-8">
