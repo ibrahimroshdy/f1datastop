@@ -18,12 +18,6 @@ const ERGAST_BASE =
       ? "/api/ergast"
       : "https://api.jolpi.ca/ergast";
 
-// Supabase Function URLs
-export const SUPABASE_FUNCTIONS = {
-  NOTIFY_SLACK: "https://envqfquhkcbnitwlzepx.functions.supabase.co/notify-slack",
-  VERIFY_CAPTCHA: "https://envqfquhkcbnitwlzepx.functions.supabase.co/verify-captcha",
-};
-
 // F1 API Base URLs
 export const F1_API = {
   ERGAST: `${ERGAST_BASE}/f1`,

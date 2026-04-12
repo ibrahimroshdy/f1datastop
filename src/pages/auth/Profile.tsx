@@ -17,7 +17,6 @@ import {
   F1CardTitle,
 } from '@/components/f1';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +25,7 @@ const Profile = () => {
   const { isGlass } = useTheme();
   const cardVariant = isGlass ? "glass" : "default";
   const glassVariant = isGlass ? "panel" : "default";
-  const { user, profile, updateProfile, deleteAccount, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const { incrementProfileClickCount, profileClickCount } = useDeveloper();
   const analytics = useAnalytics();
   const { toast } = useToast();
@@ -52,7 +51,11 @@ const Profile = () => {
   // Fetch profile data on mount
   useEffect(() => {
     const fetchProfileData = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        setInitialLoad(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -93,7 +96,7 @@ const Profile = () => {
     };
 
     fetchProfileData();
-  }, [user, toast]); // Remove updateProfile from dependencies
+  }, [user, toast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -134,6 +137,7 @@ const Profile = () => {
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
+      await refreshProfile();
     } catch (error: unknown) {
       console.error("Unexpected error:", error);
       toast({
@@ -152,17 +156,6 @@ const Profile = () => {
       return `${profile.first_name?.charAt(0) || ''}${profile.last_name?.charAt(0) || ''}`.toUpperCase() || user?.email?.charAt(0).toUpperCase() || '?';
     }
     return user?.email?.charAt(0).toUpperCase() || '?';
-  };
-
-  const handleDeleteAccount = async () => {
-    try {
-      await deleteAccount();
-      
-      // Track account deletion event
-      analytics.trackInteraction('account_deletion', 'click');
-    } catch (error) {
-      console.error('Error deleting account:', error);
-    }
   };
 
   const handleProfileHeaderClick = () => {
@@ -200,29 +193,9 @@ const Profile = () => {
                 </F1CardDescription>
               </F1CardHeader>
               <F1CardFooter className="flex justify-center space-x-2 mt-auto border-t-0">
-                <Button variant="outline" onClick={signOut}>Sign Out</Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive">Delete Account</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-background border border-border">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete your account
-                        and remove your data from our servers.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleDeleteAccount}
-                      >
-                        Delete Account
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button variant="outline" onClick={() => { void analytics.trackInteraction('profile_sign_out', 'click'); void signOut(); }}>
+                  Sign out
+                </Button>
               </F1CardFooter>
             </F1Card>
           </div>
