@@ -162,13 +162,16 @@ const Constructors = () => {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Avatar className="h-14 w-14 rounded-md flex items-center justify-center overflow-hidden border-2" style={{ backgroundColor: 'white', borderColor: teamColor }}>
-                              <div className="w-full h-full flex items-center justify-center">
-                                <TeamLogo 
+                            <Avatar
+                              className="h-14 w-14 rounded-md flex items-center justify-center overflow-hidden border-2 bg-neutral-950"
+                              style={{ borderColor: teamColor }}
+                            >
+                              <div className="flex h-full w-full items-center justify-center px-1.5">
+                                <TeamLogo
                                   constructorId={constructor.Constructor.constructorId}
                                   alt={constructor.Constructor.name}
-                                  className="max-h-10 max-w-10"
-                                  noBackground={true}
+                                  className="max-h-9 max-w-[7rem] object-contain"
+                                  noBackground
                                 />
                               </div>
                             </Avatar>

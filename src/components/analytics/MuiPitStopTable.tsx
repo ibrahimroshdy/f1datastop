@@ -198,7 +198,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
         const teamValue = params.value || 'unknown';
         return (
           <div className="flex items-center gap-2">
-            <TeamLogo constructorId={teamValue} size="sm" noBackground />
+            <TeamLogo constructorId={teamValue} size="sm" />
             <span className="text-xs text-muted-foreground capitalize">
               {teamValue.replace(/_/g, ' ')}
             </span>

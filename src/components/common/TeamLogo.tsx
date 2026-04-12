@@ -3,6 +3,7 @@ import {
   getF1TeamLogoUrl,
   normalizeConstructorIdForTeamLogo,
 } from "@/constants/f1TeamLogoMedia";
+import { cn } from "@/lib/utils";
 
 interface TeamLogoProps {
   constructorId: string;
@@ -44,10 +45,13 @@ const TeamLogo = ({
 
   return (
     <div
-      className={`
-        flex items-center justify-center 
-        ${isDark && !noBackground ? "bg-white/20 rounded-md p-1" : ""}
-      `}
+      className={cn(
+        "flex items-center justify-center",
+        !noBackground &&
+          (isDark
+            ? "rounded-md bg-white/20 p-1 ring-1 ring-white/10"
+            : "rounded-md bg-neutral-900 p-1 ring-1 ring-black/10")
+      )}
     >
       <img
         src={logoUrl}
