@@ -89,6 +89,12 @@ const Privacy = () => {
             website. You can control or reject cookies through your browser settings, although this may limit your ability to
             use certain features of our site.
           </p>
+          <p className="mt-4">
+            Where required (for example in the EEA, UK, or Switzerland), we use Google&apos;s certified consent tools connected
+            to Google AdSense so you can agree to or decline personalized ads and related storage. You can change your choices
+            when the consent message is shown again, or via any &quot;Privacy and cookie settings&quot; or similar link Google
+            provides on the site.
+          </p>
 
           <h2 className="text-xl font-semibold mt-8 mb-3">Your Rights and Choices</h2>
           <p>Depending on your location, you may have certain rights regarding your personal information, including:</p>

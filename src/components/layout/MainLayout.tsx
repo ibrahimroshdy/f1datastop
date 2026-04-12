@@ -5,6 +5,8 @@ import Footer from "./Footer";
 import { useIsMediumOrSmaller } from "@/hooks/use-mobile";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import { AdSenseUnit } from "@/components/ads/AdSenseUnit";
+import { adsenseSlots } from "@/config/adsense";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -145,7 +147,25 @@ const MainLayout = ({ children, showFooter = true }: MainLayoutProps) => {
           )}>
             {/* Animated page content */}
             <div className="animate-fade-in">
-          {children}
+              {adsenseSlots.topInContent ? (
+                <AdSenseUnit
+                  adSlot={adsenseSlots.topInContent}
+                  className="mb-6 max-w-4xl mx-auto w-full"
+                  minHeight={100}
+                  format="auto"
+                  fullWidthResponsive
+                />
+              ) : null}
+              {children}
+              {adsenseSlots.bottomInContent ? (
+                <AdSenseUnit
+                  adSlot={adsenseSlots.bottomInContent}
+                  className="mt-10 max-w-4xl mx-auto w-full"
+                  minHeight={120}
+                  format="auto"
+                  fullWidthResponsive
+                />
+              ) : null}
             </div>
           </div>
           

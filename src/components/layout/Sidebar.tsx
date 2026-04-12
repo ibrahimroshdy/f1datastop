@@ -31,6 +31,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AdSenseUnit } from "@/components/ads/AdSenseUnit";
+import { adsenseSlots } from "@/config/adsense";
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -425,6 +427,25 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
             </Tooltip>
           </div>
         )}
+
+        {/* Optional narrow ad — desktop sidebar only when expanded */}
+        {!isMediumOrSmaller && !isCollapsed && adsenseSlots.sidebar ? (
+          <div
+            className={cn(
+              "shrink-0 px-2 py-3",
+              isGlass ? "border-t border-white/5" : "border-t border-sidebar-border"
+            )}
+          >
+            <AdSenseUnit
+              adSlot={adsenseSlots.sidebar}
+              className="w-full max-w-[200px] mx-auto"
+              minHeight={250}
+              format="vertical"
+              fullWidthResponsive={false}
+              style={{ width: "160px", minWidth: "160px" }}
+            />
+          </div>
+        ) : null}
 
         {/* Footer branding - only when expanded */}
         {(!isCollapsed || isMediumOrSmaller) && (
