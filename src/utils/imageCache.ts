@@ -1,22 +1,10 @@
 // Image caching utility for driver images and other static assets
 import { withCache } from './cache';
-
-// Eagerly import all local driver headshots to build a lookup map at build time
-// Supports common image formats in case some assets are avif/webp
-const localHeadshotModules = import.meta.glob('/src/assets/drivers-headshot/*.{png,avif,jpg,jpeg,webp}', {
-  eager: true,
-  query: '?url',
-  import: 'default'
-}) as Record<string, string>;
-
-const LOCAL_HEADSHOTS: Record<string, string> = {};
-for (const [path, url] of Object.entries(localHeadshotModules)) {
-  const fileName = path.split('/').pop() || '';
-  const driverIdFromFile = fileName.substring(0, fileName.lastIndexOf('.')).toLowerCase();
-  if (driverIdFromFile) {
-    LOCAL_HEADSHOTS[driverIdFromFile] = url;
-  }
-}
+import {
+  buildF1DriverHeadshotUrl,
+  getF1PortraitPathForErgastDriverId,
+  F1_DRIVER_PORTRAIT_SEASON,
+} from '@/constants/f1DriverPortraitMedia';
 
 // Cache TTL for images (7 days - images rarely change)
 const IMAGE_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
@@ -148,39 +136,29 @@ export const clearImageCache = (): void => {
 };
 
 /**
- * Get driver image URL with fallbacks
- * @param driverId - Driver ID from Ergast API
- * @param headshotUrl - Optional OpenF1 headshot URL
- * @returns Primary and fallback URLs
+ * Get driver avatar image URLs.
+ * Primary: official F1 media (Cloudinary) for the configured portrait season when mapped.
+ * Fallback: OpenF1 `headshot_url` when F1 URL is missing or fails to load.
  */
-export const getDriverImageUrls = (driverId: string, headshotUrl?: string) => {
-  const normalizedId = (driverId || '').toLowerCase();
-  const localUrl = LOCAL_HEADSHOTS[normalizedId];
-
-  // Priority: Local asset > OpenF1 headshot > nothing (show initials)
-  if (localUrl) {
+export const getDriverImageUrls = (
+  driverId: string,
+  headshotUrl?: string,
+  portraitSeason: number = F1_DRIVER_PORTRAIT_SEASON
+) => {
+  const f1Path = getF1PortraitPathForErgastDriverId(driverId, portraitSeason);
+  if (f1Path) {
+    const primary = buildF1DriverHeadshotUrl(f1Path);
     return {
-      primary: localUrl
-    } as { primary?: string };
+      primary,
+      ...(headshotUrl ? { fallback: headshotUrl } : {}),
+    } as { primary: string; fallback?: string };
   }
 
   if (headshotUrl) {
-    return {
-      primary: headshotUrl
-    } as { primary?: string };
+    return { primary: headshotUrl } as { primary: string; fallback?: string };
   }
 
-  return {
-    primary: undefined
-  } as { primary?: string };
-};
-
-export const hasLocalHeadshot = (driverId: string): boolean => {
-  return !!LOCAL_HEADSHOTS[(driverId || '').toLowerCase()];
-};
-
-export const getLocalHeadshotUrl = (driverId: string): string | undefined => {
-  return LOCAL_HEADSHOTS[(driverId || '').toLowerCase()];
+  return {} as { primary?: string; fallback?: string };
 };
 
 /**

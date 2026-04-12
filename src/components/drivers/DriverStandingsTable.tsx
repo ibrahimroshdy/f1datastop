@@ -32,14 +32,14 @@ const DriverRow = ({ driver, onClick }: DriverRowProps) => {
   }
   const constructorColor = TEAM_COLORS[constructorId] || "#cccccc";
 
-  // Load and cache driver image (local > OpenF1; else none, show initials)
+  // OpenF1 headshot when available, else bundled local asset
   useEffect(() => {
     const loadDriverImage = async () => {
       try {
         setImageLoading(true);
-        const imageUrls = getDriverImageUrls(driver.Driver.driverId);
+        const imageUrls = getDriverImageUrls(driver.Driver.driverId, headshotUrl);
         if (imageUrls.primary) {
-          const cached = await getCachedImage(imageUrls.primary);
+          const cached = await getCachedImage(imageUrls.primary, imageUrls.fallback);
           setCachedImageUrl(cached);
         } else {
           setCachedImageUrl('');
@@ -53,7 +53,7 @@ const DriverRow = ({ driver, onClick }: DriverRowProps) => {
     };
 
     loadDriverImage();
-  }, [driver.Driver.driverId]);
+  }, [driver.Driver.driverId, headshotUrl]);
 
   return (
     <TableRow 
@@ -110,7 +110,7 @@ const DriverStandingsTable = ({ standings }: DriverStandingsTableProps) => {
         </TableHeader>
         <TableBody>
           {standings.map((driver) => (
-            <DriverRow 
+            <DriverRow
               key={driver.Driver.driverId}
               driver={driver}
               onClick={handleRowClick}

@@ -22,7 +22,7 @@ import { useDriverResultsBySeason } from "@/hooks/useF1Data";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getCachedImage, getDriverImageUrls, hasLocalHeadshot } from "@/utils/imageCache";
+import { getCachedImage, getDriverImageUrls } from "@/utils/imageCache";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
@@ -284,9 +284,8 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
   const driverNumber = driver.Driver.permanentNumber || 'N/A';
   const codeAcronym = (driver.Driver.code || '').toUpperCase();
 
-  // Fetch latest OpenF1 driver info to get headshot_url (by driver code only)
-  const localHasImage = hasLocalHeadshot(driver.Driver.driverId);
-  const latestDriverQuery = useLatestDriver(undefined, codeAcronym, !localHasImage);
+  // Always fetch latest OpenF1 driver so headshot_url stays current (local assets are fallback only)
+  const latestDriverQuery = useLatestDriver(undefined, codeAcronym, !!codeAcronym);
   const headshotUrl: string | undefined = latestDriverQuery.data?.data?.headshot_url;
   const latestNumber: number | undefined = latestDriverQuery.data?.data?.driver_number;
   const displayDriverNumber = latestNumber ?? driver.Driver.permanentNumber ?? 'N/A';
@@ -320,14 +319,14 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
     ? (pointsHistory.reduce((sum, r) => sum + (Number(r.position) || 20), 0) / totalRaces).toFixed(1) 
     : "N/A";
   
-  // Load and cache driver image (local > OpenF1; else none, show initials)
+  // Load and cache driver image (OpenF1 when available, local fallback)
   useEffect(() => {
     const loadDriverImage = async () => {
       try {
         setImageLoading(true);
-        const imageUrls = getDriverImageUrls(driver.Driver.driverId, headshotUrl);
+        const imageUrls = getDriverImageUrls(driver.Driver.driverId, headshotUrl, season);
         if (imageUrls.primary) {
-          const cached = await getCachedImage(imageUrls.primary);
+          const cached = await getCachedImage(imageUrls.primary, imageUrls.fallback);
           setCachedImageUrl(cached);
         } else {
           setCachedImageUrl('');
@@ -341,7 +340,7 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
     };
 
     loadDriverImage();
-  }, [driver.Driver.driverId, headshotUrl]);
+  }, [driver.Driver.driverId, headshotUrl, season]);
 
   // Calculate best, worst positions and DNF count
   const bestPosition = useMemo(() => {
