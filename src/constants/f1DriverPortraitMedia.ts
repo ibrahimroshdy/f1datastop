@@ -13,8 +13,9 @@ export const F1_DRIVER_PORTRAIT_VERSION = "v1740000001";
 
 /**
  * Face-aware square thumb from the tall "right" pose — reads as a headshot in avatars.
+ * `z_0.76` ≈ two ~15% zoom-out steps vs default (1/1.15²) for more upper body in frame.
  */
-export const F1_DRIVER_HEADSHOT_TRANSFORMS = "c_thumb,w_384,h_384,g_face,q_auto";
+export const F1_DRIVER_HEADSHOT_TRANSFORMS = "c_thumb,w_384,h_384,g_face,z_0.76,q_auto";
 
 /** Season folder in common/f1/{season}/… */
 export const F1_DRIVER_PORTRAIT_SEASON = 2026;
@@ -37,6 +38,8 @@ export const ERGAST_DRIVER_ID_TO_F1_PORTRAIT_PATH: Record<string, string> = {
   max_verstappen: "2026/redbullracing/maxver01/2026redbullracingmaxver01right.webp",
   hadjar: "2026/redbullracing/isahad01/2026redbullracingisahad01right.webp",
   lawson: "2026/racingbulls/lialaw01/2026racingbullslialaw01right.webp",
+  // Ergast driverId (F1.com slug is /en/drivers/arvid-lindblad)
+  arvid_lindblad: "2026/racingbulls/arvlin01/2026racingbullsarvlin01right.webp",
   lindblad: "2026/racingbulls/arvlin01/2026racingbullsarvlin01right.webp",
   hulkenberg: "2026/audi/nichul01/2026audinichul01right.webp",
   bortoleto: "2026/audi/gabbor01/2026audigabbor01right.webp",
