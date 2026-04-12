@@ -1,7 +1,14 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardHeader,
+  F1CardTitle,
+} from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
 import { AlertCircle, HelpCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import YearSelector from '@/components/common/YearSelector';
@@ -21,6 +28,8 @@ interface SessionOption {
   date_start: string;
   date_end: string;
   meeting_key: number;
+  country_name?: string;
+  location?: string;
 }
 
 // Lazy-load heavy components
@@ -30,18 +39,29 @@ const TeamRadio = lazy(() => import('@/components/analytics/TeamRadio'));
 const SessionResults = lazy(() => import('@/components/analytics/SessionResults'));
 const OvertakesAnalysis = lazy(() => import('@/components/analytics/OvertakesAnalysis'));
 
-// Component for the tab content loading state
-const TabLoadingFallback = () => (
-  <div className="h-[400px] w-full flex flex-col items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-    <p className="text-muted-foreground">Loading data...</p>
-  </div>
-);
+const RaceInfoTabFallback = () => {
+  const { isGlass } = useTheme();
+  return (
+    <F1Card
+      variant={isGlass ? "glass" : "default"}
+      glassVariant={isGlass ? "panel" : "default"}
+      className="p-0"
+    >
+      <F1CardContent className="h-[400px] w-full flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+        <p className="text-muted-foreground">Loading data...</p>
+      </F1CardContent>
+    </F1Card>
+  );
+};
 
 // Function to determine the default year (current year)
 const getCurrentYear = () => new Date().getFullYear();
 
 const RaceInfoPage = () => {
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   // Use getCurrentYear() to always default to the current real-world year
   const { year = getCurrentYear(), round = "last" } = useParams();
   const navigate = useNavigate();
@@ -82,8 +102,8 @@ const RaceInfoPage = () => {
     if (isOpenF1Loading || !openF1SessionsData?.data) return null;
     
     // Group sessions by meeting for easier processing
-    const meetingGroups: { [key: string]: any[] } = {};
-    openF1SessionsData.data.forEach(session => {
+    const meetingGroups: Record<string, SessionOption[]> = {};
+    openF1SessionsData.data.forEach((session: SessionOption) => {
       const key = session.meeting_key.toString();
       if (!meetingGroups[key]) {
         meetingGroups[key] = [];
@@ -157,22 +177,23 @@ const RaceInfoPage = () => {
     // Filter sessions for the current meeting
     const meetingKey = selectedMeeting.meeting_key;
     const sessions = openF1SessionsData.data.filter(
-      (session: any) => session.meeting_key === meetingKey
+      (session: SessionOption) => session.meeting_key === meetingKey
     );
     
     // Sort sessions by date
     const sortedSessions = [...sessions].sort(
-      (a: any, b: any) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime()
+      (a: SessionOption, b: SessionOption) =>
+        new Date(a.date_start).getTime() - new Date(b.date_start).getTime()
     );
     
     setAvailableSessions(sortedSessions);
     
     // Set the selected session to the first one or the Race session if available
     if (sortedSessions.length > 0) {
-      const raceSession = sortedSessions.find((s: any) => s.session_type === "Race");
+      const raceSession = sortedSessions.find((s: SessionOption) => s.session_type === "Race");
       const defaultSession = raceSession || sortedSessions[0];
       
-      if (!selectedSessionKey || !sortedSessions.some((s: any) => s.session_key === selectedSessionKey)) {
+      if (!selectedSessionKey || !sortedSessions.some((s: SessionOption) => s.session_key === selectedSessionKey)) {
         setSelectedSessionKey(defaultSession.session_key);
       }
     } else {
@@ -244,7 +265,7 @@ const RaceInfoPage = () => {
           </div>
         </div>
         
-        <Card>
+        <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className="p-0">
           {isInitialLoading ? (
             <div className="p-6 space-y-4">
               <Skeleton className="h-8 w-64" />
@@ -255,15 +276,15 @@ const RaceInfoPage = () => {
             </div>
           ) : (
             <>
-              <CardHeader>
+              <F1CardHeader>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
                   <div>
-                    <CardTitle className="text-2xl">
+                    <F1CardTitle className="!text-2xl">
                       {selectedMeeting ? `${selectedMeeting.country_name} Grand Prix` : "Race Info"}
-                    </CardTitle>
-                    <CardDescription>
+                    </F1CardTitle>
+                    <F1CardDescription>
                       {selectedMeeting?.location}, {formattedDate}
-                    </CardDescription>
+                    </F1CardDescription>
                   </div>
                   
                   {/* Session selector dropdown - show even with one session */}
@@ -290,8 +311,8 @@ const RaceInfoPage = () => {
                     </div>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent>
+              </F1CardHeader>
+              <F1CardContent>
                 {selectedYear < 2023 && (
                   <Alert className="mb-6">
                     <AlertCircle className="h-4 w-4" />
@@ -329,7 +350,7 @@ const RaceInfoPage = () => {
                     <TabsTrigger value="overtakes">Overtakes</TabsTrigger>
                   </TabsList>
                   
-                  <Suspense fallback={<TabLoadingFallback />}>
+                  <Suspense fallback={<RaceInfoTabFallback />}>
                     {/* Only render the active tab to avoid unnecessary API requests and improve performance */}
                     <TabsContent value="weather" className="space-y-4">
                       {activeTab === "weather" && (
@@ -470,10 +491,10 @@ const RaceInfoPage = () => {
                     </TabsContent>
                   </Suspense>
                 </Tabs>
-              </CardContent>
+              </F1CardContent>
             </>
           )}
-        </Card>
+        </F1Card>
       </div>
     </MainLayout>
   );

@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -133,6 +134,9 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
   const infographicRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   
   // Download function
   const downloadInfographic = async () => {
@@ -395,14 +399,14 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
         {isLoading ? (
           <div className="space-y-6">
             {[...Array(8)].map((_, i) => (
-              <Card key={i} className="p-6">
+              <F1Card key={i} variant={surfaceVariant} glassVariant={surfaceGlass} className="p-6">
                 <Skeleton className="h-8 w-1/3 mb-4" />
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-4 w-1/2" />
                 </div>
-        </Card>
+        </F1Card>
             ))}
           </div>
         ) : (
@@ -410,14 +414,14 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
             {/* Top Row: Race Results and Key Stats */}
             <div className="grid grid-cols-3 gap-6">
               {/* Race Results - Main Section */}
-              <Card className="col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+              <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className="col-span-2">
+              <F1CardHeader>
+                <F1CardTitle className="flex items-center gap-2">
                     <Trophy className="h-6 w-6 text-yellow-500" />
                     Final Race Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </F1CardTitle>
+              </F1CardHeader>
+              <F1CardContent>
                   {raceResults?.data?.Results ? (
                     <div className="grid grid-cols-2 gap-3">
                       {raceResults.data.Results.slice(0, 10).map((result: any) => (
@@ -448,20 +452,20 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                       <AlertDescription>Race results not available</AlertDescription>
                     </Alert>
                   )}
-                </CardContent>
-              </Card>
+                </F1CardContent>
+              </F1Card>
 
               {/* Key Race Stats */}
               <div className="space-y-4">
                 {/* Weather */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
+                <F1Card variant={surfaceVariant} glassVariant={surfaceGlass}>
+                  <F1CardHeader className="pb-3">
+                    <F1CardTitle className="flex items-center gap-2 text-base">
                       <Cloud className="h-5 w-5 text-sky-500" />
                       Weather
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
+                    </F1CardTitle>
+                  </F1CardHeader>
+                  <F1CardContent className="pt-0">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Thermometer className="h-4 w-4 text-red-500" />
@@ -479,19 +483,19 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                         {weatherData.condition}
                       </Badge>
                     </div>
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
 
                 {/* Fastest Lap */}
                 {fastestLapData && (
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-base">
+                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass}>
+                    <F1CardHeader className="pb-3">
+                      <F1CardTitle className="flex items-center gap-2 text-base">
                         <Zap className="h-5 w-5 text-purple-500" />
                         Fastest Lap
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
+                      </F1CardTitle>
+                    </F1CardHeader>
+                    <F1CardContent className="pt-0">
                       <div className="space-y-2">
                         <div style={getTeamColorStyle(fastestLapData.constructor.constructorId)}>
                           <div className="font-bold text-sm">{fastestLapData.driver.code}</div>
@@ -510,8 +514,8 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                           </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </F1CardContent>
+                  </F1Card>
                 )}
               </div>
             </div>
@@ -519,14 +523,14 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
             {/* Second Row: Qualifying and Pit Stops */}
             <div className="grid grid-cols-3 gap-6">
               {/* Qualifying Results */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass}>
+                <F1CardHeader>
+                  <F1CardTitle className="flex items-center gap-2">
                     <Flag className="h-5 w-5 text-blue-500" />
                     Qualifying Results
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                  </F1CardTitle>
+                </F1CardHeader>
+                <F1CardContent>
                   {qualifyingResults?.data?.QualifyingResults ? (
                     <div className="space-y-2">
                       {qualifyingResults.data.QualifyingResults.slice(0, 8).map((result: any) => (
@@ -549,18 +553,18 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                       <AlertDescription>Qualifying results not available</AlertDescription>
                     </Alert>
                   )}
-                </CardContent>
-              </Card>
+                </F1CardContent>
+              </F1Card>
 
               {/* Fastest Pit Stop */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass}>
+                <F1CardHeader>
+                  <F1CardTitle className="flex items-center gap-2">
                     <Timer className="h-5 w-5 text-orange-500" />
                     Fastest Pit Stop
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                  </F1CardTitle>
+                </F1CardHeader>
+                <F1CardContent>
                   {fastestPitStop ? (
                     <div className="space-y-4">
                       <div className="text-center">
@@ -581,18 +585,18 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                       <div className="text-xs text-muted-foreground">Lap 31</div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </F1CardContent>
+              </F1Card>
 
               {/* Circuit Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass}>
+                <F1CardHeader>
+                  <F1CardTitle className="flex items-center gap-2">
                     <Flag className="h-5 w-5 text-gray-500" />
                     Circuit Info
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                  </F1CardTitle>
+                </F1CardHeader>
+                <F1CardContent>
                   <div className="space-y-4">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-2">
@@ -621,8 +625,8 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </F1CardContent>
+              </F1Card>
                   </div>
                   
             {/* Third Row: Qualifying to Race Progression Chart */}
@@ -633,46 +637,46 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
             {/* Fourth Row: Additional Statistics */}
             <div className="grid grid-cols-4 gap-4">
               {/* DNF Count */}
-              <Card className="text-center">
-                <CardContent className="pt-6 pb-6">
+              <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className="text-center">
+                <F1CardContent className="pt-6 pb-6">
                   <div className="text-3xl font-bold text-red-500 mb-1">
                     {raceResults?.data?.Results?.filter((r: any) => 
                       r.status !== "Finished" && r.status !== "+1 Lap" && r.status !== "+2 Laps" && r.status !== "+3 Laps"
                     ).length || 0}
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">DNFs</div>
-                </CardContent>
-              </Card>
+                </F1CardContent>
+              </F1Card>
 
               {/* Total Laps */}
-              <Card className="text-center">
-                <CardContent className="pt-6 pb-6">
+              <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className="text-center">
+                <F1CardContent className="pt-6 pb-6">
                   <div className="text-3xl font-bold text-blue-500 mb-1">
                     {raceResults?.data?.Results?.[0]?.laps || "57"}
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">Total Laps</div>
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
 
               {/* Race Winner */}
-              <Card className="text-center">
-                <CardContent className="pt-6 pb-6">
+              <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className="text-center">
+                <F1CardContent className="pt-6 pb-6">
                   <div className="text-2xl font-bold text-yellow-500 mb-1">
                     {raceResults?.data?.Results?.[0]?.Driver?.code || "NOR"}
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">Race Winner</div>
-                </CardContent>
-              </Card>
+                </F1CardContent>
+              </F1Card>
 
               {/* Pole Position */}
-              <Card className="text-center">
-                <CardContent className="pt-6 pb-6">
+              <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className="text-center">
+                <F1CardContent className="pt-6 pb-6">
                   <div className="text-2xl font-bold text-purple-500 mb-1">
                     {qualifyingResults?.data?.QualifyingResults?.[0]?.Driver?.code || "NOR"}
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">Pole Position</div>
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
           </div>
         </div>
         )}

@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { SUPABASE_FUNCTIONS } from "@/constants/apiConfig";
 import { trackLogin, trackSignup } from '@/integrations/google-analytics/GA4.tsx';
 import { identifyUser, trackEvent as trackClarityEvent } from '@/integrations/clarity/clarityHelpers';
 
@@ -52,22 +51,21 @@ export const signUp = async (
     // Verify the captcha token with our server-side function if token exists
     if (captchaToken) {
       try {
-        const response = await fetch(SUPABASE_FUNCTIONS.VERIFY_CAPTCHA, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            token: captchaToken
-          })
-        });
-        
-        const verificationResult = await response.json();
-        
-        if (!verificationResult.success) {
-          throw new Error(verificationResult.error || "CAPTCHA verification failed");
+        const { data: verificationResult, error: captchaFnError } = await supabase.functions.invoke(
+          'captcha-verify',
+          { body: { token: captchaToken } }
+        );
+        if (captchaFnError) {
+          throw captchaFnError;
         }
-        
+        if (
+          verificationResult &&
+          typeof verificationResult === 'object' &&
+          'success' in verificationResult &&
+          !(verificationResult as { success: boolean }).success
+        ) {
+          throw new Error((verificationResult as { error?: string }).error || "CAPTCHA verification failed");
+        }
         console.log("CAPTCHA verification successful");
       } catch (captchaError) {
         console.error("Error verifying CAPTCHA:", captchaError);
@@ -113,29 +111,25 @@ export const signUp = async (
 
     // Notify Slack about the new signup
     try {
-      // Use a direct POST request to the Edge Function URL instead of invoke
-      const response = await fetch(SUPABASE_FUNCTIONS.NOTIFY_SLACK, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`
-        },
-        body: JSON.stringify({
-          type: "signup",
-          userData: {
-            email,
-            username,
-            firstName,
-            lastName,
-            provider: "email"
+      const { data: notifyResult, error: notifyError } = await supabase.functions.invoke(
+        'notify-slack',
+        {
+          body: {
+            type: "signup",
+            userData: {
+              email,
+              username,
+              firstName,
+              lastName,
+              provider: "email"
+            },
           },
-        }),
-      });
-      
-      const notifyResult = await response.json();
-      
-      if (!response.ok) {
-        console.error("Error in Slack notification direct response:", notifyResult);
+        }
+      );
+      if (notifyError) {
+        console.error("Error in Slack notification:", notifyError);
+      } else if (notifyResult && typeof notifyResult === 'object' && 'error' in notifyResult) {
+        console.error("Error in Slack notification response:", notifyResult);
       }
     } catch (slackError) {
       // Don't fail the signup if the slack notification fails, just log it
@@ -288,20 +282,6 @@ export const signOut = async () => {
   }
 };
 
-export const deleteAccount = async () => {
-  try {
-    // First sign out the user
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    
-    toast.success("Your account has been scheduled for deletion. Please check your email for confirmation.");
-  } catch (error: any) {
-    console.error("Error deleting account:", error);
-    toast.error("Failed to delete account: " + error.message);
-    throw error;
-  }
-};
-
 export const updateProfile = async (
   userId: string, 
   data: Partial<{ username: string; first_name: string; last_name: string }>,
@@ -355,19 +335,11 @@ export const notifySlackAboutTwitterSignin = async (user: any): Promise<void> =>
       }
     };
     
-    // Send POST request with properly formatted JSON
-    const response = await fetch(SUPABASE_FUNCTIONS.NOTIFY_SLACK, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    // Check for successful response
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Slack notification failed:", errorText);
+    const { data, error } = await supabase.functions.invoke('notify-slack', { body: payload });
+    if (error) {
+      console.error("Slack notification failed:", error);
+    } else if (data && typeof data === 'object' && 'error' in data) {
+      console.error("Slack notification response error:", data);
     }
   } catch (slackError) {
     // Don't fail the signup if the slack notification fails

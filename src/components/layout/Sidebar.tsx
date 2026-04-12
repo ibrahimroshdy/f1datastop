@@ -129,8 +129,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
         onClick={handleNavClick}
         aria-current={isActive ? "page" : undefined}
         className={cn(
-          "group relative flex items-center gap-3 rounded-md text-sm font-medium transition-all duration-200",
-          isCollapsed && !isMediumOrSmaller ? "justify-center px-2 py-2.5" : "px-3 py-2.5",
+          "group relative flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
+          isCollapsed && !isMediumOrSmaller ? "justify-center px-2 py-2" : "px-3 py-2",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           isActive
             ? cn(

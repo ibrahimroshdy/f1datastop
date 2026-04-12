@@ -2,12 +2,22 @@ import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useDeveloper } from '@/context/DeveloperContext';
 import MainLayout from '@/components/layout/MainLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, Code, Terminal, Database, Globe, ExternalLink, LayoutTemplate, Clock } from 'lucide-react';
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardHeader,
+  F1CardTitle,
+} from '@/components/f1';
+import { Settings, Code, Terminal, Database, ExternalLink, LayoutTemplate, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/context/ThemeContext';
 
 const Developers = () => {
   const { isDeveloperMode } = useDeveloper();
+  const { isGlass } = useTheme();
+  const cardVariant = isGlass ? 'glass' : 'default';
+  const glassVariant = isGlass ? 'panel' : 'default';
 
   // Redirect if not in developer mode
   if (!isDeveloperMode) {
@@ -74,14 +84,16 @@ const Developers = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {developerTools.map((tool) => (
-            <Card 
-              key={tool.name} 
+            <F1Card
+              key={tool.name}
+              variant={cardVariant}
+              glassVariant={glassVariant}
               className={cn(
-                "transition-shadow duration-200",
+                "p-0 transition-shadow duration-200",
                 tool.available ? "hover:shadow-md" : "opacity-70"
               )}
             >
-              <CardHeader className="pb-2">
+              <F1CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div className="p-2 bg-muted rounded-md">
                     {tool.available ? (
@@ -95,10 +107,10 @@ const Developers = () => {
                     <ExternalLink className="h-4 w-4 text-muted-foreground" />
                   )}
                 </div>
-                <CardTitle className="text-xl mt-2">{tool.name}</CardTitle>
-                <CardDescription>{tool.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
+                <F1CardTitle className="!text-xl mt-2">{tool.name}</F1CardTitle>
+                <F1CardDescription>{tool.description}</F1CardDescription>
+              </F1CardHeader>
+              <F1CardContent>
                 {tool.available ? (
                   tool.external ? (
                     <a 
@@ -123,8 +135,8 @@ const Developers = () => {
                     Coming soon
                   </span>
                 )}
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
           ))}
         </div>
 

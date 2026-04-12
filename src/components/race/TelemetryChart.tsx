@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardDescription, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useTelemetryData } from "@/hooks/useTelemetryData";
@@ -11,7 +13,10 @@ interface TelemetryChartProps {
   sessionKey?: number;
 }
 
-const TelemetryChart = ({ sessionKey = 9158 }: TelemetryChartProps) => { // Default to a recent session (e.g. 9158) if not provided
+const TelemetryChart = ({ sessionKey = 9158 }: TelemetryChartProps) => {
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   const [selectedDriver1, setSelectedDriver1] = useState<string>("");
   const [selectedDriver2, setSelectedDriver2] = useState<string>("");
   const [telemetryMetric, setTelemetryMetric] = useState<"speed" | "throttle" | "brake" | "rpm" | "gear" | "drs">("speed");
@@ -79,12 +84,12 @@ const TelemetryChart = ({ sessionKey = 9158 }: TelemetryChartProps) => { // Defa
   };
 
   return (
-    <Card className="col-span-3">
-      <CardHeader>
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("col-span-3 p-0", isGlass && "border-white/10")}>
+      <F1CardHeader>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle>Telemetry Analysis</CardTitle>
-            <CardDescription>Real-time car performance data</CardDescription>
+            <F1CardTitle>Telemetry Analysis</F1CardTitle>
+            <F1CardDescription>Real-time car performance data</F1CardDescription>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -142,8 +147,8 @@ const TelemetryChart = ({ sessionKey = 9158 }: TelemetryChartProps) => { // Defa
             </Select>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
+      </F1CardHeader>
+      <F1CardContent>
         <div className="h-[350px] w-full">
           {isTelemetryLoading || isMetadataLoading ? (
             <div className="h-full w-full flex items-center justify-center">
@@ -211,8 +216,8 @@ const TelemetryChart = ({ sessionKey = 9158 }: TelemetryChartProps) => { // Defa
             </Badge>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </F1CardContent>
+    </F1Card>
   );
 };
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
@@ -58,12 +58,15 @@ const getNationalityCode = (nationality: string | undefined): string => {
 const CombinedStandingsCard = ({ 
   driverStandings,
   constructorStandings, 
+  getTeamColor: _getTeamColor,
   onExpandChange,
   isLoading = false,
   error = null,
   onRetry,
 }: CombinedStandingsCardProps) => {
   const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   const [tab, setTab] = useState<"combined" | "drivers" | "constructors">("drivers");
   const [showAll, setShowAll] = useState<boolean>(false);
 
@@ -161,24 +164,16 @@ const CombinedStandingsCard = ({
   };
 
     return (
-    <Card 
-      className={cn(
-        "h-full",
-        isGlass && "border-white/10"
-      )}
-      style={isGlass ? {
-        background: 'var(--glass-bg)',
-        backdropFilter: 'blur(var(--glass-blur))',
-        WebkitBackdropFilter: 'blur(var(--glass-blur))',
-        boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-      } : undefined}
+    <F1Card
+      variant={surfaceVariant}
+      glassVariant={surfaceGlass}
+      className={cn("h-full p-0", isGlass && "border-white/10")}
     >
-      <CardHeader className="pb-3">
+      <F1CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            {getTitleIcon()}
+          <F1CardTitle icon={getTitleIcon()} className="text-base font-semibold">
             Standings
-          </CardTitle>
+          </F1CardTitle>
                 <div className="flex items-center gap-2">
               <button
               onClick={toggleShowAll}
@@ -206,9 +201,9 @@ const CombinedStandingsCard = ({
             </div>
           </Tabs>
         </div>
-      </CardHeader>
+      </F1CardHeader>
       
-      <CardContent className="pt-0">
+      <F1CardContent className="pt-0">
         {/* Loading State */}
         {isLoading && <StandingsSkeleton rows={8} />}
 
@@ -711,8 +706,8 @@ const CombinedStandingsCard = ({
           </TabsContent>
           </Tabs>
         )}
-      </CardContent>
-    </Card>
+      </F1CardContent>
+    </F1Card>
   );
 };
 

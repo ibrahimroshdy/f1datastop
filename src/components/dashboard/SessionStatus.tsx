@@ -1,7 +1,8 @@
 
 import { format } from "date-fns";
 import { useNextRace } from "@/hooks/useF1Data";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, Clock } from "lucide-react";
@@ -16,43 +17,45 @@ interface SessionStatusProps {
 const SessionStatus = ({ year }: SessionStatusProps) => {
   const currentYear = new Date().getFullYear();
   const { data: nextRace, isLoading } = useNextRace(year || currentYear);
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
+  const sessionCardClass = "border-border bg-card p-0";
   
   if (isLoading) {
     return (
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
+      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={sessionCardClass}>
+        <F1CardHeader className="pb-3">
+          <F1CardTitle icon={<Clock className="h-5 w-5" />} className="text-base font-semibold">
             Next Session
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </F1CardTitle>
+        </F1CardHeader>
+        <F1CardContent>
           <div className="space-y-3">
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
             <Skeleton className="h-8 w-full" />
           </div>
-        </CardContent>
-      </Card>
+        </F1CardContent>
+      </F1Card>
     );
   }
   
   if (!nextRace?.data) {
     return (
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
+      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={sessionCardClass}>
+        <F1CardHeader className="pb-3">
+          <F1CardTitle icon={<Clock className="h-5 w-5" />} className="text-base font-semibold">
             Next Session
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </F1CardTitle>
+        </F1CardHeader>
+        <F1CardContent>
           <div className="text-center py-4">
             <div className="w-2 h-2 rounded-full bg-purple-500/50 mx-auto mb-2" />
             <p className="text-muted-foreground text-sm">Season Complete</p>
           </div>
-        </CardContent>
-      </Card>
+        </F1CardContent>
+      </F1Card>
     );
   }
   
@@ -75,20 +78,19 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
 
   if (!nextSession) {
     return (
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
+      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={sessionCardClass}>
+        <F1CardHeader className="pb-3">
+          <F1CardTitle icon={<Clock className="h-5 w-5" />} className="text-base font-semibold">
             Next Session
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </F1CardTitle>
+        </F1CardHeader>
+        <F1CardContent>
           <div className="text-center py-4">
             <div className="w-2 h-2 rounded-full bg-purple-500/50 mx-auto mb-2" />
             <p className="text-muted-foreground text-sm">No upcoming sessions</p>
           </div>
-        </CardContent>
-      </Card>
+        </F1CardContent>
+      </F1Card>
     );
   }
 
@@ -98,14 +100,13 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
   const countryCode = getCountryCode(country);
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-primary" />
+    <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={sessionCardClass}>
+      <F1CardHeader className="pb-3">
+        <F1CardTitle icon={<Clock className="h-5 w-5" />} className="text-base font-semibold">
           Next Session
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </F1CardTitle>
+      </F1CardHeader>
+      <F1CardContent>
         <div className="space-y-4">
           {/* Race Info */}
           <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-purple-500/5 to-transparent border border-purple-500/20">
@@ -150,8 +151,8 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
             <div className="w-2 h-2 rounded-full bg-purple-500/50" />
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </F1CardContent>
+    </F1Card>
   );
 };
 

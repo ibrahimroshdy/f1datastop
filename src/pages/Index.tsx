@@ -11,7 +11,13 @@ import QualifyingResultsCard from "@/components/dashboard/QualifyingResultsCard"
 import MuiSankeyChart from "@/components/analytics/MuiSankeyChart";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import { useTheme } from "@/context/ThemeContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardHeader,
+  F1CardTitle,
+} from "@/components/f1";
 import { GitCompare } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
 import { getCountryCode } from "@/components/common/CountryFlag";
@@ -21,6 +27,16 @@ import { F1EmptyState } from "@/components/f1/F1EmptyState";
 
 import useAnalytics from '@/hooks/useAnalytics';
 import useClarity from '@/hooks/useClarity';
+
+type IndexScheduleRace = {
+  date: string;
+  time?: string;
+  season: string;
+  round: string;
+  raceName: string;
+  Circuit?: { Location?: { country?: string } };
+  [key: string]: unknown;
+};
 
 const Index = () => {
   const {
@@ -57,7 +73,9 @@ const Index = () => {
   const isSeasonComplete = useMemo(() => {
     if (!raceSchedule?.data) return false;
     const now = new Date();
-    const completedRaces = raceSchedule.data.filter((race: any) => new Date(race.date) < now);
+    const completedRaces = raceSchedule.data.filter(
+      (race: IndexScheduleRace) => new Date(race.date) < now
+    );
     return completedRaces.length === raceSchedule.data.length && completedRaces.length > 0;
   }, [raceSchedule?.data]);
 
@@ -66,7 +84,7 @@ const Index = () => {
     if (!raceSchedule?.data) return null;
     const races = raceSchedule.data;
     const now = new Date();
-    const completedRaces = races.filter((race: any) => new Date(race.date) < now);
+    const completedRaces = races.filter((race: IndexScheduleRace) => new Date(race.date) < now);
     if (completedRaces.length === 0) return null;
     const lastRace = completedRaces[completedRaces.length - 1];
     return {
@@ -78,14 +96,6 @@ const Index = () => {
       raceData: lastRace, // Full race data for the dialog
     };
   }, [raceSchedule?.data]);
-
-  // Glass styling
-  const glassStyle = isGlass ? {
-    background: 'var(--glass-bg)',
-    backdropFilter: 'blur(var(--glass-blur))',
-    WebkitBackdropFilter: 'blur(var(--glass-blur))',
-    border: '1px solid var(--glass-border)',
-  } : {};
 
   useEffect(() => {
     // Only show offline warning for critical API failures (standings and schedule)
@@ -139,17 +149,23 @@ const Index = () => {
             </div>
 
             {/* Second Row: Qualifying → Race Progression (full width) */}
-            <Card className="bg-card border-border" style={glassStyle}>
-              <CardHeader className="pb-2">
+            <F1Card
+              variant={isGlass ? "glass" : "default"}
+              glassVariant={isGlass ? "panel" : "default"}
+              className="border-border p-0"
+            >
+              <F1CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <GitCompare className="h-5 w-5 text-primary" />
+                    <F1CardTitle
+                      icon={<GitCompare className="h-5 w-5 text-primary" />}
+                      className="text-lg md:text-xl"
+                    >
                       Qualifying to Race Progression
-                    </CardTitle>
-                    <CardDescription>
+                    </F1CardTitle>
+                    <F1CardDescription>
                       How drivers progressed from qualifying to race positions
-                    </CardDescription>
+                    </F1CardDescription>
                   </div>
                   {lastCompletedRace && (
                     <button 
@@ -166,8 +182,8 @@ const Index = () => {
                     </button>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent className="p-0 h-[550px]">
+              </F1CardHeader>
+              <F1CardContent className="p-0 h-[550px]">
                 {lastCompletedRace ? (
                   <MuiSankeyChart 
                     year={lastCompletedRace.year} 
@@ -181,8 +197,8 @@ const Index = () => {
                     size="md"
                   />
                 )}
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
 
             {/* Third Row: Race Data Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">

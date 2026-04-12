@@ -7,11 +7,14 @@ import LiveRaceInfo from "@/components/race/LiveRaceInfo";
 
 const LiveRace = () => {
   return (
-    <MainLayout>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Monaco Grand Prix: Live Race</h1>
-          <div className="text-sm text-muted-foreground">Lap 45/78</div>
+    <MainLayout showFooter={false}>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">Monaco Grand Prix: Live Race</h1>
+            <p className="text-muted-foreground text-sm">Demo live timing layout</p>
+          </div>
+          <div className="text-sm font-medium text-muted-foreground tabular-nums">Lap 45/78</div>
         </div>
         
         <div className="grid grid-cols-1 gap-4">

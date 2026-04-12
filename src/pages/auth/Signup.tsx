@@ -4,7 +4,14 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardFooter,
+  F1CardHeader,
+  F1CardTitle,
+} from '@/components/f1';
 import { Eye, EyeOff, ArrowLeft, Twitter } from 'lucide-react';
 import ReCaptcha from '@/components/auth/ReCaptcha';
 import { RECAPTCHA } from '@/constants/apiConfig';
@@ -47,8 +54,9 @@ const Signup = () => {
     
     try {
       await signUp(email, password, username, firstName, lastName, captchaToken);
-    } catch (error: any) {
-      setError(error.message || "An error occurred during signup");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An error occurred during signup";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -111,28 +119,21 @@ const Signup = () => {
           </a>
         </div>
         
-        <Card 
-          className={cn(
-            "w-full",
-            isGlass && "border-white/10"
-          )}
-          style={isGlass ? {
-            background: 'var(--glass-bg)',
-            backdropFilter: 'blur(var(--glass-blur))',
-            WebkitBackdropFilter: 'blur(var(--glass-blur))',
-            boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-          } : undefined}
+        <F1Card
+          variant={isGlass ? "glass" : "default"}
+          glassVariant={isGlass ? "panel" : "default"}
+          className={cn("w-full p-0", isGlass && "border-white/10")}
         >
-          <CardHeader className="space-y-1 text-center">
+          <F1CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <img src={f1Logo} alt="F1 DataStop" className="w-16 h-16" />
             </div>
-            <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-            <CardDescription className="text-muted-foreground">
+            <F1CardTitle className="!text-2xl justify-center">Create an account</F1CardTitle>
+            <F1CardDescription className="text-muted-foreground">
               Enter your information to create an account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </F1CardDescription>
+          </F1CardHeader>
+          <F1CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -290,16 +291,16 @@ const Signup = () => {
                 Sign up with X
               </Button>
             </form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
+          </F1CardContent>
+          <F1CardFooter className="flex justify-center border-t-0 pt-2">
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link to="/auth/login" className="text-primary hover:underline">
                 Sign in
               </Link>
             </p>
-          </CardFooter>
-        </Card>
+          </F1CardFooter>
+        </F1Card>
       </div>
     </div>
   );

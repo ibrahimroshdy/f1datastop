@@ -1,6 +1,13 @@
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useTheme } from "@/context/ThemeContext";
+import {
+  F1Card,
+  F1CardContent,
+  F1CardFooter,
+  F1CardHeader,
+  F1CardTitle,
+} from "@/components/f1";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,8 +20,36 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import TeamLogo from "@/components/common/TeamLogo";
 import YearSelector from "@/components/common/YearSelector";
+import { cn } from "@/lib/utils";
+
+type ConstructorListEntry = {
+  position: string;
+  points: string;
+  wins: string;
+  Constructor: {
+    constructorId: string;
+    name: string;
+    nationality: string;
+    url?: string;
+  };
+};
+
+type DriverStandingForTeam = {
+  position: string;
+  Driver: {
+    driverId: string;
+    givenName: string;
+    familyName: string;
+    code: string;
+    permanentNumber?: string;
+  };
+  Constructors: Array<{ constructorId: string }>;
+};
 
 const Constructors = () => {
+  const { isGlass } = useTheme();
+  const cardVariant = isGlass ? "glass" : "default";
+  const glassVariant = isGlass ? "panel" : "default";
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const { data: constructorStandings, isLoading } = useConstructorStandings(selectedYear);
@@ -22,7 +57,7 @@ const Constructors = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter constructors based on search query
-  const filteredConstructors = constructorStandings?.data.filter((constructor: any) => {
+  const filteredConstructors = constructorStandings?.data.filter((constructor: ConstructorListEntry) => {
     return constructor.Constructor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       constructor.Constructor.nationality.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -30,13 +65,13 @@ const Constructors = () => {
   // Group drivers by constructor
   const getTeamDrivers = (constructorId: string) => {
     if (!driverStandings?.data) return [];
-    return driverStandings.data.filter((driver: any) => 
-      driver.Constructors.some((c: any) => c.constructorId === constructorId)
+    return driverStandings.data.filter((driver: DriverStandingForTeam) =>
+      driver.Constructors.some((c) => c.constructorId === constructorId)
     );
   };
 
   // Determine if a constructor is the champion for the year
-  const isChampion = (constructor: any, year: number) => {
+  const isChampion = (constructor: ConstructorListEntry, year: number) => {
     // If it's the current year, check if they're leading
     if (year === currentYear) {
       return constructor.position === "1";
@@ -79,8 +114,13 @@ const Constructors = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {Array(10).fill(0).map((_, i) => (
-              <Card key={i} className="overflow-hidden">
-                <CardHeader>
+              <F1Card
+                key={i}
+                variant={cardVariant}
+                glassVariant={glassVariant}
+                className="overflow-hidden"
+              >
+                <F1CardHeader>
                   <div className="flex items-center gap-4">
                     <Skeleton className="h-16 w-16 rounded-full" />
                     <div className="space-y-2">
@@ -88,42 +128,50 @@ const Constructors = () => {
                       <Skeleton className="h-4 w-32" />
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
+                </F1CardHeader>
+                <F1CardContent>
                   <div className="space-y-4">
                     <Skeleton className="h-4 w-full" />
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
                   </div>
-                </CardContent>
-              </Card>
+                </F1CardContent>
+              </F1Card>
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredConstructors?.map((constructor: any) => {
+            {filteredConstructors?.map((constructor) => {
               const teamColor = TEAM_COLORS[constructor.Constructor.constructorId] || TEAM_COLORS.default;
               const teamDrivers = getTeamDrivers(constructor.Constructor.constructorId);
               const teamIsChampion = isChampion(constructor, selectedYear);
 
               return (
-                <Card 
-                  key={constructor.Constructor.constructorId} 
-                  className="overflow-hidden border-t-4 hover:shadow-md transition-shadow"
+                <F1Card
+                  key={constructor.Constructor.constructorId}
+                  variant={cardVariant}
+                  glassVariant={glassVariant}
+                  className={cn(
+                    "overflow-hidden border-t-4 p-0 hover:shadow-md transition-shadow",
+                    isGlass ? "border-white/10" : "border-border"
+                  )}
                   style={{ borderTopColor: teamColor }}
                 >
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <F1CardHeader className="flex flex-row items-center justify-between pb-2">
                     <div className="flex items-center gap-3">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Avatar className="h-14 w-14 rounded-md flex items-center justify-center overflow-hidden border-2" style={{ backgroundColor: 'white', borderColor: teamColor }}>
-                              <div className="w-full h-full flex items-center justify-center">
-                                <TeamLogo 
+                            <Avatar
+                              className="h-14 w-14 rounded-md flex items-center justify-center overflow-hidden border-2 bg-neutral-950"
+                              style={{ borderColor: teamColor }}
+                            >
+                              <div className="flex h-full w-full items-center justify-center px-1.5">
+                                <TeamLogo
                                   constructorId={constructor.Constructor.constructorId}
                                   alt={constructor.Constructor.name}
-                                  className="max-h-10 max-w-10"
-                                  noBackground={true}
+                                  className="max-h-9 max-w-[7rem] object-contain"
+                                  noBackground
                                 />
                               </div>
                             </Avatar>
@@ -135,9 +183,9 @@ const Constructors = () => {
                       </TooltipProvider>
                       <div>
                         <div className="flex items-center gap-2">
-                          <CardTitle className="text-xl">
+                          <F1CardTitle className="text-xl !font-semibold">
                             {constructor.Constructor.name}
-                          </CardTitle>
+                          </F1CardTitle>
                           {teamIsChampion && selectedYear < currentYear && (
                             <Badge className="bg-yellow-500 text-black">Champion</Badge>
                           )}
@@ -146,9 +194,9 @@ const Constructors = () => {
                       </div>
                     </div>
                     <Badge variant="outline" className="bg-secondary text-secondary-foreground">P{constructor.position}</Badge>
-                  </CardHeader>
+                  </F1CardHeader>
                   
-                  <CardContent>
+                  <F1CardContent>
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
                         <p className="text-muted-foreground text-sm">Points</p>
@@ -163,7 +211,7 @@ const Constructors = () => {
                     <div>
                       <h4 className="font-medium mb-2">Drivers</h4>
                       <div className="space-y-2">
-                        {teamDrivers.map((driver: any) => (
+                        {teamDrivers.map((driver: DriverStandingForTeam) => (
                           <div key={driver.Driver.driverId} className="flex items-center gap-2 p-2 rounded-md bg-accent/30">
                             <div className="w-1 h-full rounded-full" style={{ backgroundColor: teamColor }}></div>
                             <div>
@@ -178,19 +226,19 @@ const Constructors = () => {
                         ))}
                       </div>
                     </div>
-                  </CardContent>
+                  </F1CardContent>
                   
-                  <CardFooter>
+                  <F1CardFooter className="flex justify-start border-t pt-4">
                     <a 
                       href={constructor.Constructor.url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-sm text-f1-red hover:underline"
+                      className="text-sm text-primary hover:underline"
                     >
                       View Team Profile
                     </a>
-                  </CardFooter>
-                </Card>
+                  </F1CardFooter>
+                </F1Card>
               );
             })}
           </div>

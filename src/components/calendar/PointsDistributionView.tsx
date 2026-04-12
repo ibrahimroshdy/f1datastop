@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { Loader2, BarChart3 } from "lucide-react";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { getTeamColorById } from "@/constants/f1Colors";
@@ -21,6 +21,8 @@ const PointsDistributionView = ({
   isLoading,
   isGlass,
 }: PointsDistributionViewProps) => {
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   const [raceResultsData, setRaceResultsData] = useState<Record<string, any>>({});
   const [sprintResultsData, setSprintResultsData] = useState<Record<string, any>>({});
   const [loadingRaces, setLoadingRaces] = useState<Set<string>>(new Set());
@@ -203,25 +205,17 @@ const PointsDistributionView = ({
 
   return (
     <TooltipProvider delayDuration={200}>
-      <Card
-        className={cn("w-full", isGlass && "border-white/10")}
-        style={
-          isGlass
-            ? {
-                background: "var(--glass-bg)",
-                backdropFilter: "blur(var(--glass-blur))",
-                boxShadow: "var(--glass-shadow)",
-              }
-            : undefined
-        }
+      <F1Card
+        variant={surfaceVariant}
+        glassVariant={surfaceGlass}
+        className={cn("w-full p-0", isGlass && "border-white/10")}
       >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
+        <F1CardHeader>
+          <F1CardTitle icon={<BarChart3 className="h-5 w-5" />}>
             Points Distribution
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </F1CardTitle>
+        </F1CardHeader>
+        <F1CardContent>
           {uniqueConstructors.length > 0 && (
             <div className="mb-4 pb-4 border-b border-border">
               <div className="flex flex-wrap gap-3 items-center">
@@ -308,8 +302,8 @@ const PointsDistributionView = ({
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </F1CardContent>
+      </F1Card>
     </TooltipProvider>
   );
 };

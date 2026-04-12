@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode } from "react";
+import React, { createContext, useContext, ReactNode, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContextProps } from "./types";
 import { useAuthState } from "./authHooks";
@@ -6,7 +6,6 @@ import {
   signUp as signUpAction,
   signIn as signInAction,
   signOut as signOutAction,
-  deleteAccount as deleteAccountAction,
   updateProfile as updateProfileAction,
   resetPassword as resetPasswordAction,
   signInWithX as signInWithXAction
@@ -39,11 +38,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     navigate("/auth/login");
   };
 
-  const deleteAccount = async (): Promise<void> => {
-    await deleteAccountAction();
-    navigate("/auth/login");
-  };
-
   const updateProfile = async (
     data: Partial<{ username: string; first_name: string; last_name: string }>
   ): Promise<void> => {
@@ -55,6 +49,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await resetPasswordAction(email);
   };
 
+  const refreshProfile = useCallback(async (): Promise<void> => {
+    if (user) await fetchProfile(user.id);
+  }, [user, fetchProfile]);
+
   const signInWithX = async (): Promise<void> => {
     await signInWithXAction();
   };
@@ -64,11 +62,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     session,
     profile,
     isLoading,
+    refreshProfile,
     signUp,
     signIn,
     signInWithX,
     signOut,
-    deleteAccount,
     updateProfile,
     resetPassword,
   };

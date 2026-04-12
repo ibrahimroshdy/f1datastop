@@ -1,6 +1,12 @@
 import { useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardHeader,
+  F1CardTitle,
+} from "@/components/f1";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import YearSelector from "@/components/common/YearSelector";
 // MUI X Charts versions
@@ -24,19 +30,31 @@ const getDefaultYear = () => {
   return new Date().getFullYear();
 };
 
+type AnalyticsRaceOption = {
+  round: string;
+  raceName: string;
+  date: string;
+  Circuit?: {
+    circuitName?: string;
+    Location?: { country?: string; locality?: string };
+  };
+};
+
 const Analytics = () => {
   const [selectedYear, setSelectedYear] = useState<number>(getDefaultYear());
   const [selectedTab, setSelectedTab] = useState<string>("lapTimes");
   const [selectedRace, setSelectedRace] = useState<string>("1");
   const { isGlass, baseTheme } = useTheme();
   const isDark = baseTheme === 'dark';
+  const chartSurfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const chartSurfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   
   const { data: raceScheduleData, isLoading: isRaceScheduleLoading } = useRaceSchedule(selectedYear);
   
   // Get currently selected race info
   const selectedRaceInfo = useMemo(() => {
     if (!raceScheduleData?.data) return null;
-    return raceScheduleData.data.find((race: any) => race.round === selectedRace);
+    return raceScheduleData.data.find((race: AnalyticsRaceOption) => race.round === selectedRace);
   }, [raceScheduleData, selectedRace]);
   
   // Handler for year changes
@@ -71,14 +89,6 @@ const Analytics = () => {
     return raceName;
   };
 
-  // Glass styling
-  const cardStyle = isGlass ? {
-    background: 'var(--glass-bg)',
-    backdropFilter: 'blur(var(--glass-blur))',
-    WebkitBackdropFilter: 'blur(var(--glass-blur))',
-    boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-  } : undefined;
-
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -92,7 +102,7 @@ const Analytics = () => {
               <BarChart3 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">F1 Analytics</h1>
+              <h1 className="text-3xl font-bold tracking-tight">F1 Analytics</h1>
               <p className="text-sm text-muted-foreground">
                 Comprehensive race data analysis
               </p>
@@ -130,17 +140,18 @@ const Analytics = () => {
             </div>
 
             {/* Race Selection Card */}
-            <Card 
-              className={cn("overflow-hidden", isGlass && "border-white/10")}
-              style={cardStyle}
+            <F1Card
+              variant={chartSurfaceVariant}
+              glassVariant={chartSurfaceGlass}
+              className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
             >
-              <CardHeader className="pb-3 pt-4 px-4">
+              <F1CardHeader className="pb-3 pt-4 px-4">
                 <div className="flex items-center gap-2">
                   <Flag className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base">Race Selection</CardTitle>
+                  <F1CardTitle className="!text-base !font-semibold">Race Selection</F1CardTitle>
                 </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
+              </F1CardHeader>
+              <F1CardContent className="px-4 pb-4">
                 <div className="flex flex-wrap gap-4">
                   <div className="w-full sm:w-auto">
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Season</label>
@@ -162,7 +173,7 @@ const Analytics = () => {
                           <SelectValue placeholder="Select race" />
                         </SelectTrigger>
                         <SelectContent>
-                          {raceScheduleData?.data?.map((race: any) => (
+                          {raceScheduleData?.data?.map((race: AnalyticsRaceOption) => (
                             <SelectItem key={race.round} value={race.round}>
                               <span className="flex items-center gap-2">
                                 <span className="text-muted-foreground text-xs">R{race.round}</span>
@@ -175,8 +186,8 @@ const Analytics = () => {
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
             
             {/* Circuit Info Display */}
             {selectedRaceInfo && (
@@ -302,153 +313,158 @@ const Analytics = () => {
               </div>
               
               <TabsContent value="lapTimes" className="mt-4">
-                <Card 
-                  className={cn("overflow-hidden", isGlass && "border-white/10")}
-                  style={cardStyle}
+                <F1Card
+                  variant={chartSurfaceVariant}
+                  glassVariant={chartSurfaceGlass}
+                  className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
                 >
-                  <CardHeader className="pb-2 pt-3 px-4">
+                  <F1CardHeader className="pb-2 pt-3 px-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-base">Lap Time Analysis</CardTitle>
+                        <F1CardTitle className="!text-base !font-semibold">Lap Time Analysis</F1CardTitle>
                       </div>
                       <Badge variant="outline" className="text-xs font-normal">
                         MUI X Charts
                       </Badge>
                     </div>
-                    <CardDescription className="text-xs">
+                    <F1CardDescription className="text-xs">
                       Compare lap-by-lap times between drivers
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="min-h-[480px] px-4 pb-4">
+                    </F1CardDescription>
+                  </F1CardHeader>
+                  <F1CardContent className="min-h-[480px] px-4 pb-4">
                     {selectedTab === "lapTimes" && (
                       <MuiLapTimeChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
                     )}
-                  </CardContent>
-                </Card>
+                  </F1CardContent>
+                </F1Card>
               </TabsContent>
               
               <TabsContent value="positions" className="mt-4">
-                <Card 
-                  className={cn("overflow-hidden", isGlass && "border-white/10")}
-                  style={cardStyle}
+                <F1Card
+                  variant={chartSurfaceVariant}
+                  glassVariant={chartSurfaceGlass}
+                  className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
                 >
-                  <CardHeader className="pb-2 pt-3 px-4">
+                  <F1CardHeader className="pb-2 pt-3 px-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-base">Position Changes</CardTitle>
+                        <F1CardTitle className="!text-base !font-semibold">Position Changes</F1CardTitle>
                       </div>
                       <Badge variant="outline" className="text-xs font-normal">
                         MUI X Charts
                       </Badge>
                     </div>
-                    <CardDescription className="text-xs">
+                    <F1CardDescription className="text-xs">
                       Track how positions change throughout the race
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="min-h-[480px] px-4 pb-4">
+                    </F1CardDescription>
+                  </F1CardHeader>
+                  <F1CardContent className="min-h-[480px] px-4 pb-4">
                     {selectedTab === "positions" && (
                       <MuiPositionChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
                     )}
-                  </CardContent>
-                </Card>
+                  </F1CardContent>
+                </F1Card>
               </TabsContent>
               
               <TabsContent value="qualifying" className="mt-4">
-                <Card 
-                  className={cn("overflow-hidden", isGlass && "border-white/10")}
-                  style={cardStyle}
+                <F1Card
+                  variant={chartSurfaceVariant}
+                  glassVariant={chartSurfaceGlass}
+                  className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
                 >
-                  <CardHeader className="pb-2 pt-3 px-4">
+                  <F1CardHeader className="pb-2 pt-3 px-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Flag className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-base">Qualifying Analysis</CardTitle>
+                        <F1CardTitle className="!text-base !font-semibold">Qualifying Analysis</F1CardTitle>
                       </div>
                       <Badge variant="outline" className="text-xs font-normal">
                         MUI X Charts
                       </Badge>
                     </div>
-                    <CardDescription className="text-xs">
+                    <F1CardDescription className="text-xs">
                       Compare qualifying times across Q1, Q2, and Q3
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="min-h-[400px] max-h-[600px] overflow-auto px-4 pb-4">
+                    </F1CardDescription>
+                  </F1CardHeader>
+                  <F1CardContent className="min-h-[400px] max-h-[600px] overflow-auto px-4 pb-4">
                     {selectedTab === "qualifying" && (
                       <MuiQualifyingChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
                     )}
-                  </CardContent>
-                </Card>
+                  </F1CardContent>
+                </F1Card>
               </TabsContent>
               
               <TabsContent value="progression" className="mt-4">
-                <Card 
-                  className={cn("overflow-hidden", isGlass && "border-white/10")}
-                  style={cardStyle}
+                <F1Card
+                  variant={chartSurfaceVariant}
+                  glassVariant={chartSurfaceGlass}
+                  className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
                 >
-                  <CardHeader className="pb-2 pt-3 px-4">
+                  <F1CardHeader className="pb-2 pt-3 px-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <TrendingUpIcon className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-base">Qualifying to Race Progression</CardTitle>
+                        <F1CardTitle className="!text-base !font-semibold">Qualifying to Race Progression</F1CardTitle>
                       </div>
                       <Badge variant="outline" className="text-xs font-normal">
                         Nivo Sankey
                       </Badge>
                     </div>
-                    <CardDescription className="text-xs">
+                    <F1CardDescription className="text-xs">
                       Visualize progression from qualifying to race results
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-[550px] px-4 pb-4">
+                    </F1CardDescription>
+                  </F1CardHeader>
+                  <F1CardContent className="h-[550px] px-4 pb-4">
                     {selectedTab === "progression" && (
                       <MuiSankeyChart 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
                     )}
-                  </CardContent>
-                </Card>
+                  </F1CardContent>
+                </F1Card>
               </TabsContent>
               
               <TabsContent value="pitstops" className="mt-4">
-                <Card 
-                  className={cn("overflow-hidden", isGlass && "border-white/10")}
-                  style={cardStyle}
+                <F1Card
+                  variant={chartSurfaceVariant}
+                  glassVariant={chartSurfaceGlass}
+                  className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
                 >
-                  <CardHeader className="pb-2 pt-3 px-4">
+                  <F1CardHeader className="pb-2 pt-3 px-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Wrench className="h-4 w-4 text-primary" />
-                        <CardTitle className="text-base">Pit Stop Analysis</CardTitle>
+                        <F1CardTitle className="!text-base !font-semibold">Pit Stop Analysis</F1CardTitle>
                       </div>
                       <Badge variant="outline" className="text-xs font-normal">
                         MUI X Data Grid
                       </Badge>
                     </div>
-                    <CardDescription className="text-xs">
+                    <F1CardDescription className="text-xs">
                       Individual pit stop durations for each driver
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-[550px] px-4 pb-4">
+                    </F1CardDescription>
+                  </F1CardHeader>
+                  <F1CardContent className="h-[550px] px-4 pb-4">
                     {selectedTab === "pitstops" && (
                       <MuiPitStopTable 
                         year={selectedYear} 
                         round={selectedRace} 
                       />
                     )}
-                  </CardContent>
-                </Card>
+                  </F1CardContent>
+                </F1Card>
               </TabsContent>
             </Tabs>
           </TabsContent>

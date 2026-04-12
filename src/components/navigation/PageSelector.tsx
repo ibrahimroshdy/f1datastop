@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { F1Card, F1CardContent } from "@/components/f1";
 import { Link } from "react-router-dom";
 import { Calendar, BarChart3, Users, Caravan, LineChart } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
@@ -12,11 +12,12 @@ interface PageOption {
   color: string;
 }
 
-// Function to determine the current year
 const getCurrentYear = () => new Date().getFullYear();
 
 const PageSelector = () => {
   const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   
   const pages: PageOption[] = [
     {
@@ -26,7 +27,6 @@ const PageSelector = () => {
       href: "/calendar",
       color: "from-green-500 to-green-700",
     },
-    // Match sidebar order: Analytics then Race Info
     {
       title: "Analytics",
       description: "Visualize detailed F1 performance data",
@@ -58,28 +58,23 @@ const PageSelector = () => {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5 sm:gap-2 mt-2 lg:hidden">
+    <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2 md:grid-cols-5 lg:hidden">
       {pages.map((page) => (
-        <Link key={page.title} to={page.href}>
-          <Card 
+        <Link key={page.title} to={page.href} className="group">
+          <F1Card
+            variant={surfaceVariant}
+            glassVariant={surfaceGlass}
+            hover="lift"
             className={cn(
-              "h-full transition-all duration-200 hover:translate-y-[-1px] cursor-pointer overflow-hidden shadow-sm rounded-md group",
-              isGlass 
-                ? "border-white/10 hover:border-white/20" 
-                : "border-border hover:bg-accent"
+              "h-full cursor-pointer overflow-hidden rounded-md shadow-sm transition-all duration-200",
+              isGlass ? "border-white/10 hover:border-white/20" : "border-border hover:bg-accent"
             )}
-            style={isGlass ? {
-              background: 'var(--glass-bg)',
-              backdropFilter: 'blur(var(--glass-blur))',
-              WebkitBackdropFilter: 'blur(var(--glass-blur))',
-              boxShadow: 'var(--glass-shadow)'
-            } : undefined}
           >
-            <div className={`h-0.5 bg-gradient-to-r ${page.color}`}></div>
-            <CardContent className="p-2 sm:p-2.5">
-              <div className="flex flex-col items-center text-center gap-1">
+            <div className={`h-0.5 bg-gradient-to-r ${page.color}`} />
+            <F1CardContent className="p-2 sm:p-2.5">
+              <div className="flex flex-col items-center gap-1 text-center">
                 <div className={cn(
-                  "p-1.5 sm:p-1.5 rounded-md transition-colors shrink-0",
+                  "shrink-0 rounded-md p-1.5 transition-colors",
                   isGlass 
                     ? "bg-white/10 text-foreground group-hover:bg-primary/80 group-hover:text-primary-foreground" 
                     : "bg-secondary text-secondary-foreground group-hover:bg-f1-red/80 dark:group-hover:bg-f1-red"
@@ -88,12 +83,12 @@ const PageSelector = () => {
                     {page.icon}
                   </div>
                 </div>
-                <div className="min-w-0 w-full">
-                  <h3 className="font-medium text-[10px] sm:text-xs text-foreground truncate leading-tight">{page.title}</h3>
+                <div className="w-full min-w-0">
+                  <h3 className="truncate text-[10px] font-medium leading-tight text-foreground sm:text-xs">{page.title}</h3>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </F1CardContent>
+          </F1Card>
         </Link>
       ))}
     </div>

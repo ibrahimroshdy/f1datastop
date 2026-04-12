@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader } from "@/components/f1";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +46,8 @@ const QualifyingResultsCard = () => {
   const [isPendingData, setIsPendingData] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   
   const lastRaceResult = useLastRaceResults();
   const { data: raceScheduleData } = useRaceSchedule();
@@ -180,19 +182,12 @@ const QualifyingResultsCard = () => {
   
   return (
     <>
-      <Card 
-        className={cn(
-          "h-full overflow-hidden",
-          isGlass && "border-white/10"
-        )}
-        style={isGlass ? {
-          background: 'var(--glass-bg)',
-          backdropFilter: 'blur(var(--glass-blur))',
-          WebkitBackdropFilter: 'blur(var(--glass-blur))',
-          boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-        } : undefined}
+      <F1Card
+        variant={surfaceVariant}
+        glassVariant={surfaceGlass}
+        className={cn("h-full overflow-hidden p-0", isGlass && "border-white/10")}
       >
-        <CardHeader className="pb-2 pt-3 px-4">
+        <F1CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Flag className="h-4 w-4 text-primary shrink-0" />
@@ -234,9 +229,9 @@ const QualifyingResultsCard = () => {
                       </div>
             </div>
           )}
-        </CardHeader>
+        </F1CardHeader>
         
-        <CardContent className="px-2">
+        <F1CardContent className="px-2">
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -291,8 +286,8 @@ const QualifyingResultsCard = () => {
               
             </div>
           )}
-        </CardContent>
-      </Card>
+        </F1CardContent>
+      </F1Card>
       
       {/* Race Detail Dialog */}
       {lastRace && (

@@ -4,7 +4,14 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardFooter,
+  F1CardHeader,
+  F1CardTitle,
+} from '@/components/f1';
 import { Eye, EyeOff, ArrowLeft, Mail, Twitter } from 'lucide-react';
 import f1Logo from '@/assets/f1-logo.svg';
 import { useTheme } from '@/context/ThemeContext';
@@ -82,33 +89,26 @@ const Login = () => {
           </a>
         </div>
         
-        <Card 
-          className={cn(
-            "w-full",
-            isGlass && "border-white/10"
-          )}
-          style={isGlass ? {
-            background: 'var(--glass-bg)',
-            backdropFilter: 'blur(var(--glass-blur))',
-            WebkitBackdropFilter: 'blur(var(--glass-blur))',
-            boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-          } : undefined}
+        <F1Card
+          variant={isGlass ? "glass" : "default"}
+          glassVariant={isGlass ? "panel" : "default"}
+          className={cn("w-full p-0", isGlass && "border-white/10")}
         >
-          <CardHeader className="space-y-1 text-center">
+          <F1CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <img src={f1Logo} alt="F1 DataStop" className="w-16 h-16" />
             </div>
-            <CardTitle className="text-2xl font-bold">
+            <F1CardTitle className="!text-2xl justify-center">
               {showForgotPassword ? "Reset Password" : "Sign In"}
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
+            </F1CardTitle>
+            <F1CardDescription className="text-muted-foreground">
               {showForgotPassword 
                 ? "Enter your email address to receive a password reset link"
                 : "Enter your email and password to access your account"
               }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </F1CardDescription>
+          </F1CardHeader>
+          <F1CardContent>
             {showForgotPassword ? (
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div className="space-y-2">
@@ -220,16 +220,16 @@ const Login = () => {
                 </Button>
               </>
             )}
-          </CardContent>
-          <CardFooter className="flex justify-center">
+          </F1CardContent>
+          <F1CardFooter className="flex justify-center border-t-0 pt-2">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
               <Link to="/auth/signup" className="text-primary hover:underline">
                 Sign up
               </Link>
             </p>
-          </CardFooter>
-        </Card>
+          </F1CardFooter>
+        </F1Card>
       </div>
     </div>
   );

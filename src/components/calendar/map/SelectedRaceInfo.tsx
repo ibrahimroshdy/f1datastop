@@ -1,10 +1,15 @@
 import { format, parseISO } from "date-fns";
+import { Link } from "react-router-dom";
 import { Race } from "@/components/calendar/map/types";
-import { X, Calendar, Map, Info, Clock } from "lucide-react";
+import { X, Calendar, Map, Info, Clock, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 
 interface SelectedRaceInfoProps {
   race: Race;
@@ -12,22 +17,23 @@ interface SelectedRaceInfoProps {
 }
 
 const SelectedRaceInfo = ({ race, onClose }: SelectedRaceInfoProps) => {
-  const [activeTab, setActiveTab] = useState<'info'|'stats'|'weather'>('info');
+  const [activeTab, setActiveTab] = useState<"info" | "stats" | "weather">("info");
+  const { isGlass } = useTheme();
+  const variant = isGlass ? ("glass" as const) : ("default" as const);
+  const glassVariant = isGlass ? ("panel" as const) : ("default" as const);
   
   const getLocalTime = () => {
     try {
-      // This is a simplified approach - in a real app, you'd want to use a library like moment-timezone
-      const raceTimeString = race.time || '14:00:00Z'; // Default to 2PM if no time provided
+      const raceTimeString = race.time || "14:00:00Z";
       const raceDate = parseISO(`${race.date}T${raceTimeString}`);
-      return format(raceDate, 'HH:mm');
-    } catch (e) {
-      return "14:00"; // Default time
+      return format(raceDate, "HH:mm");
+    } catch {
+      return "14:00";
     }
   };
   
   const getTrackInfo = () => {
-    // This would be replaced with actual data from an API
-    const tracks: {[key: string]: {length: string, laps: number, turns: number}} = {
+    const tracks: Record<string, { length: string; laps: number; turns: number }> = {
       "Bahrain International Circuit": { length: "5.412 km", laps: 57, turns: 15 },
       "Jeddah Corniche Circuit": { length: "6.174 km", laps: 50, turns: 27 },
       "Albert Park Circuit": { length: "5.278 km", laps: 58, turns: 14 },
@@ -58,158 +64,161 @@ const SelectedRaceInfo = ({ race, onClose }: SelectedRaceInfoProps) => {
   };
 
   const trackInfo = getTrackInfo();
+  const tabBtn = (id: typeof activeTab, label: string) => (
+    <button
+      type="button"
+      onClick={() => setActiveTab(id)}
+      className={cn(
+        "border-b-2 px-3 py-2 text-sm transition-colors",
+        activeTab === id
+          ? "border-primary font-medium text-foreground"
+          : "border-transparent text-muted-foreground hover:text-foreground"
+      )}
+    >
+      {label}
+    </button>
+  );
   
   return (
-    <div className="absolute bottom-0 right-0 w-full md:w-auto md:right-4 md:bottom-4 md:max-w-sm bg-black/90 backdrop-blur-sm rounded-lg p-5 border border-gray-700 shadow-xl z-20 overflow-hidden">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <CountryFlag 
-            country={race.Circuit.Location.country} 
-            size={24}
-            svg={true}
-          />
-          <h2 className="text-lg font-bold text-white">
+    <F1Card
+      variant={variant}
+      glassVariant={glassVariant}
+      className={cn(
+        "absolute bottom-0 left-0 right-0 z-30 mx-auto max-h-[min(55vh,520px)] overflow-y-auto rounded-t-xl border shadow-xl sm:bottom-4 sm:left-auto sm:right-4 sm:max-w-sm sm:rounded-xl",
+        isGlass && "border-white/10"
+      )}
+    >
+      <F1CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <CountryFlag country={race.Circuit.Location.country} size={24} svg className="shrink-0" />
+          <F1CardTitle className="text-left text-base font-semibold leading-tight">
             {getRaceNameWithoutEmoji(race.raceName)}
-          </h2>
+          </F1CardTitle>
         </div>
-        <button 
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
           onClick={onClose}
-          className="text-gray-400 hover:text-white transition-colors"
+          aria-label="Close race details"
         >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+          <X className="h-4 w-4" />
+        </Button>
+      </F1CardHeader>
 
-      <div className="flex border-b border-gray-700 mb-3">
-        <button 
-          onClick={() => setActiveTab('info')} 
-          className={`px-3 py-2 text-sm ${activeTab === 'info' ? 'text-white border-b-2 border-f1-red font-medium' : 'text-gray-400'}`}
-        >
-          Info
-        </button>
-        <button 
-          onClick={() => setActiveTab('stats')} 
-          className={`px-3 py-2 text-sm ${activeTab === 'stats' ? 'text-white border-b-2 border-f1-red font-medium' : 'text-gray-400'}`}
-        >
-          Track Stats
-        </button>
-        <button 
-          onClick={() => setActiveTab('weather')} 
-          className={`px-3 py-2 text-sm ${activeTab === 'weather' ? 'text-white border-b-2 border-f1-red font-medium' : 'text-gray-400'}`}
-        >
-          Weather
-        </button>
-      </div>
+      <F1CardContent className="space-y-0 px-4 pb-4 pt-0">
+        <div className="mb-3 flex border-b border-border">
+          {tabBtn("info", "Info")}
+          {tabBtn("stats", "Track")}
+          {tabBtn("weather", "Weather")}
+        </div>
 
-      {activeTab === 'info' && (
-        <div className="text-sm text-gray-300 space-y-3">
-          <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <div className="font-semibold text-white">Round {race.round}</div>
-              <div>{format(parseISO(race.date), 'dd MMMM yyyy')}</div>
-              <div>Race start: {getLocalTime()} local time</div>
+        {activeTab === "info" && (
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <div className="flex items-start gap-3">
+              <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground/80" />
+              <div>
+                <div className="font-semibold text-foreground">Round {race.round}</div>
+                <div>{format(parseISO(race.date), "d MMMM yyyy")}</div>
+                <div>Race start (local): {getLocalTime()}</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <Map className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground/80" />
+              <div>
+                <div className="font-semibold text-foreground">{race.Circuit.circuitName}</div>
+                <div>{race.Circuit.Location.locality}, {race.Circuit.Location.country}</div>
+                <div className="mt-1 text-xs opacity-80">
+                  {race.Circuit.Location.lat}°, {race.Circuit.Location.long}°
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              {race.FirstPractice && (
+                <Badge variant="outline" className="text-xs">
+                  FP1: {format(parseISO(race.FirstPractice.date), "dd MMM")}
+                </Badge>
+              )}
+              {race.SecondPractice && (
+                <Badge variant="outline" className="text-xs">
+                  FP2: {format(parseISO(race.SecondPractice.date), "dd MMM")}
+                </Badge>
+              )}
+              {race.ThirdPractice && (
+                <Badge variant="outline" className="text-xs">
+                  FP3: {format(parseISO(race.ThirdPractice.date), "dd MMM")}
+                </Badge>
+              )}
+              {race.Qualifying && (
+                <Badge variant="outline" className="text-xs">
+                  Quali: {format(parseISO(race.Qualifying.date), "dd MMM")}
+                </Badge>
+              )}
+              {race.Sprint && (
+                <Badge variant="outline" className="text-xs border-primary/40 text-primary">
+                  Sprint: {format(parseISO(race.Sprint.date), "dd MMM")}
+                </Badge>
+              )}
             </div>
           </div>
-          
-          <div className="flex items-start gap-3">
-            <Map className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <div className="font-semibold text-white">{race.Circuit.circuitName}</div>
-              <div>{race.Circuit.Location.locality}, {race.Circuit.Location.country}</div>
-              <div className="text-xs text-gray-400 mt-1">
-                {race.Circuit.Location.lat}°, {race.Circuit.Location.long}°
+        )}
+
+        {activeTab === "stats" && (
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <div className="flex items-start gap-3">
+              <Info className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground/80" />
+              <div>
+                <div className="font-semibold text-foreground">Circuit</div>
+                <div>Length: {trackInfo.length}</div>
+                <div>Laps: {trackInfo.laps}</div>
+                <div>Corners: {trackInfo.turns}</div>
+                <div>Race distance: {(parseFloat(trackInfo.length) * trackInfo.laps).toFixed(3)} km</div>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground/80" />
+              <div>
+                <div className="font-semibold text-foreground">Lap records</div>
+                <div className="text-xs opacity-90">Qualifying and race records when available.</div>
               </div>
             </div>
           </div>
+        )}
 
-          <div className="flex gap-2 flex-wrap mt-3">
-            {race.FirstPractice && (
-              <Badge variant="outline" className="text-xs">
-                FP1: {format(parseISO(race.FirstPractice.date), 'dd MMM')}
-              </Badge>
-            )}
-            {race.SecondPractice && (
-              <Badge variant="outline" className="text-xs">
-                FP2: {format(parseISO(race.SecondPractice.date), 'dd MMM')}
-              </Badge>
-            )}
-            {race.ThirdPractice && (
-              <Badge variant="outline" className="text-xs">
-                FP3: {format(parseISO(race.ThirdPractice.date), 'dd MMM')}
-              </Badge>
-            )}
-            {race.Qualifying && (
-              <Badge variant="outline" className="text-xs bg-gray-800">
-                Quali: {format(parseISO(race.Qualifying.date), 'dd MMM')}
-              </Badge>
-            )}
-            {race.Sprint && (
-              <Badge variant="outline" className="text-xs bg-gray-800 border-f1-red text-f1-red">
-                Sprint: {format(parseISO(race.Sprint.date), 'dd MMM')}
-              </Badge>
-            )}
+        {activeTab === "weather" && (
+          <div className="flex flex-col items-center justify-center py-6 text-center text-sm text-muted-foreground">
+            <div className="font-semibold text-foreground">Weather</div>
+            <p className="mt-2 max-w-xs text-xs">
+              Forecasts will appear closer to the event. Check back on race week.
+            </p>
           </div>
-        </div>
-      )}
-
-      {activeTab === 'stats' && (
-        <div className="text-sm text-gray-300 space-y-3">
-          <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <div className="font-semibold text-white">Track Details</div>
-              <div>Track length: {trackInfo.length}</div>
-              <div>Race laps: {trackInfo.laps}</div>
-              <div>Corners: {trackInfo.turns}</div>
-              <div>Race distance: {(parseFloat(trackInfo.length) * trackInfo.laps).toFixed(3)} km</div>
-            </div>
-          </div>
-          
-          <div className="flex items-start gap-3">
-            <Clock className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <div className="font-semibold text-white">Lap Records</div>
-              <div>Qualifying: Data not available</div>
-              <div>Race: Data not available</div>
-              <div className="mt-2 text-xs text-gray-500">
-                Historic results will appear here when available
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'weather' && (
-        <div className="text-sm text-gray-300 flex flex-col items-center justify-center py-4">
-          <div className="text-center mb-3">
-            <div className="font-semibold text-white">Weather Forecast</div>
-            <div className="text-xs text-gray-400">Data not available yet</div>
-          </div>
-          <div className="text-center text-gray-500 text-xs">
-            Weather information will be available closer to race day
-          </div>
-        </div>
-      )}
-      
-      <div className="mt-3 pt-3 border-t border-gray-700 flex justify-between">
-        <a 
-          href={`/calendar?year=${race.season}&race=${race.round}`} 
-          className="text-sm text-f1-red hover:text-f1-red/80"
-        >
-          View complete race details
-        </a>
+        )}
         
-        <a 
-          href={race.Circuit.url} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="text-sm text-blue-400 hover:text-blue-300"
-        >
-          Official circuit info
-        </a>
-      </div>
-    </div>
+        <div className="mt-4 flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:items-center sm:justify-between">
+          <Link
+            to={`/calendar?year=${race.season ?? ""}&race=${race.round}`}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Open in calendar
+          </Link>
+          {race.Circuit.url && (
+            <a
+              href={race.Circuit.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            >
+              Circuit site
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          )}
+        </div>
+      </F1CardContent>
+    </F1Card>
   );
 };
 

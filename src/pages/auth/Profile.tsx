@@ -7,15 +7,25 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTheme } from '@/context/ThemeContext';
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardFooter,
+  F1CardHeader,
+  F1CardTitle,
+} from '@/components/f1';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
-  const { user, profile, updateProfile, deleteAccount, signOut } = useAuth();
+  const { isGlass } = useTheme();
+  const cardVariant = isGlass ? "glass" : "default";
+  const glassVariant = isGlass ? "panel" : "default";
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const { incrementProfileClickCount, profileClickCount } = useDeveloper();
   const analytics = useAnalytics();
   const { toast } = useToast();
@@ -41,7 +51,11 @@ const Profile = () => {
   // Fetch profile data on mount
   useEffect(() => {
     const fetchProfileData = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        setInitialLoad(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -68,7 +82,7 @@ const Profile = () => {
           first_name: data.first_name || "",
           last_name: data.last_name || ""
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Unexpected error:", error);
         toast({
           title: "Error",
@@ -82,7 +96,7 @@ const Profile = () => {
     };
 
     fetchProfileData();
-  }, [user, toast]); // Remove updateProfile from dependencies
+  }, [user, toast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -123,7 +137,8 @@ const Profile = () => {
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
-    } catch (error: any) {
+      await refreshProfile();
+    } catch (error: unknown) {
       console.error("Unexpected error:", error);
       toast({
         title: "Error",
@@ -141,17 +156,6 @@ const Profile = () => {
       return `${profile.first_name?.charAt(0) || ''}${profile.last_name?.charAt(0) || ''}`.toUpperCase() || user?.email?.charAt(0).toUpperCase() || '?';
     }
     return user?.email?.charAt(0).toUpperCase() || '?';
-  };
-
-  const handleDeleteAccount = async () => {
-    try {
-      await deleteAccount();
-      
-      // Track account deletion event
-      analytics.trackInteraction('account_deletion', 'click');
-    } catch (error) {
-      console.error('Error deleting account:', error);
-    }
   };
 
   const handleProfileHeaderClick = () => {
@@ -175,55 +179,37 @@ const Profile = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Profile Overview */}
           <div className="md:col-span-1">
-            <Card className="bg-card border-border h-full flex flex-col">
-              <CardHeader className="flex flex-col items-center" onClick={handleProfileHeaderClick}>
+            <F1Card variant={cardVariant} glassVariant={glassVariant} className="h-full flex flex-col p-0">
+              <F1CardHeader className="flex flex-col items-center" onClick={handleProfileHeaderClick}>
                 <Avatar className="w-24 h-24 mb-2 bg-primary text-primary-foreground text-2xl cursor-pointer">
                   <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
-                <CardTitle className="cursor-pointer">{profile?.first_name} {profile?.last_name}</CardTitle>
-                <CardDescription className="text-center">
+                <F1CardTitle className="cursor-pointer justify-center !text-xl">
+                  {profile?.first_name} {profile?.last_name}
+                </F1CardTitle>
+                <F1CardDescription className="text-center">
                   @{profile?.username}
                   <div className="mt-1">{user?.email}</div>
-                </CardDescription>
-              </CardHeader>
-              <CardFooter className="flex justify-center space-x-2 mt-auto">
-                <Button variant="outline" onClick={signOut}>Sign Out</Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive">Delete Account</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-background border border-border">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete your account
-                        and remove your data from our servers.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleDeleteAccount}
-                      >
-                        Delete Account
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardFooter>
-            </Card>
+                </F1CardDescription>
+              </F1CardHeader>
+              <F1CardFooter className="flex justify-center space-x-2 mt-auto border-t-0">
+                <Button variant="outline" onClick={() => { void analytics.trackInteraction('profile_sign_out', 'click'); void signOut(); }}>
+                  Sign out
+                </Button>
+              </F1CardFooter>
+            </F1Card>
           </div>
           
           {/* Edit Profile Form */}
           <div className="md:col-span-2">
-            <Card className="bg-card border-border h-full flex flex-col">
-              <CardHeader>
-                <CardTitle>Edit Profile</CardTitle>
-                <CardDescription>
+            <F1Card variant={cardVariant} glassVariant={glassVariant} className="h-full flex flex-col p-0">
+              <F1CardHeader>
+                <F1CardTitle className="!text-xl">Edit Profile</F1CardTitle>
+                <F1CardDescription>
                   Update your personal information
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1">
+                </F1CardDescription>
+              </F1CardHeader>
+              <F1CardContent className="flex-1">
                 <form onSubmit={handleSubmit} className="space-y-4 h-full flex flex-col">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
@@ -267,8 +253,8 @@ const Profile = () => {
                     </Button>
                   </div>
                 </form>
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
           </div>
         </div>
       </div>

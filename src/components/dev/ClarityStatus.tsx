@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { checkClarityStatus } from '../../integrations/clarity/clarityHelpers';
 import { useTheme } from '@/context/ThemeContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from '@/components/f1';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -63,21 +63,18 @@ const ClarityStatus: React.FC<ClarityStatusProps> = ({ projectId }) => {
   }
   
   return (
-    <Card 
+    <F1Card 
+      variant={isGlass ? "glass" : "default"}
+      glassVariant={isGlass ? "panel" : "default"}
       className={cn(
         "fixed bottom-3 left-3 z-[9999] max-w-[300px] text-xs",
         isGlass && "border-white/10"
       )}
-      style={isGlass ? {
-        background: 'var(--glass-bg)',
-        backdropFilter: 'blur(var(--glass-blur))',
-        boxShadow: 'var(--glass-shadow)'
-      } : undefined}
     >
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">Microsoft Clarity Status</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+      <F1CardHeader className="pb-2">
+        <F1CardTitle className="text-sm">Microsoft Clarity Status</F1CardTitle>
+      </F1CardHeader>
+      <F1CardContent className="space-y-3">
         <div>
           <strong className="text-foreground">Project ID:</strong>{' '}
           <span className="text-muted-foreground">
@@ -150,8 +147,8 @@ const ClarityStatus: React.FC<ClarityStatusProps> = ({ projectId }) => {
         <div className="text-[10px] text-muted-foreground text-center">
           Last checked: {status.lastChecked.toLocaleTimeString()}
         </div>
-      </CardContent>
-    </Card>
+      </F1CardContent>
+    </F1Card>
   );
 };
 

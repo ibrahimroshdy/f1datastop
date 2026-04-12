@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRaceSchedule } from "@/hooks/useF1Data";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardDescription, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, BarChart3, Clock, TrendingUp, Flag } from "lucide-react";
@@ -34,6 +34,8 @@ const YearComparisonAnalytics = () => {
   const [selectedRaceComparison, setSelectedRaceComparison] = useState<string>("1");
   const [selectedTab, setSelectedTab] = useState<string>("lapTimes");
   const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   
   const { 
     data: baseRaceSchedule, 
@@ -45,14 +47,6 @@ const YearComparisonAnalytics = () => {
     isLoading: isComparisonScheduleLoading 
   } = useRaceSchedule(comparisonYear);
   
-  // Glass styling
-  const cardStyle = isGlass ? {
-    background: 'var(--glass-bg)',
-    backdropFilter: 'blur(var(--glass-blur))',
-    WebkitBackdropFilter: 'blur(var(--glass-blur))',
-    boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-  } : undefined;
-
   const handleBaseYearChange = (value: string) => {
     const year = parseInt(value);
     setBaseYear(year);
@@ -104,15 +98,15 @@ const YearComparisonAnalytics = () => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <Card className={cn(isGlass && "border-white/10")} style={cardStyle}>
-          <CardHeader className="pb-2">
+        <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("p-0", isGlass && "border-white/10")}>
+          <F1CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Base Year</CardTitle>
+              <F1CardTitle className="text-lg">Base Year</F1CardTitle>
               <DataSourceBadge source="ergast" />
             </div>
-            <CardDescription>Select the reference season and race</CardDescription>
-          </CardHeader>
-          <CardContent>
+            <F1CardDescription>Select the reference season and race</F1CardDescription>
+          </F1CardHeader>
+          <F1CardContent>
             <div className="space-y-4">
               <div className="flex flex-wrap gap-4">
                 <div className="w-full xs:w-auto">
@@ -156,15 +150,15 @@ const YearComparisonAnalytics = () => {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </F1CardContent>
+        </F1Card>
 
-        <Card className={cn(isGlass && "border-white/10")} style={cardStyle}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Comparison Year</CardTitle>
-            <CardDescription>Select the season and race to compare against</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("p-0", isGlass && "border-white/10")}>
+          <F1CardHeader className="pb-2">
+            <F1CardTitle className="text-lg">Comparison Year</F1CardTitle>
+            <F1CardDescription>Select the season and race to compare against</F1CardDescription>
+          </F1CardHeader>
+          <F1CardContent>
             <div className="space-y-4">
               <div className="flex flex-wrap gap-4">
                 <div className="w-full xs:w-auto">
@@ -208,8 +202,8 @@ const YearComparisonAnalytics = () => {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </F1CardContent>
+        </F1Card>
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
@@ -249,69 +243,69 @@ const YearComparisonAnalytics = () => {
         </div>
         
         <TabsContent value="lapTimes" className="space-y-4 mt-4">
-          <Card className={cn(isGlass && "border-white/10")} style={cardStyle}>
-            <CardHeader className="pb-2">
+          <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("p-0", isGlass && "border-white/10")}>
+            <F1CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Lap Time Comparison</CardTitle>
+                <F1CardTitle className="text-base">Lap Time Comparison</F1CardTitle>
                 <DataSourceBadge source="ergast" />
               </div>
-              <CardDescription className="text-xs">
+              <F1CardDescription className="text-xs">
                 Compare lap times between two different seasons
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-[500px]">
+              </F1CardDescription>
+            </F1CardHeader>
+            <F1CardContent className="min-h-[500px]">
               <MuiYearComparisonLapChart 
                 baseYear={baseYear}
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}
                 comparisonRound={selectedRaceComparison}
               />
-            </CardContent>
-          </Card>
+            </F1CardContent>
+          </F1Card>
         </TabsContent>
         
         <TabsContent value="positions" className="space-y-4 mt-4">
-          <Card className={cn(isGlass && "border-white/10")} style={cardStyle}>
-            <CardHeader className="pb-2">
+          <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("p-0", isGlass && "border-white/10")}>
+            <F1CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Position Change Comparison</CardTitle>
+                <F1CardTitle className="text-base">Position Change Comparison</F1CardTitle>
                 <DataSourceBadge source="ergast" />
               </div>
-              <CardDescription className="text-xs">
+              <F1CardDescription className="text-xs">
                 Compare how positions changed throughout races
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-[500px]">
+              </F1CardDescription>
+            </F1CardHeader>
+            <F1CardContent className="min-h-[500px]">
               <MuiYearComparisonPositionChart 
                 baseYear={baseYear}
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}
                 comparisonRound={selectedRaceComparison}
               />
-            </CardContent>
-          </Card>
+            </F1CardContent>
+          </F1Card>
         </TabsContent>
         
         <TabsContent value="qualifying" className="space-y-4 mt-4">
-          <Card className={cn(isGlass && "border-white/10")} style={cardStyle}>
-            <CardHeader className="pb-2">
+          <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("p-0", isGlass && "border-white/10")}>
+            <F1CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Qualifying Comparison</CardTitle>
+                <F1CardTitle className="text-base">Qualifying Comparison</F1CardTitle>
                 <DataSourceBadge source="ergast" />
               </div>
-              <CardDescription className="text-xs">
+              <F1CardDescription className="text-xs">
                 Compare qualifying times (Q1, Q2, Q3) between seasons
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-[500px]">
+              </F1CardDescription>
+            </F1CardHeader>
+            <F1CardContent className="min-h-[500px]">
               <MuiYearComparisonQualifyingChart 
                 baseYear={baseYear}
                 baseRound={selectedRaceBase}
                 comparisonYear={comparisonYear}
                 comparisonRound={selectedRaceComparison}
               />
-            </CardContent>
-          </Card>
+            </F1CardContent>
+          </F1Card>
         </TabsContent>
       </Tabs>
     </div>

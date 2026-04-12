@@ -1,6 +1,12 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardHeader,
+  F1CardTitle,
+} from "@/components/f1";
 import { Button } from "@/components/ui/button";
 import { 
   Maximize2, 
@@ -17,8 +23,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { F1Skeleton, ChartSkeleton } from "@/components/f1/F1Skeleton";
-import { F1EmptyState, NoChartDataEmpty } from "@/components/f1/F1EmptyState";
-import { F1ErrorState, DataLoadError } from "@/components/f1/F1ErrorState";
+import { NoChartDataEmpty } from "@/components/f1/F1EmptyState";
+import { DataLoadError } from "@/components/f1/F1ErrorState";
 import { useTheme } from "@/context/ThemeContext";
 
 interface F1ChartCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -82,27 +88,22 @@ const F1ChartCard = React.forwardRef<HTMLDivElement, F1ChartCardProps>(
     ...props 
   }, ref) => {
     const { isGlass } = useTheme();
+    const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+    const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
     const hasDefaultActions = onFullscreen || onDownload || onSettings;
     const chartHeight = typeof height === "number" ? `${height}px` : height;
-    
-    // Glass styling
-    const glassStyle = isGlass ? {
-      background: 'var(--glass-bg)',
-      backdropFilter: 'blur(var(--glass-blur))',
-      WebkitBackdropFilter: 'blur(var(--glass-blur))',
-      boxShadow: 'var(--glass-shadow)'
-    } : undefined;
+    const cardShell = cn("overflow-hidden", isGlass && "border-white/10", className);
 
-    // Render loading state
     if (loading) {
       return (
-        <Card 
-          ref={ref} 
-          className={cn("overflow-hidden", isGlass && "border-white/10", className)} 
-          style={glassStyle}
+        <F1Card
+          ref={ref}
+          variant={surfaceVariant}
+          glassVariant={surfaceGlass}
+          className={cardShell}
           {...props}
         >
-          <CardHeader className={cn(compact && "pb-2")}>
+          <F1CardHeader className={cn(compact && "pb-2")}>
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <F1Skeleton width={200} height={24} />
@@ -110,34 +111,33 @@ const F1ChartCard = React.forwardRef<HTMLDivElement, F1ChartCardProps>(
               </div>
               {showActions && <F1Skeleton width={100} height={32} />}
             </div>
-          </CardHeader>
-          <CardContent className={cn(compact && "pt-0")}>
+          </F1CardHeader>
+          <F1CardContent className={cn(compact && "pt-0")}>
             <div style={{ height: chartHeight }}>
               <ChartSkeleton height={typeof height === "number" ? height - 50 : 350} />
             </div>
-          </CardContent>
-        </Card>
+          </F1CardContent>
+        </F1Card>
       );
     }
 
-    // Render error state
     if (error) {
-      const errorMessage = error instanceof Error ? error.message : error;
       return (
-        <Card 
-          ref={ref} 
-          className={cn("overflow-hidden", isGlass && "border-white/10", className)} 
-          style={glassStyle}
+        <F1Card
+          ref={ref}
+          variant={surfaceVariant}
+          glassVariant={surfaceGlass}
+          className={cardShell}
           {...props}
         >
-          <CardHeader className={cn(compact && "pb-2")}>
+          <F1CardHeader className={cn(compact && "pb-2")}>
             <div className="flex items-center gap-2">
               {icon && <span className="text-primary">{icon}</span>}
-              <CardTitle className="text-lg">{title}</CardTitle>
+              <F1CardTitle className="text-lg">{title}</F1CardTitle>
             </div>
-            {subtitle && <CardDescription>{subtitle}</CardDescription>}
-          </CardHeader>
-          <CardContent className={cn(compact && "pt-0")}>
+            {subtitle && <F1CardDescription>{subtitle}</F1CardDescription>}
+          </F1CardHeader>
+          <F1CardContent className={cn(compact && "pt-0")}>
             <div 
               className="flex items-center justify-center"
               style={{ height: chartHeight }}
@@ -148,57 +148,56 @@ const F1ChartCard = React.forwardRef<HTMLDivElement, F1ChartCardProps>(
                 isRetrying={isRetrying}
               />
             </div>
-          </CardContent>
-        </Card>
+          </F1CardContent>
+        </F1Card>
       );
     }
 
-    // Render empty state
     if (empty) {
       return (
-        <Card 
-          ref={ref} 
-          className={cn("overflow-hidden", isGlass && "border-white/10", className)} 
-          style={glassStyle}
+        <F1Card
+          ref={ref}
+          variant={surfaceVariant}
+          glassVariant={surfaceGlass}
+          className={cardShell}
           {...props}
         >
-          <CardHeader className={cn(compact && "pb-2")}>
+          <F1CardHeader className={cn(compact && "pb-2")}>
             <div className="flex items-center gap-2">
               {icon && <span className="text-primary">{icon}</span>}
-              <CardTitle className="text-lg">{title}</CardTitle>
+              <F1CardTitle className="text-lg">{title}</F1CardTitle>
             </div>
-            {subtitle && <CardDescription>{subtitle}</CardDescription>}
-          </CardHeader>
-          <CardContent className={cn(compact && "pt-0")}>
+            {subtitle && <F1CardDescription>{subtitle}</F1CardDescription>}
+          </F1CardHeader>
+          <F1CardContent className={cn(compact && "pt-0")}>
             <div 
               className="flex items-center justify-center"
               style={{ height: chartHeight }}
             >
               <NoChartDataEmpty chartType={title} />
             </div>
-          </CardContent>
-        </Card>
+          </F1CardContent>
+        </F1Card>
       );
     }
 
-    // Render chart
     return (
-      <Card 
-        ref={ref} 
-        className={cn("overflow-hidden", isGlass && "border-white/10", className)} 
-        style={glassStyle}
+      <F1Card
+        ref={ref}
+        variant={surfaceVariant}
+        glassVariant={surfaceGlass}
+        className={cardShell}
         {...props}
       >
-        <CardHeader className={cn("flex flex-row items-start justify-between space-y-0", compact && "pb-2")}>
+        <F1CardHeader className={cn("flex flex-row items-start justify-between space-y-0", compact && "pb-2")}>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               {icon && <span className="text-primary">{icon}</span>}
-              <CardTitle className="text-lg">{title}</CardTitle>
+              <F1CardTitle className="text-lg">{title}</F1CardTitle>
             </div>
-            {subtitle && <CardDescription>{subtitle}</CardDescription>}
+            {subtitle && <F1CardDescription>{subtitle}</F1CardDescription>}
           </div>
 
-          {/* Actions */}
           <div className="flex items-center gap-2">
             {actions}
             
@@ -243,24 +242,23 @@ const F1ChartCard = React.forwardRef<HTMLDivElement, F1ChartCardProps>(
               </DropdownMenu>
             )}
           </div>
-        </CardHeader>
+        </F1CardHeader>
 
-        <CardContent className={cn(compact && "pt-0")}>
+        <F1CardContent className={cn(compact && "pt-0")}>
           <div style={{ height: chartHeight }}>
             {children}
           </div>
-        </CardContent>
+        </F1CardContent>
 
         {footer && (
-          <div className="px-6 pb-4 pt-2 border-t border-border">
+          <div className="border-t border-border px-6 pb-4 pt-2">
             {footer}
           </div>
         )}
-      </Card>
+      </F1Card>
     );
   }
 );
 F1ChartCard.displayName = "F1ChartCard";
 
 export { F1ChartCard };
-

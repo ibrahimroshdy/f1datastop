@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
-import { Github, Twitter, Coffee, Heart, ExternalLink } from 'lucide-react';
+import { Twitter, Coffee, Heart, ExternalLink } from 'lucide-react';
 import f1Logo from '@/assets/f1-logo.svg';
 
 const Footer = () => {
@@ -21,17 +21,11 @@ const Footer = () => {
   ];
 
   const socialLinks = [
-    { 
-      name: 'GitHub', 
-      href: 'https://github.com/f1datastop', 
-      icon: Github,
-      external: true 
-    },
-    { 
-      name: 'Twitter', 
-      href: 'https://twitter.com/f1datastop', 
+    {
+      name: 'Twitter',
+      href: 'https://twitter.com/f1datastop',
       icon: Twitter,
-      external: true 
+      external: true,
     },
     { 
       name: 'Buy Me a Coffee', 
@@ -48,7 +42,7 @@ const Footer = () => {
         ? "glass-panel border-t border-white/5" 
         : "bg-card border-t border-border"
     )}>
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-6 lg:px-8 py-8 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           {/* Brand section */}
           <div className="lg:col-span-1">
@@ -142,7 +136,7 @@ const Footer = () => {
               Support Us
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Help us keep F1 DataStop running and ad-free.
+              Help us keep F1 DataStop running.
             </p>
             <a
               href="https://buymeacoffee.com/f1datastop"

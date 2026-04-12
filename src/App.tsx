@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, createBrowserRouter, RouterProvider, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SessionProvider } from "@/context/SessionContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -152,6 +152,8 @@ const App = () => (
                         <Route path="/" element={<Index />} />
                         <Route path="/calendar" element={<RaceCalendar />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
+                        {/* Outside PublicOnlyRoute: recovery links establish a session before password change */}
+                        <Route path="/auth/reset-password" element={<ResetPassword />} />
                         <Route path="/privacy" element={<Privacy />} />
                         {/* Race Infographic Page */}
                         <Route 
@@ -170,7 +172,6 @@ const App = () => (
                         {/* Make Drivers and Constructors public */}
                         <Route path="/drivers" element={<Drivers />} />
                         <Route path="/constructors" element={<Constructors />} />
-                        <Route path="*" element={<NotFound />} />
                         
                         {/* Embed Routes */}
                         <Route 
@@ -196,7 +197,6 @@ const App = () => (
                         <Route element={<PublicOnlyRoute />}>
                           <Route path="/auth/login" element={<Login />} />
                           <Route path="/auth/signup" element={<Signup />} />
-                          <Route path="/auth/reset-password" element={<ResetPassword />} />
                         </Route>
                         
                         {/* Protected routes with blur effect for non-authenticated users */}
@@ -207,6 +207,7 @@ const App = () => (
                           <Route path="/profile" element={<Profile />} />
                           <Route path="/developers" element={<Developers />} />
                         </Route>
+                        <Route path="*" element={<NotFound />} />
                       </Routes>
                     </AnalyticsProvider>
                   </ClarityProvider>

@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils";
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  /** When false, the global marketing/footer chrome is omitted (e.g. live timing). Default true. */
+  showFooter?: boolean;
 }
 
-const MainLayout = ({ children }: MainLayoutProps) => {
+const MainLayout = ({ children, showFooter = true }: MainLayoutProps) => {
   const isMediumOrSmaller = useIsMediumOrSmaller();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { isGlass, baseTheme } = useTheme();
@@ -133,12 +135,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           id="main-content"
           role="main"
           className={cn(
-          "flex-1 overflow-y-auto overflow-x-hidden",
-          "transition-all duration-300"
-        )}>
+            "flex-1 overflow-y-auto overflow-x-hidden",
+            "transition-all duration-300"
+          )}>
           {/* Content wrapper with padding */}
           <div className={cn(
-            "min-h-full p-4 md:p-6",
+            "min-h-full p-4 md:p-6 lg:px-8",
             isGlass && "relative"
           )}>
             {/* Animated page content */}
@@ -147,8 +149,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             </div>
           </div>
           
-          {/* Footer */}
-          <Footer />
+          {showFooter ? <Footer /> : null}
         </main>
       </div>
     </div>
