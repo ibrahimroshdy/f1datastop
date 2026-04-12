@@ -5,8 +5,6 @@ import F1MapContainer from "@/components/calendar/map/F1MapContainer";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { Globe } from "lucide-react";
 import { toast } from "sonner";
-import { CardHeader, CardTitle } from "@/components/ui/card";
-
 const RaceMap = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const { isLoading, error } = useRaceSchedule(selectedYear);
@@ -26,13 +24,13 @@ const RaceMap = () => {
 
   return (
     <div className="flex flex-col space-y-4">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-0">
-        <CardTitle className="flex items-center gap-2">
-          <Globe className="h-5 w-5 text-muted-foreground" />
+      <div className="flex flex-row items-center justify-between space-y-0 px-0 pb-2">
+        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+          <Globe className="h-5 w-5 text-muted-foreground" aria-hidden />
           Race Calendar
-        </CardTitle>
+        </h2>
         <YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />
-      </CardHeader>
+      </div>
 
       <div className="rounded-lg border border-border overflow-hidden">
         <F1MapContainer selectedYear={selectedYear} onYearChange={handleYearChange} />

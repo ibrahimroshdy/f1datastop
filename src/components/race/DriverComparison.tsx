@@ -1,10 +1,15 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { F1Card, F1CardContent } from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { XAxis, YAxis } from "@/utils/rechartsWrapper";
 import { useState } from "react";
 
 const DriverComparison = () => {
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   const [driver1, setDriver1] = useState("1");
   const [driver2, setDriver2] = useState("16");
 
@@ -45,8 +50,8 @@ const DriverComparison = () => {
   ];
 
   return (
-    <Card className="race-card p-4">
-      <CardContent className="p-0 space-y-6">
+    <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("race-card p-0", isGlass && "border-white/10")}>
+      <F1CardContent className="space-y-6 p-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h3 className="font-bold">Driver Comparison</h3>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
@@ -161,8 +166,8 @@ const DriverComparison = () => {
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </F1CardContent>
+    </F1Card>
   );
 };
 

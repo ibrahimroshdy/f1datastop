@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
 import CountryFlag from './CountryFlag';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -28,11 +28,11 @@ const EXAMPLE_COUNTRIES = [
 
 const CountryFlagExample = () => {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Country Flags using react-country-flag</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <F1Card>
+      <F1CardHeader>
+        <F1CardTitle>Country Flags using react-country-flag</F1CardTitle>
+      </F1CardHeader>
+      <F1CardContent>
         <Tabs defaultValue="svg">
           <TabsList className="mb-4">
             <TabsTrigger value="svg">SVG Flags</TabsTrigger>
@@ -69,8 +69,8 @@ const CountryFlagExample = () => {
             SVG flags offer consistent high-quality appearance, while emoji flags use native system emojis.
           </p>
         </div>
-      </CardContent>
-    </Card>
+      </F1CardContent>
+    </F1Card>
   );
 };
 

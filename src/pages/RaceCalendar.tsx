@@ -1,7 +1,6 @@
 import React, { useState, useRef, lazy, Suspense, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { F1Card, F1CardContent, F1EmptyState } from "@/components/f1";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO, differenceInDays, getMonth, getWeek, getYear, addDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -682,28 +681,32 @@ const RaceCalendar = () => {
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
               {Array(10).fill(0).map((_, index) => (
-                  <Card 
-                    key={index} 
-                    className={cn("overflow-hidden", isGlass && "border-white/10")}
-                    style={isGlass ? {
-                      background: 'var(--glass-bg)',
-                      backdropFilter: 'blur(var(--glass-blur))',
-                      WebkitBackdropFilter: 'blur(var(--glass-blur))',
-                    } : undefined}
+                  <F1Card
+                    key={index}
+                    variant={listCardVariant}
+                    glassVariant={listGlassVariant}
+                    className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
                   >
                     <Skeleton className="h-0.5 w-full" />
-                    <CardContent className="p-2 sm:p-2.5">
+                    <F1CardContent className="p-2 sm:p-2.5">
                       <Skeleton className="h-3.5 w-3/4 mb-1.5" />
                       <Skeleton className="h-3 w-1/2" />
-                    </CardContent>
-                  </Card>
+                    </F1CardContent>
+                  </F1Card>
               ))}
             </div>
           ) : raceSchedule?.data?.length === 0 ? (
-              <div className="py-12 text-center border border-border rounded-lg">
-                <CalendarIcon className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">No race schedule data available for {selectedYear}</p>
-            </div>
+              <F1EmptyState
+                type="no-races"
+                title={`No schedule for ${selectedYear}`}
+                description="Try another season from the year selector."
+                size="md"
+                showDecoration={false}
+                className={cn(
+                  "rounded-xl border py-10 sm:py-12",
+                  isGlass ? "border-white/10 bg-white/[0.02]" : "border-border bg-card/40"
+                )}
+              />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
               {racesWithBreak.map((item, idx) => {
@@ -729,25 +732,21 @@ const RaceCalendar = () => {
                 const hasSprint = !!race.Sprint;
                 
                 return (
-                  <Card 
-                    key={race.round} 
+                  <F1Card
+                    key={race.round}
+                    variant={listCardVariant}
+                    glassVariant={listGlassVariant}
                     className={cn(
-                      "overflow-hidden cursor-pointer transition-all hover:shadow-md",
+                      "cursor-pointer overflow-hidden p-0 transition-all hover:shadow-md",
                       status === "next" && "ring-1 ring-f1-red",
                       isGlass && "border-white/10"
                     )}
-                    style={isGlass ? {
-                      background: 'var(--glass-bg)',
-                      backdropFilter: 'blur(var(--glass-blur))',
-                      WebkitBackdropFilter: 'blur(var(--glass-blur))',
-                      boxShadow: 'var(--glass-shadow)'
-                    } : undefined}
                     onClick={() => openRaceDetails(race)}
                   >
                       {/* Top color bar */}
                       <div className={`h-0.5 w-full ${raceTypeColors[raceType]}`}></div>
                       
-                    <CardContent className="p-2 sm:p-2.5">
+                    <F1CardContent className="p-2 sm:p-2.5">
                         <div className="flex flex-col items-center text-center gap-1.5 sm:gap-2">
                           <CountryFlag country={country} size={20} svg={true} />
                           <div className="w-full">
@@ -777,8 +776,8 @@ const RaceCalendar = () => {
                              "Upcoming"}
                           </Badge>
                         </div>
-                    </CardContent>
-                  </Card>
+                    </F1CardContent>
+                  </F1Card>
                 );
               })}
             </div>

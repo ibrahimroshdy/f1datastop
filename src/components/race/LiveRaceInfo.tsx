@@ -1,26 +1,31 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { F1Card, F1CardContent } from "@/components/f1";
 import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/context/SessionContext";
 import { useNextRace, useRaceStatus, useWeatherData } from "@/hooks/useF1Data";
 import { Loader2 } from "lucide-react";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import CountryFlag from "@/components/common/CountryFlag";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 
 const LiveRaceInfo = () => {
   const { activeSessionId } = useSession();
   const { data: nextRaceData, isLoading: isNextRaceLoading } = useNextRace();
   const { data: raceStatusData, isLoading: isRaceStatusLoading } = useRaceStatus(activeSessionId);
   const { data: weatherData, isLoading: isWeatherLoading } = useWeatherData(activeSessionId);
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   
   const isLoading = isNextRaceLoading || isRaceStatusLoading || isWeatherLoading;
   
   if (isLoading) {
     return (
-      <Card className="race-card">
-        <CardContent className="flex items-center justify-center p-12">
-          <Loader2 className="w-8 h-8 animate-spin text-f1-red" />
-        </CardContent>
-      </Card>
+      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("race-card p-0", isGlass && "border-white/10")}>
+        <F1CardContent className="flex items-center justify-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </F1CardContent>
+      </F1Card>
     );
   }
   
@@ -33,7 +38,6 @@ const LiveRaceInfo = () => {
   let trackName = "Circuit";
   
   if (nextRace) {
-    // Get country from location data
     const location = nextRace.Circuit?.Location?.locality || "";
     country = nextRace.Circuit?.Location?.country || location;
     raceName = getRaceNameWithoutEmoji(nextRace.raceName || nextRace.meeting_name || "");
@@ -47,45 +51,45 @@ const LiveRaceInfo = () => {
   const humidity = weather?.humidity ? `${Math.round(weather.humidity)}%` : "?%";
   
   return (
-    <Card className="race-card">
-      <CardContent className="p-4">
-        <div className="flex flex-col md:flex-row justify-between gap-4">
+    <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("race-card p-0", isGlass && "border-white/10")}>
+      <F1CardContent className="p-4">
+        <div className="flex flex-col justify-between gap-4 md:flex-row">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <CountryFlag country={country} size={24} svg={true} />
               <div>
-                <h3 className="font-bold text-lg">{raceName}</h3>
-                <p className="text-sm text-gray-500">{trackName}</p>
+                <h3 className="text-lg font-bold">{raceName}</h3>
+                <p className="text-sm text-muted-foreground">{trackName}</p>
               </div>
               {nextRace?.session_status === "Ongoing" ? (
-                <Badge variant="outline" className="bg-f1-red text-white border-0">LIVE</Badge>
+                <Badge variant="outline" className="border-0 bg-f1-red text-white">LIVE</Badge>
               ) : (
-                <Badge variant="outline" className="bg-blue-600 text-white border-0">UPCOMING</Badge>
+                <Badge variant="outline" className="border-0 bg-blue-600 text-white">UPCOMING</Badge>
               )}
             </div>
           </div>
           
           <div className="flex gap-6 text-sm">
             <div>
-              <p className="text-gray-400">Lap</p>
-              <p className="font-medium text-lg">{currentLap}/{totalLaps}</p>
+              <p className="text-muted-foreground">Lap</p>
+              <p className="text-lg font-medium">{currentLap}/{totalLaps}</p>
             </div>
             <div>
-              <p className="text-gray-400">Weather</p>
-              <p className="font-medium text-lg">{airTemp}</p>
+              <p className="text-muted-foreground">Weather</p>
+              <p className="text-lg font-medium">{airTemp}</p>
             </div>
             <div>
-              <p className="text-gray-400">Track</p>
-              <p className="font-medium text-lg">{trackTemp}</p>
+              <p className="text-muted-foreground">Track</p>
+              <p className="text-lg font-medium">{trackTemp}</p>
             </div>
             <div>
-              <p className="text-gray-400">Humidity</p>
-              <p className="font-medium text-lg">{humidity}</p>
+              <p className="text-muted-foreground">Humidity</p>
+              <p className="text-lg font-medium">{humidity}</p>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </F1CardContent>
+    </F1Card>
   );
 };
 

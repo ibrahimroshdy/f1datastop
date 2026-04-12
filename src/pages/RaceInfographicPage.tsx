@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardHeader } from "@/components/f1";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,6 +51,8 @@ const RaceInfographicPage = () => {
   const navigate = useNavigate();
   const infographicRef = useRef<HTMLDivElement>(null);
   const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   const [isDownloading, setIsDownloading] = useState(false);
 
   // Parse year and round
@@ -85,14 +87,6 @@ const RaceInfographicPage = () => {
 
   // Find fastest lap
   const fastestLap = results.find((r: any) => r.FastestLap?.rank === "1");
-
-  // Glass styling
-  const cardStyle = isGlass ? {
-    background: 'var(--glass-bg)',
-    backdropFilter: 'blur(var(--glass-blur))',
-    WebkitBackdropFilter: 'blur(var(--glass-blur))',
-    boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-  } : undefined;
 
   // Download infographic as PNG
   const handleDownload = async () => {
@@ -223,12 +217,13 @@ const RaceInfographicPage = () => {
         {/* Infographic Content */}
         <div ref={infographicRef} className="space-y-4">
           {/* Race Header Card */}
-          <Card 
-            className={cn("overflow-hidden", isGlass && "border-white/10")}
-            style={cardStyle}
+          <F1Card
+            variant={surfaceVariant}
+            glassVariant={surfaceGlass}
+            className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
           >
             <div className="h-1 w-full bg-gradient-to-r from-f1-red via-f1-red to-transparent" />
-            <CardContent className="p-4">
+            <F1CardContent className="p-4">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div className="flex items-center gap-3">
                   {countryCode && (
@@ -250,17 +245,18 @@ const RaceInfographicPage = () => {
                   <span>{format(raceDate, "dd MMM yyyy")}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </F1CardContent>
+          </F1Card>
 
           {/* Results Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Race Results */}
-            <Card 
-              className={cn("overflow-hidden", isGlass && "border-white/10")}
-              style={cardStyle}
-            >
-              <CardHeader className="pb-2 pt-3 px-4">
+          <F1Card
+            variant={surfaceVariant}
+            glassVariant={surfaceGlass}
+            className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
+          >
+              <F1CardHeader className="pb-2 pt-3 px-4">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-primary" />
                   <h3 className="font-semibold text-sm">Race Results</h3>
@@ -281,8 +277,8 @@ const RaceInfographicPage = () => {
                     </div>
                   </div>
                 )}
-              </CardHeader>
-              <CardContent className="px-2 pb-3">
+              </F1CardHeader>
+              <F1CardContent className="px-2 pb-3">
                 {isResultsLoading ? (
                   <div className="space-y-2 p-2">
                     {Array(10).fill(0).map((_, i) => (
@@ -336,15 +332,16 @@ const RaceInfographicPage = () => {
                     })}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
 
             {/* Qualifying Results */}
-            <Card 
-              className={cn("overflow-hidden", isGlass && "border-white/10")}
-              style={cardStyle}
-            >
-              <CardHeader className="pb-2 pt-3 px-4">
+          <F1Card
+            variant={surfaceVariant}
+            glassVariant={surfaceGlass}
+            className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
+          >
+              <F1CardHeader className="pb-2 pt-3 px-4">
                 <div className="flex items-center gap-2">
                   <Flag className="h-4 w-4 text-primary" />
                   <h3 className="font-semibold text-sm">Qualifying Results</h3>
@@ -365,8 +362,8 @@ const RaceInfographicPage = () => {
                     </div>
                   </div>
                 )}
-              </CardHeader>
-              <CardContent className="px-2 pb-3">
+              </F1CardHeader>
+              <F1CardContent className="px-2 pb-3">
                 {isQualifyingLoading ? (
                   <div className="space-y-2 p-2">
                     {Array(10).fill(0).map((_, i) => (
@@ -409,18 +406,19 @@ const RaceInfographicPage = () => {
                     })}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
           </div>
 
           {/* Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {/* Winner */}
-            <Card 
-              className={cn("overflow-hidden", isGlass && "border-white/10")}
-              style={cardStyle}
-            >
-              <CardContent className="p-3">
+          <F1Card
+            variant={surfaceVariant}
+            glassVariant={surfaceGlass}
+            className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
+          >
+              <F1CardContent className="p-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Trophy className="h-3.5 w-3.5 text-yellow-500" />
                   <span className="text-xs font-medium">Winner</span>
@@ -434,15 +432,16 @@ const RaceInfographicPage = () => {
                 ) : (
                   <p className="text-muted-foreground text-xs">-</p>
                 )}
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
 
             {/* Fastest Lap */}
-            <Card 
-              className={cn("overflow-hidden", isGlass && "border-white/10")}
-              style={cardStyle}
-            >
-              <CardContent className="p-3">
+          <F1Card
+            variant={surfaceVariant}
+            glassVariant={surfaceGlass}
+            className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
+          >
+              <F1CardContent className="p-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Zap className="h-3.5 w-3.5 text-purple-500" />
                   <span className="text-xs font-medium">Fastest Lap</span>
@@ -456,15 +455,16 @@ const RaceInfographicPage = () => {
                 ) : (
                   <p className="text-muted-foreground text-xs">-</p>
                 )}
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
 
             {/* Pole Position */}
-            <Card 
-              className={cn("overflow-hidden", isGlass && "border-white/10")}
-              style={cardStyle}
-            >
-              <CardContent className="p-3">
+          <F1Card
+            variant={surfaceVariant}
+            glassVariant={surfaceGlass}
+            className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
+          >
+              <F1CardContent className="p-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Flag className="h-3.5 w-3.5 text-f1-red" />
                   <span className="text-xs font-medium">Pole Position</span>
@@ -477,15 +477,16 @@ const RaceInfographicPage = () => {
                 ) : (
                   <p className="text-muted-foreground text-xs">-</p>
                 )}
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
 
             {/* Fastest Pit Stop */}
-            <Card 
-              className={cn("overflow-hidden", isGlass && "border-white/10")}
-              style={cardStyle}
-            >
-              <CardContent className="p-3">
+          <F1Card
+            variant={surfaceVariant}
+            glassVariant={surfaceGlass}
+            className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
+          >
+              <F1CardContent className="p-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Timer className="h-3.5 w-3.5 text-green-500" />
                   <span className="text-xs font-medium">Fastest Pit</span>
@@ -499,8 +500,8 @@ const RaceInfographicPage = () => {
                 ) : (
                   <p className="text-muted-foreground text-xs">-</p>
                 )}
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
           </div>
 
           {/* Footer */}

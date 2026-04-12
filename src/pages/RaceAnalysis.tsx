@@ -1,7 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +13,7 @@ import { useRaceSchedule } from "@/hooks/useF1Data";
 import { useSessionsByYear } from "@/hooks/useOpenF1Data";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
-import { F1Card, F1CardContent } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardDescription, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { 
   BarChart3, Clock, TrendingUp, Flag, Wrench, 
   TrendingUpIcon, GitCompare, Cloud, Radio, 
@@ -86,6 +85,8 @@ const RaceAnalysis = () => {
   const { year: urlYear, round: urlRound } = useParams();
   const navigate = useNavigate();
   const { isGlass, baseTheme } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   
   // State
   const [selectedYear, setSelectedYear] = useState<number>(
@@ -159,14 +160,6 @@ const RaceAnalysis = () => {
     setTimeout(() => setSelectedSessionKey(Number(value)), 50);
   };
   
-  // Glass styling
-  const cardStyle = isGlass ? {
-    background: 'var(--glass-bg)',
-    backdropFilter: 'blur(var(--glass-blur))',
-    WebkitBackdropFilter: 'blur(var(--glass-blur))',
-    boxShadow: 'var(--glass-shadow), var(--glass-inner-shadow)'
-  } : undefined;
-  
   // Check if OpenF1 data is available (2023+)
   const hasOpenF1Data = selectedYear >= 2023 && availableSessions.length > 0;
   
@@ -239,12 +232,12 @@ const RaceAnalysis = () => {
             </div>
             
             {/* Race Selection Card */}
-            <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-              <CardHeader className="pb-3 pt-4 px-4">
+            <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+              <F1CardHeader className="pb-3 pt-4 px-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Flag className="h-4 w-4 text-primary" />
-                    <CardTitle className="text-base">Race Selection</CardTitle>
+                    <F1CardTitle className="text-base">Race Selection</F1CardTitle>
                   </div>
                   {currentRace && (
                     <div className="flex items-center gap-2">
@@ -255,8 +248,8 @@ const RaceAnalysis = () => {
                     </div>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
+              </F1CardHeader>
+              <F1CardContent className="px-4 pb-4">
                 <div className="flex flex-wrap gap-4">
                   {/* Year Selector */}
                   <div className="w-full sm:w-auto">
@@ -314,8 +307,8 @@ const RaceAnalysis = () => {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
             
             {/* Analysis Tabs */}
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
@@ -417,214 +410,214 @@ const RaceAnalysis = () => {
               <Suspense fallback={<TabLoadingFallback />}>
                 {/* Analytics Tabs (Ergast) */}
                 <TabsContent value="lapTimes" className="mt-4">
-                  <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                    <CardHeader className="pb-2 pt-3 px-4">
+                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                    <F1CardHeader className="pb-2 pt-3 px-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-primary" />
-                          <CardTitle className="text-base">Lap Time Analysis</CardTitle>
+                          <F1CardTitle className="text-base">Lap Time Analysis</F1CardTitle>
                         </div>
                         <DataSourceBadge source="ergast" />
                       </div>
-                      <CardDescription className="text-xs">Compare lap-by-lap times between drivers</CardDescription>
-                    </CardHeader>
-                    <CardContent className="min-h-[480px] px-4 pb-4">
+                      <F1CardDescription className="text-xs">Compare lap-by-lap times between drivers</F1CardDescription>
+                    </F1CardHeader>
+                    <F1CardContent className="min-h-[480px] px-4 pb-4">
                       <MuiLapTimeChart year={selectedYear} round={selectedRace} />
-                    </CardContent>
-                  </Card>
+                    </F1CardContent>
+                  </F1Card>
                 </TabsContent>
                 
                 <TabsContent value="positions" className="mt-4">
-                  <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                    <CardHeader className="pb-2 pt-3 px-4">
+                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                    <F1CardHeader className="pb-2 pt-3 px-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <TrendingUp className="h-4 w-4 text-primary" />
-                          <CardTitle className="text-base">Position Changes</CardTitle>
+                          <F1CardTitle className="text-base">Position Changes</F1CardTitle>
                         </div>
                         <DataSourceBadge source="ergast" />
                       </div>
-                      <CardDescription className="text-xs">Track position changes throughout the race</CardDescription>
-                    </CardHeader>
-                    <CardContent className="min-h-[480px] px-4 pb-4">
+                      <F1CardDescription className="text-xs">Track position changes throughout the race</F1CardDescription>
+                    </F1CardHeader>
+                    <F1CardContent className="min-h-[480px] px-4 pb-4">
                       <MuiPositionChart year={selectedYear} round={selectedRace} />
-                    </CardContent>
-                  </Card>
+                    </F1CardContent>
+                  </F1Card>
                 </TabsContent>
                 
                 <TabsContent value="qualifying" className="mt-4">
-                  <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                    <CardHeader className="pb-2 pt-3 px-4">
+                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                    <F1CardHeader className="pb-2 pt-3 px-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Flag className="h-4 w-4 text-primary" />
-                          <CardTitle className="text-base">Qualifying Analysis</CardTitle>
+                          <F1CardTitle className="text-base">Qualifying Analysis</F1CardTitle>
                         </div>
                         <DataSourceBadge source="ergast" />
                       </div>
-                      <CardDescription className="text-xs">Compare qualifying times across Q1, Q2, and Q3</CardDescription>
-                    </CardHeader>
-                    <CardContent className="min-h-[400px] max-h-[600px] overflow-auto px-4 pb-4">
+                      <F1CardDescription className="text-xs">Compare qualifying times across Q1, Q2, and Q3</F1CardDescription>
+                    </F1CardHeader>
+                    <F1CardContent className="min-h-[400px] max-h-[600px] overflow-auto px-4 pb-4">
                       <MuiQualifyingChart year={selectedYear} round={selectedRace} />
-                    </CardContent>
-                  </Card>
+                    </F1CardContent>
+                  </F1Card>
                 </TabsContent>
                 
                 <TabsContent value="progression" className="mt-4">
-                  <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                    <CardHeader className="pb-2 pt-3 px-4">
+                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                    <F1CardHeader className="pb-2 pt-3 px-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <TrendingUpIcon className="h-4 w-4 text-primary" />
-                          <CardTitle className="text-base">Qualifying to Race Progression</CardTitle>
+                          <F1CardTitle className="text-base">Qualifying to Race Progression</F1CardTitle>
                         </div>
                         <DataSourceBadge source="ergast" />
                       </div>
-                      <CardDescription className="text-xs">Visualize progression from qualifying to race results</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-[550px] px-4 pb-4">
+                      <F1CardDescription className="text-xs">Visualize progression from qualifying to race results</F1CardDescription>
+                    </F1CardHeader>
+                    <F1CardContent className="h-[550px] px-4 pb-4">
                       <MuiSankeyChart year={selectedYear} round={selectedRace} />
-                    </CardContent>
-                  </Card>
+                    </F1CardContent>
+                  </F1Card>
                 </TabsContent>
                 
                 <TabsContent value="pitstops" className="mt-4">
-                  <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                    <CardHeader className="pb-2 pt-3 px-4">
+                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                    <F1CardHeader className="pb-2 pt-3 px-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Wrench className="h-4 w-4 text-primary" />
-                          <CardTitle className="text-base">Pit Stop Analysis</CardTitle>
+                          <F1CardTitle className="text-base">Pit Stop Analysis</F1CardTitle>
                         </div>
                         <DataSourceBadge source="ergast" />
                       </div>
-                      <CardDescription className="text-xs">Individual pit stop durations for each driver</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-[600px] px-4 pb-4">
+                      <F1CardDescription className="text-xs">Individual pit stop durations for each driver</F1CardDescription>
+                    </F1CardHeader>
+                    <F1CardContent className="h-[600px] px-4 pb-4">
                       <MuiPitStopTable year={selectedYear} round={selectedRace} />
-                    </CardContent>
-                  </Card>
+                    </F1CardContent>
+                  </F1Card>
                 </TabsContent>
                 
                 {/* Live Data Tabs (OpenF1) */}
                 {hasOpenF1Data ? (
                   <>
                     <TabsContent value="weather" className="mt-4">
-                      <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                        <CardHeader className="pb-2 pt-3 px-4">
+                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                        <F1CardHeader className="pb-2 pt-3 px-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Cloud className="h-4 w-4 text-primary" />
-                              <CardTitle className="text-base">Weather Conditions</CardTitle>
+                              <F1CardTitle className="text-base">Weather Conditions</F1CardTitle>
                             </div>
                             <DataSourceBadge source="openf1" />
                           </div>
-                          <CardDescription className="text-xs">Track temperature, humidity, and wind conditions</CardDescription>
-                        </CardHeader>
-                        <CardContent className="min-h-[400px] px-4 pb-4">
+                          <F1CardDescription className="text-xs">Track temperature, humidity, and wind conditions</F1CardDescription>
+                        </F1CardHeader>
+                        <F1CardContent className="min-h-[400px] px-4 pb-4">
                           <WeatherAnalysis 
                             year={selectedYear} 
                             round={selectedRace}
                             sessionKey={selectedSessionKey || undefined}
                           />
-                        </CardContent>
-                      </Card>
+                        </F1CardContent>
+                      </F1Card>
                     </TabsContent>
                     
                     <TabsContent value="radio" className="mt-4">
-                      <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                        <CardHeader className="pb-2 pt-3 px-4">
+                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                        <F1CardHeader className="pb-2 pt-3 px-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Radio className="h-4 w-4 text-primary" />
-                              <CardTitle className="text-base">Team Radio</CardTitle>
+                              <F1CardTitle className="text-base">Team Radio</F1CardTitle>
                             </div>
                             <DataSourceBadge source="openf1" />
                           </div>
-                          <CardDescription className="text-xs">Driver and team radio communications</CardDescription>
-                        </CardHeader>
-                        <CardContent className="min-h-[400px] px-4 pb-4">
+                          <F1CardDescription className="text-xs">Driver and team radio communications</F1CardDescription>
+                        </F1CardHeader>
+                        <F1CardContent className="min-h-[400px] px-4 pb-4">
                           <TeamRadio 
                             year={selectedYear} 
                             round={selectedRace}
                             sessionKey={selectedSessionKey || undefined}
                           />
-                        </CardContent>
-                      </Card>
+                        </F1CardContent>
+                      </F1Card>
                     </TabsContent>
                     
                     <TabsContent value="telemetry" className="mt-4">
-                      <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                        <CardHeader className="pb-2 pt-3 px-4">
+                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                        <F1CardHeader className="pb-2 pt-3 px-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Gauge className="h-4 w-4 text-primary" />
-                              <CardTitle className="text-base">Telemetry Dashboard</CardTitle>
+                              <F1CardTitle className="text-base">Telemetry Dashboard</F1CardTitle>
                             </div>
                             <DataSourceBadge source="openf1" />
                           </div>
-                          <CardDescription className="text-xs">Speed, throttle, brake, and gear data</CardDescription>
-                        </CardHeader>
-                        <CardContent className="min-h-[500px] px-4 pb-4">
+                          <F1CardDescription className="text-xs">Speed, throttle, brake, and gear data</F1CardDescription>
+                        </F1CardHeader>
+                        <F1CardContent className="min-h-[500px] px-4 pb-4">
                           <TelemetryDashboard 
                             year={selectedYear} 
                             round={selectedRace}
                             sessionKey={selectedSessionKey || undefined}
                           />
-                        </CardContent>
-                      </Card>
+                        </F1CardContent>
+                      </F1Card>
                     </TabsContent>
                     
                     <TabsContent value="results" className="mt-4">
-                      <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                        <CardHeader className="pb-2 pt-3 px-4">
+                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                        <F1CardHeader className="pb-2 pt-3 px-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Trophy className="h-4 w-4 text-primary" />
-                              <CardTitle className="text-base">Session Results</CardTitle>
+                              <F1CardTitle className="text-base">Session Results</F1CardTitle>
                             </div>
                             <DataSourceBadge source="openf1" />
                           </div>
-                          <CardDescription className="text-xs">Final classification and standings</CardDescription>
-                        </CardHeader>
-                        <CardContent className="min-h-[500px] px-4 pb-4">
+                          <F1CardDescription className="text-xs">Final classification and standings</F1CardDescription>
+                        </F1CardHeader>
+                        <F1CardContent className="min-h-[500px] px-4 pb-4">
                           <SessionResults 
                             year={selectedYear} 
                             round={selectedRace}
                             sessionKey={selectedSessionKey || undefined}
                           />
-                        </CardContent>
-                      </Card>
+                        </F1CardContent>
+                      </F1Card>
                     </TabsContent>
                     
                     <TabsContent value="overtakes" className="mt-4">
-                      <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                        <CardHeader className="pb-2 pt-3 px-4">
+                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                        <F1CardHeader className="pb-2 pt-3 px-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Car className="h-4 w-4 text-primary" />
-                              <CardTitle className="text-base">Overtakes Analysis</CardTitle>
+                              <F1CardTitle className="text-base">Overtakes Analysis</F1CardTitle>
                             </div>
                             <DataSourceBadge source="openf1" />
                           </div>
-                          <CardDescription className="text-xs">Track every overtake during the race</CardDescription>
-                        </CardHeader>
-                        <CardContent className="min-h-[500px] px-4 pb-4">
+                          <F1CardDescription className="text-xs">Track every overtake during the race</F1CardDescription>
+                        </F1CardHeader>
+                        <F1CardContent className="min-h-[500px] px-4 pb-4">
                           <OvertakesAnalysis 
                             year={selectedYear} 
                             round={selectedRace}
                             sessionKey={selectedSessionKey || undefined}
                           />
-                        </CardContent>
-                      </Card>
+                        </F1CardContent>
+                      </F1Card>
                     </TabsContent>
                   </>
                 ) : (
                   // Show alert for years without OpenF1 data
                   liveDataTabs.map(tab => (
                     <TabsContent key={tab.id} value={tab.id} className="mt-4">
-                      <Card className={cn("overflow-hidden", isGlass && "border-white/10")} style={cardStyle}>
-                        <CardContent className="py-12">
+                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                        <F1CardContent className="py-12">
                           <Alert>
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>
@@ -632,8 +625,8 @@ const RaceAnalysis = () => {
                               Please select a race from 2023 or later to view {tab.label.toLowerCase()} data.
                             </AlertDescription>
                           </Alert>
-                        </CardContent>
-                      </Card>
+                        </F1CardContent>
+                      </F1Card>
                     </TabsContent>
                   ))
                 )}

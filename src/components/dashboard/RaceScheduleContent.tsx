@@ -1,4 +1,6 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { F1Card, F1CardContent } from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { formatDistance } from "date-fns";
 import { useState } from "react";
@@ -11,6 +13,9 @@ interface RaceScheduleContentProps {
 }
 
 const RaceScheduleContent = ({ raceSchedule, nextRace, getCountryFlag }: RaceScheduleContentProps) => {
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   const [selectedRace, setSelectedRace] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
@@ -57,12 +62,26 @@ const RaceScheduleContent = ({ raceSchedule, nextRace, getCountryFlag }: RaceSch
           const isNextRace = nextRace && nextRace.round === race.round;
           
           return (
-            <Card 
-              key={race.round} 
-              className={`${isPast ? 'opacity-70' : ''} hover:shadow-md cursor-pointer transition-all duration-200`}
+            <F1Card
+              key={race.round}
+              variant={surfaceVariant}
+              glassVariant={surfaceGlass}
+              className={cn(
+                "cursor-pointer p-0 transition-all duration-200 hover:shadow-md",
+                isPast && "opacity-70",
+                isGlass && "border-white/10"
+              )}
               onClick={() => openRaceDetails(race)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openRaceDetails(race);
+                }
+              }}
             >
-              <CardContent className="p-4">
+              <F1CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{getCountryFlag(race.Circuit.Location.country)}</span>
@@ -89,8 +108,8 @@ const RaceScheduleContent = ({ raceSchedule, nextRace, getCountryFlag }: RaceSch
                     <span className="font-medium">{race.round} / {raceSchedule.data.length}</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </F1CardContent>
+            </F1Card>
           );
         })}
       </div>

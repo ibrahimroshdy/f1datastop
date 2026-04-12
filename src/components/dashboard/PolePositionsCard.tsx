@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Card, F1CardContent, F1CardDescription, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -45,6 +47,9 @@ const getTeamColorStyle = (teamId: string) => {
 };
 
 const PolePositionsCard = () => {
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
   const [qualifyingResults, setQualifyingResults] = useState<QualifyingResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,17 +155,20 @@ const PolePositionsCard = () => {
   
   return (
     <>
-      <Card className="h-full overflow-hidden">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Flag className="h-5 w-5 text-primary" />
+      <F1Card
+        variant={surfaceVariant}
+        glassVariant={surfaceGlass}
+        className={cn("h-full overflow-hidden p-0", isGlass && "border-white/10")}
+      >
+        <F1CardHeader>
+          <F1CardTitle icon={<Flag className="h-5 w-5" />}>
             Pole Positions
-          </CardTitle>
-          <CardDescription>
+          </F1CardTitle>
+          <F1CardDescription>
             Top 5 qualifiers from the last race
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-2">
+          </F1CardDescription>
+        </F1CardHeader>
+        <F1CardContent className="px-2">
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -225,8 +233,8 @@ const PolePositionsCard = () => {
               </Badge>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </F1CardContent>
+      </F1Card>
       
       {/* Race Detail Dialog */}
       {lastRace && (
