@@ -23,4 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Superpowers: ignore loose agent files; keep authored plans + specs in version control
 docs/superpowers/*
+!docs/superpowers/plans/
+!docs/superpowers/plans/**
+!docs/superpowers/specs/
+!docs/superpowers/specs/**

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { PieChart } from "@mui/x-charts/PieChart";
+import MuiThemeWrapper from "@/components/analytics/MuiThemeWrapper";
 import { F1Card, F1CardContent, F1CardDescription, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
 import { useTheme } from "@/context/ThemeContext";
@@ -86,25 +87,27 @@ const SeasonCharts = ({ year }: SeasonChartsProps) => {
         <F1CardContent>
           {driverWinsData.length > 0 ? (
             <div className="h-[200px]">
-              <PieChart
-                series={[{
-                  data: driverWinsData,
-                  innerRadius: 40,
-                  outerRadius: 80,
-                  paddingAngle: 2,
-                  cornerRadius: 4,
-                }]}
-                slotProps={{
-                  legend: { hidden: true },
-                }}
-                colors={driverWinsData.map(d => d.color)}
-                sx={{
-                  '& .MuiChartsLegend-root': {
-                    display: 'none',
-                  },
-                }}
-                height={200}
-              />
+              <MuiThemeWrapper>
+                <PieChart
+                  series={[{
+                    data: driverWinsData,
+                    innerRadius: 40,
+                    outerRadius: 80,
+                    paddingAngle: 2,
+                    cornerRadius: 4,
+                  }]}
+                  slotProps={{
+                    legend: { hidden: true },
+                  }}
+                  colors={driverWinsData.map(d => d.color)}
+                  sx={{
+                    '& .MuiChartsLegend-root': {
+                      display: 'none',
+                    },
+                  }}
+                  height={200}
+                />
+              </MuiThemeWrapper>
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
                 {driverWinsData.slice(0, 5).map((item) => (
                   <div key={item.id} className="flex items-center gap-1 text-xs">
@@ -138,25 +141,27 @@ const SeasonCharts = ({ year }: SeasonChartsProps) => {
         <F1CardContent>
           {constructorPointsData.length > 0 ? (
             <div className="h-[200px]">
-              <PieChart
-                series={[{
-                  data: constructorPointsData,
-                  innerRadius: 50,
-                  outerRadius: 80,
-                  paddingAngle: 2,
-                  cornerRadius: 4,
-                }]}
-                slotProps={{
-                  legend: { hidden: true },
-                }}
-                colors={constructorPointsData.map(d => d.color)}
-                sx={{
-                  '& .MuiChartsLegend-root': {
-                    display: 'none',
-                  },
-                }}
-                height={200}
-              />
+              <MuiThemeWrapper>
+                <PieChart
+                  series={[{
+                    data: constructorPointsData,
+                    innerRadius: 50,
+                    outerRadius: 80,
+                    paddingAngle: 2,
+                    cornerRadius: 4,
+                  }]}
+                  slotProps={{
+                    legend: { hidden: true },
+                  }}
+                  colors={constructorPointsData.map(d => d.color)}
+                  sx={{
+                    '& .MuiChartsLegend-root': {
+                      display: 'none',
+                    },
+                  }}
+                  height={200}
+                />
+              </MuiThemeWrapper>
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
                 {constructorPointsData.slice(0, 5).map((item) => (
                   <div key={item.id} className="flex items-center gap-1 text-xs">
