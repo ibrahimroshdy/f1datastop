@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeContext";
 
-interface PageHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+interface PageHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   /** Page title — rendered as the page's single H1. */
   title: React.ReactNode;
   /** Optional supporting copy under the title. */
