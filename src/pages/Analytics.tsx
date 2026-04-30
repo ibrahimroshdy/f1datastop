@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
+import PageContainer from "@/components/layout/PageContainer";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   F1Card,
   F1CardContent,
@@ -474,7 +476,7 @@ const Analytics = () => {
             <YearComparisonAnalytics />
           </TabsContent>
         </Tabs>
-      </div>
+      </PageContainer>
     </MainLayout>
   );
 };
