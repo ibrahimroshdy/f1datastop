@@ -1,6 +1,8 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
+import PageContainer from "@/components/layout/PageContainer";
+import PageHeader from "@/components/layout/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -185,22 +187,14 @@ const RaceAnalysis = () => {
   
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className={cn("p-2 rounded-lg", isGlass ? "bg-primary/10" : "bg-primary/10")}>
-              <BarChart3 className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Race Analysis</h1>
-              <p className="text-sm text-muted-foreground">
-                Comprehensive race data and telemetry
-              </p>
-            </div>
-          </div>
-        </div>
-        
+      <PageContainer>
+        <PageHeader
+          icon={<BarChart3 />}
+          title="Race Analysis"
+          description="Comprehensive race data and telemetry"
+          size="md"
+        />
+
         {/* Main Tabs */}
         <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
           <TabsList className={cn(
@@ -653,7 +647,7 @@ const RaceAnalysis = () => {
             </Suspense>
           </TabsContent>
         </Tabs>
-      </div>
+      </PageContainer>
     </MainLayout>
   );
 };
