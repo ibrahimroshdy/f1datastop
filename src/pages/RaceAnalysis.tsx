@@ -647,7 +647,7 @@ const RaceAnalysis = () => {
             </Suspense>
           </TabsContent>
         </Tabs>
-      </div>
+      </PageContainer>
     </MainLayout>
   );
 };
