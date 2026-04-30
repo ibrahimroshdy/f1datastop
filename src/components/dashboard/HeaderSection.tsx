@@ -9,7 +9,7 @@ import BuyMeCoffeeWidget from "@/components/common/BuyMeCoffeeWidget";
 import { getNextSession } from "@/utils/nextSessionUtils";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
-import { GlassBadge } from "@/components/glass";
+import { Badge } from "@/components/ui/badge";
 import { F1Card } from "@/components/f1";
 
 interface HeaderSectionProps {
@@ -121,13 +121,15 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
                     <span className="font-semibold text-xs md:text-sm truncate">
                       {removeFlag(raceName)}
                     </span>
-                    <GlassBadge 
-                      variant={isImminent ? "live" : isUrgent ? "warning" : "secondary"} 
-                      size="sm"
-                      className="shrink-0"
+                    <Badge
+                      variant={isImminent ? "destructive" : isUrgent ? "default" : "secondary"}
+                      className={cn(
+                        "shrink-0 text-[10px] px-2 py-0",
+                        isImminent && "animate-pulse"
+                      )}
                     >
                       {nextSession.shortName}
-                    </GlassBadge>
+                    </Badge>
                   </div>
                   <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mt-0.5">
                     <Calendar className="h-3 w-3 shrink-0" />

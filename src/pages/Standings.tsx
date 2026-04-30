@@ -1,13 +1,14 @@
-
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
+import PageContainer from "@/components/layout/PageContainer";
+import PageHeader from "@/components/layout/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getCountryFlag } from "@/utils/countryUtils";
-import { useTheme } from "@/context/ThemeContext";
+import { useCardSurface } from "@/hooks/useCardSurface";
 import { cn } from "@/lib/utils";
+import { Trophy } from "lucide-react";
 import {
   F1Card,
   F1CardContent,
@@ -15,6 +16,7 @@ import {
   F1CardTitle,
   F1EmptyState,
   F1ErrorState,
+  F1Skeleton,
 } from "@/components/f1";
 
 type DriverStandingRow = {
@@ -30,9 +32,29 @@ type ConstructorStandingRow = {
   Constructor: { name: string; nationality?: string };
 };
 
+const StandingsSkeletonRows = ({ cols }: { cols: number }) => (
+  <TableBody>
+    {Array(10)
+      .fill(0)
+      .map((_, i) => (
+        <TableRow key={i}>
+          {Array.from({ length: cols }).map((__, j) => (
+            <TableCell key={j} className={j === cols - 1 ? "text-right" : ""}>
+              <F1Skeleton
+                height={24}
+                width={j === 0 ? 24 : j === cols - 1 ? 40 : j === 1 ? 160 : 128}
+                className={j === cols - 1 ? "ml-auto" : ""}
+              />
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+  </TableBody>
+);
+
 const Standings = () => {
   const [activeTab, setActiveTab] = useState("drivers");
-  const { isGlass } = useTheme();
+  const { isGlass, variant, glassVariant } = useCardSurface();
   const {
     data: driverStandings,
     isLoading: isDriversLoading,
@@ -46,8 +68,6 @@ const Standings = () => {
     refetch: refetchConstructors,
   } = useConstructorStandings();
 
-  const cardVariant = isGlass ? "glass" : "default";
-  const glassVariant = isGlass ? "panel" : "default";
   const stickyHeaderClass = cn(
     "sticky top-0 z-10 shadow-[0_1px_0_0_hsl(var(--border))]",
     isGlass ? "bg-background/85 backdrop-blur-md" : "bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
@@ -55,13 +75,12 @@ const Standings = () => {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight">Championship Standings</h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Current Formula 1 season standings
-          </p>
-        </div>
+      <PageContainer>
+        <PageHeader
+          icon={<Trophy />}
+          title="Championship Standings"
+          description="Current Formula 1 season standings"
+        />
 
         <Tabs defaultValue="drivers" value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full md:w-[400px] grid-cols-2">
@@ -70,7 +89,7 @@ const Standings = () => {
           </TabsList>
 
           <TabsContent value="drivers" className="mt-6">
-            <F1Card variant={cardVariant} glassVariant={glassVariant} className="w-full">
+            <F1Card variant={variant} glassVariant={glassVariant} className="w-full">
               <F1CardHeader>
                 <F1CardTitle>Drivers Championship {new Date().getFullYear()}</F1CardTitle>
               </F1CardHeader>
@@ -92,26 +111,7 @@ const Standings = () => {
                         <TableHead className="text-right">Points</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
-                      {Array(10)
-                        .fill(0)
-                        .map((_, i) => (
-                          <TableRow key={i}>
-                            <TableCell>
-                              <Skeleton className="h-6 w-6" />
-                            </TableCell>
-                            <TableCell>
-                              <Skeleton className="h-6 w-40" />
-                            </TableCell>
-                            <TableCell>
-                              <Skeleton className="h-6 w-32" />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Skeleton className="h-6 w-10 ml-auto" />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
+                    <StandingsSkeletonRows cols={4} />
                   </Table>
                 ) : !driverStandings?.data?.length ? (
                   <F1EmptyState type="no-data" className="py-10" />
@@ -158,7 +158,7 @@ const Standings = () => {
           </TabsContent>
 
           <TabsContent value="constructors" className="mt-6">
-            <F1Card variant={cardVariant} glassVariant={glassVariant} className="w-full">
+            <F1Card variant={variant} glassVariant={glassVariant} className="w-full">
               <F1CardHeader>
                 <F1CardTitle>Constructors Championship {new Date().getFullYear()}</F1CardTitle>
               </F1CardHeader>
@@ -179,23 +179,7 @@ const Standings = () => {
                         <TableHead className="text-right">Points</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
-                      {Array(10)
-                        .fill(0)
-                        .map((_, i) => (
-                          <TableRow key={i}>
-                            <TableCell>
-                              <Skeleton className="h-6 w-6" />
-                            </TableCell>
-                            <TableCell>
-                              <Skeleton className="h-6 w-40" />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Skeleton className="h-6 w-10 ml-auto" />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
+                    <StandingsSkeletonRows cols={3} />
                   </Table>
                 ) : !constructorStandings?.data?.length ? (
                   <F1EmptyState type="no-data" className="py-10" />
@@ -232,7 +216,7 @@ const Standings = () => {
             </F1Card>
           </TabsContent>
         </Tabs>
-      </div>
+      </PageContainer>
     </MainLayout>
   );
 };
