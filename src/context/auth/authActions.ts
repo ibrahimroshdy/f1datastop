@@ -222,7 +222,7 @@ export const handleAuthStateChange = async (session: any) => {
   if (session?.user?.id) {
     // Get user profile data if available
     try {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('profiles')
         .select('username, first_name, last_name')
         .eq('id', session.user.id)
@@ -288,7 +288,7 @@ export const updateProfile = async (
   fetchProfile: (userId: string) => Promise<void>
 ): Promise<void> => {
   try {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('profiles')
       .update(data)
       .eq('id', userId);
