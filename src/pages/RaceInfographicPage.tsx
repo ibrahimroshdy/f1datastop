@@ -68,7 +68,7 @@ const RaceInfographicPage = () => {
   // Fetch race data
   const { data: raceResults, isLoading: isResultsLoading } = useRaceResults(selectedYear, selectedRound);
   const { data: qualifyingResults, isLoading: isQualifyingLoading } = useRaceQualifying(selectedYear, selectedRound);
-  const { data: pitStops, isLoading: isPitStopsLoading } = useLastRacePitStops(selectedYear, selectedRound);
+  const { data: pitStops, isLoading: isPitStopsLoading } = useLastRacePitStops(Number(selectedYear));
 
   const isLoading = isScheduleLoading || isResultsLoading || isQualifyingLoading || isPitStopsLoading;
 

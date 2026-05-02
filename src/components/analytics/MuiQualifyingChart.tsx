@@ -41,10 +41,11 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     selectedDrivers,
     isLoading,
     isError,
-    loadingProgress,
-    fastestTime,
+    fastestLapTime,
     handleDriverToggle,
   } = useQualifyingData(year, round);
+  const loadingProgress: number = isLoading ? 50 : 100;
+  const fastestTime = fastestLapTime?.time;
 
   // Get data for a specific session
   const getSessionData = (session: 'Q1' | 'Q2' | 'Q3') => {
@@ -210,11 +211,11 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
           },
         }}
         grid={{ vertical: true, horizontal: false }}
-        slotProps={{
+        slotProps={({
           legend: {
             hidden: true,
           },
-        }}
+        } as any)}
         slots={{
           bar: (props) => {
             const idx = props.ownerState?.dataIndex;
@@ -224,7 +225,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
             const y = Number(props.y);
             const w = Number(props.width);
             const h = Number(props.height);
-            const { transform, ...restProps } = props as { transform?: string; [k: string]: unknown };
+            const { transform, ...restProps } = props as unknown as { transform?: string; [k: string]: unknown };
             const safeTransform =
               transform && typeof transform === 'string' && !transform.includes('NaN')
                 ? transform

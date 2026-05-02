@@ -623,7 +623,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                 series={positionChartData.series.map(s => ({ ...s, showMark: false, curve: 'stepAfter' as const }))}
                 height={300} 
                 margin={{ left: 40, right: 20, top: 10, bottom: 35 }}
-                slotProps={{ legend: { hidden: true } }}
+                slotProps={({ legend: { hidden: true } } as any)}
                 grid={{ vertical: true, horizontal: true }}
               />
             </div>

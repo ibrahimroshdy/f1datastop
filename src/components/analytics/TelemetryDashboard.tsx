@@ -261,9 +261,9 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
               series={chartData.series}
               height={350}
               margin={{ left: 55, right: 20, top: 20, bottom: 40 }}
-              slotProps={{
+              slotProps={({
                 legend: { hidden: true },
-              }}
+              } as any)}
               grid={{ vertical: false, horizontal: true }}
             />
           </div>

@@ -292,7 +292,7 @@ const MuiYearComparisonPositionChart: React.FC<MuiYearComparisonPositionChartPro
             series={series}
             height={350}
             margin={{ top: 20, right: 20, bottom: 40, left: 50 }}
-            slotProps={{ legend: { hidden: true } }}
+            slotProps={({ legend: { hidden: true } } as any)}
             grid={{ vertical: false, horizontal: true }}
             sx={{
               '.MuiLineElement-root': { strokeWidth: 1.5 },

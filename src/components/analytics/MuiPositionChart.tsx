@@ -329,11 +329,11 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
                 bottom: 35, 
                 left: isMobile ? 35 : 45 
               }}
-              slotProps={{
+              slotProps={({
                 legend: {
                   hidden: true, // Hide legend - we have the driver selector grid
                 },
-              }}
+              } as any)}
               sx={{
                 '.MuiLineElement-root': {
                   strokeWidth: 2,

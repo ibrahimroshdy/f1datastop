@@ -231,7 +231,7 @@ const MuiYearComparisonQualifyingChart: React.FC<MuiYearComparisonQualifyingChar
                 ]}
                 height={350}
                 margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
-                slotProps={{
+                slotProps={({
                   legend: {
                     direction: 'row',
                     position: { vertical: 'bottom', horizontal: 'middle' },
@@ -240,7 +240,7 @@ const MuiYearComparisonQualifyingChart: React.FC<MuiYearComparisonQualifyingChar
                     labelStyle: { fontSize: 11, fill: isDark ? '#a1a1aa' : '#666' },
                     padding: { top: 20 },
                   },
-                }}
+                } as any)}
                 grid={{ vertical: true, horizontal: false }}
                 sx={{
                   '.MuiChartsGrid-line': {
