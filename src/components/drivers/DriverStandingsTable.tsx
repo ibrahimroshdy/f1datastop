@@ -37,7 +37,7 @@ const DriverRow = ({ driver, onClick }: DriverRowProps) => {
     const loadDriverImage = async () => {
       try {
         setImageLoading(true);
-        const imageUrls = getDriverImageUrls(driver.Driver.driverId, headshotUrl);
+        const imageUrls = getDriverImageUrls(driver.Driver.driverId);
         if (imageUrls.primary) {
           const cached = await getCachedImage(imageUrls.primary, imageUrls.fallback);
           setCachedImageUrl(cached);
@@ -53,7 +53,7 @@ const DriverRow = ({ driver, onClick }: DriverRowProps) => {
     };
 
     loadDriverImage();
-  }, [driver.Driver.driverId, headshotUrl]);
+  }, [driver.Driver.driverId]);
 
   return (
     <TableRow 

@@ -62,7 +62,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
     typography: {
       fontFamily: 'inherit',
     },
-    components: {
+    components: ({
       MuiDataGrid: {
         styleOverrides: {
           root: {

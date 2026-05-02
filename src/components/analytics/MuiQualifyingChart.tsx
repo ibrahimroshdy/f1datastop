@@ -225,7 +225,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
             const y = Number(props.y);
             const w = Number(props.width);
             const h = Number(props.height);
-            const { transform, ...restProps } = props as { transform?: string; [k: string]: unknown };
+            const { transform, ...restProps } = props as unknown as { transform?: string; [k: string]: unknown };
             const safeTransform =
               transform && typeof transform === 'string' && !transform.includes('NaN')
                 ? transform
