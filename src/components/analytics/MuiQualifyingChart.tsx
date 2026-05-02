@@ -41,10 +41,11 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     selectedDrivers,
     isLoading,
     isError,
-    loadingProgress,
-    fastestTime,
+    fastestLapTime,
     handleDriverToggle,
   } = useQualifyingData(year, round);
+  const loadingProgress: number = isLoading ? 50 : 100;
+  const fastestTime = fastestLapTime?.time;
 
   // Get data for a specific session
   const getSessionData = (session: 'Q1' | 'Q2' | 'Q3') => {
