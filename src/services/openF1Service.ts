@@ -1,10 +1,8 @@
 import { toast } from "sonner";
 import { withCache } from "@/utils/cache";
+import { F1_API } from "@/constants/apiConfig";
 
-// Use different base URLs for development vs production
-const BASE_URL = import.meta.env.PROD
-  ? "https://api.openf1.org/v1"
-  : "/api/openf1";
+const BASE_URL = F1_API.OPENF1_BASE;
 
 // Cache TTLs for OpenF1 data
 const TTL = {
@@ -26,12 +24,16 @@ async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3): P
         }
       });
 
-      // If we get rate limited, wait and retry
+      // If we get rate limited, wait and retry (honour Retry-After when present)
       if (response.status === 429 && retries < maxRetries) {
         retries++;
 
-        // Calculate exponential backoff with jitter
-        const delay = retryDelay * (2 ** retries) * (0.8 + Math.random() * 0.4);
+        let delay = retryDelay * (2 ** retries) * (0.8 + Math.random() * 0.4);
+        const retryAfter = response.headers.get("Retry-After");
+        if (retryAfter) {
+          const sec = parseInt(retryAfter, 10);
+          if (!Number.isNaN(sec)) delay = Math.max(delay, sec * 1000);
+        }
         console.log(`Rate limit hit. Retry ${retries}/${maxRetries} after ${Math.round(delay)}ms delay`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
@@ -412,6 +414,29 @@ export const getStartingGrid = async (session_key: number) => {
   }
 };
 
+/** All drivers for the current latest session (one request vs one per acronym). */
+export const getLatestSessionDrivers = async () => {
+  try {
+    const url = `${BASE_URL}/drivers?session_key=latest`;
+    const response = await throttledFetch(url, 3500, 8);
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const responseData = await validateJsonResponse(response, "latest session drivers");
+    const data = Array.isArray(responseData) ? responseData : [];
+
+    return {
+      data,
+      error: null,
+    };
+  } catch (error) {
+    console.error("Failed to fetch latest session drivers:", error);
+    return { data: [], error };
+  }
+};
+
 // Get latest driver info (including headshot_url) by number or acronym
 export const getLatestDriver = async (driver_number?: number, name_acronym?: string) => {
   try {
@@ -423,7 +448,7 @@ export const getLatestDriver = async (driver_number?: number, name_acronym?: str
       url += `&name_acronym=${encodeURIComponent(name_acronym)}`;
     }
 
-    const response = await throttledFetch(url);
+    const response = await throttledFetch(url, 3500, 8);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);

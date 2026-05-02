@@ -17,7 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { TEAM_COLORS } from "@/constants/f1Colors";
-import { useLatestDriver } from "@/hooks/useOpenF1Data";
+import { useLatestDriver, useLatestSessionDrivers } from "@/hooks/useOpenF1Data";
 import { useDriverResultsBySeason } from "@/hooks/useF1Data";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
@@ -284,10 +284,30 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
   const driverNumber = driver.Driver.permanentNumber || 'N/A';
   const codeAcronym = (driver.Driver.code || '').toUpperCase();
 
-  // Always fetch latest OpenF1 driver so headshot_url stays current (local assets are fallback only)
-  const latestDriverQuery = useLatestDriver(undefined, codeAcronym, !!codeAcronym);
-  const headshotUrl: string | undefined = latestDriverQuery.data?.data?.headshot_url;
-  const latestNumber: number | undefined = latestDriverQuery.data?.data?.driver_number;
+  const batchDriversQuery = useLatestSessionDrivers(!!codeAcronym);
+  const driverFromBatch = useMemo(() => {
+    const rows = batchDriversQuery.data?.data;
+    if (!rows?.length || !codeAcronym) return undefined;
+    return rows.find(
+      (d: { name_acronym?: string }) =>
+        String(d.name_acronym || "").toUpperCase() === codeAcronym
+    );
+  }, [batchDriversQuery.data?.data, codeAcronym]);
+
+  const needsPerDriverFallback =
+    !!codeAcronym &&
+    (batchDriversQuery.isError ||
+      (batchDriversQuery.isSuccess && !driverFromBatch));
+
+  const latestDriverQuery = useLatestDriver(
+    undefined,
+    codeAcronym,
+    needsPerDriverFallback
+  );
+
+  const openF1Driver = driverFromBatch ?? latestDriverQuery.data?.data;
+  const headshotUrl: string | undefined = openF1Driver?.headshot_url;
+  const latestNumber: number | undefined = openF1Driver?.driver_number;
   const displayDriverNumber = latestNumber ?? driver.Driver.permanentNumber ?? 'N/A';
   
   // Driver contribution to constructor points

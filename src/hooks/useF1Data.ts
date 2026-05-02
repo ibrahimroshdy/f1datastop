@@ -814,7 +814,7 @@ export const useDriverResultsBySeason = (year: number, driverId: string) => {
   return useQuery({
     queryKey: ["driverResultsBySeason", year, driverId],
     queryFn: () => f1Service.getDriverResultsBySeason(year, driverId),
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 60, // 1h — season results change slowly; fewer Jolpica bursts when scrolling drivers
     enabled: !!year && !!driverId,
     ...defaultRetryConfig,
   });

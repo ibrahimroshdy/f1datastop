@@ -9,20 +9,32 @@
  *   `VITE_ERGAST_BASE=https://your-server.com/ergast-proxy` to your own proxy.
  *
  * Optional override (full origin + path prefix, no trailing slash): e.g. `https://api.jolpi.ca/ergast`
+ *
+ * Production default `/api/ergast` expects a host rewrite (see vercel.json). Override if you proxy elsewhere.
  */
 const envErgast = import.meta.env.VITE_ERGAST_BASE as string | undefined;
 const ERGAST_BASE =
   envErgast && envErgast.length > 0
     ? envErgast.replace(/\/$/, "")
-    : import.meta.env.DEV
-      ? "/api/ergast"
-      : "https://api.jolpi.ca/ergast";
+    : "/api/ergast";
+
+/**
+ * OpenF1: direct browser calls often hit CORS on custom domains. Default `/api/openf1` uses Vite (dev) or
+ * Vercel rewrite (prod). Override with `VITE_OPENF1_BASE` if needed (must allow your origin).
+ */
+const envOpenF1 = import.meta.env.VITE_OPENF1_BASE as string | undefined;
+const OPENF1_BASE =
+  envOpenF1 && envOpenF1.length > 0
+    ? envOpenF1.replace(/\/$/, "")
+    : "/api/openf1";
 
 // F1 API Base URLs
 export const F1_API = {
   ERGAST: `${ERGAST_BASE}/f1`,
   ERGAST_BASE,
-  OPENF1: "https://api.openf1.org/v1",
+  OPENF1_BASE,
+  /** @deprecated Use OPENF1_BASE — kept for docs/search parity */
+  OPENF1: OPENF1_BASE,
 };
 
 // Third-party API Configuration

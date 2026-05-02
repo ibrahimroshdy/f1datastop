@@ -154,15 +154,19 @@ async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3, at
         }
       });
 
-      // If we get rate limited, wait and retry
+      // If we get rate limited, wait and retry (honour Retry-After when present)
       if (response.status === 429 && retries < maxRetries) {
         retries++;
         if (attemptRef) {
           attemptRef[requestId] = retries;
         }
 
-        // Calculate exponential backoff with jitter
-        const delay = retryDelay * (2 ** retries) * (0.8 + Math.random() * 0.4);
+        let delay = retryDelay * (2 ** retries) * (0.8 + Math.random() * 0.4);
+        const retryAfter = response.headers.get("Retry-After");
+        if (retryAfter) {
+          const sec = parseInt(retryAfter, 10);
+          if (!Number.isNaN(sec)) delay = Math.max(delay, sec * 1000);
+        }
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -576,10 +580,7 @@ export const getSprintResults = async (year: number, round: string) => {
 export const getDriverResultsBySeason = async (year: number, driverId: string) => {
   try {
     const url = `${BASE_URL}/f1/${year}/drivers/${encodeURIComponent(driverId)}/results.json?limit=1000`;
-    const response = await fetch(url, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await throttledFetch(url, 4000, 8);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);

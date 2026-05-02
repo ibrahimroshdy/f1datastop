@@ -226,12 +226,24 @@ export const useOpenF1SessionFromErgast = (year: number, round: string, sessionT
   });
 }; 
 
+/** Single batched fetch for `/drivers?session_key=latest` — subscribe from many cards without N parallel requests. */
+export const useLatestSessionDrivers = (enabled = true) => {
+  return useQuery({
+    queryKey: ["openF1LatestSessionDrivers"],
+    queryFn: () => openF1Service.getLatestSessionDrivers(),
+    staleTime: 1000 * 60 * 60 * 24,
+    enabled,
+    refetchOnWindowFocus: false,
+    ...defaultRetryConfig,
+  });
+};
+
 // Get latest driver info (e.g. headshot_url) via driver number or acronym
 export const useLatestDriver = (driverNumber?: number, nameAcronym?: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: ["openF1LatestDriver", driverNumber, nameAcronym],
     queryFn: () => openF1Service.getLatestDriver(driverNumber, nameAcronym),
-    staleTime: 1000 * 60 * 60, // 1 hour
+    staleTime: 1000 * 60 * 60 * 24, // 24h — headshots rarely change; cuts parallel OpenF1 load on driver grids
     enabled: enabled && (!!driverNumber || !!nameAcronym),
     refetchOnWindowFocus: false,
     ...defaultRetryConfig,
