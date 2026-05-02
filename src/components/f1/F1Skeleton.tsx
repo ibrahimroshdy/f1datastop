@@ -52,33 +52,33 @@ const F1Skeleton = React.forwardRef<HTMLDivElement, F1SkeletonProps>(
     // Circular skeleton (for avatars)
     if (variant === "circular" || variant === "avatar") {
       return (
-        <Skeleton 
-          ref={ref}
-          className={cn(
-            "rounded-full",
-            variant === "avatar" && "h-10 w-10",
-            !animate && "animate-none",
-            className
-          )}
-          style={style}
-          {...props}
-        />
+        <div ref={ref} {...props}>
+          <Skeleton
+            className={cn(
+              "rounded-full",
+              variant === "avatar" && "h-10 w-10",
+              !animate && "animate-none",
+              className
+            )}
+            style={style}
+          />
+        </div>
       );
     }
 
     // Badge skeleton
     if (variant === "badge") {
       return (
-        <Skeleton 
-          ref={ref}
-          className={cn(
-            "h-5 w-16 rounded-full",
-            !animate && "animate-none",
-            className
-          )}
-          style={style}
-          {...props}
-        />
+        <div ref={ref} {...props}>
+          <Skeleton
+            className={cn(
+              "h-5 w-16 rounded-full",
+              !animate && "animate-none",
+              className
+            )}
+            style={style}
+          />
+        </div>
       );
     }
 
@@ -170,12 +170,12 @@ const F1Skeleton = React.forwardRef<HTMLDivElement, F1SkeletonProps>(
 
     // Default rectangular skeleton
     return (
-      <Skeleton 
-        ref={ref}
-        className={cn(!animate && "animate-none", className)}
-        style={style}
-        {...props}
-      />
+      <div ref={ref} {...props}>
+        <Skeleton
+          className={cn(!animate && "animate-none", className)}
+          style={style}
+        />
+      </div>
     );
   }
 );
