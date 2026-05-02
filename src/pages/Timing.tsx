@@ -1,13 +1,11 @@
 import MainLayout from "@/components/layout/MainLayout";
-import PageContainer from "@/components/layout/PageContainer";
-import PageHeader from "@/components/layout/PageHeader";
 import { useLastRaceResults } from "@/hooks/useF1Data";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
-import { useCardSurface } from "@/hooks/useCardSurface";
+import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
-import { Timer } from "lucide-react";
 import {
   F1Card,
   F1CardContent,
@@ -15,7 +13,6 @@ import {
   F1CardTitle,
   F1EmptyState,
   F1ErrorState,
-  F1Skeleton,
 } from "@/components/f1";
 
 type RaceResultRow = {
@@ -28,7 +25,7 @@ type RaceResultRow = {
 };
 
 const Timing = () => {
-  const { isGlass, variant, glassVariant } = useCardSurface();
+  const { isGlass } = useTheme();
   const {
     data: lastRaceData,
     isLoading,
@@ -36,6 +33,8 @@ const Timing = () => {
     refetch,
   } = useLastRaceResults();
 
+  const cardVariant = isGlass ? "glass" : "default";
+  const glassVariant = isGlass ? "panel" : "default";
   const stickyHeaderClass = cn(
     "sticky top-0 z-10 shadow-[0_1px_0_0_hsl(var(--border))]",
     isGlass ? "bg-background/85 backdrop-blur-md" : "bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
@@ -46,26 +45,17 @@ const Timing = () => {
     ? getRaceNameWithoutEmoji(lastRaceData.data.raceName)
     : "Last Race";
 
-  const skeletonRows = Array(10).fill(0).map((_, i) => (
-    <TableRow key={i}>
-      <TableCell><F1Skeleton height={24} width={24} /></TableCell>
-      <TableCell><F1Skeleton height={24} width={160} /></TableCell>
-      <TableCell><F1Skeleton height={24} width={128} /></TableCell>
-      <TableCell><F1Skeleton height={24} width={96} /></TableCell>
-      <TableCell className="text-right"><F1Skeleton height={24} width={40} className="ml-auto" /></TableCell>
-    </TableRow>
-  ));
-
   return (
     <MainLayout>
-      <PageContainer>
-        <PageHeader
-          icon={<Timer />}
-          title="Race Timing"
-          description="Latest race results and timing information"
-        />
+      <div className="space-y-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold tracking-tight">Race Timing</h1>
+          <p className="text-muted-foreground text-sm md:text-base">
+            Latest race results and timing information
+          </p>
+        </div>
 
-        <F1Card variant={variant} glassVariant={glassVariant} className="w-full">
+        <F1Card variant={cardVariant} glassVariant={glassVariant} className="w-full">
           <F1CardHeader>
             <F1CardTitle>{raceTitle} Results</F1CardTitle>
           </F1CardHeader>
@@ -88,7 +78,29 @@ const Timing = () => {
                     <TableHead className="text-right">Points</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>{skeletonRows}</TableBody>
+                <TableBody>
+                  {Array(10)
+                    .fill(0)
+                    .map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <Skeleton className="h-6 w-6" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-6 w-40" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-6 w-32" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-6 w-24" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Skeleton className="h-6 w-10 ml-auto" />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
               </Table>
             ) : !results?.length ? (
               <F1EmptyState type="no-results" className="py-10" />
@@ -135,7 +147,7 @@ const Timing = () => {
             )}
           </F1CardContent>
         </F1Card>
-      </PageContainer>
+      </div>
     </MainLayout>
   );
 };

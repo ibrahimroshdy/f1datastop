@@ -4,11 +4,20 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Twitter } from 'lucide-react';
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardFooter,
+  F1CardHeader,
+  F1CardTitle,
+} from '@/components/f1';
+import { Eye, EyeOff, ArrowLeft, Twitter } from 'lucide-react';
 import ReCaptcha from '@/components/auth/ReCaptcha';
+import { RECAPTCHA } from '@/constants/apiConfig';
+import f1Logo from '@/assets/f1-logo.svg';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
-import { AuthCard } from '@/components/auth/AuthCard';
 
 const Signup = () => {
   const [firstName, setFirstName] = useState('');
@@ -22,26 +31,31 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  
   const { signUp, signInWithX } = useAuth();
   const { theme, isGlass } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (password !== confirmPassword) {
       setError("Passwords don't match");
       return;
     }
+    
+    // Validate captcha for email signup
     if (!captchaToken) {
-      setError('Please complete the CAPTCHA verification');
+      setError("Please complete the CAPTCHA verification");
       return;
     }
+    
     setIsLoading(true);
     setError(null);
+    
     try {
       await signUp(email, password, username, firstName, lastName, captchaToken);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'An error occurred during signup';
+      const message = error instanceof Error ? error.message : "An error occurred during signup";
       setError(message);
     } finally {
       setIsLoading(false);
@@ -50,213 +64,245 @@ const Signup = () => {
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
-
+  
   const handleCaptchaChange = (token: string) => {
     setCaptchaToken(token);
-    if (error === 'Please complete the CAPTCHA verification') {
+    if (error === "Please complete the CAPTCHA verification") {
       setError(null);
     }
   };
 
-  const productHuntBadge = (
-    <a
-      href="https://www.producthunt.com/posts/f1-datastop?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-f1&#0045;datastop"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <img
-        src={`https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=950747&theme=${theme}&t=1744238501973`}
-        alt="F1 DataStop - Live formula 1 news and race data | Product Hunt"
-        style={{ width: '200px', height: '43px' }}
-        width="200"
-        height="43"
-      />
-    </a>
-  );
-
   return (
-    <>
+    <div className="flex items-center justify-center min-h-screen p-4 bg-background">
+      {/* Buy Me A Coffee widget */}
       <div className="fixed right-5 bottom-5 z-50">
-        <a
-          href="https://www.buymeacoffee.com/f1datastop"
-          target="_blank"
+        <a 
+          href="https://www.buymeacoffee.com/f1datastop" 
+          target="_blank" 
           rel="noopener noreferrer"
         >
-          <img
-            src="https://img.buymeacoffee.com/button-api/?text=Buy me a PitStop&emoji=🚦&slug=f1datastop&button_colour=dd4040&font_colour=ffffff&font_family=Lato&outline_colour=ffffff&coffee_colour=FFDD00"
-            alt="Buy me a PitStop"
-            style={{ width: '180px', height: '40px' }}
-            width="180"
-            height="40"
+          <img 
+            src="https://img.buymeacoffee.com/button-api/?text=Buy me a PitStop&emoji=🚦&slug=f1datastop&button_colour=dd4040&font_colour=ffffff&font_family=Lato&outline_colour=ffffff&coffee_colour=FFDD00" 
+            alt="Buy me a PitStop" 
+            style={{ width: "180px", height: "40px" }} 
+            width="180" 
+            height="40" 
           />
         </a>
       </div>
-
-      <AuthCard
-        title="Create an account"
-        description="Enter your information to create an account"
-        topSlot={productHuntBadge}
-        footer={
-          <p className="text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link to="/auth/login" className="text-primary hover:underline">
-              Sign in
-            </Link>
-          </p>
-        }
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First name</Label>
-              <Input
-                id="firstName"
-                placeholder="John"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
-                className="bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last name</Label>
-              <Input
-                id="lastName"
-                placeholder="Doe"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                required
-                className="bg-background"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              placeholder="johndoe"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              className="bg-background"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="john.doe@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="bg-background"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="pr-10 bg-background"
-              />
-              <button
-                type="button"
-                onClick={togglePasswordVisibility}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <div className="relative">
-              <Input
-                id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="pr-10 bg-background"
-              />
-              <button
-                type="button"
-                onClick={toggleConfirmPasswordVisibility}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
-              >
-                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          <div className="h-0 overflow-hidden">
-            <ReCaptcha onChange={handleCaptchaChange} version="v3" hideBadge={true} />
-          </div>
-
-          {error && (
-            <div className="p-3 rounded-md bg-destructive/20 border border-destructive/50 text-destructive-foreground text-sm">
-              {error}
-            </div>
-          )}
-
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Creating account...' : 'Sign up'}
-          </Button>
-
-          <div className="text-xs mt-2 text-center text-muted-foreground">
-            This site is protected by reCAPTCHA and the Google{' '}
-            <a
-              href="https://policies.google.com/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Privacy Policy
-            </a>{' '}
-            and{' '}
-            <a
-              href="https://policies.google.com/terms"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Terms of Service
-            </a>{' '}
-            apply.
-          </div>
-
-          <div className="relative flex items-center justify-center mt-4">
-            <div className="absolute border-t border-border w-full"></div>
-            <span
-              className={cn(
-                'relative px-2 text-xs text-muted-foreground',
-                isGlass ? 'bg-[var(--glass-bg)]' : 'bg-background'
-              )}
-            >
-              OR
-            </span>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full mt-4 flex items-center justify-center"
-            onClick={() => signInWithX()}
-            disabled={isLoading}
+      
+      <div className="w-full max-w-md">
+        <div className="mb-6">
+          <Link 
+            to="/" 
+            className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
           >
-            <Twitter className="mr-2 h-4 w-4" />
-            Sign up with X
-          </Button>
-        </form>
-      </AuthCard>
-    </>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Return to Dashboard
+          </Link>
+        </div>
+        
+        {/* Product Hunt badge - moved to top */}
+        <div className="mb-6 flex justify-center">
+          <a 
+            href="https://www.producthunt.com/posts/f1-datastop?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-f1&#0045;datastop" 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            <img 
+              src={`https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=950747&theme=${theme}&t=1744238501973`}
+              alt="F1 DataStop - Live formula 1 news and race data | Product Hunt" 
+              style={{ width: "200px", height: "43px" }} 
+              width="200" 
+              height="43" 
+            />
+          </a>
+        </div>
+        
+        <F1Card
+          variant={isGlass ? "glass" : "default"}
+          glassVariant={isGlass ? "panel" : "default"}
+          className={cn("w-full p-0", isGlass && "border-white/10")}
+        >
+          <F1CardHeader className="space-y-1 text-center">
+            <div className="flex justify-center mb-4">
+              <img src={f1Logo} alt="F1 DataStop" className="w-16 h-16" />
+            </div>
+            <F1CardTitle className="!text-2xl justify-center">Create an account</F1CardTitle>
+            <F1CardDescription className="text-muted-foreground">
+              Enter your information to create an account
+            </F1CardDescription>
+          </F1CardHeader>
+          <F1CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First name</Label>
+                  <Input
+                    id="firstName"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                    className="bg-background"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last name</Label>
+                  <Input
+                    id="lastName"
+                    placeholder="Doe"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                    className="bg-background"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  placeholder="johndoe"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="john.doe@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pr-10 bg-background"
+                  />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="pr-10 bg-background"
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleConfirmPasswordVisibility}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              
+              {/* Google reCAPTCHA - invisible but present in DOM */}
+              <div className="h-0 overflow-hidden">
+                <ReCaptcha 
+                  onChange={handleCaptchaChange}
+                  version="v3"
+                  hideBadge={true}
+                />
+              </div>
+              
+              {error && (
+                <div className="p-3 rounded-md bg-destructive/20 border border-destructive/50 text-destructive-foreground text-sm">
+                  {error}
+                </div>
+              )}
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-primary hover:bg-primary/90" 
+                disabled={isLoading}
+              >
+                {isLoading ? "Creating account..." : "Sign up"}
+              </Button>
+              
+              {/* reCAPTCHA privacy notice */}
+              <div className="text-xs mt-2 text-center text-muted-foreground">
+                This site is protected by reCAPTCHA and the Google{" "}
+                <a 
+                  href="https://policies.google.com/privacy"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Privacy Policy
+                </a>{" "}
+                and{" "}
+                <a 
+                  href="https://policies.google.com/terms"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Terms of Service
+                </a>{" "}
+                apply.
+              </div>
+
+              {/* X/Twitter Signup Button */}
+              <div className="relative flex items-center justify-center mt-4">
+                <div className="absolute border-t border-border w-full"></div>
+                <span className={cn(
+                  "relative px-2 text-xs text-muted-foreground",
+                  isGlass ? "bg-[var(--glass-bg)]" : "bg-background"
+                )}>OR</span>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full mt-4 flex items-center justify-center"
+                onClick={() => signInWithX()}
+                disabled={isLoading}
+              >
+                <Twitter className="mr-2 h-4 w-4" />
+                Sign up with X
+              </Button>
+            </form>
+          </F1CardContent>
+          <F1CardFooter className="flex justify-center border-t-0 pt-2">
+            <p className="text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <Link to="/auth/login" className="text-primary hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </F1CardFooter>
+        </F1Card>
+      </div>
+    </div>
   );
 };
 

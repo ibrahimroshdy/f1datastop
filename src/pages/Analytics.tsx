@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import PageContainer from "@/components/layout/PageContainer";
-import PageHeader from "@/components/layout/PageHeader";
 import {
   F1Card,
   F1CardContent,
@@ -93,13 +91,25 @@ const Analytics = () => {
 
   return (
     <MainLayout>
-      <PageContainer>
-        <PageHeader
-          icon={<BarChart3 />}
-          title="F1 Analytics"
-          description="Comprehensive race data analysis"
-        />
-
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "p-2 rounded-lg",
+              isGlass ? "bg-primary/10" : "bg-primary/10"
+            )}>
+              <BarChart3 className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">F1 Analytics</h1>
+              <p className="text-sm text-muted-foreground">
+                Comprehensive race data analysis
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <Tabs defaultValue="raceAnalytics" className="w-full">
           <TabsList className={cn(
             "grid grid-cols-2 w-full",
@@ -476,7 +486,7 @@ const Analytics = () => {
             <YearComparisonAnalytics />
           </TabsContent>
         </Tabs>
-      </PageContainer>
+      </div>
     </MainLayout>
   );
 };

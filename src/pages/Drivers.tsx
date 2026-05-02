@@ -1,11 +1,11 @@
+
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import PageContainer from "@/components/layout/PageContainer";
-import PageHeader from "@/components/layout/PageHeader";
 import { useDriverStandings } from "@/hooks/useF1Data";
-import { useCardSurface } from "@/hooks/useCardSurface";
-import { F1Card, DriverCardSkeleton } from "@/components/f1";
-import { Search, Users } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useTheme } from "@/context/ThemeContext";
+import { F1Card } from "@/components/f1";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import DriverCard from "@/components/drivers/DriverCard";
 import YearSelector from "@/components/common/YearSelector";
@@ -23,7 +23,9 @@ type DriverStandingEntry = {
 };
 
 const Drivers = () => {
-  useCardSurface(); // ensures theme subscription consistency
+  const { isGlass } = useTheme();
+  const cardVariant = isGlass ? "glass" : "default";
+  const glassVariant = isGlass ? "panel" : "default";
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const { data: driverStandings, isLoading } = useDriverStandings(selectedYear);
@@ -31,11 +33,12 @@ const Drivers = () => {
 
   const filteredDrivers = driverStandings?.data.filter((driver: DriverStandingEntry) => {
     const fullName = `${driver.Driver.givenName} ${driver.Driver.familyName}`.toLowerCase();
-    return fullName.includes(searchQuery.toLowerCase()) ||
+    return fullName.includes(searchQuery.toLowerCase()) || 
       driver.Driver.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       driver.Constructors[0].name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  // Compute total constructor points map from all standings
   const constructorIdToTotalPoints = new Map<string, number>();
   if (driverStandings?.data) {
     for (const driver of driverStandings.data as DriverStandingEntry[]) {
@@ -44,6 +47,7 @@ const Drivers = () => {
         : null;
       const constructorId: string | null = currentConstructor?.constructorId || null;
       if (!constructorId) continue;
+
       const previousTotal = constructorIdToTotalPoints.get(constructorId) || 0;
       const driverPoints = Number(driver.points) || 0;
       constructorIdToTotalPoints.set(constructorId, previousTotal + driverPoints);
@@ -52,13 +56,14 @@ const Drivers = () => {
 
   return (
     <MainLayout>
-      <PageContainer>
-        <PageHeader
-          icon={<Users />}
-          title="F1 Drivers"
-          description={`Formula 1 drivers for the ${selectedYear} season`}
-          actions={<YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />}
-        />
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">F1 Drivers</h1>
+            <p className="text-muted-foreground">Formula 1 drivers for the {selectedYear} season</p>
+          </div>
+          <YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />
+        </div>
 
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -73,7 +78,26 @@ const Drivers = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array(9).fill(0).map((_, i) => (
-              <DriverCardSkeleton key={i} />
+              <F1Card
+                key={i}
+                variant={cardVariant}
+                glassVariant={glassVariant}
+                className="overflow-hidden"
+              >
+                <div className="p-6">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-16 w-16 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                </div>
+              </F1Card>
             ))}
           </div>
         ) : (
@@ -96,7 +120,7 @@ const Drivers = () => {
             })}
           </div>
         )}
-      </PageContainer>
+      </div>
     </MainLayout>
   );
 };
