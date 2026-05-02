@@ -51,7 +51,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     // Check for stored theme preference
     if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('f1ds-theme') as ThemeMode | null;
+      const savedTheme = localStorage.getItem('f1ds-theme') as string | null;
       // Migrate old themes
       if (savedTheme === 'light-glass') {
         localStorage.setItem('f1ds-theme', 'light');
@@ -61,8 +61,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem('f1ds-theme', 'dark');
         return 'dark';
       }
-      if (savedTheme && themeCycle.includes(savedTheme)) {
-        return savedTheme;
+      if (savedTheme && themeCycle.includes(savedTheme as ThemeMode)) {
+        return savedTheme as ThemeMode;
       }
       
       // Check system preference for initial theme

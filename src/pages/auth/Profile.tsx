@@ -61,7 +61,7 @@ const Profile = () => {
         setLoading(true);
         
         // Fetch profile data directly from Supabase instead of using updateProfile
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('profiles')
           .select('username, first_name, last_name')
           .eq('id', user.id)
@@ -78,9 +78,9 @@ const Profile = () => {
         }
 
         setFormData({
-          username: data.username || "",
-          first_name: data.first_name || "",
-          last_name: data.last_name || ""
+          username: data?.username || "",
+          first_name: data?.first_name || "",
+          last_name: data?.last_name || ""
         });
       } catch (error: unknown) {
         console.error("Unexpected error:", error);
@@ -113,7 +113,7 @@ const Profile = () => {
       trackEvent('profile_update', {});
 
       // Update profile directly in Supabase to fix type issues
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('profiles')
         .update({
           username: formData.username,
