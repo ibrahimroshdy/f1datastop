@@ -80,7 +80,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
           },
         },
       },
-    },
+    } as any),
   }), [isDark]);
 
   // Fetch pit stop data
