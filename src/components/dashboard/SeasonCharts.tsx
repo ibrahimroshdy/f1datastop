@@ -96,9 +96,9 @@ const SeasonCharts = ({ year }: SeasonChartsProps) => {
                     paddingAngle: 2,
                     cornerRadius: 4,
                   }]}
-                  slotProps={{
+                  slotProps={({
                     legend: { hidden: true },
-                  }}
+                  } as any)}
                   colors={driverWinsData.map(d => d.color)}
                   sx={{
                     '& .MuiChartsLegend-root': {
@@ -150,9 +150,9 @@ const SeasonCharts = ({ year }: SeasonChartsProps) => {
                     paddingAngle: 2,
                     cornerRadius: 4,
                   }]}
-                  slotProps={{
+                  slotProps={({
                     legend: { hidden: true },
-                  }}
+                  } as any)}
                   colors={constructorPointsData.map(d => d.color)}
                   sx={{
                     '& .MuiChartsLegend-root': {

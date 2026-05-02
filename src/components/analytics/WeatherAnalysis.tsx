@@ -277,7 +277,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                     ]}
                     height={180}
                     margin={{ left: 40, right: 10, top: 20, bottom: 25 }}
-                    slotProps={{ legend: { hidden: true } }}
+                    slotProps={({ legend: { hidden: true } } as any)}
                     onHighlightChange={handleHighlightChange}
                   />
                 </div>
@@ -318,7 +318,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                     ]}
                     height={180}
                     margin={{ left: 40, right: 10, top: 20, bottom: 25 }}
-                    slotProps={{ legend: { hidden: true } }}
+                    slotProps={({ legend: { hidden: true } } as any)}
                     onHighlightChange={handleHighlightChange}
                   />
                 </div>
@@ -361,7 +361,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                     ]}
                     height={180}
                     margin={{ left: 40, right: 10, top: 20, bottom: 25 }}
-                    slotProps={{ legend: { hidden: true } }}
+                    slotProps={({ legend: { hidden: true } } as any)}
                     onHighlightChange={handleHighlightChange}
                   />
                 </div>
@@ -402,7 +402,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                     ]}
                     height={180}
                     margin={{ left: 50, right: 10, top: 20, bottom: 25 }}
-                    slotProps={{ legend: { hidden: true } }}
+                    slotProps={({ legend: { hidden: true } } as any)}
                     onHighlightChange={handleHighlightChange}
                   />
                 </div>
@@ -474,13 +474,13 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 ]}
                 height={280}
                 margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
-                slotProps={{
+                slotProps={({
                   legend: { 
                     direction: 'row',
                     position: { vertical: 'top', horizontal: 'right' },
                     labelStyle: { fontSize: 11 },
                   },
-                }}
+                } as any)}
               />
             </div>
           </MuiThemeWrapper>
@@ -516,9 +516,9 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 ]}
                 height={280}
                 margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
-                slotProps={{
+                slotProps={({
                   legend: { hidden: true },
-                }}
+                } as any)}
               />
             </div>
           </MuiThemeWrapper>
@@ -555,9 +555,9 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 ]}
                 height={280}
                 margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
-                slotProps={{
+                slotProps={({
                   legend: { hidden: true },
-                }}
+                } as any)}
               />
             </div>
           </MuiThemeWrapper>
@@ -592,9 +592,9 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 ]}
                 height={280}
                 margin={{ left: 55, right: 20, top: 20, bottom: 30 }}
-                slotProps={{
+                slotProps={({
                   legend: { hidden: true },
-                }}
+                } as any)}
               />
             </div>
           </MuiThemeWrapper>

@@ -210,11 +210,11 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
           },
         }}
         grid={{ vertical: true, horizontal: false }}
-        slotProps={{
+        slotProps={({
           legend: {
             hidden: true,
           },
-        }}
+        } as any)}
         slots={{
           bar: (props) => {
             const idx = props.ownerState?.dataIndex;
