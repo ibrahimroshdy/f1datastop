@@ -1,1 +1,5 @@
-project_id = "inocgpmqupzopipgytgm"
+
+project_id = "envqfquhkcbnitwlzepx"
+
+[functions.notify-slack]
+verify_jwt = false
