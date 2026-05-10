@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,74 +17,102 @@ interface NotifySlackRequest {
   };
 }
 
+// Basic in-memory rate limiter (per cold-start instance)
+const rateBuckets = new Map<string, { count: number; reset: number }>();
+const RATE_LIMIT = 5; // requests
+const RATE_WINDOW_MS = 60_000; // per minute
+
+function rateLimit(key: string): boolean {
+  const now = Date.now();
+  const bucket = rateBuckets.get(key);
+  if (!bucket || bucket.reset < now) {
+    rateBuckets.set(key, { count: 1, reset: now + RATE_WINDOW_MS });
+    return true;
+  }
+  if (bucket.count >= RATE_LIMIT) return false;
+  bucket.count += 1;
+  return true;
+}
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
-  console.log("📣 Notify-Slack function started");
-  
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const SLACK_WEBHOOK_URL = Deno.env.get("SLACK_WEBHOOK_URL");
-    if (!SLACK_WEBHOOK_URL) {
-      console.error("❌ SLACK_WEBHOOK_URL environment variable is not set");
-      throw new Error("SLACK_WEBHOOK_URL environment variable is not set");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!SLACK_WEBHOOK_URL || !SUPABASE_URL || !SERVICE_ROLE_KEY) {
+      console.error("Missing required environment variables");
+      return jsonResponse({ error: "Server misconfigured" }, 500);
     }
 
-    console.log("✅ SLACK_WEBHOOK_URL is set");
-    
-    // Log the request body for debugging
-    const requestBody = await req.text();
-    console.log("Request body:", requestBody);
-    
-    // Parse the JSON body
-    const { type, userData } = JSON.parse(requestBody) as NotifySlackRequest;
-    console.log("Parsed request data:", { type, userData });
-
-    if (type !== "signup") {
-      console.error("❌ Invalid notification type:", type);
-      return new Response(
-        JSON.stringify({ error: "Only signup notifications are supported" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    // Rate limit by client IP to prevent flooding
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      req.headers.get("cf-connecting-ip") ||
+      "unknown";
+    if (!rateLimit(clientIp)) {
+      return jsonResponse({ error: "Rate limit exceeded" }, 429);
     }
 
-    // Get the current timestamp
-    const timestamp = new Date().toISOString();
-    
-    // Get the auth provider (default to "email" if not provided)
+    const body = (await req.json()) as NotifySlackRequest;
+    const { type, userData } = body;
+
+    if (type !== "signup" || !userData?.email) {
+      return jsonResponse({ error: "Invalid request" }, 400);
+    }
+
+    // Verify the email belongs to a real, recently-created auth user.
+    // This prevents anonymous abuse: only legitimate fresh signups trigger Slack.
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data: list, error: listErr } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 200,
+    });
+    if (listErr) {
+      console.error("Failed to list users:", listErr);
+      return jsonResponse({ error: "Verification failed" }, 500);
+    }
+
+    const match = list.users.find(
+      (u) => (u.email || "").toLowerCase() === userData.email.toLowerCase(),
+    );
+    if (!match) {
+      return jsonResponse({ error: "User not found" }, 403);
+    }
+
+    const createdAt = new Date(match.created_at).getTime();
+    if (Date.now() - createdAt > 10 * 60_000) {
+      // Only notify within 10 minutes of signup
+      return jsonResponse({ error: "Signup window expired" }, 403);
+    }
+
     const provider = userData.provider || "email";
-    console.log("Auth provider:", provider);
-    
-    // Create custom header text based on provider
-    const headerText = provider === "twitter" 
-      ? "🐦 New Twitter/X User Signup!" 
-      : provider === "google" 
-        ? "🔍 New Google User Signup!" 
+    const headerText =
+      provider === "twitter"
+        ? "🐦 New Twitter/X User Signup!"
+        : provider === "google"
+        ? "🔍 New Google User Signup!"
         : "✉️ New Email User Signup!";
-    
-    // Format the user name for display
-    const userName = userData.firstName && userData.lastName
-      ? `${userData.firstName} ${userData.lastName}`
-      : userData.username || userData.email.split('@')[0];
 
-    console.log("Formatted user name:", userName);
-
-    // Prepare the message for Slack
     const slackMessage = {
       blocks: [
         {
           type: "header",
-          text: {
-            type: "plain_text",
-            text: headerText,
-            emoji: true,
-          },
+          text: { type: "plain_text", text: headerText, emoji: true },
         },
         {
           type: "section",
@@ -101,23 +130,8 @@ serve(async (req) => {
         {
           type: "section",
           fields: [
-            {
-              type: "mrkdwn",
-              text: `*Email:*\n${userData.email}`,
-            },
-            {
-              type: "mrkdwn",
-              text: `*Auth Provider:*\n${provider}`,
-            },
-          ],
-        },
-        {
-          type: "section",
-          fields: [
-            {
-              type: "mrkdwn",
-              text: `*Time:*\n${new Date(timestamp).toLocaleString()}`,
-            },
+            { type: "mrkdwn", text: `*Email:*\n${userData.email}` },
+            { type: "mrkdwn", text: `*Auth Provider:*\n${provider}` },
           ],
         },
         {
@@ -132,48 +146,21 @@ serve(async (req) => {
       ],
     };
 
-    console.log("Sending notification to Slack...");
-    console.log("Webhook URL (masked):", SLACK_WEBHOOK_URL.substring(0, 15) + "...");
-    console.log("Slack message:", JSON.stringify(slackMessage, null, 2));
-    
-    // Send the message to Slack
-    console.log("Sending POST request to Slack webhook...");
     const response = await fetch(SLACK_WEBHOOK_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(slackMessage),
     });
 
-    console.log("Slack API response status:", response.status);
-    
-    const responseText = await response.text();
-    console.log("Slack API response body:", responseText);
-
     if (!response.ok) {
-      console.error("❌ Error response from Slack:", responseText);
-      throw new Error(`Slack API error: ${response.status} ${responseText}`);
+      const text = await response.text();
+      console.error("Slack error:", response.status, text);
+      return jsonResponse({ error: "Slack notification failed" }, 502);
     }
 
-    console.log("✅ Slack notification sent successfully!");
-
-    return new Response(
-      JSON.stringify({ success: true, message: "Notification sent to Slack" }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return jsonResponse({ success: true });
   } catch (error) {
-    console.error("❌ Error in notify-slack function:", error);
-    
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    console.error("notify-slack error:", error);
+    return jsonResponse({ error: (error as Error).message }, 500);
   }
 });
