@@ -85,7 +85,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_leaderboard: {
+        Row: {
+          correct_answers: number | null
+          created_at: string | null
+          game_mode: string | null
+          id: string | null
+          score: number | null
+          time_spent: number | null
+          total_questions: number | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          correct_answers?: number | null
+          created_at?: string | null
+          game_mode?: string | null
+          id?: string | null
+          score?: number | null
+          time_spent?: number | null
+          total_questions?: number | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          correct_answers?: number | null
+          created_at?: string | null
+          game_mode?: string | null
+          id?: string | null
+          score?: number | null
+          time_spent?: number | null
+          total_questions?: number | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
