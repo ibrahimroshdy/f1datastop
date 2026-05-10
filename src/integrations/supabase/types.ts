@@ -10,11 +10,79 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "12.2.3 (519615d)"
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          first_name: string
+          id: string
+          last_name: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          first_name: string
+          id: string
+          last_name: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      trivia_scores: {
+        Row: {
+          correct_answers: number
+          created_at: string
+          game_mode: string
+          id: string
+          is_public: boolean
+          score: number
+          time_spent: number
+          total_questions: number
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          correct_answers?: number
+          created_at?: string
+          game_mode?: string
+          id?: string
+          is_public?: boolean
+          score?: number
+          time_spent?: number
+          total_questions?: number
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          correct_answers?: number
+          created_at?: string
+          game_mode?: string
+          id?: string
+          is_public?: boolean
+          score?: number
+          time_spent?: number
+          total_questions?: number
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
