@@ -624,6 +624,56 @@ export const getDriverResultsBySeason = async (year: number, driverId: string) =
   }
 };
 
+// Fetch ALL drivers' season results in ONE request, grouped by driverId.
+// Replaces the per-driver N+1 (one request per driver card) with a single call.
+export const getAllDriverResultsBySeason = async (year: number) => {
+  try {
+    const url = `${BASE_URL}/f1/${year}/results.json?limit=1000`;
+    const response = await throttledFetch(url, 4000, 8);
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const races: any[] = data.MRData?.RaceTable?.Races || [];
+
+    const byDriver: Record<string, any[]> = {};
+    races.forEach((race: any) => {
+      (race.Results || []).forEach((result: any) => {
+        const driverId = result.Driver?.driverId;
+        if (!driverId) return;
+        const status = result.status || '';
+        const isFinished = status === 'Finished' || status.startsWith('+');
+        const isDNF = !isFinished && status !== '';
+        if (!byDriver[driverId]) byDriver[driverId] = [];
+        byDriver[driverId].push({
+          round: race.round,
+          raceName: race.raceName,
+          date: race.date,
+          circuit: race.Circuit?.circuitName,
+          country: race.Circuit?.Location?.country,
+          position: result.position,
+          status,
+          isDNF,
+          points: Number(result.points || 0),
+          constructor: result.Constructor?.name,
+        });
+      });
+    });
+
+    // Sort each driver's races by round
+    Object.values(byDriver).forEach((list) =>
+      list.sort((a, b) => parseInt(a.round) - parseInt(b.round)),
+    );
+
+    return { data: byDriver, error: null };
+  } catch (error) {
+    console.error(`Failed to fetch all driver results for ${year}:`, error);
+    return { data: {} as Record<string, any[]>, error };
+  }
+};
+
 // Cache management utilities - Deprecated but kept for compatibility if needed, or can be removed
 export const cacheUtils = {
   clearAll: () => {
