@@ -109,32 +109,34 @@ export const signUp = async (
     // Track successful signup with email method
     trackSignup('email');
 
-    // Notify Slack about the new signup
-    try {
-      const { data: notifyResult, error: notifyError } = await supabase.functions.invoke(
-        'notify-slack',
-        {
-          body: {
-            type: "signup",
-            userData: {
-              email,
-              username,
-              firstName,
-              lastName,
-              provider: "email"
+    // Notify Slack about the new signup (requires active session for JWT)
+    if (data.session) {
+      try {
+        const { data: notifyResult, error: notifyError } = await supabase.functions.invoke(
+          'notify-slack',
+          {
+            body: {
+              type: "signup",
+              userData: {
+                email,
+                username,
+                firstName,
+                lastName,
+                provider: "email"
+              },
             },
-          },
+          }
+        );
+        if (notifyError) {
+          console.error("Error in Slack notification:", notifyError);
+        } else if (notifyResult && typeof notifyResult === 'object' && 'error' in notifyResult) {
+          console.error("Error in Slack notification response:", notifyResult);
         }
-      );
-      if (notifyError) {
-        console.error("Error in Slack notification:", notifyError);
-      } else if (notifyResult && typeof notifyResult === 'object' && 'error' in notifyResult) {
-        console.error("Error in Slack notification response:", notifyResult);
+      } catch (slackError) {
+        // Don't fail the signup if the slack notification fails, just log it
+        console.error("Failed to send Slack notification:", slackError);
+        console.error("Error details:", slackError);
       }
-    } catch (slackError) {
-      // Don't fail the signup if the slack notification fails, just log it
-      console.error("Failed to send Slack notification:", slackError);
-      console.error("Error details:", slackError);
     }
 
     toast.success("Registration successful! Please check your email to confirm your account.");
@@ -310,6 +312,11 @@ export const updateProfile = async (
 // New function to notify Slack about Twitter sign-ins
 export const notifySlackAboutTwitterSignin = async (user: any): Promise<void> => {
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      return;
+    }
+
     // Extract necessary data from the user object
     const twitterUsername = user.user_metadata?.preferred_username || 
                           user.user_metadata?.user_name || 

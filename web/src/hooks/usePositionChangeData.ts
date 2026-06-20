@@ -1,160 +1,96 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
-import { TEAM_COLORS } from "@/constants/f1Colors";
 import { toast } from "sonner";
+import {
+  buildPositionChartData,
+  getPositionChangeSummary,
+  mapErgastResultsToDrivers,
+  type PositionChangeSummary,
+  type PositionDriver,
+} from "@/lib/f1/positionChanges";
 
-export interface Driver {
-  driverId: string;
-  code: string;
-  name: string;
-  team: string;
-  finishPosition: number;
-  grid: number;
-  status?: string; // Race finish status
-  isDNF?: boolean; // Did Not Finish flag
-}
-
-export interface PositionChangeSummary {
-  start: number;
-  end: number;
-  change: number;
-  improved: boolean;
-  isDNF?: boolean;
-  status?: string;
-}
+export type { PositionChangeSummary, PositionDriver as Driver } from "@/lib/f1/positionChanges";
 
 export const usePositionChangeData = (year: number, round: string) => {
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
-  const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
+  const [availableDrivers, setAvailableDrivers] = useState<PositionDriver[]>([]);
   const [totalLaps, setTotalLaps] = useState<number>(0);
   const [isProcessingData, setIsProcessingData] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState(0);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Use React Query hooks for data fetching
-  const { 
-    data: raceResultsData, 
-    isLoading: isResultsLoading, 
-    error: resultsError 
+  const {
+    data: raceResultsData,
+    isLoading: isResultsLoading,
+    error: resultsError,
   } = useRaceResults(year, round);
-  
-  const { 
-    data: lapTimesData, 
-    isLoading: isLapTimesLoading, 
+
+  const {
+    data: lapTimesData,
+    isLoading: isLapTimesLoading,
     error: lapTimesError,
     refetch: refetchLapTimes,
     isError,
-    failureCount
-  } = useLapTimes(year, round, false); // Always fetch all laps
-  
+    failureCount,
+  } = useLapTimes(year, round, false);
+
   const isLoading = isResultsLoading || isLapTimesLoading || isProcessingData;
   const error = resultsError || lapTimesError;
 
-  // Auto-retry on error with increased delay between retries
   useEffect(() => {
-    if (isError && retryCount < 15) { // Increased max retry attempts to 15
-      const delaySeconds = Math.min(5 * (2 ** retryCount), 60); // More aggressive backoff up to 60 seconds
-      
-      // More detailed progress feedback with 2 decimal places
+    if (isError && retryCount < 15) {
+      const delaySeconds = Math.min(5 * 2 ** retryCount, 60);
       setLoadingProgress(parseFloat((retryCount * 7).toFixed(2)));
-      setErrorMessage(`Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`);
-      
+      setErrorMessage(
+        `Rate limit exceeded (429). Automatic retry ${retryCount + 1}/15 in ${delaySeconds} seconds...`,
+      );
+
       const timer = setTimeout(() => {
         toast.info(`Retrying position data... Attempt ${retryCount + 1}/15`, {
           id: `position-retry-${retryCount}`,
           duration: 3000,
         });
-        
-        setRetryCount(prev => prev + 1);
+        setRetryCount((prev) => prev + 1);
         refetchLapTimes();
       }, delaySeconds * 1000);
-      
+
       return () => clearTimeout(timer);
-    } else if (!isError && !isLoading) {
-      // Reset error state once data loads successfully
+    }
+    if (!isError && !isLoading) {
       setErrorMessage(null);
-      setLoadingProgress(100.00); // Make sure we show exactly 100.00%
+      setLoadingProgress(100.0);
     }
   }, [isError, retryCount, refetchLapTimes, failureCount, isLoading]);
 
-  // Set only the first driver selected by default
   useEffect(() => {
-    if (raceResultsData?.data?.Results && raceResultsData.data.Results.length > 0) {
-      const drivers = raceResultsData.data.Results.map((result: any) => {
-        // Determine DNF status from the status field
-        const status = result.status || '';
-        
-        // Statuses that indicate the driver finished the race (not DNF)
-        const finishedStatuses = ['Finished', 'finished'];
-        const isFinished = finishedStatuses.includes(status) || status.includes('+') || status.includes('Lap');
-        
-        // Known DNF statuses from Ergast API
-        const dnfStatuses = [
-          'Accident', 'Collision', 'Collision damage', 'Engine', 'Gearbox', 'Transmission',
-          'Hydraulics', 'Brakes', 'Suspension', 'Retired', 'Electrical', 'Mechanical',
-          'Wheel', 'Tyre', 'Puncture', 'Overheating', 'Power Unit', 'ERS', 'Turbo',
-          'Oil pressure', 'Fuel pressure', 'Fuel pump', 'Water pressure', 'Clutch',
-          'Driveshaft', 'Electronics', 'Throttle', 'Steering', 'Spun off', 'Damage',
-          'Did not start', 'Did not finish', 'Disqualified', 'Excluded', 'Withdrew',
-          'Not classified', 'Illness', 'Injury', 'Safety'
-        ];
-        
-        // Check if status matches a known DNF pattern
-        const isDNF = !isFinished && (
-          dnfStatuses.some(dnfStatus => 
-            status.toLowerCase().includes(dnfStatus.toLowerCase())
-          ) || 
-          // If position is 0 and status isn't empty and we know they didn't finish
-          (parseInt(result.position) === 0 && status !== '')
-        );
-        
-        return {
-          driverId: result.Driver.driverId,
-          code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
-          name: `${result.Driver.givenName} ${result.Driver.familyName}`,
-          team: result.Constructor?.constructorId || "unknown",
-          finishPosition: parseInt(result.position) || 0,
-          grid: parseInt(result.grid) || 0,
-          status,
-          isDNF,
-        };
-      });
-      
+    if (raceResultsData?.data?.Results?.length) {
+      const drivers = mapErgastResultsToDrivers(raceResultsData.data.Results);
       setAvailableDrivers(drivers);
-      
-      // Auto-select only the winner by default
+
       if (drivers.length > 0) {
-        const winner = drivers.find(d => d.finishPosition === 1);
-        if (winner) {
-          setSelectedDrivers([winner.code]);
-        } else {
-          setSelectedDrivers([drivers[0].code]);
-        }
+        const winner = drivers.find((d) => d.finishPosition === 1);
+        setSelectedDrivers([winner?.code ?? drivers[0].code]);
       }
     }
   }, [raceResultsData]);
 
-  // Update total laps when lap data changes
   useEffect(() => {
     if (lapTimesData?.data?.Races?.[0]?.Laps) {
       setIsProcessingData(true);
-      // Use setTimeout to allow UI to update before processing large dataset
       setTimeout(() => {
-        const laps = lapTimesData.data.Races[0].Laps;
-        setTotalLaps(laps.length);
+        setTotalLaps(lapTimesData.data.Races[0].Laps.length);
         setIsProcessingData(false);
       }, 0);
     }
   }, [lapTimesData]);
 
   const handleDriverToggle = (driverCode: string) => {
-    setSelectedDrivers(prev => 
+    setSelectedDrivers((prev) =>
       prev.includes(driverCode)
-        ? prev.filter(d => d !== driverCode)
-        : [...prev, driverCode]
+        ? prev.filter((d) => d !== driverCode)
+        : [...prev, driverCode],
     );
   };
 
@@ -162,94 +98,21 @@ export const usePositionChangeData = (year: number, round: string) => {
     setHoveredDriver(driverCode);
   };
 
-  // Visible drivers - always show all selected drivers
-  // Hovering only highlights, doesn't filter (to prevent chart flickering)
-  const visibleDrivers = useMemo(() => {
-    return selectedDrivers;
-  }, [selectedDrivers]);
+  const visibleDrivers = useMemo(() => selectedDrivers, [selectedDrivers]);
 
-  // Memoize chart data to avoid recalculations
-  const chartData = useMemo(() => {
-    if (!lapTimesData?.data?.Races || !lapTimesData.data.Races.length) {
-      return [];
-    }
-    
-    const race = lapTimesData.data.Races[0];
-    
-    if (!race.Laps || !race.Laps.length) {
-      return [];
-    }
-    
-    // Process position data lap by lap
-    return race.Laps.map((lap: any) => {
-      const lapNumber = parseInt(lap.number);
-      const lapData: any = { lap: lapNumber };
-      
-      lap.Timings.forEach((timing: any) => {
-        const driverId = timing.driverId;
-        const position = parseInt(timing.position);
-        
-        const driver = availableDrivers.find(d => d.driverId === driverId);
-        const driverCode = driver?.code || driverId.substring(0, 3).toUpperCase();
-        
-        lapData[driverCode] = position;
-      });
-      
-      return lapData;
-    });
-  }, [lapTimesData, availableDrivers]);
+  const chartData = useMemo(
+    () => buildPositionChartData(lapTimesData, availableDrivers),
+    [lapTimesData, availableDrivers],
+  );
 
-  // Find starting and final positions for each driver
-  // Use race results for accurate finish data, not lap data
-  const getPositionChangeSummary = (driverCode: string): PositionChangeSummary | null => {
-    const driver = availableDrivers.find(d => d.code === driverCode);
+  const getPositionChangeSummaryForDriver = (driverCode: string): PositionChangeSummary | null => {
+    const driver = availableDrivers.find((d) => d.code === driverCode);
     if (!driver) return null;
-    
-    // Get starting position from grid
-    const startPos = driver.grid || 0;
-    
-    // Get end position from race results (not lap data)
-    const endPos = driver.finishPosition || 0;
-    
-    // Use the isDNF flag from race results
-    const isDNF = driver.isDNF;
-    
-    if (startPos === 0) {
-      // No grid position data - check if we have lap data
-      if (chartData.length === 0) return null;
-      const firstLap = chartData[0];
-      if (!firstLap[driverCode]) return null;
-      
-      // Use first lap position as start
-      const lapStartPos = firstLap[driverCode];
-      const posChange = lapStartPos - endPos;
-      
-      return {
-        start: lapStartPos,
-        end: isDNF ? 0 : endPos,
-        change: isDNF ? 0 : posChange,
-        improved: !isDNF && posChange > 0,
-        isDNF,
-        status: driver.status,
-      };
-    }
-    
-    const posChange = startPos - endPos;
-    
-    return {
-      start: startPos,
-      end: isDNF ? 0 : endPos,
-      change: isDNF ? 0 : posChange,
-      improved: !isDNF && posChange > 0,
-      isDNF,
-      status: driver.status,
-    };
+    return getPositionChangeSummary(driverCode, driver, chartData);
   };
 
-  // Calculate maximum lap number from the data
-  const maxLap = chartData.length > 0 
-    ? Math.max(...chartData.map(lap => lap.lap)) 
-    : totalLaps;
+  const maxLap =
+    chartData.length > 0 ? Math.max(...chartData.map((lap) => lap.lap)) : totalLaps;
 
   return {
     chartData,
@@ -268,6 +131,6 @@ export const usePositionChangeData = (year: number, round: string) => {
     maxLap,
     handleDriverToggle,
     handleDriverHover,
-    getPositionChangeSummary,
+    getPositionChangeSummary: getPositionChangeSummaryForDriver,
   };
 };

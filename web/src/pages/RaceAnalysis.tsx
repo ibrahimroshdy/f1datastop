@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import YearSelector from "@/components/common/YearSelector";
@@ -11,9 +10,18 @@ import CountryFlag from "@/components/common/CountryFlag";
 import DataSourceBadge from "@/components/analytics/DataSourceBadge";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { useSessionsByYear } from "@/hooks/useOpenF1Data";
-import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
-import { F1Card, F1CardContent, F1CardDescription, F1CardHeader, F1CardTitle } from "@/components/f1";
+import {
+  F1Card,
+  F1CardContent,
+  F1CardDescription,
+  F1CardHeader,
+  F1CardTitle,
+  F1ChartContainer,
+  SessionSelector,
+  type SessionOption,
+} from "@/components/f1";
+import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { 
   BarChart3, Clock, TrendingUp, Flag, Wrench, 
   TrendingUpIcon, GitCompare, Cloud, Radio, 
@@ -39,15 +47,6 @@ const getDefaultYear = () => {
   return new Date().getFullYear();
 };
 
-interface SessionOption {
-  session_key: number;
-  session_name: string;
-  session_type: string;
-  date_start: string;
-  date_end: string;
-  meeting_key: number;
-}
-
 type RaceScheduleEntry = {
   round: string;
   raceName: string;
@@ -64,18 +63,17 @@ type OpenF1SessionEntry = {
   date_end: string;
 };
 
-/** Lazy tab content fallback — uses theme-aware F1Card */
+/** Lazy tab content fallback — uses theme-aware F1Card + F1ChartContainer */
 const TabLoadingFallback = () => {
-  const { isGlass } = useTheme();
+  const { cardVariant, glassVariant, isGlass } = useThemeVariant();
   return (
     <F1Card
-      variant={isGlass ? "glass" : "default"}
-      glassVariant={isGlass ? "panel" : "default"}
+      variant={cardVariant}
+      glassVariant={glassVariant}
       className="overflow-hidden"
     >
-      <F1CardContent className="min-h-[400px] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm">Loading analysis...</p>
+      <F1CardContent className="px-4 pb-4">
+        <F1ChartContainer isLoading minHeight={400} loadingMessage="Loading analysis..." />
       </F1CardContent>
     </F1Card>
   );
@@ -84,9 +82,7 @@ const TabLoadingFallback = () => {
 const RaceAnalysis = () => {
   const { year: urlYear, round: urlRound } = useParams();
   const navigate = useNavigate();
-  const { isGlass, baseTheme } = useTheme();
-  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
-  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
+  const { cardVariant, glassVariant, isGlass } = useThemeVariant();
   
   // State
   const [selectedYear, setSelectedYear] = useState<number>(
@@ -232,7 +228,7 @@ const RaceAnalysis = () => {
             </div>
             
             {/* Race Selection Card */}
-            <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+            <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
               <F1CardHeader className="pb-3 pt-4 px-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -287,24 +283,12 @@ const RaceAnalysis = () => {
                   
                   {/* Session Selector (for OpenF1 data) */}
                   {hasOpenF1Data && (
-                    <div className="w-full sm:w-auto">
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Session</label>
-                      <Select 
-                        value={selectedSessionKey?.toString() || ""} 
-                        onValueChange={handleSessionChange}
-                      >
-                        <SelectTrigger className={cn("w-[180px]", isGlass && "bg-white/5 border-white/10")}>
-                          <SelectValue placeholder="Select session" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableSessions.map((session) => (
-                            <SelectItem key={session.session_key} value={session.session_key.toString()}>
-                              {session.session_type}: {session.session_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <SessionSelector
+                      sessions={availableSessions}
+                      selectedSessionKey={selectedSessionKey}
+                      onSessionChange={handleSessionChange}
+                      isLoading={isOpenF1Loading}
+                    />
                   )}
                 </div>
               </F1CardContent>
@@ -410,7 +394,7 @@ const RaceAnalysis = () => {
               <Suspense fallback={<TabLoadingFallback />}>
                 {/* Analytics Tabs (Ergast) */}
                 <TabsContent value="lapTimes" className="mt-4">
-                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                  <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                     <F1CardHeader className="pb-2 pt-3 px-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -428,7 +412,7 @@ const RaceAnalysis = () => {
                 </TabsContent>
                 
                 <TabsContent value="positions" className="mt-4">
-                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                  <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                     <F1CardHeader className="pb-2 pt-3 px-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -446,7 +430,7 @@ const RaceAnalysis = () => {
                 </TabsContent>
                 
                 <TabsContent value="qualifying" className="mt-4">
-                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                  <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                     <F1CardHeader className="pb-2 pt-3 px-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -464,7 +448,7 @@ const RaceAnalysis = () => {
                 </TabsContent>
                 
                 <TabsContent value="progression" className="mt-4">
-                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                  <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                     <F1CardHeader className="pb-2 pt-3 px-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -482,7 +466,7 @@ const RaceAnalysis = () => {
                 </TabsContent>
                 
                 <TabsContent value="pitstops" className="mt-4">
-                  <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                  <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                     <F1CardHeader className="pb-2 pt-3 px-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -503,7 +487,7 @@ const RaceAnalysis = () => {
                 {hasOpenF1Data ? (
                   <>
                     <TabsContent value="weather" className="mt-4">
-                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                      <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                         <F1CardHeader className="pb-2 pt-3 px-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -525,7 +509,7 @@ const RaceAnalysis = () => {
                     </TabsContent>
                     
                     <TabsContent value="radio" className="mt-4">
-                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                      <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                         <F1CardHeader className="pb-2 pt-3 px-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -547,7 +531,7 @@ const RaceAnalysis = () => {
                     </TabsContent>
                     
                     <TabsContent value="telemetry" className="mt-4">
-                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                      <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                         <F1CardHeader className="pb-2 pt-3 px-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -569,7 +553,7 @@ const RaceAnalysis = () => {
                     </TabsContent>
                     
                     <TabsContent value="results" className="mt-4">
-                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                      <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                         <F1CardHeader className="pb-2 pt-3 px-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -591,7 +575,7 @@ const RaceAnalysis = () => {
                     </TabsContent>
                     
                     <TabsContent value="overtakes" className="mt-4">
-                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                      <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                         <F1CardHeader className="pb-2 pt-3 px-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -616,7 +600,7 @@ const RaceAnalysis = () => {
                   // Show alert for years without OpenF1 data
                   liveDataTabs.map(tab => (
                     <TabsContent key={tab.id} value={tab.id} className="mt-4">
-                      <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
+                      <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
                         <F1CardContent className="py-12">
                           <Alert>
                             <AlertCircle className="h-4 w-4" />

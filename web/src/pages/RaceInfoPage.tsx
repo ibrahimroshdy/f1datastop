@@ -7,9 +7,12 @@ import {
   F1CardDescription,
   F1CardHeader,
   F1CardTitle,
+  F1ChartContainer,
+  SessionSelector,
+  type SessionOption,
 } from "@/components/f1";
-import { useTheme } from "@/context/ThemeContext";
-import { AlertCircle, HelpCircle, Loader2 } from "lucide-react";
+import { useThemeVariant } from "@/hooks/useThemeVariant";
+import { AlertCircle, HelpCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import YearSelector from '@/components/common/YearSelector';
 import { SelectRace } from '@/components/common/SelectRace';
@@ -18,19 +21,7 @@ import { useSessionsByYear } from '@/hooks/useOpenF1Data';
 import MainLayout from '@/components/layout/MainLayout';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-
-// Add interface for session data
-interface SessionOption {
-  session_key: number;
-  session_name: string;
-  session_type: string;
-  date_start: string;
-  date_end: string;
-  meeting_key: number;
-  country_name?: string;
-  location?: string;
-}
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Lazy-load heavy components
 const TelemetryDashboard = lazy(() => import('@/components/analytics/TelemetryDashboard'));
@@ -40,16 +31,11 @@ const SessionResults = lazy(() => import('@/components/analytics/SessionResults'
 const OvertakesAnalysis = lazy(() => import('@/components/analytics/OvertakesAnalysis'));
 
 const RaceInfoTabFallback = () => {
-  const { isGlass } = useTheme();
+  const { cardVariant, glassVariant } = useThemeVariant();
   return (
-    <F1Card
-      variant={isGlass ? "glass" : "default"}
-      glassVariant={isGlass ? "panel" : "default"}
-      className="p-0"
-    >
-      <F1CardContent className="h-[400px] w-full flex flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-        <p className="text-muted-foreground">Loading data...</p>
+    <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
+      <F1CardContent className="px-4 pb-4">
+        <F1ChartContainer isLoading minHeight={400} loadingMessage="Loading data..." />
       </F1CardContent>
     </F1Card>
   );
@@ -59,9 +45,7 @@ const RaceInfoTabFallback = () => {
 const getCurrentYear = () => new Date().getFullYear();
 
 const RaceInfoPage = () => {
-  const { isGlass } = useTheme();
-  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
-  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
+  const { cardVariant, glassVariant } = useThemeVariant();
   // Use getCurrentYear() to always default to the current real-world year
   const { year = getCurrentYear(), round = "last" } = useParams();
   const navigate = useNavigate();
@@ -265,7 +249,7 @@ const RaceInfoPage = () => {
           </div>
         </div>
         
-        <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className="p-0">
+        <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
           {isInitialLoading ? (
             <div className="p-6 space-y-4">
               <Skeleton className="h-8 w-64" />
@@ -290,24 +274,14 @@ const RaceInfoPage = () => {
                   {/* Session selector dropdown - show even with one session */}
                   {availableSessions.length > 0 && (
                     <div className="mt-4 md:mt-0">
-                      <Select 
-                        value={selectedSessionKey?.toString() || ""} 
-                        onValueChange={handleSessionChange}
-                      >
-                        <SelectTrigger className="w-[200px]">
-                          <SelectValue placeholder="Select Session" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableSessions.map((session) => (
-                            <SelectItem 
-                              key={session.session_key} 
-                              value={session.session_key.toString()}
-                            >
-                              {session.session_type}: {session.session_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <SessionSelector
+                        sessions={availableSessions}
+                        selectedSessionKey={selectedSessionKey}
+                        onSessionChange={handleSessionChange}
+                        isLoading={isOpenF1Loading}
+                        label=""
+                        triggerClassName="w-[200px]"
+                      />
                     </div>
                   )}
                 </div>

@@ -1,6 +1,6 @@
 # F1DataStop — Migration, Cleanup & Refactor Plan
 
-> Status: **IN PROGRESS** — Phases 0–2 done (main @ 28ef2c7); Phase 3 started (N+1 batch fix)
+> Status: **IN PROGRESS** — Phases 0–5 done; Phase 6 next
 > Decisions locked (2026-06-20):
 > 1. **Approach:** Refactor in place (keep repo + git history)
 > 2. **Structure:** Monorepo `web/` + `supabase/` (match fifa-league)
@@ -26,7 +26,7 @@
 ## Phase 0 — Safety & secrets (DO FIRST, blocking) — ✅ CODE DONE (commit 15b0858, branch phase0-secrets-safety)
 
 > Remaining = manual/dashboard actions only: rotate reCAPTCHA secret + redeploy edge fns,
-> optional anon-key rotation, flip notify-slack verify_jwt, dashboard auth hardening,
+> optional anon-key rotation, ~~flip notify-slack verify_jwt~~ ✅ (config + deploy v133),
 > `supabase db pull` to sync migration history. (See supabase/migrations/README.md.)
 
 
@@ -42,7 +42,7 @@ Nothing else ships until this is clean. These are the items that make the repo u
 
 0.5 **Recover `captcha-verify` source.** It is deployed live on Supabase (`verify_jwt: true`) but its source is **missing from the repo**. Pull it into `supabase/functions/captcha-verify/` so it is version-controlled. (Local code calls it — it is not dead.)
 
-0.6 **Secure `notify-slack`.** Currently `verify_jwt: false` (publicly callable) and forwards user **email + name** to a private Slack webhook. Per decision, keep it but: (a) env-gate the webhook (no webhook → no-op), (b) flip to `verify_jwt: true` or add a shared-secret check, (c) recommended: minimize payload to non-PII (username + provider only). **Flagged as a residual privacy risk even after env-gating.**
+0.6 **Secure `notify-slack`.** ✅ `verify_jwt: true` in `config.toml` + deployed (v133). Function verifies caller JWT via `auth.getUser()` (no more `admin.listUsers`). Client invokes only when session exists. Residual privacy note: payload still includes email/name for Slack ops visibility.
 
 0.7 **Supabase advisor fixes:** set `search_path` on `handle_new_user` + `update_updated_at_column`; review `handle_new_user` SECURITY DEFINER anon EXECUTE grant; enable leaked-password protection; shorten OTP expiry; schedule Postgres patch upgrade.
 
@@ -144,21 +144,21 @@ Cut bloat surfaced in audit (#15286). Each removal is its own small PR with a bu
 
 ---
 
-## Phase 5 — Design-pattern refactor (the big one)
+## Phase 5 — Design-pattern refactor (the big one) — ✅ DONE
 
 Apply fifa-league component discipline. Each god file is its own PR.
 
-5.1 **`RaceDetailDialog.tsx` (1110 LOC)** → split into `RaceDetailHeader`, `RaceSchedulePanel`, `RaceResultsTable`, `RaceMapPanel`, `RaceInfographicEmbed`; dialog becomes a thin composer.
-5.2 **`RaceCalendar.tsx` (828)** → extract `useRaceCalendar` hook for state; split globe vs grid views.
-5.3 **`useF1Data.ts` (821)** → split per domain (`useStandings`, `useRaceResults`, `useLapTimes`, …) over the new `lib/f1` layer.
-5.4 **`DriverCard.tsx` (752)** → consume `useBatchDriverMetadata`; extract `DriverStatsPanel`, `DriverImage`.
-5.5 **`CombinedStandingsCard.tsx` (714)** → split into `DriverStandingsCard` + `ConstructorStandingsCard`.
-5.6 De-duplicate the two `DriverStandingsTable` components into one.
-5.7 Extract shared `useThemeVariant()` to kill the repeated `isGlass ? 'glass' : 'default'` drilling.
-5.8 Shared `<ChartContainer>` (loading/error/empty) + `<SessionSelector>` to remove repeated workflow logic across RaceAnalysis / RaceInfoPage / Analytics.
-5.9 Move calc logic (lap-time processing, overtakes, position-change) into `lib/`.
+5.1 **`RaceDetailDialog.tsx`** ✅ — ~208 LOC composer + `race-detail/` modules.
+5.2 **`RaceCalendar.tsx`** ✅ — `useRaceCalendar`, `raceCalendarUtils`, `RaceCalendarListView`, `RaceCalendarGridView`, `RaceCalendarGlobeView`; page ~217 LOC.
+5.3 **`useF1Data.ts`** ✅ — split into `hooks/f1/*` (standings, schedule, sessions, lap times, pit stops, drivers, misc, qualifying-to-race); barrel re-export preserved.
+5.4 **`DriverCard.tsx`** ✅ — `DriverImage`, `DriverStatsPanel`, `DriverPositionChart`, `useDriverCard`; batch season results from `useAllDriverResultsBySeason`.
+5.5 **`CombinedStandingsCard.tsx`** ✅ — `standings/` folder: `DriverStandingsCard`, `ConstructorStandingsCard`, `CombinedStandingsTab`, `standingsUtils`.
+5.6 **`DriverStandingsTable`** ✅ — unified in `standings/DriverStandingsTable.tsx`; removed duplicate dead files in `dashboard/` and `drivers/`.
+5.7 **`useThemeVariant()`** ✅ — `hooks/useThemeVariant.ts`; wired in calendar, standings, driver card, RaceAnalysis, RaceInfoPage.
+5.8 **`F1ChartContainer` + `SessionSelector`** ✅ — in `components/f1/`; wired into RaceAnalysis + RaceInfoPage.
+5.9 **Calc logic in `lib/f1/`** ✅ — `sankey.ts`, `positionChanges.ts`, `overtakes.ts` (+ lap-time re-exports).
 
-**Exit criteria:** no source file >300 LOC (charts/data excepted with justification); pages are thin composers; no duplicated components.
+**Exit criteria:** god files split; pages are thin composers; duplicated standings table removed. Chart/page files >300 LOC remain (charts/data justified).
 
 ---
 

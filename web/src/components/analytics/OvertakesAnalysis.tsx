@@ -26,15 +26,7 @@ interface OvertakesAnalysisProps {
   sessionName?: string;
 }
 
-interface DriverInfo {
-  number: number;
-  name: string;
-  acronym: string;
-  team: string;
-  color: string;
-  gridPosition: number;
-  finalPosition: number;
-}
+interface DriverInfo extends OvertakeDriverInfo {}
 
 interface PitStopInfo {
   driver: string;
@@ -44,19 +36,13 @@ interface PitStopInfo {
   stop: number;
 }
 
-interface DriverStats {
-  driver_number: number;
-  acronym: string;
-  team: string;
-  color: string;
-  overtakes_made: number;
-  overtakes_suffered: number;
-  net_overtakes: number;
-  starting_position: number;
-  final_position: number;
-  position_change: number;
-  status: 'running' | 'dnf';
-}
+import {
+  buildPositionsByLap,
+  computeDriverOvertakeStats,
+  buildOvertakePositionChartData,
+  type OvertakeDriverInfo,
+  type DriverOvertakeStats,
+} from "@/lib/f1/overtakes";
 
 // F1 Team Colors 2024
 const teamColors: { [key: string]: string } = {
@@ -190,54 +176,16 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
     return Math.max(...lapsData.data.map((lap: any) => lap.lap_number || 0));
   }, [lapsData]);
 
-  // Build position data by lap
-  const positionsByLap = useMemo(() => {
-    if (!positionData?.data || !lapsData?.data) return {};
-    
-    const lapTimestamps: { [lap: number]: Date } = {};
-    lapsData.data.forEach((lap: any) => {
-      if (lap.lap_number && lap.date_start) {
-        lapTimestamps[lap.lap_number] = new Date(lap.date_start);
-      }
-    });
-    
-    const positionsByDriver: { [driverNumber: number]: { [lap: number]: number } } = {};
-    
-    // Initialize with grid positions from Ergast (lap 0)
-    Object.entries(drivers).forEach(([numStr, driver]) => {
-      const num = parseInt(numStr);
-      positionsByDriver[num] = { 0: driver.gridPosition };
-    });
-    
-    // Also try OpenF1 starting grid as fallback
-    if (startingGridData?.data) {
-      startingGridData.data.forEach((grid: any) => {
-        if (!positionsByDriver[grid.driver_number]) {
-          positionsByDriver[grid.driver_number] = {};
-        }
-        // Only use if we don't have Ergast data
-        if (!positionsByDriver[grid.driver_number][0] || positionsByDriver[grid.driver_number][0] === 20) {
-          positionsByDriver[grid.driver_number][0] = grid.position;
-        }
-      });
-    }
-    
-    // Process position changes throughout the race
-    positionData.data.forEach((pos: any) => {
-      if (!pos.position || pos.position < 1 || pos.position > 25) return;
-      const posDate = new Date(pos.date);
-      let closestLap = 1;
-      let minDiff = Infinity;
-      Object.entries(lapTimestamps).forEach(([lapNum, lapDate]) => {
-        const diff = Math.abs(posDate.getTime() - lapDate.getTime());
-        if (diff < minDiff) { minDiff = diff; closestLap = parseInt(lapNum); }
-      });
-      if (!positionsByDriver[pos.driver_number]) positionsByDriver[pos.driver_number] = {};
-      positionsByDriver[pos.driver_number][closestLap] = pos.position;
-    });
-    
-    return positionsByDriver;
-  }, [positionData, lapsData, startingGridData, drivers]);
+  const positionsByLap = useMemo(
+    () =>
+      buildPositionsByLap(
+        positionData?.data,
+        lapsData?.data,
+        drivers,
+        startingGridData?.data,
+      ),
+    [positionData, lapsData, startingGridData, drivers],
+  );
 
   const currentLap = useMemo(() => Math.floor((currentProgress / 100) * totalLaps), [currentProgress, totalLaps]);
   const previousLap = useMemo(() => Math.max(0, currentLap - 1), [currentLap]);
@@ -298,46 +246,11 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
     return positions.sort((a, b) => a.position - b.position);
   }, [positionsByLap, drivers, currentLap, previousLap, pitStopsWithNumbers]);
 
-  // Driver statistics
-  const driverStats = useMemo((): DriverStats[] => {
-    if (!drivers || Object.keys(drivers).length === 0) return [];
-    const stats: DriverStats[] = [];
-    
-    Object.values(drivers).forEach(driver => {
-      const driverPositions = positionsByLap[driver.number] || {};
-      const startPos = driver.gridPosition;
-      const finalPos = driver.finalPosition;
-      
-      let overtakesMade = 0, overtakesSuffered = 0;
-      if (overtakesData?.data) {
-        overtakesData.data.forEach((ot: any) => {
-          if (ot.overtaking_driver_number === driver.number) overtakesMade++;
-          if (ot.overtaken_driver_number === driver.number) overtakesSuffered++;
-        });
-      }
-      
-      // Check if DNF from Ergast
-      const ergastResult = ergastData.results.find((r: any) => 
-        r.Driver?.code === driver.acronym
-      );
-      const status = ergastResult?.status === 'Finished' || ergastResult?.status?.includes('+') ? 'running' : 'dnf';
-      
-      stats.push({ 
-        driver_number: driver.number, 
-        acronym: driver.acronym, 
-        team: driver.team, 
-        color: driver.color, 
-        overtakes_made: overtakesMade, 
-        overtakes_suffered: overtakesSuffered, 
-        net_overtakes: overtakesMade - overtakesSuffered, 
-        starting_position: startPos, 
-        final_position: finalPos, 
-        position_change: startPos - finalPos, 
-        status 
-      });
-    });
-    return stats.sort((a, b) => a.final_position - b.final_position);
-  }, [drivers, positionsByLap, overtakesData, ergastData.results]);
+  const driverStats = useMemo(
+    (): DriverOvertakeStats[] =>
+      computeDriverOvertakeStats(drivers, overtakesData?.data, ergastData.results),
+    [drivers, overtakesData, ergastData.results],
+  );
 
   // Animation loop
   useEffect(() => {
@@ -355,33 +268,10 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
     return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current); };
   }, [isPlaying, playbackSpeed, currentProgress]);
 
-  // Chart data for position progression (recharts: array of row objects keyed by series label)
-  const positionChartData = useMemo(() => {
-    if (!drivers || Object.keys(positionsByLap).length === 0) return { rows: [], series: [] };
-    const laps = Array.from({ length: totalLaps + 1 }, (_, i) => i);
-    const series: Array<{ label: string; color: string; id: string }> = [];
-    const driversToShow = selectedDriver ? [selectedDriver] : Object.keys(drivers).map(Number).slice(0, 10);
-
-    // Per-driver lap -> position lookup (carrying last-known position forward)
-    const driverLapPositions: Array<{ label: string; positions: (number | null)[] }> = [];
-    driversToShow.forEach(driverNumber => {
-      const driver = drivers[driverNumber]; if (!driver) return;
-      const driverPositions = positionsByLap[driverNumber] || {};
-      let lastKnownPos: number | null = null;
-      const positions = laps.map(lap => { if (driverPositions[lap] !== undefined) lastKnownPos = driverPositions[lap]; return lastKnownPos; });
-      series.push({ label: driver.acronym, color: driver.color, id: `driver-${driverNumber}` });
-      driverLapPositions.push({ label: driver.acronym, positions });
-    });
-
-    // Build one row per lap, keyed by driver acronym
-    const rows = laps.map((lap, i) => {
-      const row: { [key: string]: number | null } = { lap };
-      driverLapPositions.forEach(d => { row[d.label] = d.positions[i]; });
-      return row;
-    });
-
-    return { rows, series };
-  }, [drivers, positionsByLap, totalLaps, selectedDriver]);
+  const positionChartData = useMemo(
+    () => buildOvertakePositionChartData(positionsByLap, drivers, totalLaps, selectedDriver),
+    [drivers, positionsByLap, totalLaps, selectedDriver],
+  );
 
   const isLoading = isSessionLoading || isPositionLoading || isDriversLoading || isOvertakesLoading || isLapsLoading || isStartingGridLoading || isErgastLoading;
   const totalOvertakes = overtakesData?.data?.length || 0;

@@ -49,15 +49,20 @@ serve(async (req) => {
   try {
     const SLACK_WEBHOOK_URL = Deno.env.get("SLACK_WEBHOOK_URL");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
     // Slack notifications are optional. No webhook configured => feature disabled (no-op).
     if (!SLACK_WEBHOOK_URL) {
       return jsonResponse({ success: true, skipped: "slack_disabled" });
     }
-    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.error("Missing required environment variables");
       return jsonResponse({ error: "Server misconfigured" }, 500);
+    }
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
     // Rate limit by client IP to prevent flooding
@@ -76,35 +81,33 @@ serve(async (req) => {
       return jsonResponse({ error: "Invalid request" }, 400);
     }
 
-    // Verify the email belongs to a real, recently-created auth user.
-    // This prevents anonymous abuse: only legitimate fresh signups trigger Slack.
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    // verify_jwt=true at the gateway + caller identity from the JWT
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { data: list, error: listErr } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 200,
-    });
-    if (listErr) {
-      console.error("Failed to list users:", listErr);
-      return jsonResponse({ error: "Verification failed" }, 500);
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      console.error("JWT verification failed:", userErr);
+      return jsonResponse({ error: "Unauthorized" }, 401);
     }
 
-    const match = list.users.find(
-      (u) => (u.email || "").toLowerCase() === userData.email.toLowerCase(),
-    );
-    if (!match) {
-      return jsonResponse({ error: "User not found" }, 403);
+    const callerEmail = (user.email || "").toLowerCase();
+    if (callerEmail !== userData.email.toLowerCase()) {
+      return jsonResponse({ error: "Forbidden" }, 403);
     }
 
-    const createdAt = new Date(match.created_at).getTime();
+    const createdAt = new Date(user.created_at).getTime();
     if (Date.now() - createdAt > 10 * 60_000) {
       // Only notify within 10 minutes of signup
       return jsonResponse({ error: "Signup window expired" }, 403);
     }
 
-    const provider = userData.provider || "email";
+    const provider = userData.provider || user.app_metadata?.provider || "email";
     const headerText =
       provider === "twitter"
         ? "🐦 New Twitter/X User Signup!"
