@@ -1,6 +1,6 @@
 # F1DataStop — Migration, Cleanup & Refactor Plan
 
-> Status: **IN PROGRESS** — Phases 0–6 done; Phase 7 next
+> Status: **IN PROGRESS** — Phases 0–7 done; Phase 8 next
 > Decisions locked (2026-06-20):
 > 1. **Approach:** Refactor in place (keep repo + git history)
 > 2. **Structure:** Monorepo `web/` + `supabase/` (match fifa-league)
@@ -173,15 +173,15 @@ Apply fifa-league component discipline. Each god file is its own PR.
 
 ---
 
-## Phase 7 — Env-gate integrations
+## Phase 7 — Env-gate integrations — ✅ DONE
 
 Keep all four, but every key is an env var; integration is a no-op when its key is unset (fifa-league pattern).
 
-7.1 GA4 measurement id, Clarity project id, AdSense client/slot ids, Mapbox token → all `VITE_*` env, disabled if absent.
-7.2 Slack webhook → edge-function env only; no-op without it (Phase 0.6).
-7.3 Complete `.env.example` documenting every var (frontend `VITE_*` + edge-function secrets), grouped like fifa-league.
+7.1 **GA4, Clarity, AdSense, Mapbox, reCAPTCHA** ✅ — `config/integrations.ts` + `bootstrapThirdParty.ts`; removed hardcoded ids from `index.html`, `GA4.tsx`, `App.tsx`, `apiConfig.ts`, `adsense.ts`.
+7.2 **Slack webhook** ✅ — edge-function env only; no-op without `SLACK_WEBHOOK_URL` (Phase 0.6).
+7.3 **`.env.example`** ✅ — grouped frontend `VITE_*` + edge-function secrets with disable-when-unset notes.
 
-**Exit criteria:** clone + `.env` from example + `npm run dev` works; no integration hardcoded.
+**Exit criteria:** clone + `.env` from example + `npm run dev` works; no integration hardcoded in source.
 
 ---
 
