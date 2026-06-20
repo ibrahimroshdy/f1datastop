@@ -1,7 +1,7 @@
 # F1 DataStop
 
 <p align="center">
-<img src="public/lovable-uploads/4b2c0df9-6dc4-4759-bfe3-fb274f378741.png" alt="F1 DataStop" width="250" height="200">
+<img src="public/lovable-uploads/f1-cover-v2.jpg" alt="F1 DataStop" width="250" height="200">
 </p>
 
 <p align="center">
@@ -314,7 +314,6 @@ The production-ready files will be in the `dist` directory.
 The application can be deployed to:
 - **Vercel** - Recommended for React apps
 - **Netlify** - Easy deployment with Git integration
-- **Lovable** - Original hosting platform
 
 ## Contributing
 

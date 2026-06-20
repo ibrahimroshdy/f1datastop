@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Environment / secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Local tooling / agent config
+.mcp.json
+.cursor/
+.claude/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

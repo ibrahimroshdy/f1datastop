@@ -51,7 +51,11 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!SLACK_WEBHOOK_URL || !SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    // Slack notifications are optional. No webhook configured => feature disabled (no-op).
+    if (!SLACK_WEBHOOK_URL) {
+      return jsonResponse({ success: true, skipped: "slack_disabled" });
+    }
+    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
       console.error("Missing required environment variables");
       return jsonResponse({ error: "Server misconfigured" }, 500);
     }
