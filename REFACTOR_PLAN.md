@@ -111,16 +111,16 @@ Cut bloat surfaced in audit (#15286). Each removal is its own small PR with a bu
 
 ## Phase 3 — Canonical data-reference layer — 🔄 IN PROGRESS (branch phase3-drivers-n1)
 
-> 3.6 partial (PR pending): Drivers-page Ergast N+1 fixed — `getAllDriverResultsBySeason`
-> + `useAllDriverResultsBySeason`; `pages/Drivers.tsx` passes batched slices to `DriverCard`.
-> ~20 per-driver Ergast calls → 1 batch call (+ standings + OpenF1 batch).
-> Remaining 3.1–3.5: `lib/f1/` types, adapters, shared throttledFetch, request queue, key convention.
+> 3.6 done (#12): Drivers-page Ergast N+1 batch fix.
+> 3.3 done (main): shared `web/src/lib/api/throttledFetch.ts` — f1Service, openF1Service,
+> useF1Data, useOpenF1Data now use one retry/backoff implementation.
+> Remaining 3.1–3.2, 3.4–3.5: `lib/f1/` types, adapters, request queue, key convention.
 
 The root of the "data everywhere / mishandling" problem: no single source of truth mapping the two APIs.
 
 3.1 Create `web/src/lib/f1/` with **canonical types** — `F1Driver`, `F1Team`, `F1Race`, `F1Session` — each carrying both `ergastId` and `openF1Number`/keys.
 3.2 Single `adapters.ts`: `normalizeErgastDriver`, `normalizeOpenF1Driver`, `mergeDriver`. Delete the 4 duplicated mappings (`apiAdapters.ts`, `useF1Metadata.ts` inline, `DriverCard.tsx` inline).
-3.3 **One shared retry/fetch util** (`lib/api/throttledFetch.ts`) — kill the 3 copy-pasted retry blocks in `useF1Data`, `useOpenF1Data`, `openF1Service`.
+3.3 **One shared retry/fetch util** (`lib/api/throttledFetch.ts`) — ✅ DONE. f1Service, openF1Service, useF1Data, useOpenF1Data consolidated.
 3.4 **Request queue** per service (`p-queue` style: Ergast concurrency 1, OpenF1 3) to stop bursts at the source.
 3.5 **React Query key convention** doc + helper — hierarchical keys like fifa-league (`['drivers', year]`, `['session', sessionKey, 'laps', driverNumber]`).
 3.6 **Batch driver metadata**: one `useBatchDriverMetadata(year)` consumed by all cards. Kills the 44–66-call N+1 on the Drivers page → ~2 calls.

@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { withCache } from "@/utils/cache";
 import { F1_API } from "@/constants/apiConfig";
+import { throttledFetch } from "@/lib/api/throttledFetch";
 
 const BASE_URL = F1_API.OPENF1_BASE;
 
@@ -10,49 +11,6 @@ const TTL = {
   SESSION_DATA: 60 * 60 * 1000, // 1 hour - session data can change during events
   LIVE_DATA: 30 * 1000, // 30 seconds - live telemetry data
 } as const;
-
-// Helper function for throttled fetching
-async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3): Promise<Response> {
-  let retries = 0;
-
-  while (true) {
-    try {
-      const response = await fetch(url, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-
-      // If we get rate limited, wait and retry (honour Retry-After when present)
-      if (response.status === 429 && retries < maxRetries) {
-        retries++;
-
-        let delay = retryDelay * (2 ** retries) * (0.8 + Math.random() * 0.4);
-        const retryAfter = response.headers.get("Retry-After");
-        if (retryAfter) {
-          const sec = parseInt(retryAfter, 10);
-          if (!Number.isNaN(sec)) delay = Math.max(delay, sec * 1000);
-        }
-        console.log(`Rate limit hit. Retry ${retries}/${maxRetries} after ${Math.round(delay)}ms delay`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-
-      return response;
-    } catch (error) {
-      if (retries < maxRetries) {
-        retries++;
-
-        const delay = retryDelay * (2 ** retries);
-        console.log(`Network error. Retry ${retries}/${maxRetries} after ${delay}ms delay`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      throw error;
-    }
-  }
-}
 
 // Helper function to check response format
 async function validateJsonResponse(response: Response, context: string): Promise<any> {

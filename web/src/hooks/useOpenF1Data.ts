@@ -1,30 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import * as openF1Service from "@/services/openF1Service";
-import { toast } from "sonner";
 import { useState } from "react";
 import { findMatchingOpenF1Session } from "@/utils/apiAdapters";
-
-// Helper function to create exponential backoff retry logic with jitter
-const createRetryConfig = (retryDelayBase = 2000, maxRetryAttempts = 5) => ({
-  retry: maxRetryAttempts,
-  retryDelay: (attemptIndex: number) => {
-    // Enhanced exponential backoff with jitter to avoid thundering herd
-    const delay = Math.min(retryDelayBase * (2 ** attemptIndex) * (0.8 + Math.random() * 0.4), 60000);
-    
-    if (attemptIndex > 0) {
-      toast.info(`Rate limit reached. Retrying in ${Math.round(delay/1000)} seconds...`, {
-        id: `openf1-retry-toast-${attemptIndex}`,
-        duration: delay,
-      });
-      console.log(`Rate limit retry attempt ${attemptIndex + 1} in ${Math.round(delay/1000)} seconds`);
-    }
-    
-    return delay;
-  }
-});
+import { createRetryConfig } from "@/lib/api/throttledFetch";
 
 // Default retry config with moderate settings
-const defaultRetryConfig = createRetryConfig(2000, 5);
+const defaultRetryConfig = createRetryConfig(2000, 5, { toastIdPrefix: "openf1-retry" });
 
 // Get latest session
 export const useLatestSession = () => {

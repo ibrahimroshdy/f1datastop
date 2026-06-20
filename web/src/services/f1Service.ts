@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { getCountryFlag, addFlagToRaceName } from "@/utils/countryUtils";
 import { F1_API } from "@/constants/apiConfig";
+import { throttledFetch } from "@/lib/api/throttledFetch";
 
 const BASE_URL = F1_API.ERGAST_BASE;
 
@@ -135,58 +136,6 @@ export const getPitStops = async (year: number, round: string) => {
     return { data: {}, error };
   }
 };
-
-// Enhanced throttled fetch with more robust retry for handling 429 errors
-async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3, attemptRef?: { [key: string]: number }): Promise<Response> {
-  let retries = 0;
-  const requestId = url.split('?')[0] + '_' + Math.random().toString(36).substring(2, 9);
-
-  if (attemptRef) {
-    attemptRef[requestId] = 0;
-  }
-
-  while (true) {
-    try {
-      const response = await fetch(url, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-
-      // If we get rate limited, wait and retry (honour Retry-After when present)
-      if (response.status === 429 && retries < maxRetries) {
-        retries++;
-        if (attemptRef) {
-          attemptRef[requestId] = retries;
-        }
-
-        let delay = retryDelay * (2 ** retries) * (0.8 + Math.random() * 0.4);
-        const retryAfter = response.headers.get("Retry-After");
-        if (retryAfter) {
-          const sec = parseInt(retryAfter, 10);
-          if (!Number.isNaN(sec)) delay = Math.max(delay, sec * 1000);
-        }
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-
-      return response;
-    } catch (error) {
-      if (retries < maxRetries) {
-        retries++;
-        if (attemptRef) {
-          attemptRef[requestId] = retries;
-        }
-
-        const delay = retryDelay * (2 ** retries);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      throw error;
-    }
-  }
-}
 
 // Fetch lap times for a specific race with enhanced pagination and retry support
 export const getLapTimes = async (
