@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm install --prefix web",
+  "buildCommand": "npm --prefix web run build",
+  "outputDirectory": "web/dist",
+  "rewrites": [
+    {
+      "source": "/api/ergast/:path*",
+      "destination": "https://api.jolpi.ca/ergast/:path*"
+    },
+    {
+      "source": "/api/openf1/:path*",
+      "destination": "https://api.openf1.org/v1/:path*"
+    }
+  ]
+}
