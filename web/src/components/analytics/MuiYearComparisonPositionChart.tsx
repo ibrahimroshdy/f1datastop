@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LineChart } from '@mui/x-charts/LineChart';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 import { useLapTimes, useRaceResults } from '@/hooks/useF1Data';
 import { TEAM_COLORS } from '@/constants/f1Colors';
 import { useTheme } from '@/context/ThemeContext';
@@ -51,19 +59,6 @@ const MuiYearComparisonPositionChart: React.FC<MuiYearComparisonPositionChartPro
   const { data: comparisonLapData, isLoading: comparisonLoading } = useLapTimes(comparisonYear, comparisonRound);
   const { data: baseResults, isLoading: baseResultsLoading } = useRaceResults(baseYear, baseRound);
   const { data: comparisonResults, isLoading: comparisonResultsLoading } = useRaceResults(comparisonYear, comparisonRound);
-
-  // Create MUI theme
-  const muiTheme = useMemo(() => createTheme({
-    palette: {
-      mode: isDark ? 'dark' : 'light',
-      primary: { main: '#e10600' },
-      background: {
-        default: isDark ? 'hsl(222 47% 8%)' : '#fff',
-        paper: isDark ? 'hsl(222 47% 11%)' : '#fff',
-      },
-    },
-    typography: { fontFamily: 'inherit' },
-  }), [isDark]);
 
   // Process driver lists
   useEffect(() => {
@@ -139,9 +134,9 @@ const MuiYearComparisonPositionChart: React.FC<MuiYearComparisonPositionChartPro
     setIsProcessing(false);
   }, [baseLapData, comparisonLapData, selectedBaseDrivers, selectedComparisonDrivers, baseYear, comparisonYear]);
 
-  // Build series for the chart
+  // Build series descriptors for the chart (base year solid, comparison year dashed)
   const series = useMemo(() => {
-    const result: any[] = [];
+    const result: { dataKey: string; label: string; color: string; dashed: boolean }[] = [];
 
     selectedBaseDrivers.forEach((code) => {
       const driver = baseDrivers.find(d => d.code === code);
@@ -150,8 +145,7 @@ const MuiYearComparisonPositionChart: React.FC<MuiYearComparisonPositionChartPro
           dataKey: `${code}_${baseYear}`,
           label: `${code} (${baseYear})`,
           color: driver.color,
-          showMark: false,
-          curve: 'linear',
+          dashed: false,
         });
       }
     });
@@ -163,8 +157,7 @@ const MuiYearComparisonPositionChart: React.FC<MuiYearComparisonPositionChartPro
           dataKey: `${code}_${comparisonYear}`,
           label: `${code} (${comparisonYear})`,
           color: driver.color,
-          showMark: false,
-          curve: 'linear',
+          dashed: true,
         });
       }
     });
@@ -205,118 +198,154 @@ const MuiYearComparisonPositionChart: React.FC<MuiYearComparisonPositionChartPro
     );
   }
 
+  // Custom tooltip: sorted by position (P1 first), formatted as "P{n}"
+  const PositionTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const rows = payload
+      .filter((p: any) => p.value != null)
+      .sort((a: any, b: any) => a.value - b.value);
+    if (!rows.length) return null;
+    return (
+      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+        <div className="font-mono text-muted-foreground mb-1">Lap {label}</div>
+        {rows.map((p: any) => (
+          <div key={p.dataKey} className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ background: p.color || p.stroke }} />
+            <span className="font-bold">{p.dataKey}</span>
+            <span className="font-mono">P{p.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <ThemeProvider theme={muiTheme}>
-      <div className="space-y-4">
-        {/* Driver Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Base Year Drivers */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="text-xs">{baseYear}</Badge>
-              <span className="text-xs text-muted-foreground">Select drivers</span>
-            </div>
-            <ScrollArea className="h-[80px] border rounded-md p-2">
-              <div className="flex flex-wrap gap-1.5">
-                {baseDrivers.map((driver) => (
-                  <button
-                    key={driver.code}
-                    onClick={() => toggleBaseDriver(driver.code)}
-                    className={cn(
-                      "px-2 py-0.5 rounded text-[10px] font-medium transition-all border",
-                      selectedBaseDrivers.includes(driver.code)
-                        ? "border-current opacity-100"
-                        : "border-transparent opacity-50 hover:opacity-75"
-                    )}
-                    style={{
-                      borderColor: selectedBaseDrivers.includes(driver.code) ? driver.color : 'transparent',
-                      backgroundColor: selectedBaseDrivers.includes(driver.code) ? `${driver.color}20` : 'transparent',
-                      color: driver.color,
-                    }}
-                  >
-                    {driver.code}
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
+    <div className="space-y-4">
+      {/* Driver Selection */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Base Year Drivers */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="text-xs">{baseYear}</Badge>
+            <span className="text-xs text-muted-foreground">Select drivers</span>
           </div>
-
-          {/* Comparison Year Drivers */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="text-xs">{comparisonYear}</Badge>
-              <span className="text-xs text-muted-foreground">Select drivers</span>
+          <ScrollArea className="h-[80px] border rounded-md p-2">
+            <div className="flex flex-wrap gap-1.5">
+              {baseDrivers.map((driver) => (
+                <button
+                  key={driver.code}
+                  onClick={() => toggleBaseDriver(driver.code)}
+                  className={cn(
+                    "px-2 py-0.5 rounded text-[10px] font-medium transition-all border",
+                    selectedBaseDrivers.includes(driver.code)
+                      ? "border-current opacity-100"
+                      : "border-transparent opacity-50 hover:opacity-75"
+                  )}
+                  style={{
+                    borderColor: selectedBaseDrivers.includes(driver.code) ? driver.color : 'transparent',
+                    backgroundColor: selectedBaseDrivers.includes(driver.code) ? `${driver.color}20` : 'transparent',
+                    color: driver.color,
+                  }}
+                >
+                  {driver.code}
+                </button>
+              ))}
             </div>
-            <ScrollArea className="h-[80px] border rounded-md p-2">
-              <div className="flex flex-wrap gap-1.5">
-                {comparisonDrivers.map((driver) => (
-                  <button
-                    key={driver.code}
-                    onClick={() => toggleComparisonDriver(driver.code)}
-                    className={cn(
-                      "px-2 py-0.5 rounded text-[10px] font-medium transition-all border",
-                      selectedComparisonDrivers.includes(driver.code)
-                        ? "border-current opacity-100"
-                        : "border-transparent opacity-50 hover:opacity-75"
-                    )}
-                    style={{
-                      borderColor: selectedComparisonDrivers.includes(driver.code) ? driver.color : 'transparent',
-                      backgroundColor: selectedComparisonDrivers.includes(driver.code) ? `${driver.color}20` : 'transparent',
-                      color: driver.color,
-                    }}
-                  >
-                    {driver.code}
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
+          </ScrollArea>
         </div>
 
-        {/* Chart */}
-        <div className="h-[350px]">
-          <LineChart
-            dataset={chartData}
-            xAxis={[{
-              dataKey: 'lap',
-              label: 'Lap',
-              tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-            }]}
-            yAxis={[{
-              min: 1,
-              max: 20,
-              reverse: true,
-              label: 'Position',
-              tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-            }]}
-            series={series}
-            height={350}
-            margin={{ top: 20, right: 20, bottom: 40, left: 50 }}
-            slotProps={({ legend: { hidden: true } } as any)}
-            grid={{ vertical: false, horizontal: true }}
-            sx={{
-              '.MuiLineElement-root': { strokeWidth: 1.5 },
-              '.MuiChartsGrid-line': {
-                stroke: isDark ? '#333' : '#e5e5e5',
-                strokeDasharray: '3 3',
-              },
-            }}
-          />
-        </div>
-
-        {/* Legend */}
-        <div className="flex flex-wrap justify-center gap-3 text-xs">
-          {series.map((s: any) => (
-            <div key={s.dataKey} className="flex items-center gap-1.5">
-              <div className="w-4 h-0.5 rounded" style={{ backgroundColor: s.color }} />
-              <span className="text-muted-foreground">{s.label}</span>
+        {/* Comparison Year Drivers */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Badge variant="outline" className="text-xs">{comparisonYear}</Badge>
+            <span className="text-xs text-muted-foreground">Select drivers</span>
+          </div>
+          <ScrollArea className="h-[80px] border rounded-md p-2">
+            <div className="flex flex-wrap gap-1.5">
+              {comparisonDrivers.map((driver) => (
+                <button
+                  key={driver.code}
+                  onClick={() => toggleComparisonDriver(driver.code)}
+                  className={cn(
+                    "px-2 py-0.5 rounded text-[10px] font-medium transition-all border",
+                    selectedComparisonDrivers.includes(driver.code)
+                      ? "border-current opacity-100"
+                      : "border-transparent opacity-50 hover:opacity-75"
+                  )}
+                  style={{
+                    borderColor: selectedComparisonDrivers.includes(driver.code) ? driver.color : 'transparent',
+                    backgroundColor: selectedComparisonDrivers.includes(driver.code) ? `${driver.color}20` : 'transparent',
+                    color: driver.color,
+                  }}
+                >
+                  {driver.code}
+                </button>
+              ))}
             </div>
-          ))}
+          </ScrollArea>
         </div>
       </div>
-    </ThemeProvider>
+
+      {/* Chart */}
+      <div className="h-[350px]">
+        <ResponsiveContainer width="100%" height={350}>
+          <LineChart
+            data={chartData}
+            margin={{ top: 20, right: 20, bottom: 40, left: 50 }}
+          >
+            <CartesianGrid
+              vertical={false}
+              stroke={isDark ? '#333' : '#e5e5e5'}
+              strokeDasharray="3 3"
+            />
+            <XAxis
+              dataKey="lap"
+              type="number"
+              domain={[1, 'dataMax']}
+              allowDecimals={false}
+              tickLine={false}
+              label={{ value: 'Lap', position: 'insideBottom', offset: -10, fontSize: 11, fill: isDark ? '#a1a1aa' : '#666' }}
+              tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' }}
+            />
+            <YAxis
+              reversed
+              domain={[1, 20]}
+              allowDecimals={false}
+              tickLine={false}
+              width={50}
+              label={{ value: 'Position', angle: -90, position: 'insideLeft', fontSize: 11, fill: isDark ? '#a1a1aa' : '#666' }}
+              tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' }}
+            />
+            <Tooltip content={<PositionTooltip />} />
+            {series.map((s) => (
+              <Line
+                key={s.dataKey}
+                type="linear"
+                dataKey={s.dataKey}
+                name={s.label}
+                stroke={s.color}
+                strokeWidth={1.5}
+                strokeDasharray={s.dashed ? '5 3' : undefined}
+                dot={false}
+                connectNulls
+                isAnimationActive={false}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap justify-center gap-3 text-xs">
+        {series.map((s) => (
+          <div key={s.dataKey} className="flex items-center gap-1.5">
+            <div className="w-4 h-0.5 rounded" style={{ backgroundColor: s.color }} />
+            <span className="text-muted-foreground">{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
 
 export default MuiYearComparisonPositionChart;
-

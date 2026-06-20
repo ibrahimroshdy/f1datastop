@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { LineChart } from '@mui/x-charts/LineChart';
-import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ReferenceLine,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Clock, Wrench } from "lucide-react";
@@ -10,7 +18,6 @@ import DisplayModeToggle from "./DisplayModeToggle";
 import { F1ChartLoading } from "@/components/charts/F1ChartLoading";
 import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
 import { F1ErrorState } from "@/components/f1/F1ErrorState";
-import MuiThemeWrapper from "./MuiThemeWrapper";
 import { useTheme } from "@/context/ThemeContext";
 import { getPitStops } from "@/services/f1Service";
 import { Badge } from "@/components/ui/badge";
@@ -168,13 +175,28 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
     minVal = Math.max(0, minVal - padding);
     maxVal = maxVal + padding;
 
-    return { 
+    return {
       muiChartData: { xAxisData, series },
       yAxisMin: minVal,
       yAxisMax: maxVal,
       teammateIndices: secondTeammateIdx,
     };
   }, [chartData, availableDrivers, visibleDrivers]);
+
+  // Recharts line descriptors: one per visible driver, second teammate dashed.
+  const lines = useMemo(() => {
+    const visibleDriversData = availableDrivers.filter(d => visibleDrivers.includes(d.code));
+    const teamCounts: { [team: string]: number } = {};
+    return visibleDriversData.map(driver => {
+      const teamCount = teamCounts[driver.team] || 0;
+      teamCounts[driver.team] = teamCount + 1;
+      return {
+        code: driver.code,
+        color: TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666",
+        dashed: teamCount > 0,
+      };
+    });
+  }, [availableDrivers, visibleDrivers]);
   
   // Get pit stops for visible drivers only with enriched data
   const visiblePitStops = useMemo(() => {
@@ -284,8 +306,28 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
   // Calculate chart height based on available space
   const chartHeight = isMobile ? 220 : 280;
 
+  // Custom tooltip mirroring the old MUI hover (sorted fastest-first, formatted time)
+  const LapTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const rows = payload
+      .filter((p: any) => p.value != null)
+      .sort((a: any, b: any) => a.value - b.value);
+    if (!rows.length) return null;
+    return (
+      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+        <div className="font-mono text-muted-foreground mb-1">Lap {label}</div>
+        {rows.map((p: any) => (
+          <div key={p.dataKey} className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ background: p.color || p.stroke }} />
+            <span className="font-bold w-9">{p.dataKey}</span>
+            <span className="font-mono">{formatTime(p.value)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <MuiThemeWrapper>
       <div className="h-full flex flex-col">
         <div className="flex flex-row gap-1.5 items-center mb-2">
           <DisplayModeToggle displayMode={displayMode} onToggle={toggleDisplayMode} />
@@ -321,113 +363,86 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
         />
         
         <div className="flex-1 mt-2 min-h-0">
-          {muiChartData.series.length > 0 && (
-            <LineChart
-              xAxis={[{ 
-                data: muiChartData.xAxisData,
-                label: 'Lap',
-                scaleType: 'linear',
-                min: 1,
-                max: maxLap,
-                tickLabelStyle: {
-                  fontSize: isMobile ? 10 : 11,
-                },
-              }]}
-              yAxis={[{
-                label: displayMode === 'absolute' ? 'Time' : 'Gap',
-                min: displayMode === 'gap' ? 0 : yAxisMin,
-                max: displayMode === 'gap' ? undefined : yAxisMax,
-                valueFormatter: formatTime,
-                tickLabelStyle: {
-                  fontSize: isMobile ? 10 : 11,
-                },
-              }]}
-              series={muiChartData.series}
-              height={chartHeight}
-              margin={{ 
-                top: 10, 
-                right: isMobile ? 10 : 20, 
-                bottom: 35, 
-                left: isMobile ? 55 : 65 
-              }}
-              hideLegend
-              sx={{
-                '.MuiLineElement-root': {
-                  strokeWidth: 2,
-                },
-                // Apply dashed lines to second teammates
-                ...teammateIndices.reduce((acc: any, idx: number) => {
-                  acc[`.MuiLineElement-series-${idx}`] = {
-                    strokeDasharray: '5 3',
-                  };
-                  return acc;
-                }, {}),
-                '.MuiChartsAxis-tickLabel': {
-                  fill: baseTheme === 'light' ? '#666' : '#a1a1aa',
-                  fontSize: isMobile ? 10 : 11,
-                },
-                '.MuiChartsAxis-label': {
-                  fill: baseTheme === 'light' ? '#666' : '#a1a1aa',
-                  fontSize: 11,
-                },
-                '.MuiChartsGrid-line': {
-                  stroke: baseTheme === 'light' ? '#e5e5e5' : '#333',
-                  strokeDasharray: '3 3',
-                },
-              }}
-              grid={{ vertical: false, horizontal: true }}
-            >
-              {fastestLapTime && displayMode === 'absolute' && (
-                <ChartsReferenceLine 
-                  y={fastestLapTime.time}
-                  label={`FL: ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`}
-                  labelAlign="end"
-                  lineStyle={{ 
-                    stroke: '#c026d3', 
-                    strokeDasharray: '4 4',
-                    strokeWidth: 1.5,
-                  }}
-                  labelStyle={{
-                    fill: '#c026d3',
-                    fontSize: 10,
-                  }}
+          {lines.length > 0 && (
+            <ResponsiveContainer width="100%" height={chartHeight}>
+              <LineChart
+                data={chartData}
+                margin={{ top: 10, right: isMobile ? 10 : 20, bottom: 25, left: isMobile ? 5 : 10 }}
+              >
+                <CartesianGrid
+                  vertical={false}
+                  stroke={isDark ? '#333' : '#e5e5e5'}
+                  strokeDasharray="3 3"
                 />
-              )}
-              {showPitStops && pitStopsByLap.map((ps, idx) => {
-                // Create label with driver code and pit stop duration
-                // Use em-space (U+2003) for better indentation from the line
-                const label = ps.drivers.map((d, i) => 
-                  `${d} ${ps.durations[i]}s`
-                ).join(' · ');
-                
-                return (
-                  <ChartsReferenceLine 
-                    key={`pit-${ps.lap}`}
-                    x={ps.lap}
-                    label={`  ${label}`}
-                    labelAlign="start"
-                    lineStyle={{ 
-                      stroke: ps.teams[0] ? (TEAM_COLORS[ps.teams[0]] || '#f59e0b') : '#f59e0b', 
-                      strokeDasharray: '2 4',
-                      strokeWidth: 1.5,
-                      opacity: 0.6,
-                    }}
-                    labelStyle={{
-                      fill: ps.teams[0] ? (TEAM_COLORS[ps.teams[0]] || '#f59e0b') : '#f59e0b',
-                      fontSize: 9,
-                      fontWeight: 600,
-                      opacity: 1,
-                      writingMode: 'vertical-rl',
-                      textOrientation: 'mixed',
+                <XAxis
+                  dataKey="lap"
+                  type="number"
+                  domain={[1, maxLap]}
+                  allowDecimals={false}
+                  tickLine={false}
+                  tick={{ fontSize: isMobile ? 10 : 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                />
+                <YAxis
+                  domain={displayMode === 'gap' ? [0, 'auto'] : [yAxisMin, yAxisMax]}
+                  tickFormatter={formatTime}
+                  width={isMobile ? 52 : 62}
+                  tickLine={false}
+                  tick={{ fontSize: isMobile ? 10 : 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                />
+                <Tooltip content={<LapTooltip />} />
+                {fastestLapTime && displayMode === 'absolute' && (
+                  <ReferenceLine
+                    y={fastestLapTime.time}
+                    stroke="#c026d3"
+                    strokeDasharray="4 4"
+                    strokeWidth={1.5}
+                    label={{
+                      value: `FL ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`,
+                      position: 'insideTopRight',
+                      fontSize: 10,
+                      fill: '#c026d3',
                     }}
                   />
-                );
-              })}
-            </LineChart>
+                )}
+                {showPitStops && pitStopsByLap.map((ps) => {
+                  const color = ps.teams[0] ? (TEAM_COLORS[ps.teams[0]] || '#f59e0b') : '#f59e0b';
+                  return (
+                    <ReferenceLine
+                      key={`pit-${ps.lap}`}
+                      x={ps.lap}
+                      stroke={color}
+                      strokeDasharray="2 4"
+                      strokeWidth={1.5}
+                      strokeOpacity={0.6}
+                      label={{
+                        value: ps.drivers.map((d, i) => `${d} ${ps.durations[i]}s`).join(' · '),
+                        position: 'insideBottomLeft',
+                        angle: -90,
+                        fontSize: 9,
+                        fill: color,
+                      }}
+                    />
+                  );
+                })}
+                {lines.map((ln) => (
+                  <Line
+                    key={ln.code}
+                    type="linear"
+                    dataKey={ln.code}
+                    stroke={ln.color}
+                    strokeWidth={2}
+                    strokeDasharray={ln.dashed ? '5 3' : undefined}
+                    dot={false}
+                    activeDot={{ r: 3 }}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
           )}
         </div>
       </div>
-    </MuiThemeWrapper>
   );
 };
 

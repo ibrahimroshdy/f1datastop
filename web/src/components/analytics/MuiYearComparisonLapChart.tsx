@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LineChart } from '@mui/x-charts/LineChart';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { useLapTimes, useRaceResults } from '@/hooks/useF1Data';
 import { TEAM_COLORS } from '@/constants/f1Colors';
 import { convertLapTimeToSeconds, formatTime } from '@/utils/lapTimeUtils';
@@ -52,19 +59,6 @@ const MuiYearComparisonLapChart: React.FC<MuiYearComparisonLapChartProps> = ({
   const { data: comparisonLapData, isLoading: comparisonLoading } = useLapTimes(comparisonYear, comparisonRound);
   const { data: baseResults, isLoading: baseResultsLoading } = useRaceResults(baseYear, baseRound);
   const { data: comparisonResults, isLoading: comparisonResultsLoading } = useRaceResults(comparisonYear, comparisonRound);
-
-  // Create MUI theme
-  const muiTheme = useMemo(() => createTheme({
-    palette: {
-      mode: isDark ? 'dark' : 'light',
-      primary: { main: '#e10600' },
-      background: {
-        default: isDark ? 'hsl(222 47% 8%)' : '#fff',
-        paper: isDark ? 'hsl(222 47% 11%)' : '#fff',
-      },
-    },
-    typography: { fontFamily: 'inherit' },
-  }), [isDark]);
 
   // Process driver lists
   useEffect(() => {
@@ -146,7 +140,7 @@ const MuiYearComparisonLapChart: React.FC<MuiYearComparisonLapChartProps> = ({
   const series = useMemo(() => {
     const result: any[] = [];
 
-    // Base year drivers
+    // Base year drivers (solid line)
     selectedBaseDrivers.forEach((code) => {
       const driver = baseDrivers.find(d => d.code === code);
       if (driver) {
@@ -156,11 +150,12 @@ const MuiYearComparisonLapChart: React.FC<MuiYearComparisonLapChartProps> = ({
           color: driver.color,
           showMark: false,
           curve: 'linear',
+          dashed: false,
         });
       }
     });
 
-    // Comparison year drivers
+    // Comparison year drivers (dashed line)
     selectedComparisonDrivers.forEach((code) => {
       const driver = comparisonDrivers.find(d => d.code === code);
       if (driver) {
@@ -170,6 +165,7 @@ const MuiYearComparisonLapChart: React.FC<MuiYearComparisonLapChartProps> = ({
           color: driver.color,
           showMark: false,
           curve: 'linear',
+          dashed: true,
         });
       }
     });
@@ -228,8 +224,30 @@ const MuiYearComparisonLapChart: React.FC<MuiYearComparisonLapChartProps> = ({
     );
   }
 
+  // Custom tooltip mirroring the old MUI hover (sorted fastest-first, formatted time)
+  const ComparisonTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const rows = payload
+      .filter((p: any) => p.value != null)
+      .sort((a: any, b: any) => a.value - b.value);
+    if (!rows.length) return null;
+    const labelFor = (dataKey: string) =>
+      series.find((s: any) => s.dataKey === dataKey)?.label || dataKey;
+    return (
+      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+        <div className="font-mono text-muted-foreground mb-1">Lap {label}</div>
+        {rows.map((p: any) => (
+          <div key={p.dataKey} className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ background: p.color || p.stroke }} />
+            <span className="font-bold w-16">{labelFor(p.dataKey)}</span>
+            <span className="font-mono">{formatTime(p.value)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <ThemeProvider theme={muiTheme}>
       <div className="space-y-4">
         {/* Driver Selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -298,46 +316,83 @@ const MuiYearComparisonLapChart: React.FC<MuiYearComparisonLapChartProps> = ({
 
         {/* Chart */}
         <div className="h-[350px]">
-          <LineChart
-            dataset={chartData}
-            xAxis={[{
-              dataKey: 'lap',
-              label: 'Lap',
-              tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-            }]}
-            yAxis={[{
-              min: yAxisRange.min,
-              max: yAxisRange.max,
-              label: 'Lap Time (s)',
-              tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-              valueFormatter: (v) => formatTime(v),
-            }]}
-            series={series}
-            height={350}
-            margin={{ top: 20, right: 20, bottom: 40, left: 60 }}
-            slotProps={({ legend: { hidden: true } } as any)}
-            grid={{ vertical: false, horizontal: true }}
-            sx={{
-              '.MuiLineElement-root': { strokeWidth: 1.5 },
-              '.MuiChartsGrid-line': {
-                stroke: isDark ? '#333' : '#e5e5e5',
-                strokeDasharray: '3 3',
-              },
-            }}
-          />
+          <ResponsiveContainer width="100%" height={350}>
+            <LineChart
+              data={chartData}
+              margin={{ top: 20, right: 20, bottom: 40, left: 60 }}
+            >
+              <CartesianGrid
+                vertical={false}
+                stroke={isDark ? '#333' : '#e5e5e5'}
+                strokeDasharray="3 3"
+              />
+              <XAxis
+                dataKey="lap"
+                type="number"
+                allowDecimals={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' }}
+                label={{
+                  value: 'Lap',
+                  position: 'insideBottom',
+                  offset: -5,
+                  fontSize: 11,
+                  fill: isDark ? '#a1a1aa' : '#666',
+                }}
+              />
+              <YAxis
+                domain={[yAxisRange.min, yAxisRange.max]}
+                tickFormatter={(v) => formatTime(v)}
+                width={60}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' }}
+                label={{
+                  value: 'Lap Time (s)',
+                  angle: -90,
+                  position: 'insideLeft',
+                  fontSize: 11,
+                  fill: isDark ? '#a1a1aa' : '#666',
+                }}
+              />
+              <Tooltip content={<ComparisonTooltip />} />
+              {series.map((s: any) => (
+                <Line
+                  key={s.dataKey}
+                  type="linear"
+                  dataKey={s.dataKey}
+                  stroke={s.color}
+                  strokeWidth={1.5}
+                  strokeDasharray={s.dashed ? '5 3' : undefined}
+                  dot={false}
+                  activeDot={{ r: 3 }}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
         </div>
 
         {/* Legend */}
         <div className="flex flex-wrap justify-center gap-3 text-xs">
           {series.map((s: any) => (
             <div key={s.dataKey} className="flex items-center gap-1.5">
-              <div className="w-4 h-0.5 rounded" style={{ backgroundColor: s.color }} />
+              <div
+                className="w-4 h-0.5 rounded"
+                style={{
+                  backgroundColor: s.color,
+                  ...(s.dashed
+                    ? {
+                        background: `repeating-linear-gradient(to right, ${s.color} 0 4px, transparent 4px 7px)`,
+                      }
+                    : {}),
+                }}
+              />
               <span className="text-muted-foreground">{s.label}</span>
             </div>
           ))}
         </div>
       </div>
-    </ThemeProvider>
   );
 };
 

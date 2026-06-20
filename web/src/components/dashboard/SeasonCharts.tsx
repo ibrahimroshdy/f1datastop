@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { PieChart } from "@mui/x-charts/PieChart";
-import MuiThemeWrapper from "@/components/analytics/MuiThemeWrapper";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { F1Card, F1CardContent, F1CardDescription, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
 import { useTheme } from "@/context/ThemeContext";
@@ -50,6 +49,22 @@ const SeasonCharts = ({ year }: SeasonChartsProps) => {
   }, [constructorStandings]);
 
 
+  // Custom tooltip mirroring the MUI hover (label + value, themed surface)
+  const PieTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const slice = payload[0]?.payload;
+    if (!slice) return null;
+    return (
+      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ background: slice.color }} />
+          <span className="font-bold">{slice.label}</span>
+          <span className="font-mono">{slice.value}</span>
+        </div>
+      </div>
+    );
+  };
+
   if (driversLoading || constructorsLoading) {
     return (
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -87,27 +102,26 @@ const SeasonCharts = ({ year }: SeasonChartsProps) => {
         <F1CardContent>
           {driverWinsData.length > 0 ? (
             <div className="h-[200px]">
-              <MuiThemeWrapper>
-                <PieChart
-                  series={[{
-                    data: driverWinsData,
-                    innerRadius: 40,
-                    outerRadius: 80,
-                    paddingAngle: 2,
-                    cornerRadius: 4,
-                  }]}
-                  slotProps={({
-                    legend: { hidden: true },
-                  } as any)}
-                  colors={driverWinsData.map(d => d.color)}
-                  sx={{
-                    '& .MuiChartsLegend-root': {
-                      display: 'none',
-                    },
-                  }}
-                  height={200}
-                />
-              </MuiThemeWrapper>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={driverWinsData}
+                    dataKey="value"
+                    nameKey="label"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    cornerRadius={4}
+                    stroke="none"
+                    isAnimationActive={false}
+                  >
+                    {driverWinsData.map((entry) => (
+                      <Cell key={entry.id} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<PieTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
                 {driverWinsData.slice(0, 5).map((item) => (
                   <div key={item.id} className="flex items-center gap-1 text-xs">
@@ -141,27 +155,26 @@ const SeasonCharts = ({ year }: SeasonChartsProps) => {
         <F1CardContent>
           {constructorPointsData.length > 0 ? (
             <div className="h-[200px]">
-              <MuiThemeWrapper>
-                <PieChart
-                  series={[{
-                    data: constructorPointsData,
-                    innerRadius: 50,
-                    outerRadius: 80,
-                    paddingAngle: 2,
-                    cornerRadius: 4,
-                  }]}
-                  slotProps={({
-                    legend: { hidden: true },
-                  } as any)}
-                  colors={constructorPointsData.map(d => d.color)}
-                  sx={{
-                    '& .MuiChartsLegend-root': {
-                      display: 'none',
-                    },
-                  }}
-                  height={200}
-                />
-              </MuiThemeWrapper>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={constructorPointsData}
+                    dataKey="value"
+                    nameKey="label"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    cornerRadius={4}
+                    stroke="none"
+                    isAnimationActive={false}
+                  >
+                    {constructorPointsData.map((entry) => (
+                      <Cell key={entry.id} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<PieTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
                 {constructorPointsData.slice(0, 5).map((item) => (
                   <div key={item.id} className="flex items-center gap-1 text-xs">

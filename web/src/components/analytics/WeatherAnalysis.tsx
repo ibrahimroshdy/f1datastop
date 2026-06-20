@@ -5,12 +5,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useOpenF1SessionFromErgast, useDrivers, useSession, useRaceControl } from "@/hooks/useOpenF1Data";
 import { useWeatherData } from "@/hooks/useOpenF1Data";
 import { processOpenF1WeatherData } from "@/utils/apiAdapters";
-import { LineChart } from '@mui/x-charts/LineChart';
-import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine';
-import { HighlightScope, HighlightItemData } from '@mui/x-charts/context';
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
-import MuiThemeWrapper from './MuiThemeWrapper';
 
 interface WeatherAnalysisProps {
   year: number;
@@ -82,15 +90,15 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   }, [processedData]);
   
   const xAxisData = chartData.map(d => d.time);
-  
+
   const isLoading = isSessionLoading || isWeatherLoading;
   const hasNoData = !isLoading && (!weatherData?.data || weatherData.data.length === 0);
   const hasError = !!weatherError || (!isLoading && !effectiveSessionKey);
-  
-  // Handle highlight change for synchronized hover
-  const handleHighlightChange = useCallback((highlighted: HighlightItemData | null) => {
-    if (highlighted?.dataIndex !== undefined) {
-      setHighlightedIndex(highlighted.dataIndex);
+
+  // Handle highlight change for synchronized hover (driven by recharts onMouseMove)
+  const handleHighlightChange = useCallback((state: any) => {
+    if (state?.isTooltipActive && state.activeTooltipIndex !== undefined && state.activeTooltipIndex !== null) {
+      setHighlightedIndex(state.activeTooltipIndex);
     } else {
       setHighlightedIndex(null);
     }
@@ -122,36 +130,40 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     </div>
   );
 
-  // Common chart props for synchronized hover
-  const getChartProps = (seriesData: number[], color: string, label: string, yLabel: string, extraYAxisProps?: object) => ({
-    xAxis: [{
-      id: 'time-axis',
-      data: xAxisData,
-      scaleType: 'time' as const,
-      valueFormatter: (value: number) => formatTimeForAxis(value),
-      tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-    }],
-    yAxis: [{
-      label: yLabel,
-      labelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-      tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-      ...extraYAxisProps,
-    }],
-    series: [{
-      data: seriesData,
-      label,
-      color,
-      showMark: false,
-      highlightScope: { highlighted: 'item', faded: 'global' } as HighlightScope,
-    }],
-    height: 180,
-    margin: { left: 45, right: 10, top: 20, bottom: 25 },
-    slotProps: {
-      legend: { hidden: true },
-    },
-    onHighlightChange: handleHighlightChange,
-    highlightedItem: highlightedIndex !== null ? { seriesId: 'auto-generated-id-0', dataIndex: highlightedIndex } : null,
-  });
+  // Recharts theming helpers
+  const tickColor = isDark ? '#a1a1aa' : '#666';
+  const gridColor = isDark ? '#333' : '#e5e5e5';
+  const axisTick = { fontSize: 10, fill: tickColor };
+
+  // Shared themed x-axis (time) props for recharts
+  const timeXAxisProps = {
+    dataKey: 'time' as const,
+    type: 'number' as const,
+    scale: 'time' as const,
+    domain: ['dataMin', 'dataMax'] as [string, string],
+    tickFormatter: (value: number) => formatTimeForAxis(value),
+    tickLine: false,
+    tick: axisTick,
+  };
+
+  // Custom tooltip rendering each active series with its unit
+  const WeatherTooltip = ({ active, payload, label, unit }: any) => {
+    if (!active || !payload?.length) return null;
+    const rows = payload.filter((p: any) => p.value != null);
+    if (!rows.length) return null;
+    return (
+      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+        <div className="font-mono text-muted-foreground mb-1">{formatTimeForAxis(label)}</div>
+        {rows.map((p: any) => (
+          <div key={p.dataKey} className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ background: p.color || p.stroke }} />
+            <span className="font-medium">{p.name}</span>
+            <span className="font-mono ml-auto">{Number(p.value).toFixed(1)}{unit}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -246,42 +258,44 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 <Thermometer className="h-3 w-3 text-blue-500" />
                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Temperature</span>
               </div>
-              <MuiThemeWrapper>
-                <div className="h-[180px]">
+              <div className="h-[180px]">
+                <ResponsiveContainer width="100%" height={180}>
                   <LineChart
-                    xAxis={[{
-                      id: 'time-axis',
-                      data: xAxisData,
-                      scaleType: 'time',
-                      valueFormatter: (value) => formatTimeForAxis(value),
-                      tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                    }]}
-                    yAxis={[{
-                      label: '°C',
-                      labelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                      tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                    }]}
-                    series={[
-                      { 
-                        data: chartData.map(d => d.air_temperature), 
-                        label: 'Air',
-                        color: '#3b82f6',
-                        showMark: false,
-                      },
-                      { 
-                        data: chartData.map(d => d.track_temperature), 
-                        label: 'Track',
-                        color: '#f59e0b',
-                        showMark: false,
-                      },
-                    ]}
-                    height={180}
+                    data={chartData}
                     margin={{ left: 40, right: 10, top: 20, bottom: 25 }}
-                    slotProps={({ legend: { hidden: true } } as any)}
-                    onHighlightChange={handleHighlightChange}
-                  />
-                </div>
-              </MuiThemeWrapper>
+                    onMouseMove={handleHighlightChange}
+                    onMouseLeave={() => setHighlightedIndex(null)}
+                  >
+                    <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
+                    <XAxis {...timeXAxisProps} />
+                    <YAxis
+                      width={40}
+                      tickLine={false}
+                      tick={axisTick}
+                      label={{ value: '°C', angle: -90, position: 'insideLeft', fontSize: 10, fill: tickColor }}
+                    />
+                    <Tooltip content={<WeatherTooltip unit="°C" />} />
+                    <Line
+                      type="monotone"
+                      dataKey="air_temperature"
+                      name="Air"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="track_temperature"
+                      name="Track"
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
             
             {/* Wind Chart */}
@@ -293,36 +307,35 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 <Wind className="h-3 w-3 text-emerald-500" />
                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Wind Speed</span>
               </div>
-              <MuiThemeWrapper>
-                <div className="h-[180px]">
+              <div className="h-[180px]">
+                <ResponsiveContainer width="100%" height={180}>
                   <LineChart
-                    xAxis={[{
-                      id: 'time-axis',
-                      data: xAxisData,
-                      scaleType: 'time',
-                      valueFormatter: (value) => formatTimeForAxis(value),
-                      tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                    }]}
-                    yAxis={[{
-                      label: 'm/s',
-                      labelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                      tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                    }]}
-                    series={[
-                      { 
-                        data: chartData.map(d => d.wind_speed), 
-                        label: 'Wind',
-                        color: '#10b981',
-                        showMark: false,
-                      },
-                    ]}
-                    height={180}
+                    data={chartData}
                     margin={{ left: 40, right: 10, top: 20, bottom: 25 }}
-                    slotProps={({ legend: { hidden: true } } as any)}
-                    onHighlightChange={handleHighlightChange}
-                  />
-                </div>
-              </MuiThemeWrapper>
+                    onMouseMove={handleHighlightChange}
+                    onMouseLeave={() => setHighlightedIndex(null)}
+                  >
+                    <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
+                    <XAxis {...timeXAxisProps} />
+                    <YAxis
+                      width={40}
+                      tickLine={false}
+                      tick={axisTick}
+                      label={{ value: 'm/s', angle: -90, position: 'insideLeft', fontSize: 10, fill: tickColor }}
+                    />
+                    <Tooltip content={<WeatherTooltip unit=" m/s" />} />
+                    <Line
+                      type="monotone"
+                      dataKey="wind_speed"
+                      name="Wind"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
             
             {/* Humidity Chart */}
@@ -334,38 +347,36 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 <Droplets className="h-3 w-3 text-indigo-500" />
                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Humidity</span>
               </div>
-              <MuiThemeWrapper>
-                <div className="h-[180px]">
+              <div className="h-[180px]">
+                <ResponsiveContainer width="100%" height={180}>
                   <LineChart
-                    xAxis={[{
-                      id: 'time-axis',
-                      data: xAxisData,
-                      scaleType: 'time',
-                      valueFormatter: (value) => formatTimeForAxis(value),
-                      tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                    }]}
-                    yAxis={[{
-                      label: '%',
-                      labelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                      tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                      min: 0,
-                      max: 100,
-                    }]}
-                    series={[
-                      { 
-                        data: chartData.map(d => d.humidity), 
-                        label: 'Humidity',
-                        color: '#6366f1',
-                        showMark: false,
-                      },
-                    ]}
-                    height={180}
+                    data={chartData}
                     margin={{ left: 40, right: 10, top: 20, bottom: 25 }}
-                    slotProps={({ legend: { hidden: true } } as any)}
-                    onHighlightChange={handleHighlightChange}
-                  />
-                </div>
-              </MuiThemeWrapper>
+                    onMouseMove={handleHighlightChange}
+                    onMouseLeave={() => setHighlightedIndex(null)}
+                  >
+                    <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
+                    <XAxis {...timeXAxisProps} />
+                    <YAxis
+                      domain={[0, 100]}
+                      width={40}
+                      tickLine={false}
+                      tick={axisTick}
+                      label={{ value: '%', angle: -90, position: 'insideLeft', fontSize: 10, fill: tickColor }}
+                    />
+                    <Tooltip content={<WeatherTooltip unit="%" />} />
+                    <Line
+                      type="monotone"
+                      dataKey="humidity"
+                      name="Humidity"
+                      stroke="#6366f1"
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
             
             {/* Pressure Chart */}
@@ -377,36 +388,36 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 <Cloud className="h-3 w-3 text-purple-500" />
                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Pressure</span>
               </div>
-              <MuiThemeWrapper>
-                <div className="h-[180px]">
+              <div className="h-[180px]">
+                <ResponsiveContainer width="100%" height={180}>
                   <LineChart
-                    xAxis={[{
-                      id: 'time-axis',
-                      data: xAxisData,
-                      scaleType: 'time',
-                      valueFormatter: (value) => formatTimeForAxis(value),
-                      tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                    }]}
-                    yAxis={[{
-                      label: 'mbar',
-                      labelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                      tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                    }]}
-                    series={[
-                      { 
-                        data: chartData.map(d => d.pressure), 
-                        label: 'Pressure',
-                        color: '#8b5cf6',
-                        showMark: false,
-                      },
-                    ]}
-                    height={180}
+                    data={chartData}
                     margin={{ left: 50, right: 10, top: 20, bottom: 25 }}
-                    slotProps={({ legend: { hidden: true } } as any)}
-                    onHighlightChange={handleHighlightChange}
-                  />
-                </div>
-              </MuiThemeWrapper>
+                    onMouseMove={handleHighlightChange}
+                    onMouseLeave={() => setHighlightedIndex(null)}
+                  >
+                    <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
+                    <XAxis {...timeXAxisProps} />
+                    <YAxis
+                      domain={['auto', 'auto']}
+                      width={50}
+                      tickLine={false}
+                      tick={axisTick}
+                      label={{ value: 'mbar', angle: -90, position: 'insideLeft', fontSize: 10, fill: tickColor }}
+                    />
+                    <Tooltip content={<WeatherTooltip unit=" mbar" />} />
+                    <Line
+                      type="monotone"
+                      dataKey="pressure"
+                      name="Pressure"
+                      stroke="#8b5cf6"
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
           
@@ -444,160 +455,166 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
         </TabsContent>
         
         <TabsContent value="temp" className="mt-3">
-          <MuiThemeWrapper>
-            <div className="h-[280px]">
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height={280}>
               <LineChart
-                xAxis={[{
-                  data: xAxisData,
-                  scaleType: 'time',
-                  valueFormatter: (value) => formatTimeForAxis(value),
-                  tickLabelStyle: { fontSize: 11 },
-                }]}
-                yAxis={[{
-                  label: 'Temperature (°C)',
-                  labelStyle: { fontSize: 11 },
-                  tickLabelStyle: { fontSize: 11 },
-                }]}
-                series={[
-                  { 
-                    data: chartData.map(d => d.air_temperature), 
-                    label: 'Air Temperature',
-                    color: '#3b82f6',
-                    showMark: false,
-                  },
-                  { 
-                    data: chartData.map(d => d.track_temperature), 
-                    label: 'Track Temperature',
-                    color: '#f59e0b',
-                    showMark: false,
-                  },
-                ]}
-                height={280}
+                data={chartData}
                 margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
-                slotProps={({
-                  legend: { 
-                    direction: 'row',
-                    position: { vertical: 'top', horizontal: 'right' },
-                    labelStyle: { fontSize: 11 },
-                  },
-                } as any)}
-              />
-            </div>
-          </MuiThemeWrapper>
+              >
+                <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
+                <XAxis {...timeXAxisProps} tick={{ fontSize: 11, fill: tickColor }} />
+                <YAxis
+                  width={50}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: tickColor }}
+                  label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                />
+                <Tooltip content={<WeatherTooltip unit="°C" />} />
+                <Legend wrapperStyle={{ fontSize: 11 }} align="right" verticalAlign="top" />
+                <Line
+                  type="monotone"
+                  dataKey="air_temperature"
+                  name="Air Temperature"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="track_temperature"
+                  name="Track Temperature"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
           <p className="text-xs text-muted-foreground text-center mt-2">
             Track temperature is typically higher than air temperature due to solar radiation
           </p>
         </TabsContent>
         
         <TabsContent value="wind" className="mt-3">
-          <MuiThemeWrapper>
-            <div className="h-[280px]">
-              <LineChart
-                xAxis={[{
-                  data: xAxisData,
-                  scaleType: 'time',
-                  valueFormatter: (value) => formatTimeForAxis(value),
-                  tickLabelStyle: { fontSize: 11 },
-                }]}
-                yAxis={[{
-                  label: 'Wind Speed (m/s)',
-                  labelStyle: { fontSize: 11 },
-                  tickLabelStyle: { fontSize: 11 },
-                  min: 0,
-                }]}
-                series={[
-                  { 
-                    data: chartData.map(d => d.wind_speed), 
-                    label: 'Wind Speed',
-                    color: '#10b981',
-                    showMark: false,
-                    area: true,
-                  },
-                ]}
-                height={280}
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart
+                data={chartData}
                 margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
-                slotProps={({
-                  legend: { hidden: true },
-                } as any)}
-              />
-            </div>
-          </MuiThemeWrapper>
+              >
+                <defs>
+                  <linearGradient id="windGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
+                <XAxis {...timeXAxisProps} tick={{ fontSize: 11, fill: tickColor }} />
+                <YAxis
+                  domain={[0, 'auto']}
+                  width={50}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: tickColor }}
+                  label={{ value: 'Wind Speed (m/s)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                />
+                <Tooltip content={<WeatherTooltip unit=" m/s" />} />
+                <Area
+                  type="monotone"
+                  dataKey="wind_speed"
+                  name="Wind Speed"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  fill="url(#windGradient)"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
           <p className="text-xs text-muted-foreground text-center mt-2">
             Wind speeds affect aerodynamics and car behavior on high-speed corners
           </p>
         </TabsContent>
         
         <TabsContent value="humidity" className="mt-3">
-          <MuiThemeWrapper>
-            <div className="h-[280px]">
-              <LineChart
-                xAxis={[{
-                  data: xAxisData,
-                  scaleType: 'time',
-                  valueFormatter: (value) => formatTimeForAxis(value),
-                  tickLabelStyle: { fontSize: 11 },
-                }]}
-                yAxis={[{
-                  label: 'Humidity (%)',
-                  labelStyle: { fontSize: 11 },
-                  tickLabelStyle: { fontSize: 11 },
-                  min: 0,
-                  max: 100,
-                }]}
-                series={[
-                  { 
-                    data: chartData.map(d => d.humidity), 
-                    label: 'Humidity',
-                    color: '#6366f1',
-                    showMark: false,
-                    area: true,
-                  },
-                ]}
-                height={280}
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart
+                data={chartData}
                 margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
-                slotProps={({
-                  legend: { hidden: true },
-                } as any)}
-              />
-            </div>
-          </MuiThemeWrapper>
+              >
+                <defs>
+                  <linearGradient id="humidityGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
+                <XAxis {...timeXAxisProps} tick={{ fontSize: 11, fill: tickColor }} />
+                <YAxis
+                  domain={[0, 100]}
+                  width={50}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: tickColor }}
+                  label={{ value: 'Humidity (%)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                />
+                <Tooltip content={<WeatherTooltip unit="%" />} />
+                <Area
+                  type="monotone"
+                  dataKey="humidity"
+                  name="Humidity"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  fill="url(#humidityGradient)"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
           <p className="text-xs text-muted-foreground text-center mt-2">
             Higher humidity reduces air density, affecting engine performance
           </p>
         </TabsContent>
         
         <TabsContent value="pressure" className="mt-3">
-          <MuiThemeWrapper>
-            <div className="h-[280px]">
-              <LineChart
-                xAxis={[{
-                  data: xAxisData,
-                  scaleType: 'time',
-                  valueFormatter: (value) => formatTimeForAxis(value),
-                  tickLabelStyle: { fontSize: 11 },
-                }]}
-                yAxis={[{
-                  label: 'Pressure (mbar)',
-                  labelStyle: { fontSize: 11 },
-                  tickLabelStyle: { fontSize: 11 },
-                }]}
-                series={[
-                  { 
-                    data: chartData.map(d => d.pressure), 
-                    label: 'Atmospheric Pressure',
-                    color: '#8b5cf6',
-                    showMark: false,
-                    area: true,
-                  },
-                ]}
-                height={280}
+          <div className="h-[280px]">
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart
+                data={chartData}
                 margin={{ left: 55, right: 20, top: 20, bottom: 30 }}
-                slotProps={({
-                  legend: { hidden: true },
-                } as any)}
-              />
-            </div>
-          </MuiThemeWrapper>
+              >
+                <defs>
+                  <linearGradient id="pressureGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
+                <XAxis {...timeXAxisProps} tick={{ fontSize: 11, fill: tickColor }} />
+                <YAxis
+                  domain={['auto', 'auto']}
+                  width={55}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: tickColor }}
+                  label={{ value: 'Pressure (mbar)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                />
+                <Tooltip content={<WeatherTooltip unit=" mbar" />} />
+                <Area
+                  type="monotone"
+                  dataKey="pressure"
+                  name="Atmospheric Pressure"
+                  stroke="#8b5cf6"
+                  strokeWidth={2}
+                  fill="url(#pressureGradient)"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
           <p className="text-xs text-muted-foreground text-center mt-2">
             Atmospheric pressure influences engine power output and aerodynamic downforce
           </p>

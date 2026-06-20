@@ -6,10 +6,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { usePositionData, useDrivers, useOvertakes, useLaps, useStartingGrid, useOpenF1SessionFromErgast } from "@/hooks/useOpenF1Data";
 import { getRaceResults, getPitStops as getErgastPitStops } from "@/services/f1Service";
-import { LineChart } from '@mui/x-charts/LineChart';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
-import MuiThemeWrapper from './MuiThemeWrapper';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface OvertakesAnalysisProps {
@@ -348,25 +355,58 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
     return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current); };
   }, [isPlaying, playbackSpeed, currentProgress]);
 
-  // Chart data for position progression
+  // Chart data for position progression (recharts: array of row objects keyed by series label)
   const positionChartData = useMemo(() => {
-    if (!drivers || Object.keys(positionsByLap).length === 0) return { laps: [], series: [] };
+    if (!drivers || Object.keys(positionsByLap).length === 0) return { rows: [], series: [] };
     const laps = Array.from({ length: totalLaps + 1 }, (_, i) => i);
-    const series: Array<{ data: (number | null)[]; label: string; color: string; id: string }> = [];
+    const series: Array<{ label: string; color: string; id: string }> = [];
     const driversToShow = selectedDriver ? [selectedDriver] : Object.keys(drivers).map(Number).slice(0, 10);
+
+    // Per-driver lap -> position lookup (carrying last-known position forward)
+    const driverLapPositions: Array<{ label: string; positions: (number | null)[] }> = [];
     driversToShow.forEach(driverNumber => {
       const driver = drivers[driverNumber]; if (!driver) return;
       const driverPositions = positionsByLap[driverNumber] || {};
       let lastKnownPos: number | null = null;
-      const data = laps.map(lap => { if (driverPositions[lap] !== undefined) lastKnownPos = driverPositions[lap]; return lastKnownPos; });
-      series.push({ data, label: driver.acronym, color: driver.color, id: `driver-${driverNumber}` });
+      const positions = laps.map(lap => { if (driverPositions[lap] !== undefined) lastKnownPos = driverPositions[lap]; return lastKnownPos; });
+      series.push({ label: driver.acronym, color: driver.color, id: `driver-${driverNumber}` });
+      driverLapPositions.push({ label: driver.acronym, positions });
     });
-    return { laps, series };
+
+    // Build one row per lap, keyed by driver acronym
+    const rows = laps.map((lap, i) => {
+      const row: { [key: string]: number | null } = { lap };
+      driverLapPositions.forEach(d => { row[d.label] = d.positions[i]; });
+      return row;
+    });
+
+    return { rows, series };
   }, [drivers, positionsByLap, totalLaps, selectedDriver]);
 
   const isLoading = isSessionLoading || isPositionLoading || isDriversLoading || isOvertakesLoading || isLapsLoading || isStartingGridLoading || isErgastLoading;
   const totalOvertakes = overtakesData?.data?.length || 0;
   const totalPitStops = pitStopsWithNumbers.length;
+
+  // Custom tooltip for the position chart (sorted by position, P1 first)
+  const PositionTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const rows = payload
+      .filter((p: any) => p.value != null)
+      .sort((a: any, b: any) => a.value - b.value);
+    if (!rows.length) return null;
+    return (
+      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+        <div className="font-mono text-muted-foreground mb-1">Lap {label}</div>
+        {rows.map((p: any) => (
+          <div key={p.dataKey} className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ background: p.color || p.stroke }} />
+            <span className="font-bold w-9">{p.dataKey}</span>
+            <span className="font-mono">P{p.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   // Render position change indicator
   const PositionChangeIndicator = ({ change, type }: { change: number; type: 'lap' | 'total' }) => {
@@ -615,19 +655,51 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
               </button>
             ))}
           </div>
-          <MuiThemeWrapper>
-            <div className="h-[300px]">
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart
-                xAxis={[{ data: positionChartData.laps, label: 'Lap', scaleType: 'linear', min: 0, max: totalLaps, tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' } }]}
-                yAxis={[{ label: 'Position', min: 1, max: 20, reverse: true, tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' } }]}
-                series={positionChartData.series.map(s => ({ ...s, showMark: false, curve: 'stepAfter' as const }))}
-                height={300} 
+                data={positionChartData.rows}
                 margin={{ left: 40, right: 20, top: 10, bottom: 35 }}
-                slotProps={({ legend: { hidden: true } } as any)}
-                grid={{ vertical: true, horizontal: true }}
-              />
-            </div>
-          </MuiThemeWrapper>
+              >
+                <CartesianGrid
+                  stroke={isDark ? '#333' : '#e5e5e5'}
+                  strokeDasharray="3 3"
+                />
+                <XAxis
+                  dataKey="lap"
+                  type="number"
+                  domain={[0, totalLaps]}
+                  allowDecimals={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' }}
+                  label={{ value: 'Lap', position: 'insideBottom', offset: -10, fontSize: 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                />
+                <YAxis
+                  reversed
+                  domain={[1, 20]}
+                  allowDecimals={false}
+                  tickLine={false}
+                  width={40}
+                  tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' }}
+                  label={{ value: 'Position', angle: -90, position: 'insideLeft', fontSize: 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                />
+                <Tooltip content={<PositionTooltip />} />
+                {positionChartData.series.map(s => (
+                  <Line
+                    key={s.id}
+                    type="stepAfter"
+                    dataKey={s.label}
+                    stroke={s.color}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 3 }}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </TabsContent>
 
         {/* Final Results */}

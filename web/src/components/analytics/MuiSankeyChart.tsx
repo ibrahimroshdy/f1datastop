@@ -1,5 +1,12 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { Sankey } from '@nivo/sankey';
+import {
+  sankey,
+  sankeyLinkHorizontal,
+  sankeyLeft,
+  type SankeyNode,
+  type SankeyLink,
+  type SankeyGraph,
+} from 'd3-sankey';
 import { useQualifyingToRaceDataByRound } from '@/hooks/useF1Data';
 import { TEAM_COLORS } from '@/constants/f1Colors';
 import { useTheme } from '@/context/ThemeContext';
@@ -9,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-// Ensure a value is a finite number >= minVal (prevents NaN in Nivo layout/animations)
+// Ensure a value is a finite number >= minVal (prevents NaN in the d3-sankey layout)
 const toValidNumber = (v: unknown, minVal: number = 1): number => {
   const n = Number(v);
   if (!Number.isFinite(n) || n < minVal) return minVal;
@@ -20,6 +27,47 @@ interface MuiSankeyChartProps {
   year: number;
   round: string;
 }
+
+// Node datum that feeds d3-sankey. d3-sankey mutates these in place, adding
+// the computed layout fields (x0/x1/y0/y1/index/value/depth/...).
+interface SankeyNodeData {
+  id: string;
+  originalId: string;
+  name: string;
+  position: number;
+  type: 'qualifying' | 'grid' | 'race' | string;
+  team?: string;
+  teamName?: string;
+  fullName?: string;
+  status?: string;
+  isDNF?: boolean;
+  points?: number;
+  color: string;
+}
+
+// Link datum that feeds d3-sankey. `source`/`target` start as node-id strings
+// and are resolved to node objects by the sankey() layout.
+interface SankeyLinkData {
+  source: string;
+  target: string;
+  value: number;
+  sourcePosition: number;
+  color: string;
+  dimLine: boolean;
+  driverName?: string;
+  driverCode?: string;
+  team?: string;
+  qualifyingPosition?: number;
+  gridPosition?: number;
+  racePosition?: number;
+  positionChange?: number;
+  status?: string;
+  isDNF?: boolean;
+  points?: number;
+}
+
+type LaidOutNode = SankeyNode<SankeyNodeData, SankeyLinkData>;
+type LaidOutLink = SankeyLink<SankeyNodeData, SankeyLinkData>;
 
 // Get team color with fallback
 const getTeamColor = (team: string): string => {
@@ -61,24 +109,24 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
     setIsRetrying(false);
   }, [refetch]);
 
-  // Transform data for Nivo Sankey
-  const sankeyData = useMemo(() => {
+  // Transform data into d3-sankey nodes + links
+  const sankeyData = useMemo<{ nodes: SankeyNodeData[]; links: SankeyLinkData[] } | null>(() => {
     if (!data?.processedData) return null;
 
     const { nodes: originalNodes, links: originalLinks } = data.processedData;
 
     // Create node ID map for consistent referencing
-    const nodeMap = new Map<string, any>();
-    
+    const nodeMap = new Map<string, SankeyNodeData>();
+
     // Group nodes by type and sort by position
-    const qualifyingNodes: any[] = [];
-    const gridNodes: any[] = [];
-    const raceNodes: any[] = [];
-    
+    const qualifyingNodes: SankeyNodeData[] = [];
+    const gridNodes: SankeyNodeData[] = [];
+    const raceNodes: SankeyNodeData[] = [];
+
     originalNodes.forEach((node: any) => {
       const id = `${node.type}-${node.position}-${node.name}`;
       const position = toValidNumber(node.position, 0);
-      const nivoNode = {
+      const nivoNode: SankeyNodeData = {
         id,
         originalId: node.id,
         name: node.name,
@@ -109,15 +157,14 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
     gridNodes.sort((a, b) => a.position - b.position);
     raceNodes.sort((a, b) => a.position - b.position);
     
-    // Combine in order: qualifying, grid, race
-    // This order is crucial for Nivo's "input" sort to work correctly
-    const nivoNodes = [...qualifyingNodes, ...gridNodes, ...raceNodes];
+    // Combine in order: qualifying, grid, race (column order for the layout)
+    const nivoNodes: SankeyNodeData[] = [...qualifyingNodes, ...gridNodes, ...raceNodes];
 
-    // Build Nivo links - sort by source position to help maintain visual order
+    // Build links - sort by source position to help maintain visual order
     // Only include links where both source and target exist; ensure value is finite and >= 1 to avoid NaN in layout
-    const nodeIds = new Set(nivoNodes.map((n: any) => n.id));
-    const nivoLinks = originalLinks
-      .map((link: any) => {
+    const nodeIds = new Set(nivoNodes.map((n) => n.id));
+    const nivoLinks: SankeyLinkData[] = originalLinks
+      .map((link: any): SankeyLinkData | null => {
         const sourceNode = nodeMap.get(link.source) || originalNodes.find((n: any) => n.id === link.source);
         const targetNode = nodeMap.get(link.target) || originalNodes.find((n: any) => n.id === link.target);
 
@@ -132,7 +179,7 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
           { type: sourceNode?.type, position: sourceNode?.position, team: sourceNode?.team },
           { type: targetNode?.type, position: targetNode?.position }
         );
-        // Mark Grid→Race links for DNF/DNS/Retired so we can dim them (Nivo overwrites link color, so we dim via DOM in useEffect)
+        // Mark Grid→Race links for DNF/DNS/Retired so we can dim them
         const isGridToRace = sourceNode?.type === 'grid' && targetNode?.type === 'race';
         const statusStr = link.status ? String(link.status).toLowerCase() : '';
         const dimLine =
@@ -160,16 +207,16 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
           points: link.points,
         };
       })
-      .filter(Boolean)
-      .sort((a: any, b: any) => (a.sourcePosition || 0) - (b.sourcePosition || 0));
+      .filter((l): l is SankeyLinkData => l !== null)
+      .sort((a, b) => (a.sourcePosition || 0) - (b.sourcePosition || 0));
 
     // Safety: remove orphan nodes (no links) to prevent d3-sankey NaN
     const linkedNodeIds = new Set<string>();
-    nivoLinks.forEach((l: any) => {
+    nivoLinks.forEach((l) => {
       linkedNodeIds.add(l.source);
       linkedNodeIds.add(l.target);
     });
-    const connectedNodes = nivoNodes.filter((n: any) => linkedNodeIds.has(n.id));
+    const connectedNodes = nivoNodes.filter((n) => linkedNodeIds.has(n.id));
 
     if (connectedNodes.length === 0 || nivoLinks.length === 0) return null;
 
@@ -253,7 +300,7 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
         <span className="text-muted-foreground font-medium">Race</span>
       </div>
 
-      {/* Sankey Chart - only render when container has non-zero size to avoid NaN in Nivo layout */}
+      {/* Sankey Chart - only render when container has non-zero size to avoid NaN in d3-sankey layout */}
       <SankeyWithDimensionGuard
         sankeyData={sankeyData}
         isDark={isDark}
@@ -266,15 +313,28 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
   );
 };
 
+// Layout constants matching the previous Nivo configuration
+const MARGIN = { top: 10, right: 100, bottom: 10, left: 100 };
+const NODE_WIDTH = 12; // was nodeThickness
+const NODE_PADDING = 4; // was nodeSpacing
+const NODE_RADIUS = 3; // was nodeBorderRadius
+const LABEL_PADDING = 12;
+
+type HoverTarget =
+  | { kind: 'node'; node: LaidOutNode; x: number; y: number }
+  | { kind: 'link'; link: LaidOutLink; x: number; y: number }
+  | null;
+
 function SankeyWithDimensionGuard({
   sankeyData,
   isDark,
 }: {
-  sankeyData: { nodes: any[]; links: any[] };
+  sankeyData: { nodes: SankeyNodeData[]; links: SankeyLinkData[] };
   isDark: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [hover, setHover] = useState<HoverTarget>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -290,143 +350,259 @@ function SankeyWithDimensionGuard({
     return () => ro.disconnect();
   }, []);
 
-  // Dim Grid→Race lines for DNF/DNS/Retired by setting fill-opacity on the SVG paths (Nivo overwrites link color so we can't do it via data)
-  useEffect(() => {
-    if (!sankeyData?.links?.length || dimensions.width < 50) return;
-    const wrapper = containerRef.current;
-    if (!wrapper) return;
-    const raf = requestAnimationFrame(() => {
-      const svg = wrapper.querySelector('svg');
-      if (!svg) return;
-      const paths = Array.from(svg.querySelectorAll('path'));
-      // One path per link in same order as sankeyData.links
-      sankeyData.links.forEach((link: any, i: number) => {
-        const path = paths[i];
-        if (!path) return;
-        if (link.dimLine) {
-          path.style.fillOpacity = '0.2';
-        } else {
-          path.style.fillOpacity = '';
-        }
-      });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [sankeyData, dimensions.width]);
-
   const hasSize = dimensions.width >= 50 && dimensions.height >= 50;
 
+  // Compute the d3-sankey layout. Clone the data because d3-sankey mutates the
+  // node/link objects in place (resolving source/target and adding x0/y0/...).
+  const graph = useMemo<SankeyGraph<SankeyNodeData, SankeyLinkData> | null>(() => {
+    if (!hasSize) return null;
+
+    const x0 = MARGIN.left;
+    const x1 = dimensions.width - MARGIN.right;
+    const y0 = MARGIN.top;
+    const y1 = dimensions.height - MARGIN.bottom;
+    if (x1 <= x0 || y1 <= y0) return null;
+
+    const layout = sankey<SankeyNodeData, SankeyLinkData>()
+      .nodeId((d) => d.id)
+      .nodeWidth(NODE_WIDTH)
+      .nodePadding(NODE_PADDING)
+      .nodeAlign(sankeyLeft)
+      // Keep nodes ordered top-to-bottom by F1 position (P1 at the top)
+      .nodeSort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .extent([
+        [x0, y0],
+        [x1, y1],
+      ]);
+
+    try {
+      return layout({
+        nodes: sankeyData.nodes.map((n) => ({ ...n })),
+        links: sankeyData.links.map((l) => ({ ...l })),
+      });
+    } catch {
+      return null;
+    }
+  }, [sankeyData, dimensions.width, dimensions.height, hasSize]);
+
+  const linkPath = useMemo(() => sankeyLinkHorizontal<SankeyNodeData, SankeyLinkData>(), []);
+  const labelColor = isDark ? '#a1a1aa' : '#666';
+
   return (
-    <div ref={containerRef} className="flex-1 min-h-[400px]" style={{ minHeight: 400 }}>
-      {hasSize ? (
-        <Sankey
+    <div ref={containerRef} className="relative flex-1 min-h-[400px]" style={{ minHeight: 400 }}>
+      {hasSize && graph ? (
+        <svg
           width={dimensions.width}
           height={dimensions.height}
-          data={sankeyData}
-          margin={{ top: 10, right: 100, bottom: 10, left: 100 }}
-          align="justify"
-          animate={false}
-          sort={(a: any, b: any) => (a.position ?? 0) - (b.position ?? 0)}
-          nodeOpacity={0.9}
-          nodeHoverOpacity={1}
-          nodeThickness={12}
-          nodeSpacing={4}
-          nodeBorderWidth={0}
-          nodeBorderRadius={3}
-          linkOpacity={0.4}
-          linkHoverOpacity={0.7}
-          linkContract={2}
-          linkBlendMode="normal"
-          enableLinkGradient={false}
-          colors={(node: any) => node.color || '#666'}
-          labelPosition="outside"
-          labelOrientation="horizontal"
-          labelPadding={12}
-          labelTextColor={isDark ? '#a1a1aa' : '#666'}
-          label={(node: any) => (node.type === 'grid' ? '' : `P${node.position} ${node.name}`)}
-          theme={{
-            text: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-            tooltip: {
-              container: {
-                background: isDark ? 'hsl(222 47% 11%)' : '#fff',
-                color: isDark ? '#fff' : '#333',
-                fontSize: 12,
-                borderRadius: 8,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                padding: '10px 14px',
-              },
-            },
-          }}
-          nodeTooltip={({ node }: any) => (
-            <div className={cn(
-              "px-3 py-2 rounded-lg shadow-lg text-xs",
-              isDark ? "bg-zinc-900 text-white border border-zinc-800" : "bg-white text-zinc-900 border border-zinc-200"
-            )}>
-              <div className="font-bold mb-1">{node.fullName || node.name}</div>
-              <div className="text-muted-foreground mb-2">{node.teamName}</div>
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">
-                  {node.type === 'qualifying' ? 'Quali' : node.type === 'grid' ? 'Grid' : 'Race'} Position:
-                </span>
-                <span className="font-mono font-medium">P{node.position}</span>
-              </div>
-              {node.type === 'race' && node.points !== undefined && node.points > 0 && (
-                <div className="flex justify-between gap-4 mt-1">
-                  <span className="text-muted-foreground">Points:</span>
-                  <span className="font-mono font-medium text-primary">{node.points}</span>
-                </div>
-              )}
-              {node.isDNF && node.status && (
-                <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">{node.status}</div>
-              )}
-            </div>
-          )}
-          linkTooltip={({ link }: any) => {
-            const sourceNode = sankeyData.nodes.find((n: any) => n.id === link.source.id);
-            const targetNode = sankeyData.nodes.find((n: any) => n.id === link.target.id);
-            const isQualiToGrid = sourceNode?.type === 'qualifying' && targetNode?.type === 'grid';
-            const isGridToRace = sourceNode?.type === 'grid' && targetNode?.type === 'race';
-            let change = 0;
-            let changeText = 'No change';
-            let changeColor = 'text-blue-500';
-            if (isQualiToGrid) change = (sourceNode?.position ?? 0) - (targetNode?.position ?? 0);
-            else if (isGridToRace) change = (sourceNode?.position ?? 0) - (targetNode?.position ?? 0);
-            if (change > 0) { changeText = `+${change} positions`; changeColor = 'text-emerald-500'; }
-            else if (change < 0) { changeText = `${change} positions`; changeColor = 'text-red-500'; }
-            return (
-              <div className={cn(
-                "px-3 py-2 rounded-lg shadow-lg text-xs",
-                isDark ? "bg-zinc-900 text-white border border-zinc-800" : "bg-white text-zinc-900 border border-zinc-200"
-              )}>
-                <div className="font-bold mb-1">{link.driverName || link.source.name}</div>
-                <div className="text-muted-foreground mb-2">{link.team || link.source.teamName}</div>
-                <div className="space-y-1">
-                  <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">{isQualiToGrid ? 'Qualifying:' : 'Grid:'}</span>
-                    <span className="font-mono font-medium">P{sourceNode?.position}</span>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">{isQualiToGrid ? 'Grid:' : 'Race:'}</span>
-                    <span className="font-mono font-medium">P{targetNode?.position}</span>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">Change:</span>
-                    <span className={cn("font-mono font-medium", changeColor)}>{changeText}</span>
-                  </div>
-                  {isGridToRace && link.points !== undefined && link.points > 0 && (
-                    <div className="flex justify-between gap-4 mt-1 pt-1 border-t border-muted">
-                      <span className="text-muted-foreground">Points:</span>
-                      <span className="font-mono font-medium text-primary">{link.points}</span>
-                    </div>
+          onMouseLeave={() => setHover(null)}
+        >
+          {/* Links (drawn first so nodes sit on top) */}
+          <g fill="none">
+            {graph.links.map((link, i) => {
+              const d = linkPath(link);
+              if (!d) return null;
+              const data = link as LaidOutLink & SankeyLinkData;
+              const isHovered = hover?.kind === 'link' && hover.link === link;
+              const baseOpacity = data.dimLine ? 0.2 : 0.4;
+              return (
+                <path
+                  key={`link-${i}`}
+                  d={d}
+                  stroke={data.color || '#666'}
+                  strokeWidth={Math.max(1, link.width ?? 1)}
+                  strokeOpacity={isHovered ? 0.7 : baseOpacity}
+                  style={{ cursor: 'pointer' }}
+                  onMouseMove={(e) => {
+                    const rect = containerRef.current?.getBoundingClientRect();
+                    setHover({
+                      kind: 'link',
+                      link,
+                      x: e.clientX - (rect?.left ?? 0),
+                      y: e.clientY - (rect?.top ?? 0),
+                    });
+                  }}
+                  onMouseLeave={() => setHover(null)}
+                />
+              );
+            })}
+          </g>
+
+          {/* Nodes */}
+          <g>
+            {graph.nodes.map((node, i) => {
+              const data = node as LaidOutNode & SankeyNodeData;
+              const x0n = node.x0 ?? 0;
+              const y0n = node.y0 ?? 0;
+              const w = (node.x1 ?? 0) - x0n;
+              const h = Math.max(0, (node.y1 ?? 0) - y0n);
+              const isHovered = hover?.kind === 'node' && hover.node === node;
+              // Grid column is unlabeled; quali labels left, race labels right
+              const showLabel = data.type !== 'grid';
+              const labelOnLeft = data.type === 'qualifying';
+              return (
+                <g key={`node-${i}`}>
+                  <rect
+                    x={x0n}
+                    y={y0n}
+                    width={w}
+                    height={h}
+                    rx={NODE_RADIUS}
+                    ry={NODE_RADIUS}
+                    fill={data.color || '#666'}
+                    fillOpacity={isHovered ? 1 : 0.9}
+                    style={{ cursor: 'pointer' }}
+                    onMouseMove={(e) => {
+                      const rect = containerRef.current?.getBoundingClientRect();
+                      setHover({
+                        kind: 'node',
+                        node,
+                        x: e.clientX - (rect?.left ?? 0),
+                        y: e.clientY - (rect?.top ?? 0),
+                      });
+                    }}
+                    onMouseLeave={() => setHover(null)}
+                  />
+                  {showLabel && (
+                    <text
+                      x={labelOnLeft ? x0n - LABEL_PADDING : (node.x1 ?? 0) + LABEL_PADDING}
+                      y={(y0n + (node.y1 ?? 0)) / 2}
+                      dy="0.35em"
+                      textAnchor={labelOnLeft ? 'end' : 'start'}
+                      fontSize={10}
+                      fill={labelColor}
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      {`P${data.position} ${data.name}`}
+                    </text>
                   )}
-                </div>
-                {link.isDNF && link.status && (
-                  <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">{link.status}</div>
-                )}
-              </div>
-            );
-          }}
-        />
+                </g>
+              );
+            })}
+          </g>
+        </svg>
       ) : null}
+
+      {/* Tooltip overlay (replaces Nivo's built-in node/link tooltips) */}
+      {hover?.kind === 'node' && (
+        <SankeyTooltip x={hover.x} y={hover.y}>
+          <NodeTooltipContent node={hover.node as LaidOutNode & SankeyNodeData} isDark={isDark} />
+        </SankeyTooltip>
+      )}
+      {hover?.kind === 'link' && (
+        <SankeyTooltip x={hover.x} y={hover.y}>
+          <LinkTooltipContent link={hover.link as LaidOutLink & SankeyLinkData} isDark={isDark} />
+        </SankeyTooltip>
+      )}
+    </div>
+  );
+}
+
+// Positioned tooltip wrapper, follows the cursor inside the chart container.
+function SankeyTooltip({ x, y, children }: { x: number; y: number; children: React.ReactNode }) {
+  return (
+    <div
+      className="pointer-events-none absolute z-50"
+      style={{ left: x + 12, top: y + 12 }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function NodeTooltipContent({
+  node,
+  isDark,
+}: {
+  node: LaidOutNode & SankeyNodeData;
+  isDark: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'px-3 py-2 rounded-lg shadow-lg text-xs',
+        isDark
+          ? 'bg-zinc-900 text-white border border-zinc-800'
+          : 'bg-white text-zinc-900 border border-zinc-200'
+      )}
+    >
+      <div className="font-bold mb-1">{node.fullName || node.name}</div>
+      <div className="text-muted-foreground mb-2">{node.teamName}</div>
+      <div className="flex justify-between gap-4">
+        <span className="text-muted-foreground">
+          {node.type === 'qualifying' ? 'Quali' : node.type === 'grid' ? 'Grid' : 'Race'} Position:
+        </span>
+        <span className="font-mono font-medium">P{node.position}</span>
+      </div>
+      {node.type === 'race' && node.points !== undefined && node.points > 0 && (
+        <div className="flex justify-between gap-4 mt-1">
+          <span className="text-muted-foreground">Points:</span>
+          <span className="font-mono font-medium text-primary">{node.points}</span>
+        </div>
+      )}
+      {node.isDNF && node.status && (
+        <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">{node.status}</div>
+      )}
+    </div>
+  );
+}
+
+function LinkTooltipContent({
+  link,
+  isDark,
+}: {
+  link: LaidOutLink & SankeyLinkData;
+  isDark: boolean;
+}) {
+  const sourceNode = link.source as LaidOutNode & SankeyNodeData;
+  const targetNode = link.target as LaidOutNode & SankeyNodeData;
+  const isQualiToGrid = sourceNode?.type === 'qualifying' && targetNode?.type === 'grid';
+  const isGridToRace = sourceNode?.type === 'grid' && targetNode?.type === 'race';
+  let change = 0;
+  let changeText = 'No change';
+  let changeColor = 'text-blue-500';
+  if (isQualiToGrid) change = (sourceNode?.position ?? 0) - (targetNode?.position ?? 0);
+  else if (isGridToRace) change = (sourceNode?.position ?? 0) - (targetNode?.position ?? 0);
+  if (change > 0) {
+    changeText = `+${change} positions`;
+    changeColor = 'text-emerald-500';
+  } else if (change < 0) {
+    changeText = `${change} positions`;
+    changeColor = 'text-red-500';
+  }
+  return (
+    <div
+      className={cn(
+        'px-3 py-2 rounded-lg shadow-lg text-xs',
+        isDark
+          ? 'bg-zinc-900 text-white border border-zinc-800'
+          : 'bg-white text-zinc-900 border border-zinc-200'
+      )}
+    >
+      <div className="font-bold mb-1">{link.driverName || sourceNode?.name}</div>
+      <div className="text-muted-foreground mb-2">{link.team || sourceNode?.teamName}</div>
+      <div className="space-y-1">
+        <div className="flex justify-between gap-4">
+          <span className="text-muted-foreground">{isQualiToGrid ? 'Qualifying:' : 'Grid:'}</span>
+          <span className="font-mono font-medium">P{sourceNode?.position}</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-muted-foreground">{isQualiToGrid ? 'Grid:' : 'Race:'}</span>
+          <span className="font-mono font-medium">P{targetNode?.position}</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-muted-foreground">Change:</span>
+          <span className={cn('font-mono font-medium', changeColor)}>{changeText}</span>
+        </div>
+        {isGridToRace && link.points !== undefined && link.points > 0 && (
+          <div className="flex justify-between gap-4 mt-1 pt-1 border-t border-muted">
+            <span className="text-muted-foreground">Points:</span>
+            <span className="font-mono font-medium text-primary">{link.points}</span>
+          </div>
+        )}
+      </div>
+      {link.isDNF && link.status && (
+        <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">{link.status}</div>
+      )}
     </div>
   );
 }

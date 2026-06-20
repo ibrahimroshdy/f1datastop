@@ -5,10 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTelemetryData } from "@/hooks/useTelemetryData";
 import { useF1Metadata } from "@/hooks/useF1Metadata";
-import { LineChart } from '@mui/x-charts/LineChart';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
-import MuiThemeWrapper from './MuiThemeWrapper';
 
 interface TelemetryDashboardProps {
   year: number;
@@ -116,6 +123,18 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     return { times, series };
   }, [hasData, telemetryData, selectedDriver1, selectedDriver2, telemetryMetric, drivers, getDriverColor]);
 
+  // Recharts consumes an array of row objects keyed by series label.
+  // Build rows from the {times, series} shape above without altering it.
+  const rechartsRows = useMemo(() => {
+    return chartData.times.map((time, i) => {
+      const row: Record<string, number | null> = { time };
+      chartData.series.forEach(s => {
+        row[s.label] = s.data[i] ?? null;
+      });
+      return row;
+    });
+  }, [chartData]);
+
   const getDriverCode = (number: string) => {
     const driver = drivers.find(d => d.permanentNumber === number);
     return driver?.code || number;
@@ -141,6 +160,42 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
       </div>
     );
   }
+
+  // Axis tick formatting + themed colors (mirrors the old MUI axis styling)
+  const tickColor = isDark ? '#a1a1aa' : '#666';
+  const gridColor = isDark ? '#333' : '#e5e5e5';
+  const formatTime = (value: number) =>
+    typeof value === 'number' ? value.toFixed(1) : String(value);
+  const yAxisLabel = `${metricConfig[telemetryMetric].label}${
+    metricConfig[telemetryMetric].unit ? ` (${metricConfig[telemetryMetric].unit})` : ''
+  }`;
+
+  // Custom tooltip: time header + one row per driver series.
+  const TelemetryTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const rows = payload.filter((p: any) => p.value != null);
+    if (!rows.length) return null;
+    return (
+      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+        <div className="font-mono text-muted-foreground mb-1">
+          {formatTime(label)}s
+        </div>
+        {rows.map((p: any) => (
+          <div key={p.dataKey} className="flex items-center gap-1.5">
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ background: p.color || p.stroke }}
+            />
+            <span className="font-bold w-9">{p.dataKey}</span>
+            <span className="font-mono">
+              {p.value.toFixed(1)}
+              {metricConfig[telemetryMetric].unit ? ` ${metricConfig[telemetryMetric].unit}` : ''}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -244,30 +299,60 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
           <p className="text-xs text-muted-foreground mt-1">Select different drivers or check data availability</p>
         </div>
       ) : (
-        <MuiThemeWrapper>
-          <div className="h-[350px]">
+        <div className="h-[350px]">
+          <ResponsiveContainer width="100%" height={350}>
             <LineChart
-              xAxis={[{
-                data: chartData.times,
-                label: 'Time (s)',
-                scaleType: 'linear',
-                tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                valueFormatter: (value) => typeof value === 'number' ? value.toFixed(1) : String(value),
-              }]}
-              yAxis={[{
-                label: `${metricConfig[telemetryMetric].label}${metricConfig[telemetryMetric].unit ? ` (${metricConfig[telemetryMetric].unit})` : ''}`,
-                tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-              }]}
-              series={chartData.series}
-              height={350}
-              margin={{ left: 55, right: 20, top: 20, bottom: 40 }}
-              slotProps={({
-                legend: { hidden: true },
-              } as any)}
-              grid={{ vertical: false, horizontal: true }}
-            />
-          </div>
-        </MuiThemeWrapper>
+              data={rechartsRows}
+              margin={{ left: 10, right: 20, top: 20, bottom: 40 }}
+            >
+              <CartesianGrid
+                vertical={false}
+                stroke={gridColor}
+                strokeDasharray="3 3"
+              />
+              <XAxis
+                dataKey="time"
+                type="number"
+                domain={['dataMin', 'dataMax']}
+                tickFormatter={formatTime}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: tickColor }}
+                label={{
+                  value: 'Time (s)',
+                  position: 'insideBottom',
+                  offset: -10,
+                  fontSize: 11,
+                  fill: tickColor,
+                }}
+              />
+              <YAxis
+                width={55}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: tickColor }}
+                label={{
+                  value: yAxisLabel,
+                  angle: -90,
+                  position: 'insideLeft',
+                  style: { textAnchor: 'middle', fontSize: 11, fill: tickColor },
+                }}
+              />
+              <Tooltip content={<TelemetryTooltip />} />
+              {chartData.series.map(s => (
+                <Line
+                  key={s.label}
+                  type="linear"
+                  dataKey={s.label}
+                  stroke={s.color}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 3 }}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       )}
 
       {/* Stats Summary */}
