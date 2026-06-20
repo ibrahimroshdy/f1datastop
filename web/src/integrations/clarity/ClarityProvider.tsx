@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import clarity from '@microsoft/clarity';
+import { isClarityEnabled } from '@/config/integrations';
 
 interface ClarityProviderProps {
   children: React.ReactNode;
@@ -8,12 +9,9 @@ interface ClarityProviderProps {
 
 export const ClarityProvider: React.FC<ClarityProviderProps> = ({ children, projectId }) => {
   useEffect(() => {
-    // Initialize Clarity with the provided project ID
+    if (!isClarityEnabled || !projectId) return;
     clarity.init(projectId);
-
-    // No cleanup needed as clarity doesn't have a stop method
-    return () => {};
   }, [projectId]);
 
   return <>{children}</>;
-}; 
+};

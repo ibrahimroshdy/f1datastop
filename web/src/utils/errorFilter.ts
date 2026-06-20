@@ -16,8 +16,10 @@ const ERROR_FILTERS = [
   'Prevented null error for'
 ];
 
+import { clarityProjectId } from '@/config/integrations';
+
 // Project ID to redact from logs (don't filter the entire message)
-const PROJECT_ID = 'r25ms3yolv';
+const PROJECT_ID = clarityProjectId;
 
 /**
  * Initialize console filters to silence common errors/warnings
@@ -45,8 +47,8 @@ export const initConsoleFilters = (): void => {
         }
       }
       
-      // Redact project ID but still show the message
-      if (msg.includes(PROJECT_ID)) {
+      // Redact Clarity project ID but still show the message
+      if (PROJECT_ID && msg.includes(PROJECT_ID)) {
         msg = msg.replace(new RegExp(PROJECT_ID, 'g'), '[CLARITY-ID]');
       }
     }
@@ -58,7 +60,7 @@ export const initConsoleFilters = (): void => {
   // Override console.warn
   console.warn = function(msg: any, ...args: any[]) {
     // Don't completely filter warnings, just redact sensitive info
-    if (typeof msg === 'string' && msg.includes(PROJECT_ID)) {
+    if (typeof msg === 'string' && PROJECT_ID && msg.includes(PROJECT_ID)) {
       msg = msg.replace(new RegExp(PROJECT_ID, 'g'), '[CLARITY-ID]');
     }
     
@@ -69,7 +71,7 @@ export const initConsoleFilters = (): void => {
   // Override console.log to redact sensitive info but show success messages
   console.log = function(msg: any, ...args: any[]) {
     // Only redact project ID
-    if (typeof msg === 'string' && msg.includes(PROJECT_ID)) {
+    if (typeof msg === 'string' && PROJECT_ID && msg.includes(PROJECT_ID)) {
       msg = msg.replace(new RegExp(PROJECT_ID, 'g'), '[CLARITY-ID]');
     }
     

@@ -33,8 +33,7 @@ if (typeof window !== 'undefined') {
   initConsoleFilters();
 }
 
-// Clarity project ID - make it a constant to ensure consistency
-const CLARITY_PROJECT_ID = 'r25ms3yolv';
+import { clarityProjectId, isClarityEnabled } from '@/config/integrations';
 
 // Create a simple Auth callback handler component
 const AuthCallback = () => {
@@ -135,13 +134,12 @@ const App = () => (
             <DeveloperProvider>
               <TooltipProvider>
                 <ErrorBoundaryWrapper>
-                  <ClarityProvider projectId={CLARITY_PROJECT_ID}>
+                  <ClarityProvider projectId={clarityProjectId}>
                     <AnalyticsProvider>
                       <Toaster />
                       <Sonner />
-                      {/* Only show ClarityStatus in development */}
-                      {process.env.NODE_ENV === 'development' && (
-                        <ClarityStatus projectId={CLARITY_PROJECT_ID} />
+                      {process.env.NODE_ENV === 'development' && isClarityEnabled && (
+                        <ClarityStatus projectId={clarityProjectId} />
                       )}
                       <Routes>
                         {/* Public Routes */}

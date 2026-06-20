@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { RECAPTCHA } from '@/constants/apiConfig';
+import { isRecaptchaEnabled } from '@/config/integrations';
 
 // Define the props for the ReCaptcha component
 interface ReCaptchaProps {
@@ -68,6 +69,7 @@ const ReCaptcha = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<number | null>(null);
   const executed = useRef<boolean>(false);
+  const enabled = isRecaptchaEnabled && !!sitekey;
 
   // Initialize v3 reCAPTCHA
   const initializeV3 = () => {
@@ -120,6 +122,7 @@ const ReCaptcha = ({
   };
 
   useEffect(() => {
+    if (!enabled) return;
     // Add styles to hide badge if requested
     if (hideBadge) {
       addHideBadgeStyles();
@@ -142,7 +145,11 @@ const ReCaptcha = ({
         window.grecaptcha.reset(widgetId.current);
       }
     };
-  }, [sitekey, version, hideBadge]);
+  }, [sitekey, version, hideBadge, enabled]);
+
+  if (!enabled) {
+    return null;
+  }
 
   // For v3, we need to render a disclaimer instead of the widget
   if (version === 'v3') {

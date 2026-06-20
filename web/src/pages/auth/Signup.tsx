@@ -14,6 +14,7 @@ import {
 } from '@/components/f1';
 import { Eye, EyeOff, ArrowLeft, Twitter } from 'lucide-react';
 import ReCaptcha from '@/components/auth/ReCaptcha';
+import { isRecaptchaEnabled } from '@/config/integrations';
 import f1Logo from '@/assets/f1-logo.svg';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
@@ -42,8 +43,8 @@ const Signup = () => {
       return;
     }
     
-    // Validate captcha for email signup
-    if (!captchaToken) {
+    // Validate captcha for email signup when reCAPTCHA is configured
+    if (isRecaptchaEnabled && !captchaToken) {
       setError("Please complete the CAPTCHA verification");
       return;
     }
@@ -224,7 +225,7 @@ const Signup = () => {
                 </div>
               </div>
               
-              {/* Google reCAPTCHA - invisible but present in DOM */}
+              {isRecaptchaEnabled && (
               <div className="h-0 overflow-hidden">
                 <ReCaptcha 
                   onChange={handleCaptchaChange}
@@ -232,6 +233,7 @@ const Signup = () => {
                   hideBadge={true}
                 />
               </div>
+              )}
               
               {error && (
                 <div className="p-3 rounded-md bg-destructive/20 border border-destructive/50 text-destructive-foreground text-sm">
@@ -247,7 +249,7 @@ const Signup = () => {
                 {isLoading ? "Creating account..." : "Sign up"}
               </Button>
               
-              {/* reCAPTCHA privacy notice */}
+              {isRecaptchaEnabled && (
               <div className="text-xs mt-2 text-center text-muted-foreground">
                 This site is protected by reCAPTCHA and the Google{" "}
                 <a 
@@ -269,6 +271,7 @@ const Signup = () => {
                 </a>{" "}
                 apply.
               </div>
+              )}
 
               {/* X/Twitter Signup Button */}
               <div className="relative flex items-center justify-center mt-4">

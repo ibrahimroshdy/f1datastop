@@ -38,33 +38,7 @@
     <link rel="icon" href="/favicon.ico" type="image/x-icon" />
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
 
-    <!-- Consent Mode + Google tag: defaults apply only in EEA/UK/CH until your AdSense CMP updates consent -->
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag("consent", "default", {
-        ad_storage: "denied",
-        ad_user_data: "denied",
-        ad_personalization: "denied",
-        analytics_storage: "denied",
-        functionality_storage: "denied",
-        personalization_storage: "denied",
-        security_storage: "granted",
-        wait_for_update: 500,
-        region: ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE","IS","LI","NO","GB","CH"]
-      });
-    </script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1Y6GKNVD2J"></script>
-    <script>
-      gtag("js", new Date());
-      gtag("config", "G-1Y6GKNVD2J", { send_page_view: false });
-    </script>
-
-    <!-- Google European regulations message (AdSense Privacy & messaging → Google CMP). Pairs with adsbygoogle. -->
-    <script async src="https://fundingchoicesmessages.google.com/i/ca-pub-3379071701548171?ers=1"></script>
-
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3379071701548171" crossorigin="anonymous"></script>
+    <!-- GA4 / AdSense load via src/integrations/bootstrapThirdParty.ts when VITE_* ids are set -->
 </head>
 <body>
   <div id="root"></div> 

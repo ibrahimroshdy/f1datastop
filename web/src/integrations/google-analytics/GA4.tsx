@@ -1,8 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-
-// Replace with your actual measurement ID
-const GA_MEASUREMENT_ID = 'G-1Y6GKNVD2J';
+import { gaMeasurementId, isGaEnabled } from '@/config/integrations';
 
 // Interface for the gtag function
 interface GTagFunction {
@@ -22,12 +20,13 @@ declare global {
 
 // Initialize Google Analytics
 export const initializeGA = () => {
-  // Check if gtag is already available (loaded via HTML script tags)
+  if (!isGaEnabled) return;
+
+  // Check if gtag is already available (loaded via bootstrapThirdParty)
   if (typeof window !== 'undefined' && window.gtag) {
-    // GA is already loaded via HTML, just update config if needed
     const userId = getUserId();
     if (userId) {
-      window.gtag('config', GA_MEASUREMENT_ID, {
+      window.gtag('config', gaMeasurementId, {
         send_page_view: false,
         user_id: userId,
         cookie_flags: 'samesite=none;secure',
@@ -39,14 +38,13 @@ export const initializeGA = () => {
   }
   
   // Skip if script already exists
-  if (document.querySelector(`script[src*="googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}"]`)) {
+  if (document.querySelector(`script[src*="googletagmanager.com/gtag/js?id=${gaMeasurementId}"]`)) {
     return;
   }
   
-  // Fallback: Create script for Google Analytics if not loaded via HTML
   const gtagScript = document.createElement('script');
   gtagScript.async = true;
-  gtagScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  gtagScript.src = `https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`;
   
   // Handle script load errors
   gtagScript.onerror = () => {
@@ -61,7 +59,7 @@ export const initializeGA = () => {
     window.dataLayer.push(arguments);
   };
   window.gtag('js', new Date());
-  window.gtag('config', GA_MEASUREMENT_ID, {
+  window.gtag('config', gaMeasurementId, {
     send_page_view: false, // We'll handle page views manually
     cookie_flags: 'samesite=none;secure', // Ensure cookies work properly
     cookie_domain: window.location.hostname,
@@ -81,6 +79,7 @@ const getUserId = (): string | undefined => {
 
 // Helper function to track page views
 export const trackPageView = (url: string) => {
+  if (!isGaEnabled) return;
   if (!window.gtag) {
     initializeGA(); // Initialize if not done yet
   }
@@ -90,7 +89,7 @@ export const trackPageView = (url: string) => {
       page_path: url,
       page_location: window.location.href,
       page_title: document.title,
-      send_to: GA_MEASUREMENT_ID
+      send_to: gaMeasurementId
     });
   } catch (error) {
     console.error('[GA4] Error tracking page view:', error);
@@ -102,6 +101,7 @@ export const trackEvent = (
   eventName: string, 
   eventParams?: Record<string, any>
 ) => {
+  if (!isGaEnabled) return;
   if (!window.gtag) {
     initializeGA(); // Initialize if not done yet
   }
@@ -116,7 +116,7 @@ export const trackEvent = (
     const params = {
       ...eventParams,
       timestamp: eventParams?.timestamp || new Date().toISOString(),
-      send_to: GA_MEASUREMENT_ID
+      send_to: gaMeasurementId
     };
     
     window.gtag('event', eventName, params);
@@ -127,6 +127,7 @@ export const trackEvent = (
 
 // Set user ID when known
 export const setUserId = (userId: string) => {
+  if (!isGaEnabled) return;
   if (!window.gtag) {
     initializeGA(); // Initialize if not done yet
   }
@@ -197,6 +198,7 @@ export const trackDownload = (fileName: string, fileType: string): void => {
 
 // Track performance metrics
 export const trackPerformance = (): void => {
+  if (!isGaEnabled) return;
   if (typeof window !== 'undefined' && 'performance' in window) {
     const perfData = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
     if (perfData) {
@@ -213,6 +215,7 @@ export const trackPerformance = (): void => {
 
 // Track JavaScript errors
 export const trackError = (error: Error, errorInfo?: any): void => {
+  if (!isGaEnabled) return;
   trackEvent('javascript_error', {
     error_message: error.message,
     error_stack: error.stack?.substring(0, 500), // Limit stack trace length
@@ -226,6 +229,7 @@ export const trackError = (error: Error, errorInfo?: any): void => {
 
 // Track viewport and device info
 export const trackDeviceInfo = (): void => {
+  if (!isGaEnabled) return;
   if (typeof window !== 'undefined') {
     trackEvent('device_info', {
       viewport_width: window.innerWidth,
@@ -438,14 +442,14 @@ const GoogleAnalytics = () => {
   const location = useLocation();
   
   useEffect(() => {
-    // Initialize GA on first render
+    if (!isGaEnabled) return;
     if (typeof window !== 'undefined' && !window.gtag) {
       initializeGA();
     }
   }, []);
   
   useEffect(() => {
-    // Track page views on route change
+    if (!isGaEnabled) return;
     if (typeof window !== 'undefined') {
       trackPageView(location.pathname + location.search);
     }

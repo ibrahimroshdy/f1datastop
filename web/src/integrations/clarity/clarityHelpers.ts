@@ -2,6 +2,7 @@
  * Utility functions for Microsoft Clarity
  */
 import clarityPackage from '@microsoft/clarity';
+import { isClarityEnabled } from '@/config/integrations';
 
 // Extend Window interface to include clarity
 declare global {
@@ -50,15 +51,13 @@ const processQueuedCommands = () => {
  * Initialize Clarity safely if not already initialized
  */
 export const initClarity = (projectId: string): void => {
+  if (!isClarityEnabled || !projectId) return;
   try {
     if (!isClarityAvailable()) {
       clarityPackage.init(projectId);
-      
-      // Process any queued commands
       setTimeout(processQueuedCommands, 500);
     }
   } catch (error) {
-    // Silently fail in production
     if (!PRODUCTION) {
       console.error('[Clarity] Error during initialization');
     }
@@ -71,7 +70,7 @@ export const initClarity = (projectId: string): void => {
  * @param value Tag value
  */
 export const setTag = (key: string, value: string): void => {
-  if (!key || value === undefined) return;
+  if (!isClarityEnabled || !key || value === undefined) return;
   
   try {
     // Try to use the global window.clarity if available
@@ -105,7 +104,7 @@ export const identifyUser = (
     role?: string;
   }
 ): void => {
-  if (!userId) return;
+  if (!isClarityEnabled || !userId) return;
   
   try {
     if (isClarityAvailable()) {
@@ -141,7 +140,7 @@ export const identifyUser = (
  * @param eventName Name of the event
  */
 export const trackEvent = (eventName: string): void => {
-  if (!eventName) return;
+  if (!isClarityEnabled || !eventName) return;
   
   try {
     if (isClarityAvailable()) {
