@@ -4,6 +4,7 @@ import { optimizeLapData } from "@/utils/dataLoadingUtils";
 import { toast } from "sonner";
 import { useState } from "react";
 import { F1_API } from "@/constants/apiConfig";
+import { f1Keys } from "@/lib/f1/queryKeys";
 
 // Helper function to create exponential backoff retry logic with jitter
 const createRetryConfig = (retryDelayBase = 2000, maxRetryAttempts = 5) => ({
@@ -33,7 +34,7 @@ const lapTimesRetryConfig = createRetryConfig(5000, 10);
 
 export const useDriverStandings = (year?: number) => {
   return useQuery({
-    queryKey: ["driverStandings", year],
+    queryKey: f1Keys.standings.drivers(year),
     queryFn: () => f1Service.getDriverStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...defaultRetryConfig,
@@ -42,7 +43,7 @@ export const useDriverStandings = (year?: number) => {
 
 export const useConstructorStandings = (year?: number) => {
   return useQuery({
-    queryKey: ["constructorStandings", year],
+    queryKey: f1Keys.standings.constructors(year),
     queryFn: () => f1Service.getConstructorStandings(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...defaultRetryConfig,
@@ -51,7 +52,7 @@ export const useConstructorStandings = (year?: number) => {
 
 export const useRaceSchedule = (year?: number) => {
   return useQuery({
-    queryKey: ["raceSchedule", year],
+    queryKey: f1Keys.schedule(year),
     queryFn: () => f1Service.getRaceSchedule(year),
     staleTime: 1000 * 60 * 60, // 1 hour
     ...defaultRetryConfig,
@@ -60,7 +61,7 @@ export const useRaceSchedule = (year?: number) => {
 
 export const useRaceResults = (year: number, round: string) => {
   return useQuery({
-    queryKey: ["raceResults", year, round],
+    queryKey: f1Keys.raceResults(year, round),
     queryFn: () => f1Service.getRaceResults(year, round),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
@@ -70,7 +71,7 @@ export const useRaceResults = (year: number, round: string) => {
 
 export const useRaceQualifying = (year: number, round: string) => {
   return useQuery({
-    queryKey: ["qualifying", year, round],
+    queryKey: f1Keys.qualifying(year, round),
     queryFn: () => f1Service.getRaceQualifying(year, round),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
@@ -87,7 +88,7 @@ export const useLapTimes = (year: number, round: string, firstDriverOnly: boolea
   });
 
   return useQuery({
-    queryKey: ["lapTimes", year, round, firstDriverOnly ? "firstDriverOnly" : "allDrivers"],
+    queryKey: f1Keys.lapTimes(year, round, firstDriverOnly ? "firstDriverOnly" : "allDrivers"),
     queryFn: async () => {
       try {
         // Add a small delay before making the request to avoid immediate rate limiting
@@ -140,7 +141,7 @@ export const useLapTimes = (year: number, round: string, firstDriverOnly: boolea
 
 export const usePitStops = (year: number, round: string) => {
   return useQuery({
-    queryKey: ["pitStops", year, round],
+    queryKey: f1Keys.pitStops(year, round),
     queryFn: () => f1Service.getPitStops(year, round),
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!year && !!round,
@@ -150,7 +151,7 @@ export const usePitStops = (year: number, round: string) => {
 
 export const useLastRaceResults = (year?: number) => {
   return useQuery({
-    queryKey: ["lastRaceResults", year],
+    queryKey: f1Keys.lastRaceResults(year),
     queryFn: () => f1Service.getLastRaceResults(year),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -162,7 +163,7 @@ export const useLastRacePitStops = (year?: number) => {
   const { data: lastRaceData } = useLastRaceResults(year);
   
   return useQuery({
-    queryKey: ["lastRacePitStops", year],
+    queryKey: f1Keys.lastRacePitStops(year),
     queryFn: async () => {
       if (!raceScheduleData?.data || !lastRaceData?.data) {
         return { data: { Races: [] }, error: "No race data available" };
@@ -197,7 +198,7 @@ export const useLastRacePitStops = (year?: number) => {
 
 export const useNextRace = (year?: number) => {
   return useQuery({
-    queryKey: ["nextRace", year],
+    queryKey: f1Keys.nextRace(year),
     queryFn: () => f1Service.getNextRace(year),
     staleTime: 1000 * 60 * 5, // 5 minutes
     ...defaultRetryConfig,
@@ -206,7 +207,7 @@ export const useNextRace = (year?: number) => {
 
 export const useRaceStatus = (sessionId?: string) => {
   return useQuery({
-    queryKey: ["raceStatus", sessionId],
+    queryKey: f1Keys.raceStatus(sessionId),
     queryFn: () => f1Service.getRaceStatus(sessionId),
     staleTime: 1000 * 60, // 1 minute
     enabled: !!sessionId,
@@ -216,7 +217,7 @@ export const useRaceStatus = (sessionId?: string) => {
 
 export const useDriverInfo = (year?: number) => {
   return useQuery({
-    queryKey: ["driverInfo", year],
+    queryKey: f1Keys.driverInfo(year),
     queryFn: () => f1Service.getDriverInfo(year),
     staleTime: 1000 * 30, // 30 seconds
     ...defaultRetryConfig,
@@ -225,7 +226,7 @@ export const useDriverInfo = (year?: number) => {
 
 export const useWeatherData = (sessionId?: string) => {
   return useQuery({
-    queryKey: ["weatherData", sessionId],
+    queryKey: f1Keys.weatherData(sessionId),
     queryFn: () => f1Service.getWeatherData(sessionId),
     staleTime: 1000 * 60 * 2, // 2 minutes
     enabled: !!sessionId,
@@ -235,7 +236,7 @@ export const useWeatherData = (sessionId?: string) => {
 
 export const useF1News = () => {
   return useQuery({
-    queryKey: ["f1News"],
+    queryKey: f1Keys.news(),
     queryFn: f1Service.getF1News,
     staleTime: 1000 * 60 * 15, // 15 minutes
     ...defaultRetryConfig,
@@ -244,7 +245,7 @@ export const useF1News = () => {
 
 export const useF1Circuits = () => {
   return useQuery({
-    queryKey: ["f1Circuits"],
+    queryKey: f1Keys.circuits(),
     queryFn: f1Service.getF1Circuits,
     staleTime: 1000 * 60 * 60 * 24, // 24 hours (this rarely changes)
     ...defaultRetryConfig,
@@ -254,7 +255,7 @@ export const useF1Circuits = () => {
 // Integrated from useQualifyingToRaceData.ts
 export const useQualifyingToRaceData = (year?: number) => {
   return useQuery({
-    queryKey: ["qualifyingToRaceData", year],
+    queryKey: f1Keys.qualifyingToRace(year),
     queryFn: async () => {
       try {
         // Get race schedule first to find completed races
@@ -561,7 +562,7 @@ const processDataForSankey = (qualifyingData: any, raceData: any) => {
 
 export function useQualifyingToRaceDataByRound(year: number, round: string) {
   return useQuery({
-    queryKey: ['qualifyingToRaceData', year, round],
+    queryKey: f1Keys.qualifyingToRaceRound(year, round),
     queryFn: async () => {
       try {
         // Race results are required; qualifying is optional (if missing/fails, we use grid position as "quali" for all)
@@ -799,7 +800,7 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
 // Hook for fetching sprint results
 export const useSprintResults = (year: number, round: string) => {
   return useQuery({
-    queryKey: ['sprintResults', year, round],
+    queryKey: f1Keys.sprintResults(year, round),
     queryFn: () => f1Service.getSprintResults(year, round),
     retry: 1,
     retryDelay: 1000,
@@ -813,7 +814,7 @@ export const useSprintResults = (year: number, round: string) => {
 // per-driver fetch when the data is supplied from the batched season query below.
 export const useDriverResultsBySeason = (year: number, driverId: string, enabled: boolean = true) => {
   return useQuery({
-    queryKey: ["driverResultsBySeason", year, driverId],
+    queryKey: f1Keys.driverResultsBySeason(year, driverId),
     queryFn: () => f1Service.getDriverResultsBySeason(year, driverId),
     staleTime: 1000 * 60 * 60, // 1h — season results change slowly; fewer Jolpica bursts when scrolling drivers
     enabled: enabled && !!year && !!driverId,
@@ -825,7 +826,7 @@ export const useDriverResultsBySeason = (year: number, driverId: string, enabled
 // Use on the Drivers grid to avoid the per-card N+1 (was ~1 request per driver).
 export const useAllDriverResultsBySeason = (year: number) => {
   return useQuery({
-    queryKey: ["allDriverResultsBySeason", year],
+    queryKey: f1Keys.allDriverResultsBySeason(year),
     queryFn: () => f1Service.getAllDriverResultsBySeason(year),
     staleTime: 1000 * 60 * 60, // 1h
     enabled: !!year,

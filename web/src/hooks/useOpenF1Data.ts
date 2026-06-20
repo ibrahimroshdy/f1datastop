@@ -3,6 +3,7 @@ import * as openF1Service from "@/services/openF1Service";
 import { toast } from "sonner";
 import { useState } from "react";
 import { findMatchingOpenF1Session } from "@/utils/apiAdapters";
+import { openF1Keys } from "@/lib/f1/queryKeys";
 
 // Helper function to create exponential backoff retry logic with jitter
 const createRetryConfig = (retryDelayBase = 2000, maxRetryAttempts = 5) => ({
@@ -29,7 +30,7 @@ const defaultRetryConfig = createRetryConfig(2000, 5);
 // Get latest session
 export const useLatestSession = () => {
   return useQuery({
-    queryKey: ["openF1LatestSession"],
+    queryKey: openF1Keys.latestSession(),
     queryFn: openF1Service.getLatestSession,
     staleTime: 1000 * 60, // 1 minute
     ...defaultRetryConfig,
@@ -39,7 +40,7 @@ export const useLatestSession = () => {
 // Get sessions by year
 export const useSessionsByYear = (year: number) => {
   return useQuery({
-    queryKey: ["openF1Sessions", year],
+    queryKey: openF1Keys.sessions(year),
     queryFn: () => openF1Service.getSessionsByYear(year),
     staleTime: 1000 * 60 * 60, // 1 hour
     ...defaultRetryConfig,
@@ -49,7 +50,7 @@ export const useSessionsByYear = (year: number) => {
 // Get specific session by meeting key and session type
 export const useSession = (meetingKey: number, sessionType?: string) => {
   return useQuery({
-    queryKey: ["openF1Session", meetingKey, sessionType],
+    queryKey: openF1Keys.session(meetingKey, sessionType),
     queryFn: () => openF1Service.getSession(meetingKey, sessionType),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!meetingKey,
@@ -65,7 +66,7 @@ export const useLapData = (sessionKey: number, driverNumber?: number) => {
   });
 
   const query = useQuery({
-    queryKey: ["openF1LapData", sessionKey, driverNumber],
+    queryKey: openF1Keys.lapData(sessionKey, driverNumber),
     queryFn: async () => {
       setLoadingState({ progress: 10, isLoading: true });
       const result = await openF1Service.getLapData(sessionKey, driverNumber);
@@ -92,7 +93,7 @@ export const useCarData = (sessionKey: number, driverNumber?: number) => {
   });
 
   const query = useQuery({
-    queryKey: ["openF1CarData", sessionKey, driverNumber],
+    queryKey: openF1Keys.carData(sessionKey, driverNumber),
     queryFn: async () => {
       setLoadingState({ progress: 10, isLoading: true });
       const result = await openF1Service.getCarData(sessionKey, driverNumber);
@@ -114,7 +115,7 @@ export const useCarData = (sessionKey: number, driverNumber?: number) => {
 // Get weather data for a session
 export const useWeatherData = (sessionKey: number) => {
   return useQuery({
-    queryKey: ["openF1WeatherData", sessionKey],
+    queryKey: openF1Keys.weatherData(sessionKey),
     queryFn: () => openF1Service.getWeatherData(sessionKey),
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!sessionKey,
@@ -126,7 +127,7 @@ export const useWeatherData = (sessionKey: number) => {
 // Get driver info for a session
 export const useDrivers = (sessionKey: number, driverNumber?: number) => {
   return useQuery({
-    queryKey: ["openF1Drivers", sessionKey, driverNumber],
+    queryKey: openF1Keys.drivers(sessionKey, driverNumber),
     queryFn: () => openF1Service.getDrivers(sessionKey, driverNumber),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
@@ -138,7 +139,7 @@ export const useDrivers = (sessionKey: number, driverNumber?: number) => {
 // Get team radio for a session
 export const useTeamRadio = (sessionKey: number, driverNumber?: number) => {
   return useQuery({
-    queryKey: ["openF1TeamRadio", sessionKey, driverNumber],
+    queryKey: openF1Keys.teamRadio(sessionKey, driverNumber),
     queryFn: () => openF1Service.getTeamRadio(sessionKey, driverNumber),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
@@ -150,7 +151,7 @@ export const useTeamRadio = (sessionKey: number, driverNumber?: number) => {
 // Get race control messages for a session
 export const useRaceControl = (sessionKey: number) => {
   return useQuery({
-    queryKey: ["openF1RaceControl", sessionKey],
+    queryKey: openF1Keys.raceControl(sessionKey),
     queryFn: () => openF1Service.getRaceControl(sessionKey),
     staleTime: 1000 * 60 * 60,
     enabled: !!sessionKey,
@@ -161,7 +162,7 @@ export const useRaceControl = (sessionKey: number) => {
 // Get position data for a session
 export const usePositionData = (sessionKey: number, driverNumber?: number) => {
   return useQuery({
-    queryKey: ["openF1PositionData", sessionKey, driverNumber],
+    queryKey: openF1Keys.positionData(sessionKey, driverNumber),
     queryFn: () => openF1Service.getPositionData(sessionKey, driverNumber),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
@@ -172,7 +173,7 @@ export const usePositionData = (sessionKey: number, driverNumber?: number) => {
 // Get overtakes data for a session
 export const useOvertakes = (sessionKey: number, overtakingDriverNumber?: number, overtakenDriverNumber?: number, position?: number) => {
   return useQuery({
-    queryKey: ["openF1Overtakes", sessionKey, overtakingDriverNumber, overtakenDriverNumber, position],
+    queryKey: openF1Keys.overtakes(sessionKey, overtakingDriverNumber, overtakenDriverNumber, position),
     queryFn: () => openF1Service.getOvertakes(sessionKey, overtakingDriverNumber, overtakenDriverNumber, position),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
@@ -183,7 +184,7 @@ export const useOvertakes = (sessionKey: number, overtakingDriverNumber?: number
 // Get lap data for a session
 export const useLaps = (sessionKey: number, driverNumber?: number, lapNumber?: number) => {
   return useQuery({
-    queryKey: ["openF1Laps", sessionKey, driverNumber, lapNumber],
+    queryKey: openF1Keys.laps(sessionKey, driverNumber, lapNumber),
     queryFn: () => openF1Service.getLaps(sessionKey, driverNumber, lapNumber),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
@@ -194,7 +195,7 @@ export const useLaps = (sessionKey: number, driverNumber?: number, lapNumber?: n
 // Get starting grid data for a session
 export const useStartingGrid = (sessionKey: number) => {
   return useQuery({
-    queryKey: ["openF1StartingGrid", sessionKey],
+    queryKey: openF1Keys.startingGrid(sessionKey),
     queryFn: () => openF1Service.getStartingGrid(sessionKey),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!sessionKey,
@@ -209,7 +210,7 @@ export const useOpenF1SessionFromErgast = (year: number, round: string, sessionT
   
   // Then find the matching session
   return useQuery({
-    queryKey: ["openF1SessionFromErgast", year, round, sessionType],
+    queryKey: openF1Keys.sessionFromErgast(year, round, sessionType),
     queryFn: () => {
       const sessions = sessionsQuery.data?.data || [];
       const matchingSession = findMatchingOpenF1Session(sessions, year, round, sessionType);
@@ -229,7 +230,7 @@ export const useOpenF1SessionFromErgast = (year: number, round: string, sessionT
 /** Single batched fetch for `/drivers?session_key=latest` — subscribe from many cards without N parallel requests. */
 export const useLatestSessionDrivers = (enabled = true) => {
   return useQuery({
-    queryKey: ["openF1LatestSessionDrivers"],
+    queryKey: openF1Keys.latestSessionDrivers(),
     queryFn: () => openF1Service.getLatestSessionDrivers(),
     staleTime: 1000 * 60 * 60 * 24,
     enabled,
@@ -241,7 +242,7 @@ export const useLatestSessionDrivers = (enabled = true) => {
 // Get latest driver info (e.g. headshot_url) via driver number or acronym
 export const useLatestDriver = (driverNumber?: number, nameAcronym?: string, enabled: boolean = true) => {
   return useQuery({
-    queryKey: ["openF1LatestDriver", driverNumber, nameAcronym],
+    queryKey: openF1Keys.latestDriver(driverNumber, nameAcronym),
     queryFn: () => openF1Service.getLatestDriver(driverNumber, nameAcronym),
     staleTime: 1000 * 60 * 60 * 24, // 24h — headshots rarely change; cuts parallel OpenF1 load on driver grids
     enabled: enabled && (!!driverNumber || !!nameAcronym),

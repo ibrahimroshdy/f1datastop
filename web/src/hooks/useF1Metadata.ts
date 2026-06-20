@@ -8,6 +8,7 @@ import {
   resolveTeamColor,
 } from "@/lib/f1/adapters";
 import type { ErgastConstructorStandingRow, ErgastDriverStandingRow } from "@/lib/f1/types";
+import { metadataKeys } from "@/lib/f1/queryKeys";
 
 /**
  * Driver metadata interface
@@ -79,7 +80,7 @@ export const useF1Metadata = (year: number = new Date().getFullYear()) => {
   
   // Fetch drivers standings from API
   const driversQuery = useQuery({
-    queryKey: ["metadata", "drivers", year],
+    queryKey: metadataKeys.drivers(year),
     queryFn: () => getDriverStandings(year),
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
     retry: 3,
@@ -88,7 +89,7 @@ export const useF1Metadata = (year: number = new Date().getFullYear()) => {
 
   // Fetch constructors standings from API
   const constructorsQuery = useQuery({
-    queryKey: ["metadata", "constructors", year],
+    queryKey: metadataKeys.constructors(year),
     queryFn: () => getConstructorStandings(year),
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
     retry: 3,

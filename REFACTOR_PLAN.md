@@ -109,22 +109,22 @@ Cut bloat surfaced in audit (#15286). Each removal is its own small PR with a bu
 
 ---
 
-## Phase 3 — Canonical data-reference layer — 🔄 IN PROGRESS
+## Phase 3 — Canonical data-reference layer — ✅ COMPLETE
 
 > 3.6 done: Drivers-page Ergast N+1 fixed — `getAllDriverResultsBySeason` + `useAllDriverResultsBySeason`.
 > 3.3 done: shared `lib/api/throttledFetch.ts` retry/backoff.
 > 3.4 done: per-API request queues (`ergastQueue` concurrency 1, `openF1Queue` concurrency 3).
 > 3.1–3.2 done: `web/src/lib/f1/types.ts` + `adapters.ts`; wired into `useF1Metadata`, `DriverCard`; `mapOpenF1DriverToErgast` re-exported from `apiAdapters.ts`.
-> Remaining: 3.5 React Query key convention helper.
+> 3.5 done: hierarchical React Query keys in `lib/f1/queryKeys.ts`; wired into F1/OpenF1/metadata/telemetry hooks.
 
 3.1 Create `web/src/lib/f1/` with **canonical types** — `F1Driver`, `F1Team`, `F1Race`, `F1Session` — each carrying both `ergastId` and `openF1Number`/keys. ✅
 3.2 Single `adapters.ts`: `normalizeErgastDriver`, `normalizeOpenF1Driver`, `mergeDriver`. Consolidated mappings from `useF1Metadata.ts` inline + `DriverCard.tsx` inline; driver mapping moved from `apiAdapters.ts`. ✅
 3.3 **One shared retry/fetch util** (`lib/api/throttledFetch.ts`) — kill the 3 copy-pasted retry blocks in `useF1Data`, `useOpenF1Data`, `openF1Service`. ✅
 3.4 **Request queue** per service (`p-queue` style: Ergast concurrency 1, OpenF1 3) to stop bursts at the source. ✅
-3.5 **React Query key convention** doc + helper — hierarchical keys like fifa-league (`['drivers', year]`, `['session', sessionKey, 'laps', driverNumber]`).
+3.5 **React Query key convention** doc + helper — hierarchical keys (`f1Keys`, `openF1Keys`, `metadataKeys`, `telemetryKeys`). ✅
 3.6 **Batch driver metadata**: one `useBatchDriverMetadata(year)` consumed by all cards. Kills the 44–66-call N+1 on the Drivers page → ~2 calls. ✅ (via batch season results + OpenF1 batch)
 
-**Exit criteria:** Drivers page makes ≤3 API calls; zero duplicated adapter/retry code; all fetches go through the queue.
+**Exit criteria:** Drivers page makes ≤3 API calls; zero duplicated adapter/retry code; all fetches go through the queue. ✅
 
 ---
 

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useF1Metadata } from "@/hooks/useF1Metadata";
 import { useQueries } from "@tanstack/react-query";
 import * as openF1Service from "@/services/openF1Service";
+import { telemetryKeys } from "@/lib/f1/queryKeys";
 
 export interface TelemetryDataPoint {
   time: number;
@@ -71,7 +72,7 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
   // Use useQueries to fetch telemetry for selected drivers in parallel
   const driverQueries = useQueries({
     queries: selectedDrivers.map(driverNumber => ({
-      queryKey: ["telemetry", sessionKey, driverNumber],
+      queryKey: telemetryKeys.session(sessionKey, driverNumber),
       queryFn: async () => {
         const result = await openF1Service.getCarData(sessionKey, driverNumber);
         if (result.error) throw new Error(result.error as string);
