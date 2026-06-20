@@ -23,7 +23,12 @@
 
 ---
 
-## Phase 0 — Safety & secrets (DO FIRST, blocking)
+## Phase 0 — Safety & secrets (DO FIRST, blocking) — ✅ CODE DONE (commit 15b0858, branch phase0-secrets-safety)
+
+> Remaining = manual/dashboard actions only: rotate reCAPTCHA secret + redeploy edge fns,
+> optional anon-key rotation, flip notify-slack verify_jwt, dashboard auth hardening,
+> `supabase db pull` to sync migration history. (See supabase/migrations/README.md.)
+
 
 Nothing else ships until this is clean. These are the items that make the repo unsafe and the deploy non-reproducible.
 
