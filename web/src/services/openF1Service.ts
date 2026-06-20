@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { withCache } from "@/utils/cache";
 import { F1_API } from "@/constants/apiConfig";
-import { throttledFetch } from "@/lib/api/throttledFetch";
+import { openF1ThrottledFetch } from "@/lib/api/throttledFetch";
 
 const BASE_URL = F1_API.OPENF1_BASE;
 
@@ -47,7 +47,7 @@ export const getSession = async (meeting_key: number, session_type?: string) => 
       url += `&session_type=${session_type}`;
     }
 
-    const response = await throttledFetch(url);
+    const response = await openF1ThrottledFetch(url);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -70,7 +70,7 @@ export const getSession = async (meeting_key: number, session_type?: string) => 
 // Get the latest session
 export const getLatestSession = async () => {
   try {
-    const response = await throttledFetch(`${BASE_URL}/sessions?session_key=latest`);
+    const response = await openF1ThrottledFetch(`${BASE_URL}/sessions?session_key=latest`);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -90,7 +90,7 @@ export const getLatestSession = async () => {
 // Get all sessions for a year
 export const getSessionsByYear = async (year: number) => {
   try {
-    const response = await throttledFetch(`${BASE_URL}/sessions?date_start>=${year}-01-01&date_end<=${year}-12-31`);
+    const response = await openF1ThrottledFetch(`${BASE_URL}/sessions?date_start>=${year}-01-01&date_end<=${year}-12-31`);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -124,7 +124,7 @@ export const getLapData = async (session_key: number, driver_number?: number) =>
       url += `&driver_number=${driver_number}`;
     }
 
-    const response = await throttledFetch(url);
+    const response = await openF1ThrottledFetch(url);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -152,7 +152,7 @@ export const getCarData = async (session_key: number, driver_number?: number) =>
 
     // Note: we explicitly avoid adding limit parameter as it causes issues with the API
 
-    const response = await throttledFetch(url);
+    const response = await openF1ThrottledFetch(url);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -175,7 +175,7 @@ export const getCarData = async (session_key: number, driver_number?: number) =>
 // Get weather data for a session
 export const getWeatherData = async (session_key: number) => {
   try {
-    const response = await throttledFetch(`${BASE_URL}/weather?session_key=${session_key}`);
+    const response = await openF1ThrottledFetch(`${BASE_URL}/weather?session_key=${session_key}`);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -200,7 +200,7 @@ export const getDrivers = async (session_key: number, driver_number?: number) =>
       url += `&driver_number=${driver_number}`;
     }
 
-    const response = await throttledFetch(url);
+    const response = await openF1ThrottledFetch(url);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -227,7 +227,7 @@ export const getTeamRadio = async (session_key: number, driver_number?: number) 
       url += `&driver_number=${driver_number}`;
     }
 
-    const response = await throttledFetch(url);
+    const response = await openF1ThrottledFetch(url);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -249,7 +249,7 @@ export const getTeamRadio = async (session_key: number, driver_number?: number) 
 export const getRaceControl = async (session_key: number) => {
   try {
     const url = `${BASE_URL}/race_control?session_key=${session_key}`;
-    const response = await throttledFetch(url);
+    const response = await openF1ThrottledFetch(url);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -272,7 +272,7 @@ export const getPositionData = async (session_key: number, driver_number?: numbe
       url += `&driver_number=${driver_number}`;
     }
 
-    const response = await throttledFetch(url);
+    const response = await openF1ThrottledFetch(url);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -304,7 +304,7 @@ export const getOvertakes = async (session_key: number, overtaking_driver_number
       url += `&position=${position}`;
     }
 
-    const response = await throttledFetch(url);
+    const response = await openF1ThrottledFetch(url);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -332,7 +332,7 @@ export const getLaps = async (session_key: number, driver_number?: number, lap_n
       url += `&lap_number=${lap_number}`;
     }
 
-    const response = await throttledFetch(url);
+    const response = await openF1ThrottledFetch(url);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -354,7 +354,7 @@ export const getStartingGrid = async (session_key: number) => {
   try {
     const url = `${BASE_URL}/starting_grid?session_key=${session_key}`;
 
-    const response = await throttledFetch(url);
+    const response = await openF1ThrottledFetch(url);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -376,7 +376,7 @@ export const getStartingGrid = async (session_key: number) => {
 export const getLatestSessionDrivers = async () => {
   try {
     const url = `${BASE_URL}/drivers?session_key=latest`;
-    const response = await throttledFetch(url, 3500, 8);
+    const response = await openF1ThrottledFetch(url, 3500, 8);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -406,7 +406,7 @@ export const getLatestDriver = async (driver_number?: number, name_acronym?: str
       url += `&name_acronym=${encodeURIComponent(name_acronym)}`;
     }
 
-    const response = await throttledFetch(url, 3500, 8);
+    const response = await openF1ThrottledFetch(url, 3500, 8);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);

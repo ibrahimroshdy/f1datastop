@@ -1,8 +1,16 @@
 import { toast } from "sonner";
+import { ergastQueue, openF1Queue } from "@/lib/api/requestQueue";
 
 const DEFAULT_FETCH_HEADERS: HeadersInit = {
   Accept: "application/json",
 };
+
+function withQueue<T>(
+  queue: { enqueue: <R>(task: () => Promise<R>) => Promise<R> },
+  task: () => Promise<T>,
+): Promise<T> {
+  return queue.enqueue(task);
+}
 
 /** Jittered exponential backoff (80–120% of base exponential term). */
 function jitteredBackoff(baseDelayMs: number, exponent: number, capMs = 60_000): number {
@@ -105,4 +113,36 @@ export function createRetryConfig(
       return delay;
     },
   };
+}
+
+/** Queued Ergast fetch (concurrency 1). */
+export function ergastFetch(url: string, init?: RequestInit): Promise<Response> {
+  return withQueue(ergastQueue, () =>
+    fetch(url, {
+      mode: "cors",
+      headers: DEFAULT_FETCH_HEADERS,
+      ...init,
+    }),
+  );
+}
+
+/** Queued Ergast fetch with 429 / network retry (concurrency 1). */
+export function ergastThrottledFetch(
+  url: string,
+  retryDelayMs = 2000,
+  maxRetries = 3,
+  attemptRef?: Record<string, number>,
+): Promise<Response> {
+  return withQueue(ergastQueue, () =>
+    throttledFetch(url, retryDelayMs, maxRetries, attemptRef),
+  );
+}
+
+/** Queued OpenF1 fetch with 429 / network retry (concurrency 3). */
+export function openF1ThrottledFetch(
+  url: string,
+  retryDelayMs = 2000,
+  maxRetries = 3,
+): Promise<Response> {
+  return withQueue(openF1Queue, () => throttledFetch(url, retryDelayMs, maxRetries));
 }

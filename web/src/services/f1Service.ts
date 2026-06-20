@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { getCountryFlag, addFlagToRaceName } from "@/utils/countryUtils";
 import { F1_API } from "@/constants/apiConfig";
-import { throttledFetch } from "@/lib/api/throttledFetch";
+import { ergastFetch, ergastThrottledFetch } from "@/lib/api/throttledFetch";
 
 const BASE_URL = F1_API.ERGAST_BASE;
 
@@ -23,10 +23,7 @@ const processRaceData = (races: any[]) => {
 export const getDriverStandings = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${seasonYear}/driverStandings.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await ergastFetch(`${BASE_URL}/f1/${seasonYear}/driverStandings.json`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -43,10 +40,7 @@ export const getDriverStandings = async (year?: number) => {
 export const getConstructorStandings = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${seasonYear}/constructorStandings.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await ergastFetch(`${BASE_URL}/f1/${seasonYear}/constructorStandings.json`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -63,10 +57,7 @@ export const getConstructorStandings = async (year?: number) => {
 export const getRaceSchedule = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await ergastFetch(`${BASE_URL}/f1/${seasonYear}.json`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -83,10 +74,7 @@ export const getRaceSchedule = async (year?: number) => {
 // Fetch specific race results with error logging
 export const getRaceResults = async (year: number, round: string) => {
   try {
-    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/results.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await ergastFetch(`${BASE_URL}/f1/${year}/${round}/results.json`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -102,10 +90,7 @@ export const getRaceResults = async (year: number, round: string) => {
 // Fetch qualifying results
 export const getRaceQualifying = async (year: number, round: string) => {
   try {
-    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/qualifying.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await ergastFetch(`${BASE_URL}/f1/${year}/${round}/qualifying.json`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -121,10 +106,7 @@ export const getRaceQualifying = async (year: number, round: string) => {
 // Fetch pit stops for a specific race
 export const getPitStops = async (year: number, round: string) => {
   try {
-    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/pitstops.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await ergastFetch(`${BASE_URL}/f1/${year}/${round}/pitstops.json`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -170,7 +152,7 @@ async function fetchLapTimesUncached(
     const retryAttempts: { [key: string]: number } = {};
 
     // Initial request with small page size to quickly get total count
-    const initialResponse = await throttledFetch(`${baseUrl}.json?limit=30&offset=0`, 3000, 5, retryAttempts);
+    const initialResponse = await ergastThrottledFetch(`${baseUrl}.json?limit=30&offset=0`, 3000, 5, retryAttempts);
 
     if (!initialResponse.ok) {
       if (initialResponse.status === 429) {
@@ -205,7 +187,7 @@ async function fetchLapTimesUncached(
 
             try {
               // Use throttled fetch for each pagination request
-              const response = await throttledFetch(
+              const response = await ergastThrottledFetch(
                 `${baseUrl}.json?limit=${limit}&offset=${offset}`,
                 5000,
                 7, // Increased retry attempts
@@ -377,10 +359,7 @@ async function fetchLapTimesUncached(
 export const getLastRaceResults = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const scheduleResponse = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const scheduleResponse = await ergastFetch(`${BASE_URL}/f1/${seasonYear}.json`);
     if (!scheduleResponse.ok) {
       throw new Error(`API request failed with status ${scheduleResponse.status}`);
     }
@@ -392,10 +371,7 @@ export const getLastRaceResults = async (year?: number) => {
       return { data: null, error: "No completed races found for this season" };
     }
     const lastRace = completedRaces[completedRaces.length - 1];
-    const resultsResponse = await fetch(`${BASE_URL}/f1/${lastRace.season}/${lastRace.round}/results.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const resultsResponse = await ergastFetch(`${BASE_URL}/f1/${lastRace.season}/${lastRace.round}/results.json`);
     if (!resultsResponse.ok) {
       throw new Error(`API request failed with status ${resultsResponse.status}`);
     }
@@ -415,10 +391,7 @@ export const getLastRaceResults = async (year?: number) => {
 export const getNextRace = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${seasonYear}.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await ergastFetch(`${BASE_URL}/f1/${seasonYear}.json`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -451,10 +424,7 @@ export const getRaceStatus = async (sessionId?: string) => {
 export const getDriverInfo = async (year?: number) => {
   try {
     const seasonYear = year || getCurrentSeason();
-    const response = await fetch(`${BASE_URL}/f1/${seasonYear}/driverStandings.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await ergastFetch(`${BASE_URL}/f1/${seasonYear}/driverStandings.json`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -490,10 +460,7 @@ export const getF1News = async () => {
 // Fetch F1 circuits data
 export const getF1Circuits = async () => {
   try {
-    const response = await fetch(`${BASE_URL}/f1/circuits.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await ergastFetch(`${BASE_URL}/f1/circuits.json`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -509,10 +476,7 @@ export const getF1Circuits = async () => {
 // Fetch sprint results for a specific race
 export const getSprintResults = async (year: number, round: string) => {
   try {
-    const response = await fetch(`${BASE_URL}/f1/${year}/${round}/sprint.json`, {
-      mode: 'cors',
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await ergastFetch(`${BASE_URL}/f1/${year}/${round}/sprint.json`);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
@@ -529,7 +493,7 @@ export const getSprintResults = async (year: number, round: string) => {
 export const getDriverResultsBySeason = async (year: number, driverId: string) => {
   try {
     const url = `${BASE_URL}/f1/${year}/drivers/${encodeURIComponent(driverId)}/results.json?limit=1000`;
-    const response = await throttledFetch(url, 4000, 8);
+    const response = await ergastThrottledFetch(url, 4000, 8);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -578,7 +542,7 @@ export const getDriverResultsBySeason = async (year: number, driverId: string) =
 export const getAllDriverResultsBySeason = async (year: number) => {
   try {
     const url = `${BASE_URL}/f1/${year}/results.json?limit=1000`;
-    const response = await throttledFetch(url, 4000, 8);
+    const response = await ergastThrottledFetch(url, 4000, 8);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
