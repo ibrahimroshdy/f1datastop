@@ -1,18 +1,10 @@
 import { Progress } from "@/components/ui/progress";
 import TeamLogo from "@/components/common/TeamLogo";
-import { TEAM_COLORS } from "@/constants/f1Colors";
 
 interface ConstructorStandingsContentProps {
   constructorStandings: any;
   getTeamColor: (constructorId: string) => string;
 }
-
-const normalizeTeamId = (id: string) => {
-  const t = (id || "").toLowerCase();
-  if (t === "alphatauri") return "rb";
-  if (t === "alfa") return "sauber";
-  return t;
-};
 
 const ConstructorStandingsContent = ({ constructorStandings }: ConstructorStandingsContentProps) => {
   const leaderPoints = Number(constructorStandings?.data?.[0]?.points || 0);
@@ -22,7 +14,6 @@ const ConstructorStandingsContent = ({ constructorStandings }: ConstructorStandi
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
       {list.map((team: any, idx: number) => {
         const teamId = team.Constructor?.constructorId || "default";
-        const color = TEAM_COLORS[normalizeTeamId(teamId)] || TEAM_COLORS.default;
         const points = Number(team.points || 0);
         const leader = leaderPoints || points || 1;
         const leaderPts = Number(list?.[0]?.points || 0);

@@ -1,4 +1,3 @@
-import React from "react";
 import { Helmet } from "react-helmet";
 import MainLayout from "@/components/layout/MainLayout";
 import { useTheme } from "@/context/ThemeContext";

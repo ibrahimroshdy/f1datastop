@@ -5,10 +5,9 @@ import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f
 import { useTheme } from "@/context/ThemeContext";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, Clock } from "lucide-react";
-import { getCountryFlag, getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { Clock } from 'lucide-react';
+import { getRaceNameWithoutEmoji } from '@/utils/countryUtils';
 import CountryFlag from "@/components/common/CountryFlag";
-import { getCountryCode } from "@/components/common/CountryFlag";
 
 interface SessionStatusProps {
   year?: number;
@@ -97,7 +96,6 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
   const sessionDateTime = new Date(`${nextSession.date}T${nextSession.time}`);
   const raceName = getRaceNameWithoutEmoji(race.raceName);
   const country = race.Circuit?.Location?.country || "";
-  const countryCode = getCountryCode(country);
 
   return (
     <F1Card variant={surfaceVariant} glassVariant={surfaceGlass} className={sessionCardClass}>

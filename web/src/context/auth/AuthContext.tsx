@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useCallback } from "react";
+import { createContext, useContext, ReactNode, useCallback } from 'react';
 import { useNavigate } from "react-router-dom";
 import { AuthContextProps } from "./types";
 import { useAuthState } from "./authHooks";

@@ -45,7 +45,7 @@ export const formatPercentage = (value: number): string => {
 export const processLapTimeData = (
   lapTimesData: any, 
   availableDrivers: any[], 
-  displayMode: 'absolute' | 'gap'
+  _displayMode: 'absolute' | 'gap'
 ) => {
   if (!lapTimesData?.data?.Races || !lapTimesData.data.Races.length) {
     return { chartData: [], fastestLapTime: null };

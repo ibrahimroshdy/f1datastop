@@ -159,8 +159,7 @@ interface LapTimeTooltipProps extends RechartsTooltipProps {
 const F1LapTimeTooltip: React.FC<LapTimeTooltipProps> = ({
   active,
   payload,
-  label,
-  showGap = false,
+  label = false,
 }) => {
   if (!active || !payload || payload.length === 0) {
     return null;

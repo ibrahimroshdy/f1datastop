@@ -117,8 +117,8 @@ const QualifyingResultsCard = () => {
         setQualifyingResults(topFive);
         setIsLoading(false);
       } catch (error: any) {
-        if (!fallbackToOlder && raceScheduleData?.data?.length > 0) {
-          const races = raceScheduleData.data;
+        if (!fallbackToOlder && (raceScheduleData?.data?.length ?? 0) > 0) {
+          const races = raceScheduleData!.data;
           const now = new Date();
           
           const racesWithQualifyingStatus = races.map((race: any) => {

@@ -13,7 +13,6 @@ import { useTheme } from '@/context/ThemeContext';
 import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 // Ensure a value is a finite number >= minVal (prevents NaN in the d3-sankey layout)
@@ -99,7 +98,7 @@ const getLinkColor = (source: any, target: any): string => {
 
 const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
   const { data, isLoading, error, refetch } = useQualifyingToRaceDataByRound(year, round);
-  const { baseTheme, isGlass } = useTheme();
+  const { baseTheme } = useTheme();
   const isDark = baseTheme === 'dark';
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -192,7 +191,7 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
           source: sourceId,
           target: targetId,
           value,
-          sourcePosition: Number.isFinite(Number(sourceNode?.position)) ? Number(sourceNode.position) : 0,
+          sourcePosition: Number.isFinite(Number(sourceNode?.position)) ? Number(sourceNode?.position) : 0,
           color: linkColor,
           dimLine: !!dimLine,
           driverName: link.fullName || link.name,

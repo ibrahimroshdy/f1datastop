@@ -56,7 +56,7 @@ const RaceScheduleContent = ({ raceSchedule, nextRace, getCountryFlag }: RaceSch
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {raceSchedule?.data?.slice(0, 6).map(race => {
+        {raceSchedule?.data?.slice(0, 6).map((race: { round: string; date: string; time?: string; raceName: string; Circuit: { circuitName: string; Location: { country: string } } }) => {
           const raceTime = formatRaceDate(race.date, race.time || "");
           const isPast = new Date(race.date) < new Date();
           const isNextRace = nextRace && nextRace.round === race.round;

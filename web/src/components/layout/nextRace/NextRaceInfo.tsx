@@ -1,6 +1,5 @@
 import { useNextRace } from "@/hooks/useF1Data";
 import { CalendarDays } from "lucide-react";
-import { format } from "date-fns";
 import CountryFlag from "@/components/common/CountryFlag";
 import { useState } from "react";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";

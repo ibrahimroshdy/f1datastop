@@ -10,7 +10,7 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import ThreeGlobeHandler from "@/components/calendar/map/ThreeGlobeHandler";
 
-const F1MapContainer = ({ selectedYear, onYearChange }: RaceMapProps) => {
+const F1MapContainer = ({ selectedYear }: RaceMapProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [hoveredRace, setHoveredRace] = useState<Race | null>(null);

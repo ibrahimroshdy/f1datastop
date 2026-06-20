@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Trophy, Loader2, AlertCircle, Medal, TrendingUp, TrendingDown } from "lucide-react";
+import React, { useMemo } from 'react';
+import { Trophy, Loader2, AlertCircle, Medal } from 'lucide-react';
 import { useLapData, useDrivers, useOpenF1SessionFromErgast, usePositionData } from "@/hooks/useOpenF1Data";
 import { formatTime } from "@/utils/lapTimeUtils";
 import { useTheme } from '@/context/ThemeContext';
@@ -45,10 +45,9 @@ const SessionResults: React.FC<SessionResultsProps> = ({
   year,
   round,
   sessionType = "Race",
-  sessionKey: externalSessionKey,
-  sessionName
+  sessionKey: externalSessionKey
 }) => {
-  const { isGlass, baseTheme } = useTheme();
+  const { baseTheme } = useTheme();
   const isDark = baseTheme === 'dark';
 
   const { 

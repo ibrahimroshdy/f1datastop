@@ -15,8 +15,6 @@ import {
   Thermometer,
   Wind,
   Droplets,
-  TrendingUp,
-  Clock,
   AlertTriangle
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -97,17 +95,6 @@ const getTeamColorStyle = (constructorId: string) => {
     borderLeft: `4px solid ${color}`,
     paddingLeft: "0.5rem"
   };
-};
-
-// Format lap time duration
-const formatLapTime = (timeInSeconds: number): string => {
-  const minutes = Math.floor(timeInSeconds / 60);
-  const seconds = timeInSeconds % 60;
-  if (minutes > 0) {
-    return `${minutes}:${seconds.toFixed(3).padStart(6, '0')}`;
-  } else {
-    return `${seconds.toFixed(3)}`;
-  }
 };
 
 // Mock weather data (in a real app, this would come from an API)
@@ -281,7 +268,7 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
   const { data: raceResults, isLoading: isResultsLoading } = useRaceResults(year, round);
   const { data: qualifyingResults, isLoading: isQualifyingLoading } = useRaceQualifying(year, round);
   const { data: pitStopsData, isLoading: isPitStopsLoading } = useLastRacePitStops();
-  const { data: lapTimesData, isLoading: isLapTimesLoading } = useLapTimes(year, round, false);
+  const { isLoading: isLapTimesLoading } = useLapTimes(year, round, false);
 
   const isLoading = isResultsLoading || isQualifyingLoading || isPitStopsLoading || isLapTimesLoading;
 
@@ -327,21 +314,25 @@ const RaceInfographic: React.FC<RaceInfographicProps> = ({
     
     if (!pitStops || pitStops.length === 0) return null;
     
-    let fastest = null;
+    type PitStop = { driverId: string; lap: string; duration: string };
+    let fastestStop: PitStop | undefined;
     let fastestTime = Infinity;
-    
-    pitStops.forEach((stop: any) => {
+
+    (pitStops as PitStop[]).forEach((stop) => {
       const duration = parseFloat(stop.duration);
       if (duration < fastestTime && duration > 0) {
         fastestTime = duration;
-        fastest = stop;
+        fastestStop = stop;
       }
     });
-    
-    return fastest ? {
-      ...fastest,
-      duration: fastestTime
-    } : null;
+
+    return fastestStop
+      ? {
+          driverId: fastestStop.driverId,
+          lap: fastestStop.lap,
+          duration: fastestTime,
+        }
+      : null;
   }, [pitStopsData]);
 
   if (!isVisible) return null;

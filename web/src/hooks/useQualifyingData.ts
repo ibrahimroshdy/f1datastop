@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRaceQualifying } from "@/hooks/useF1Data";
-import { TEAM_COLORS } from "@/constants/f1Colors";
-import { toast } from "sonner";
 
 export interface Driver {
   driverId: string;
@@ -61,8 +59,8 @@ export const useQualifyingData = (year: number, round: string) => {
           
           // Auto-select pole position and P2 by default
           if (drivers.length > 0) {
-            const poleDriver = drivers.find(d => d.position === 1);
-            const p2Driver = drivers.find(d => d.position === 2);
+            const poleDriver = drivers.find((d: Driver) => d.position === 1);
+            const p2Driver = drivers.find((d: Driver) => d.position === 2);
             
             const defaultSelected = [];
             if (poleDriver) defaultSelected.push(poleDriver.code);
@@ -76,7 +74,7 @@ export const useQualifyingData = (year: number, round: string) => {
           let fastestTime = Number.MAX_VALUE;
           let fastestSession: QualifyingSession = 'Q3';
 
-          drivers.forEach(driver => {
+          drivers.forEach((driver: Driver) => {
             if (driver.q3Time && driver.q3Time < fastestTime) {
               fastestTime = driver.q3Time;
               fastestDriver = driver.code;

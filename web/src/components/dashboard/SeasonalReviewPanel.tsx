@@ -2,7 +2,7 @@ import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, Clock, Zap, ChevronRight } from "lucide-react";
+import { CalendarDays, Clock, Zap } from "lucide-react";
 import { useState } from "react";
 import { formatDistance, parseISO, differenceInDays, getMonth, getWeek, getYear } from "date-fns";
 import { useRaceSchedule, useNextRace } from "@/hooks/useF1Data";
@@ -21,7 +21,7 @@ interface SeasonalReviewPanelProps {
 const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanelProps) => {
   const currentYear = year || new Date().getFullYear();
   const { data: raceSchedule, isLoading: scheduleLoading } = useRaceSchedule(currentYear);
-  const { data: nextRace, isLoading: nextRaceLoading } = useNextRace(currentYear);
+  const { isLoading: nextRaceLoading } = useNextRace(currentYear);
   const [selectedRace, setSelectedRace] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { isGlass } = useTheme();

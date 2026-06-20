@@ -1,15 +1,13 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { formatDistance } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Clock, MapPin, Calendar, ChevronRight, Zap } from "lucide-react";
+import { AlertCircle, Clock, Calendar, ChevronRight } from 'lucide-react';
 import PageSelector from "@/components/navigation/PageSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import CountryFlag from "@/components/common/CountryFlag";
-import BuyMeCoffeeWidget from "@/components/common/BuyMeCoffeeWidget";
 import { getNextSession } from "@/utils/nextSessionUtils";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
-import { GlassBadge } from "@/components/glass";
+import { Badge } from "@/components/ui/badge";
 import { F1Card } from "@/components/f1";
 
 interface HeaderSectionProps {
@@ -20,7 +18,7 @@ interface HeaderSectionProps {
 const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const { isGlass, baseTheme } = useTheme();
+  const { isGlass } = useTheme();
   
   // Get the next session instead of just the race
   const { session: nextSession, raceName, country } = useMemo(() => getNextSession(nextRace), [nextRace]);
@@ -121,13 +119,19 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
                     <span className="font-semibold text-xs md:text-sm truncate">
                       {removeFlag(raceName)}
                     </span>
-                    <GlassBadge 
-                      variant={isImminent ? "live" : isUrgent ? "warning" : "secondary"} 
-                      size="sm"
-                      className="shrink-0"
+                    <Badge
+                      variant={isImminent || isUrgent ? "outline" : "secondary"}
+                      className={cn(
+                        "shrink-0 px-2 py-0.5 text-[10px]",
+                        isImminent &&
+                          "border-red-500/50 bg-red-500/90 text-white backdrop-blur-sm animate-pulse",
+                        isUrgent &&
+                          !isImminent &&
+                          "border-yellow-500/50 bg-yellow-500/90 text-yellow-950 backdrop-blur-sm"
+                      )}
                     >
                       {nextSession.shortName}
-                    </GlassBadge>
+                    </Badge>
                   </div>
                   <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mt-0.5">
                     <Calendar className="h-3 w-3 shrink-0" />

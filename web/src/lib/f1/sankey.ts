@@ -1,4 +1,36 @@
 // Process data for Sankey chart
+
+interface SankeyNode {
+  id: string;
+  name: string;
+  fullName?: string;
+  team?: string;
+  teamName?: string;
+  position: number;
+  type: string;
+  status?: string;
+  isDNF?: boolean;
+  points?: number;
+}
+
+interface SankeyLink {
+  source: string;
+  target: string;
+  value: number;
+  code?: string;
+  name: string;
+  fullName?: string;
+  team?: string;
+  teamName?: string;
+  qualifyingPosition?: number;
+  gridPosition?: number;
+  racePosition?: number;
+  positionChange?: number;
+  status?: string;
+  isDNF?: boolean;
+  points?: number;
+}
+
 export const processDataForSankey = (qualifyingData: any, raceData: any) => {
   // Accept both "Results" (API standard) and "results" (our normalized format)
   const qualifyingResults = qualifyingData?.QualifyingResults;
@@ -47,7 +79,7 @@ export const processDataForSankey = (qualifyingData: any, raceData: any) => {
   });
   
   // Create links between qualifying, grid, and race results
-  const links = [];
+  const links: SankeyLink[] = [];
   const driverMap = new Map();
   
   // Create a map of driver codes to their data
@@ -107,9 +139,9 @@ export const processDataForSankey = (qualifyingData: any, raceData: any) => {
   });
   
   // Create nodes array
-  const qualifyingNodes = [];
-  const gridNodes = [];
-  const raceNodes = [];
+  const qualifyingNodes: SankeyNode[] = [];
+  const gridNodes: SankeyNode[] = [];
+  const raceNodes: SankeyNode[] = [];
   
   // Add qualifying nodes
   qualifyingResultsMapped.forEach((driver: any) => {
@@ -174,8 +206,8 @@ export const processDataForSankey = (qualifyingData: any, raceData: any) => {
 
 export const buildSankeyFromRoundResults = (qualifying: any[], raceResults: any[]) => {
   // Create nodes for qualifying, grid, and race positions
-  const nodes = [];
-  const links = [];
+  const nodes: SankeyNode[] = [];
+  const links: SankeyLink[] = [];
   
   const qualifyingIdPrefix = "Q";
   const gridIdPrefix = "G";

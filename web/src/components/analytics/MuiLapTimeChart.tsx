@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -12,15 +12,13 @@ import {
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Clock, Wrench } from "lucide-react";
-import { useLapTimeData, Driver } from "@/hooks/useLapTimeData";
+import { useLapTimeData } from '@/hooks/useLapTimeData';
 import DriverSelector from "./DriverSelector";
 import DisplayModeToggle from "./DisplayModeToggle";
-import { F1ChartLoading } from "@/components/charts/F1ChartLoading";
 import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
 import { F1ErrorState } from "@/components/f1/F1ErrorState";
 import { useTheme } from "@/context/ThemeContext";
 import { getPitStops } from "@/services/f1Service";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +40,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [showPitStops, setShowPitStops] = useState(true);
   const [pitStops, setPitStops] = useState<PitStopData[]>([]);
-  const [pitStopsLoading, setPitStopsLoading] = useState(false);
+  const [, setPitStopsLoading] = useState(false);
   const { baseTheme } = useTheme();
   const isDark = baseTheme === 'dark';
 
@@ -96,11 +94,9 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
     availableDrivers,
     selectedDrivers,
     visibleDrivers,
-    hoveredDriver,
     isLoading,
     isError,
     loadingProgress,
-    errorMessage,
     maxLap,
     fastestLapTime,
     handleDriverToggle,
@@ -124,7 +120,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
   }, [availableDrivers]);
 
   // Transform data for MUI X Charts and calculate Y-axis bounds
-  const { muiChartData, yAxisMin, yAxisMax, teammateIndices } = useMemo(() => {
+  const { yAxisMin, yAxisMax } = useMemo(() => {
     if (!chartData.length) return { muiChartData: { xAxisData: [], series: [] }, yAxisMin: 0, yAxisMax: 100, teammateIndices: [] };
 
     const xAxisData = chartData.map(d => d.lap);

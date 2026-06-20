@@ -276,7 +276,7 @@ const ThreeGlobeHandler = ({
         .pointsMerge(true)
         .pointRadius('size')
         .pointAltitude(0.01)
-        .pointLabel(d => {
+        .pointLabel((d: { race: Race }) => {
           const flag = getEmojiFlag(d.race.Circuit.Location.country);
           return `
             <div class="bg-black/80 backdrop-blur-sm p-2 rounded-md text-white border border-gray-700">
@@ -290,7 +290,7 @@ const ThreeGlobeHandler = ({
 
       // Add point hover effect
       globe
-        .onPointHover(point => {
+        .onPointHover((point: { lat: number; lng: number; race: Race } | null) => {
           if (point === null) {
             onRaceHover(null, null);
             document.body.style.cursor = 'default';
@@ -307,7 +307,7 @@ const ThreeGlobeHandler = ({
             }
           }
         })
-        .onPointClick(point => {
+        .onPointClick((point: { race: Race } | null) => {
           if (point) {
             onRaceSelect(point.race);
           }

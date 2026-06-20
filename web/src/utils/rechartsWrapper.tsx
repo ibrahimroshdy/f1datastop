@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   XAxis as RechartsXAxis,
   YAxis as RechartsYAxis,

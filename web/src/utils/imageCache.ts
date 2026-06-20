@@ -9,12 +9,6 @@ import {
 // Cache TTL for images (7 days - images rarely change)
 const IMAGE_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
-interface CachedImage {
-  url: string;
-  blob: string; // base64 data URL
-  timestamp: number;
-}
-
 // Memory cache for immediate access
 const imageMemoryCache = new Map<string, string>();
 

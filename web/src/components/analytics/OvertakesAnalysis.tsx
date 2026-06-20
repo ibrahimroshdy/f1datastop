@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Car, Loader2, AlertCircle, Trophy, Users, Zap, Play, Pause, RotateCcw, Flag, ChevronUp, ChevronDown, Wrench, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Car, AlertCircle, Trophy, Users, Zap, Play, Pause, RotateCcw, Flag, ChevronUp, ChevronDown, Wrench, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -298,21 +298,6 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
     );
   };
 
-  // Render position change indicator
-  const PositionChangeIndicator = ({ change, type }: { change: number; type: 'lap' | 'total' }) => {
-    if (change === 0) return null;
-    const isGain = change > 0;
-    return (
-      <div className={cn(
-        "flex items-center gap-0.5 text-[10px] font-bold",
-        isGain ? "text-green-500" : "text-red-500"
-      )}>
-        {isGain ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-        <span>{Math.abs(change)}</span>
-      </div>
-    );
-  };
-
   if (isLoading) return (
     <div className="min-h-[400px] flex flex-col items-center justify-center p-4">
       <Car className="h-8 w-8 text-primary mb-2 animate-pulse" />
@@ -506,7 +491,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Pit Stops</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {pitStopsWithNumbers.filter(ps => ps.lap <= currentLap).slice(-10).map((ps, idx) => {
+                {pitStopsWithNumbers.filter(ps => ps.lap <= currentLap).slice(-10).map((ps) => {
                   const driver = drivers[ps.driverNumber];
                   return (
                     <Badge 

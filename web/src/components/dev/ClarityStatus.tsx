@@ -14,7 +14,7 @@ interface ClarityStatusProps {
  * Only use this component during development!
  */
 const ClarityStatus: React.FC<ClarityStatusProps> = ({ projectId }) => {
-  const { baseTheme, isGlass } = useTheme();
+  const { isGlass } = useTheme();
   const [status, setStatus] = useState({
     isAvailable: false,
     isLoaded: false,

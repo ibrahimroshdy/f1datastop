@@ -1,7 +1,7 @@
 
 import { useEffect } from "react";
 import mapboxgl from "mapbox-gl";
-import { Race, MapRaceMarkersProps } from "./types";
+import { MapRaceMarkersProps } from "./types";
 
 const MapRaceMarkers = ({ map, races, onRaceClick }: MapRaceMarkersProps) => {
   useEffect(() => {
@@ -47,7 +47,7 @@ const MapRaceMarkers = ({ map, races, onRaceClick }: MapRaceMarkersProps) => {
       }
       
       // Add marker to map
-      const marker = new mapboxgl.Marker(markerEl)
+      new mapboxgl.Marker(markerEl)
         .setLngLat([parseFloat(race.Circuit.Location.long), parseFloat(race.Circuit.Location.lat)])
         .addTo(map);
       

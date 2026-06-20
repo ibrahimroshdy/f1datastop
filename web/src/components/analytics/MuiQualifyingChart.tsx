@@ -11,9 +11,8 @@ import {
   LabelList,
 } from "recharts";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Flag, LayoutGrid, List } from "lucide-react";
+import { Loader2, Flag, LayoutGrid } from 'lucide-react';
 import { useQualifyingData } from "@/hooks/useQualifyingData";
 import { useTheme } from "@/context/ThemeContext";
 import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
@@ -33,7 +32,7 @@ type SessionType = 'Q1' | 'Q2' | 'Q3' | 'ALL';
 const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [selectedSession, setSelectedSession] = useState<SessionType>('Q3');
-  const { baseTheme, isGlass } = useTheme();
+  const { baseTheme } = useTheme();
   const isDark = baseTheme === 'dark';
 
   // Mobile detection
@@ -45,16 +44,11 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
   }, []);
 
   const {
-    chartData,
     availableDrivers,
-    selectedDrivers,
     isLoading,
     isError,
-    fastestLapTime,
-    handleDriverToggle,
   } = useQualifyingData(year, round);
   const loadingProgress: number = isLoading ? 50 : 100;
-  const fastestTime = fastestLapTime?.time;
 
   // Get data for a specific session
   const getSessionData = (session: 'Q1' | 'Q2' | 'Q3') => {
@@ -384,11 +378,11 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
         </Button>
 
         {/* Pole time (only show for single session) */}
-        {selectedSession !== 'ALL' && 'fastestSessionTime' in muiChartData && muiChartData.fastestSessionTime > 0 && (
+        {selectedSession !== 'ALL' && 'fastestSessionTime' in muiChartData && (muiChartData.fastestSessionTime ?? 0) > 0 && (
           <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
             <span>Pole:</span>
             <span className="font-mono text-primary font-medium">
-              {formatTime(muiChartData.fastestSessionTime)}
+              {formatTime(muiChartData.fastestSessionTime!)}
             </span>
           </div>
         )}
@@ -399,7 +393,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
         {selectedSession === 'ALL' ? (
           renderAllSessions()
         ) : (
-          'labels' in muiChartData && muiChartData.labels.length > 0 && (
+          'labels' in muiChartData && (muiChartData.labels?.length ?? 0) > 0 && (
             renderSessionChart(muiChartData as ReturnType<typeof getSessionData>, selectedSession)
           )
         )}

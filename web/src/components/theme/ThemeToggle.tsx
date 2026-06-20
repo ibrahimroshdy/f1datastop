@@ -1,4 +1,4 @@
-import { Sun, Moon, Sparkles, Monitor } from "lucide-react";
+import { Sun, Moon, Sparkles } from 'lucide-react';
 import { useTheme, ThemeMode, themeConfig } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -125,7 +125,7 @@ const ThemeSelector = ({ className }: { className?: string }) => {
 
 // Compact 4-way toggle for mobile/small spaces
 const ThemeToggleCompact = ({ className }: { className?: string }) => {
-  const { theme, setTheme, isGlass, baseTheme, toggleGlass, toggleTheme } = useTheme();
+  const { isGlass, baseTheme, toggleGlass, toggleTheme } = useTheme();
 
   return (
     <div className={cn("flex items-center gap-1", className)}>

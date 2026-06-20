@@ -131,7 +131,7 @@ export function RaceSprintQualifyingPanel({
       mobileExtra={(r) => (
         <>
           <span style={{ color: getTeamColor(r.Constructor.constructorId) }}>{r.Constructor.name}</span>
-          <span className="text-xs">Grid: {r.gridPosition}</span>
+          <span className="text-xs">Grid: {(r as ErgastResult & { gridPosition?: string }).gridPosition}</span>
         </>
       )}
       desktopColumns={[

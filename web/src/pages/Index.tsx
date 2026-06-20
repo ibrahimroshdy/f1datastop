@@ -56,14 +56,14 @@ const Index = () => {
     isLoading: isResultsLoading
   } = useLastRaceResults();
   const {
-    data: lastRacePitStops,
+    data: _lastRacePitStops,
     isLoading: isPitStopsLoading
   } = useLastRacePitStops();
 
   const { isGlass } = useTheme();
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading || isPitStopsLoading;
   const [isOffline, setIsOffline] = useState(false);
-  const [standingsExpanded, setStandingsExpanded] = useState(false);
+  const [, setStandingsExpanded] = useState(false);
   const [isSankeyDialogOpen, setIsSankeyDialogOpen] = useState(false);
 
   const analytics = useAnalytics();
@@ -105,7 +105,7 @@ const Index = () => {
       (constructorStandings?.error && !constructorStandings?.data) || 
       (raceSchedule?.error && !raceSchedule?.data);
     
-    setIsOffline(hasCriticalError);
+    setIsOffline(Boolean(hasCriticalError));
   }, [driverStandings, constructorStandings, raceSchedule]);
 
   useEffect(() => {
@@ -228,7 +228,6 @@ const Index = () => {
 
 // Dashboard Loading Skeleton
 const DashboardSkeleton = () => {
-  const { isGlass } = useTheme();
   
   return (
     <div className="space-y-6">

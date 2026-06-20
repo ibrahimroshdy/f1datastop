@@ -7,7 +7,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
 import { useLapTimes, useRaceResults } from '@/hooks/useF1Data';
 import { TEAM_COLORS } from '@/constants/f1Colors';

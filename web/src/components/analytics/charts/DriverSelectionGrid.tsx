@@ -1,5 +1,4 @@
 import React from "react";
-import { ChevronUp, ChevronDown, Minus } from "lucide-react";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
@@ -35,7 +34,6 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
   availableDrivers,
   selectedDrivers,
   onDriverToggle,
-  onDriverHover,
   getPositionChangeSummary
 }) => {
   const { baseTheme } = useTheme();

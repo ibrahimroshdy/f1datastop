@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import EmbeddableDriverStandings from "../../components/embeddable/EmbeddableDriverStandings";
 
 const DriverStandingsEmbed = () => {
@@ -8,7 +8,7 @@ const DriverStandingsEmbed = () => {
     theme?: "light" | "dark";
     font?: string;
   }>({});
-  const [isReady, setIsReady] = useState(false);
+  const [, setIsReady] = useState(false);
 
   useEffect(() => {
     // Parse URL parameters

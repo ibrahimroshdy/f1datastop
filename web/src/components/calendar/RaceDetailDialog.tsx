@@ -162,7 +162,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               <TabsContent value="sprint-qualifying" className="h-full">
                 <RaceSprintQualifyingPanel
                   isLoading={isSprintLoading}
-                  results={sprintQualifyingResults || undefined}
+                  results={sprintQualifyingResults ?? undefined}
                 />
               </TabsContent>
             )}

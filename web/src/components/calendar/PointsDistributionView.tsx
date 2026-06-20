@@ -16,7 +16,6 @@ export interface PointsDistributionViewProps {
 }
 
 const PointsDistributionView = ({
-  selectedYear,
   raceSchedule,
   isLoading,
   isGlass,

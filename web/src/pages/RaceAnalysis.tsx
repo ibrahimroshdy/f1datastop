@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -65,7 +65,7 @@ type OpenF1SessionEntry = {
 
 /** Lazy tab content fallback — uses theme-aware F1Card + F1ChartContainer */
 const TabLoadingFallback = () => {
-  const { cardVariant, glassVariant, isGlass } = useThemeVariant();
+  const { cardVariant, glassVariant } = useThemeVariant();
   return (
     <F1Card
       variant={cardVariant}
@@ -175,9 +175,6 @@ const RaceAnalysis = () => {
     { id: 'results', label: 'Results', icon: Trophy, source: 'openf1' as const },
     { id: 'overtakes', label: 'Overtakes', icon: Car, source: 'openf1' as const },
   ];
-  
-  const allTabs = [...analyticsTabs, ...liveDataTabs];
-  const currentTabConfig = allTabs.find(t => t.id === selectedTab);
   
   return (
     <MainLayout>

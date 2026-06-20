@@ -31,7 +31,7 @@ const SeasonCharts = ({ year }: SeasonChartsProps) => {
         value: parseInt(entry.wins || 0),
         color: TEAM_COLORS[entry.Constructors?.[0]?.constructorId?.toLowerCase() || ''] || '#666',
       }))
-      .sort((a, b) => b.value - a.value)
+      .sort((a: { value: number }, b: { value: number }) => b.value - a.value)
       .slice(0, 10);
     
     return driversWithWins;
@@ -115,16 +115,16 @@ const SeasonCharts = ({ year }: SeasonChartsProps) => {
                     stroke="none"
                     isAnimationActive={false}
                   >
-                    {driverWinsData.map((entry) => (
-                      <Cell key={entry.id} fill={entry.color} />
+                    {driverWinsData.map((entry: { id?: string; label: string; value: number; color: string }) => (
+                      <Cell key={entry.id ?? entry.label} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip content={<PieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-                {driverWinsData.slice(0, 5).map((item) => (
-                  <div key={item.id} className="flex items-center gap-1 text-xs">
+                {driverWinsData.slice(0, 5).map((item: { id?: string; label: string; value: number; color: string }) => (
+                  <div key={item.id ?? item.label} className="flex items-center gap-1 text-xs">
                     <div 
                       className="h-2 w-2 rounded-full" 
                       style={{ backgroundColor: item.color }}
@@ -168,16 +168,16 @@ const SeasonCharts = ({ year }: SeasonChartsProps) => {
                     stroke="none"
                     isAnimationActive={false}
                   >
-                    {constructorPointsData.map((entry) => (
-                      <Cell key={entry.id} fill={entry.color} />
+                    {constructorPointsData.map((entry: { id?: string; label: string; value: number; color: string }) => (
+                      <Cell key={entry.id ?? entry.label} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip content={<PieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="mt-2 flex flex-wrap justify-center gap-1.5">
-                {constructorPointsData.slice(0, 5).map((item) => (
-                  <div key={item.id} className="flex items-center gap-1 text-xs">
+                {constructorPointsData.slice(0, 5).map((item: { id?: string; label: string; value: number; color: string }) => (
+                  <div key={item.id ?? item.label} className="flex items-center gap-1 text-xs">
                     <div 
                       className="h-2 w-2 rounded-full" 
                       style={{ backgroundColor: item.color }}

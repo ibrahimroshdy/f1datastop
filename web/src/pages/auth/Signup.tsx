@@ -14,7 +14,6 @@ import {
 } from '@/components/f1';
 import { Eye, EyeOff, ArrowLeft, Twitter } from 'lucide-react';
 import ReCaptcha from '@/components/auth/ReCaptcha';
-import { RECAPTCHA } from '@/constants/apiConfig';
 import f1Logo from '@/assets/f1-logo.svg';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';

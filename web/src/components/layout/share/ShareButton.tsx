@@ -17,7 +17,7 @@ const ShareButton = () => {
               title: 'F1 DataStop - Live Formula 1 News and Race Data',
               text: 'Get real-time Formula 1 news, race data, and analysis with F1 DataStop',
               url: shareUrl,
-            }).catch(err => {
+            }).catch(() => {
               console.log('Share API not available or rejected, already used clipboard fallback');
             });
           } catch (shareError) {

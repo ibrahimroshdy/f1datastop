@@ -55,16 +55,7 @@ const CountryOutlines = ({ globe, detailLevel }: CountryOutlinesProps) => {
       });
     });
     
-    // Add continent outlines with stronger lines
-    const continents = [
-      { name: "North America", color: 0x8aa7c5 },
-      { name: "South America", color: 0x8aa7c5 },
-      { name: "Europe", color: 0x8aa7c5 },
-      { name: "Africa", color: 0x8aa7c5 },
-      { name: "Asia", color: 0x8aa7c5 },
-      { name: "Oceania", color: 0x8aa7c5 },
-      { name: "Antarctica", color: 0x8aa7c5 }
-    ];
+    // Add continent outlines with stronger lines (reserved for future overlay)
     
     // Create more visible grid lines
     const gridMaterial = new THREE.LineBasicMaterial({ 

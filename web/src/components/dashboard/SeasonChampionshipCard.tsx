@@ -20,7 +20,7 @@ interface SeasonChampionshipCardProps {
 const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
   const currentYear = year || new Date().getFullYear();
   const { data: raceSchedule, isLoading: scheduleLoading } = useRaceSchedule(currentYear);
-  const { data: nextRace, isLoading: nextRaceLoading } = useNextRace(currentYear);
+  const { isLoading: nextRaceLoading } = useNextRace(currentYear);
   const [selectedRace, setSelectedRace] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { isGlass } = useTheme();

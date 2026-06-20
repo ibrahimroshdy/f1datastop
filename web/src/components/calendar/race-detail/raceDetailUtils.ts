@@ -71,5 +71,7 @@ export function getSprintQualifyingResults(
     ...result,
     position: (index + 1).toString(),
     gridPosition: result.grid,
+    Driver: result.Driver as { code?: string; givenName?: string; familyName?: string },
+    Constructor: result.Constructor as { constructorId: string; name: string },
   }));
 }

@@ -24,22 +24,13 @@ interface DriverSelectorProps {
   getAverageTime: (driverCode: string) => number | null;
 }
 
-// Format time function
-const formatTime = (seconds: number): string => {
-  if (!seconds) return "";
-  const mins = Math.floor(seconds / 60);
-  const secs = (seconds % 60).toFixed(1);
-  return `${mins}:${secs.padStart(4, '0')}`;
-};
+// Format time function removed — display uses parent formatters
 
 const DriverSelector: React.FC<DriverSelectorProps> = ({
   availableDrivers,
   selectedDrivers,
   onDriverToggle,
-  onDriverHover,
-  displayMode,
   fastestLapTime,
-  getAverageTime
 }) => {
   const { baseTheme } = useTheme();
   const isDark = baseTheme === 'dark';
@@ -56,7 +47,6 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
       )}>
         {availableDrivers.map(driver => {
           const isSelected = selectedDrivers.includes(driver.code);
-          const averageTime = getAverageTime(driver.code);
           const hasFastestLap = fastestLapTime && driver.code === fastestLapTime.driver;
           const teamColor = TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666";
           
@@ -64,11 +54,6 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
           const currentCount = teamDriverCounts[driver.team] || 0;
           teamDriverCounts[driver.team] = currentCount + 1;
           const isSecondTeammate = currentCount > 0;
-          
-          // Calculate gap to fastest
-          const gapToFastest = (averageTime && fastestLapTime) 
-            ? (averageTime - fastestLapTime.time).toFixed(1) 
-            : null;
           
           return (
             <button

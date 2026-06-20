@@ -81,12 +81,6 @@ const F1ChartLegend = React.forwardRef<HTMLDivElement, F1ChartLegendProps>(
 
     const renderIndicator = (item: LegendItem) => {
       if (showLineStyle && item.lineStyle) {
-        const lineStyles = {
-          solid: "",
-          dashed: "border-dashed border-t-2 h-0",
-          dotted: "border-dotted border-t-2 h-0",
-        };
-
         return (
           <div 
             className={cn(sizes.line, "rounded-full")}

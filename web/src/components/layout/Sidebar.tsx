@@ -6,19 +6,17 @@ import {
   X,
   User,
   LogIn,
-  LineChart,
   BarChart3,
   Calendar as CalendarIcon,
   LayoutDashboard,
   Settings,
   Caravan,
-  ChevronLeft,
   ChevronRight,
   PanelLeftClose,
   PanelLeft
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { useIsMobile, useIsMediumOrSmaller } from "@/hooks/use-mobile";
+import { useIsMediumOrSmaller } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
 import { useDeveloper } from "@/context/DeveloperContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -41,12 +39,10 @@ interface SidebarProps {
 }
 
 // Function to determine the current year
-const getCurrentYear = () => new Date().getFullYear();
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps) => {
   const { pathname } = useLocation();
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
   const isMediumOrSmaller = useIsMediumOrSmaller();
   const { user } = useAuth();
   const { isDeveloperMode } = useDeveloper();

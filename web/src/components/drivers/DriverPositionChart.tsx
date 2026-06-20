@@ -122,8 +122,10 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
                     return value;
                   }}
                   formatter={(value, _name, item) => {
-                    const data = item.payload;
-                    if (data.isDNF) {
+                    const data = typeof item === 'object' && item !== null && 'payload' in item
+                      ? (item as { payload: { isDNF?: boolean; points?: number } }).payload
+                      : undefined;
+                    if (data?.isDNF) {
                       return (
                         <div className="flex items-center gap-2">
                           <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
@@ -156,7 +158,7 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
                           }}
                         />
                         <span className={cn("font-medium", color)}>P{value}</span>
-                        {data.points > 0 && (
+                        {data && (data.points ?? 0) > 0 && (
                           <span className="text-muted-foreground text-xs">
                             +{data.points} pts
                           </span>

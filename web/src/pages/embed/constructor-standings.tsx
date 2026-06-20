@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import EmbeddableConstructorStandings from "../../components/embeddable/EmbeddableConstructorStandings";
 
 const ConstructorStandingsEmbed = () => {
@@ -8,7 +8,7 @@ const ConstructorStandingsEmbed = () => {
     theme?: "light" | "dark";
     font?: string;
   }>({});
-  const [isReady, setIsReady] = useState(false);
+  const [, setIsReady] = useState(false);
 
   useEffect(() => {
     // Parse URL parameters

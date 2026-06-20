@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Gauge, Activity, Zap } from "lucide-react";
+import { Loader2, Gauge, Activity } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTelemetryData } from "@/hooks/useTelemetryData";
 import { useF1Metadata } from "@/hooks/useF1Metadata";
 import {
@@ -36,15 +35,11 @@ const metricConfig: Record<TelemetryMetric, { label: string; unit: string; color
 };
 
 const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
-  year,
-  round,
-  sessionType,
   sessionKey
 }) => {
   const [selectedDriver1, setSelectedDriver1] = useState<string>("");
   const [selectedDriver2, setSelectedDriver2] = useState<string>("");
   const [telemetryMetric, setTelemetryMetric] = useState<TelemetryMetric>("speed");
-  const [activeTab, setActiveTab] = useState<string>("compare");
   
   const { isGlass, baseTheme } = useTheme();
   const isDark = baseTheme === 'dark';

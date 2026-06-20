@@ -1,4 +1,3 @@
-import React from 'react';
 import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
 import CountryFlag from './CountryFlag';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

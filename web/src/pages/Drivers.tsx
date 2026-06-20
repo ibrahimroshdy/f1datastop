@@ -8,11 +8,13 @@ import { F1Card } from "@/components/f1";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import DriverCard from "@/components/drivers/DriverCard";
+import type { ErgastDriverStandingRow } from "@/lib/f1/types";
 import YearSelector from "@/components/common/YearSelector";
 
 type DriverStandingEntry = {
   position: string;
   points: string;
+  wins: string;
   Driver: {
     driverId: string;
     givenName: string;
@@ -105,7 +107,7 @@ const Drivers = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredDrivers?.map((driver) => {
+            {filteredDrivers?.map((driver: DriverStandingEntry) => {
               const currentConstructor = driver.Constructors.length > 0
                 ? driver.Constructors[driver.Constructors.length - 1]
                 : null;
@@ -115,7 +117,7 @@ const Drivers = () => {
               return (
                 <DriverCard
                   key={driver.Driver.driverId}
-                  driver={driver}
+                  driver={driver as ErgastDriverStandingRow}
                   teamTotalPoints={teamTotalPoints}
                   seasonYear={selectedYear}
                   seasonResults={allDriverResults?.[driver.Driver.driverId] ?? []}

@@ -20,7 +20,7 @@ const MainLayout = ({ children, showFooter = true }: MainLayoutProps) => {
   const { isGlass, baseTheme } = useTheme();
   
   // Track sidebar collapsed state for layout adjustments
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+  const [_sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('f1ds_sidebar_collapsed') === 'true';
     }

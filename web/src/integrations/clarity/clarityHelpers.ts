@@ -217,7 +217,7 @@ export const checkClarityStatus = (): {
   
   const clarityExists = typeof window.clarity === 'function';
   const queueExists = Array.isArray(window.clarityQueue);
-  const queueLength = queueExists ? window.clarityQueue.length : 0;
+  const queueLength = queueExists ? (window.clarityQueue?.length ?? 0) : 0;
   const npmPackageAvailable = typeof clarityPackage !== 'undefined';
   
   console.log('[Clarity Status Check]', {

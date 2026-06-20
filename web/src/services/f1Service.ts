@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { getCountryFlag, addFlagToRaceName } from "@/utils/countryUtils";
+import { addFlagToRaceName } from '@/utils/countryUtils';
 import { ergastFetch, throttledErgastFetch } from "@/lib/api/f1ApiFetch";
 
 const ERGAST = "/f1";
@@ -143,7 +143,7 @@ export const getLapTimes = async (
 async function fetchLapTimesUncached(
   year: number,
   round: string,
-  firstDriverOnly?: string,
+  _firstDriverOnly?: string,
   onProgress?: (
     progress: number,
     pagesLoaded: number,
@@ -238,9 +238,9 @@ async function fetchLapTimesUncached(
         let failedBatches = 0;
 
         // Process successful requests
-        results.forEach((result, index) => {
+        results.forEach((result) => {
           if (result.status === 'fulfilled') {
-            allLaps = [...allLaps, ...result.value];
+            allLaps = [...allLaps, ...(result.value as typeof allLaps)];
           } else {
             failedBatches++;
           }
@@ -415,7 +415,7 @@ export const getNextRace = async (year?: number) => {
 };
 
 // Race status data (simplified)
-export const getRaceStatus = async (sessionId?: string) => {
+export const getRaceStatus = async (_sessionId?: string) => {
   try {
     return { data: null, error: "Live timing data not available" };
   } catch (error) {
@@ -442,7 +442,7 @@ export const getDriverInfo = async (year?: number) => {
 };
 
 // Weather data (simplified)
-export const getWeatherData = async (sessionId?: string) => {
+export const getWeatherData = async (_sessionId?: string) => {
   try {
     return { data: null, error: "Weather data not available" };
   } catch (error) {

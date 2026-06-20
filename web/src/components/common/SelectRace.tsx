@@ -53,7 +53,7 @@ export const SelectRace: React.FC<SelectRaceProps> = ({ year, selectedRound, onR
   // Group sessions by meeting_key to get unique race venues
   const meetings = new Map();
   
-  sessionsData.data.forEach(session => {
+  sessionsData.data.forEach((session: { meeting_key: number; session_type?: string; country_name?: string }) => {
     const key = session.meeting_key.toString();
     
     // Prioritize Race session type for each meeting

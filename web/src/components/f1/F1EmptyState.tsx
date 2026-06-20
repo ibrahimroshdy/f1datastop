@@ -9,7 +9,6 @@ import {
   BarChart3, 
   Users,
   Car,
-  Timer,
   RefreshCw,
   Search,
   FileQuestion

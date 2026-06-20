@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Spinner } from '../ui/spinner';
 import { cn } from '../../lib/utils';
 import { TEAM_COLORS } from '../../constants/f1Colors';
@@ -55,7 +55,7 @@ export default function EmbeddableDriverStandings({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [driverStandings, setDriverStandings] = useState<DriverStanding[]>([]);
-  const [currentRound, setCurrentRound] = useState<string | null>(null);
+  const [, setCurrentRound] = useState<string | null>(null);
 
   useEffect(() => {
     // Log props to help debugging

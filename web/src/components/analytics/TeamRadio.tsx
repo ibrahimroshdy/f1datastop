@@ -108,7 +108,7 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
   
   // Get current driver info
   const currentDriverInfo = useMemo(() => {
-    return drivers.find(d => d.number === selectedDriver);
+    return drivers.find((d: (typeof drivers)[number]) => d.number === selectedDriver);
   }, [drivers, selectedDriver]);
   
   // Play team radio
@@ -160,7 +160,7 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
     <div className="space-y-4">
       {/* Driver Selection Grid */}
       <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
-        {drivers.map((driver) => (
+        {drivers.map((driver: (typeof drivers)[number]) => (
           <button
             key={driver.number}
             onClick={() => {

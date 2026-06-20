@@ -155,11 +155,14 @@ const F1Card = React.forwardRef<HTMLDivElement, F1CardProps>(
       accent: variant === "team-accent" && showAccent && teamColor ? (accentPosition === "top" ? "top" : "team") : effectiveAccent,
     });
 
-    const sizePadding = sizePaddingMap[size];
+    const resolvedSize: F1CardSize = size ?? "default";
+    const resolvedVariant = variant ?? "default";
+
+    const sizePadding = sizePaddingMap[resolvedSize];
 
     const contextValue: F1CardContextValue = React.useMemo(
-      () => ({ size, variant }),
-      [size, variant]
+      () => ({ size: resolvedSize, variant: resolvedVariant }),
+      [resolvedSize, resolvedVariant]
     );
 
     const sharedClassName = cn(

@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
 import { 
   trackCalendarPageView, 
   trackCalendarSession, 
@@ -38,8 +37,6 @@ const CalendarAnalyticsTracker: React.FC<CalendarAnalyticsTrackerProps> = ({
   viewType = 'list', 
   children 
 }) => {
-  const location = useLocation();
-  const [sessionStartTime] = useState(Date.now());
   const [hasTrackedPageView, setHasTrackedPageView] = useState(false);
   const previousYear = useRef(selectedYear);
   

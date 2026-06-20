@@ -180,7 +180,7 @@ export const signIn = async (email: string, password: string): Promise<void> => 
 
 export const signInWithX = async (): Promise<void> => {
   try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'twitter',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`

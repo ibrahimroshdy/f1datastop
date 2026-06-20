@@ -1,6 +1,5 @@
 
 import { useEffect } from "react";
-import mapboxgl from "mapbox-gl";
 import { Race } from "@/components/calendar/map/types";
 
 interface RacePathProps {

@@ -3,7 +3,7 @@ import { useRaceSchedule } from "@/hooks/useF1Data";
 import { F1Card, F1CardContent, F1CardDescription, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, BarChart3, Clock, TrendingUp, Flag } from "lucide-react";
+import { Loader2, Clock, TrendingUp, Flag } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";

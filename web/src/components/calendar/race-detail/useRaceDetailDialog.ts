@@ -42,8 +42,8 @@ export function useRaceDetailDialog(race: RaceLike | null | undefined, isOpen: b
 
   useEffect(() => {
     if (race && isOpen) {
-      if ((window as { calendarAnalytics?: { trackRaceDetailDialog: Function } }).calendarAnalytics) {
-        (window as { calendarAnalytics: { trackRaceDetailDialog: Function } }).calendarAnalytics.trackRaceDetailDialog(
+      if ((window as { calendarAnalytics?: { trackRaceDetailDialog: (action: string, race: RaceLike) => void } }).calendarAnalytics) {
+        (window as { calendarAnalytics?: { trackRaceDetailDialog: (action: string, race: RaceLike) => void } }).calendarAnalytics?.trackRaceDetailDialog?.(
           "open",
           race,
         );
@@ -59,12 +59,10 @@ export function useRaceDetailDialog(race: RaceLike | null | undefined, isOpen: b
       if (race.Sprint) sessions.push("Sprint");
       if (race.Qualifying) sessions.push("Qualifying");
 
-      if ((window as { calendarAnalytics?: { trackSessionScheduleView: Function } }).calendarAnalytics) {
-        (window as { calendarAnalytics: { trackSessionScheduleView: Function } }).calendarAnalytics.trackSessionScheduleView(
+      (window as { calendarAnalytics?: { trackSessionScheduleView: (race: RaceLike, sessions: string[]) => void } }).calendarAnalytics?.trackSessionScheduleView?.(
           race,
           sessions,
         );
-      }
     }
   }, [race?.round, race?.season, isOpen, race]);
 

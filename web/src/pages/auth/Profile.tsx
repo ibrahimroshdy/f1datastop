@@ -18,7 +18,6 @@ import {
 } from '@/components/f1';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from "@/components/ui/use-toast";
-import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
@@ -26,7 +25,7 @@ const Profile = () => {
   const cardVariant = isGlass ? "glass" : "default";
   const glassVariant = isGlass ? "panel" : "default";
   const { user, profile, signOut, refreshProfile } = useAuth();
-  const { incrementProfileClickCount, profileClickCount } = useDeveloper();
+  const { incrementProfileClickCount } = useDeveloper();
   const analytics = useAnalytics();
   const { toast } = useToast();
   

@@ -1,4 +1,3 @@
-import { formatTime } from "@/utils/lapTimeUtils";
 
 /**
  * Utility functions to convert between Ergast API and OpenF1 API data formats
@@ -8,7 +7,7 @@ import { formatTime } from "@/utils/lapTimeUtils";
 export { mapOpenF1DriverToErgast } from "@/lib/f1/adapters";
 
 // Map OpenF1 lap data to Ergast-style lap data
-export const mapOpenF1LapsToErgast = (laps: any[], drivers: any[]) => {
+export const mapOpenF1LapsToErgast = (laps: any[], _drivers: any[]) => {
   // Group laps by lap number
   const lapsByNumber: { [key: string]: any } = {};
   
@@ -22,7 +21,6 @@ export const mapOpenF1LapsToErgast = (laps: any[], drivers: any[]) => {
     }
     
     // Find the driver for this lap
-    const driver = drivers.find(d => d.driver_number === lap.driver_number);
     
     // Add timing entry
     lapsByNumber[lapNumber].Timings.push({

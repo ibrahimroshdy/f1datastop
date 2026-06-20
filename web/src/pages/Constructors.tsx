@@ -8,16 +8,14 @@ import {
   F1CardHeader,
   F1CardTitle,
 } from "@/components/f1";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useConstructorStandings, useDriverStandings } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertTriangle, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import TeamLogo from "@/components/common/TeamLogo";
 import YearSelector from "@/components/common/YearSelector";
 import { cn } from "@/lib/utils";
@@ -81,14 +79,6 @@ const Constructors = () => {
     // For now, we'll just check if they're listed as position 1
     return constructor.position === "1";
   };
-  
-  // Helper function to remove emoji flags from race names
-  const removeFlag = (raceName: string) => {
-    if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
-      return raceName.substring(raceName.indexOf(' ') + 1);
-    }
-    return raceName;
-  };
 
   return (
     <MainLayout>
@@ -141,7 +131,7 @@ const Constructors = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredConstructors?.map((constructor) => {
+            {filteredConstructors?.map((constructor: ConstructorListEntry) => {
               const teamColor = TEAM_COLORS[constructor.Constructor.constructorId] || TEAM_COLORS.default;
               const teamDrivers = getTeamDrivers(constructor.Constructor.constructorId);
               const teamIsChampion = isChampion(constructor, selectedYear);

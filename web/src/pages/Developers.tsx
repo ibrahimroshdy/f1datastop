@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useDeveloper } from '@/context/DeveloperContext';
 import MainLayout from '@/components/layout/MainLayout';

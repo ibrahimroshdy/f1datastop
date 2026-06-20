@@ -1,13 +1,7 @@
 import { toast } from "sonner";
-import { withCache } from "@/utils/cache";
 import { throttledOpenF1Fetch } from "@/lib/api/f1ApiFetch";
 
-// Cache TTLs for OpenF1 data
-const TTL = {
-  DRIVER_INFO: 24 * 60 * 60 * 1000, // 24 hours - driver info rarely changes
-  SESSION_DATA: 60 * 60 * 1000, // 1 hour - session data can change during events
-  LIVE_DATA: 30 * 1000, // 30 seconds - live telemetry data
-} as const;
+// OpenF1 request helpers
 
 // Throttled fetch — delegates to shared lib (proxy-aware)
 async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3): Promise<Response> {

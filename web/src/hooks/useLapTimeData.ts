@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRaceResults, useLapTimes } from "@/hooks/useF1Data";
-import { TEAM_COLORS } from "@/constants/f1Colors";
 import { toast } from "sonner";
-import { formatTime } from "@/utils/lapTimeUtils";
 
 export interface Driver {
   driverId: string;
@@ -13,7 +11,7 @@ export interface Driver {
   hasFastestLap?: boolean;
 }
 
-export const useLapTimeData = (year: number, round: string, displayMode: 'absolute' | 'gap') => {
+export const useLapTimeData = (year: number, round: string, _displayMode: 'absolute' | 'gap') => {
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
@@ -122,7 +120,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
       
       // Auto-select only the winner by default
       if (drivers.length > 0) {
-        const winner = drivers.find(d => d.finishPosition === 1);
+        const winner = drivers.find((d: Driver) => d.finishPosition === 1);
         if (winner) {
           setSelectedDrivers([winner.code]);
         } else {
@@ -134,7 +132,7 @@ export const useLapTimeData = (year: number, round: string, displayMode: 'absolu
       let fastestDriver = null;
       let fastestTime = Number.MAX_VALUE;
 
-      drivers.forEach(driver => {
+      drivers.forEach((driver: Driver & { fastestLapTime?: number; hasFastestLap?: boolean }) => {
         if (driver.hasFastestLap && driver.fastestLapTime && driver.fastestLapTime < fastestTime) {
           fastestTime = driver.fastestLapTime;
           fastestDriver = driver.code;

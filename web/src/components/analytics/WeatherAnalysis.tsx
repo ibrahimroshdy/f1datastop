@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Thermometer, Cloud, Droplets, Wind, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useOpenF1SessionFromErgast, useDrivers, useSession, useRaceControl } from "@/hooks/useOpenF1Data";
+import { useOpenF1SessionFromErgast } from '@/hooks/useOpenF1Data';
 import { useWeatherData } from "@/hooks/useOpenF1Data";
 import { processOpenF1WeatherData } from "@/utils/apiAdapters";
 import {
@@ -89,7 +88,6 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     return processedData.filter((_, i) => i % step === 0);
   }, [processedData]);
   
-  const xAxisData = chartData.map(d => d.time);
 
   const isLoading = isSessionLoading || isWeatherLoading;
   const hasNoData = !isLoading && (!weatherData?.data || weatherData.data.length === 0);

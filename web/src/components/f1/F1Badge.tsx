@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Badge, BadgeProps } from "@/components/ui/badge";
-import { Trophy, Medal, Flag, AlertTriangle, CheckCircle, Clock, Zap } from "lucide-react";
+import { Trophy, Medal, AlertTriangle, CheckCircle, Clock, Zap } from 'lucide-react';
 
 interface F1BadgeProps extends Omit<BadgeProps, "variant"> {
   /** Badge variant */

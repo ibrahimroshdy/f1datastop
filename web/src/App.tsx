@@ -3,7 +3,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { SessionProvider } from "@/context/SessionContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { DeveloperProvider } from "@/context/DeveloperContext";
@@ -17,7 +16,6 @@ import ClarityStatus from "./components/dev/ClarityStatus";
 import initConsoleFilters from "./utils/errorFilter";
 import Index from "./pages/Index";
 import RaceCalendar from "./pages/RaceCalendar";
-import Analytics from "./pages/Analytics";
 import RaceAnalysis from "./pages/RaceAnalysis";
 import Drivers from "./pages/Drivers";
 import Constructors from "./pages/Constructors";
@@ -27,7 +25,6 @@ import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
 import ResetPassword from "./pages/auth/ResetPassword";
-import RaceInfoPage from "./pages/RaceInfoPage";
 import Privacy from "./pages/Privacy";
 import React, { Suspense } from "react";
 
@@ -132,7 +129,6 @@ const queryClient = new QueryClient({
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <SessionProvider>
       <BrowserRouter>
         <AuthProvider>
           <ThemeProvider>
@@ -217,7 +213,6 @@ const App = () => (
           </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>
-    </SessionProvider>
   </QueryClientProvider>
 );
 

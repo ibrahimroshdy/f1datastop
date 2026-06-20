@@ -82,7 +82,7 @@ const GlobeScene = ({ containerRef, onSceneCreated, detailLevel }: GlobeScenePro
         globeMaterial.needsUpdate = true;
       },
       undefined,
-      (error) => {
+      () => {
         console.warn('Failed to load earth texture, using fallback color');
       }
     );

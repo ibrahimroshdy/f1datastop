@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useCarData, useDrivers, useLapData } from "@/hooks/useOpenF1Data";
+import { useDrivers, useLapData } from '@/hooks/useOpenF1Data';
 import { processOpenF1CarData } from "@/utils/apiAdapters";
 import { toast } from "sonner";
 import { useF1Metadata } from "@/hooks/useF1Metadata";
@@ -104,7 +104,7 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
 
   // Update driver loading states based on queries
   const driversWithState = useMemo(() => {
-    return availableDrivers.map(driver => {
+    return availableDrivers.map((driver: { driver_number: number; [key: string]: unknown }) => {
       const index = selectedDrivers.indexOf(driver.driver_number);
       if (index === -1) return driver;
 
@@ -163,7 +163,7 @@ export const useTelemetryData = (sessionKey: number, selectedDrivers: number[] =
 
   // Load driver data (now just adding to selectedDrivers in parent component handles this, 
   // but keeping interface for compatibility if needed, though parent controls selectedDrivers)
-  const loadDriverData = async (driverNumber: number) => {
+  const loadDriverData = async (_driverNumber: number) => {
     // No-op: The parent component should add the driver to selectedDrivers, 
     // which triggers the useQueries hook.
     console.log("loadDriverData called - ensure parent updates selectedDrivers");

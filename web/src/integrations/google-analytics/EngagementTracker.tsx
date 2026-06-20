@@ -388,11 +388,6 @@ const EngagementTracker: React.FC<EngagementTrackerProps> = ({
     }
   };
 
-  // Get number of pages viewed in this session
-  const getPagesViewedCount = () => {
-    return navigationHistory.length;
-  };
-
   // This component doesn't render anything
   return null;
 };

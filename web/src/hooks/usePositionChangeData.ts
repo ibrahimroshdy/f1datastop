@@ -101,7 +101,7 @@ export const usePositionChangeData = (year: number, round: string) => {
   const visibleDrivers = useMemo(() => selectedDrivers, [selectedDrivers]);
 
   const chartData = useMemo(
-    () => buildPositionChartData(lapTimesData, availableDrivers),
+    () => buildPositionChartData(lapTimesData ?? {}, availableDrivers),
     [lapTimesData, availableDrivers],
   );
 
