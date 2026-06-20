@@ -88,7 +88,14 @@ f1datastop/
 
 ---
 
-## Phase 2 — Dependency diet
+## Phase 2 — Dependency diet — ✅ DONE (PRs #8 merged, #10 open)
+
+> 2a (merged): removed firebase + dom-to-image-more.
+> 2b (#10): all charts → Recharts; Sankey → d3-sankey; removed @mui/material,
+> @mui/x-charts, @mui/x-data-grid, @nivo/*, @emotion/*. Build + tsc clean;
+> lap chart + pit-stop table screenshot-verified on live data.
+> Remaining (optional, later): audit Three.js globe + Mapbox weight per-feature.
+
 
 Cut bloat surfaced in audit (#15286). Each removal is its own small PR with a build check.
 

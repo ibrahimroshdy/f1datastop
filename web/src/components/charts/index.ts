@@ -3,7 +3,6 @@
 
 // Chart Card wrapper
 export { F1ChartCard } from "./F1ChartCard";
-export { F1Chart } from "./F1Chart";
 
 // Tooltips
 export { 

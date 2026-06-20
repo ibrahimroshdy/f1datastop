@@ -1,7 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart } from '@mui/x-charts/BarChart';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { useRaceQualifying, useRaceResults } from '@/hooks/useF1Data';
+import React, { useState, useMemo } from 'react';
+import {
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
+import { useRaceQualifying } from '@/hooks/useF1Data';
 import { TEAM_COLORS } from '@/constants/f1Colors';
 import { convertLapTimeToSeconds, formatTime } from '@/utils/lapTimeUtils';
 import { useTheme } from '@/context/ThemeContext';
@@ -50,19 +59,6 @@ const MuiYearComparisonQualifyingChart: React.FC<MuiYearComparisonQualifyingChar
   const { data: baseQualifying, isLoading: baseLoading } = useRaceQualifying(baseYear, baseRound);
   const { data: comparisonQualifying, isLoading: comparisonLoading } = useRaceQualifying(comparisonYear, comparisonRound);
 
-  // Create MUI theme
-  const muiTheme = useMemo(() => createTheme({
-    palette: {
-      mode: isDark ? 'dark' : 'light',
-      primary: { main: '#e10600' },
-      background: {
-        default: isDark ? 'hsl(222 47% 8%)' : '#fff',
-        paper: isDark ? 'hsl(222 47% 11%)' : '#fff',
-      },
-    },
-    typography: { fontFamily: 'inherit' },
-  }), [isDark]);
-
   // Process qualifying data
   const processedData = useMemo(() => {
     const result: QualifyingData[] = [];
@@ -73,7 +69,7 @@ const MuiYearComparisonQualifyingChart: React.FC<MuiYearComparisonQualifyingChar
         const q1 = r.Q1 ? convertLapTimeToSeconds(r.Q1) : null;
         const q2 = r.Q2 ? convertLapTimeToSeconds(r.Q2) : null;
         const q3 = r.Q3 ? convertLapTimeToSeconds(r.Q3) : null;
-        
+
         result.push({
           driver: r.Driver.code || r.Driver.familyName.substring(0, 3).toUpperCase(),
           team: r.Constructor?.constructorId || 'unknown',
@@ -94,7 +90,7 @@ const MuiYearComparisonQualifyingChart: React.FC<MuiYearComparisonQualifyingChar
         const q1 = r.Q1 ? convertLapTimeToSeconds(r.Q1) : null;
         const q2 = r.Q2 ? convertLapTimeToSeconds(r.Q2) : null;
         const q3 = r.Q3 ? convertLapTimeToSeconds(r.Q3) : null;
-        
+
         result.push({
           driver: r.Driver.code || r.Driver.familyName.substring(0, 3).toUpperCase(),
           team: r.Constructor?.constructorId || 'unknown',
@@ -120,11 +116,11 @@ const MuiYearComparisonQualifyingChart: React.FC<MuiYearComparisonQualifyingChar
 
     // Build grouped data
     const drivers = [...new Set(processedData.map(d => d.driver))].slice(0, 15);
-    
+
     return drivers.map(driver => {
       const baseData = processedData.find(d => d.driver === driver && d.year === baseYear);
       const compData = processedData.find(d => d.driver === driver && d.year === comparisonYear);
-      
+
       const baseTime = baseData?.[session];
       const compTime = compData?.[session];
 
@@ -146,6 +142,29 @@ const MuiYearComparisonQualifyingChart: React.FC<MuiYearComparisonQualifyingChar
 
   const isLoading = baseLoading || comparisonLoading;
 
+  // Format gap-to-pole value (seconds) for tooltip/axis
+  const formatGap = (value: number | null) =>
+    value !== null && value !== undefined ? `+${value.toFixed(3)}s` : 'N/A';
+
+  // Custom tooltip showing both seasons' gap-to-pole for the hovered driver
+  const QualifyingTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const rows = payload.filter((p: any) => p.value != null);
+    if (!rows.length) return null;
+    return (
+      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+        <div className="font-mono text-muted-foreground mb-1">{label}</div>
+        {rows.map((p: any) => (
+          <div key={p.dataKey} className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ background: p.color || p.fill }} />
+            <span className="font-bold w-12">{p.name}</span>
+            <span className="font-mono">{formatGap(p.value)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="h-[400px] flex flex-col items-center justify-center">
@@ -165,122 +184,117 @@ const MuiYearComparisonQualifyingChart: React.FC<MuiYearComparisonQualifyingChar
   }
 
   return (
-    <ThemeProvider theme={muiTheme}>
-      <div className="space-y-4">
-        {/* Header with circuit info */}
-        <div className="flex flex-wrap justify-between items-center gap-2">
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="text-xs gap-1">
-              <Flag className="h-3 w-3" />
-              {baseYear}: {baseCircuit}
-            </Badge>
-            <span className="text-muted-foreground text-xs">vs</span>
-            <Badge variant="outline" className="text-xs gap-1">
-              <Flag className="h-3 w-3" />
-              {comparisonYear}: {compCircuit}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Session Tabs */}
-        <Tabs value={session} onValueChange={(v) => setSession(v as 'q1' | 'q2' | 'q3')}>
-          <TabsList className="grid grid-cols-3 w-full max-w-[300px]">
-            <TabsTrigger value="q1" className="text-xs gap-1">
-              <Clock className="h-3 w-3" />
-              Q1
-            </TabsTrigger>
-            <TabsTrigger value="q2" className="text-xs gap-1">
-              <Clock className="h-3 w-3" />
-              Q2
-            </TabsTrigger>
-            <TabsTrigger value="q3" className="text-xs gap-1">
-              <Clock className="h-3 w-3" />
-              Q3
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={session} className="mt-4">
-            {/* Chart */}
-            <div className="h-[350px]">
-              <BarChart
-                dataset={chartData}
-                layout="horizontal"
-                yAxis={[{
-                  scaleType: 'band',
-                  dataKey: 'driver',
-                  tickLabelStyle: { fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' },
-                }]}
-                xAxis={[{
-                  label: 'Gap to Pole (s)',
-                  tickLabelStyle: { fontSize: 9, fill: isDark ? '#a1a1aa' : '#666' },
-                  valueFormatter: (v) => `+${v.toFixed(3)}`,
-                }]}
-                series={[
-                  {
-                    dataKey: `${baseYear}`,
-                    label: `${baseYear}`,
-                    color: '#e10600',
-                    valueFormatter: (v) => v !== null ? `+${v.toFixed(3)}s` : 'N/A',
-                  },
-                  {
-                    dataKey: `${comparisonYear}`,
-                    label: `${comparisonYear}`,
-                    color: '#3b82f6',
-                    valueFormatter: (v) => v !== null ? `+${v.toFixed(3)}s` : 'N/A',
-                  },
-                ]}
-                height={350}
-                margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
-                slotProps={({
-                  legend: {
-                    direction: 'row',
-                    position: { vertical: 'bottom', horizontal: 'middle' },
-                    itemMarkWidth: 10,
-                    itemMarkHeight: 10,
-                    labelStyle: { fontSize: 11, fill: isDark ? '#a1a1aa' : '#666' },
-                    padding: { top: 20 },
-                  },
-                } as any)}
-                grid={{ vertical: true, horizontal: false }}
-                sx={{
-                  '.MuiChartsGrid-line': {
-                    stroke: isDark ? '#333' : '#e5e5e5',
-                    strokeDasharray: '3 3',
-                  },
-                }}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Statistics */}
-        <div className={cn(
-          "grid grid-cols-2 gap-4 p-3 rounded-lg text-xs",
-          isDark ? "bg-zinc-900/50 border border-zinc-800" : "bg-zinc-50 border border-zinc-200"
-        )}>
-          <div>
-            <p className="text-muted-foreground mb-1">{baseYear} Pole</p>
-            <p className="font-mono font-medium">
-              {processedData.find(d => d.year === baseYear && d.position === 1)?.[session] 
-                ? formatTime(processedData.find(d => d.year === baseYear && d.position === 1)?.[session] || 0)
-                : 'N/A'
-              }
-            </p>
-          </div>
-          <div>
-            <p className="text-muted-foreground mb-1">{comparisonYear} Pole</p>
-            <p className="font-mono font-medium">
-              {processedData.find(d => d.year === comparisonYear && d.position === 1)?.[session]
-                ? formatTime(processedData.find(d => d.year === comparisonYear && d.position === 1)?.[session] || 0)
-                : 'N/A'
-              }
-            </p>
-          </div>
+    <div className="space-y-4">
+      {/* Header with circuit info */}
+      <div className="flex flex-wrap justify-between items-center gap-2">
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="text-xs gap-1">
+            <Flag className="h-3 w-3" />
+            {baseYear}: {baseCircuit}
+          </Badge>
+          <span className="text-muted-foreground text-xs">vs</span>
+          <Badge variant="outline" className="text-xs gap-1">
+            <Flag className="h-3 w-3" />
+            {comparisonYear}: {compCircuit}
+          </Badge>
         </div>
       </div>
-    </ThemeProvider>
+
+      {/* Session Tabs */}
+      <Tabs value={session} onValueChange={(v) => setSession(v as 'q1' | 'q2' | 'q3')}>
+        <TabsList className="grid grid-cols-3 w-full max-w-[300px]">
+          <TabsTrigger value="q1" className="text-xs gap-1">
+            <Clock className="h-3 w-3" />
+            Q1
+          </TabsTrigger>
+          <TabsTrigger value="q2" className="text-xs gap-1">
+            <Clock className="h-3 w-3" />
+            Q2
+          </TabsTrigger>
+          <TabsTrigger value="q3" className="text-xs gap-1">
+            <Clock className="h-3 w-3" />
+            Q3
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={session} className="mt-4">
+          {/* Chart */}
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
+              >
+                <CartesianGrid
+                  horizontal={false}
+                  stroke={isDark ? '#333' : '#e5e5e5'}
+                  strokeDasharray="3 3"
+                />
+                <XAxis
+                  type="number"
+                  tickFormatter={(v) => `+${v.toFixed(3)}`}
+                  tick={{ fontSize: 9, fill: isDark ? '#a1a1aa' : '#666' }}
+                  label={{
+                    value: 'Gap to Pole (s)',
+                    position: 'insideBottom',
+                    offset: -10,
+                    fontSize: 10,
+                    fill: isDark ? '#a1a1aa' : '#666',
+                  }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="driver"
+                  tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' }}
+                  width={40}
+                />
+                <Tooltip content={<QualifyingTooltip />} cursor={{ fill: isDark ? '#ffffff10' : '#00000008' }} />
+                <Legend
+                  wrapperStyle={{ fontSize: 11, color: isDark ? '#a1a1aa' : '#666', paddingTop: 20 }}
+                />
+                <Bar dataKey={`${baseYear}`} name={`${baseYear}`} fill="#e10600" isAnimationActive={false}>
+                  {chartData.map((entry, index) => (
+                    <Cell key={`base-${index}`} fill={entry.baseColor || '#e10600'} />
+                  ))}
+                </Bar>
+                <Bar dataKey={`${comparisonYear}`} name={`${comparisonYear}`} fill="#3b82f6" isAnimationActive={false}>
+                  {chartData.map((entry, index) => (
+                    <Cell key={`comp-${index}`} fill={entry.compColor || '#3b82f6'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Statistics */}
+      <div className={cn(
+        "grid grid-cols-2 gap-4 p-3 rounded-lg text-xs",
+        isDark ? "bg-zinc-900/50 border border-zinc-800" : "bg-zinc-50 border border-zinc-200"
+      )}>
+        <div>
+          <p className="text-muted-foreground mb-1">{baseYear} Pole</p>
+          <p className="font-mono font-medium">
+            {processedData.find(d => d.year === baseYear && d.position === 1)?.[session]
+              ? formatTime(processedData.find(d => d.year === baseYear && d.position === 1)?.[session] || 0)
+              : 'N/A'
+            }
+          </p>
+        </div>
+        <div>
+          <p className="text-muted-foreground mb-1">{comparisonYear} Pole</p>
+          <p className="font-mono font-medium">
+            {processedData.find(d => d.year === comparisonYear && d.position === 1)?.[session]
+              ? formatTime(processedData.find(d => d.year === comparisonYear && d.position === 1)?.[session] || 0)
+              : 'N/A'
+            }
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
 
 export default MuiYearComparisonQualifyingChart;
-

@@ -38,4 +38,4 @@ docs/superpowers/*
 !docs/superpowers/plans/
 !docs/superpowers/plans/**
 !docs/superpowers/specs/
-!docs/superpowers/specs/**
+!docs/superpowers/specs/**.playwright-mcp/

@@ -1,11 +1,20 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { BarChart } from '@mui/x-charts/BarChart';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  LabelList,
+} from "recharts";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Flag, LayoutGrid, List } from "lucide-react";
 import { useQualifyingData } from "@/hooks/useQualifyingData";
-import MuiThemeWrapper from "./MuiThemeWrapper";
 import { useTheme } from "@/context/ThemeContext";
 import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
 import { F1ErrorState } from "@/components/f1/F1ErrorState";
@@ -70,7 +79,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     return { labels, times, gaps, colors, fastestSessionTime, driversWithTimes };
   };
 
-  // Transform data for MUI X Charts - horizontal bar chart
+  // Transform data for the bar chart (horizontal: drivers on Y, gap on X)
   const muiChartData = useMemo(() => {
     if (!availableDrivers.length) return { labels: [], series: [], colors: [], fastestSessionTime: 0, driversWithTimes: [] };
 
@@ -135,9 +144,28 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     );
   }
 
+  // Custom tooltip mirroring the old MUI hover (gap + absolute formatted time)
+  const QualifyingTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const row = payload[0]?.payload;
+    if (!row) return null;
+    return (
+      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full" style={{ background: row.color }} />
+          <span className="font-bold w-9">{row.code}</span>
+          <span className="font-mono">{formatTime(row.time)}</span>
+        </div>
+        <div className="font-mono text-muted-foreground mt-0.5">
+          {`+${(row.gap ?? 0).toFixed(3)}s`}
+        </div>
+      </div>
+    );
+  };
+
   // Render a single session chart
   const renderSessionChart = (sessionData: ReturnType<typeof getSessionData>, session: string, compact: boolean = false) => {
-    const chartHeight = compact 
+    const chartHeight = compact
       ? Math.max(180, sessionData.labels.length * 20)
       : Math.max(300, sessionData.labels.length * 28);
 
@@ -152,100 +180,77 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
       );
     }
 
+    // Recharts data = row objects keyed by series name
+    const rows = sessionData.labels.map((code, idx) => ({
+      code,
+      gap: sessionData.gaps[idx],
+      time: sessionData.times[idx],
+      color: sessionData.colors[idx],
+    }));
+
+    const tickFill = isDark ? '#a1a1aa' : '#666';
+    const gridStroke = isDark ? '#333' : '#e5e5e5';
+    const labelFill = isDark ? '#fff' : '#333';
+
     return (
-      <BarChart
-        layout="horizontal"
-        yAxis={[{ 
-          data: sessionData.labels,
-          scaleType: 'band',
-          tickLabelStyle: {
-            fontSize: compact ? 9 : (isMobile ? 10 : 11),
-            fill: isDark ? '#a1a1aa' : '#666',
-          },
-        }]}
-        xAxis={[{
-          label: compact ? '' : 'Gap to Pole (s)',
-          min: 0,
-          tickLabelStyle: {
-            fontSize: compact ? 8 : (isMobile ? 10 : 11),
-            fill: isDark ? '#a1a1aa' : '#666',
-          },
-        }]}
-        series={[{
-          data: sessionData.gaps,
-          color: '#e10600',
-          valueFormatter: (value) => value !== null ? `+${value.toFixed(3)}s` : 'N/A',
-        }]}
-        height={chartHeight}
-        margin={{ 
-          top: compact ? 5 : 10, 
-          right: compact ? 60 : 80, 
-          bottom: compact ? 20 : 35, 
-          left: compact ? 35 : (isMobile ? 45 : 50)
-        }}
-        barLabel={compact ? undefined : (item) => {
-          const idx = item.dataIndex;
-          if (idx === undefined || idx < 0) return '';
-          return formatTime(sessionData.times[idx]);
-        }}
-        sx={{
-          '.MuiBarElement-root': {
-            rx: 2,
-            ry: 2,
-          },
-          '.MuiChartsAxis-tickLabel': {
-            fill: isDark ? '#a1a1aa' : '#666',
-          },
-          '.MuiChartsAxis-label': {
-            fill: isDark ? '#a1a1aa' : '#666',
-            fontSize: 11,
-          },
-          '.MuiChartsGrid-line': {
-            stroke: isDark ? '#333' : '#e5e5e5',
-            strokeDasharray: '3 3',
-          },
-          '.MuiBarLabel-root': {
-            fill: isDark ? '#fff' : '#333',
-            fontSize: compact ? 8 : (isMobile ? 9 : 10),
-            fontFamily: 'monospace',
-          },
-        }}
-        grid={{ vertical: true, horizontal: false }}
-        slotProps={({
-          legend: {
-            hidden: true,
-          },
-        } as any)}
-        slots={{
-          bar: (props) => {
-            const idx = props.ownerState?.dataIndex;
-            const color = idx !== undefined && idx >= 0 ? sessionData.colors[idx] : '#e10600';
-            // Sanitize rect geometry so SVG never receives NaN (avoids "Expected length, NaN" and animation NaN)
-            const x = Number(props.x);
-            const y = Number(props.y);
-            const w = Number(props.width);
-            const h = Number(props.height);
-            const { transform, ...restProps } = props as unknown as { transform?: string; [k: string]: unknown };
-            const safeTransform =
-              transform && typeof transform === 'string' && !transform.includes('NaN')
-                ? transform
-                : undefined;
-            return (
-              <rect
-                {...restProps}
-                x={Number.isFinite(x) ? x : 0}
-                y={Number.isFinite(y) ? y : 0}
-                width={Number.isFinite(w) && w >= 0 ? w : 0}
-                height={Number.isFinite(h) && h >= 0 ? h : 0}
-                {...(safeTransform ? { transform: safeTransform } : {})}
-                fill={color}
-                rx={2}
-                ry={2}
+      <ResponsiveContainer width="100%" height={chartHeight}>
+        <BarChart
+          data={rows}
+          layout="vertical"
+          margin={{
+            top: compact ? 5 : 10,
+            right: compact ? 60 : 80,
+            bottom: compact ? 20 : 35,
+            left: compact ? 35 : (isMobile ? 45 : 50),
+          }}
+          barCategoryGap={compact ? '20%' : '25%'}
+        >
+          <CartesianGrid
+            horizontal={false}
+            stroke={gridStroke}
+            strokeDasharray="3 3"
+          />
+          <XAxis
+            type="number"
+            domain={[0, 'auto']}
+            tickLine={false}
+            tickFormatter={(value) => (value !== null ? `+${Number(value).toFixed(3)}s` : 'N/A')}
+            tick={{ fontSize: compact ? 8 : (isMobile ? 10 : 11), fill: tickFill }}
+            label={compact ? undefined : {
+              value: 'Gap to Pole (s)',
+              position: 'insideBottom',
+              offset: -10,
+              fontSize: 11,
+              fill: tickFill,
+            }}
+          />
+          <YAxis
+            type="category"
+            dataKey="code"
+            tickLine={false}
+            tick={{ fontSize: compact ? 9 : (isMobile ? 10 : 11), fill: tickFill }}
+            width={compact ? 30 : (isMobile ? 40 : 45)}
+          />
+          <Tooltip content={<QualifyingTooltip />} cursor={{ fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }} />
+          <Bar dataKey="gap" radius={[0, 2, 2, 0]} isAnimationActive={false}>
+            {rows.map((row, idx) => (
+              <Cell key={`cell-${idx}`} fill={row.color} />
+            ))}
+            {!compact && (
+              <LabelList
+                dataKey="time"
+                position="right"
+                formatter={(value: number) => formatTime(value)}
+                style={{
+                  fill: labelFill,
+                  fontSize: isMobile ? 9 : 10,
+                  fontFamily: 'monospace',
+                }}
               />
-            );
-          },
-        }}
-      />
+            )}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     );
   };
 
@@ -344,64 +349,62 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
   };
 
   return (
-    <MuiThemeWrapper>
-      <div className="h-full flex flex-col">
-        {/* Session selector */}
-        <div className="flex flex-wrap gap-2 mb-3 items-center">
-          {/* Individual session badges */}
-          {(['Q1', 'Q2', 'Q3'] as const).map((session) => (
-            <Badge
-              key={session}
-              variant={selectedSession === session ? "default" : "outline"}
-              className={cn(
-                "cursor-pointer px-3 py-1 text-xs transition-all",
-                selectedSession === session 
-                  ? "bg-primary text-primary-foreground" 
-                  : "hover:bg-accent"
-              )}
-              onClick={() => setSelectedSession(session)}
-            >
-              {session}
-            </Badge>
-          ))}
-          
-          {/* View All Button */}
-          <Button
-            variant={selectedSession === 'ALL' ? "default" : "outline"}
-            size="sm"
+    <div className="h-full flex flex-col">
+      {/* Session selector */}
+      <div className="flex flex-wrap gap-2 mb-3 items-center">
+        {/* Individual session badges */}
+        {(['Q1', 'Q2', 'Q3'] as const).map((session) => (
+          <Badge
+            key={session}
+            variant={selectedSession === session ? "default" : "outline"}
             className={cn(
-              "h-6 px-2 text-xs gap-1",
-              selectedSession === 'ALL' && "bg-primary text-primary-foreground"
+              "cursor-pointer px-3 py-1 text-xs transition-all",
+              selectedSession === session
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-accent"
             )}
-            onClick={() => setSelectedSession('ALL')}
+            onClick={() => setSelectedSession(session)}
           >
-            <LayoutGrid size={12} />
-            All Sectors
-          </Button>
+            {session}
+          </Badge>
+        ))}
 
-          {/* Pole time (only show for single session) */}
-          {selectedSession !== 'ALL' && 'fastestSessionTime' in muiChartData && muiChartData.fastestSessionTime > 0 && (
-            <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Pole:</span>
-              <span className="font-mono text-primary font-medium">
-                {formatTime(muiChartData.fastestSessionTime)}
-              </span>
-            </div>
+        {/* View All Button */}
+        <Button
+          variant={selectedSession === 'ALL' ? "default" : "outline"}
+          size="sm"
+          className={cn(
+            "h-6 px-2 text-xs gap-1",
+            selectedSession === 'ALL' && "bg-primary text-primary-foreground"
           )}
-        </div>
+          onClick={() => setSelectedSession('ALL')}
+        >
+          <LayoutGrid size={12} />
+          All Sectors
+        </Button>
 
-        {/* Chart content */}
-        <div className="flex-1 min-h-0 overflow-auto">
-          {selectedSession === 'ALL' ? (
-            renderAllSessions()
-          ) : (
-            'labels' in muiChartData && muiChartData.labels.length > 0 && (
-              renderSessionChart(muiChartData as ReturnType<typeof getSessionData>, selectedSession)
-            )
-          )}
-        </div>
+        {/* Pole time (only show for single session) */}
+        {selectedSession !== 'ALL' && 'fastestSessionTime' in muiChartData && muiChartData.fastestSessionTime > 0 && (
+          <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Pole:</span>
+            <span className="font-mono text-primary font-medium">
+              {formatTime(muiChartData.fastestSessionTime)}
+            </span>
+          </div>
+        )}
       </div>
-    </MuiThemeWrapper>
+
+      {/* Chart content */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        {selectedSession === 'ALL' ? (
+          renderAllSessions()
+        ) : (
+          'labels' in muiChartData && muiChartData.labels.length > 0 && (
+            renderSessionChart(muiChartData as ReturnType<typeof getSessionData>, selectedSession)
+          )
+        )}
+      </div>
+    </div>
   );
 };
 

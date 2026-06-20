@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Loader2, Timer, Flag, Zap } from 'lucide-react';
+import { AlertCircle, Loader2, Timer, Flag, Zap, ArrowUpDown } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { TEAM_COLORS } from '@/constants/f1Colors';
 import { getPitStops, getRaceResults } from '@/services/f1Service';
 import { useTheme } from '@/context/ThemeContext';
@@ -22,6 +28,9 @@ interface PitStopRow {
   duration: number;
   timeOfDay: string;
 }
+
+type SortField = 'driver' | 'lap' | 'duration';
+type SortDir = 'asc' | 'desc';
 
 // Format pit stop duration
 const formatDuration = (seconds: number): string => {
@@ -46,42 +55,10 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [circuitName, setCircuitName] = useState<string>('');
+  const [sortField, setSortField] = useState<SortField>('duration');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
   const { baseTheme } = useTheme();
   const isDark = baseTheme === 'dark';
-
-  // Create MUI theme
-  const muiTheme = useMemo(() => createTheme({
-    palette: {
-      mode: isDark ? 'dark' : 'light',
-      primary: { main: '#e10600' },
-      background: {
-        default: isDark ? 'hsl(222 47% 8%)' : '#fff',
-        paper: isDark ? 'hsl(222 47% 11%)' : '#fff',
-      },
-    },
-    typography: {
-      fontFamily: 'inherit',
-    },
-    components: ({
-      MuiDataGrid: {
-        styleOverrides: {
-          root: {
-            border: 'none',
-            '& .MuiDataGrid-cell': {
-              borderColor: isDark ? 'hsl(222 20% 18%)' : 'hsl(214.3 31.8% 91.4%)',
-            },
-            '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: isDark ? 'hsl(222 47% 11%)' : 'hsl(210 40% 96.1%)',
-              borderColor: isDark ? 'hsl(222 20% 18%)' : 'hsl(214.3 31.8% 91.4%)',
-            },
-            '& .MuiDataGrid-row:hover': {
-              backgroundColor: isDark ? 'hsl(222 47% 15%)' : 'hsl(210 40% 96.1%)',
-            },
-          },
-        },
-      },
-    } as any),
-  }), [isDark]);
 
   // Fetch pit stop data
   useEffect(() => {
@@ -174,104 +151,34 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
     }));
   }, [pitStopData]);
 
-  // DataGrid columns
-  const columns: GridColDef[] = [
-    {
-      field: 'driver',
-      headerName: 'Driver',
-      width: 100,
-      renderCell: (params: GridRenderCellParams) => (
-        <div className="flex items-center gap-2">
-          <div 
-            className="w-1 h-4 rounded-full" 
-            style={{ backgroundColor: getTeamColor(params.row.team) }} 
-          />
-          <span className="font-bold text-xs">{params.value}</span>
-        </div>
-      ),
-    },
-    {
-      field: 'team',
-      headerName: 'Team',
-      width: 120,
-      renderCell: (params: GridRenderCellParams) => {
-        const teamValue = params.value || 'unknown';
-        return (
-          <div className="flex items-center gap-2">
-            <TeamLogo constructorId={teamValue} size="sm" />
-            <span className="text-xs text-muted-foreground capitalize">
-              {teamValue.replace(/_/g, ' ')}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      field: 'lap',
-      headerName: 'Lap',
-      width: 70,
-      align: 'center',
-      headerAlign: 'center',
-      renderCell: (params: GridRenderCellParams) => (
-        <Badge variant="outline" className="text-[10px] px-1.5">
-          L{params.value}
-        </Badge>
-      ),
-    },
-    {
-      field: 'duration',
-      headerName: 'Duration',
-      width: 100,
-      align: 'right',
-      headerAlign: 'right',
-      renderCell: (params: GridRenderCellParams) => {
-        const isRecord = params.value === Math.min(...pitStopData.map(d => d.duration));
-        return (
-          <span className={cn(
-            "font-mono text-xs",
-            isRecord && "text-purple-500 font-bold"
-          )}>
-            {formatDuration(params.value)}
-            {isRecord && ' ⚡'}
-          </span>
-        );
-      },
-    },
-    {
-      field: 'timeOfDay',
-      headerName: 'Time',
-      width: 100,
-      renderCell: (params: GridRenderCellParams) => (
-        <span className="font-mono text-xs text-muted-foreground">{params.value}</span>
-      ),
-    },
-    {
-      field: 'bar',
-      headerName: '',
-      flex: 1,
-      minWidth: 100,
-      sortable: false,
-      renderCell: (params: GridRenderCellParams) => {
-        const maxDuration = Math.max(...pitStopData.map(d => d.duration));
-        const percentage = (params.row.duration / maxDuration) * 100;
-        const isRecord = params.row.duration === Math.min(...pitStopData.map(d => d.duration));
-        return (
-          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className={cn(
-                "h-full rounded-full transition-all",
-                isRecord ? "bg-purple-500" : ""
-              )}
-              style={{ 
-                width: `${percentage}%`,
-                backgroundColor: isRecord ? undefined : getTeamColor(params.row.team)
-              }}
-            />
-          </div>
-        );
-      },
-    },
-  ];
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir(field === 'driver' ? 'asc' : 'asc');
+    }
+  };
+
+  const sortedRows = useMemo(() => {
+    const rows = [...pitStopData];
+    rows.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'driver') cmp = a.driver.localeCompare(b.driver);
+      else cmp = a[sortField] - b[sortField];
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return rows;
+  }, [pitStopData, sortField, sortDir]);
+
+  const fastestStop = useMemo(
+    () => (pitStopData.length ? Math.min(...pitStopData.map(d => d.duration)) : 0),
+    [pitStopData],
+  );
+  const maxDuration = useMemo(
+    () => (pitStopData.length ? Math.max(...pitStopData.map(d => d.duration)) : 0),
+    [pitStopData],
+  );
 
   // Loading state
   if (isLoading) {
@@ -294,101 +201,148 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
     );
   }
 
-  const fastestStop = Math.min(...pitStopData.map(d => d.duration));
+  const SortHeader: React.FC<{ field: SortField; children: React.ReactNode; className?: string }> = ({
+    field,
+    children,
+    className,
+  }) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(field)}
+      className={cn('inline-flex items-center gap-1 hover:text-foreground transition-colors', className)}
+    >
+      {children}
+      <ArrowUpDown className={cn('h-3 w-3', sortField === field ? 'text-primary' : 'opacity-40')} />
+    </button>
+  );
 
   return (
-    <ThemeProvider theme={muiTheme}>
-      <div className="h-full flex flex-col gap-3">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Timer className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">{pitStopData.length} pit stops</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              <Flag className="h-3 w-3 mr-1" />
-              {circuitName}
-            </Badge>
-            <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/20 text-xs">
-              <Zap className="h-3 w-3 mr-0.5" fill="currentColor" />
-              {formatDuration(fastestStop)}
-            </Badge>
-          </div>
+    <div className="h-full flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Timer className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">{pitStopData.length} pit stops</span>
         </div>
-
-        {/* Custom Bar Chart - Top 10 Fastest Stops */}
-        <div className={cn(
-          "rounded-lg p-3",
-          isDark ? "bg-zinc-900/30 border border-zinc-800/50" : "bg-zinc-50/50 border border-zinc-200"
-        )}>
-          <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider">Top 10 Fastest Pit Stops</p>
-          <div className="space-y-1">
-            {chartData.map((item, i) => (
-              <div key={item.driver} className="flex items-center gap-2 text-[10px]">
-                {/* Rank */}
-                <span className={cn(
-                  "w-4 text-right font-mono",
-                  i === 0 ? "text-purple-500 font-bold" : "text-muted-foreground"
-                )}>
-                  {item.rank}
-                </span>
-                {/* Driver code */}
-                <div className="flex items-center gap-1 w-10">
-                  <div 
-                    className="w-1 h-3 rounded-full" 
-                    style={{ backgroundColor: item.color }} 
-                  />
-                  <span className="font-bold">{item.driver}</span>
-                </div>
-                {/* Bar */}
-                <div className="flex-1 h-3 bg-muted/30 rounded overflow-hidden">
-                  <div 
-                    className={cn(
-                      "h-full rounded transition-all",
-                      i === 0 ? "bg-purple-500" : ""
-                    )}
-                    style={{ 
-                      width: `${100 - item.percentage * 0.5}%`,
-                      backgroundColor: i === 0 ? undefined : item.color,
-                      opacity: i === 0 ? 1 : 0.8
-                    }}
-                  />
-                </div>
-                {/* Time */}
-                <span className={cn(
-                  "font-mono w-14 text-right",
-                  i === 0 ? "text-purple-500 font-bold" : "text-muted-foreground"
-                )}>
-                  {formatDuration(item.duration)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* DataGrid */}
-        <div className="flex-1 min-h-[300px]">
-          <DataGrid
-            rows={pitStopData}
-            columns={columns}
-            initialState={{
-              sorting: { sortModel: [{ field: 'duration', sort: 'asc' }] },
-              pagination: { paginationModel: { pageSize: 25 } },
-            }}
-            pageSizeOptions={[10, 25, 50]}
-            disableRowSelectionOnClick
-            density="compact"
-            sx={{
-              fontSize: 12,
-              '& .MuiDataGrid-cell': {
-                py: 0.5,
-              },
-            }}
-          />
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            <Flag className="h-3 w-3 mr-1" />
+            {circuitName}
+          </Badge>
+          <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/20 text-xs">
+            <Zap className="h-3 w-3 mr-0.5" fill="currentColor" />
+            {formatDuration(fastestStop)}
+          </Badge>
         </div>
       </div>
-    </ThemeProvider>
+
+      {/* Custom Bar Chart - Top 10 Fastest Stops */}
+      <div className={cn(
+        "rounded-lg p-3",
+        isDark ? "bg-zinc-900/30 border border-zinc-800/50" : "bg-zinc-50/50 border border-zinc-200"
+      )}>
+        <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider">Top 10 Fastest Pit Stops</p>
+        <div className="space-y-1">
+          {chartData.map((item, i) => (
+            <div key={item.driver} className="flex items-center gap-2 text-[10px]">
+              {/* Rank */}
+              <span className={cn(
+                "w-4 text-right font-mono",
+                i === 0 ? "text-purple-500 font-bold" : "text-muted-foreground"
+              )}>
+                {item.rank}
+              </span>
+              {/* Driver code */}
+              <div className="flex items-center gap-1 w-10">
+                <div
+                  className="w-1 h-3 rounded-full"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="font-bold">{item.driver}</span>
+              </div>
+              {/* Bar */}
+              <div className="flex-1 h-3 bg-muted/30 rounded overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded transition-all",
+                    i === 0 ? "bg-purple-500" : ""
+                  )}
+                  style={{
+                    width: `${100 - item.percentage * 0.5}%`,
+                    backgroundColor: i === 0 ? undefined : item.color,
+                    opacity: i === 0 ? 1 : 0.8
+                  }}
+                />
+              </div>
+              {/* Time */}
+              <span className={cn(
+                "font-mono w-14 text-right",
+                i === 0 ? "text-purple-500 font-bold" : "text-muted-foreground"
+              )}>
+                {formatDuration(item.duration)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Pit stop table */}
+      <div className="flex-1 min-h-[300px] overflow-auto rounded-lg border border-border">
+        <Table>
+          <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur">
+            <TableRow>
+              <TableHead className="text-xs"><SortHeader field="driver">Driver</SortHeader></TableHead>
+              <TableHead className="text-xs">Team</TableHead>
+              <TableHead className="text-xs text-center"><SortHeader field="lap" className="justify-center">Lap</SortHeader></TableHead>
+              <TableHead className="text-xs text-right"><SortHeader field="duration" className="justify-end">Duration</SortHeader></TableHead>
+              <TableHead className="text-xs">Time</TableHead>
+              <TableHead className="text-xs w-[28%]" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedRows.map(row => {
+              const isRecord = row.duration === fastestStop;
+              const barPct = maxDuration > 0 ? (row.duration / maxDuration) * 100 : 0;
+              return (
+                <TableRow key={row.id} className="hover:bg-muted/40">
+                  <TableCell className="py-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1 h-4 rounded-full" style={{ backgroundColor: getTeamColor(row.team) }} />
+                      <span className="font-bold text-xs">{row.driver}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-1.5">
+                    <div className="flex items-center gap-2">
+                      <TeamLogo constructorId={row.team} size="sm" />
+                      <span className="text-xs text-muted-foreground capitalize">{row.team.replace(/_/g, ' ')}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-1.5 text-center">
+                    <Badge variant="outline" className="text-[10px] px-1.5">L{row.lap}</Badge>
+                  </TableCell>
+                  <TableCell className="py-1.5 text-right">
+                    <span className={cn("font-mono text-xs", isRecord && "text-purple-500 font-bold")}>
+                      {formatDuration(row.duration)}{isRecord && ' ⚡'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-1.5">
+                    <span className="font-mono text-xs text-muted-foreground">{row.timeOfDay}</span>
+                  </TableCell>
+                  <TableCell className="py-1.5">
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={cn("h-full rounded-full transition-all", isRecord ? "bg-purple-500" : "")}
+                        style={{ width: `${barPct}%`, backgroundColor: isRecord ? undefined : getTeamColor(row.team) }}
+                      />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 };
 

@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { LineChart } from '@mui/x-charts/LineChart';
-import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ReferenceLine,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, TrendingUp, Wrench } from "lucide-react";
 import { usePositionChangeData } from "@/hooks/usePositionChangeData";
 import DriverSelectionGrid from "./charts/DriverSelectionGrid";
-import MuiThemeWrapper from "./MuiThemeWrapper";
 import { useTheme } from "@/context/ThemeContext";
 import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
 import { F1ErrorState } from "@/components/f1/F1ErrorState";
@@ -101,41 +107,36 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
     return map;
   }, [availableDrivers]);
 
-  // Transform data for MUI X Charts
-  const { muiChartData, teammateIndices } = useMemo(() => {
-    if (!chartData.length) return { muiChartData: { xAxisData: [], series: [] }, teammateIndices: [] };
-
-    const xAxisData = chartData.map(d => d.lap);
-    
+  // Recharts line descriptors: one per visible driver, second teammate dashed.
+  const lines = useMemo(() => {
     const visibleDriversData = availableDrivers.filter(d => visibleDrivers.includes(d.code));
-    
-    // Track teammates - second driver from same team gets dashed line
-    const teamDriverCounts: { [team: string]: number } = {};
-    const secondTeammateIdx: number[] = [];
-    
-    const series = visibleDriversData.map((driver, idx) => {
-      // Check if this is a second teammate
-      const teamCount = teamDriverCounts[driver.team] || 0;
-      teamDriverCounts[driver.team] = teamCount + 1;
-      
-      if (teamCount > 0) {
-        secondTeammateIdx.push(idx);
-      }
-      
+    const teamCounts: { [team: string]: number } = {};
+    return visibleDriversData.map(driver => {
+      const teamCount = teamCounts[driver.team] || 0;
+      teamCounts[driver.team] = teamCount + 1;
       return {
-        data: chartData.map(d => d[driver.code] as number | null),
-        label: driver.code,
+        code: driver.code,
         color: TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666",
-        showMark: false, // No dots for cleaner look
-        curve: 'stepAfter' as const,
-        connectNulls: true,
+        dashed: teamCount > 0,
       };
     });
+  }, [availableDrivers, visibleDrivers]);
 
-    return { 
-      muiChartData: { xAxisData, series },
-      teammateIndices: secondTeammateIdx,
-    };
+  // Max position for Y-axis upper bound (positions are inverted: P1 at top).
+  const maxPosition = useMemo(() => {
+    let max = 1;
+    const visibleCodes = availableDrivers
+      .filter(d => visibleDrivers.includes(d.code))
+      .map(d => d.code);
+    chartData.forEach(d => {
+      visibleCodes.forEach(code => {
+        const val = d[code] as number | null | undefined;
+        if (val != null && !isNaN(val as number) && (val as number) > max) {
+          max = val as number;
+        }
+      });
+    });
+    return Math.max(max, 20);
   }, [chartData, availableDrivers, visibleDrivers]);
 
   // Get pit stops for visible drivers only with enriched data
@@ -228,8 +229,28 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
 
   const chartHeight = isMobile ? 220 : 280;
 
+  // Custom tooltip mirroring the old MUI hover (sorted by position, P1 first).
+  const PositionTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const rows = payload
+      .filter((p: any) => p.value != null)
+      .sort((a: any, b: any) => a.value - b.value);
+    if (!rows.length) return null;
+    return (
+      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+        <div className="font-mono text-muted-foreground mb-1">Lap {label}</div>
+        {rows.map((p: any) => (
+          <div key={p.dataKey} className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full" style={{ background: p.color || p.stroke }} />
+            <span className="font-bold w-9">{p.dataKey}</span>
+            <span className="font-mono">P{p.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <MuiThemeWrapper>
       <div className="h-full flex flex-col">
         {/* Pit stop toggle */}
         <div className="flex justify-end mb-2">
@@ -299,98 +320,81 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
         />
         
         <div className="flex-1 mt-2 min-h-0">
-          {muiChartData.series.length > 0 && (
-            <LineChart
-              xAxis={[{ 
-                data: muiChartData.xAxisData,
-                label: 'Lap',
-                scaleType: 'linear',
-                min: 0,
-                max: maxLap,
-                tickLabelStyle: {
-                  fontSize: isMobile ? 10 : 11,
-                },
-              }]}
-              yAxis={[{
-                label: 'Position',
-                min: 1,
-                max: 20,
-                reverse: true,
-                tickNumber: 10,
-                tickLabelStyle: {
-                  fontSize: isMobile ? 10 : 11,
-                },
-              }]}
-              series={muiChartData.series}
-              height={chartHeight}
-              margin={{ 
-                top: 10, 
-                right: isMobile ? 10 : 20, 
-                bottom: 35, 
-                left: isMobile ? 35 : 45 
-              }}
-              slotProps={({
-                legend: {
-                  hidden: true, // Hide legend - we have the driver selector grid
-                },
-              } as any)}
-              sx={{
-                '.MuiLineElement-root': {
-                  strokeWidth: 2,
-                },
-                // Apply dashed lines to second teammates
-                ...teammateIndices.reduce((acc: any, idx: number) => {
-                  acc[`.MuiLineElement-series-${idx}`] = {
-                    strokeDasharray: '5 3',
-                  };
-                  return acc;
-                }, {}),
-                '.MuiChartsAxis-tickLabel': {
-                  fill: baseTheme === 'light' ? '#666' : '#a1a1aa',
-                  fontSize: isMobile ? 10 : 11,
-                },
-                '.MuiChartsAxis-label': {
-                  fill: baseTheme === 'light' ? '#666' : '#a1a1aa',
-                  fontSize: 11,
-                },
-                '.MuiChartsGrid-line': {
-                  stroke: baseTheme === 'light' ? '#e5e5e5' : '#333',
-                  strokeDasharray: '3 3',
-                },
-              }}
-              grid={{ vertical: false, horizontal: true }}
-            >
-              {showPitStops && pitStopsByLap.map((ps) => {
-                const label = ps.drivers.map((d, i) => 
-                  `${d}:P${ps.stops[i]}`
-                ).join(' ');
-                
-                return (
-                  <ChartsReferenceLine 
-                    key={`pit-${ps.lap}`}
-                    x={ps.lap}
-                    label={label}
-                    labelAlign="start"
-                    lineStyle={{ 
-                      stroke: ps.teams[0] ? (TEAM_COLORS[ps.teams[0]] || '#f59e0b') : '#f59e0b', 
-                      strokeDasharray: '2 4',
-                      strokeWidth: 1.5,
-                      opacity: 0.7,
-                    }}
-                    labelStyle={{
-                      fill: ps.teams[0] ? (TEAM_COLORS[ps.teams[0]] || '#f59e0b') : '#f59e0b',
-                      fontSize: 7,
-                      fontWeight: 600,
-                      opacity: 0.9,
-                    }}
+          {lines.length > 0 && (
+            <ResponsiveContainer width="100%" height={chartHeight}>
+              <LineChart
+                data={chartData}
+                margin={{
+                  top: 10,
+                  right: isMobile ? 10 : 20,
+                  bottom: 35,
+                  left: isMobile ? 35 : 45,
+                }}
+              >
+                <CartesianGrid
+                  vertical={false}
+                  stroke={isDark ? '#333' : '#e5e5e5'}
+                  strokeDasharray="3 3"
+                />
+                <XAxis
+                  dataKey="lap"
+                  type="number"
+                  domain={[0, maxLap]}
+                  allowDecimals={false}
+                  tickLine={false}
+                  tick={{ fontSize: isMobile ? 10 : 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                />
+                <YAxis
+                  reversed
+                  domain={[1, maxPosition]}
+                  allowDecimals={false}
+                  tickCount={10}
+                  width={isMobile ? 35 : 45}
+                  tickLine={false}
+                  tick={{ fontSize: isMobile ? 10 : 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                />
+                <Tooltip content={<PositionTooltip />} />
+                {showPitStops && pitStopsByLap.map((ps) => {
+                  const color = ps.teams[0] ? (TEAM_COLORS[ps.teams[0]] || '#f59e0b') : '#f59e0b';
+                  const label = ps.drivers.map((d, i) => `${d}:P${ps.stops[i]}`).join(' ');
+                  return (
+                    <ReferenceLine
+                      key={`pit-${ps.lap}`}
+                      x={ps.lap}
+                      stroke={color}
+                      strokeDasharray="2 4"
+                      strokeWidth={1.5}
+                      strokeOpacity={0.7}
+                      label={{
+                        value: label,
+                        position: 'insideBottomLeft',
+                        angle: -90,
+                        fontSize: 7,
+                        fontWeight: 600,
+                        fill: color,
+                      }}
+                    />
+                  );
+                })}
+                {lines.map((ln) => (
+                  <Line
+                    key={ln.code}
+                    type="stepAfter"
+                    dataKey={ln.code}
+                    stroke={ln.color}
+                    strokeWidth={2}
+                    strokeDasharray={ln.dashed ? '5 3' : undefined}
+                    dot={false}
+                    activeDot={{ r: 3 }}
+                    connectNulls
+                    isAnimationActive={false}
                   />
-                );
-              })}
-            </LineChart>
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
           )}
         </div>
       </div>
-    </MuiThemeWrapper>
   );
 };
 
