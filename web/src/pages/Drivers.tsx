@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import { useDriverStandings } from "@/hooks/useF1Data";
+import { useDriverStandings, useAllDriverResultsBySeason } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "@/context/ThemeContext";
 import { F1Card } from "@/components/f1";
@@ -29,6 +29,9 @@ const Drivers = () => {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const { data: driverStandings, isLoading } = useDriverStandings(selectedYear);
+  // One batched call for every driver's season results (replaces the per-card N+1).
+  const { data: allDriverResultsResp } = useAllDriverResultsBySeason(selectedYear);
+  const allDriverResults = allDriverResultsResp?.data;
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredDrivers = driverStandings?.data.filter((driver: DriverStandingEntry) => {
@@ -115,6 +118,7 @@ const Drivers = () => {
                   driver={driver}
                   teamTotalPoints={teamTotalPoints}
                   seasonYear={selectedYear}
+                  seasonResults={allDriverResults?.[driver.Driver.driverId] ?? []}
                 />
               );
             })}

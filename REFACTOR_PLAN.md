@@ -1,6 +1,6 @@
 # F1DataStop — Migration, Cleanup & Refactor Plan
 
-> Status: **APPROVED DIRECTION, NOT STARTED**
+> Status: **IN PROGRESS** — Phases 0–2 done (main @ 28ef2c7); Phase 3 started (N+1 batch fix)
 > Decisions locked (2026-06-20):
 > 1. **Approach:** Refactor in place (keep repo + git history)
 > 2. **Structure:** Monorepo `web/` + `supabase/` (match fifa-league)
@@ -88,10 +88,10 @@ f1datastop/
 
 ---
 
-## Phase 2 — Dependency diet — ✅ DONE (PRs #8 merged, #10 open)
+## Phase 2 — Dependency diet — ✅ DONE (PRs #8, #10 merged)
 
 > 2a (merged): removed firebase + dom-to-image-more.
-> 2b (#10): all charts → Recharts; Sankey → d3-sankey; removed @mui/material,
+> 2b (merged): all charts → Recharts; Sankey → d3-sankey; removed @mui/material,
 > @mui/x-charts, @mui/x-data-grid, @nivo/*, @emotion/*. Build + tsc clean;
 > lap chart + pit-stop table screenshot-verified on live data.
 > Remaining (optional, later): audit Three.js globe + Mapbox weight per-feature.
@@ -109,7 +109,12 @@ Cut bloat surfaced in audit (#15286). Each removal is its own small PR with a bu
 
 ---
 
-## Phase 3 — Canonical data-reference layer
+## Phase 3 — Canonical data-reference layer — 🔄 IN PROGRESS (branch phase3-drivers-n1)
+
+> 3.6 partial (PR pending): Drivers-page Ergast N+1 fixed — `getAllDriverResultsBySeason`
+> + `useAllDriverResultsBySeason`; `pages/Drivers.tsx` passes batched slices to `DriverCard`.
+> ~20 per-driver Ergast calls → 1 batch call (+ standings + OpenF1 batch).
+> Remaining 3.1–3.5: `lib/f1/` types, adapters, shared throttledFetch, request queue, key convention.
 
 The root of the "data everywhere / mishandling" problem: no single source of truth mapping the two APIs.
 

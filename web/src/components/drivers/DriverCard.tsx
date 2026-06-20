@@ -254,9 +254,13 @@ interface DriverCardProps {
   driver: any;
   teamTotalPoints?: number;
   seasonYear?: number;
+  // Pre-fetched per-race results for this driver (from the batched season query).
+  // When provided, the per-card fetch is skipped — avoids the Drivers-grid N+1.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  seasonResults?: any[];
 }
 
-const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) => {
+const DriverCard = ({ driver, teamTotalPoints, seasonYear, seasonResults }: DriverCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
   const [cachedImageUrl, setCachedImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(true);
@@ -315,9 +319,15 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
   const teamPoints = Number(teamTotalPoints) || 0;
   const contributionPercent = teamPoints > 0 && driverPoints > 0 ? Math.round((driverPoints / teamPoints) * 100) : null;
 
-  // Season year for per-race points history
+  // Season year for per-race points history.
+  // If the grid supplied this driver's results (batched), skip the per-card fetch.
   const season = seasonYear || new Date().getFullYear();
-  const { data: resultsByRaceResp } = useDriverResultsBySeason(season, driver.Driver.driverId);
+  const hasProvidedResults = seasonResults !== undefined;
+  const { data: resultsByRaceResp } = useDriverResultsBySeason(
+    season,
+    driver.Driver.driverId,
+    !hasProvidedResults,
+  );
   const pointsHistory: Array<{
     round: string;
     raceName: string;
@@ -329,7 +339,7 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear }: DriverCardProps) =>
     isDNF?: boolean; // From API - properly detected DNF
     points: number;
     constructor?: string;
-  }> = resultsByRaceResp?.data || [];
+  }> = hasProvidedResults ? seasonResults : (resultsByRaceResp?.data || []);
 
   // Calculate stats from history
   const totalRaces = pointsHistory.length;

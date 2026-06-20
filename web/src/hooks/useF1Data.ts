@@ -809,13 +809,26 @@ export const useSprintResults = (year: number, round: string) => {
   });
 };
 
-// Driver results by season (points per race)
-export const useDriverResultsBySeason = (year: number, driverId: string) => {
+// Driver results by season (points per race). `enabled` lets callers disable the
+// per-driver fetch when the data is supplied from the batched season query below.
+export const useDriverResultsBySeason = (year: number, driverId: string, enabled: boolean = true) => {
   return useQuery({
     queryKey: ["driverResultsBySeason", year, driverId],
     queryFn: () => f1Service.getDriverResultsBySeason(year, driverId),
     staleTime: 1000 * 60 * 60, // 1h — season results change slowly; fewer Jolpica bursts when scrolling drivers
-    enabled: !!year && !!driverId,
+    enabled: enabled && !!year && !!driverId,
+    ...defaultRetryConfig,
+  });
+};
+
+// All drivers' season results in ONE request, grouped by driverId.
+// Use on the Drivers grid to avoid the per-card N+1 (was ~1 request per driver).
+export const useAllDriverResultsBySeason = (year: number) => {
+  return useQuery({
+    queryKey: ["allDriverResultsBySeason", year],
+    queryFn: () => f1Service.getAllDriverResultsBySeason(year),
+    staleTime: 1000 * 60 * 60, // 1h
+    enabled: !!year,
     ...defaultRetryConfig,
   });
 };
