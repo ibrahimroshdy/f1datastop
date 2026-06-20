@@ -1,1 +1,7 @@
 project_id = "envqfquhkcbnitwlzepx"
+
+[functions.f1-proxy]
+verify_jwt = false
+
+[functions.f1-cache-warm]
+verify_jwt = false

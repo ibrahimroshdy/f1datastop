@@ -1,8 +1,6 @@
 import { toast } from "sonner";
 import { withCache } from "@/utils/cache";
-import { F1_API } from "@/constants/apiConfig";
-
-const BASE_URL = F1_API.OPENF1_BASE;
+import { throttledOpenF1Fetch } from "@/lib/api/f1ApiFetch";
 
 // Cache TTLs for OpenF1 data
 const TTL = {
@@ -11,47 +9,9 @@ const TTL = {
   LIVE_DATA: 30 * 1000, // 30 seconds - live telemetry data
 } as const;
 
-// Helper function for throttled fetching
+// Throttled fetch — delegates to shared lib (proxy-aware)
 async function throttledFetch(url: string, retryDelay = 2000, maxRetries = 3): Promise<Response> {
-  let retries = 0;
-
-  while (true) {
-    try {
-      const response = await fetch(url, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-
-      // If we get rate limited, wait and retry (honour Retry-After when present)
-      if (response.status === 429 && retries < maxRetries) {
-        retries++;
-
-        let delay = retryDelay * (2 ** retries) * (0.8 + Math.random() * 0.4);
-        const retryAfter = response.headers.get("Retry-After");
-        if (retryAfter) {
-          const sec = parseInt(retryAfter, 10);
-          if (!Number.isNaN(sec)) delay = Math.max(delay, sec * 1000);
-        }
-        console.log(`Rate limit hit. Retry ${retries}/${maxRetries} after ${Math.round(delay)}ms delay`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-
-      return response;
-    } catch (error) {
-      if (retries < maxRetries) {
-        retries++;
-
-        const delay = retryDelay * (2 ** retries);
-        console.log(`Network error. Retry ${retries}/${maxRetries} after ${delay}ms delay`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      throw error;
-    }
-  }
+  return throttledOpenF1Fetch(url, retryDelay, maxRetries);
 }
 
 // Helper function to check response format
@@ -84,7 +44,7 @@ async function validateJsonResponse(response: Response, context: string): Promis
 // Get session key from meeting key and session type
 export const getSession = async (meeting_key: number, session_type?: string) => {
   try {
-    let url = `${BASE_URL}/sessions?meeting_key=${meeting_key}`;
+    let url = `/sessions?meeting_key=${meeting_key}`;
     if (session_type) {
       url += `&session_type=${session_type}`;
     }
@@ -112,7 +72,7 @@ export const getSession = async (meeting_key: number, session_type?: string) => 
 // Get the latest session
 export const getLatestSession = async () => {
   try {
-    const response = await throttledFetch(`${BASE_URL}/sessions?session_key=latest`);
+    const response = await throttledFetch(`/sessions?session_key=latest`);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -132,7 +92,7 @@ export const getLatestSession = async () => {
 // Get all sessions for a year
 export const getSessionsByYear = async (year: number) => {
   try {
-    const response = await throttledFetch(`${BASE_URL}/sessions?date_start>=${year}-01-01&date_end<=${year}-12-31`);
+    const response = await throttledFetch(`/sessions?date_start>=${year}-01-01&date_end<=${year}-12-31`);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -161,7 +121,7 @@ export const getSessionsByYear = async (year: number) => {
 // Get lap data for a session
 export const getLapData = async (session_key: number, driver_number?: number) => {
   try {
-    let url = `${BASE_URL}/laps?session_key=${session_key}`;
+    let url = `/laps?session_key=${session_key}`;
     if (driver_number) {
       url += `&driver_number=${driver_number}`;
     }
@@ -187,7 +147,7 @@ export const getLapData = async (session_key: number, driver_number?: number) =>
 // Get car telemetry data
 export const getCarData = async (session_key: number, driver_number?: number) => {
   try {
-    let url = `${BASE_URL}/car_data?session_key=${session_key}`;
+    let url = `/car_data?session_key=${session_key}`;
     if (driver_number) {
       url += `&driver_number=${driver_number}`;
     }
@@ -217,7 +177,7 @@ export const getCarData = async (session_key: number, driver_number?: number) =>
 // Get weather data for a session
 export const getWeatherData = async (session_key: number) => {
   try {
-    const response = await throttledFetch(`${BASE_URL}/weather?session_key=${session_key}`);
+    const response = await throttledFetch(`/weather?session_key=${session_key}`);
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -237,7 +197,7 @@ export const getWeatherData = async (session_key: number) => {
 // Get driver info for a session
 export const getDrivers = async (session_key: number, driver_number?: number) => {
   try {
-    let url = `${BASE_URL}/drivers?session_key=${session_key}`;
+    let url = `/drivers?session_key=${session_key}`;
     if (driver_number) {
       url += `&driver_number=${driver_number}`;
     }
@@ -264,7 +224,7 @@ export const getDrivers = async (session_key: number, driver_number?: number) =>
 // Get team radio for a session
 export const getTeamRadio = async (session_key: number, driver_number?: number) => {
   try {
-    let url = `${BASE_URL}/team_radio?session_key=${session_key}`;
+    let url = `/team_radio?session_key=${session_key}`;
     if (driver_number) {
       url += `&driver_number=${driver_number}`;
     }
@@ -290,7 +250,7 @@ export const getTeamRadio = async (session_key: number, driver_number?: number) 
 // Get race control messages
 export const getRaceControl = async (session_key: number) => {
   try {
-    const url = `${BASE_URL}/race_control?session_key=${session_key}`;
+    const url = `/race_control?session_key=${session_key}`;
     const response = await throttledFetch(url);
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
@@ -309,7 +269,7 @@ export const getRaceControl = async (session_key: number) => {
 // Get position data for a session
 export const getPositionData = async (session_key: number, driver_number?: number) => {
   try {
-    let url = `${BASE_URL}/position?session_key=${session_key}`;
+    let url = `/position?session_key=${session_key}`;
     if (driver_number) {
       url += `&driver_number=${driver_number}`;
     }
@@ -335,7 +295,7 @@ export const getPositionData = async (session_key: number, driver_number?: numbe
 // Get overtakes data for a session
 export const getOvertakes = async (session_key: number, overtaking_driver_number?: number, overtaken_driver_number?: number, position?: number) => {
   try {
-    let url = `${BASE_URL}/overtakes?session_key=${session_key}`;
+    let url = `/overtakes?session_key=${session_key}`;
     if (overtaking_driver_number) {
       url += `&overtaking_driver_number=${overtaking_driver_number}`;
     }
@@ -366,7 +326,7 @@ export const getOvertakes = async (session_key: number, overtaking_driver_number
 
 export const getLaps = async (session_key: number, driver_number?: number, lap_number?: number) => {
   try {
-    let url = `${BASE_URL}/laps?session_key=${session_key}`;
+    let url = `/laps?session_key=${session_key}`;
     if (driver_number) {
       url += `&driver_number=${driver_number}`;
     }
@@ -394,7 +354,7 @@ export const getLaps = async (session_key: number, driver_number?: number, lap_n
 
 export const getStartingGrid = async (session_key: number) => {
   try {
-    const url = `${BASE_URL}/starting_grid?session_key=${session_key}`;
+    const url = `/starting_grid?session_key=${session_key}`;
 
     const response = await throttledFetch(url);
 
@@ -417,7 +377,7 @@ export const getStartingGrid = async (session_key: number) => {
 /** All drivers for the current latest session (one request vs one per acronym). */
 export const getLatestSessionDrivers = async () => {
   try {
-    const url = `${BASE_URL}/drivers?session_key=latest`;
+    const url = `/drivers?session_key=latest`;
     const response = await throttledFetch(url, 3500, 8);
 
     if (!response.ok) {
@@ -440,7 +400,7 @@ export const getLatestSessionDrivers = async () => {
 // Get latest driver info (including headshot_url) by number or acronym
 export const getLatestDriver = async (driver_number?: number, name_acronym?: string) => {
   try {
-    let url = `${BASE_URL}/drivers?session_key=latest`;
+    let url = `/drivers?session_key=latest`;
     if (driver_number) {
       url += `&driver_number=${driver_number}`;
     }

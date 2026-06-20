@@ -43,3 +43,5 @@ Edge functions (sources in `../functions/`):
 
 - `notify-slack` — optional Slack signup notifier (no-op without `SLACK_WEBHOOK_URL`).
 - `captcha-verify` — server-side reCAPTCHA verification (needs `RECAPTCHA_SECRET_KEY`).
+- `f1-proxy` — cached Ergast/OpenF1 proxy (`api_cache` table). Public; `verify_jwt = false`.
+- `f1-cache-warm` — purge expired cache rows + pre-warm current-season data (optional cron).

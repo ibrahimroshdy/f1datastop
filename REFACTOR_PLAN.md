@@ -128,17 +128,19 @@ Cut bloat surfaced in audit (#15286). Each removal is its own small PR with a bu
 
 ---
 
-## Phase 4 — Supabase edge-function cache proxy + cache table
+## Phase 4 — Supabase edge-function cache proxy + cache table — ✅ COMPLETE (deploy pending)
 
-Server-side cache so the same F1 data isn't re-fetched per user/session (your storage concern + 429 protection).
+> Migration + edge functions committed. Apply migration and deploy functions to Supabase:
+> `supabase db push` && `supabase functions deploy f1-proxy f1-cache-warm`
+> Then set `VITE_F1_PROXY_ENABLED=true` in Vercel production env.
 
-4.1 Migration: `api_cache` table — `cache_key text pk`, `data jsonb`, `source text`, `expires_at timestamptz`, `created_at`. RLS: read public, write service-role only. Index on `expires_at`.
-4.2 Edge function `f1-proxy` (replaces the empty `f1-live-proxy` stub): given `{source, path, params}` → return fresh cache row if not expired, else fetch upstream, upsert, return. Per-source TTLs (standings 5 min, schedule 24 h, completed-race laps 30 d, live ~30 s).
-4.3 Point `web/` services at the edge function instead of direct upstream / Vercel rewrites (keep Vercel rewrites as fallback).
-4.4 Optional cron edge function to pre-warm current-season standings + schedule and purge expired rows.
-4.5 Metrics: log 429s / cache hit-rate to a small `api_metrics` table for visibility.
+4.1 Migration: `api_cache` table — `cache_key text pk`, `data jsonb`, `source text`, `expires_at timestamptz`, `created_at`. RLS: read public, write service-role only. Index on `expires_at`. ✅
+4.2 Edge function `f1-proxy`: `{source, path, params}` → cache hit or upstream fetch + upsert. Per-source TTLs. ✅
+4.3 `web/src/lib/api/f1ApiFetch.ts` — services use proxy when `VITE_F1_PROXY_ENABLED=true`; Vercel rewrites remain fallback. ✅
+4.4 Optional `f1-cache-warm` edge function — purge expired + pre-warm standings/schedule. ✅
+4.5 `api_metrics` table — cache hit/miss + 429 logging from f1-proxy. ✅
 
-**Exit criteria:** repeated loads served from cache; upstream call volume drops sharply; no client 429s under normal use.
+**Exit criteria:** repeated loads served from cache; upstream call volume drops sharply; no client 429s under normal use. (Verify after deploy + enable proxy.)
 
 ---
 
