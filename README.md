@@ -1,7 +1,7 @@
 # F1 DataStop
 
 <p align="center">
-<img src="public/lovable-uploads/f1-cover-v2.jpg" alt="F1 DataStop" width="250" height="200">
+<img src="web/public/lovable-uploads/f1-cover-v2.jpg" alt="F1 DataStop" width="250" height="200">
 </p>
 
 <p align="center">

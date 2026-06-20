@@ -52,7 +52,13 @@ Nothing else ships until this is clean. These are the items that make the repo u
 
 ---
 
-## Phase 1 — Repo restructure to monorepo
+## Phase 1 — Repo restructure to monorepo — ✅ DONE (branch phase1-monorepo)
+
+> App moved into `web/` (history preserved via git mv). Root delegating package.json,
+> `vercel.json` → `web/vercel.json`. lovable-tagger removed (100% off Lovable).
+> Vercel Analytics + Speed Insights mounted in `web/src/main.tsx`.
+> **Vercel dashboard action required:** set project Root Directory to `web` (see Phase 9 notes).
+
 
 Move the app under `web/`, keep `supabase/` at root, matching fifa-league.
 
