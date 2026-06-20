@@ -16,7 +16,8 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, Dr
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { TEAM_COLORS } from "@/constants/f1Colors";
+import { getPrimaryConstructor, resolveTeamColor } from "@/lib/f1/adapters";
+import type { ErgastDriverStandingRow } from "@/lib/f1/types";
 import { useLatestDriver, useLatestSessionDrivers } from "@/hooks/useOpenF1Data";
 import { useDriverResultsBySeason } from "@/hooks/useF1Data";
 import CountryFlag from "@/components/common/CountryFlag";
@@ -250,8 +251,7 @@ const PositionProgressionChart = ({ history, teamColor, isGlass }: PositionProgr
 };
 
 interface DriverCardProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Ergast driver standing row
-  driver: any;
+  driver: ErgastDriverStandingRow;
   teamTotalPoints?: number;
   seasonYear?: number;
   // Pre-fetched per-race results for this driver (from the batched season query).
@@ -268,14 +268,10 @@ const DriverCard = ({ driver, teamTotalPoints, seasonYear, seasonResults }: Driv
   const isMobile = useIsMobile();
   const { isGlass } = useTheme();
   
-  // Get the current constructor (last in array)
-  const currentConstructor = driver.Constructors.length > 0 
-    ? driver.Constructors[driver.Constructors.length - 1] 
-    : null;
-  
-  // Get the team color using the constructor ID
-  const constructorId = currentConstructor?.constructorId || 'default';
-  const teamColor = TEAM_COLORS[constructorId] || TEAM_COLORS.default;
+  // Get the current constructor and team color via shared adapters
+  const currentConstructor = getPrimaryConstructor(driver);
+  const constructorId = currentConstructor?.constructorId ?? "default";
+  const teamColor = resolveTeamColor(constructorId);
 
   // Extract birth year for age calculation
   const birthYear = driver.Driver.dateOfBirth 

@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { getDriverStandings, getConstructorStandings } from "@/services/f1Service";
-import { TEAM_COLORS, generateTeamColor, getTeamColorById, lightenColor, darkenColor, colorWithAlpha } from "@/constants/f1Colors";
+import { TEAM_COLORS, generateTeamColor, getTeamColorById, colorWithAlpha } from "@/constants/f1Colors";
+import {
+  getPrimaryConstructor,
+  normalizeErgastConstructorStanding,
+  normalizeErgastDriverStanding,
+  resolveTeamColor,
+} from "@/lib/f1/adapters";
+import type { ErgastConstructorStandingRow, ErgastDriverStandingRow } from "@/lib/f1/types";
 
 /**
  * Driver metadata interface
@@ -88,58 +95,70 @@ export const useF1Metadata = (year: number = new Date().getFullYear()) => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Process Teams from API response
-  const teams: TeamMetadata[] = (constructorsQuery.data?.data || []).map((entry: any) => {
-    const constructor = entry.Constructor;
-    const color = getTeamColorById(constructor.constructorId);
-    
-    // Find drivers for this team
-    const teamDrivers = (driversQuery.data?.data || [])
-      .filter((d: any) => d.Constructors?.some((c: any) => c.constructorId === constructor.constructorId))
-      .map((d: any) => d.Driver?.code)
-      .filter(Boolean);
+  // Driver codes grouped by constructor (for team metadata)
+  const driverCodesByConstructor = new Map<string, string[]>();
+  for (const entry of (driversQuery.data?.data || []) as ErgastDriverStandingRow[]) {
+    const constructor = getPrimaryConstructor(entry);
+    const code = entry.Driver?.code;
+    if (!constructor || !code) continue;
+    const existing = driverCodesByConstructor.get(constructor.constructorId) ?? [];
+    existing.push(code);
+    driverCodesByConstructor.set(constructor.constructorId, existing);
+  }
+
+  const f1Teams = ((constructorsQuery.data?.data || []) as ErgastConstructorStandingRow[]).map(
+    (entry) =>
+      normalizeErgastConstructorStanding(
+        entry,
+        driverCodesByConstructor.get(entry.Constructor.constructorId) ?? [],
+      ),
+  );
+
+  const teamColorById = new Map(f1Teams.map((t) => [t.ergastId, t.color]));
+
+  const teams: TeamMetadata[] = f1Teams.map((t) => ({
+    constructorId: t.ergastId,
+    url: t.url,
+    name: t.name,
+    nationality: t.nationality,
+    color: t.color,
+    colorLight: t.colorLight,
+    colorDark: t.colorDark,
+    colorWithAlpha: (alpha: number) => colorWithAlpha(t.color, alpha),
+    position: t.position,
+    points: t.points,
+    wins: t.wins,
+    drivers: t.driverCodes,
+  }));
+
+  const drivers: DriverMetadata[] = (
+    (driversQuery.data?.data || []) as ErgastDriverStandingRow[]
+  ).map((entry) => {
+    const constructor = getPrimaryConstructor(entry);
+    const teamColor =
+      teamColorById.get(constructor?.constructorId ?? "") ??
+      resolveTeamColor(constructor?.constructorId ?? "");
+    const normalized = normalizeErgastDriverStanding(entry, teamColor);
 
     return {
-      constructorId: constructor.constructorId,
-      url: constructor.url,
-      name: constructor.name,
-      nationality: constructor.nationality,
-      color,
-      colorLight: lightenColor(color, 0.3),
-      colorDark: darkenColor(color, 0.3),
-      colorWithAlpha: (alpha: number) => colorWithAlpha(color, alpha),
-      position: parseInt(entry.position) || 0,
-      points: parseFloat(entry.points) || 0,
-      wins: parseInt(entry.wins) || 0,
-      drivers: teamDrivers,
-    };
-  });
-
-  // Process Drivers from API response
-  const drivers: DriverMetadata[] = (driversQuery.data?.data || []).map((entry: any) => {
-    const driver = entry.Driver;
-    const constructor = entry.Constructors?.[0]; // Primary constructor
-    const team = teams.find(t => t.constructorId === constructor?.constructorId);
-    const teamColor = team?.color || getTeamColorById(constructor?.constructorId || "");
-
-    return {
-      driverId: driver.driverId,
-      code: driver.code,
-      url: driver.url,
-      givenName: driver.givenName,
-      familyName: driver.familyName,
-      fullName: `${driver.givenName} ${driver.familyName}`,
-      dateOfBirth: driver.dateOfBirth,
-      nationality: driver.nationality,
-      permanentNumber: driver.permanentNumber,
-      teamId: constructor?.constructorId || "",
-      teamName: constructor?.name || "",
-      teamColor,
-      teamColorLight: lightenColor(teamColor, 0.3),
-      teamColorDark: darkenColor(teamColor, 0.3),
-      position: parseInt(entry.position) || 0,
-      points: parseFloat(entry.points) || 0,
-      wins: parseInt(entry.wins) || 0,
+      driverId: normalized.ergastId,
+      code: normalized.code,
+      url: normalized.url,
+      givenName: normalized.givenName,
+      familyName: normalized.familyName,
+      fullName: normalized.fullName,
+      dateOfBirth: normalized.dateOfBirth,
+      nationality: normalized.nationality,
+      permanentNumber: normalized.permanentNumber,
+      teamId: normalized.teamId,
+      teamName: normalized.teamName,
+      teamColor: normalized.teamColor,
+      teamColorLight: normalized.teamColorLight,
+      teamColorDark: normalized.teamColorDark,
+      position: normalized.position,
+      points: normalized.points,
+      wins: normalized.wins,
+      headshotUrl: normalized.headshotUrl,
     };
   });
 
@@ -279,4 +298,4 @@ export const useF1Metadata = (year: number = new Date().getFullYear()) => {
 };
 
 // Re-export color utilities for convenience
-export { generateTeamColor, getTeamColorById, lightenColor, darkenColor, colorWithAlpha };
+export { generateTeamColor, getTeamColorById, colorWithAlpha };

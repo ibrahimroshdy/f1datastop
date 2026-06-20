@@ -5,23 +5,7 @@ import { formatTime } from "@/utils/lapTimeUtils";
  * This helps with maintaining compatibility when switching between APIs
  */
 
-// Map OpenF1 driver object to Ergast-style driver object
-export const mapOpenF1DriverToErgast = (driver: any) => {
-  return {
-    driverId: driver.driver_number.toString(),
-    code: driver.name_acronym || driver.last_name.substring(0, 3).toUpperCase(),
-    permanentNumber: driver.driver_number.toString(),
-    givenName: driver.first_name,
-    familyName: driver.last_name,
-    dateOfBirth: "", // OpenF1 doesn't provide this
-    nationality: driver.country_code,
-    Constructor: {
-      constructorId: driver.team_name?.toLowerCase().replace(/\s+/g, "-") || "unknown",
-      name: driver.team_name || "Unknown Team",
-      nationality: "" // OpenF1 doesn't provide team nationality
-    }
-  };
-};
+export { mapOpenF1DriverToErgast } from "@/lib/f1/adapters";
 
 // Map OpenF1 lap data to Ergast-style lap data
 export const mapOpenF1LapsToErgast = (laps: any[], drivers: any[]) => {
