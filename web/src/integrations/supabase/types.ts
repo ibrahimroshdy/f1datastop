@@ -41,86 +41,8 @@ export type Database = {
         }
         Relationships: []
       }
-      trivia_scores: {
-        Row: {
-          correct_answers: number
-          created_at: string
-          game_mode: string
-          id: string
-          is_public: boolean
-          score: number
-          time_spent: number
-          total_questions: number
-          updated_at: string
-          user_id: string
-          username: string
-        }
-        Insert: {
-          correct_answers?: number
-          created_at?: string
-          game_mode?: string
-          id?: string
-          is_public?: boolean
-          score?: number
-          time_spent?: number
-          total_questions?: number
-          updated_at?: string
-          user_id: string
-          username: string
-        }
-        Update: {
-          correct_answers?: number
-          created_at?: string
-          game_mode?: string
-          id?: string
-          is_public?: boolean
-          score?: number
-          time_spent?: number
-          total_questions?: number
-          updated_at?: string
-          user_id?: string
-          username?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
-      public_leaderboard: {
-        Row: {
-          correct_answers: number | null
-          created_at: string | null
-          game_mode: string | null
-          id: string | null
-          score: number | null
-          time_spent: number | null
-          total_questions: number | null
-          updated_at: string | null
-          username: string | null
-        }
-        Insert: {
-          correct_answers?: number | null
-          created_at?: string | null
-          game_mode?: string | null
-          id?: string | null
-          score?: number | null
-          time_spent?: number | null
-          total_questions?: number | null
-          updated_at?: string | null
-          username?: string | null
-        }
-        Update: {
-          correct_answers?: number | null
-          created_at?: string | null
-          game_mode?: string | null
-          id?: string | null
-          score?: number | null
-          time_spent?: number | null
-          total_questions?: number | null
-          updated_at?: string | null
-          username?: string | null
-        }
-        Relationships: []
-      }
       f1_driver_profile: {
         Row: {
           ergast_id: string

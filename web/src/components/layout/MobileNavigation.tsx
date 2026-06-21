@@ -49,11 +49,6 @@ const MobileNavigation = ({ items, onNavClick }: MobileNavigationProps) => {
                   )
             )}
           >
-            {/* Active indicator */}
-            {isActive && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full shadow-glow" />
-            )}
-            
             {/* Icon */}
             <div className={cn(
               "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200",
