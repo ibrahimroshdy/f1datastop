@@ -33,7 +33,7 @@ const BottomNav = () => {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background md:hidden"
+        className="nav-stable safe-bottom fixed bottom-0 left-0 right-0 z-40 border-t bg-background md:hidden"
         aria-label="Primary mobile navigation"
       >
         <ul className="flex h-14 items-stretch justify-around">
