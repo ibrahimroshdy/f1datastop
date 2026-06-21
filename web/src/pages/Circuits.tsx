@@ -1,7 +1,10 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight, MapPin, Ruler } from "lucide-react";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { useTheme } from "@/context/ThemeContext";
 import CountryFlag from "@/components/common/CountryFlag";
+import { CircuitTrackMap, getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
 import { pageShell, pageStack } from "@/lib/layout";
 import {
   F1Card,
@@ -52,9 +55,9 @@ const Circuits = () => {
   return (
     <div className={cn(pageShell, pageStack)}>
       <PageHeader
-        eyebrow="Pit Wall"
+        eyebrow={`${currentYear} Season`}
         title="Circuits"
-        description={`${currentYear} Formula 1 venues and host locations`}
+        description={`${currentYear} Formula 1 venues — tap a circuit for full race analysis`}
       />
 
       {isError ? (
@@ -67,48 +70,81 @@ const Circuits = () => {
       ) : isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
-            <F1Skeleton key={index} className="h-36 w-full rounded-xl" />
+            <F1Skeleton key={index} className="h-56 w-full rounded-xl" />
           ))}
         </div>
       ) : circuits.length === 0 ? (
         <F1EmptyState type="no-data" className="py-12" />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {circuits.map((circuit) => (
-            <F1Card
-              key={`${circuit.round}-${circuit.circuitName}`}
-              variant={cardVariant}
-              glassVariant={glassVariant}
-              className="h-full"
-            >
-              <F1CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-3">
-                  <F1CardTitle className="text-base leading-snug">
-                    {circuit.circuitName}
-                  </F1CardTitle>
-                  <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
-                    R{circuit.round}
-                  </span>
-                </div>
-              </F1CardHeader>
-              <F1CardContent className="space-y-3">
-                <p className="text-sm font-medium">{circuit.raceName}</p>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <CountryFlag country={circuit.country} size={18} />
-                  <span>
-                    {circuit.locality}, {circuit.country}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {new Date(circuit.date).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </F1CardContent>
-            </F1Card>
-          ))}
+          {circuits.map((circuit) => {
+            const track = getCircuitTrack(circuit.circuitName, circuit.locality);
+            const lengthKm = track?.length ? (track.length / 1000).toFixed(3) : null;
+            return (
+              <Link
+                key={`${circuit.round}-${circuit.circuitName}`}
+                to={`/race-analysis/${currentYear}/${circuit.round}`}
+                className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
+              >
+                <F1Card
+                  variant={cardVariant}
+                  glassVariant={glassVariant}
+                  className="h-full overflow-hidden transition-shadow group-hover:shadow-md"
+                >
+                  {/* Track outline banner */}
+                  <div
+                    className={cn(
+                      "relative flex h-28 items-center justify-center border-b",
+                      isGlass ? "border-white/10 bg-white/[0.03]" : "border-border bg-muted/30",
+                    )}
+                  >
+                    {track ? (
+                      <CircuitTrackMap
+                        circuitName={circuit.circuitName}
+                        locality={circuit.locality}
+                        className="h-24 w-24 text-primary transition-transform duration-200 group-hover:scale-105"
+                      />
+                    ) : (
+                      <MapPin className="h-8 w-8 text-muted-foreground/50" />
+                    )}
+                    <span className="absolute right-2 top-2 rounded-md bg-background/80 px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground backdrop-blur">
+                      R{circuit.round}
+                    </span>
+                  </div>
+
+                  <F1CardHeader className="pb-2">
+                    <F1CardTitle className="text-base leading-snug group-hover:text-primary transition-colors">
+                      {circuit.circuitName}
+                    </F1CardTitle>
+                  </F1CardHeader>
+                  <F1CardContent className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CountryFlag country={circuit.country} size={18} />
+                      <span>
+                        {circuit.locality}, {circuit.country}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
+                      <span>
+                        {new Date(circuit.date).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                      {lengthKm && (
+                        <span className="inline-flex items-center gap-1">
+                          <Ruler className="h-3 w-3" /> {lengthKm} km
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 font-medium text-foreground/70 group-hover:text-primary">
+                        Analysis <ArrowRight className="h-3 w-3" />
+                      </span>
+                    </div>
+                  </F1CardContent>
+                </F1Card>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
