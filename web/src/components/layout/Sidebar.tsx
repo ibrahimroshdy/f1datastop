@@ -155,12 +155,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
               )
         )}
       >
-        {/* Active indicator - red bar on left */}
-        {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full" />
-        )}
-        
-        <item.icon 
+        <item.icon
           className={cn(
             "h-4 w-4 shrink-0 transition-colors duration-200",
             isActive 

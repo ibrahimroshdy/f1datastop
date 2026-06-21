@@ -104,19 +104,6 @@ export function useRaceDetailDialog(race: RaceLike | null | undefined, isOpen: b
           );
         }
         break;
-      case "distribution":
-        if (
-          raceResults?.data?.Results?.length ||
-          sprintResults?.data?.SprintResults?.length
-        ) {
-          analytics.trackRaceResultsView?.(
-            race,
-            "distribution",
-            (raceResults?.data?.Results?.length || 0) +
-              (sprintResults?.data?.SprintResults?.length || 0),
-          );
-        }
-        break;
     }
   }, [
     selectedTab,
