@@ -4,6 +4,7 @@ import {
   Cloud,
   Flag,
   Gauge,
+  LayoutDashboard,
   Radio,
   TrendingUp,
   TrendingUpIcon,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 
 export type RaceAnalysisTabId =
+  | "overview"
   | "lapTimes"
   | "positions"
   | "qualifying"
@@ -34,6 +36,7 @@ export interface RaceAnalysisTabConfig {
 }
 
 export const ESSENTIALS_TABS: RaceAnalysisTabConfig[] = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard, group: "essentials" },
   { id: "lapTimes", label: "Lap Times", icon: Clock, group: "essentials" },
   { id: "positions", label: "Positions", icon: TrendingUp, group: "essentials" },
   { id: "qualifying", label: "Qualifying", icon: Flag, group: "essentials" },
@@ -54,7 +57,7 @@ export const ADVANCED_TABS: RaceAnalysisTabConfig[] = [
   { id: "overtakes", label: "Overtakes", icon: Car, group: "advanced" },
 ];
 
-export const DEFAULT_RACE_ANALYSIS_TAB: RaceAnalysisTabId = "lapTimes";
+export const DEFAULT_RACE_ANALYSIS_TAB: RaceAnalysisTabId = "overview";
 
 export function isAdvancedTab(tabId: string): tabId is RaceAnalysisTabId {
   return ADVANCED_TABS.some((tab) => tab.id === tabId);
