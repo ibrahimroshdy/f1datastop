@@ -152,7 +152,7 @@ async function fetchLapTimesUncached(
   ) => void
 ) {
   try {
-    let baseUrl = `${ERGAST}/${year}/${round}/laps`;
+    const baseUrl = `${ERGAST}/${year}/${round}/laps`;
     const retryAttempts: { [key: string]: number } = {};
 
     // Initial request with small page size to quickly get total count
@@ -184,50 +184,48 @@ async function fetchLapTimesUncached(
         const offset = 30 + (i * limit);
 
         fetchPromises.push(
-          new Promise(async (resolve, reject) => {
+          (async () => {
             // Increasing delays between batch requests to reduce rate limiting
-            const startDelay = i * 300; // Increased delay between requests
+            const startDelay = i * 300;
             await new Promise(r => setTimeout(r, startDelay));
 
             try {
-              // Use throttled fetch for each pagination request
               const response = await throttledFetch(
                 `${baseUrl}.json?limit=${limit}&offset=${offset}`,
                 5000,
-                7, // Increased retry attempts
+                7,
                 retryAttempts
               );
 
               if (!response.ok) {
                 if (response.status === 429) {
-                  const error: any = new Error(`API request failed with status ${response.status}`);
+                  const error: Error & { status?: number } = new Error(
+                    `API request failed with status ${response.status}`,
+                  );
                   error.status = 429;
-                  reject(error);
-                  return;
+                  throw error;
                 }
                 throw new Error(`API request failed with status ${response.status}`);
               }
 
               const data = await response.json();
 
-              // Update progress after each successful batch
               if (onProgress) {
-                // Calculate progress: weight initial request at 5%, then distribute 95% among batches
                 const batchProgress = 0.05 + (0.95 * ((i + 1) / requestsNeeded));
                 onProgress(
                   batchProgress,
-                  i + 2, // +2 because we already have the initial request
+                  i + 2,
                   requestsNeeded + 1,
                   retryAttempts
                 );
               }
 
-              resolve(data.MRData?.RaceTable?.Races?.[0]?.Laps || []);
+              return data.MRData?.RaceTable?.Races?.[0]?.Laps || [];
             } catch (error) {
               console.error(`Error fetching batch ${i + 1}/${requestsNeeded}:`, error);
-              reject(error);
+              throw error;
             }
-          })
+          })()
         );
       }
 

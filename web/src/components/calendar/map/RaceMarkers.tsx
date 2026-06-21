@@ -60,7 +60,7 @@ const RaceMarkers = ({
       const isCompleted = raceDate <= today && !isFirstRace;
       const isUpcoming = !isCompleted && !isFirstRace;
       
-      let markerColor = isFirstRace ? 0x00ff00 : // Green for first race
+      const markerColor = isFirstRace ? 0x00ff00 : // Green for first race
                        isUpcoming ? 0xe10600 : // Red for upcoming races
                        0xffffff; // White for completed races
       

@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeContext";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { getCalendarAnalytics } from "./calendarAnalytics";
 import { useRaceDetailDialog } from "./race-detail/useRaceDetailDialog";
 import { RaceDetailSummary } from "./race-detail/RaceDetailHeader";
 import { RaceSchedulePanel } from "./race-detail/RaceSchedulePanel";
@@ -140,9 +141,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
                 race={race}
                 isGlass={isGlass}
                 onViewAnalysis={() => {
-                  (window as { calendarAnalytics?: { trackViewAnalysisClick: Function } }).calendarAnalytics?.trackViewAnalysisClick?.(
-                    race,
-                  );
+                  getCalendarAnalytics()?.trackViewAnalysisClick?.(race);
                   navigate(`/race-analysis/${race.season}/${race.round}`);
                 }}
               />

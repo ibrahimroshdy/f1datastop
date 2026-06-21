@@ -20,7 +20,7 @@ interface CalendarAnalyticsTrackerProps {
 }
 
 // Global session tracking variables
-let calendarSessionData = {
+const calendarSessionData = {
   timeSpent: 0,
   racesViewed: 0,
   detailDialogsOpened: 0,

@@ -36,7 +36,7 @@ const processQueuedCommands = () => {
     while (queue.length > 0) {
       const args = queue.shift();
       if (args && window.clarity) {
-        window.clarity.apply(window, args);
+        window.clarity(...args);
       }
     }
   } catch (error) {

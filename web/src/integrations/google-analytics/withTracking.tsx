@@ -26,19 +26,18 @@ export const withTracking = <P extends object>(
       };
     }, []);
 
-    // If tracking interactions, add click handlers to the component
-    if (trackInteractions) {
-      // Function to handle click tracking
+    // Interaction click tracking (always register effect; no-op when disabled)
+    React.useEffect(() => {
+      if (!trackInteractions) return;
+
       const handleInteractionTracking = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
-        
-        // Get the data-track attribute from the target or its parents
         const trackElement = findTrackableElement(target);
-        
+
         if (trackElement) {
           const trackId = trackElement.getAttribute('data-track-id');
           const trackType = trackElement.getAttribute('data-track-type') || 'click';
-          
+
           if (trackId) {
             trackEvent('element_interaction', {
               component_name: componentName,
@@ -50,29 +49,20 @@ export const withTracking = <P extends object>(
         }
       };
 
-      // Function to find the nearest element with data-track attributes
       const findTrackableElement = (element: HTMLElement | null): HTMLElement | null => {
         if (!element) return null;
         if (element.hasAttribute('data-track-id')) return element;
-        
-        // Try parent elements until we find a trackable one or reach the component root
         if (element.parentElement) {
           return findTrackableElement(element.parentElement);
         }
-        
         return null;
       };
 
-      // Add document click listener when component mounts
-      React.useEffect(() => {
-        document.addEventListener('click', handleInteractionTracking);
-        
-        // Clean up listener when component unmounts
-        return () => {
-          document.removeEventListener('click', handleInteractionTracking);
-        };
-      }, []);
-    }
+      document.addEventListener('click', handleInteractionTracking);
+      return () => {
+        document.removeEventListener('click', handleInteractionTracking);
+      };
+    }, [trackInteractions]);
 
     // Render the original component with its props
     return <Component {...props} />;

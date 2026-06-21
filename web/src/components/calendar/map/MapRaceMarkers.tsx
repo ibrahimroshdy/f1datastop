@@ -26,7 +26,7 @@ const MapRaceMarkers = ({ map, races, onRaceClick }: MapRaceMarkersProps) => {
       const isCompleted = raceDate <= today && !isFirstRace;
       const isUpcoming = !isCompleted && !isFirstRace;
       
-      let markerColor = isFirstRace ? '#00ff00' : // Green for first race
+      const markerColor = isFirstRace ? '#00ff00' : // Green for first race
                        isUpcoming ? '#e10600' : // Red for upcoming races
                        '#ffffff'; // White for completed races
       

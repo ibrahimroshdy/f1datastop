@@ -1,6 +1,12 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  buildCacheKey,
+  resolveTtlSeconds,
+  type F1Source,
+} from "./cacheTtl.ts";
 
-export type F1Source = "ergast" | "openf1";
+export type { F1Source };
+export { buildCacheKey, resolveTtlSeconds };
 
 export type ProxyRequest = {
   source: F1Source;
@@ -20,88 +26,6 @@ const UPSTREAM: Record<F1Source, string> = {
   ergast: "https://api.jolpi.ca/ergast",
   openf1: "https://api.openf1.org/v1",
 };
-
-/** Build a stable cache key from source + path + sorted query params. */
-export function buildCacheKey(
-  source: F1Source,
-  path: string,
-  params?: Record<string, string>,
-): string {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  if (!params || Object.keys(params).length === 0) {
-    return `${source}:${normalizedPath}`;
-  }
-  const qs = new URLSearchParams(
-    Object.entries(params).sort(([a], [b]) => a.localeCompare(b)),
-  ).toString();
-  return `${source}:${normalizedPath}?${qs}`;
-}
-
-/** Per-source TTLs (seconds) per REFACTOR_PLAN Phase 4.2 */
-export function resolveTtlSeconds(
-  source: F1Source,
-  path: string,
-  params?: Record<string, string>,
-): number {
-  const p = path.toLowerCase();
-  const paramStr = params ? JSON.stringify(params).toLowerCase() : "";
-
-  if (source === "ergast") {
-    if (p.includes("driverstandings") || p.includes("constructorstandings")) {
-      return 5 * 60;
-    }
-    if (/\/f1\/\d{4}\.json$/i.test(p)) {
-      return 24 * 60 * 60;
-    }
-    if (p.includes("/laps")) {
-      return 30 * 24 * 60 * 60;
-    }
-    if (
-      p.includes("/results") ||
-      p.includes("/qualifying") ||
-      p.includes("/pitstops") ||
-      p.includes("/sprint")
-    ) {
-      return 30 * 24 * 60 * 60;
-    }
-    if (p.includes("/circuits")) {
-      return 7 * 24 * 60 * 60;
-    }
-    return 60 * 60;
-  }
-
-  // openf1
-  const live =
-    paramStr.includes("session_key=latest") ||
-    p.includes("session_key=latest") ||
-    params?.session_key === "latest";
-  if (live) return 30;
-
-  if (
-    p.includes("/car_data") ||
-    p.includes("/position") ||
-    p.includes("/intervals") ||
-    p.includes("/race_control")
-  ) {
-    return 30;
-  }
-
-  if (p.includes("/sessions")) {
-    return 60 * 60;
-  }
-
-  if (
-    p.includes("/laps") ||
-    p.includes("/drivers") ||
-    p.includes("/weather") ||
-    p.includes("/team_radio") ||
-    p.includes("/starting_grid")
-  ) {
-    return 30 * 24 * 60 * 60;
-  }
-
-  return 60 * 60;
-}
 
 function buildUpstreamUrl(
   source: F1Source,

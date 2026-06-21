@@ -26,7 +26,7 @@ interface OvertakesAnalysisProps {
   sessionName?: string;
 }
 
-interface DriverInfo extends OvertakeDriverInfo {}
+type DriverInfo = OvertakeDriverInfo;
 
 interface PitStopInfo {
   driver: string;

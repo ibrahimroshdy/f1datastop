@@ -81,7 +81,7 @@ export const useQualifyingToRaceData = (year?: number) => {
         );
         
         // Get the complete race data similar to how QualifyingResultsCard does it
-        let completeRaceData = {
+        const completeRaceData = {
           ...raceData.data,
           ...fullRaceData, // Add all fields from full race data
           results: raceData.data.Results || [],

@@ -147,35 +147,30 @@ export const signUp = async (
 };
 
 export const signIn = async (email: string, password: string): Promise<void> => {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    if (error) {
-      toast.error(error.message);
-      throw error;
-    }
-
-    // Set user ID for analytics tracking
-    if (data.user?.id) {
-      setUserIdForAnalytics(data.user.id, {
-        email: data.user.email
-      });
-      
-      // Track login event in Clarity
-      trackClarityEvent('user_login');
-    }
-
-    // Track successful login with email method
-    trackLogin('email');
-    
-    toast.success('Logged in successfully');
-  } catch (error: any) {
-    // Just rethrow for the UI to handle
+  if (error) {
+    toast.error(error.message);
     throw error;
   }
+
+  // Set user ID for analytics tracking
+  if (data.user?.id) {
+    setUserIdForAnalytics(data.user.id, {
+      email: data.user.email
+    });
+    
+    // Track login event in Clarity
+    trackClarityEvent('user_login');
+  }
+
+  // Track successful login with email method
+  trackLogin('email');
+  
+  toast.success('Logged in successfully');
 };
 
 export const signInWithX = async (): Promise<void> => {

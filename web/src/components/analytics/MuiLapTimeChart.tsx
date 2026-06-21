@@ -128,7 +128,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
     const visibleDriversData = availableDrivers.filter(d => visibleDrivers.includes(d.code));
     
     // Calculate min and max values for Y-axis from visible drivers' data
-    let allValues: number[] = [];
+    const allValues: number[] = [];
     
     // Track teammates - second driver from same team gets dashed line
     const teamDriverCounts: { [team: string]: number } = {};

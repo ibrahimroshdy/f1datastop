@@ -5,6 +5,7 @@ import {
   useSprintResults,
 } from "@/hooks/useF1Data";
 import { getSprintQualifyingResults } from "./raceDetailUtils";
+import { getCalendarAnalytics } from "../calendarAnalytics";
 
 type RaceLike = {
   season?: string;
@@ -67,7 +68,7 @@ export function useRaceDetailDialog(race: RaceLike | null | undefined, isOpen: b
   }, [race?.round, race?.season, isOpen, race]);
 
   useEffect(() => {
-    const analytics = (window as { calendarAnalytics?: Record<string, Function> }).calendarAnalytics;
+    const analytics = getCalendarAnalytics();
     if (!race || !selectedTab || !analytics) return;
 
     switch (selectedTab) {
@@ -127,9 +128,9 @@ export function useRaceDetailDialog(race: RaceLike | null | undefined, isOpen: b
   ]);
 
   const handleTabChange = (newTab: string) => {
-    const analytics = (window as { calendarAnalytics?: { trackRaceDetailDialog: Function } }).calendarAnalytics;
+    const analytics = getCalendarAnalytics();
     if (analytics && race) {
-      analytics.trackRaceDetailDialog("tab_change", race, {
+      analytics.trackRaceDetailDialog?.("tab_change", race, {
         selectedTab: newTab,
         previousTab: selectedTab,
       });
@@ -138,9 +139,9 @@ export function useRaceDetailDialog(race: RaceLike | null | undefined, isOpen: b
   };
 
   const handleClose = () => {
-    const analytics = (window as { calendarAnalytics?: { trackRaceDetailDialog: Function } }).calendarAnalytics;
+    const analytics = getCalendarAnalytics();
     if (analytics && race && dialogOpenTime > 0) {
-      analytics.trackRaceDetailDialog("close", race, {
+      analytics.trackRaceDetailDialog?.("close", race, {
         selectedTab,
         timeSpent: Math.floor((Date.now() - dialogOpenTime) / 1000),
       });

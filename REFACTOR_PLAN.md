@@ -1,6 +1,6 @@
 # F1DataStop — Migration, Cleanup & Refactor Plan
 
-> Status: **IN PROGRESS** — Phases 0–7 done; Phase 8 next
+> Status: **IN PROGRESS** — Phases 0–8 done; Phase 9 next
 > Decisions locked (2026-06-20):
 > 1. **Approach:** Refactor in place (keep repo + git history)
 > 2. **Structure:** Monorepo `web/` + `supabase/` (match fifa-league)
@@ -185,13 +185,13 @@ Keep all four, but every key is an env var; integration is a no-op when its key 
 
 ---
 
-## Phase 8 — Tests, CI, OSS hygiene
+## Phase 8 — Tests, CI, OSS hygiene — ✅ DONE
 
-8.1 Vitest setup (currently 0 tests). Cover: `lib/f1` adapters, scoring/calc utils, cache TTL logic, the request queue.
-8.2 GitHub Actions: typecheck + lint + test + build on PR.
-8.3 README rewrite for standalone (remove Lovable hosting mention, fix image), `CONTRIBUTING.md`, `LICENSE` (Phase 0.8).
+8.1 **Vitest** ✅ — `web/vitest.config.ts`; 32 tests covering `lib/f1/adapters`, `positionChanges`, `overtakes`, `lib/api/f1ApiFetch`, and `supabase/functions/_shared/cacheTtl` (extracted from f1Cache).
+8.2 **GitHub Actions** ✅ — `.github/workflows/ci.yml`: typecheck, lint, test, build on PR + push to main.
+8.3 **README + CONTRIBUTING + LICENSE** ✅ — README rewritten for monorepo/Vercel; `CONTRIBUTING.md` added; MIT `LICENSE` already present.
 
-**Exit criteria:** CI green on PR; core data layer covered.
+**Exit criteria:** CI green on PR; core data layer covered. ✅
 
 ---
 

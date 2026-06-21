@@ -55,8 +55,8 @@ export const initializeGA = () => {
 
   // Initialize the dataLayer
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function() {
-    window.dataLayer.push(arguments);
+  window.gtag = function gtag(...args: unknown[]) {
+    window.dataLayer.push(args);
   };
   window.gtag('js', new Date());
   window.gtag('config', gaMeasurementId, {
