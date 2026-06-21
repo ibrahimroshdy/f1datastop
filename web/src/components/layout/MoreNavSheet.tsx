@@ -10,7 +10,6 @@ import { useDeveloper } from "@/context/DeveloperContext";
 import { navGroups } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { Settings } from "lucide-react";
-import { ThemeSelector } from "@/components/theme/ThemeToggle";
 
 interface MoreNavSheetProps {
   open: boolean;
@@ -61,10 +60,6 @@ const MoreNavSheet = ({ open, onOpenChange }: MoreNavSheetProps) => {
             </li>
           ))}
         </ul>
-        <div className="mt-4 flex items-center justify-between rounded-lg border px-3 py-2.5">
-          <span className="text-sm font-medium">Theme</span>
-          <ThemeSelector />
-        </div>
         <p className="mt-4 text-xs text-muted-foreground">
           {navGroups.find((g) => g.id === "explore")?.label} — full list in sidebar on desktop.
         </p>

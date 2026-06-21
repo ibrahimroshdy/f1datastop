@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
@@ -44,18 +44,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
   const { isDeveloperMode } = useDeveloper();
   const { isGlass } = useTheme();
   
-  // Collapsed state for desktop (icon-only mode)
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('f1ds_sidebar_collapsed');
-      return saved === 'true';
-    }
-    return false;
-  });
+  // On desktop the sidebar collapses to an icon rail (it never fully hides);
+  // on mobile it is a slide-in drawer. Derive collapsed state from sidebarOpen.
+  const isCollapsed = !isMediumOrSmaller && !sidebarOpen;
 
-  // Persist collapsed state and notify parent
   useEffect(() => {
-    localStorage.setItem('f1ds_sidebar_collapsed', String(isCollapsed));
     onCollapseChange?.(isCollapsed);
   }, [isCollapsed, onCollapseChange]);
 
@@ -244,12 +237,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
           isGlass 
             ? "glass-sidebar border-r border-white/10" 
             : "bg-sidebar border-r border-sidebar-border",
-          // Visibility states for mobile
+          // Mobile: slide-in drawer
           isMediumOrSmaller && !sidebarOpen && "-translate-x-full",
           isMediumOrSmaller && sidebarOpen && "translate-x-0 w-60",
-          // Desktop positioning and visibility
-          !isMediumOrSmaller && !sidebarOpen && "-translate-x-full",
-          !isMediumOrSmaller && sidebarOpen && "relative translate-x-0"
+          // Desktop: always in-flow; collapses to an icon rail instead of hiding
+          !isMediumOrSmaller && "relative translate-x-0"
         )}
       >
         {/* Logo and brand */}
@@ -345,23 +337,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
           ))}
         </div>
 
-        {/* Theme — desktop sidebar footer */}
-        {!isMediumOrSmaller && (
-          <div
-            className={cn(
-              "flex shrink-0 items-center py-2",
-              isCollapsed ? "justify-center px-2" : "justify-between px-3",
-              isGlass ? "border-t border-white/5" : "border-t border-sidebar-border",
-            )}
-          >
-            {!isCollapsed && (
-              <span className="text-xs text-muted-foreground">Theme</span>
-            )}
-            <ThemeSelector
-              className={cn(isGlass && "glass-button")}
-            />
-          </div>
-        )}
+        {/* Theme — single source (desktop sidebar + mobile drawer footer) */}
+        <div
+          className={cn(
+            "flex shrink-0 items-center py-2",
+            isCollapsed ? "justify-center px-2" : "justify-between px-3",
+            isGlass ? "border-t border-white/5" : "border-t border-sidebar-border",
+          )}
+        >
+          {!isCollapsed && (
+            <span className="text-xs text-muted-foreground">Theme</span>
+          )}
+          <ThemeSelector className={cn(isGlass && "glass-button")} />
+        </div>
 
         {/* Collapse toggle button - desktop only */}
         {!isMediumOrSmaller && (
@@ -375,7 +363,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsCollapsed(!isCollapsed)}
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
                   className={cn(
                     "h-8 rounded-md transition-all duration-200",
                     isCollapsed ? "w-8 px-0" : "w-full justify-start gap-2 px-2",
