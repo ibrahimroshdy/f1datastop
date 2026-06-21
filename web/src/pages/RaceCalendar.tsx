@@ -5,13 +5,12 @@ import RaceInfographic from "@/components/calendar/RaceInfographic";
 import CalendarAnalyticsTracker from "@/components/calendar/CalendarAnalyticsTracker";
 import RaceCalendarListView from "@/components/calendar/RaceCalendarListView";
 import RaceCalendarGridView from "@/components/calendar/RaceCalendarGridView";
-import RaceCalendarGlobeView from "@/components/calendar/RaceCalendarGlobeView";
 import { PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { useRaceCalendar } from "@/hooks/useRaceCalendar";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
-import { Globe, Grid3x3, List, Star } from "lucide-react";
+import { Grid3x3, List, Star } from "lucide-react";
 
 const RaceCalendar = () => {
   const { isGlass, cardVariant, glassVariant } = useThemeVariant();
@@ -75,18 +74,6 @@ const RaceCalendar = () => {
                   <Grid3x3 className="h-4 w-4" />
                   <span className="hidden sm:inline">Grid</span>
                 </Button>
-                <Button
-                  variant={viewMode === "globe" ? "default" : "ghost"}
-                  size="sm"
-                  className={cn(
-                    "h-8 px-2 sm:px-3 gap-1.5",
-                    viewMode === "globe" && "bg-primary text-primary-foreground",
-                  )}
-                  onClick={() => setViewMode("globe")}
-                >
-                  <Globe className="h-4 w-4" />
-                  <span className="hidden sm:inline">Globe</span>
-                </Button>
               </div>
               <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
               </div>
@@ -120,16 +107,6 @@ const RaceCalendar = () => {
                 </div>
               </div>
             </div>
-          )}
-
-          {viewMode === "globe" && (
-            <RaceCalendarGlobeView
-              selectedYear={selectedYear}
-              onYearChange={handleYearChange}
-              cardVariant={cardVariant}
-              glassVariant={glassVariant}
-              isGlass={isGlass}
-            />
           )}
 
           {viewMode === "list" && (
