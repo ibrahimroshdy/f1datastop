@@ -296,7 +296,7 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
           </ScrollArea>
           
           <p className="text-[10px] text-muted-foreground text-center">
-            Click to play/pause • Audio provided by OpenF1
+            Click to play/pause
           </p>
         </>
       )}
