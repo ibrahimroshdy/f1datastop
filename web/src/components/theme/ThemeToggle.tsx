@@ -98,10 +98,10 @@ const ThemeSelector = ({ className }: { className?: string }) => {
         
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-xs text-muted-foreground">
-          Glass Themes
+          Premium
         </DropdownMenuLabel>
         
-        {/* Glass Themes */}
+        {/* Cockpit theme */}
         <DropdownMenuItem
           onClick={() => setTheme("dark-glass")}
           className={cn(
@@ -114,7 +114,7 @@ const ThemeSelector = ({ className }: { className?: string }) => {
             <Sparkles className="h-2 w-2 absolute -top-0.5 -right-0.5 text-primary" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm">Dark Glass</span>
+            <span className="text-sm">Cockpit</span>
             <span className="text-xs text-muted-foreground">Premium dark with glass</span>
           </div>
         </DropdownMenuItem>
@@ -199,7 +199,7 @@ const ThemePreviewCard = ({
           isGlass && !isDark && "bg-white/80 border border-black/10"
         )}
       >
-        {config.icon}
+        {themeIcons[themeMode]}
       </div>
       
       {/* Label */}

@@ -78,3 +78,7 @@ export {
   type SessionSelectorProps,
 } from "./SessionSelector";
 
+// Pit Wall layout & icons (Phase R0)
+export { PageHeader, type PageHeaderProps } from "./PageHeader";
+export { PitIcon, type PitIconProps, type PitIconSize } from "./PitIcon";
+

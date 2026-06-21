@@ -321,8 +321,9 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
                     <Badge variant="outline" className="text-[10px] px-1.5">L{row.lap}</Badge>
                   </TableCell>
                   <TableCell className="py-1.5 text-right">
-                    <span className={cn("font-mono text-xs", isRecord && "text-purple-500 font-bold")}>
-                      {formatDuration(row.duration)}{isRecord && ' ⚡'}
+                    <span className={cn("font-mono text-xs inline-flex items-center justify-end gap-1", isRecord && "text-purple-500 font-bold")}>
+                      {formatDuration(row.duration)}
+                      {isRecord && <Zap className="h-3 w-3 shrink-0" fill="currentColor" />}
                     </span>
                   </TableCell>
                   <TableCell className="py-1.5">

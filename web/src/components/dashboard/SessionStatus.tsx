@@ -108,7 +108,7 @@ const SessionStatus = ({ year }: SessionStatusProps) => {
         <div className="space-y-4">
           {/* Race Info */}
           <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-purple-500/5 to-transparent border border-purple-500/20">
-            <CountryFlag country={country} size={20} svg={true} />
+            <CountryFlag country={country} size={20} />
             <div className="flex-1">
               <p className="font-medium text-sm text-foreground">{raceName}</p>
               <p className="text-xs text-muted-foreground">{race.Circuit?.circuitName}</p>

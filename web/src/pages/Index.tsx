@@ -1,7 +1,7 @@
 import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults, useLastRacePitStops } from "@/hooks/useF1Data";
 import { useEffect, useState, useMemo } from "react";
-import MainLayout from "@/components/layout/MainLayout";
 import { getTeamColor } from "@/utils/teamUtils";
+import { pageShell, pageStack } from "@/lib/layout";
 import HeaderSection from "@/components/dashboard/HeaderSection";
 import CombinedStandingsCard from "@/components/dashboard/CombinedStandingsCard";
 import SeasonChampionshipCard from "@/components/dashboard/SeasonChampionshipCard";
@@ -22,6 +22,7 @@ import { GitCompare } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
 import { getCountryCode } from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { cn } from "@/lib/utils";
 import { F1Skeleton } from "@/components/f1";
 import { F1EmptyState } from "@/components/f1/F1EmptyState";
 
@@ -120,21 +121,20 @@ const Index = () => {
     clarity.setTag('page_version', 'v2');
   }, [analytics, clarity]);
 
-  const nextRace = raceSchedule?.data?.find(race => {
+  const nextRace = raceSchedule?.data?.find((race: { date: string; time?: string }) => {
     const raceDate = new Date(race.date + "T" + (race.time || "00:00:00Z"));
     return raceDate > new Date();
   });
 
   return (
-    <MainLayout>
-      <div className="min-h-0 bg-transparent text-foreground">
-        {/* Hero Header Section */}
+    <div className={pageShell}>
+      <div className={cn(pageStack, "animate-fade-in")}>
         <HeaderSection nextRace={nextRace} isOffline={isOffline} />
 
         {isLoading ? (
           <DashboardSkeleton />
         ) : (
-          <div className="space-y-6 stagger-children">
+          <>
             {/* Top Row: Combined Standings & Season Overview */}
             <div className={`grid grid-cols-1 gap-4 md:gap-6 ${isSeasonComplete ? '' : 'lg:grid-cols-3'}`}>
               <div className={isSeasonComplete ? '' : 'lg:col-span-2'}>
@@ -210,10 +210,10 @@ const Index = () => {
               />
               <FastestPitStopCard />
             </div>
-          </div>
+          </>
         )}
       </div>
-      
+
       {/* Race Detail Dialog for Sankey Chart */}
       {lastCompletedRace?.raceData && (
         <RaceDetailDialog 
@@ -222,7 +222,7 @@ const Index = () => {
           race={lastCompletedRace.raceData} 
         />
       )}
-    </MainLayout>
+    </div>
   );
 };
 

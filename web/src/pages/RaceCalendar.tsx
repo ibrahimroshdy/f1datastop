@@ -1,17 +1,17 @@
-import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import YearSelector from "@/components/common/YearSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import RaceInfographic from "@/components/calendar/RaceInfographic";
 import CalendarAnalyticsTracker from "@/components/calendar/CalendarAnalyticsTracker";
-import PointsDistributionView from "@/components/calendar/PointsDistributionView";
 import RaceCalendarListView from "@/components/calendar/RaceCalendarListView";
 import RaceCalendarGridView from "@/components/calendar/RaceCalendarGridView";
 import RaceCalendarGlobeView from "@/components/calendar/RaceCalendarGlobeView";
+import { PageHeader } from "@/components/f1";
+import { pageShell, pageStack } from "@/lib/layout";
 import { useRaceCalendar } from "@/hooks/useRaceCalendar";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
-import { BarChart3, Globe, Grid3x3, List, Star } from "lucide-react";
+import { Globe, Grid3x3, List, Star } from "lucide-react";
 
 const RaceCalendar = () => {
   const { isGlass, cardVariant, glassVariant } = useThemeVariant();
@@ -41,18 +41,16 @@ const RaceCalendar = () => {
   const raceCount = raceSchedule?.data?.length ?? 0;
 
   return (
-    <MainLayout>
-      <CalendarAnalyticsTracker selectedYear={selectedYear} viewType="list">
-        <div className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Race Calendar</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {raceCount} races scheduled for {selectedYear}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center rounded-lg border border-border p-1 bg-muted/30">
+    <CalendarAnalyticsTracker selectedYear={selectedYear} viewType="list">
+      <div className={pageShell}>
+        <div className={cn(pageStack, "animate-fade-in")}>
+          <PageHeader
+            eyebrow={String(selectedYear)}
+            title="Race Calendar"
+            description={`${raceCount} races scheduled for ${selectedYear}`}
+            actions={
+              <div className="flex items-center gap-3">
+                <div className="flex items-center rounded-lg border border-border p-1 bg-muted/30">
                 <Button
                   variant={viewMode === "list" ? "default" : "ghost"}
                   size="sm"
@@ -89,22 +87,11 @@ const RaceCalendar = () => {
                   <Globe className="h-4 w-4" />
                   <span className="hidden sm:inline">Globe</span>
                 </Button>
-                <Button
-                  variant={viewMode === "distribution" ? "default" : "ghost"}
-                  size="sm"
-                  className={cn(
-                    "h-8 px-2 sm:px-3 gap-1.5",
-                    viewMode === "distribution" && "bg-primary text-primary-foreground",
-                  )}
-                  onClick={() => setViewMode("distribution")}
-                >
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Distribution</span>
-                </Button>
               </div>
               <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
-            </div>
-          </div>
+              </div>
+            }
+          />
 
           {(viewMode === "list" || viewMode === "grid") && (
             <div
@@ -179,14 +166,6 @@ const RaceCalendar = () => {
             />
           )}
 
-          {viewMode === "distribution" && (
-            <PointsDistributionView
-              selectedYear={selectedYear}
-              raceSchedule={raceSchedule?.data || []}
-              isLoading={isLoading}
-              isGlass={isGlass}
-            />
-          )}
         </div>
 
         {selectedRace && (
@@ -209,8 +188,8 @@ const RaceCalendar = () => {
             </div>
           </div>
         )}
-      </CalendarAnalyticsTracker>
-    </MainLayout>
+      </div>
+    </CalendarAnalyticsTracker>
   );
 };
 

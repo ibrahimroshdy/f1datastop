@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import f1Logo from "@/assets/f1-logo.svg";
 import { Link } from "react-router-dom";
 import NextRaceInfo from "./nextRace/NextRaceInfo";
 import UserMenu from "./user/UserMenu";
 import ShareButton from "./share/ShareButton";
 import SocialLinks from "./social/SocialLinks";
-import { ThemeSelector } from "@/components/theme/ThemeToggle";
+import { GlobalSearchDialog } from "@/components/search/GlobalSearchDialog";
+import { useGlobalSearch } from "@/hooks/useGlobalSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
@@ -22,15 +23,25 @@ const TopBar = ({
 }: TopBarProps) => {
   const isMobile = useIsMobile();
   const { isGlass } = useTheme();
+  const {
+    open,
+    setOpen,
+    query,
+    setQuery,
+    groupedResults,
+    selectResult,
+    handleOpenChange,
+  } = useGlobalSearch();
 
   return (
+    <>
     <div 
       className={cn(
         "sticky top-0 z-30 flex h-14 items-center justify-between gap-2 px-3 sm:px-4 lg:px-6",
         "transition-all duration-200",
         isGlass 
           ? "glass-topbar" 
-          : "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+          : "border-b bg-background"
       )}
     >
       {/* Left section */}
@@ -87,6 +98,36 @@ const TopBar = ({
       
       {/* Right section */}
       <div className="flex items-center gap-1 sm:gap-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "hidden h-8 gap-2 px-2 text-muted-foreground sm:flex",
+            isGlass && "hover:bg-white/5"
+          )}
+          onClick={() => setOpen(true)}
+          aria-label="Open search"
+        >
+          <Search className="h-4 w-4" />
+          <span className="text-xs">Search</span>
+          <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground md:inline-flex">
+            ⌘K
+          </kbd>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-8 w-8 sm:hidden",
+            isGlass && "hover:bg-white/5"
+          )}
+          onClick={() => setOpen(true)}
+          aria-label="Open search"
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+
         {/* Social links - hidden on small mobile */}
         <div className="hidden sm:flex items-center gap-0.5">
           <SocialLinks />
@@ -101,16 +142,20 @@ const TopBar = ({
           isGlass ? "bg-white/10" : "bg-border"
         )} />
         
-        {/* Theme selector */}
-        <ThemeSelector className={cn(
-          "h-8 w-8 rounded-md",
-          isGlass && "glass-button"
-        )} />
-        
         {/* User menu */}
         <UserMenu />
       </div>
     </div>
+
+      <GlobalSearchDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        query={query}
+        onQueryChange={setQuery}
+        groupedResults={groupedResults}
+        onSelect={selectResult}
+      />
+    </>
   );
 };
 

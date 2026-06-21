@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Clock, Calendar, ChevronRight } from 'lucide-react';
-import PageSelector from "@/components/navigation/PageSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import CountryFlag from "@/components/common/CountryFlag";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { getNextSession } from "@/utils/nextSessionUtils";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
@@ -60,12 +60,7 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
     return () => clearInterval(timer);
   }, [sessionDate, calculateTimeLeft]);
 
-  const removeFlag = (raceName: string) => {
-    if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
-      return raceName.substring(raceName.indexOf(' ') + 1);
-    }
-    return raceName;
-  };
+  const removeFlag = getRaceNameWithoutEmoji;
 
   const isUrgent = countdown.days < 3;
   const isImminent = countdown.days === 0 && countdown.hours < 6;
@@ -90,7 +85,7 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
         {/* Next Race Card - More compact */}
         {nextRace && nextSession && (
           <F1Card
-            variant="glass"
+            variant={isGlass ? "glass" : "default"}
             glassVariant={isGlass ? "glow" : "default"}
             size="sm"
             hover="lift"
@@ -109,7 +104,7 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
                   "relative p-1.5 md:p-2 rounded-lg shrink-0",
                   isGlass ? "glass" : "bg-muted"
                 )}>
-                  <CountryFlag country={country} size={20} svg={true} />
+                  <CountryFlag country={country} size={20} />
                   {isImminent && (
                     <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary rounded-full animate-live-pulse" />
                   )}
@@ -169,11 +164,6 @@ const HeaderSection = ({ nextRace, isOffline }: HeaderSectionProps) => {
             </div>
           </F1Card>
         )}
-      </div>
-      
-      {/* Page Selector - Only on tablet and mobile */}
-      <div className="pt-0.5">
-        <PageSelector />
       </div>
       
       {/* Offline Alert */}

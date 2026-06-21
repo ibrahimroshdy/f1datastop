@@ -1,21 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { 
-  Users,
-  X,
-  User,
-  LogIn,
-  BarChart3,
-  Calendar as CalendarIcon,
-  LayoutDashboard,
-  Settings,
-  Caravan,
+import { Link, useLocation } from "react-router-dom";
+import {
   ChevronRight,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Settings,
+  X,
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import type { LucideIcon } from "lucide-react";
+import { navGroups } from "@/config/navigation";
 import { useIsMediumOrSmaller } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
 import { useDeveloper } from "@/context/DeveloperContext";
@@ -31,6 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { AdSenseUnit } from "@/components/ads/AdSenseUnit";
 import { adsenseSlots } from "@/config/adsense";
+import { ThemeSelector } from "@/components/theme/ThemeToggle";
 
 interface SidebarProps {
   sidebarOpen: boolean;
@@ -63,26 +59,38 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
     onCollapseChange?.(isCollapsed);
   }, [isCollapsed, onCollapseChange]);
 
-  const mainNavigation = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Race Calendar", href: "/calendar", icon: CalendarIcon },
-  ];
+  type SidebarNavItem = { name: string; href: string; icon: LucideIcon };
 
-  const protectedNavigation = [
-    { name: "Race Analysis", href: "/race-analysis", icon: BarChart3 },
-    { name: "Drivers", href: "/drivers", icon: Users },
-    { name: "Constructors", href: "/constructors", icon: Caravan },
-  ];
+  const sidebarGroups = navGroups.map((group) => ({
+    label: group.label,
+    items: group.items
+      .filter((item) => {
+        if (item.requiresAuth && !user) return false;
+        if (item.requiresGuest && user) return false;
+        return true;
+      })
+      .map(
+        (item): SidebarNavItem => ({
+          name: item.label,
+          href: item.href,
+          icon: item.icon,
+        }),
+      ),
+  }));
 
-  // Create a new array for auth navigation based on user status and developer mode
-  const authNavigation = user 
-    ? isDeveloperMode
-      ? [
-          { name: "Profile", href: "/profile", icon: User },
-          { name: "Developers PitStop", href: "/developers", icon: Settings }
-        ]
-      : [{ name: "Profile", href: "/profile", icon: User }]
-    : [{ name: "Login / Signup", href: "/auth/login", icon: LogIn }];
+  const accountGroup = sidebarGroups.find((g) => g.label === "ACCOUNT");
+  if (accountGroup && user && isDeveloperMode) {
+    accountGroup.items.push({
+      name: "Developers",
+      href: "/developers",
+      icon: Settings,
+    });
+  }
+
+  const isNavActive = (href: string) =>
+    pathname === href ||
+    (href !== "/" && pathname.startsWith(`${href}/`)) ||
+    (href === "/constructors" && pathname.startsWith("/teams/"));
 
   // Close sidebar when clicking outside on mobile/medium
   useEffect(() => {
@@ -117,7 +125,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
     isActive,
     isDeveloper = false 
   }: { 
-    item: typeof mainNavigation[0]; 
+    item: SidebarNavItem; 
     isActive: boolean;
     isDeveloper?: boolean;
   }) => {
@@ -147,12 +155,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
               )
         )}
       >
-        {/* Active indicator - red bar on left */}
-        {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full" />
-        )}
-        
-        <item.icon 
+        <item.icon
           className={cn(
             "h-4 w-4 shrink-0 transition-colors duration-200",
             isActive 
@@ -281,7 +284,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
                   F1 DataStop
                 </span>
                 <span className="text-[9px] text-muted-foreground/60 font-medium tracking-wider uppercase">
-                  Race Analytics
+                  Pit Wall
                 </span>
               </div>
             )}
@@ -310,80 +313,55 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
             "space-y-4",
             isCollapsed ? "px-2" : "px-3"
           )}>
-            {/* Main navigation */}
-            <div className="space-y-1">
-              {mainNavigation.map((item) => {
-                const isActive = pathname === item.href || 
-                  (item.href !== "/" && pathname.startsWith(item.href + "/"));
-                return (
-                  <NavItem key={item.name} item={item} isActive={isActive} />
-                );
-              })}
-            </div>
-
-            {/* Divider / Section header */}
-            <SectionHeader>F1 Information</SectionHeader>
-            
-            {/* Protected navigation section */}
-            <div className="space-y-1">
-              {protectedNavigation.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href.split('/')[1] + "/");
-                return (
-                  <NavItem key={item.name} item={item} isActive={isActive} />
-                );
-              })}
-            </div>
-
-            {/* Divider / Section header */}
-            <SectionHeader>Account</SectionHeader>
-
-            {/* Authentication navigation section */}
-            <div className="space-y-1">
-              {authNavigation.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-                const isDeveloperItem = item.name === "Developers PitStop";
-                return (
-                  <NavItem 
-                    key={item.name} 
-                    item={item} 
-                    isActive={isActive} 
-                    isDeveloper={isDeveloperItem}
-                  />
-                );
-              })}
-            </div>
+            {sidebarGroups.map((group) => (
+              <div key={group.label}>
+                <SectionHeader>{group.label}</SectionHeader>
+                <div className="space-y-1">
+                  {group.items.map((item) => (
+                    <NavItem
+                      key={item.href}
+                      item={item}
+                      isActive={isNavActive(item.href)}
+                      isDeveloper={item.href === "/developers"}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </ScrollArea>
 
         {/* Mobile navigation */}
         <div className="md:hidden flex-1 overflow-y-auto py-3">
-          <MobileNavigation
-            items={mainNavigation}
-            onNavClick={handleNavClick}
-          />
-          
-          {/* Protected navigation for mobile */}
-          <div className="px-4 py-2 mt-3">
-            <h2 className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/70">
-              F1 Information
-            </h2>
-          </div>
-          <MobileNavigation
-            items={protectedNavigation}
-            onNavClick={handleNavClick}
-          />
-          
-          {/* Auth navigation for mobile */}
-          <div className="px-4 py-2 mt-3">
-            <h2 className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/70">
-              Account
-            </h2>
-          </div>
-          <MobileNavigation
-            items={authNavigation}
-            onNavClick={handleNavClick}
-          />
+          {sidebarGroups.map((group) => (
+            <div key={group.label}>
+              <div className="px-4 py-2 mt-3">
+                <h2 className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/70">
+                  {group.label}
+                </h2>
+              </div>
+              <MobileNavigation items={group.items} onNavClick={handleNavClick} />
+            </div>
+          ))}
         </div>
+
+        {/* Theme — desktop sidebar footer */}
+        {!isMediumOrSmaller && (
+          <div
+            className={cn(
+              "flex shrink-0 items-center py-2",
+              isCollapsed ? "justify-center px-2" : "justify-between px-3",
+              isGlass ? "border-t border-white/5" : "border-t border-sidebar-border",
+            )}
+          >
+            {!isCollapsed && (
+              <span className="text-xs text-muted-foreground">Theme</span>
+            )}
+            <ThemeSelector
+              className={cn(isGlass && "glass-button")}
+            />
+          </div>
+        )}
 
         {/* Collapse toggle button - desktop only */}
         {!isMediumOrSmaller && (

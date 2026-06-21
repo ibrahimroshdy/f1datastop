@@ -17,6 +17,7 @@ import f1Logo from '@/assets/f1-logo.svg';
 import { useTheme } from '@/context/ThemeContext';
 import BuyMeCoffeeWidget from '@/components/common/BuyMeCoffeeWidget';
 import { cn } from '@/lib/utils';
+import { pageShellNarrow } from '@/lib/layout';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -26,7 +27,7 @@ const Login = () => {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signIn, resetPassword, signInWithX } = useAuth();
-  const { theme, isGlass } = useTheme();
+  const { theme } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,10 +59,10 @@ const Login = () => {
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-background">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <BuyMeCoffeeWidget size="large" position="fixed" />
       
-      <div className="w-full max-w-md">
+      <div className={cn(pageShellNarrow, "w-full")}>
         <div className="mb-6">
           <Link 
             to="/" 
@@ -89,11 +90,7 @@ const Login = () => {
           </a>
         </div>
         
-        <F1Card
-          variant={isGlass ? "glass" : "default"}
-          glassVariant={isGlass ? "panel" : "default"}
-          className={cn("w-full p-0", isGlass && "border-white/10")}
-        >
+        <F1Card variant="default" className="w-full p-0">
           <F1CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <img src={f1Logo} alt="F1 DataStop" className="w-16 h-16" />
@@ -204,7 +201,7 @@ const Login = () => {
                   <div className="absolute border-t border-border w-full"></div>
                   <span className={cn(
                     "relative px-2 text-xs text-muted-foreground",
-                    isGlass ? "bg-[var(--glass-bg)]" : "bg-background"
+                    "bg-background"
                   )}>OR</span>
                 </div>
 

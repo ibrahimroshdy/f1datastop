@@ -1,22 +1,10 @@
 import { toast } from "sonner";
-import { addFlagToRaceName } from '@/utils/countryUtils';
 import { ergastFetch, throttledErgastFetch } from "@/lib/api/f1ApiFetch";
 
 const ERGAST = "/f1";
 
 // Get the current F1 season year
 const getCurrentSeason = () => new Date().getFullYear();
-
-// Process race data to add emojis
-const processRaceData = (races: any[]) => {
-  return races.map(race => {
-    const countryName = race.Circuit?.Location?.country || "";
-    return {
-      ...race,
-      raceName: addFlagToRaceName(race.raceName, countryName)
-    };
-  });
-};
 
 // Fetch driver standings
 export const getDriverStandings = async (year?: number) => {
@@ -62,8 +50,7 @@ export const getRaceSchedule = async (year?: number) => {
     }
     const json = await response.json();
     const races = json.MRData?.RaceTable?.Races || [];
-    const data = processRaceData(races);
-    return { data, error: null };
+    return { data: races, error: null };
   } catch (error) {
     console.error("Failed to fetch race schedule:", error);
     return { data: [], error };

@@ -211,6 +211,17 @@ Keep all four, but every key is an env var; integration is a no-op when its key 
 
 ---
 
+## Phase 11 — UX / visual redesign (Pit Wall)
+
+> **Authoritative spec:** [`docs/F1_DATASTOP_DESIGN_MASTER.md`](docs/F1_DATASTOP_DESIGN_MASTER.md)  
+> **Execution checklist:** [`docs/DESIGN_IMPLEMENTATION_PLAN.md`](docs/DESIGN_IMPLEMENTATION_PLAN.md)
+
+Product redesign after migration: broadcast-grade visual system (F1 red, solid surfaces, Exo 2 typography), IA cleanup (Essentials/Advanced analysis, no data-source badges, no Season Comparison top tab), grouped nav — **dashboard widget set unchanged**, presentation-only refresh. **v1.1:** full page inventory (§22), 2026 entity registry (§23), Supabase career records replacing Wikipedia links (§24), Pit Wall icon system (§25), no-emoji policy (§26).
+
+Phases R0–R6 in design doc: tokens → chrome → dashboard polish → race analysis → new routes (/standings, profiles, /circuits, ⌘K) → entity DB. See implementation plan for 62-surface matrix, 84 §26 violations, and 14 suggested PRs.
+
+---
+
 ## Sequencing notes
 
 - Phases 0 → 1 → 2 are mechanical and low-risk; do them first and fast.

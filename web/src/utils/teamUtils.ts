@@ -14,47 +14,6 @@ export const getTeamColor = (constructorId: string) => {
   return teamColors[constructorId] || "bg-gray-600";
 };
 
-export const getCountryFlag = (location: string) => {
-  const countryFlags: Record<string, string> = {
-    "Monte Carlo": "🇲🇨",
-    "Monza": "🇮🇹",
-    "Melbourne": "🇦🇺",
-    "Sakhir": "🇧🇭",
-    "Jeddah": "🇸🇦",
-    "Shanghai": "🇨🇳",
-    "Miami": "🇺🇸",
-    "Imola": "🇮🇹",
-    "Monaco": "🇲🇨",
-    "Montreal": "🇨🇦",
-    "Barcelona": "🇪🇸",
-    "Spielberg": "🇦🇹",
-    "Silverstone": "🇬🇧",
-    "UK": "🇬🇧", 
-    "United Kingdom": "🇬🇧",
-    "Budapest": "🇭🇺",
-    "Spa": "🇧🇪",
-    "Zandvoort": "🇳🇱",
-    "Baku": "🇦🇿",
-    "Singapore": "🇸🇬",
-    "Suzuka": "🇯🇵",
-    "Losail": "🇶🇦",
-    "Austin": "🇺🇸",
-    "Mexico City": "🇲🇽",
-    "Sao Paulo": "🇧🇷",
-    "Las Vegas": "🇺🇸",
-    "Yas Marina": "🇦🇪",
-    "Abu Dhabi": "🇦🇪",
-    "UAE": "🇦🇪",
-    "United Arab Emirates": "🇦🇪"
-  };
-  for (const [key, value] of Object.entries(countryFlags)) {
-    if (location?.includes(key)) {
-      return value;
-    }
-  }
-  return "🏁"; // Default racing flag
-};
-
 export const removeFlag = (raceName: string) => {
   if (raceName && raceName.length > 3 && raceName.indexOf(' ') > 0) {
     return raceName.substring(raceName.indexOf(' ') + 1);

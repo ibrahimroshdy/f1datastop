@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { F1EmptyState } from "@/components/f1/F1EmptyState";
 import { StandingsSkeleton } from "@/components/f1/F1Skeleton";
@@ -25,6 +26,9 @@ export interface CombinedStandingsCardProps {
 }
 
 type StandingsTab = "combined" | "drivers" | "constructors";
+
+const underlineTabTrigger =
+  "rounded-none border-b-2 border-transparent bg-transparent px-2 py-1.5 text-xs shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none lg:px-3 lg:py-2 lg:text-sm";
 
 const CombinedStandingsCard = ({
   driverStandings,
@@ -96,14 +100,14 @@ const CombinedStandingsCard = ({
         <div className="mt-2">
           <Tabs value={tab} onValueChange={(v) => setTab(v as StandingsTab)}>
             <div className="w-full flex justify-center lg:justify-end">
-              <TabsList className="mx-auto lg:mx-0 h-9 lg:h-10 p-0.5 lg:p-1">
-                <TabsTrigger value="combined" className="gap-1 px-2 py-1 text-xs lg:px-3 lg:py-1.5 lg:text-sm">
+              <TabsList className="inline-flex h-auto mx-auto lg:mx-0 gap-0 rounded-none border-b border-border bg-transparent p-0">
+                <TabsTrigger value="combined" className={cn(underlineTabTrigger, "gap-1")}>
                   <Caravan className="h-4 w-4" /> Combined
                 </TabsTrigger>
-                <TabsTrigger value="drivers" className="gap-1 px-2 py-1 text-xs lg:px-3 lg:py-1.5 lg:text-sm">
+                <TabsTrigger value="drivers" className={cn(underlineTabTrigger, "gap-1")}>
                   <Users className="h-4 w-4" /> Drivers
                 </TabsTrigger>
-                <TabsTrigger value="constructors" className="gap-1 px-2 py-1 text-xs lg:px-3 lg:py-1.5 lg:text-sm">
+                <TabsTrigger value="constructors" className={cn(underlineTabTrigger, "gap-1")}>
                   <Caravan className="h-4 w-4" /> Constructors
                 </TabsTrigger>
               </TabsList>
@@ -173,6 +177,15 @@ const CombinedStandingsCard = ({
             </TabsContent>
           </Tabs>
         )}
+
+        <div className="pt-3 border-t border-border mt-3">
+          <Link
+            to="/standings"
+            className="text-xs lg:text-sm text-primary hover:underline"
+          >
+            View full standings →
+          </Link>
+        </div>
       </F1CardContent>
     </F1Card>
   );

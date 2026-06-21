@@ -201,7 +201,7 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
               <Progress 
                 value={progressPercentage} 
                 className="h-2"
-                indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-500"
+                indicatorClassName="bg-gradient-to-r from-primary to-primary/80"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{completedRaces.length} completed</span>
@@ -225,7 +225,7 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
             </div>
             
             <div className="space-y-2">
-              {upcomingSessions.map((item, index) => {
+              {upcomingSessions.map((item: { race: { round: string }; session?: { session_type?: string; shortName?: string } | null; date: Date; country: string; raceName: string }, index: number) => {
                 const timeUntil = formatDistance(item.date, now, { addSuffix: false });
                 const isNext = index === 0;
                 return (
@@ -240,7 +240,7 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
                     )}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <CountryFlag country={item.country} size={16} svg={true} />
+                      <CountryFlag country={item.country} size={16} />
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium truncate">{getRaceNameWithoutEmoji(item.raceName)}</div>
                         <div className="text-xs text-muted-foreground">{item.session?.shortName || 'Race'}</div>

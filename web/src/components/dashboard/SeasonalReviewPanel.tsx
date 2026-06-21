@@ -255,7 +255,7 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
             </div>
             
             <div className="space-y-1.5 md:space-y-2">
-              {upcomingSessions.length > 0 ? upcomingSessions.map((item, index) => {
+              {upcomingSessions.length > 0 ? upcomingSessions.map((item: { race: { round: string }; session?: { session_type?: string; shortName?: string } | null; date: Date; country: string; raceName: string }, index: number) => {
                 const timeUntil = formatDistance(item.date, now, { addSuffix: false });
                 const isNext = index === 0;
                 return (
@@ -270,7 +270,7 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
                   >
                     <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
                       <div className="shrink-0">
-                        <CountryFlag country={item.country} size={14} svg={true} />
+                        <CountryFlag country={item.country} size={14} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-xs sm:text-sm font-medium truncate">{getRaceNameWithoutEmoji(item.raceName)}</div>
@@ -337,7 +337,7 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
                     >
                       <div className="flex items-center gap-1.5 md:gap-2 min-w-0 flex-1">
                         <div className="shrink-0">
-                          <CountryFlag country={race.Circuit?.Location?.country || ''} size={12} svg={true} />
+                          <CountryFlag country={race.Circuit?.Location?.country || ''} size={12} />
                         </div>
                         <span className="text-xs sm:text-sm truncate">{getRaceNameWithoutEmoji(race.raceName)}</span>
                       </div>
