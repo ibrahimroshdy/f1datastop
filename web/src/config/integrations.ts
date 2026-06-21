@@ -21,10 +21,6 @@ export const adsenseSlots = {
   sidebar: env("VITE_ADSENSE_SLOT_SIDEBAR"),
 } as const;
 
-// ─── Maps ────────────────────────────────────────────────────────────────────
-export const mapboxToken = env("VITE_MAPBOX_TOKEN");
-export const isMapboxEnabled = mapboxToken.length > 0;
-
 // ─── reCAPTCHA (public site key) ─────────────────────────────────────────────
 export const recaptchaSiteKey = env("VITE_RECAPTCHA_SITE_KEY");
 export const isRecaptchaEnabled = recaptchaSiteKey.length > 0;
