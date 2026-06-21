@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useTheme } from "@/context/ThemeContext";
 import {
   F1Card,
@@ -86,7 +87,8 @@ const Constructors = () => {
     <div className={pageShell}>
       <div className={cn(pageStack, "animate-fade-in")}>
         <PageHeader
-          title="F1 Teams"
+          eyebrow={`${selectedYear} Season`}
+          title="Teams"
           description={`Formula 1 constructors for the ${selectedYear} season`}
           actions={<YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />}
         />
@@ -142,7 +144,7 @@ const Constructors = () => {
                   variant={cardVariant}
                   glassVariant={glassVariant}
                   className={cn(
-                    "overflow-hidden border-t-4 p-0 hover:shadow-md transition-shadow",
+                    "overflow-hidden border-t-[3px] p-0 hover:shadow-md transition-shadow",
                     isGlass ? "border-white/10" : "border-border"
                   )}
                   style={{ borderTopColor: teamColor }}
@@ -174,7 +176,12 @@ const Constructors = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           <F1CardTitle className="text-xl !font-semibold">
-                            {constructor.Constructor.name}
+                            <Link
+                              to={`/teams/${constructor.Constructor.constructorId}`}
+                              className="hover:text-primary transition-colors"
+                            >
+                              {constructor.Constructor.name}
+                            </Link>
                           </F1CardTitle>
                           {teamIsChampion && selectedYear < currentYear && (
                             <Badge className="bg-yellow-500 text-black">Champion</Badge>

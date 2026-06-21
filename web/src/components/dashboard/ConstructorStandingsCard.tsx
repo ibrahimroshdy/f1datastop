@@ -97,7 +97,7 @@ const ConstructorStandingsCard = ({
                       <Progress
                         value={(points / leader) * 100}
                         className="h-2 bg-muted"
-                        indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                        indicatorClassName="bg-gradient-to-r from-primary to-primary/70"
                       />
                     </div>
                   </TableCell>
@@ -115,10 +115,10 @@ const ConstructorStandingsCard = ({
             })}
           </TableBody>
         </Table>
-        <div className="flex items-center justify-center gap-2 pt-3 border-t border-dashed border-purple-500/30">
-          <div className="w-2 h-2 rounded-full bg-purple-500/50" />
+        <div className="flex items-center justify-center gap-2 pt-3 border-t border-border">
+          <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
           <span className="text-xs text-muted-foreground">Constructor Championship</span>
-          <div className="w-2 h-2 rounded-full bg-purple-500/50" />
+          <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
         </div>
       </F1CardContent>
     </F1Card>

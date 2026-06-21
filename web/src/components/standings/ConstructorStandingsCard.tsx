@@ -135,10 +135,10 @@ const ConstructorStandingsCard = ({
         })}
       </div>
 
-      <div className="flex items-center justify-center gap-2 pt-3 border-t border-dashed border-purple-500/30">
-        <div className="w-2 h-2 rounded-full bg-purple-500/50" />
+      <div className="flex items-center justify-center gap-2 pt-3 border-t border-border">
+        <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
         <span className="text-xs text-muted-foreground">Constructor Championship</span>
-        <div className="w-2 h-2 rounded-full bg-purple-500/50" />
+        <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
       </div>
     </>
   );
