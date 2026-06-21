@@ -14,21 +14,18 @@ export const getBaseTheme = (theme: ThemeMode): 'dark' | 'light' => {
 };
 
 // Theme configuration for display
-export const themeConfig: Record<ThemeMode, { label: string; description: string; icon: string }> = {
+export const themeConfig: Record<ThemeMode, { label: string; description: string }> = {
   light: {
     label: 'Light',
     description: 'Clean light theme',
-    icon: '☀️',
   },
   dark: {
     label: 'Dark',
     description: 'Pure black dark theme',
-    icon: '🌙',
   },
   'dark-glass': {
-    label: 'Dark Glass',
+    label: 'Cockpit',
     description: 'Premium dark with glass effects',
-    icon: '🌑',
   },
 };
 

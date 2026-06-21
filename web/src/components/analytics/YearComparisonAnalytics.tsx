@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import MuiYearComparisonLapChart from "./MuiYearComparisonLapChart";
 import MuiYearComparisonPositionChart from "./MuiYearComparisonPositionChart";
 import MuiYearComparisonQualifyingChart from "./MuiYearComparisonQualifyingChart";
-import DataSourceBadge from "./DataSourceBadge";
 
 // Function to determine the most appropriate default years
 const getDefaultYears = () => {
@@ -102,7 +101,6 @@ const YearComparisonAnalytics = () => {
           <F1CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <F1CardTitle className="text-lg">Base Year</F1CardTitle>
-              <DataSourceBadge source="ergast" />
             </div>
             <F1CardDescription>Select the reference season and race</F1CardDescription>
           </F1CardHeader>
@@ -247,7 +245,6 @@ const YearComparisonAnalytics = () => {
             <F1CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <F1CardTitle className="text-base">Lap Time Comparison</F1CardTitle>
-                <DataSourceBadge source="ergast" />
               </div>
               <F1CardDescription className="text-xs">
                 Compare lap times between two different seasons
@@ -269,7 +266,6 @@ const YearComparisonAnalytics = () => {
             <F1CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <F1CardTitle className="text-base">Position Change Comparison</F1CardTitle>
-                <DataSourceBadge source="ergast" />
               </div>
               <F1CardDescription className="text-xs">
                 Compare how positions changed throughout races
@@ -291,7 +287,6 @@ const YearComparisonAnalytics = () => {
             <F1CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <F1CardTitle className="text-base">Qualifying Comparison</F1CardTitle>
-                <DataSourceBadge source="ergast" />
               </div>
               <F1CardDescription className="text-xs">
                 Compare qualifying times (Q1, Q2, Q3) between seasons

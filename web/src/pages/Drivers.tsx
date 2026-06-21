@@ -1,10 +1,11 @@
 
 import { useState } from "react";
-import MainLayout from "@/components/layout/MainLayout";
 import { useDriverStandings, useAllDriverResultsBySeason } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "@/context/ThemeContext";
-import { F1Card } from "@/components/f1";
+import { F1Card, PageHeader } from "@/components/f1";
+import { pageShell, pageStack } from "@/lib/layout";
+import { cn } from "@/lib/utils";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import DriverCard from "@/components/drivers/DriverCard";
@@ -60,15 +61,13 @@ const Drivers = () => {
   }
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">F1 Drivers</h1>
-            <p className="text-muted-foreground">Formula 1 drivers for the {selectedYear} season</p>
-          </div>
-          <YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />
-        </div>
+    <div className={pageShell}>
+      <div className={cn(pageStack, "animate-fade-in")}>
+        <PageHeader
+          title="F1 Drivers"
+          description={`Formula 1 drivers for the ${selectedYear} season`}
+          actions={<YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />}
+        />
 
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -127,7 +126,7 @@ const Drivers = () => {
           </div>
         )}
       </div>
-    </MainLayout>
+    </div>
   );
 };
 

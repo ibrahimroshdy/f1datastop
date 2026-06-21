@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import type { ErgastDriverStandingRow } from "@/lib/f1/types";
 import type { DriverRaceResult } from "./driverCardTypes";
 import DriverPositionChart from "./DriverPositionChart";
+import DriverCareerPanel from "./DriverCareerPanel";
 
 interface DriverStatsPanelProps {
   driver: ErgastDriverStandingRow;
@@ -258,7 +259,7 @@ const DriverStatsPanel = ({
                       )}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <CountryFlag country={race.country || ""} size={14} svg />
+                        <CountryFlag country={race.country || ""} size={14} />
                         <span
                           className={cn(
                             "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold shrink-0",
@@ -297,21 +298,11 @@ const DriverStatsPanel = ({
         </div>
       )}
 
-      {driver.Driver.url && (
-        <a
-          href={driver.Driver.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            "block text-center text-sm py-2 rounded-lg transition-colors",
-            isGlass
-              ? "bg-white/5 hover:bg-white/10 text-primary"
-              : "bg-muted hover:bg-accent text-primary",
-          )}
-        >
-          View Wikipedia Profile →
-        </a>
-      )}
+      <DriverCareerPanel
+        ergastId={driver.Driver.driverId}
+        compact
+        className="pt-1 border-t border-border/40"
+      />
     </div>
   );
 };

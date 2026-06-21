@@ -1,13 +1,14 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useDeveloper } from '@/context/DeveloperContext';
-import MainLayout from '@/components/layout/MainLayout';
 import {
   F1Card,
   F1CardContent,
   F1CardDescription,
   F1CardHeader,
   F1CardTitle,
+  PageHeader,
 } from '@/components/f1';
+import { pageShell, pageStack } from '@/lib/layout';
 import { Settings, Code, Terminal, Database, ExternalLink, LayoutTemplate, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/context/ThemeContext';
@@ -67,19 +68,17 @@ const Developers = () => {
   ];
 
   return (
-    <MainLayout>
-      <div className="container max-w-6xl py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Developers PitStop 🛠️</h1>
-            <p className="text-muted-foreground mt-1">
-              Advanced tools and settings for developers
-            </p>
-          </div>
-          <div className="px-3 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 rounded-full text-sm font-medium">
-            Developer Mode
-          </div>
-        </div>
+    <div className={pageShell}>
+      <div className={cn(pageStack, "animate-fade-in")}>
+        <PageHeader
+          title="Developers PitStop"
+          description="Advanced tools and settings for developers"
+          actions={
+            <div className="px-3 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 rounded-full text-sm font-medium">
+              Developer Mode
+            </div>
+          }
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {developerTools.map((tool) => (
@@ -148,7 +147,7 @@ const Developers = () => {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 };
 

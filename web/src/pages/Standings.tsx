@@ -1,13 +1,13 @@
 
 import { useState } from "react";
-import MainLayout from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCountryFlag } from "@/utils/countryUtils";
+import CountryFlag from "@/components/common/CountryFlag";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import { pageShell, pageStack } from "@/lib/layout";
 import {
   F1Card,
   F1CardContent,
@@ -15,6 +15,7 @@ import {
   F1CardTitle,
   F1EmptyState,
   F1ErrorState,
+  PageHeader,
 } from "@/components/f1";
 
 type DriverStandingRow = {
@@ -29,6 +30,11 @@ type ConstructorStandingRow = {
   points: string;
   Constructor: { name: string; nationality?: string };
 };
+
+const currentSeason = new Date().getFullYear();
+
+const underlineTabTrigger =
+  "rounded-none border-b-2 border-transparent bg-transparent px-4 pb-2 pt-1 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
 
 const Standings = () => {
   const [activeTab, setActiveTab] = useState("drivers");
@@ -54,25 +60,28 @@ const Standings = () => {
   );
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight">Championship Standings</h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Current Formula 1 season standings
-          </p>
-        </div>
+    <div className={pageShell}>
+      <div className={cn(pageStack, "animate-fade-in")}>
+        <PageHeader
+          eyebrow={`${currentSeason} Season`}
+          title="Championship Standings"
+          description="Current Formula 1 season standings"
+        />
 
         <Tabs defaultValue="drivers" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full md:w-[400px] grid-cols-2">
-            <TabsTrigger value="drivers">Driver Standings</TabsTrigger>
-            <TabsTrigger value="constructors">Constructor Standings</TabsTrigger>
+          <TabsList className="inline-flex h-auto w-full justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
+            <TabsTrigger value="drivers" className={underlineTabTrigger}>
+              Driver Standings
+            </TabsTrigger>
+            <TabsTrigger value="constructors" className={underlineTabTrigger}>
+              Constructor Standings
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="drivers" className="mt-6">
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="w-full">
               <F1CardHeader>
-                <F1CardTitle>Drivers Championship {new Date().getFullYear()}</F1CardTitle>
+                <F1CardTitle>Drivers Championship {currentSeason}</F1CardTitle>
               </F1CardHeader>
               <F1CardContent className="overflow-auto">
                 {isDriversError ? (
@@ -140,9 +149,7 @@ const Standings = () => {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {driver.Constructors[0]?.nationality && (
-                                <span className="text-lg">
-                                  {getCountryFlag(driver.Constructors[0].nationality)}
-                                </span>
+                                <CountryFlag country={driver.Constructors[0].nationality} size={18} />
                               )}
                               <span>{driver.Constructors[0].name}</span>
                             </div>
@@ -160,7 +167,7 @@ const Standings = () => {
           <TabsContent value="constructors" className="mt-6">
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="w-full">
               <F1CardHeader>
-                <F1CardTitle>Constructors Championship {new Date().getFullYear()}</F1CardTitle>
+                <F1CardTitle>Constructors Championship {currentSeason}</F1CardTitle>
               </F1CardHeader>
               <F1CardContent className="overflow-auto">
                 {isConstructorsError ? (
@@ -215,9 +222,7 @@ const Standings = () => {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {constructor.Constructor?.nationality && (
-                                <span className="text-lg">
-                                  {getCountryFlag(constructor.Constructor.nationality)}
-                                </span>
+                                <CountryFlag country={constructor.Constructor.nationality} size={18} />
                               )}
                               <span className="font-medium">{constructor.Constructor.name}</span>
                             </div>
@@ -233,7 +238,7 @@ const Standings = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </MainLayout>
+    </div>
   );
 };
 

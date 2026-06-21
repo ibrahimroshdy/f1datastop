@@ -159,7 +159,7 @@ export default function RaceCalendarListView({
                             <span className="rounded-md bg-muted/90 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground tabular-nums sm:text-[11px]">
                               R{race.round}
                             </span>
-                            <CountryFlag country={country} size={22} svg className="shrink-0" />
+                            <CountryFlag country={country} size={22} className="shrink-0" />
                           </div>
                           <div className="min-w-0 flex-1 space-y-1.5">
                             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">

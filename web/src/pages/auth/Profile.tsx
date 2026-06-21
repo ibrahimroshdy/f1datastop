@@ -3,7 +3,6 @@ import { useAuth } from '@/context/AuthContext';
 import { trackEvent } from '@/integrations/google-analytics/GA4.tsx';
 import useAnalytics from '@/hooks/useAnalytics';
 import { useDeveloper } from '@/context/DeveloperContext';
-import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +14,10 @@ import {
   F1CardFooter,
   F1CardHeader,
   F1CardTitle,
+  PageHeader,
 } from '@/components/f1';
+import { pageShell, pageStack } from '@/lib/layout';
+import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,10 +173,10 @@ const Profile = () => {
   }
 
   return (
-    <MainLayout>
-      <div className="container max-w-4xl py-6 space-y-6">
-        <h1 className="text-3xl font-bold">Your Profile</h1>
-        
+    <div className={cn(pageShell, "max-w-4xl")}>
+      <div className={cn(pageStack, "animate-fade-in")}>
+        <PageHeader title="Your Profile" />
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Profile Overview */}
           <div className="md:col-span-1">
@@ -257,7 +259,7 @@ const Profile = () => {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 };
 

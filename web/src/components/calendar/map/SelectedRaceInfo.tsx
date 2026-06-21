@@ -90,7 +90,7 @@ const SelectedRaceInfo = ({ race, onClose }: SelectedRaceInfoProps) => {
     >
       <F1CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-2">
         <div className="flex min-w-0 items-center gap-2">
-          <CountryFlag country={race.Circuit.Location.country} size={24} svg className="shrink-0" />
+          <CountryFlag country={race.Circuit.Location.country} size={24} className="shrink-0" />
           <F1CardTitle className="text-left text-base font-semibold leading-tight">
             {getRaceNameWithoutEmoji(race.raceName)}
           </F1CardTitle>

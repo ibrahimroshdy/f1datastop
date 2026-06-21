@@ -185,7 +185,7 @@ const QualifyingResultsCard = () => {
       <F1Card
         variant={surfaceVariant}
         glassVariant={surfaceGlass}
-        className={cn("h-full overflow-hidden p-0", isGlass && "border-white/10")}
+        className={cn("h-full min-h-[280px] overflow-hidden p-0", isGlass && "border-white/10")}
       >
         <F1CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between gap-2">

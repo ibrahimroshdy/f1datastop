@@ -1,8 +1,8 @@
 import { Helmet } from "react-helmet";
-import MainLayout from "@/components/layout/MainLayout";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { F1Card, F1CardContent } from "@/components/f1";
+import { pageShellNarrow } from "@/lib/layout";
 
 const Privacy = () => {
   const { isGlass } = useTheme();
@@ -10,8 +10,7 @@ const Privacy = () => {
   const calloutGlass = isGlass ? ("subtle" as const) : ("default" as const);
 
   return (
-    <MainLayout>
-      <div className="mx-auto max-w-4xl space-y-6 py-6">
+      <div className={cn(pageShellNarrow, "space-y-6 py-6")}>
         <Helmet>
           <title>Privacy Policy | F1 DataStop</title>
           <meta name="description" content="F1 DataStop privacy policy and data collection practices" />
@@ -115,7 +114,6 @@ const Privacy = () => {
           </p>
         </div>
       </div>
-    </MainLayout>
   );
 };
 

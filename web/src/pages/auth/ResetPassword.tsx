@@ -14,8 +14,8 @@ import {
 } from '@/components/f1';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
 import f1Logo from '@/assets/f1-logo.svg';
-import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { pageShellNarrow } from '@/lib/layout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -35,7 +35,6 @@ const ResetPassword = () => {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordMismatchError, setPasswordMismatchError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
-  const { isGlass } = useTheme();
 
   useEffect(() => {
     if (hashHasRecoveryType()) {
@@ -99,8 +98,8 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
-      <div className="w-full max-w-md">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className={cn(pageShellNarrow, "w-full")}>
         <div className="mb-6">
           <Link
             to="/"
@@ -115,11 +114,7 @@ const ResetPassword = () => {
           <img src={f1Logo} alt="F1 DataStop" className="w-20 h-20" />
         </div>
 
-        <F1Card
-          variant={isGlass ? 'glass' : 'default'}
-          glassVariant={isGlass ? 'panel' : 'default'}
-          className={cn('w-full p-0', isGlass && 'border-white/10')}
-        >
+        <F1Card variant="default" className="w-full p-0">
           <F1CardHeader className="space-y-1 text-center">
             <F1CardTitle className="!text-2xl justify-center">
               {recoveryMode ? 'Set new password' : 'Request password reset'}

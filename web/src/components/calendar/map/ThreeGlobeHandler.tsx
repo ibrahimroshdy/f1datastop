@@ -4,29 +4,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Race, GlobeDetailLevel } from './types';
 import countriesData from './WorldMapData';
-
-// Map of country names to emoji flags for use in the globe tooltip
-const COUNTRY_EMOJIS: Record<string, string> = {
-  Australia: "🇦🇺", Austria: "🇦🇹", Azerbaijan: "🇦🇿", Bahrain: "🇧🇭", 
-  Belgium: "🇧🇪", Brazil: "🇧🇷", Canada: "🇨🇦", China: "🇨🇳", 
-  France: "🇫🇷", Germany: "🇩🇪", Hungary: "🇭🇺", Italy: "🇮🇹", 
-  Japan: "🇯🇵", Mexico: "🇲🇽", Monaco: "🇲🇨", Netherlands: "🇳🇱", 
-  Portugal: "🇵🇹", Qatar: "🇶🇦", Russia: "🇷🇺", "Saudi Arabia": "🇸🇦", 
-  Singapore: "🇸🇬", Spain: "🇪🇸", "United Arab Emirates": "🇦🇪", 
-  "United Kingdom": "🇬🇧", "United States": "🇺🇸", USA: "🇺🇸", 
-  Miami: "🇺🇸", "Las Vegas": "🇺🇸", "Abu Dhabi": "🇦🇪"
-};
-
-// Helper function to get emoji flag from country name for the pointLabel HTML
-const getEmojiFlag = (country: string): string => {
-  if (COUNTRY_EMOJIS[country]) return COUNTRY_EMOJIS[country];
-  
-  for (const [key, emoji] of Object.entries(COUNTRY_EMOJIS)) {
-    if (country.includes(key)) return emoji;
-  }
-  
-  return "🏁"; // Default racing flag
-};
+import { getCountryCode } from '@/components/common/CountryFlag';
 
 interface ThreeGlobeHandlerProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -277,12 +255,14 @@ const ThreeGlobeHandler = ({
         .pointRadius('size')
         .pointAltitude(0.01)
         .pointLabel((d: { race: Race }) => {
-          const flag = getEmojiFlag(d.race.Circuit.Location.country);
+          const code = getCountryCode(d.race.Circuit.Location.country) || '';
+          const locality = d.race.Circuit.Location.locality;
+          const country = d.race.Circuit.Location.country;
           return `
             <div class="bg-black/80 backdrop-blur-sm p-2 rounded-md text-white border border-gray-700">
               <div class="font-bold">${d.race.raceName}</div>
               <div class="text-gray-300">${d.race.date}</div>
-              <div class="text-gray-300">${flag} ${d.race.Circuit.Location.locality}, ${d.race.Circuit.Location.country}</div>
+              <div class="text-gray-300">${code ? `[${code}] ` : ''}${locality}, ${country}</div>
               <div class="text-gray-400 text-xs">Round ${d.race.round}</div>
             </div>
           `;

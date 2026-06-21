@@ -18,6 +18,7 @@ import { isRecaptchaEnabled } from '@/config/integrations';
 import f1Logo from '@/assets/f1-logo.svg';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { pageShellNarrow } from '@/lib/layout';
 
 const Signup = () => {
   const [firstName, setFirstName] = useState('');
@@ -33,7 +34,7 @@ const Signup = () => {
   const [error, setError] = useState<string | null>(null);
   
   const { signUp, signInWithX } = useAuth();
-  const { theme, isGlass } = useTheme();
+  const { theme } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,25 +74,8 @@ const Signup = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-background">
-      {/* Buy Me A Coffee widget */}
-      <div className="fixed right-5 bottom-5 z-50">
-        <a 
-          href="https://www.buymeacoffee.com/f1datastop" 
-          target="_blank" 
-          rel="noopener noreferrer"
-        >
-          <img 
-            src="https://img.buymeacoffee.com/button-api/?text=Buy me a PitStop&emoji=🚦&slug=f1datastop&button_colour=dd4040&font_colour=ffffff&font_family=Lato&outline_colour=ffffff&coffee_colour=FFDD00" 
-            alt="Buy me a PitStop" 
-            style={{ width: "180px", height: "40px" }} 
-            width="180" 
-            height="40" 
-          />
-        </a>
-      </div>
-      
-      <div className="w-full max-w-md">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className={cn(pageShellNarrow, "w-full")}>
         <div className="mb-6">
           <Link 
             to="/" 
@@ -119,11 +103,7 @@ const Signup = () => {
           </a>
         </div>
         
-        <F1Card
-          variant={isGlass ? "glass" : "default"}
-          glassVariant={isGlass ? "panel" : "default"}
-          className={cn("w-full p-0", isGlass && "border-white/10")}
-        >
+        <F1Card variant="default" className="w-full p-0">
           <F1CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <img src={f1Logo} alt="F1 DataStop" className="w-16 h-16" />
@@ -278,7 +258,7 @@ const Signup = () => {
                 <div className="absolute border-t border-border w-full"></div>
                 <span className={cn(
                   "relative px-2 text-xs text-muted-foreground",
-                  isGlass ? "bg-[var(--glass-bg)]" : "bg-background"
+                  "bg-background"
                 )}>OR</span>
               </div>
 

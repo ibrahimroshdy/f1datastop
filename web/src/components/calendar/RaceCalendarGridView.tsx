@@ -109,7 +109,7 @@ export default function RaceCalendarGridView({
                 <div className={`h-0.5 w-full ${raceTypeColors[raceType]}`} />
                 <F1CardContent className="p-2 sm:p-2.5">
                   <div className="flex flex-col items-center text-center gap-1.5 sm:gap-2">
-                    <CountryFlag country={country} size={20} svg={true} />
+                    <CountryFlag country={country} size={20} />
                     <div className="w-full">
                       <h3 className="font-semibold text-xs sm:text-sm leading-tight truncate mb-0.5">
                         {raceName}

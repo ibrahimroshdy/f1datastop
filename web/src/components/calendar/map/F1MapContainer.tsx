@@ -109,7 +109,7 @@ const F1MapContainer = ({ selectedYear }: RaceMapProps) => {
   const getFilteredRaces = () => {
     if (!races || races.length === 0) return [];
     
-    return races.filter(race => {
+    return races.filter((race: Race) => {
       // Apply search filter
       if (searchTerm) {
         const searchTermLower = searchTerm.toLowerCase();

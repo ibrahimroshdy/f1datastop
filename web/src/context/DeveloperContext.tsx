@@ -48,7 +48,7 @@ export const DeveloperProvider = ({ children }: { children: ReactNode }) => {
     
     if (newCount >= 10) {
       if (!isDeveloperMode) {
-        toast('Developer mode activated! 🛠️', {
+        toast('Developer mode activated!', {
           duration: 3000,
         });
         setIsDeveloperMode(true);

@@ -71,7 +71,7 @@ const F1GlobeContainer = ({ selectedYear, onYearChange: _onYearChange }: RaceMap
   const getFilteredRaces = () => {
     if (!races || races.length === 0) return [];
     
-    return races.filter(race => {
+    return races.filter((race: Race) => {
       if (searchTerm) {
         const searchTermLower = searchTerm.toLowerCase();
         const raceNameMatch = race.raceName.toLowerCase().includes(searchTermLower);

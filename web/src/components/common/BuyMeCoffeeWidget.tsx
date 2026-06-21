@@ -29,7 +29,7 @@ const BuyMeCoffeeWidget = ({
     ? { width: 120, height: 26 }
     : { width: 180, height: 40 };
 
-  const buttonUrl = `https://img.buymeacoffee.com/button-api/?text=Buy me a PitStop&emoji=🚦&slug=f1datastop&button_colour=dd4040&font_colour=ffffff&font_family=Lato&outline_colour=ffffff&coffee_colour=FFDD00&count=${supporterCount}`;
+  const buttonUrl = `https://img.buymeacoffee.com/button-api/?text=Buy me a PitStop&slug=f1datastop&button_colour=dd4040&font_colour=ffffff&font_family=Lato&outline_colour=ffffff&coffee_colour=FFDD00&count=${supporterCount}`;
 
   const containerClasses = position === 'fixed' 
     ? "fixed right-5 bottom-5 z-50"

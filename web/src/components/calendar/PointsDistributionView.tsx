@@ -248,7 +248,7 @@ const PointsDistributionView = ({
                 <CountryFlag
                   country={race.country}
                   size={24}
-                  svg={true}
+                 
                   className="shrink-0"
                 />
 

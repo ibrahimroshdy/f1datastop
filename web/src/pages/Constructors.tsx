@@ -1,5 +1,4 @@
 import { useState } from "react";
-import MainLayout from "@/components/layout/MainLayout";
 import { useTheme } from "@/context/ThemeContext";
 import {
   F1Card,
@@ -7,7 +6,9 @@ import {
   F1CardFooter,
   F1CardHeader,
   F1CardTitle,
+  PageHeader,
 } from "@/components/f1";
+import { pageShell, pageStack } from "@/lib/layout";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import TeamLogo from "@/components/common/TeamLogo";
 import YearSelector from "@/components/common/YearSelector";
 import { cn } from "@/lib/utils";
+import TeamHeritagePanel from "@/components/constructors/TeamHeritagePanel";
 
 type ConstructorListEntry = {
   position: string;
@@ -81,15 +83,13 @@ const Constructors = () => {
   };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">F1 Teams</h1>
-            <p className="text-muted-foreground">Formula 1 constructors for the {selectedYear} season</p>
-          </div>
-          <YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />
-        </div>
+    <div className={pageShell}>
+      <div className={cn(pageStack, "animate-fade-in")}>
+        <PageHeader
+          title="F1 Teams"
+          description={`Formula 1 constructors for the ${selectedYear} season`}
+          actions={<YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />}
+        />
 
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -218,15 +218,14 @@ const Constructors = () => {
                     </div>
                   </F1CardContent>
                   
-                  <F1CardFooter className="flex justify-start border-t pt-4">
-                    <a 
-                      href={constructor.Constructor.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline"
-                    >
-                      View Team Profile
-                    </a>
+                  <F1CardFooter className="border-t pt-4">
+                    <TeamHeritagePanel
+                      constructorId={constructor.Constructor.constructorId}
+                      teamName={constructor.Constructor.name}
+                      teamColor={teamColor}
+                      compact
+                      className="w-full"
+                    />
                   </F1CardFooter>
                 </F1Card>
               );
@@ -234,7 +233,7 @@ const Constructors = () => {
           </div>
         )}
       </div>
-    </MainLayout>
+    </div>
   );
 };
 

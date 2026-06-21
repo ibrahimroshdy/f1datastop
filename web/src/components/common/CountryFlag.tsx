@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactCountryFlag from 'react-country-flag';
+import { Flag } from 'lucide-react';
 
 // Map of country names to their ISO 3166-1 alpha-2 codes for react-country-flag
 const countryToCode: { [key: string]: string } = {
@@ -85,7 +86,6 @@ interface CountryFlagProps {
   size?: number;
   className?: string;
   showName?: boolean;
-  svg?: boolean;
 }
 
 /**
@@ -129,36 +129,30 @@ const CountryFlag: React.FC<CountryFlagProps> = ({
   size = 20, 
   className = "", 
   showName = false,
-  svg = true
 }) => {
   const countryCode = getCountryCode(country);
   
   if (!countryCode) {
-    return <span className={`inline-block ${className}`}>🏁</span>;
+    return (
+      <Flag
+        className={`inline-block text-muted-foreground ${className}`}
+        style={{ width: `${size}px`, height: `${size}px` }}
+        aria-hidden
+      />
+    );
   }
   
   return (
     <span className={`inline-flex items-center ${className}`}>
-      {svg ? (
-        <ReactCountryFlag
-          countryCode={countryCode}
-          svg
-          style={{
-            width: `${size}px`,
-            height: 'auto',
-          }}
-          title={country}
-        />
-      ) : (
-        <ReactCountryFlag
-          countryCode={countryCode}
-          style={{
-            fontSize: `${size}px`,
-            lineHeight: `${size}px`,
-          }}
-          title={country}
-        />
-      )}
+      <ReactCountryFlag
+        countryCode={countryCode}
+        svg
+        style={{
+          width: `${size}px`,
+          height: 'auto',
+        }}
+        title={country}
+      />
       {showName && <span className="ml-2">{country}</span>}
     </span>
   );

@@ -163,7 +163,7 @@ const EmbedInfoPage: React.FC = () => {
       
       <footer className="mt-12 pt-6 border-t border-border text-center text-muted-foreground text-sm">
         <p>© {new Date().getFullYear()} F1 DataStop. All rights reserved.</p>
-        <p className="mt-1">Data sourced from the Ergast Developer API.</p>
+        <p className="mt-1">Formula 1 championship data updated throughout the season.</p>
         <p className="mt-1">
           <a 
             href="/" 

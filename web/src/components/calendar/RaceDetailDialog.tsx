@@ -82,7 +82,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         <DialogHeader className="pb-3">
           <DialogTitle className="flex items-center gap-2 pr-8">
             {race.Circuit?.Location?.country && (
-              <CountryFlag country={race.Circuit.Location.country} size={18} svg />
+              <CountryFlag country={race.Circuit.Location.country} size={18} />
             )}
             {getRaceNameWithoutEmoji(race.raceName)}
           </DialogTitle>

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { DeveloperProvider } from "@/context/DeveloperContext";
@@ -19,34 +19,34 @@ import RaceCalendar from "./pages/RaceCalendar";
 import RaceAnalysis from "./pages/RaceAnalysis";
 import Drivers from "./pages/Drivers";
 import Constructors from "./pages/Constructors";
+import DriverProfile from "./pages/DriverProfile";
+import TeamProfile from "./pages/TeamProfile";
+import Standings from "./pages/Standings";
+import Circuits from "./pages/Circuits";
 import Developers from "./pages/Developers";
 import NotFound from "./pages/NotFound";
+import MainLayout from "@/components/layout/MainLayout";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
 import ResetPassword from "./pages/auth/ResetPassword";
 import Privacy from "./pages/Privacy";
 import React, { Suspense } from "react";
+import { F1Skeleton } from "@/components/f1";
 
-// Initialize console filters to reduce noise
 if (typeof window !== 'undefined') {
   initConsoleFilters();
 }
 
 import { clarityProjectId, isClarityEnabled } from '@/config/integrations';
 
-// Create a simple Auth callback handler component
 const AuthCallback = () => {
   const [message, setMessage] = useState("Processing authentication...");
   
   useEffect(() => {
-    // Handle the OAuth callback
     const handleAuthCallback = async () => {
       try {
-        // Just process the authentication without expecting specific parameters
         setMessage("Authenticating with Twitter...");
-        
-        // Supabase handles the token exchange internally when getting the session
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -54,39 +54,26 @@ const AuthCallback = () => {
           setTimeout(() => window.location.href = '/auth/login', 2000);
         } else if (data.session) {
           setMessage("Authentication successful! Redirecting...");
-          
-          // Get the user data to check if this is a Twitter authentication
           const { data: userData } = await supabase.auth.getUser();
           
-          if (userData && userData.user) {
-            const user = userData.user;
-            const provider = user.app_metadata?.provider;
-            
-            // If this is a Twitter login, notify Slack
-            if (provider === 'twitter') {
-              try {
-                await notifySlackAboutTwitterSignin(user);
-              } catch (notifyError) {
-                // Don't fail the auth flow if notification fails
-              }
+          if (userData?.user?.app_metadata?.provider === 'twitter') {
+            try {
+              await notifySlackAboutTwitterSignin(userData.user);
+            } catch {
+              /* non-blocking */
             }
           }
           
           setTimeout(() => window.location.href = '/', 1000);
         } else {
           setMessage("Authentication in progress...");
-          // If no session yet, try checking again in a moment
           setTimeout(() => {
             supabase.auth.getSession().then(({ data }) => {
-              if (data.session) {
-                window.location.href = '/';
-              } else {
-                window.location.href = '/auth/login';
-              }
+              window.location.href = data.session ? '/' : '/auth/login';
             });
           }, 3000);
         }
-      } catch (err) {
+      } catch {
         setMessage("An unexpected error occurred. Please try again.");
         setTimeout(() => window.location.href = '/auth/login', 2000);
       }
@@ -96,17 +83,19 @@ const AuthCallback = () => {
   }, []);
   
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary border-opacity-50 mx-auto mb-4"></div>
-        <h2 className="text-xl font-semibold mb-2">{message}</h2>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm space-y-4 text-center">
+        <F1Skeleton className="mx-auto h-12 w-12 rounded-full" />
+        <F1Skeleton className="mx-auto h-6 w-48" />
+        <F1Skeleton className="mx-auto h-4 w-64" />
+        <p className="sr-only">{message}</p>
+        <h2 className="text-xl font-semibold">{message}</h2>
         <p className="text-muted-foreground">You will be redirected shortly.</p>
       </div>
     </div>
   );
 };
 
-// Error boundary for analytics providers
 const ErrorBoundaryWrapper = ({ children }: { children: React.ReactNode }) => {
   try {
     return <>{children}</>;
@@ -121,10 +110,22 @@ const queryClient = new QueryClient({
     queries: {
       retry: 2,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 5,
     },
   },
 });
+
+const RaceInfoRedirect = () => {
+  const { year, round } = useParams();
+  const target =
+    year && round ? `/race-analysis/${year}/${round}` : "/race-analysis";
+  return <Navigate to={target} replace />;
+};
+
+const ConstructorSlugRedirect = () => {
+  const { slug } = useParams();
+  return <Navigate to={slug ? `/teams/${slug}` : "/constructors"} replace />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -142,66 +143,69 @@ const App = () => (
                         <ClarityStatus projectId={clarityProjectId} />
                       )}
                       <Routes>
-                        {/* Public Routes */}
-                        <Route path="/" element={<Index />} />
-                        <Route path="/calendar" element={<RaceCalendar />} />
+                        {/* Shell routes */}
+                        <Route element={<MainLayout />}>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/calendar" element={<RaceCalendar />} />
+                          <Route path="/standings" element={<Standings />} />
+                          <Route path="/circuits" element={<Circuits />} />
+                          <Route path="/race-analysis" element={<RaceAnalysis />} />
+                          <Route path="/race-analysis/:year/:round" element={<RaceAnalysis />} />
+                          <Route path="/drivers" element={<Drivers />} />
+                          <Route path="/drivers/:slug" element={<DriverProfile />} />
+                          <Route path="/teams/:slug" element={<TeamProfile />} />
+                          <Route path="/constructors/:slug" element={<ConstructorSlugRedirect />} />
+                          <Route path="/constructors" element={<Constructors />} />
+                          <Route path="/privacy" element={<Privacy />} />
+                          <Route
+                            path="/infographic/:year/:round"
+                            element={
+                              <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh]"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary" /></div>}>
+                                {React.createElement(React.lazy(() => import('./pages/RaceInfographicPage')))}
+                              </Suspense>
+                            }
+                          />
+                          <Route element={<ProtectedRoute />}>
+                            <Route path="/profile" element={<Profile />} />
+                            <Route path="/developers" element={<Developers />} />
+                          </Route>
+                          <Route path="*" element={<NotFound />} />
+                        </Route>
+
+                        {/* Outside shell */}
                         <Route path="/auth/callback" element={<AuthCallback />} />
-                        {/* Outside PublicOnlyRoute: recovery links establish a session before password change */}
                         <Route path="/auth/reset-password" element={<ResetPassword />} />
-                        <Route path="/privacy" element={<Privacy />} />
-                        {/* Race Infographic Page */}
-                        <Route 
-                          path="/infographic/:year/:round" 
-                          element={<Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div></div>}>
-                            {React.createElement(React.lazy(() => import('./pages/RaceInfographicPage')))}
-                          </Suspense>} 
-                        />
-                        {/* Race Analysis - Unified page */}
-                        <Route path="/race-analysis" element={<RaceAnalysis />} />
-                        <Route path="/race-analysis/:year/:round" element={<RaceAnalysis />} />
-                        
-                        {/* Legacy Analytics route - redirect to race-analysis */}
                         <Route path="/analytics" element={<Navigate to="/race-analysis" replace />} />
-                        
-                        {/* Make Drivers and Constructors public */}
-                        <Route path="/drivers" element={<Drivers />} />
-                        <Route path="/constructors" element={<Constructors />} />
-                        
-                        {/* Embed Routes */}
-                        <Route 
-                          path="/embed" 
-                          element={<Suspense fallback={<div>Loading...</div>}>
-                            {React.createElement(React.lazy(() => import('./pages/embed')))}
-                          </Suspense>} 
-                        />
-                        <Route 
-                          path="/embed/driver-standings" 
-                          element={<Suspense fallback={<div>Loading...</div>}>
-                            {React.createElement(React.lazy(() => import('./pages/embed/driver-standings')))}
-                          </Suspense>} 
-                        />
-                        <Route 
-                          path="/embed/constructor-standings" 
-                          element={<Suspense fallback={<div>Loading...</div>}>
-                            {React.createElement(React.lazy(() => import('./pages/embed/constructor-standings')))}
-                          </Suspense>} 
-                        />
-                        
-                        {/* Auth routes (only accessible if not logged in) */}
+                        <Route path="/race-info/:year/:round" element={<RaceInfoRedirect />} />
+                        <Route path="/race-info" element={<Navigate to="/race-analysis" replace />} />
                         <Route element={<PublicOnlyRoute />}>
                           <Route path="/auth/login" element={<Login />} />
                           <Route path="/auth/signup" element={<Signup />} />
                         </Route>
-                        
-                        {/* Protected routes with blur effect for non-authenticated users */}
-                        <Route element={<ProtectedRoute />}>
-                          {/* Legacy Race Info routes - redirect to race-analysis */}
-                          <Route path="/race-info/:year/:round" element={<Navigate to="/race-analysis" replace />} />
-                          <Route path="/race-info" element={<Navigate to="/race-analysis" replace />} />
-                          <Route path="/profile" element={<Profile />} />
-                          <Route path="/developers" element={<Developers />} />
-                        </Route>
-                        <Route path="*" element={<NotFound />} />
+                        <Route
+                          path="/embed"
+                          element={
+                            <Suspense fallback={<div>Loading...</div>}>
+                              {React.createElement(React.lazy(() => import('./pages/embed')))}
+                            </Suspense>
+                          }
+                        />
+                        <Route
+                          path="/embed/driver-standings"
+                          element={
+                            <Suspense fallback={<div>Loading...</div>}>
+                              {React.createElement(React.lazy(() => import('./pages/embed/driver-standings')))}
+                            </Suspense>
+                          }
+                        />
+                        <Route
+                          path="/embed/constructor-standings"
+                          element={
+                            <Suspense fallback={<div>Loading...</div>}>
+                              {React.createElement(React.lazy(() => import('./pages/embed/constructor-standings')))}
+                            </Suspense>
+                          }
+                        />
                       </Routes>
                     </AnalyticsProvider>
                   </ClarityProvider>

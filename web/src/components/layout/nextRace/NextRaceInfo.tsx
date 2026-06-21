@@ -36,7 +36,7 @@ const NextRaceInfo = () => {
           {nextSession ? `Next ${nextSession.shortName}:` : 'Next Race:'}
         </span>
         <span className="inline-flex items-center gap-1 mx-1">
-          <CountryFlag country={country} size={16} svg={true} />
+          <CountryFlag country={country} size={16} />
           <span>{raceName}</span>
         </span>
         {nextSession && (

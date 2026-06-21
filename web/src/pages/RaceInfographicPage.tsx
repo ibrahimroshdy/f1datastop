@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from "react-router-dom";
-import MainLayout from "@/components/layout/MainLayout";
 import { F1Card, F1CardContent, F1CardHeader } from "@/components/f1";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -139,18 +138,15 @@ const RaceInfographicPage = () => {
 
   if (isScheduleLoading) {
     return (
-      <MainLayout>
         <div className="space-y-6">
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-[600px] w-full" />
         </div>
-      </MainLayout>
     );
   }
 
   if (!race) {
     return (
-      <MainLayout>
         <div className="space-y-6">
           <Button variant="ghost" onClick={() => navigate("/calendar")} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
@@ -163,12 +159,10 @@ const RaceInfographicPage = () => {
             </AlertDescription>
           </Alert>
         </div>
-      </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
       <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -513,21 +507,20 @@ const RaceInfographicPage = () => {
 
         {/* Navigation Links */}
         <div className="flex flex-wrap gap-3 pt-2">
-          <Link to="/analytics">
+          <Link to="/race-analysis">
             <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs">
               <TrendingUp className="h-3.5 w-3.5" />
-              View Analytics
+              Race Analysis
             </Button>
           </Link>
-          <Link to={`/race-info/${selectedYear}/${selectedRound}`}>
+          <Link to={`/race-analysis/${selectedYear}/${selectedRound}`}>
             <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs">
               <ExternalLink className="h-3.5 w-3.5" />
-              Detailed Race Info
+              Detailed Race Analysis
             </Button>
           </Link>
         </div>
       </div>
-    </MainLayout>
   );
 };
 
