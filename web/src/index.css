@@ -995,3 +995,15 @@
     box-shadow: none !important;
   }
 }
+
+/* ── Mobile safe areas (PWA / notch / home indicator) ───────────────── */
+.safe-top {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+.safe-bottom {
+  padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
+}
+/* Keep fixed bars from re-rasterizing (iOS standalone flicker) */
+.nav-stable {
+  transform: none;
+}

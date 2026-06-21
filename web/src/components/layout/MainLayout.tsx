@@ -114,7 +114,7 @@ const MainLayout = () => {
         <main
           id="main-content"
           role="main"
-          className="flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 pb-14 md:pb-0"
+          className="flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"
         >
           <div className={cn("min-h-full p-4 md:p-6 lg:px-8", isGlass && "relative")}>
             <div className="animate-fade-in">

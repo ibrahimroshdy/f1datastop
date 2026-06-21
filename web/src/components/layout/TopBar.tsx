@@ -25,7 +25,7 @@ const TopBar = ({
   return (
     <div
       className={cn(
-        "sticky top-0 z-30 flex h-14 items-center justify-between gap-2 px-3 sm:px-4 lg:px-6",
+        "safe-top nav-stable sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 px-3 sm:px-4 lg:px-6",
         "transition-all duration-200",
         isGlass 
           ? "glass-topbar" 
