@@ -27,11 +27,13 @@ Tables (both RLS-enabled):
 - `public.profiles` — id (uuid, pk → auth.users.id), username (unique),
   first_name, last_name, created_at, updated_at. 758 rows.
   RLS: users may select/insert/update/delete only their own row (`auth.uid() = id`).
-- `public.trivia_scores` — id (uuid, pk), user_id (→ auth.users.id), username,
-  score, correct_answers, total_questions, time_spent, game_mode
-  ('normal'|'destructive'), is_public, created_at, updated_at. 88 rows.
-  RLS: insert/update/delete own; read own; read public (`is_public OR own`).
-  Trigger `update_trivia_scores_updated_at` → `update_updated_at_column()`.
+- `public.api_cache` / `public.api_metrics` — Ergast/OpenF1 proxy cache + metrics
+  (written by the `f1-proxy` edge function). Public read.
+- `public.f1_driver`, `public.f1_constructor`, `public.f1_driver_career`,
+  `public.f1_constructor_career` + `f1_driver_profile` / `f1_constructor_profile`
+  views — entity registry (R6). Public read; writes via service-role seed scripts.
+
+(The deprecated `trivia_scores` table + `public_leaderboard` view were dropped.)
 
 Functions:
 
