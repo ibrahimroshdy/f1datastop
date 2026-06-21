@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationToggle } from "@/components/pwa/NotificationToggle";
 
 const Profile = () => {
   const { isGlass } = useTheme();
@@ -258,6 +259,18 @@ const Profile = () => {
             </F1Card>
           </div>
         </div>
+
+        <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
+          <F1CardHeader>
+            <F1CardTitle className="!text-xl">Notifications</F1CardTitle>
+            <F1CardDescription>
+              Get a push notification before each race weekend.
+            </F1CardDescription>
+          </F1CardHeader>
+          <F1CardContent>
+            <NotificationToggle />
+          </F1CardContent>
+        </F1Card>
       </div>
     </div>
   );

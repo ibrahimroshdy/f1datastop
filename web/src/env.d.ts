@@ -26,6 +26,9 @@ interface ImportMetaEnv {
 
   // ─── reCAPTCHA (optional — public site key) ──────────────────────────────
   readonly VITE_RECAPTCHA_SITE_KEY?: string;
+
+  // ─── Web Push (optional — VAPID public key) ──────────────────────────────
+  readonly VITE_VAPID_PUBLIC_KEY?: string;
 }
 
 interface ImportMeta {
