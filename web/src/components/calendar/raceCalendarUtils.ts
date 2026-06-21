@@ -1,6 +1,6 @@
 import { differenceInDays, getMonth, getWeek, getYear, parseISO } from "date-fns";
 
-export type CalendarView = "list" | "grid" | "globe" | "distribution";
+export type CalendarView = "list" | "grid" | "globe";
 
 export const SINGLE_RACE = "single";
 export const DOUBLE_HEADER = "double";

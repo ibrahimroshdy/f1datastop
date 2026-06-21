@@ -24,7 +24,6 @@ import {
   RaceSprintPanel,
   RaceSprintQualifyingPanel,
 } from "./race-detail/RaceResultsPanels";
-import { RacePointsDistribution } from "./race-detail/RacePointsDistribution";
 
 interface RaceDetailDialogProps {
   isOpen: boolean;
@@ -104,7 +103,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
           <TabsList
             className={cn(
-              `grid w-full ${hasSprint ? "grid-cols-7" : "grid-cols-5"} mb-3 h-8 p-0.5`,
+              `grid w-full ${hasSprint ? "grid-cols-6" : "grid-cols-4"} mb-3 h-8 p-0.5`,
               isGlass && "bg-white/5",
             )}
           >
@@ -129,9 +128,6 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             </TabsTrigger>
             <TabsTrigger value="results" className="text-[10px] h-7 px-1.5">
               Results
-            </TabsTrigger>
-            <TabsTrigger value="distribution" className="text-[10px] h-7 px-1.5">
-              Distribution
             </TabsTrigger>
           </TabsList>
 
@@ -182,15 +178,6 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               />
             </TabsContent>
 
-            <TabsContent value="distribution" className="h-full">
-              <RacePointsDistribution
-                raceResults={raceResults?.data?.Results}
-                sprintResults={sprintResults?.data?.SprintResults}
-                isLoading={isResultsLoading || (hasSprint && isSprintLoading)}
-                hasSprint={hasSprint}
-                isGlass={isGlass}
-              />
-            </TabsContent>
           </div>
         </Tabs>
 
