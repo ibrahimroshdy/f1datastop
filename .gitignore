@@ -40,3 +40,6 @@ docs/superpowers/*
 !docs/superpowers/specs/
 !docs/superpowers/specs/**.playwright-mcp/
 .vercel
+
+# Ignore venv in the analytics folder
+*/.venv/
