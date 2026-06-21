@@ -1,1 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#E10600"/><text x="256" y="356" font-family="Helvetica, Arial, sans-serif" font-size="300" font-weight="bold" fill="#fff" text-anchor="middle">F1</text></svg>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="badge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF2008"/>
+      <stop offset="1" stop-color="#C00000"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="184" height="184" rx="46" fill="url(#badge)"/>
+  <rect x="8" y="8" width="184" height="184" rx="46" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/>
+  <!-- speed streaks -->
+  <g fill="#ffffff" fill-opacity="0.16">
+    <rect x="22" y="62" width="46" height="9" rx="4.5"/>
+    <rect x="22" y="96" width="30" height="9" rx="4.5"/>
+    <rect x="22" y="130" width="46" height="9" rx="4.5"/>
+  </g>
+  <!-- F1 wordmark as vector, racing italic -->
+  <g fill="#ffffff" transform="skewX(-10)">
+    <!-- F -->
+    <rect x="62" y="60" width="17" height="84"/>
+    <rect x="62" y="60" width="46" height="16"/>
+    <rect x="62" y="92" width="34" height="15"/>
+    <!-- 1 -->
+    <rect x="128" y="60" width="17" height="84"/>
+    <polygon points="128,60 113,72 128,76"/>
+  </g>
+  <!-- data pulse baseline -->
+  <polyline points="60,168 78,168 86,158 96,176 106,162 116,168 150,168" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
