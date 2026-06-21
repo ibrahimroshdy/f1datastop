@@ -22,6 +22,7 @@ import {
   Cloud,
   Flag,
   Gauge,
+  LayoutDashboard,
   Radio,
   TrendingUp,
   TrendingUpIcon,
@@ -29,6 +30,7 @@ import {
   Wrench,
 } from "lucide-react";
 
+const RaceOverview = lazy(() => import("@/components/race-analysis/overview/RaceOverview"));
 const MuiLapTimeChart = lazy(() => import("@/components/analytics/MuiLapTimeChart"));
 const MuiPositionChart = lazy(() => import("@/components/analytics/MuiPositionChart"));
 const MuiQualifyingChart = lazy(() => import("@/components/analytics/MuiQualifyingChart"));
@@ -170,6 +172,23 @@ export function RaceAnalysisTabs({
       </div>
 
       <Suspense fallback={<TabLoadingFallback />}>
+        <TabsContent value="overview" className="mt-4">
+          <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
+            <F1CardHeader className="px-4 pb-2 pt-3">
+              <div className="flex items-center gap-2">
+                <LayoutDashboard className="h-4 w-4 text-primary" />
+                <F1CardTitle className="text-base">Race Overview</F1CardTitle>
+              </div>
+              <F1CardDescription className="text-xs">
+                Key takeaways, grid-to-finish moves, and teammate head-to-head
+              </F1CardDescription>
+            </F1CardHeader>
+            <F1CardContent className="min-h-[400px] px-0 pb-2 pt-2">
+              <RaceOverview year={selectedYear} round={selectedRace} />
+            </F1CardContent>
+          </F1Card>
+        </TabsContent>
+
         <TabsContent value="lapTimes" className="mt-4">
           <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
             <F1CardHeader className="px-4 pb-2 pt-3">
