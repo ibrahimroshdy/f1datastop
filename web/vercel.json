@@ -7,6 +7,10 @@
     {
       "source": "/api/openf1/:path*",
       "destination": "https://api.openf1.org/v1/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
