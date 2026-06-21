@@ -44,7 +44,7 @@ const ConstructorStandingsContent = ({ constructorStandings }: ConstructorStandi
                 <Progress
                   value={(points / leader) * 100}
                   className="h-1.5 lg:h-2 bg-muted"
-                  indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-400"
+                  indicatorClassName="bg-gradient-to-r from-primary to-primary/70"
                 />
               </div>
             </div>

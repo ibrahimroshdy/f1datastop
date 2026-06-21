@@ -98,7 +98,7 @@ const RaceCalendar = () => {
                   <span className="text-muted-foreground text-xs">Double</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-1 rounded-full bg-purple-500" />
+                  <div className="h-2.5 w-1 rounded-full bg-primary" />
                   <span className="text-muted-foreground text-xs">Triple</span>
                 </div>
                 <div className="flex items-center gap-1.5">

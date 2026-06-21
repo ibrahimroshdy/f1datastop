@@ -64,7 +64,7 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
   const raceTypeColors: Record<string, { bg: string; text: string; border: string }> = {
     [SINGLE_RACE]: { bg: "bg-muted-foreground/50", text: "text-muted-foreground", border: "border-muted" },
     [DOUBLE_HEADER]: { bg: "bg-green-500", text: "text-green-500", border: "border-green-500/30" },
-    [TRIPLE_HEADER]: { bg: "bg-purple-500", text: "text-purple-500", border: "border-purple-500/30" },
+    [TRIPLE_HEADER]: { bg: "bg-primary", text: "text-primary", border: "border-primary/30" },
     "summer-break": { bg: "bg-sky-400", text: "text-sky-400", border: "border-sky-400/30" },
   };
 
@@ -235,7 +235,7 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
                     className={cn(
                       "flex items-center justify-between p-2.5 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30",
                       isNext 
-                        ? "bg-gradient-to-r from-purple-500/10 to-transparent border-purple-500/30" 
+                        ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/30" 
                         : "border-border"
                     )}
                   >
@@ -249,7 +249,7 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
                     <div className="text-right shrink-0 ml-2">
                       <div className="text-xs font-mono text-muted-foreground">in {timeUntil}</div>
                       {isNext && (
-                        <Badge variant="outline" className="text-[10px] mt-1 border-purple-500/50 text-purple-600 dark:text-purple-400">
+                        <Badge variant="outline" className="text-[10px] mt-1 border-primary/50 text-primary">
                           Next
                         </Badge>
                       )}

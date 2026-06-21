@@ -64,7 +64,8 @@ const Drivers = () => {
     <div className={pageShell}>
       <div className={cn(pageStack, "animate-fade-in")}>
         <PageHeader
-          title="F1 Drivers"
+          eyebrow={`${selectedYear} Season`}
+          title="Drivers"
           description={`Formula 1 drivers for the ${selectedYear} season`}
           actions={<YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />}
         />

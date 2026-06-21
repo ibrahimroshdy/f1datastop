@@ -114,7 +114,7 @@ export async function getDriverProfile(
   const { data, error } = await supabase
     .from("f1_driver_profile")
     .select("*")
-    .eq(filter.column, filter.value)
+    .or(`slug.eq.${filter.value},ergast_id.eq.${filter.value}`)
     .maybeSingle();
 
   if (error) {
@@ -138,7 +138,7 @@ export async function getConstructorProfile(
   const { data, error } = await supabase
     .from("f1_constructor_profile")
     .select("*")
-    .eq(filter.column, filter.value)
+    .or(`slug.eq.${filter.value},ergast_id.eq.${filter.value}`)
     .maybeSingle();
 
   if (error) {

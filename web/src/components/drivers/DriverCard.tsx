@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   F1Card,
   F1CardContent,
@@ -7,7 +8,7 @@ import {
 } from "@/components/f1";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Info, Trophy, X } from "lucide-react";
+import { Info, Trophy, User, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -95,7 +96,7 @@ const DriverCard = ({
         variant={cardVariant}
         glassVariant={glassVariant}
         className={cn(
-          "overflow-hidden border-t-4 p-0 hover:shadow-md transition-shadow",
+          "overflow-hidden border-t-[3px] p-0 hover:shadow-md transition-shadow",
           isGlass ? "border-white/10" : "border-border",
         )}
         style={{ borderTopColor: teamColor }}
@@ -157,17 +158,22 @@ const DriverCard = ({
             )}
           </div>
         </F1CardContent>
-        <F1CardFooter className="border-t-0 pt-2">
+        <F1CardFooter className="border-t-0 pt-2 gap-2">
+          <Button asChild size="sm" className="flex-1">
+            <Link to={`/drivers/${driver.Driver.driverId}`}>
+              <User className="h-4 w-4 mr-2" /> View Profile
+            </Link>
+          </Button>
           <Button
             variant="outline"
             className={cn(
-              "w-full",
+              "flex-1",
               isGlass && "bg-white/5 border-white/20 hover:bg-white/10",
             )}
             size="sm"
             onClick={() => setShowDetails(true)}
           >
-            <Info className="h-4 w-4 mr-2" /> Driver Details
+            <Info className="h-4 w-4 mr-2" /> Quick Stats
           </Button>
         </F1CardFooter>
       </F1Card>
