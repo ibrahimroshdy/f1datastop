@@ -4,7 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
-import CountryFlag from "@/components/common/CountryFlag";
+import TeamLogo from "@/components/common/TeamLogo";
+import { normalizeTeamId } from "@/components/standings/standingsUtils";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { pageShell, pageStack } from "@/lib/layout";
@@ -22,13 +23,13 @@ type DriverStandingRow = {
   position: string;
   points: string;
   Driver: { givenName: string; familyName: string; code: string };
-  Constructors: Array<{ name: string; nationality?: string }>;
+  Constructors: Array<{ constructorId?: string; name: string; nationality?: string }>;
 };
 
 type ConstructorStandingRow = {
   position: string;
   points: string;
-  Constructor: { name: string; nationality?: string };
+  Constructor: { constructorId?: string; name: string; nationality?: string };
 };
 
 const currentSeason = new Date().getFullYear();
@@ -148,9 +149,11 @@ const Standings = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              {driver.Constructors[0]?.nationality && (
-                                <CountryFlag country={driver.Constructors[0].nationality} size={18} />
-                              )}
+                              <TeamLogo
+                                constructorId={normalizeTeamId(driver.Constructors[0]?.constructorId || "default")}
+                                alt={driver.Constructors[0]?.name}
+                                size="sm"
+                              />
                               <span>{driver.Constructors[0].name}</span>
                             </div>
                           </TableCell>
@@ -221,9 +224,11 @@ const Standings = () => {
                           <TableCell className="font-medium">{constructor.position}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              {constructor.Constructor?.nationality && (
-                                <CountryFlag country={constructor.Constructor.nationality} size={18} />
-                              )}
+                              <TeamLogo
+                                constructorId={normalizeTeamId(constructor.Constructor?.constructorId || "default")}
+                                alt={constructor.Constructor?.name}
+                                size="sm"
+                              />
                               <span className="font-medium">{constructor.Constructor.name}</span>
                             </div>
                           </TableCell>

@@ -17,6 +17,7 @@ import {
   type RaceAnalysisTabId,
 } from "./raceAnalysisTabs.config";
 import {
+  Activity,
   Car,
   Clock,
   Cloud,
@@ -31,6 +32,7 @@ import {
 } from "lucide-react";
 
 const RaceOverview = lazy(() => import("@/components/race-analysis/overview/RaceOverview"));
+const AnalysisCharts = lazy(() => import("@/components/race-analysis/AnalysisCharts"));
 const MuiLapTimeChart = lazy(() => import("@/components/analytics/MuiLapTimeChart"));
 const MuiPositionChart = lazy(() => import("@/components/analytics/MuiPositionChart"));
 const MuiQualifyingChart = lazy(() => import("@/components/analytics/MuiQualifyingChart"));
@@ -185,6 +187,23 @@ export function RaceAnalysisTabs({
             </F1CardHeader>
             <F1CardContent className="min-h-[400px] px-0 pb-2 pt-2">
               <RaceOverview year={selectedYear} round={selectedRace} />
+            </F1CardContent>
+          </F1Card>
+        </TabsContent>
+
+        <TabsContent value="deepDive" className="mt-4">
+          <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
+            <F1CardHeader className="px-4 pb-2 pt-3">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                <F1CardTitle className="text-base">Deep Dive</F1CardTitle>
+              </div>
+              <F1CardDescription className="text-xs">
+                FastF1 telemetry &amp; strategy charts, generated after each race weekend
+              </F1CardDescription>
+            </F1CardHeader>
+            <F1CardContent className="min-h-[400px] px-0 pb-2 pt-2">
+              <AnalysisCharts year={selectedYear} round={selectedRace} />
             </F1CardContent>
           </F1Card>
         </TabsContent>

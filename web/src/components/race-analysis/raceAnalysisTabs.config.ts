@@ -1,4 +1,5 @@
 import {
+  Activity,
   Car,
   Clock,
   Cloud,
@@ -20,6 +21,7 @@ export type RaceAnalysisTabId =
   | "qualifying"
   | "progression"
   | "pitstops"
+  | "deepDive"
   | "weather"
   | "radio"
   | "telemetry"
@@ -47,6 +49,7 @@ export const ESSENTIALS_TABS: RaceAnalysisTabConfig[] = [
     group: "essentials",
   },
   { id: "pitstops", label: "Pit Stops", icon: Wrench, group: "essentials" },
+  { id: "deepDive", label: "Deep Dive", icon: Activity, group: "essentials" },
 ];
 
 export const ADVANCED_TABS: RaceAnalysisTabConfig[] = [

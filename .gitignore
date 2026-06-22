@@ -43,3 +43,9 @@ docs/superpowers/*
 
 # Ignore venv in the analytics folder
 */.venv/
+*/.fastf1cache/
+
+# FastF1 analysis runtime artifacts
+analysis/out/
+analysis/.fastf1cache/
+analysis/.venv/

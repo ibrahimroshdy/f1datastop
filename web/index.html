@@ -14,6 +14,22 @@
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 
+    <!-- Apply the saved theme before first paint to avoid a flash (FOUC) -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('f1ds-theme');
+          if (t === 'light-glass') t = 'light';
+          if (t !== 'light' && t !== 'dark' && t !== 'dark-glass') {
+            t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+          }
+          document.documentElement.classList.add(t);
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+
     <title>F1 DataStop — Formula 1 Data Analysis and Insights</title>
     <meta name="description" content="F1 DataStop turns raw Formula 1 telemetry and race stats into clear insights—lap time deltas, stint strategy breakdowns, and driver vs. teammate comparisons. Your data pit stop." />
     <meta name="author" content="F1DataStop" />
