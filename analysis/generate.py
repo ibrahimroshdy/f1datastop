@@ -120,35 +120,77 @@ if os.path.exists(_logo_path):
 
 
 # ── Figure / layout helpers ─────────────────────────────────────────────────
+# ── Output formats per distribution channel ──────────────────────────────────
+# FMT selects the active layout. Every layout anchor + per-chart magic number
+# lives here so each channel re-flows (never squeezes).
+FMT = "landscape"
+
+# 16:9 anchors shared by landscape + twitter (same ratio, different pixels)
+_WIDE = dict(
+    ax=(0.12, 0.58), eyebrow_y=0.905, title_y=0.795, title_fs=40, underline_y=0.762,
+    subtitle_y=0.728, subtitle_fs=15.5, brand_y=0.905, footer_y=0.045,
+    legend_y=0.852, cbar=(0.63, 0.15, 0.22, 0.02), radar_rect=(0.34, 0.06, 0.34, 0.60),
+    headshot_right=0.85, stack_dz=1.05, legend_x=0.60, gear_x=0.55,
+)
+# tall-portrait anchors shared by instagram(4:5) + story(9:16)
+_TALL = dict(
+    eyebrow_y=0.963, title_y=0.930, title_fs=42, underline_y=0.912,
+    subtitle_y=0.892, subtitle_fs=16, brand_y=0.963, footer_y=0.028,
+    legend_y=0.838, cbar=(0.30, 0.072, 0.40, 0.012), radar_rect=(0.18, 0.26, 0.64, 0.42),
+    headshot_right=0.74, legend_x=0.42, gear_x=0.30,
+)
+
+LAYOUT = {
+    "landscape": {**_WIDE, "figsize": (12.8, 7.2), "dpi": 200,
+                  "car_zoom": 0.052, "logo_zoom": 0.26},
+    "twitter":   {**_WIDE, "figsize": (12.8, 7.2), "dpi": 125,
+                  "car_zoom": 0.033, "logo_zoom": 0.16},
+    "instagram": {**_TALL, "figsize": (10.8, 13.5), "dpi": 100, "ax": (0.13, 0.60),
+                  "stack_dz": 1.25, "car_zoom": 0.034, "logo_zoom": 0.40},
+    "story":     {**_TALL, "figsize": (10.8, 19.2), "dpi": 100, "ax": (0.105, 0.695),
+                  "stack_dz": 1.55, "car_zoom": 0.034, "logo_zoom": 0.45},
+}
+FORMAT_SUFFIX = {"landscape": "", "twitter": "-twitter",
+                 "instagram": "-instagram", "story": "-story"}
+
+
+def LY(key):
+    return LAYOUT[FMT][key]
+
+
 def editorial_fig(left=0.065, right=0.93):
-    fig = plt.figure(figsize=(12.8, 7.2), dpi=200)
+    L = LAYOUT[FMT]
+    fig = plt.figure(figsize=L["figsize"], dpi=L["dpi"])
     fig.patch.set_facecolor(PAPER)
-    ax = fig.add_axes([left, 0.12, right - left, 0.58])  # headroom above for the title
+    b, h = L["ax"]
+    ax = fig.add_axes([left, b, right - left, h])
     ax.set_facecolor(PAPER)
     return fig, ax
 
 
 def title_block(fig, eyebrow, title, subtitle=None):
+    ey, ty, uy, sy, by = (LY("eyebrow_y"), LY("title_y"), LY("underline_y"),
+                          LY("subtitle_y"), LY("brand_y"))
     # pit-wall red edge bar (F1 DataStop signature)
     fig.add_artist(plt.Rectangle((0, 0), 0.009, 1, transform=fig.transFigure, color=RED, zorder=10))
     # red eyebrow
-    fig.text(0.066, 0.905, "   ".join(eyebrow.upper()), color=RED, fontsize=12.5,
+    fig.text(0.066, ey, "   ".join(eyebrow.upper()), color=RED, fontsize=12.5,
              fontproperties=FP_BODY_B)
-    fig.text(0.062, 0.795, title, color=INK, fontsize=40, fontproperties=FP_TITLE)
+    fig.text(0.062, ty, title, color=INK, fontsize=LY("title_fs"), fontproperties=FP_TITLE)
     # red underline accent under the title
-    fig.add_artist(plt.Line2D([0.066, 0.138], [0.762, 0.762], transform=fig.transFigure,
+    fig.add_artist(plt.Line2D([0.066, 0.138], [uy, uy], transform=fig.transFigure,
                               color=RED, lw=4.5, solid_capstyle="round"))
     if subtitle:
-        fig.text(0.066, 0.728, subtitle, color=SUBINK, fontsize=15.5, fontproperties=FP_BODY)
+        fig.text(0.066, sy, subtitle, color=SUBINK, fontsize=LY("subtitle_fs"), fontproperties=FP_BODY)
     # brand mark, top-right — logo + wordmark
-    fig.text(0.928, 0.905, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12.5,
+    fig.text(0.928, by, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12.5,
              fontproperties=FP_BODY_B)
     if _LOGO is not None:
-        ab = AnnotationBbox(OffsetImage(_LOGO, zoom=0.16), (0.952, 0.905),
+        ab = AnnotationBbox(OffsetImage(_LOGO, zoom=0.16), (0.952, by),
                             xycoords="figure fraction", frameon=False, zorder=11)
         fig.add_artist(ab)
     else:
-        fig.add_artist(plt.Rectangle((0.941, 0.898), 0.011, 0.015, transform=fig.transFigure,
+        fig.add_artist(plt.Rectangle((0.941, by - 0.007), 0.011, 0.015, transform=fig.transFigure,
                                      color=RED, zorder=10))
 
 
@@ -276,11 +318,14 @@ def headshot_label(ax, x, y, code, color, url, code_dx=78):
     ax.add_artist(ab)
     ax.annotate(code, (x, y), xytext=(code_dx, 0), textcoords="offset points",
                 va="center", ha="left", fontsize=13, fontproperties=FP_BODY_B,
-                color=INK, zorder=8)
+                color=INK, zorder=8,
+                bbox=dict(boxstyle="round,pad=0.22", facecolor=PAPER, edgecolor="none", alpha=0.82))
 
 
-def headshot_legend_row(fig, items, y=0.852, x0=0.5, step=0.105):
+def headshot_legend_row(fig, items, y=None, x0=0.5, step=0.105):
     """items: (code, color, url) placed as a glowing headshot row in figure coords."""
+    if y is None:
+        y = LY("legend_y")
     x = x0
     for code, color, url in items:
         arr = headshot_disc(url, color)
@@ -288,6 +333,7 @@ def headshot_legend_row(fig, items, y=0.852, x0=0.5, step=0.105):
             fig.add_artist(AnnotationBbox(OffsetImage(arr, zoom=0.16), (x, y),
                                           xycoords="figure fraction", frameon=False, zorder=12))
         fig.text(x + 0.026, y, code, va="center", ha="left", color=INK, fontsize=12,
+                 bbox=dict(boxstyle="round,pad=0.2", facecolor=PAPER, edgecolor="none", alpha=0.82),
                  fontproperties=FP_BODY_B)
         x += step
 
@@ -295,7 +341,9 @@ def headshot_legend_row(fig, items, y=0.852, x0=0.5, step=0.105):
 PURPLE = "#B100E8"
 
 
-def compound_legend(fig, y=0.852, fastest=False):
+def compound_legend(fig, y=None, fastest=False):
+    if y is None:
+        y = LY("legend_y")
     items = [("Soft", COMPOUND_COLORS["SOFT"]), ("Medium", COMPOUND_COLORS["MEDIUM"]),
              ("Hard", COMPOUND_COLORS["HARD"]), ("Inter", COMPOUND_COLORS["INTERMEDIATE"]),
              ("Wet", COMPOUND_COLORS["WET"])]
@@ -376,6 +424,54 @@ def fetch_car(season, team):
     return fetch_image_rgba(f1_car_url(season, slug))
 
 
+def place_team_cars(ax, team_rows, season, xfrac=0.965):
+    """Place each team's season-correct car at the right edge of its row.
+    team_rows: list of (team_name, y_data)."""
+    zoom = LY("car_zoom")
+    for team, y in team_rows:
+        car = fetch_car(season, team)
+        if car is not None:
+            ax.add_artist(AnnotationBbox(OffsetImage(car, zoom=zoom), (xfrac, y),
+                          xycoords=("axes fraction", "data"), frameon=False,
+                          box_alignment=(0.5, 0.5), zorder=6))
+
+
+TEAM_LABELS = "text"  # "text" or "logo" (set by CLI --team-labels)
+
+
+def logo_slug(team):
+    s = team_slug(team)
+    return "haasf1team" if s == "haas" else s  # F1 logo path differs for Haas
+
+
+def f1_logo_url(season, slug):
+    return f"{_MEDIA}/c_fit,h_96/q_auto/common/f1/{season}/{slug}/{season}{slug}logowhite.webp"
+
+
+def fetch_team_logo(season, team):
+    slug = logo_slug(team)
+    if not (season and slug):
+        return None
+    return fetch_image_rgba(f1_logo_url(season, slug))
+
+
+def team_y_labels(ax, teams, ys, season, fontsize=11):
+    """Team y-axis labels: text names, or (with --team-labels logo) season-correct
+    team wordmark logos, all the same height."""
+    ax.set_yticks(list(ys))
+    if TEAM_LABELS == "logo":
+        ax.set_yticklabels([""] * len(teams))
+        zoom = LY("logo_zoom")
+        for team, y in zip(teams, ys):
+            logo = fetch_team_logo(season, team)
+            if logo is not None:
+                ax.add_artist(AnnotationBbox(OffsetImage(logo, zoom=zoom), (-0.02, y),
+                              xycoords=("axes fraction", "data"), frameon=False,
+                              box_alignment=(1.0, 0.5), zorder=8))
+    else:
+        ax.set_yticklabels(list(teams), fontproperties=FP_BODY_B, color=INK, fontsize=fontsize)
+
+
 def driver_lookup(session):
     out = {}
     try:
@@ -452,7 +548,7 @@ def footer(fig, meta):
     circuit = meta.get("circuit") or meta.get("location")
     bits = [b for b in (circuit, country) if b] or [meta.get("event", "")]
     txt = f"{' · '.join(bits)} · {meta['year']} · {meta['session_name']}   —   f1datastop.com"
-    yc = 0.046
+    yc = LY("footer_y")
     tx = 0.066
     flag = fetch_flag(country)
     if flag is not None:
@@ -489,7 +585,7 @@ def top_drivers_by_pace(laps, n=5):
 # ── Charts ──────────────────────────────────────────────────────────────────
 def chart_speed_trace(session, meta):
     laps = session.laps
-    fig, ax = editorial_fig(right=0.84)
+    fig, ax = editorial_fig(right=LY("headshot_right"))
     title_block(fig, "Fastest Lap", "Speed Trace", "Top five drivers · fastest lap")
     look = driver_lookup(session)
     ends = []
@@ -606,14 +702,9 @@ def chart_team_pace(session, meta):
         ax.text(delta + span * 0.015, i,
                 "BASE" if delta == 0 else f"+{delta:.2f}s",
                 va="center", ha="left", fontsize=11, fontproperties=FP_BODY_B, color=INK)
-        car = fetch_car(season, t)
-        if car is not None:
-            ax.add_artist(AnnotationBbox(OffsetImage(car, zoom=0.052), (0.965, i),
-                          xycoords=("axes fraction", "data"), frameon=False,
-                          box_alignment=(0.5, 0.5), zorder=6))
+    place_team_cars(ax, [(t, i) for i, t in enumerate(teams)], season)
     ax.set_xlim(-span * 0.02, span * 1.34)
-    ax.set_yticks(range(len(teams)))
-    ax.set_yticklabels(teams, fontproperties=FP_BODY_B, color=INK, fontsize=11)
+    team_y_labels(ax, teams, range(len(teams)), season, 11)
     ax.grid(axis="y", linewidth=0)
     ax.grid(axis="x", color=GRID, linewidth=1.0)
     clean_axes(ax, "Seconds behind fastest team", None)
@@ -658,8 +749,10 @@ def chart_speed_distribution(session, meta):
         med = np.median(pooled[t])
         ax.scatter([med], [i + 1], s=46, color=team_color(t), zorder=5,
                    edgecolor="white", linewidth=1.4)
-    ax.set_yticks(range(1, len(teams) + 1))
-    ax.set_yticklabels(teams, fontproperties=FP_BODY_B, color=INK, fontsize=11)
+    x0, x1 = ax.get_xlim()
+    ax.set_xlim(x0, x1 + (x1 - x0) * 0.15)
+    place_team_cars(ax, [(t, i + 1) for i, t in enumerate(teams)], meta.get("year"))
+    team_y_labels(ax, teams, range(1, len(teams) + 1), meta.get("year"), 11)
     ax.grid(axis="y", linewidth=0)
     ax.grid(axis="x", color=GRID, linewidth=1.0)
     clean_axes(ax, "Speed (km/h)", None)
@@ -737,8 +830,10 @@ def chart_pace_tyre(session, meta):
                        c=PURPLE, edgecolor=PAPER, linewidth=0.6, zorder=8)
             ax.scatter([fl_s], [fy], marker=MarkerStyle("o", fillstyle="right"), s=95,
                        c=fl_comp, edgecolor=PAPER, linewidth=0.6, zorder=8)
-    ax.set_yticks(range(1, len(order) + 1))
-    ax.set_yticklabels(order, fontproperties=FP_BODY_B, color=INK, fontsize=11)
+    x0, x1 = ax.get_xlim()
+    ax.set_xlim(x0, x1 + (x1 - x0) * 0.13)
+    place_team_cars(ax, [(t, i + 1) for i, t in enumerate(order)], meta.get("year"))
+    team_y_labels(ax, order, range(1, len(order) + 1), meta.get("year"), 11)
     ax.invert_yaxis()
     ax.grid(axis="y", linewidth=0)
     ax.grid(axis="x", color=GRID, linewidth=1.0)
@@ -855,12 +950,16 @@ def chart_grid_flow(session, meta):
     def seg_color(a, b):
         return GAIN if b < a else (LOSS if b > a else HELD)
 
+    node_col = [{}, {}, {}]  # position -> team colour, per column
     for _, row in res.iterrows():
         abbr = row.get("Abbreviation")
         grid = int(row["GridPosition"])
         fin = int(row["Position"])
         qp = qpos.get(abbr, grid)
         tc = team_color(row.get("TeamName"))
+        node_col[0][qp] = tc
+        node_col[1][grid] = tc
+        node_col[2][fin] = tc
         band(0, qp, 1, grid, seg_color(qp, grid))
         band(1, grid, 2, fin, seg_color(grid, fin))
         ax.annotate(abbr, (0, qp), xytext=(-11, 0), textcoords="offset points",
@@ -869,10 +968,10 @@ def chart_grid_flow(session, meta):
         ax.annotate(abbr, (2, fin), xytext=(11, 0), textcoords="offset points",
                     va="center", ha="left", fontsize=8.5, color=tc,
                     fontproperties=FP_BODY_B, zorder=6)
-    for x in cols:
+    for ci, x in enumerate(cols):
         for p in range(1, n + 1):
             ax.add_patch(plt.Rectangle((x - 0.016, p - 0.30), 0.032, 0.60,
-                                       color=INK, alpha=0.9, zorder=4))
+                                       color=node_col[ci].get(p, GRID), zorder=4))
     ax.set_xlim(-0.3, 2.3)
     ax.set_ylim(n + 0.7, 0.3)
     ax.set_xticks(cols)
@@ -884,11 +983,12 @@ def chart_grid_flow(session, meta):
     ax.grid(False)
     for lbl in ax.get_xticklabels():
         lbl.set_color(INK)
-    x0 = 0.60
+    ly = LY("legend_y")
+    x0 = LY("legend_x")
     for label, col in (("Gained", GAIN), ("Lost", LOSS), ("Held", HELD)):
-        fig.add_artist(plt.Rectangle((x0, 0.847), 0.014, 0.016, transform=fig.transFigure,
+        fig.add_artist(plt.Rectangle((x0, ly - 0.006), 0.014, 0.016, transform=fig.transFigure,
                                      color=col, zorder=11))
-        fig.text(x0 + 0.02, 0.853, label, color=SUBINK, fontsize=10, fontproperties=FP_BODY)
+        fig.text(x0 + 0.02, ly, label, color=SUBINK, fontsize=10, fontproperties=FP_BODY)
         x0 += 0.095
     footer(fig, meta)
     return fig_png(fig)
@@ -942,21 +1042,85 @@ def chart_teammate_pace(session, meta):
                     fontproperties=FP_BODY_B, zorder=7)
         ax.text(hi + 0.02, i, f"{d_fast} +{m_slow - m_fast:.2f}s", va="center", ha="right",
                 fontsize=10, color=col, fontproperties=FP_BODY_B)
-    ax.set_yticks(range(len(teams)))
-    ax.set_yticklabels(teams, fontproperties=FP_BODY_B, color=INK, fontsize=9.5)
+    team_y_labels(ax, teams, range(len(teams)), meta.get("year"), 9.5)
     ax.set_ylim(-0.7, len(teams) - 0.3)
     ax.invert_yaxis()
-    ax.set_xlim(lo - 0.3, hi + 0.08)
+    rng_x = (hi + 0.08) - (lo - 0.3)
+    ax.set_xlim(lo - 0.3, hi + 0.08 + rng_x * 0.13)
+    place_team_cars(ax, [(t, i) for i, t in enumerate(teams)], meta.get("year"))
     ax.grid(axis="x", color=GRID, linewidth=1.0)
     ax.grid(axis="y", linewidth=0)
     clean_axes(ax, "Lap time", None)
     ax.xaxis.set_major_formatter(LAPTIME_FMT)
-    fig.add_artist(plt.Rectangle((0.60, 0.847), 0.014, 0.015, transform=fig.transFigure,
+    ly = LY("legend_y")
+    fx = LY("legend_x")
+    fig.add_artist(plt.Rectangle((fx, ly - 0.006), 0.014, 0.015, transform=fig.transFigure,
                                  color=INK, alpha=0.75, zorder=11))
-    fig.text(0.62, 0.853, "faster", color=SUBINK, fontsize=9.5, fontproperties=FP_BODY)
-    fig.add_artist(plt.Rectangle((0.69, 0.847), 0.014, 0.015, transform=fig.transFigure,
+    fig.text(fx + 0.02, ly, "faster", color=SUBINK, fontsize=9.5, fontproperties=FP_BODY)
+    fig.add_artist(plt.Rectangle((fx + 0.09, ly - 0.006), 0.014, 0.015, transform=fig.transFigure,
                                  fill=False, edgecolor=INK, hatch="////", linewidth=0.5, zorder=11))
-    fig.text(0.71, 0.853, "teammate", color=SUBINK, fontsize=9.5, fontproperties=FP_BODY)
+    fig.text(fx + 0.11, ly, "teammate", color=SUBINK, fontsize=9.5, fontproperties=FP_BODY)
+    footer(fig, meta)
+    return fig_png(fig)
+
+
+def chart_teammate_laps(session, meta):
+    quick = session.laps.pick_quicklaps() if hasattr(session.laps, "pick_quicklaps") else session.laps
+    quick = quick.copy()
+    quick["s"] = quick["LapTime"].dt.total_seconds()
+    quick = quick.dropna(subset=["s", "Team", "Driver", "LapNumber"])
+    teams = [t for t in quick["Team"].unique()
+             if quick[quick["Team"] == t]["Driver"].nunique() >= 2]
+    if not teams:
+        return None
+    teams = sorted(teams, key=lambda t: quick[quick["Team"] == t]["s"].median())
+    L = LAYOUT[FMT]
+    fig = plt.figure(figsize=L["figsize"], dpi=L["dpi"])
+    fig.patch.set_facecolor(PAPER)
+    title_block(fig, "Head to Head", "Teammate Duel · Lap by Lap",
+                "Each teammate's lap times through the race")
+    portrait = FMT in ("story", "instagram")
+    cols = 2 if portrait else 3
+    rows = int(np.ceil(len(teams) / cols))
+    bx0, bw = 0.075, 0.86
+    by0, bh = L["ax"][0], L["ax"][1]
+    gx, gy = 0.035, 0.075
+    cw = (bw - gx * (cols - 1)) / cols
+    ch = (bh - gy * (rows - 1)) / rows
+    ymin = float(quick["s"].quantile(0.02))
+    ymax = float(quick["s"].quantile(0.93))
+    lmax = int(quick["LapNumber"].max())
+    for idx, t in enumerate(teams):
+        r, c = idx // cols, idx % cols
+        axx = bx0 + c * (cw + gx)
+        axy = by0 + bh - (r + 1) * ch - r * gy
+        ax = fig.add_axes([axx, axy, cw, ch])
+        ax.set_facecolor(PAPER)
+        sub = quick[quick["Team"] == t]
+        col = team_color(t)
+        meds = sub.groupby("Driver")["s"].median().sort_values()
+        for di, drv in enumerate(meds.index[:2]):
+            d = sub[sub["Driver"] == drv].sort_values("LapNumber")
+            if d.empty:
+                continue
+            ls = "-" if di == 0 else (0, (4, 2))
+            xs, ys = smooth_xy(d["LapNumber"].values, d["s"].values)
+            ax.plot(xs, ys, color=col, lw=1.8, ls=ls, alpha=0.95, solid_capstyle="round")
+            ax.annotate(drv, (d["LapNumber"].values[-1], d["s"].values[-1]),
+                        xytext=(4, 0), textcoords="offset points", va="center", ha="left",
+                        fontsize=8, color=col, fontproperties=FP_BODY_B)
+        ax.set_xlim(0, lmax + 4)
+        ax.set_ylim(ymax, ymin)
+        ax.set_title(t, fontproperties=FP_BODY_B, color=INK, fontsize=10, pad=4, loc="left")
+        ax.grid(color=GRID, linewidth=0.7)
+        ax.set_axisbelow(True)
+        for s in ax.spines.values():
+            s.set_visible(False)
+        ax.tick_params(colors=SUBINK, length=0, labelsize=7.5)
+        if c == 0:
+            ax.yaxis.set_major_formatter(LAPTIME_FMT)
+        else:
+            ax.set_yticklabels([])
     footer(fig, meta)
     return fig_png(fig)
 
@@ -1081,7 +1245,7 @@ def chart_gap_to_leader(session, meta):
     except Exception:
         order = list(df["Driver"].unique())[:6]
     look = driver_lookup(session)
-    fig, ax = editorial_fig(right=0.86)
+    fig, ax = editorial_fig(right=LY("headshot_right"))
     title_block(fig, "Race", "Gap to Leader", "Time behind the lead, lap by lap")
     ends = []
     seen = {}
@@ -1109,7 +1273,7 @@ def chart_lap_evolution(session, meta):
     quick = quick.copy()
     quick["s"] = quick["LapTime"].dt.total_seconds()
     look = driver_lookup(session)
-    fig, ax = editorial_fig(right=0.86)
+    fig, ax = editorial_fig(right=LY("headshot_right"))
     title_block(fig, "Pace", "Lap-Time Evolution", "Race pace through the stints · top five")
     ends = []
     seen = {}
@@ -1155,7 +1319,7 @@ def chart_speed_map(session, meta):
     ax.axis("off")
     ax.autoscale()
     ax.margins(0.06)
-    cax = fig.add_axes([0.63, 0.15, 0.22, 0.02])
+    cax = fig.add_axes(LY("cbar"))
     cb = fig.colorbar(lc, cax=cax, orientation="horizontal")
     cb.set_label("Speed (km/h)", color=SUBINK, fontsize=10, fontproperties=FP_BODY)
     cb.ax.tick_params(colors=SUBINK, labelsize=9)
@@ -1189,11 +1353,12 @@ def chart_gear_map(session, meta):
     ax.axis("off")
     ax.autoscale()
     ax.margins(0.06)
-    x0 = 0.55
+    ly = LY("legend_y")
+    x0 = LY("gear_x")
     for gg in range(2, 9):
-        fig.add_artist(plt.Rectangle((x0, 0.843), 0.013, 0.02, transform=fig.transFigure,
+        fig.add_artist(plt.Rectangle((x0, ly - 0.009), 0.013, 0.02, transform=fig.transFigure,
                                      color=gear_colors[gg], zorder=11))
-        fig.text(x0 + 0.017, 0.852, str(gg), va="center", color=INK, fontsize=10.5,
+        fig.text(x0 + 0.017, ly, str(gg), va="center", color=INK, fontsize=10.5,
                  fontproperties=FP_BODY)
         x0 += 0.052
     footer(fig, meta)
@@ -1227,9 +1392,11 @@ def chart_driver_radar(session, meta):
     n = len(metrics)
     ang = np.linspace(0, 2 * np.pi, n, endpoint=False).tolist()
     ang += ang[:1]
-    fig = plt.figure(figsize=(12.8, 7.2), dpi=200)
+    L = LAYOUT[FMT]
+    fig = plt.figure(figsize=L["figsize"], dpi=L["dpi"])
     fig.patch.set_facecolor(PAPER)
-    ax = fig.add_axes([0.34, 0.06, 0.34, 0.60], polar=True)
+    radar_rect = list(LY("radar_rect"))
+    ax = fig.add_axes(radar_rect, polar=True)
     ax.set_facecolor(PAPER)
     title_block(fig, "Telemetry", "Driver Radar", "Performance profile · fastest lap · top three")
     ax.set_theta_offset(np.pi / 2)
@@ -1286,7 +1453,7 @@ def chart_dominance_stack(session, meta):
         return px + shear * py, -tilt * px + squash * py
 
     sx, sy = iso(nx, ny)
-    dz_step = 1.05 * (sy.max() - sy.min())
+    dz_step = LY("stack_dz") * (sy.max() - sy.min())
     idxs = list(range(len(drivers)))[::-1]
     n = len(idxs)
     fig, ax = editorial_fig()
@@ -1327,16 +1494,33 @@ def chart_dominance_stack(session, meta):
             ax.add_patch(plt.Rectangle((lx - 0.04, ay - 0.04), 0.08, 0.08, color=col, zorder=300))
         ax.annotate(drv, (lx, ay), xytext=(30, 6), textcoords="offset points",
                     va="center", ha="left", fontsize=13, fontproperties=FP_BODY_B,
-                    color=INK, zorder=300)
+                    color=INK, zorder=300,
+                    bbox=dict(boxstyle="round,pad=0.2", facecolor=PAPER, edgecolor="none", alpha=0.82))
         ax.annotate(f"{round(100 * wmask.mean())}% fastest", (lx, ay), xytext=(30, -10),
                     textcoords="offset points", va="center", ha="left", fontsize=10,
                     fontproperties=FP_BODY, color=SUBINK, zorder=300)
+    # registration connectors tying the same corner across every layer
+    sm = np.convolve(speeds[0], np.ones(9) / 9, mode="same")
+    chosen = []
+    for j in np.argsort(sm):
+        if all(abs(int(j) - c) > 700 // 8 for c in chosen):
+            chosen.append(int(j))
+        if len(chosen) == 3:
+            break
+    for j in chosen:
+        ax.plot([sx[j], sx[j]], [sy[j], sy[j] + (n - 1) * dz_step], color=SUBINK,
+                lw=1.0, alpha=0.5, zorder=200)
+        for k in range(n):
+            ax.scatter([sx[j]], [sy[j] + k * dz_step], s=18, facecolor=PAPER,
+                       edgecolor=SUBINK, lw=1.0, zorder=201)
     ax.set_aspect("equal")
     ax.axis("off")
-    allx = np.concatenate([bsx, sx])
-    ally = np.concatenate([bsy, sy + (n - 1) * dz_step])
-    ax.set_xlim(lx - 0.22, allx.max() + 0.20)
-    ax.set_ylim(ally.min() - 0.20, ally.max() + 0.22)
+    allx = np.concatenate([bsx + shx * 2.4, sx])
+    ally = np.concatenate([bsy - shy * 2.4, sy + (n - 1) * dz_step])
+    ax.set_xlim(lx - 0.25, allx.max() + 0.30)
+    ax.set_ylim(ally.min() - 0.25, ally.max() + 0.25)
+    for artist in list(ax.collections) + list(ax.patches):
+        artist.set_clip_on(False)
     footer(fig, meta)
     return fig_png(fig)
 
@@ -1378,7 +1562,7 @@ def chart_parallax_stack(session, meta):
         return px + shear * py, -tilt * px + squash * py
 
     sx, sy = iso(nx, ny)
-    dz_step = 1.05 * (sy.max() - sy.min())
+    dz_step = LY("stack_dz") * (sy.max() - sy.min())
     idxs = list(range(len(drivers)))[::-1]  # slowest first (bottom)
     n = len(idxs)
     fig, ax = editorial_fig()
@@ -1423,7 +1607,8 @@ def chart_parallax_stack(session, meta):
             ax.add_patch(plt.Rectangle((lx - 0.04, ay - 0.04), 0.08, 0.08, color=col, zorder=300))
         ax.annotate(drv, (lx, ay), xytext=(30, 6), textcoords="offset points",
                     va="center", ha="left", fontsize=13, fontproperties=FP_BODY_B,
-                    color=INK, zorder=300)
+                    color=INK, zorder=300,
+                    bbox=dict(boxstyle="round,pad=0.2", facecolor=PAPER, edgecolor="none", alpha=0.82))
         ax.annotate(drivers[di][3], (lx, ay), xytext=(30, -10), textcoords="offset points",
                     va="center", ha="left", fontsize=10, fontproperties=FP_BODY,
                     color=SUBINK, zorder=300)
@@ -1442,11 +1627,13 @@ def chart_parallax_stack(session, meta):
                        edgecolor=SUBINK, lw=1.0, zorder=201)
     ax.set_aspect("equal")
     ax.axis("off")
-    allx = np.concatenate([bsx, sx])
-    ally = np.concatenate([bsy, sy + (n - 1) * dz_step])
-    ax.set_xlim(lx - 0.22, allx.max() + 0.20)
-    ax.set_ylim(ally.min() - 0.20, ally.max() + 0.22)
-    cax = fig.add_axes([0.63, 0.15, 0.22, 0.02])
+    allx = np.concatenate([bsx + shx * 2.4, sx])
+    ally = np.concatenate([bsy - shy * 2.4, sy + (n - 1) * dz_step])
+    ax.set_xlim(lx - 0.25, allx.max() + 0.30)
+    ax.set_ylim(ally.min() - 0.25, ally.max() + 0.25)
+    for artist in list(ax.collections) + list(ax.patches):
+        artist.set_clip_on(False)
+    cax = fig.add_axes(LY("cbar"))
     cb = fig.colorbar(top_lc, cax=cax, orientation="horizontal")
     cb.set_label("Speed (km/h)", color=SUBINK, fontsize=10, fontproperties=FP_BODY)
     cb.ax.tick_params(colors=SUBINK, labelsize=9)
@@ -1462,6 +1649,7 @@ CHARTS = [
     ("gap_to_leader", "Gap to Leader", "Time behind the lead, lap by lap", chart_gap_to_leader),
     ("lap_evolution", "Lap-Time Evolution", "Race pace through the stints", chart_lap_evolution),
     ("teammate_pace", "Teammate Distribution", "Teammate lap-time spread, side by side", chart_teammate_pace),
+    ("teammate_laps", "Teammate Duel · Lap by Lap", "Each teammate's lap times through the race", chart_teammate_laps),
     ("top_speed", "Top Speed", "Highest speed per driver on the fastest lap", chart_top_speed),
     ("gear_map", "Gears", "Gear selection mapped on the circuit", chart_gear_map),
     ("driver_radar", "Driver Radar", "Performance profile of the top drivers", chart_driver_radar),
@@ -1520,6 +1708,12 @@ def main():
     ap.add_argument("--session", default="R")
     ap.add_argument("--latest", action="store_true")
     ap.add_argument("--no-upload", action="store_true")
+    ap.add_argument("--format", default="landscape",
+                    choices=["landscape", "twitter", "instagram", "story", "both", "all"],
+                    help="output size: landscape 16:9, twitter 16:9, instagram 4:5, "
+                         "story 9:16, both (landscape+story), or all four")
+    ap.add_argument("--team-labels", default="text", choices=["text", "logo"],
+                    help="team y-axis labels: text names (default) or team logos")
     args = ap.parse_args()
 
     cache = os.environ.get("FASTF1_CACHE", ".fastf1cache")
@@ -1559,32 +1753,51 @@ def main():
             "country": ev.get("Country"), "location": ev.get("Location"),
             "circuit": circuit}
 
-    ok = 0
-    for ctype, title, desc, fn in CHARTS:
-        try:
-            png = fn(session, meta)
-            if not png:
-                print(f"  - {ctype}: no data, skipped")
-                continue
-            path = f"{args.season}/{rnd}/{args.session}/{ctype}.png"
-            if args.no_upload:
-                os.makedirs("out", exist_ok=True)
-                with open(f"out/{args.season}-{rnd}-{args.session}-{ctype}.png", "wb") as f:
-                    f.write(png)
-                print(f"  - {ctype}: wrote local PNG ({len(png)//1024} KB)")
-            else:
-                public_url = upload_png(path, png)
-                upsert_index({"season": args.season, "round": rnd, "session": args.session,
-                              "chart_type": ctype, "title": title, "description": desc,
-                              "storage_path": path, "public_url": public_url,
-                              "updated_at": pd.Timestamp.utcnow().isoformat()})
-                print(f"  - {ctype}: uploaded {public_url}")
-            ok += 1
-        except Exception as e:  # noqa: BLE001
-            print(f"  ! {ctype} failed: {e}")
-            traceback.print_exc()
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", str(ev["EventName"])).strip("-")
+    fmt_sets = {
+        "landscape": ["landscape"], "twitter": ["twitter"],
+        "instagram": ["instagram"], "story": ["story"],
+        "both": ["landscape", "story"],
+        "all": ["landscape", "twitter", "instagram", "story"],
+    }
+    ratios = {"landscape": "16:9", "twitter": "16:9", "instagram": "4:5", "story": "9:16"}
 
-    print(f"Done. {ok}/{len(CHARTS)} charts generated.")
+    global FMT, TEAM_LABELS
+    TEAM_LABELS = args.team_labels
+
+    ok = 0
+    for fmt in fmt_sets[args.format]:
+        FMT = fmt
+        # out/<year>/<round>-<Grand Prix>/<session>/<format>/<chart>.png
+        base = f"{args.season}/{rnd:02d}-{slug}/{args.session}/{fmt}"
+        print(f"== {fmt} ({ratios[fmt]}) ==")
+        for ctype, title, desc, fn in CHARTS:
+            try:
+                png = fn(session, meta)
+                if not png:
+                    print(f"  - {fmt}/{ctype}: no data, skipped")
+                    continue
+                path = f"{base}/{ctype}.png"
+                if args.no_upload:
+                    outdir = os.path.join("out", base)
+                    os.makedirs(outdir, exist_ok=True)
+                    with open(os.path.join(outdir, f"{ctype}.png"), "wb") as f:
+                        f.write(png)
+                    print(f"  - {fmt}/{ctype}: {len(png) // 1024} KB")
+                else:
+                    ct = ctype if fmt == "landscape" else f"{ctype}_{fmt}"
+                    public_url = upload_png(path, png)
+                    upsert_index({"season": args.season, "round": rnd, "session": args.session,
+                                  "chart_type": ct, "title": title, "description": desc,
+                                  "storage_path": path, "public_url": public_url,
+                                  "updated_at": pd.Timestamp.utcnow().isoformat()})
+                    print(f"  - {fmt}/{ctype}: uploaded")
+                ok += 1
+            except Exception as e:  # noqa: BLE001
+                print(f"  ! {fmt}/{ctype} failed: {e}")
+                traceback.print_exc()
+
+    print(f"Done. {ok} charts generated into out/{args.season}/{rnd:02d}-{slug}/{args.session}/")
     return 0
 
 
