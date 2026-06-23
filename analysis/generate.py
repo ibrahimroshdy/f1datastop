@@ -314,6 +314,7 @@ def chart_speed_trace(session, meta):
     look = driver_lookup(session)
     ends = []
     plotted = 0
+    seen = {}
     for drv in top_drivers_by_pace(laps, 5):
         dl = laps[laps["Driver"] == drv]
         if dl.empty:
@@ -323,7 +324,8 @@ def chart_speed_trace(session, meta):
             continue
         tel = lap.get_car_data().add_distance()
         c = team_color(lap["Team"])
-        ax.plot(tel["Distance"], tel["Speed"], color=c, lw=2.6, solid_capstyle="round")
+        ax.plot(tel["Distance"], tel["Speed"], color=c, lw=2.6,
+                ls=style_for(lap["Team"], seen), solid_capstyle="round")
         ends.append((drv, c, (look.get(str(drv)) or {}).get("headshot")))
         plotted += 1
     # Headshot column on the right (top-down by pace), spread to avoid overlap
@@ -346,14 +348,17 @@ def chart_position_changes(session, meta):
     fig, ax = editorial_fig()
     title_block(fig, "Race", "Position Changes", "Track position, lap by lap")
     plotted = 0
+    seen = {}
     for drv in session.drivers:
         dl = laps[laps["DriverNumber"] == drv].dropna(subset=["Position"])
         if dl.empty:
             continue
         abbr = dl["Driver"].iloc[0]
-        c = team_color(dl["Team"].iloc[0])
+        team = dl["Team"].iloc[0]
+        c = team_color(team)
         xs, ys = smooth_xy(dl["LapNumber"].values, dl["Position"].values)
-        ax.plot(xs, ys, color=c, lw=2.4, solid_capstyle="round", alpha=0.95)
+        ax.plot(xs, ys, color=c, lw=2.4, ls=style_for(team, seen),
+                solid_capstyle="round", alpha=0.95)
         last = dl.iloc[-1]
         end_tag(ax, last["LapNumber"], last["Position"], abbr, c)
         plotted += 1
@@ -601,7 +606,7 @@ def chart_track_dominance(session, meta):
     segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
     fig, ax = editorial_fig()
     title_block(fig, "Telemetry", "Track Dominance", "Fastest driver in each mini-sector")
-    ax.add_collection(LineCollection(segs, colors=seg_colors[:-1], linewidths=8, capstyle="round"))
+    neon_lines(ax, segs, colors=seg_colors[:-1], lw=8)
     ax.set_aspect("equal")
     ax.axis("off")
     ax.autoscale()
@@ -671,31 +676,321 @@ def chart_teammate_pace(session, meta):
     if not teams:
         return None
     teams = sorted(teams, key=lambda t: laps[laps["Team"] == t]["s"].median())
-    rows = []
-    for t in teams:
+    lo = float(np.percentile(laps["s"], 1.5))
+    hi = float(np.percentile(laps["s"], 97))
+    fig, ax = editorial_fig(left=0.13, right=0.87)
+    title_block(fig, "Head to Head", "Teammate Duel", "Lap-time distribution · driver vs driver")
+    for i, t in enumerate(teams):
         sub = laps[laps["Team"] == t]
-        for d in sub.groupby("Driver")["s"].median().sort_values().index[:2]:
-            rows.append((d, t))
-    data = [laps[laps["Driver"] == d]["s"].values for d, _ in rows]
-    fig, ax = editorial_fig(left=0.12)
-    title_block(fig, "Pace", "Teammate Distribution", "Lap-time spread · teammates side by side")
-    parts = ax.violinplot(data, vert=False, showextrema=False, widths=0.82)
-    for body, (_, t) in zip(parts["bodies"], rows):
-        body.set_facecolor(team_color(t))
-        body.set_alpha(0.40)
-        body.set_edgecolor(team_color(t))
-        body.set_linewidth(1.2)
-    for i, (_, t) in enumerate(rows):
-        ax.scatter([np.median(data[i])], [i + 1], s=42, color=team_color(t),
-                   edgecolor=PAPER, linewidth=1.2, zorder=5)
-    for k in range(2, len(rows), 2):
-        ax.axhline(k + 0.5, color=GRID, lw=0.8, zorder=1)
-    ax.set_yticks(range(1, len(rows) + 1))
-    ax.set_yticklabels([d for d, _ in rows], fontproperties=FP_BODY_B, color=INK, fontsize=10)
+        meds = sub.groupby("Driver")["s"].median().sort_values()
+        d_fast, d_slow = meds.index[0], meds.index[1]
+        a = sub[sub["Driver"] == d_fast]["s"].values
+        b = sub[sub["Driver"] == d_slow]["s"].values
+        col = team_color(t)
+        for data, side, alpha, hatch in ((a, 1, 0.62, None), (b, -1, 0.30, "////")):
+            if len(data) < 2:
+                continue
+            parts = ax.violinplot([data], positions=[i], vert=False, widths=0.92,
+                                  showextrema=False)
+            for body in parts["bodies"]:
+                v = body.get_paths()[0].vertices
+                v[:, 1] = np.clip(v[:, 1], i, None) if side > 0 else np.clip(v[:, 1], None, i)
+                body.set_facecolor(col)
+                body.set_alpha(alpha)
+                body.set_edgecolor(col)
+                body.set_linewidth(1.3)
+                if hatch:
+                    body.set_hatch(hatch)
+        m_fast, m_slow = float(np.median(a)), float(np.median(b))
+        ax.scatter([m_fast], [i + 0.15], s=46, color=col, edgecolor=PAPER, lw=1.2, zorder=6)
+        ax.scatter([m_slow], [i - 0.15], s=46, color="#FFFFFF", edgecolor=col, lw=1.7, zorder=6)
+        ax.annotate(d_fast, (m_fast, i + 0.15), xytext=(7, 0), textcoords="offset points",
+                    va="center", ha="left", fontsize=9, color=col,
+                    fontproperties=FP_BODY_B, zorder=7)
+        ax.annotate(d_slow, (m_slow, i - 0.15), xytext=(7, 0), textcoords="offset points",
+                    va="center", ha="left", fontsize=9, color=SUBINK,
+                    fontproperties=FP_BODY_B, zorder=7)
+        ax.text(hi + 0.02, i, f"{d_fast} +{m_slow - m_fast:.2f}s", va="center", ha="right",
+                fontsize=10, color=col, fontproperties=FP_BODY_B)
+    ax.set_yticks(range(len(teams)))
+    ax.set_yticklabels(teams, fontproperties=FP_BODY_B, color=INK, fontsize=9.5)
+    ax.set_ylim(-0.7, len(teams) - 0.3)
     ax.invert_yaxis()
+    ax.set_xlim(lo - 0.3, hi + 0.08)
+    ax.grid(axis="x", color=GRID, linewidth=1.0)
+    ax.grid(axis="y", linewidth=0)
+    clean_axes(ax, "Lap time (s)", None)
+    fig.add_artist(plt.Rectangle((0.60, 0.847), 0.014, 0.015, transform=fig.transFigure,
+                                 color=INK, alpha=0.75, zorder=11))
+    fig.text(0.62, 0.853, "faster", color=SUBINK, fontsize=9.5, fontproperties=FP_BODY)
+    fig.add_artist(plt.Rectangle((0.69, 0.847), 0.014, 0.015, transform=fig.transFigure,
+                                 fill=False, edgecolor=INK, hatch="////", linewidth=0.5, zorder=11))
+    fig.text(0.71, 0.853, "teammate", color=SUBINK, fontsize=9.5, fontproperties=FP_BODY)
+    footer(fig, meta)
+    return fig_png(fig)
+
+
+LINESTYLES = ["-", (0, (6, 2)), (0, (1, 1.7)), (0, (4, 1.5, 1, 1.5))]
+
+
+def style_for(team, seen):
+    """Distinct line style per same-team driver: solid, dashed, dotted...
+    Mutates `seen` (dict team->count)."""
+    k = seen.get(team, 0)
+    seen[team] = k + 1
+    return LINESTYLES[min(k, len(LINESTYLES) - 1)]
+
+
+def neon_lines(ax, segs, array=None, colors=None, cmap=None, lw=8):
+    """Line segments with a neon glow halo (trendy 'pulse' look)."""
+    for glw, ga in ((lw * 2.7, 0.045), (lw * 1.95, 0.07), (lw * 1.4, 0.10)):
+        g = LineCollection(segs, linewidths=glw, capstyle="round", joinstyle="round", alpha=ga)
+        if cmap is not None:
+            g.set_cmap(cmap)
+            g.set_array(array)
+        else:
+            g.set_color(colors)
+        ax.add_collection(g)
+    main = LineCollection(segs, linewidths=lw, capstyle="round", joinstyle="round")
+    if cmap is not None:
+        main.set_cmap(cmap)
+        main.set_array(array)
+    else:
+        main.set_color(colors)
+    ax.add_collection(main)
+    return main
+
+
+def place_headshot_column(ax, ends):
+    """Evenly-spaced headshot column at the right edge — avoids overlap when
+    line endpoints cluster. `ends` is ordered top-to-bottom."""
+    if not ends:
+        return
+    lo, hi = sorted(ax.get_ylim())
+    xmax = ax.get_xlim()[1]
+    span = hi - lo
+    step = span * 0.145
+    for i, (drv, c, url) in enumerate(ends):
+        if ax.yaxis_inverted():
+            y = lo + span * 0.06 + step * i
+        else:
+            y = hi - span * 0.06 - step * i
+        headshot_label(ax, xmax, y, drv, c, url)
+
+
+def chart_top_speed(session, meta):
+    laps = session.laps
+    rows = []
+    for drv in session.drivers:
+        dl = laps[laps["DriverNumber"] == drv]
+        if dl.empty:
+            continue
+        lap = dl.pick_fastest()
+        if lap is None or (hasattr(lap, "empty") and lap.empty):
+            continue
+        try:
+            spd = float(lap.get_car_data()["Speed"].max())
+        except Exception:
+            continue
+        rows.append((dl["Driver"].iloc[0], team_color(dl["Team"].iloc[0]), spd))
+    if not rows:
+        return None
+    rows.sort(key=lambda r: r[2])
+    fig, ax = editorial_fig(left=0.10)
+    title_block(fig, "Telemetry", "Top Speed", "Highest speed reached · fastest lap")
+    for i, (code, c, spd) in enumerate(rows):
+        ax.barh(i, spd, color=c, height=0.62, zorder=3, edgecolor=PAPER, linewidth=1.0)
+        ax.text(spd - 2, i, f"{spd:.0f}", va="center", ha="right", fontsize=10,
+                fontproperties=FP_BODY_B, color="#FFFFFF")
+    ax.set_yticks(range(len(rows)))
+    ax.set_yticklabels([r[0] for r in rows], fontproperties=FP_BODY_B, color=INK, fontsize=10)
+    ax.set_xlim(left=min(r[2] for r in rows) - 18)
     ax.grid(axis="y", linewidth=0)
     ax.grid(axis="x", color=GRID, linewidth=1.0)
-    clean_axes(ax, "Lap time (s)", None)
+    clean_axes(ax, "Speed (km/h)", None)
+    footer(fig, meta)
+    return fig_png(fig)
+
+
+def chart_gap_to_leader(session, meta):
+    laps = session.laps
+    df = laps[["Driver", "LapNumber", "Time", "Team"]].dropna(subset=["Time", "LapNumber"]).copy()
+    if df.empty:
+        return None
+    df["t"] = df["Time"].dt.total_seconds()
+    leader = df.groupby("LapNumber")["t"].min()
+    df["gap"] = df["t"] - df["LapNumber"].map(leader)
+    try:
+        order = [a for a in session.results["Abbreviation"].values][:6]
+    except Exception:
+        order = list(df["Driver"].unique())[:6]
+    look = driver_lookup(session)
+    fig, ax = editorial_fig(right=0.86)
+    title_block(fig, "Race", "Gap to Leader", "Time behind the lead, lap by lap")
+    ends = []
+    seen = {}
+    for drv in order:
+        sub = df[df["Driver"] == drv].sort_values("LapNumber")
+        if sub.empty:
+            continue
+        team = sub["Team"].iloc[0]
+        c = team_color(team)
+        ax.plot(sub["LapNumber"], sub["gap"], color=c, lw=2.4,
+                ls=style_for(team, seen), solid_capstyle="round")
+        ends.append((drv, c, (look.get(str(drv)) or {}).get("headshot")))
+    if not ends:
+        plt.close(fig)
+        return None
+    ax.invert_yaxis()
+    clean_axes(ax, "Lap", "Gap (s)")
+    place_headshot_column(ax, ends)
+    footer(fig, meta)
+    return fig_png(fig)
+
+
+def chart_lap_evolution(session, meta):
+    quick = session.laps.pick_quicklaps() if hasattr(session.laps, "pick_quicklaps") else session.laps
+    quick = quick.copy()
+    quick["s"] = quick["LapTime"].dt.total_seconds()
+    look = driver_lookup(session)
+    fig, ax = editorial_fig(right=0.86)
+    title_block(fig, "Pace", "Lap-Time Evolution", "Race pace through the stints · top five")
+    ends = []
+    seen = {}
+    for drv in top_drivers_by_pace(session.laps, 5):
+        sub = quick[quick["Driver"] == drv].sort_values("LapNumber")
+        if sub.empty:
+            continue
+        team = sub["Team"].iloc[0]
+        c = team_color(team)
+        xs, ys = smooth_xy(sub["LapNumber"].values, sub["s"].values)
+        ax.plot(xs, ys, color=c, lw=2.2, alpha=0.92,
+                ls=style_for(team, seen), solid_capstyle="round")
+        ends.append((drv, c, (look.get(str(drv)) or {}).get("headshot")))
+    if not ends:
+        plt.close(fig)
+        return None
+    clean_axes(ax, "Lap", "Lap time (s)")
+    place_headshot_column(ax, ends)
+    footer(fig, meta)
+    return fig_png(fig)
+
+
+def chart_speed_map(session, meta):
+    fl = session.laps.pick_fastest() if hasattr(session.laps, "pick_fastest") else None
+    if fl is None or (hasattr(fl, "empty") and fl.empty):
+        return None
+    try:
+        t = fl.get_telemetry()
+    except Exception:
+        return None
+    if "X" not in t or "Speed" not in t:
+        return None
+    x = t["X"].to_numpy()
+    y = t["Y"].to_numpy()
+    spd = t["Speed"].to_numpy()
+    pts = np.array([x, y]).T.reshape(-1, 1, 2)
+    segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
+    fig, ax = editorial_fig()
+    title_block(fig, "Telemetry", "Speed Map", f"Fastest lap · {fl['Driver']}")
+    lc = neon_lines(ax, segs, array=spd[:-1], cmap="inferno", lw=8)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.autoscale()
+    ax.margins(0.06)
+    cax = fig.add_axes([0.63, 0.15, 0.22, 0.02])
+    cb = fig.colorbar(lc, cax=cax, orientation="horizontal")
+    cb.set_label("Speed (km/h)", color=SUBINK, fontsize=10, fontproperties=FP_BODY)
+    cb.ax.tick_params(colors=SUBINK, labelsize=9)
+    cb.outline.set_edgecolor(GRID)
+    footer(fig, meta)
+    return fig_png(fig)
+
+
+def chart_gear_map(session, meta):
+    gear_colors = ["#666666", "#E10600", "#FF7A00", "#FFC400", "#8BD000",
+                   "#00B3A4", "#1E90FF", "#8A6BFF", "#C84CFF"]
+    fl = session.laps.pick_fastest() if hasattr(session.laps, "pick_fastest") else None
+    if fl is None or (hasattr(fl, "empty") and fl.empty):
+        return None
+    try:
+        t = fl.get_telemetry()
+    except Exception:
+        return None
+    if "X" not in t or "nGear" not in t:
+        return None
+    x = t["X"].to_numpy()
+    y = t["Y"].to_numpy()
+    g = t["nGear"].to_numpy().astype(int)
+    pts = np.array([x, y]).T.reshape(-1, 1, 2)
+    segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
+    cols = [gear_colors[min(max(int(v), 0), 8)] for v in g[:-1]]
+    fig, ax = editorial_fig()
+    title_block(fig, "Telemetry", "Gears", f"Gear selection · {fl['Driver']} · fastest lap")
+    neon_lines(ax, segs, colors=cols, lw=8)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.autoscale()
+    ax.margins(0.06)
+    x0 = 0.55
+    for gg in range(2, 9):
+        fig.add_artist(plt.Rectangle((x0, 0.843), 0.013, 0.02, transform=fig.transFigure,
+                                     color=gear_colors[gg], zorder=11))
+        fig.text(x0 + 0.017, 0.852, str(gg), va="center", color=INK, fontsize=10.5,
+                 fontproperties=FP_BODY)
+        x0 += 0.052
+    footer(fig, meta)
+    return fig_png(fig)
+
+
+def chart_driver_radar(session, meta):
+    laps = session.laps
+    metrics = ["Top speed", "Avg speed", "Throttle", "Braking", "Consistency"]
+    vals = {}
+    for drv in top_drivers_by_pace(laps, 3):
+        dl = laps[laps["Driver"] == drv]
+        lap = dl.pick_fastest()
+        if lap is None or (hasattr(lap, "empty") and lap.empty):
+            continue
+        try:
+            cd = lap.get_car_data()
+        except Exception:
+            continue
+        spd = cd["Speed"]
+        thr = cd["Throttle"]
+        brk = cd["Brake"].astype(float)
+        if brk.max() <= 1:
+            brk = brk * 100
+        m = [min(spd.max() / 360 * 100, 100), min(spd.mean() / 250 * 100, 100),
+             float(thr.mean()), float((brk > 20).mean() * 100),
+             max(0.0, 100 - min(spd.std() / spd.mean() * 100, 100))]
+        vals[drv] = (m, team_color(dl["Team"].iloc[0]))
+    if len(vals) < 2:
+        return None
+    n = len(metrics)
+    ang = np.linspace(0, 2 * np.pi, n, endpoint=False).tolist()
+    ang += ang[:1]
+    fig = plt.figure(figsize=(12.8, 7.2), dpi=200)
+    fig.patch.set_facecolor(PAPER)
+    ax = fig.add_axes([0.34, 0.06, 0.34, 0.60], polar=True)
+    ax.set_facecolor(PAPER)
+    title_block(fig, "Telemetry", "Driver Radar", "Performance profile · fastest lap · top three")
+    ax.set_theta_offset(np.pi / 2)
+    ax.set_theta_direction(-1)
+    ax.set_xticks(ang[:-1])
+    ax.set_xticklabels(metrics, color=INK, fontproperties=FP_BODY, fontsize=11)
+    ax.set_yticks([25, 50, 75, 100])
+    ax.set_yticklabels([])
+    ax.set_ylim(0, 100)
+    ax.grid(color=GRID)
+    ax.spines["polar"].set_color(GRID)
+    for drv, (m, c) in vals.items():
+        d = m + m[:1]
+        ax.plot(ang, d, color=c, lw=2.4)
+        ax.fill(ang, d, color=c, alpha=0.12)
+    look = driver_lookup(session)
+    items = [(drv, vals[drv][1], (look.get(str(drv)) or {}).get("headshot")) for drv in vals]
+    headshot_legend_row(fig, items, x0=0.62, step=0.13)
     footer(fig, meta)
     return fig_png(fig)
 
@@ -703,7 +998,13 @@ def chart_teammate_pace(session, meta):
 CHARTS = [
     ("position_changes", "Position Changes", "Track position through the race", chart_position_changes),
     ("grid_flow", "Qualifying → Grid → Finish", "Driver flow from qualifying to the chequered flag", chart_grid_flow),
+    ("gap_to_leader", "Gap to Leader", "Time behind the lead, lap by lap", chart_gap_to_leader),
+    ("lap_evolution", "Lap-Time Evolution", "Race pace through the stints", chart_lap_evolution),
     ("teammate_pace", "Teammate Distribution", "Teammate lap-time spread, side by side", chart_teammate_pace),
+    ("top_speed", "Top Speed", "Highest speed per driver on the fastest lap", chart_top_speed),
+    ("speed_map", "Speed Map", "Fastest-lap speed mapped on the circuit", chart_speed_map),
+    ("gear_map", "Gears", "Gear selection mapped on the circuit", chart_gear_map),
+    ("driver_radar", "Driver Radar", "Performance profile of the top drivers", chart_driver_radar),
     ("track_dominance", "Track Dominance", "Fastest driver in each mini-sector", chart_track_dominance),
     ("throttle_brake", "Throttle & Brake", "Throttle and brake inputs on the fastest lap", chart_throttle_brake),
     ("pace_tyre", "Race Pace by Tyre", "Lap-time distribution per team, coloured by compound", chart_pace_tyre),
