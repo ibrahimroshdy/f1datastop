@@ -48,7 +48,7 @@ export default function RaceCalendarGridView({
                 className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
               >
                 <Skeleton className="h-0.5 w-full" />
-                <F1CardContent className="p-2 sm:p-2.5">
+                <F1CardContent className="p-1.5 sm:p-2.5">
                   <Skeleton className="h-3.5 w-3/4 mb-1.5" />
                   <Skeleton className="h-3 w-1/2" />
                 </F1CardContent>
@@ -107,9 +107,10 @@ export default function RaceCalendarGridView({
                 onClick={() => openRaceDetails(race)}
               >
                 <div className={`h-0.5 w-full ${raceTypeColors[raceType]}`} />
-                <F1CardContent className="p-2 sm:p-2.5">
-                  <div className="flex flex-col items-center text-center gap-1.5 sm:gap-2">
-                    <CountryFlag country={country} size={20} />
+                <F1CardContent className="p-1.5 sm:p-2.5">
+                  <div className="flex flex-col items-center text-center gap-1 sm:gap-2">
+                    <CountryFlag country={country} size={16} className="sm:hidden" />
+                    <CountryFlag country={country} size={20} className="hidden sm:block" />
                     <div className="w-full">
                       <h3 className="font-semibold text-xs sm:text-sm leading-tight truncate mb-0.5">
                         {raceName}

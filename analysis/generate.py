@@ -124,6 +124,7 @@ if os.path.exists(_logo_path):
 # FMT selects the active layout. Every layout anchor + per-chart magic number
 # lives here so each channel re-flows (never squeezes).
 FMT = "landscape"
+DRIVERS = None  # optional set of driver abbreviations to feature (CLI --drivers)
 
 # 16:9 anchors shared by landscape + twitter (same ratio, different pixels)
 _WIDE = dict(
@@ -158,7 +159,7 @@ def LY(key):
     return LAYOUT[FMT][key]
 
 
-def editorial_fig(left=0.065, right=0.93):
+def editorial_fig(left=0.09, right=0.93):
     L = LAYOUT[FMT]
     fig = plt.figure(figsize=L["figsize"], dpi=L["dpi"])
     fig.patch.set_facecolor(PAPER)
@@ -579,7 +580,10 @@ def fig_png(fig):
 
 def top_drivers_by_pace(laps, n=5):
     q = laps.pick_quicklaps() if hasattr(laps, "pick_quicklaps") else laps
-    return list(q.groupby("Driver")["LapTime"].min().sort_values().index[:n])
+    order = list(q.groupby("Driver")["LapTime"].min().sort_values().index)
+    if DRIVERS:
+        return [d for d in order if d in DRIVERS]  # selected drivers, pace order
+    return order[:n]
 
 
 # ── Charts ──────────────────────────────────────────────────────────────────
@@ -630,6 +634,8 @@ def chart_position_changes(session, meta):
         if dl.empty:
             continue
         abbr = dl["Driver"].iloc[0]
+        if DRIVERS and abbr not in DRIVERS:
+            continue
         team = dl["Team"].iloc[0]
         c = team_color(team)
         xs, ys = smooth_xy(dl["LapNumber"].values, dl["Position"].values)
@@ -654,20 +660,24 @@ def chart_tyre_strategy(session, meta):
     fig, ax = editorial_fig()
     title_block(fig, "Strategy", "Tyre Stints", "Compound usage per driver")
     yt, yl = [], []
-    for i, drv in enumerate(session.drivers):
+    row_i = 0
+    for drv in session.drivers:
         dl = laps[laps["DriverNumber"] == drv]
         if dl.empty:
             continue
         abbr = dl["Driver"].iloc[0]
+        if DRIVERS and abbr not in DRIVERS:
+            continue
         for _, st in dl.groupby("Stint"):
             comp = str(st["Compound"].iloc[0]).upper()
             start = st["LapNumber"].min()
             length = st["LapNumber"].max() - start + 1
-            ax.barh(i, length, left=start - 1, height=0.62,
+            ax.barh(row_i, length, left=start - 1, height=0.62,
                     color=COMPOUND_COLORS.get(comp, "#9A9486"),
                     edgecolor=PAPER, linewidth=1.4, zorder=3)
-        yt.append(i)
+        yt.append(row_i)
         yl.append(abbr)
+        row_i += 1
     if not yt:
         plt.close(fig)
         return None
@@ -769,6 +779,8 @@ def chart_places_gained(session, meta):
         return None
     res = res.dropna(subset=["GridPosition", "Position"])
     res = res[res["GridPosition"] > 0]
+    if DRIVERS:
+        res = res[res["Abbreviation"].isin(DRIVERS)]
     if res.empty:
         return None
     res["delta"] = res["GridPosition"] - res["Position"]
@@ -950,6 +962,10 @@ def chart_grid_flow(session, meta):
     def seg_color(a, b):
         return GAIN if b < a else (LOSS if b > a else HELD)
 
+    if DRIVERS:
+        res = res[res["Abbreviation"].isin(DRIVERS)]
+        if res.empty:
+            return None
     node_col = [{}, {}, {}]  # position -> team colour, per column
     for _, row in res.iterrows():
         abbr = row.get("Abbreviation")
@@ -979,7 +995,7 @@ def chart_grid_flow(session, meta):
     ax.set_yticks(pos_yticks(n))
     for s in ("top", "right", "left", "bottom"):
         ax.spines[s].set_visible(False)
-    ax.tick_params(colors=SUBINK, length=0, labelsize=11)
+    ax.tick_params(colors=SUBINK, length=0, labelsize=11, labelleft=True, labelright=True)
     ax.grid(False)
     for lbl in ax.get_xticklabels():
         lbl.set_color(INK)
@@ -1099,19 +1115,42 @@ def chart_teammate_laps(session, meta):
         sub = quick[quick["Team"] == t]
         col = team_color(t)
         meds = sub.groupby("Driver")["s"].median().sort_values()
-        for di, drv in enumerate(meds.index[:2]):
+        pair = list(meds.index[:2])
+        series = {}
+        for di, drv in enumerate(pair):
             d = sub[sub["Driver"] == drv].sort_values("LapNumber")
             if d.empty:
                 continue
+            series[drv] = d
             ls = "-" if di == 0 else (0, (4, 2))
             xs, ys = smooth_xy(d["LapNumber"].values, d["s"].values)
             ax.plot(xs, ys, color=col, lw=1.8, ls=ls, alpha=0.95, solid_capstyle="round")
+            fl = d.loc[d["s"].idxmin()]
+            ax.scatter([fl["LapNumber"]], [fl["s"]], s=24, color=col,
+                       edgecolor="#FFFFFF", lw=0.9, zorder=6)
             ax.annotate(drv, (d["LapNumber"].values[-1], d["s"].values[-1]),
                         xytext=(4, 0), textcoords="offset points", va="center", ha="left",
-                        fontsize=8, color=col, fontproperties=FP_BODY_B)
-        ax.set_xlim(0, lmax + 4)
+                        fontsize=7.5, color=INK, fontproperties=FP_BODY_B, zorder=7,
+                        bbox=dict(boxstyle="round,pad=0.15", facecolor=PAPER, edgecolor="none", alpha=0.8))
+        # fastest lap of the pair + who led more laps head-to-head
+        note = t
+        if len(series) == 2:
+            a, b = pair
+            besta, bestb = series[a]["s"].min(), series[b]["s"].min()
+            fastest = a if besta <= bestb else b
+            sa = series[a].set_index("LapNumber")["s"]
+            sb = series[b].set_index("LapNumber")["s"]
+            common = sa.index.intersection(sb.index)
+            awins = int((sa[common] < sb[common]).sum())
+            bwins = len(common) - awins
+            lead, ln = (a, awins) if awins >= bwins else (b, bwins)
+            ax.text(0.985, 0.04,
+                    f"FL {fastest} {fmt_laptime(min(besta, bestb))}   ·   {lead} faster {ln}/{len(common)} laps",
+                    transform=ax.transAxes, ha="right", va="bottom", fontsize=6.6,
+                    color=SUBINK, fontproperties=FP_BODY, zorder=7)
+        ax.set_xlim(0, lmax + 7)
         ax.set_ylim(ymax, ymin)
-        ax.set_title(t, fontproperties=FP_BODY_B, color=INK, fontsize=10, pad=4, loc="left")
+        ax.set_title(note, fontproperties=FP_BODY_B, color=INK, fontsize=10, pad=4, loc="left")
         ax.grid(color=GRID, linewidth=0.7)
         ax.set_axisbelow(True)
         for s in ax.spines.values():
@@ -1138,7 +1177,7 @@ def style_for(team, seen):
 
 def neon_lines(ax, segs, array=None, colors=None, cmap=None, lw=8):
     """Line segments with a neon glow halo (trendy 'pulse' look)."""
-    for glw, ga in ((lw * 2.7, 0.045), (lw * 1.95, 0.07), (lw * 1.4, 0.10)):
+    for glw, ga in ((lw * 3.6, 0.06), (lw * 2.5, 0.09), (lw * 1.6, 0.13)):
         g = LineCollection(segs, linewidths=glw, capstyle="round", joinstyle="round", alpha=ga)
         if cmap is not None:
             g.set_cmap(cmap)
@@ -1205,6 +1244,8 @@ def chart_top_speed(session, meta):
         dl = laps[laps["DriverNumber"] == drv]
         if dl.empty:
             continue
+        if DRIVERS and dl["Driver"].iloc[0] not in DRIVERS:
+            continue
         lap = dl.pick_fastest()
         if lap is None or (hasattr(lap, "empty") and lap.empty):
             continue
@@ -1241,9 +1282,10 @@ def chart_gap_to_leader(session, meta):
     leader = df.groupby("LapNumber")["t"].min()
     df["gap"] = df["t"] - df["LapNumber"].map(leader)
     try:
-        order = [a for a in session.results["Abbreviation"].values][:6]
+        order = [a for a in session.results["Abbreviation"].values]
+        order = [d for d in order if d in DRIVERS] if DRIVERS else order[:6]
     except Exception:
-        order = list(df["Driver"].unique())[:6]
+        order = list(DRIVERS) if DRIVERS else list(df["Driver"].unique())[:6]
     look = driver_lookup(session)
     fig, ax = editorial_fig(right=LY("headshot_right"))
     title_block(fig, "Race", "Gap to Leader", "Time behind the lead, lap by lap")
@@ -1368,8 +1410,9 @@ def chart_gear_map(session, meta):
 def chart_driver_radar(session, meta):
     laps = session.laps
     metrics = ["Top speed", "Avg speed", "Throttle", "Braking", "Consistency"]
-    vals = {}
-    for drv in top_drivers_by_pace(laps, 3):
+    look = driver_lookup(session)
+    drivers = []
+    for drv in top_drivers_by_pace(laps, 6):
         dl = laps[laps["Driver"] == drv]
         lap = dl.pick_fastest()
         if lap is None or (hasattr(lap, "empty") and lap.empty):
@@ -1386,35 +1429,51 @@ def chart_driver_radar(session, meta):
         m = [min(spd.max() / 360 * 100, 100), min(spd.mean() / 250 * 100, 100),
              float(thr.mean()), float((brk > 20).mean() * 100),
              max(0.0, 100 - min(spd.std() / spd.mean() * 100, 100))]
-        vals[drv] = (m, team_color(dl["Team"].iloc[0]))
-    if len(vals) < 2:
+        drivers.append((drv, m, team_color(dl["Team"].iloc[0]),
+                        (look.get(str(drv)) or {}).get("headshot")))
+    if len(drivers) < 2:
         return None
-    n = len(metrics)
-    ang = np.linspace(0, 2 * np.pi, n, endpoint=False).tolist()
+    nmet = len(metrics)
+    ang = np.linspace(0, 2 * np.pi, nmet, endpoint=False).tolist()
     ang += ang[:1]
     L = LAYOUT[FMT]
     fig = plt.figure(figsize=L["figsize"], dpi=L["dpi"])
     fig.patch.set_facecolor(PAPER)
-    radar_rect = list(LY("radar_rect"))
-    ax = fig.add_axes(radar_rect, polar=True)
-    ax.set_facecolor(PAPER)
-    title_block(fig, "Telemetry", "Driver Radar", "Performance profile · fastest lap · top three")
-    ax.set_theta_offset(np.pi / 2)
-    ax.set_theta_direction(-1)
-    ax.set_xticks(ang[:-1])
-    ax.set_xticklabels(metrics, color=INK, fontproperties=FP_BODY, fontsize=11)
-    ax.set_yticks([25, 50, 75, 100])
-    ax.set_yticklabels([])
-    ax.set_ylim(0, 100)
-    ax.grid(color=GRID)
-    ax.spines["polar"].set_color(GRID)
-    for drv, (m, c) in vals.items():
+    title_block(fig, "Telemetry", "Driver Radar", "Performance profile · fastest lap · one card per driver")
+    portrait = FMT in ("story", "instagram")
+    cols = 2 if portrait else 3
+    rows = int(np.ceil(len(drivers) / cols))
+    bx0, bw = 0.06, 0.88
+    by0, bh = L["ax"][0], L["ax"][1]
+    gx, gy = 0.02, 0.115
+    cw = (bw - gx * (cols - 1)) / cols
+    ch = (bh - gy * (rows - 1)) / rows
+    side = min(cw, ch) * 0.80
+    for idx, (drv, m, col, url) in enumerate(drivers):
+        r, c = idx // cols, idx % cols
+        cx = bx0 + c * (cw + gx) + cw / 2
+        cyy = by0 + bh - (r + 1) * ch - r * gy + ch / 2 - 0.012
+        ax = fig.add_axes([cx - side / 2, cyy - side / 2, side, side], polar=True)
+        ax.set_facecolor(PAPER)
+        ax.set_theta_offset(np.pi / 2)
+        ax.set_theta_direction(-1)
+        ax.set_xticks(ang[:-1])
+        ax.set_xticklabels(metrics, color=SUBINK, fontproperties=FP_BODY, fontsize=7)
+        ax.set_yticks([25, 50, 75, 100])
+        ax.set_yticklabels([])
+        ax.set_ylim(0, 100)
+        ax.grid(color=GRID, linewidth=0.7)
+        ax.spines["polar"].set_color(GRID)
         d = m + m[:1]
-        ax.plot(ang, d, color=c, lw=2.4)
-        ax.fill(ang, d, color=c, alpha=0.12)
-    look = driver_lookup(session)
-    items = [(drv, vals[drv][1], (look.get(str(drv)) or {}).get("headshot")) for drv in vals]
-    headshot_legend_row(fig, items, x0=0.62, step=0.13)
+        ax.plot(ang, d, color=col, lw=2.0)
+        ax.fill(ang, d, color=col, alpha=0.30)
+        disc = headshot_disc(url, col)
+        ty = cyy + side / 2 + 0.03
+        if disc is not None:
+            fig.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.18 if portrait else 0.14),
+                          (cx - 0.028, ty), xycoords="figure fraction", frameon=False, zorder=12))
+        fig.text(cx + 0.012, ty, drv, va="center", ha="left", color=INK,
+                 fontsize=12, fontproperties=FP_BODY_B)
     footer(fig, meta)
     return fig_png(fig)
 
@@ -1651,7 +1710,6 @@ CHARTS = [
     ("teammate_pace", "Teammate Distribution", "Teammate lap-time spread, side by side", chart_teammate_pace),
     ("teammate_laps", "Teammate Duel · Lap by Lap", "Each teammate's lap times through the race", chart_teammate_laps),
     ("top_speed", "Top Speed", "Highest speed per driver on the fastest lap", chart_top_speed),
-    ("gear_map", "Gears", "Gear selection mapped on the circuit", chart_gear_map),
     ("driver_radar", "Driver Radar", "Performance profile of the top drivers", chart_driver_radar),
     ("track_dominance", "Track Dominance", "Where each driver is fastest, layered per driver", chart_dominance_stack),
     ("pace_tyre", "Race Pace by Tyre", "Lap-time distribution per team, coloured by compound", chart_pace_tyre),
@@ -1712,8 +1770,10 @@ def main():
                     choices=["landscape", "twitter", "instagram", "story", "both", "all"],
                     help="output size: landscape 16:9, twitter 16:9, instagram 4:5, "
                          "story 9:16, both (landscape+story), or all four")
-    ap.add_argument("--team-labels", default="text", choices=["text", "logo"],
-                    help="team y-axis labels: text names (default) or team logos")
+    ap.add_argument("--team-labels", default="logo", choices=["text", "logo"],
+                    help="team y-axis labels: team logos (default) or text names")
+    ap.add_argument("--drivers", help="comma-separated driver codes to feature in "
+                    "driver charts, e.g. HAM,LEC,RUS,ANT,NOR")
     args = ap.parse_args()
 
     cache = os.environ.get("FASTF1_CACHE", ".fastf1cache")
@@ -1762,8 +1822,11 @@ def main():
     }
     ratios = {"landscape": "16:9", "twitter": "16:9", "instagram": "4:5", "story": "9:16"}
 
-    global FMT, TEAM_LABELS
+    global FMT, TEAM_LABELS, DRIVERS
     TEAM_LABELS = args.team_labels
+    DRIVERS = {d.strip().upper() for d in args.drivers.split(",")} if args.drivers else None
+    if DRIVERS:
+        print(f"Featuring drivers: {', '.join(sorted(DRIVERS))}")
 
     ok = 0
     for fmt in fmt_sets[args.format]:

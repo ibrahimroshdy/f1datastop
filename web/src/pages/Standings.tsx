@@ -149,7 +149,7 @@ const Standings = () => {
                           <TableRow key={driver.position}>
                             <TableCell className="font-medium">{driver.position}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
                                 <DriverImage
                                   driverId={driver.Driver.driverId || driver.Driver.code}
                                   driverName={`${driver.Driver.givenName} ${driver.Driver.familyName}`}
@@ -160,10 +160,10 @@ const Standings = () => {
                                   className="h-9 w-9 shrink-0"
                                 />
                                 <div
-                                  className="flex flex-col"
+                                  className="flex flex-col min-w-0"
                                   style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}
                                 >
-                                  <span className="font-medium leading-tight truncate max-w-[160px] sm:max-w-none">
+                                  <span className="font-medium leading-tight truncate">
                                     {driver.Driver.givenName} {driver.Driver.familyName}
                                   </span>
                                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">

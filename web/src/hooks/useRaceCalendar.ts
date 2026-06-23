@@ -1,6 +1,5 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { format, parseISO, addDays } from "date-fns";
-import { toast } from "sonner";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import {
   determineRaceTypes,
@@ -26,11 +25,8 @@ export function useRaceCalendar() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedRace, setSelectedRace] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [downloadingRace, setDownloadingRace] = useState<string | null>(null);
-  const [infographicRace, setInfographicRace] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<CalendarView>("list");
+  const [viewMode, setViewMode] = useState<CalendarView>("grid");
   const [expandedRaces, setExpandedRaces] = useState<Set<string>>(new Set());
-  const infographicRef = useRef<HTMLDivElement>(null);
 
   const { data: raceSchedule, isLoading } = useRaceSchedule(selectedYear);
   const currentDate = new Date();
@@ -63,33 +59,6 @@ export function useRaceCalendar() {
 
   const closeRaceDetails = () => {
     setIsDialogOpen(false);
-  };
-
-  const handleDirectDownload = async (race: any, event: React.MouseEvent) => {
-    event.stopPropagation();
-
-    if (downloadingRace === race.round) return;
-
-    setDownloadingRace(race.round);
-    setInfographicRace(race);
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const downloadEvent = new CustomEvent("triggerInfographicDownload", {
-        detail: { raceRound: race.round },
-      });
-      window.dispatchEvent(downloadEvent);
-    } catch (error) {
-      console.error("Error downloading infographic:", error);
-      toast.error("Failed to download infographic");
-      setDownloadingRace(null);
-    }
-  };
-
-  const handleInfographicDownloadComplete = () => {
-    setDownloadingRace(null);
-    setInfographicRace(null);
   };
 
   const getRaceStatus = (race: any): RaceStatus => {
@@ -175,9 +144,6 @@ export function useRaceCalendar() {
     selectedYear,
     selectedRace,
     isDialogOpen,
-    downloadingRace,
-    infographicRace,
-    infographicRef,
     viewMode,
     setViewMode,
     expandedRaces,
@@ -187,8 +153,6 @@ export function useRaceCalendar() {
     toggleRaceExpansion,
     openRaceDetails,
     closeRaceDetails,
-    handleDirectDownload,
-    handleInfographicDownloadComplete,
     getRaceStatus,
     raceTypes,
     racesWithBreak,

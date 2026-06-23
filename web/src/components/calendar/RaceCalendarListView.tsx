@@ -7,7 +7,6 @@ import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import {
   Calendar as CalendarIcon,
   Star,
-  Download,
   ChevronDown,
   ChevronUp,
   Clock,
@@ -28,14 +27,12 @@ interface RaceCalendarListViewProps {
   racesWithBreak: RaceWithBreakItem[];
   raceTypes: string[];
   expandedRaces: Set<string>;
-  downloadingRace: string | null;
   cardVariant: "default" | "glass";
   glassVariant: "default" | "panel";
   isGlass: boolean;
   getRaceStatus: (race: any) => RaceStatus;
   openRaceDetails: (race: any) => void;
   toggleRaceExpansion: (raceRound: string, event: React.MouseEvent) => void;
-  handleDirectDownload: (race: any, event: React.MouseEvent) => void;
 }
 
 export default function RaceCalendarListView({
@@ -45,14 +42,12 @@ export default function RaceCalendarListView({
   racesWithBreak,
   raceTypes,
   expandedRaces,
-  downloadingRace,
   cardVariant,
   glassVariant,
   isGlass,
   getRaceStatus,
   openRaceDetails,
   toggleRaceExpansion,
-  handleDirectDownload,
 }: RaceCalendarListViewProps) {
   return (
     <div className="mt-3">
@@ -248,30 +243,6 @@ export default function RaceCalendarListView({
                                 </Badge>
                               )}
                             </div>
-
-                            {status === "completed" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 gap-2 text-xs"
-                                onClick={(e) => handleDirectDownload(race, e)}
-                                disabled={downloadingRace === race.round}
-                              >
-                                {downloadingRace === race.round ? (
-                                  <>
-                                    <div
-                                      className="h-3.5 w-3.5 shrink-0 border-2 border-current border-t-transparent rounded-full animate-spin"
-                                    />
-                                    <span>Downloading…</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Download className="h-3.5 w-3.5 shrink-0" />
-                                    <span>Download infographic</span>
-                                  </>
-                                )}
-                              </Button>
-                            )}
                           </div>
                         )}
                       </div>

@@ -17,7 +17,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 source .venv/bin/activate
 
-FMT="${4:-landscape}"; LABELS="${5:-text}"
+FMT="${4:-landscape}"; LABELS="${5:-logo}"
 
 if [ $# -eq 0 ]; then
   python generate.py --latest --session R --no-upload --format "$FMT" --team-labels "$LABELS"

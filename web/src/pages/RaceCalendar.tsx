@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import YearSelector from "@/components/common/YearSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
-import RaceInfographic from "@/components/calendar/RaceInfographic";
 import CalendarAnalyticsTracker from "@/components/calendar/CalendarAnalyticsTracker";
 import RaceCalendarListView from "@/components/calendar/RaceCalendarListView";
 import RaceCalendarGridView from "@/components/calendar/RaceCalendarGridView";
@@ -18,9 +17,6 @@ const RaceCalendar = () => {
     selectedYear,
     selectedRace,
     isDialogOpen,
-    downloadingRace,
-    infographicRace,
-    infographicRef,
     viewMode,
     setViewMode,
     expandedRaces,
@@ -30,8 +26,6 @@ const RaceCalendar = () => {
     toggleRaceExpansion,
     openRaceDetails,
     closeRaceDetails,
-    handleDirectDownload,
-    handleInfographicDownloadComplete,
     getRaceStatus,
     raceTypes,
     racesWithBreak,
@@ -98,7 +92,7 @@ const RaceCalendar = () => {
                   <span className="text-muted-foreground text-xs">Double</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-1 rounded-full bg-primary" />
+                  <div className="h-2.5 w-1 rounded-full bg-violet-500" />
                   <span className="text-muted-foreground text-xs">Triple</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -117,14 +111,12 @@ const RaceCalendar = () => {
               racesWithBreak={racesWithBreak}
               raceTypes={raceTypes}
               expandedRaces={expandedRaces}
-              downloadingRace={downloadingRace}
               cardVariant={cardVariant}
               glassVariant={glassVariant}
               isGlass={isGlass}
               getRaceStatus={getRaceStatus}
               openRaceDetails={openRaceDetails}
               toggleRaceExpansion={toggleRaceExpansion}
-              handleDirectDownload={handleDirectDownload}
             />
           )}
 
@@ -151,19 +143,6 @@ const RaceCalendar = () => {
             onClose={closeRaceDetails}
             race={selectedRace}
           />
-        )}
-
-        {infographicRace && (
-          <div className="fixed -top-[9999px] -left-[9999px] opacity-0 pointer-events-none">
-            <div ref={infographicRef}>
-              <RaceInfographic
-                race={infographicRace}
-                isVisible={true}
-                onDownloadStart={() => {}}
-                onDownloadComplete={handleInfographicDownloadComplete}
-              />
-            </div>
-          </div>
         )}
       </div>
     </CalendarAnalyticsTracker>

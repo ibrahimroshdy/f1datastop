@@ -9,7 +9,7 @@ export const TRIPLE_HEADER = "triple";
 export const raceTypeColors: Record<string, string> = {
   [SINGLE_RACE]: "bg-blue-500",
   [DOUBLE_HEADER]: "bg-green-500",
-  [TRIPLE_HEADER]: "bg-primary",
+  [TRIPLE_HEADER]: "bg-violet-500",
   "summer-break": "bg-sky-400/50",
 };
 

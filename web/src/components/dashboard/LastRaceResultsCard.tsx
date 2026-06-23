@@ -111,16 +111,15 @@ const LastRaceResultsCard = ({
           {/* Fastest Lap */}
           {!isResultsLoading && fastestLapDriver && (
                     <div className="mt-2 flex items-center justify-center">
-              <div className="border border-dashed border-amber-500/50 dark:border-amber-400/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-[10px]">
-                <span className="text-amber-600 dark:text-amber-400 font-medium">Fastest:</span>
-                          <span 
-                            className="font-mono font-bold" 
-                  style={{ color: getTeamHexColor(fastestLapDriver.Constructor.constructorId) }}
+              <div className="border border-dashed border-violet-500/50 dark:border-violet-400/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-[10px]">
+                <span className="text-violet-600 dark:text-violet-400 font-medium">Fastest:</span>
+                          <span
+                            className="font-mono font-bold text-violet-600 dark:text-violet-400"
                           >
                             {fastestLapDriver.Driver.code}
                           </span>
                           <span className="text-muted-foreground">·</span>
-                          <span className="font-mono">{fastestLapDriver.FastestLap?.Time.time}</span>
+                          <span className="font-mono text-violet-600 dark:text-violet-400">{fastestLapDriver.FastestLap?.Time.time}</span>
                         </div>
                       </div>
           )}

@@ -157,14 +157,6 @@ const App = () => (
                           <Route path="/constructors/:slug" element={<ConstructorSlugRedirect />} />
                           <Route path="/constructors" element={<Constructors />} />
                           <Route path="/privacy" element={<Privacy />} />
-                          <Route
-                            path="/infographic/:year/:round"
-                            element={
-                              <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh]"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary" /></div>}>
-                                {React.createElement(React.lazy(() => import('./pages/RaceInfographicPage')))}
-                              </Suspense>
-                            }
-                          />
                           <Route element={<ProtectedRoute />}>
                             <Route path="/profile" element={<Profile />} />
                             <Route path="/developers" element={<Developers />} />

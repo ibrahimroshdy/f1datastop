@@ -81,7 +81,7 @@ const Drivers = () => {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {Array(9).fill(0).map((_, i) => (
               <F1Card
                 key={i}
@@ -89,24 +89,24 @@ const Drivers = () => {
                 glassVariant={glassVariant}
                 className="overflow-hidden"
               >
-                <div className="p-6">
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-16 w-16 rounded-full" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-4 w-24" />
+                <div className="p-3">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-3 w-28" />
+                      <Skeleton className="h-3 w-20" />
                     </div>
                   </div>
-                  <div className="mt-4 space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
+                  <div className="mt-3 space-y-1.5">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-3/4" />
                   </div>
                 </div>
               </F1Card>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {filteredDrivers?.map((driver: DriverStandingEntry) => {
               const currentConstructor = driver.Constructors.length > 0
                 ? driver.Constructors[driver.Constructors.length - 1]

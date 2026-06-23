@@ -101,7 +101,7 @@ const DriverCard = ({
         )}
         style={{ borderTopColor: teamColor }}
       >
-        <F1CardHeader className="flex flex-row items-center justify-between pb-2">
+        <F1CardHeader className="flex flex-row items-center justify-between p-3 pb-2">
           <div className="flex items-center gap-2">
             <DriverImage
               driverId={driver.Driver.driverId}
@@ -111,10 +111,11 @@ const DriverCard = ({
               teamColor={teamColor}
               fallbackCode={driver.Driver.code}
               fallbackFamilyName={driver.Driver.familyName}
+              className="h-10 w-10"
             />
             <div>
-              <h3 className="text-lg font-bold">{driverFullName}</h3>
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <h3 className="text-sm font-bold leading-tight">{driverFullName}</h3>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <span
                   className="inline-block w-2 h-2 rounded-full"
                   style={{ backgroundColor: teamColor }}
@@ -133,8 +134,8 @@ const DriverCard = ({
             P{driver.position}
           </Badge>
         </F1CardHeader>
-        <F1CardContent className="pb-2">
-          <div className="grid grid-cols-2 gap-2 text-sm">
+        <F1CardContent className="px-3 pb-2 pt-0">
+          <div className="grid grid-cols-2 gap-1.5 text-xs">
             <div>
               <p className="text-muted-foreground">Points</p>
               <p className="font-semibold">{driver.points}</p>
@@ -158,7 +159,7 @@ const DriverCard = ({
             )}
           </div>
         </F1CardContent>
-        <F1CardFooter className="border-t-0 pt-2 gap-2">
+        <F1CardFooter className="border-t-0 p-3 pt-1 gap-2">
           <Button asChild size="sm" className="flex-1">
             <Link to={`/drivers/${driver.Driver.driverId}`}>
               <User className="h-4 w-4 mr-2" /> View Profile

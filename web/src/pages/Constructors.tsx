@@ -104,7 +104,7 @@ const Constructors = () => {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {Array(10).fill(0).map((_, i) => (
               <F1Card
                 key={i}
@@ -112,12 +112,12 @@ const Constructors = () => {
                 glassVariant={glassVariant}
                 className="overflow-hidden"
               >
-                <F1CardHeader>
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-16 w-16 rounded-full" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-5 w-40" />
-                      <Skeleton className="h-4 w-32" />
+                <F1CardHeader className="p-3 pb-2">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-12 w-12 rounded-md" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-36" />
+                      <Skeleton className="h-3 w-28" />
                     </div>
                   </div>
                 </F1CardHeader>
@@ -132,7 +132,7 @@ const Constructors = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filteredConstructors?.map((constructor: ConstructorListEntry) => {
               const teamColor = TEAM_COLORS[constructor.Constructor.constructorId] || TEAM_COLORS.default;
               const teamDrivers = getTeamDrivers(constructor.Constructor.constructorId);
@@ -149,20 +149,20 @@ const Constructors = () => {
                   )}
                   style={{ borderTopColor: teamColor }}
                 >
-                  <F1CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <div className="flex items-center gap-3">
+                  <F1CardHeader className="flex flex-row items-center justify-between p-3 pb-2">
+                    <div className="flex items-center gap-2.5">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Avatar
-                              className="h-14 w-14 rounded-md flex items-center justify-center overflow-hidden border-2 bg-neutral-950"
+                              className="h-12 w-12 rounded-md flex items-center justify-center overflow-hidden border-2 bg-neutral-950"
                               style={{ borderColor: teamColor }}
                             >
                               <div className="flex h-full w-full items-center justify-center px-1.5">
                                 <TeamLogo
                                   constructorId={constructor.Constructor.constructorId}
                                   alt={constructor.Constructor.name}
-                                  className="max-h-9 max-w-[7rem] object-contain"
+                                  className="max-h-7 max-w-[6rem] object-contain"
                                   noBackground
                                 />
                               </div>
@@ -175,7 +175,7 @@ const Constructors = () => {
                       </TooltipProvider>
                       <div>
                         <div className="flex items-center gap-2">
-                          <F1CardTitle className="text-xl !font-semibold">
+                          <F1CardTitle className="text-base !font-semibold">
                             <Link
                               to={`/teams/${constructor.Constructor.constructorId}`}
                               className="hover:text-primary transition-colors"
@@ -187,33 +187,33 @@ const Constructors = () => {
                             <Badge className="bg-yellow-500 text-black">Champion</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">{constructor.Constructor.nationality}</p>
+                        <p className="text-xs text-muted-foreground">{constructor.Constructor.nationality}</p>
                       </div>
                     </div>
                     <Badge variant="outline" className="bg-secondary text-secondary-foreground">P{constructor.position}</Badge>
                   </F1CardHeader>
                   
-                  <F1CardContent>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                  <F1CardContent className="px-3 pt-0 pb-2">
+                    <div className="grid grid-cols-2 gap-3 mb-3">
                       <div>
-                        <p className="text-muted-foreground text-sm">Points</p>
-                        <p className="font-semibold text-lg">{constructor.points}</p>
+                        <p className="text-muted-foreground text-xs">Points</p>
+                        <p className="font-semibold text-base">{constructor.points}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground text-sm">Wins</p>
-                        <p className="font-semibold text-lg">{constructor.wins}</p>
+                        <p className="text-muted-foreground text-xs">Wins</p>
+                        <p className="font-semibold text-base">{constructor.wins}</p>
                       </div>
                     </div>
-                    
+
                     <div>
-                      <h4 className="font-medium mb-2">Drivers</h4>
-                      <div className="space-y-2">
+                      <h4 className="font-medium text-sm mb-1.5">Drivers</h4>
+                      <div className="space-y-1.5">
                         {teamDrivers.map((driver: DriverStandingForTeam) => (
-                          <div key={driver.Driver.driverId} className="flex items-center gap-2 p-2 rounded-md bg-accent/30">
+                          <div key={driver.Driver.driverId} className="flex items-center gap-2 p-1.5 rounded-md bg-accent/30">
                             <div className="w-1 h-full rounded-full" style={{ backgroundColor: teamColor }}></div>
                             <div>
-                              <p className="font-medium">{driver.Driver.givenName} {driver.Driver.familyName}</p>
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <p className="font-medium text-sm">{driver.Driver.givenName} {driver.Driver.familyName}</p>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <span>{driver.Driver.code}</span>
                                 <span className="text-xs">#{driver.Driver.permanentNumber || 'N/A'}</span>
                               </div>
@@ -225,7 +225,7 @@ const Constructors = () => {
                     </div>
                   </F1CardContent>
                   
-                  <F1CardFooter className="border-t pt-4">
+                  <F1CardFooter className="border-t p-3 pt-2">
                     <TeamHeritagePanel
                       constructorId={constructor.Constructor.constructorId}
                       teamName={constructor.Constructor.name}
