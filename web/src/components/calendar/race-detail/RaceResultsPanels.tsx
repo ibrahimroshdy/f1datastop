@@ -85,7 +85,7 @@ export function RaceQualifyingPanel({
       results={results}
       mobileExtra={(r) => (
         <>
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
             <span className="text-right">{r.Q1 || "-"}</span>
             <span className="text-right">{r.Q2 || "-"}</span>
             <span className="text-right">{r.Q3 || "-"}</span>
@@ -96,7 +96,7 @@ export function RaceQualifyingPanel({
         </>
       )}
       mobileHeaderExtra={
-        <div className="grid grid-cols-3 gap-1 text-[10px] font-medium text-muted-foreground">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 text-[10px] font-medium text-muted-foreground">
           <span className="text-right">Q1</span>
           <span className="text-right">Q2</span>
           <span className="text-right">Q3</span>

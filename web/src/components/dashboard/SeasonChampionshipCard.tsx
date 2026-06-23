@@ -261,7 +261,7 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
           </div>
 
           {/* Season Stats */}
-          <div className="grid grid-cols-4 gap-2 pt-4 border-t border-border">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-4 border-t border-border">
             <div className="text-center p-2 rounded-lg bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
               <div className="text-lg font-mono font-bold text-foreground">{completedRaces.length}</div>
               <div className="text-[10px] text-muted-foreground">Done</div>

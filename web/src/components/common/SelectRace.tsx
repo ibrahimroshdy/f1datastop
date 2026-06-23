@@ -40,7 +40,7 @@ export const SelectRace: React.FC<SelectRaceProps> = ({ year, selectedRound, onR
   if (!sessionsData?.data || sessionsData.data.length === 0) {
     return (
       <Select value="1" onValueChange={onRoundChange} disabled>
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger className="w-full sm:w-[200px]">
           <SelectValue placeholder="No races found" />
         </SelectTrigger>
         <SelectContent>
@@ -91,7 +91,7 @@ export const SelectRace: React.FC<SelectRaceProps> = ({ year, selectedRound, onR
   
   return (
     <Select value={selectedRound} onValueChange={onRoundChange}>
-      <SelectTrigger className="w-[200px]">
+      <SelectTrigger className="w-full sm:w-[200px]">
         <SelectValue placeholder="Select race" />
       </SelectTrigger>
       <SelectContent>

@@ -32,7 +32,7 @@ export function RaceDetailSummary({
 
   return (
     <>
-      <div className="grid grid-cols-4 gap-1.5 mb-3 mt-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-3 mt-3">
         <StatCell icon={Calendar} iconClass="text-blue-500" label="Race Date" value={raceDate} isGlass={isGlass} />
         <StatCell icon={Flag} iconClass="text-green-500" label="Round" value={`R${race.round}`} isGlass={isGlass} />
         <StatCell

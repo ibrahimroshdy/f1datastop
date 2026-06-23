@@ -28,7 +28,7 @@ const YearSelector = ({ selectedYear, onYearChange, className }: YearSelectorPro
         value={selectedYear.toString()}
         onValueChange={(value) => onYearChange(parseInt(value))}
       >
-        <SelectTrigger className={`w-[100px] ${className || ''}`}>
+        <SelectTrigger className={`w-full sm:w-[100px] ${className || ''}`}>
           <SelectValue placeholder={selectedYear.toString()} />
         </SelectTrigger>
         <SelectContent>

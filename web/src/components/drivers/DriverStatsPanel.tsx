@@ -83,7 +83,7 @@ const DriverStatsPanel = ({
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
         <div className={cn("text-center p-2 rounded-md", mutedSurface)}>
           <Trophy className="h-3 w-3 mx-auto mb-0.5 text-yellow-500" />
           <p className="text-sm font-bold">{wins}</p>

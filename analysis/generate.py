@@ -1252,6 +1252,95 @@ def chart_driver_radar(session, meta):
     return fig_png(fig)
 
 
+def chart_dominance_stack(session, meta):
+    laps = session.laps
+    drivers = []
+    for drv in top_drivers_by_pace(laps, 3):
+        dl = laps[laps["Driver"] == drv]
+        lap = dl.pick_fastest()
+        if lap is None or (hasattr(lap, "empty") and lap.empty):
+            continue
+        try:
+            t = lap.get_telemetry()
+        except Exception:
+            continue
+        if not all(k in t for k in ("X", "Y", "Speed", "Distance")):
+            continue
+        drivers.append((drv, t, team_color(lap["Team"])))
+    if len(drivers) < 2:
+        return None
+    ref = drivers[0][1]
+    grid = np.linspace(0, ref["Distance"].max(), 700)
+    rx = np.interp(grid, ref["Distance"], ref["X"])
+    ry = np.interp(grid, ref["Distance"], ref["Y"])
+    speeds = np.vstack([np.interp(grid, t["Distance"], t["Speed"]) for _, t, _ in drivers])
+    winner = np.argmax(speeds, axis=0)
+    cx0 = (rx.max() + rx.min()) / 2
+    cy0 = (ry.max() + ry.min()) / 2
+    half = max(rx.max() - rx.min(), ry.max() - ry.min()) / 2 or 1.0
+    nx = (rx - cx0) / half
+    ny = (ry - cy0) / half
+    shear, tilt, squash = 0.55, 0.18, 0.42
+
+    def iso(px, py):
+        return px + shear * py, -tilt * px + squash * py
+
+    sx, sy = iso(nx, ny)
+    dz_step = 1.05 * (sy.max() - sy.min())
+    idxs = list(range(len(drivers)))[::-1]
+    n = len(idxs)
+    fig, ax = editorial_fig()
+    title_block(fig, "Telemetry", "Dominance Stack", "Where each driver is fastest · one layer per driver")
+    pad = 0.18
+    box = np.array([[-1 - pad, -1 - pad], [1 + pad, -1 - pad],
+                    [1 + pad, 1 + pad], [-1 - pad, 1 + pad]])
+    bsx, bsy = iso(box[:, 0], box[:, 1])
+    look = driver_lookup(session)
+    lx = bsx.min() - 0.45
+    shx, shy = 0.10, 0.14
+    for k, di in enumerate(idxs):
+        frac = k / (n - 1) if n > 1 else 1.0
+        dz = k * dz_step
+        col = drivers[di][2]
+        for mul, a in ((1.0, 0.20), (1.7, 0.10), (2.4, 0.05)):
+            ax.add_patch(plt.Polygon(np.column_stack([bsx + shx * mul, bsy - shy * mul + dz]),
+                         closed=True, facecolor="#000000", edgecolor="none", alpha=a, zorder=10 * k))
+        ax.add_patch(plt.Polygon(np.column_stack([bsx, bsy + dz]), closed=True,
+                     facecolor=PANEL, alpha=0.30, edgecolor=col, lw=1.6,
+                     joinstyle="round", zorder=10 * k + 1))
+        pp = np.array([sx, sy + dz]).T.reshape(-1, 1, 2)
+        segs = np.concatenate([pp[:-1], pp[1:]], axis=1)
+        ax.add_collection(LineCollection(segs, colors="#34383F", linewidths=4.0 + 1.5 * frac,
+                          capstyle="round", zorder=10 * k + 2))
+        wmask = winner[:-1] == di
+        if wmask.any():
+            neon_lines(ax, segs[wmask], colors=[col] * int(wmask.sum()), lw=6.0 + 2.0 * frac)
+            for c in ax.collections[-4:]:
+                c.set_zorder(10 * k + 3)
+        ay = bsy.mean() + dz
+        drv = drivers[di][0]
+        disc = headshot_disc((look.get(str(drv)) or {}).get("headshot"), col)
+        if disc is not None:
+            ax.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.20), (lx, ay),
+                          xycoords="data", frameon=False, zorder=300))
+        else:
+            ax.add_patch(plt.Rectangle((lx - 0.04, ay - 0.04), 0.08, 0.08, color=col, zorder=300))
+        ax.annotate(drv, (lx, ay), xytext=(30, 6), textcoords="offset points",
+                    va="center", ha="left", fontsize=13, fontproperties=FP_BODY_B,
+                    color=INK, zorder=300)
+        ax.annotate(f"{round(100 * wmask.mean())}% fastest", (lx, ay), xytext=(30, -10),
+                    textcoords="offset points", va="center", ha="left", fontsize=10,
+                    fontproperties=FP_BODY, color=SUBINK, zorder=300)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    allx = np.concatenate([bsx, sx])
+    ally = np.concatenate([bsy, sy + (n - 1) * dz_step])
+    ax.set_xlim(lx - 0.22, allx.max() + 0.20)
+    ax.set_ylim(ally.min() - 0.20, ally.max() + 0.22)
+    footer(fig, meta)
+    return fig_png(fig)
+
+
 def chart_parallax_stack(session, meta):
     laps = session.laps
     drivers = []
@@ -1283,13 +1372,13 @@ def chart_parallax_stack(session, meta):
     half = max(rx.max() - rx.min(), ry.max() - ry.min()) / 2 or 1.0
     nx = (rx - cx0) / half
     ny = (ry - cy0) / half
-    shear, tilt, squash = 0.50, 0.16, 0.46
+    shear, tilt, squash = 0.55, 0.18, 0.42
 
     def iso(px, py):
         return px + shear * py, -tilt * px + squash * py
 
     sx, sy = iso(nx, ny)
-    dz_step = 0.92 * (sy.max() - sy.min())
+    dz_step = 1.05 * (sy.max() - sy.min())
     idxs = list(range(len(drivers)))[::-1]  # slowest first (bottom)
     n = len(idxs)
     fig, ax = editorial_fig()
@@ -1315,7 +1404,7 @@ def chart_parallax_stack(session, meta):
                      joinstyle="round", zorder=10 * k + 1))
         pts = np.array([sx, sy + dz]).T.reshape(-1, 1, 2)
         segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
-        lc = neon_lines(ax, segs, array=speeds[di][:-1], cmap="inferno", lw=5.0 + 2.5 * frac)
+        lc = neon_lines(ax, segs, array=speeds[di][:-1], cmap="inferno", lw=6.0 + 2.5 * frac)
         for c in ax.collections[-4:]:
             try:
                 c.set_clim(vmin, vmax)
@@ -1377,6 +1466,7 @@ CHARTS = [
     ("gear_map", "Gears", "Gear selection mapped on the circuit", chart_gear_map),
     ("driver_radar", "Driver Radar", "Performance profile of the top drivers", chart_driver_radar),
     ("track_dominance", "Track Dominance", "Fastest driver in each mini-sector", chart_track_dominance),
+    ("dominance_stack", "Dominance Stack", "Where each driver is fastest, layered per driver", chart_dominance_stack),
     ("pace_tyre", "Race Pace by Tyre", "Lap-time distribution per team, coloured by compound", chart_pace_tyre),
     ("places_gained", "Places Gained & Lost", "Grid-to-finish position change per driver", chart_places_gained),
     ("speed_trace", "Speed Trace", "Fastest-lap speed vs distance for the top five", chart_speed_trace),

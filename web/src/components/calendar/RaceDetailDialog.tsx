@@ -73,7 +73,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
       <DialogContent
         className={cn(
-          "sm:max-w-[640px] max-h-[90vh] overflow-y-auto p-4 sm:p-6",
+          "max-w-[calc(100vw-2rem)] sm:max-w-[640px] max-h-[90vh] overflow-y-auto p-4 sm:p-6",
           isGlass && "border-white/10",
         )}
         style={isGlass ? cardStyle : undefined}

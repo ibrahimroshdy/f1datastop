@@ -163,7 +163,7 @@ const Standings = () => {
                                   className="flex flex-col"
                                   style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}
                                 >
-                                  <span className="font-medium leading-tight">
+                                  <span className="font-medium leading-tight truncate max-w-[160px] sm:max-w-none">
                                     {driver.Driver.givenName} {driver.Driver.familyName}
                                   </span>
                                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -267,7 +267,7 @@ const Standings = () => {
                                   className="flex flex-col"
                                   style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}
                                 >
-                                  <span className="font-medium leading-tight">
+                                  <span className="font-medium leading-tight truncate max-w-[160px] sm:max-w-none">
                                     {constructor.Constructor.name}
                                   </span>
                                   {nat && (
