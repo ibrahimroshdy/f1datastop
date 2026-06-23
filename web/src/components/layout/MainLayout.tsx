@@ -10,7 +10,13 @@ import { cn } from "@/lib/utils";
 
 const MainLayout = () => {
   const isMediumOrSmaller = useIsMediumOrSmaller();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Initialise synchronously from the viewport + cookie so the sidebar is never
+  // shown on mobile during the first paint (closed on mobile, open on desktop).
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (/(?:^|;\s*)f1ds_sidebar_hidden=1/.test(document.cookie)) return false;
+    return window.innerWidth >= 1024;
+  });
   const { isGlass, baseTheme } = useTheme();
 
   const [_sidebarCollapsed, setSidebarCollapsed] = useState(() => {

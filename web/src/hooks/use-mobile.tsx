@@ -4,7 +4,11 @@ const MOBILE_BREAKPOINT = 768
 const MEDIUM_BREAKPOINT = 1024
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  // Read the viewport synchronously on first render so the very first paint is
+  // correct (avoids a desktop-assumed flash on mobile).
+  const [isMobile, setIsMobile] = React.useState<boolean>(
+    () => typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT
+  )
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
@@ -16,11 +20,13 @@ export function useIsMobile() {
     return () => mql.removeEventListener("change", onChange)
   }, [])
 
-  return !!isMobile
+  return isMobile
 }
 
 export function useIsMediumOrSmaller() {
-  const [isMediumOrSmaller, setIsMediumOrSmaller] = React.useState<boolean | undefined>(undefined)
+  const [isMediumOrSmaller, setIsMediumOrSmaller] = React.useState<boolean>(
+    () => typeof window !== "undefined" && window.innerWidth < MEDIUM_BREAKPOINT
+  )
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${MEDIUM_BREAKPOINT - 1}px)`)
@@ -32,5 +38,5 @@ export function useIsMediumOrSmaller() {
     return () => mql.removeEventListener("change", onChange)
   }, [])
 
-  return !!isMediumOrSmaller
+  return isMediumOrSmaller
 }

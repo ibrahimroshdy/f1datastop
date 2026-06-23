@@ -49,3 +49,6 @@ docs/superpowers/*
 analysis/out/
 analysis/.fastf1cache/
 analysis/.venv/
+
+# Playwright mcp and more
+.playwright-mcp

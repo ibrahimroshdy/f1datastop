@@ -237,11 +237,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
           isGlass 
             ? "glass-sidebar border-r border-white/10" 
             : "bg-sidebar border-r border-sidebar-border",
-          // Mobile: slide-in drawer
-          isMediumOrSmaller && !sidebarOpen && "-translate-x-full",
-          isMediumOrSmaller && sidebarOpen && "translate-x-0 w-60",
-          // Desktop: always in-flow; collapses to an icon rail instead of hiding
-          !isMediumOrSmaller && "relative translate-x-0"
+          // Below lg = off-canvas slide-in drawer (CSS-driven, correct on first
+          // paint regardless of JS); lg+ = always in-flow rail.
+          sidebarOpen ? "translate-x-0 w-60" : "-translate-x-full",
+          "lg:relative lg:translate-x-0"
         )}
       >
         {/* Logo and brand */}
