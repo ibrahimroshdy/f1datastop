@@ -1252,8 +1252,123 @@ def chart_driver_radar(session, meta):
     return fig_png(fig)
 
 
+def chart_parallax_stack(session, meta):
+    laps = session.laps
+    drivers = []
+    for drv in top_drivers_by_pace(laps, 3):
+        dl = laps[laps["Driver"] == drv]
+        lap = dl.pick_fastest()
+        if lap is None or (hasattr(lap, "empty") and lap.empty):
+            continue
+        try:
+            t = lap.get_telemetry()
+        except Exception:
+            continue
+        if not all(k in t for k in ("X", "Y", "Speed", "Distance")):
+            continue
+        lt = lap["LapTime"]
+        ltxt = fmt_laptime(lt.total_seconds()) if pd.notna(lt) else ""
+        drivers.append((drv, t, team_color(lap["Team"]), ltxt))
+    if len(drivers) < 2:
+        return None
+    ref = drivers[0][1]  # fastest lap = shared geometry reference
+    grid = np.linspace(0, ref["Distance"].max(), 700)
+    rx = np.interp(grid, ref["Distance"], ref["X"])
+    ry = np.interp(grid, ref["Distance"], ref["Y"])
+    speeds = [np.interp(grid, t["Distance"], t["Speed"]) for _, t, _, _ in drivers]
+    vmin = min(s.min() for s in speeds)
+    vmax = max(s.max() for s in speeds)
+    cx0 = (rx.max() + rx.min()) / 2
+    cy0 = (ry.max() + ry.min()) / 2
+    half = max(rx.max() - rx.min(), ry.max() - ry.min()) / 2 or 1.0
+    nx = (rx - cx0) / half
+    ny = (ry - cy0) / half
+    shear, tilt, squash = 0.50, 0.16, 0.46
+
+    def iso(px, py):
+        return px + shear * py, -tilt * px + squash * py
+
+    sx, sy = iso(nx, ny)
+    dz_step = 0.92 * (sy.max() - sy.min())
+    idxs = list(range(len(drivers)))[::-1]  # slowest first (bottom)
+    n = len(idxs)
+    fig, ax = editorial_fig()
+    title_block(fig, "Telemetry", "Parallax Stack", "Three fastest laps · stacked by pace")
+    pad = 0.18
+    box = np.array([[-1 - pad, -1 - pad], [1 + pad, -1 - pad],
+                    [1 + pad, 1 + pad], [-1 - pad, 1 + pad]])
+    bsx, bsy = iso(box[:, 0], box[:, 1])
+    tab_x, tab_y0 = iso(-1 - pad, 1 + pad)
+    look = driver_lookup(session)
+    top_lc = None
+    shx, shy = 0.10, 0.14
+    lx = bsx.min() - 0.45
+    for k, di in enumerate(idxs):
+        frac = k / (n - 1) if n > 1 else 1.0
+        dz = k * dz_step
+        col = drivers[di][2]
+        for mul, a in ((1.0, 0.20), (1.7, 0.10), (2.4, 0.05)):
+            ax.add_patch(plt.Polygon(np.column_stack([bsx + shx * mul, bsy - shy * mul + dz]),
+                         closed=True, facecolor="#000000", edgecolor="none", alpha=a, zorder=10 * k))
+        ax.add_patch(plt.Polygon(np.column_stack([bsx, bsy + dz]), closed=True,
+                     facecolor=PANEL, alpha=0.30, edgecolor=col, lw=1.6,
+                     joinstyle="round", zorder=10 * k + 1))
+        pts = np.array([sx, sy + dz]).T.reshape(-1, 1, 2)
+        segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
+        lc = neon_lines(ax, segs, array=speeds[di][:-1], cmap="inferno", lw=5.0 + 2.5 * frac)
+        for c in ax.collections[-4:]:
+            try:
+                c.set_clim(vmin, vmax)
+            except Exception:
+                pass
+            c.set_zorder(10 * k + 3)
+        lc.set_alpha(0.55 + 0.45 * frac)
+        top_lc = lc
+        ay = bsy.mean() + dz
+        drv = drivers[di][0]
+        disc = headshot_disc((look.get(str(drv)) or {}).get("headshot"), col)
+        if disc is not None:
+            ax.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.20), (lx, ay),
+                          xycoords="data", frameon=False, zorder=300))
+        else:
+            ax.add_patch(plt.Rectangle((lx - 0.04, ay - 0.04), 0.08, 0.08, color=col, zorder=300))
+        ax.annotate(drv, (lx, ay), xytext=(30, 6), textcoords="offset points",
+                    va="center", ha="left", fontsize=13, fontproperties=FP_BODY_B,
+                    color=INK, zorder=300)
+        ax.annotate(drivers[di][3], (lx, ay), xytext=(30, -10), textcoords="offset points",
+                    va="center", ha="left", fontsize=10, fontproperties=FP_BODY,
+                    color=SUBINK, zorder=300)
+    sm = np.convolve(speeds[0], np.ones(9) / 9, mode="same")
+    chosen = []
+    for j in np.argsort(sm):
+        if all(abs(int(j) - c) > 700 // 8 for c in chosen):
+            chosen.append(int(j))
+        if len(chosen) == 3:
+            break
+    for j in chosen:
+        ax.plot([sx[j], sx[j]], [sy[j], sy[j] + (n - 1) * dz_step], color=SUBINK,
+                lw=1.0, alpha=0.45, zorder=200)
+        for k in range(n):
+            ax.scatter([sx[j]], [sy[j] + k * dz_step], s=18, facecolor=PAPER,
+                       edgecolor=SUBINK, lw=1.0, zorder=201)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    allx = np.concatenate([bsx, sx])
+    ally = np.concatenate([bsy, sy + (n - 1) * dz_step])
+    ax.set_xlim(lx - 0.22, allx.max() + 0.20)
+    ax.set_ylim(ally.min() - 0.20, ally.max() + 0.22)
+    cax = fig.add_axes([0.63, 0.15, 0.22, 0.02])
+    cb = fig.colorbar(top_lc, cax=cax, orientation="horizontal")
+    cb.set_label("Speed (km/h)", color=SUBINK, fontsize=10, fontproperties=FP_BODY)
+    cb.ax.tick_params(colors=SUBINK, labelsize=9)
+    cb.outline.set_edgecolor(GRID)
+    footer(fig, meta)
+    return fig_png(fig)
+
+
 CHARTS = [
     ("position_changes", "Position Changes", "Track position through the race", chart_position_changes),
+    ("parallax_stack", "Parallax Stack", "Top-three fastest laps stacked by pace", chart_parallax_stack),
     ("grid_flow", "Qualifying → Grid → Finish", "Driver flow from qualifying to the chequered flag", chart_grid_flow),
     ("gap_to_leader", "Gap to Leader", "Time behind the lead, lap by lap", chart_gap_to_leader),
     ("lap_evolution", "Lap-Time Evolution", "Race pace through the stints", chart_lap_evolution),
