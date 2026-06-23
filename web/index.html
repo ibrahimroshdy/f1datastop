@@ -14,7 +14,12 @@
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 
-    <!-- Apply the saved theme before first paint to avoid a flash (FOUC) -->
+    <!-- Paint the themed background on the FIRST frame, before the CSS bundle
+         loads, to kill the white flash (FOUC) on refresh. -->
+    <style>
+      html, body { background-color: #000; }
+      html.light, html.light body { background-color: #fafafa; }
+    </style>
     <script>
       (function () {
         try {

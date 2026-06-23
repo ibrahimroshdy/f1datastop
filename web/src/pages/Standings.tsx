@@ -5,7 +5,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
 import { Skeleton } from "@/components/ui/skeleton";
 import TeamLogo from "@/components/common/TeamLogo";
-import { normalizeTeamId } from "@/components/standings/standingsUtils";
+import DriverImage from "@/components/drivers/DriverImage";
+import ReactCountryFlag from "react-country-flag";
+import {
+  normalizeTeamId,
+  getTeamHexColor,
+  getNationalityCode,
+} from "@/components/standings/standingsUtils";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { pageShell, pageStack } from "@/lib/layout";
@@ -22,7 +28,7 @@ import {
 type DriverStandingRow = {
   position: string;
   points: string;
-  Driver: { givenName: string; familyName: string; code: string };
+  Driver: { driverId?: string; givenName: string; familyName: string; code: string; nationality?: string };
   Constructors: Array<{ constructorId?: string; name: string; nationality?: string }>;
 };
 
@@ -136,30 +142,58 @@ const Standings = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(driverStandings.data as DriverStandingRow[]).map((driver) => (
-                        <TableRow key={driver.position}>
-                          <TableCell className="font-medium">{driver.position}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {driver.Driver.givenName} {driver.Driver.familyName}
-                              </span>
-                              <span className="text-xs text-muted-foreground">{driver.Driver.code}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <TeamLogo
-                                constructorId={normalizeTeamId(driver.Constructors[0]?.constructorId || "default")}
-                                alt={driver.Constructors[0]?.name}
-                                size="sm"
-                              />
-                              <span>{driver.Constructors[0].name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right font-bold">{driver.points}</TableCell>
-                        </TableRow>
-                      ))}
+                      {(driverStandings.data as DriverStandingRow[]).map((driver) => {
+                        const teamId = normalizeTeamId(driver.Constructors[0]?.constructorId || "default");
+                        const teamColor = getTeamHexColor(teamId);
+                        return (
+                          <TableRow key={driver.position}>
+                            <TableCell className="font-medium">{driver.position}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <DriverImage
+                                  driverId={driver.Driver.driverId || driver.Driver.code}
+                                  driverName={`${driver.Driver.givenName} ${driver.Driver.familyName}`}
+                                  season={currentSeason}
+                                  teamColor={teamColor}
+                                  fallbackCode={driver.Driver.code}
+                                  fallbackFamilyName={driver.Driver.familyName}
+                                  className="h-9 w-9 shrink-0"
+                                />
+                                <div
+                                  className="flex flex-col"
+                                  style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}
+                                >
+                                  <span className="font-medium leading-tight">
+                                    {driver.Driver.givenName} {driver.Driver.familyName}
+                                  </span>
+                                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    {getNationalityCode(driver.Driver.nationality) && (
+                                      <ReactCountryFlag
+                                        countryCode={getNationalityCode(driver.Driver.nationality)}
+                                        svg
+                                        style={{ width: 13, height: "auto" }}
+                                        title={driver.Driver.nationality}
+                                      />
+                                    )}
+                                    {driver.Driver.code}
+                                  </span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <TeamLogo
+                                  constructorId={teamId}
+                                  alt={driver.Constructors[0]?.name}
+                                  size="sm"
+                                />
+                                <span>{driver.Constructors[0].name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-bold">{driver.points}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
@@ -219,22 +253,43 @@ const Standings = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(constructorStandings.data as ConstructorStandingRow[]).map((constructor) => (
-                        <TableRow key={constructor.position}>
-                          <TableCell className="font-medium">{constructor.position}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <TeamLogo
-                                constructorId={normalizeTeamId(constructor.Constructor?.constructorId || "default")}
-                                alt={constructor.Constructor?.name}
-                                size="sm"
-                              />
-                              <span className="font-medium">{constructor.Constructor.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right font-bold">{constructor.points}</TableCell>
-                        </TableRow>
-                      ))}
+                      {(constructorStandings.data as ConstructorStandingRow[]).map((constructor) => {
+                        const teamId = normalizeTeamId(constructor.Constructor?.constructorId || "default");
+                        const teamColor = getTeamHexColor(teamId);
+                        const nat = constructor.Constructor?.nationality;
+                        return (
+                          <TableRow key={constructor.position}>
+                            <TableCell className="font-medium">{constructor.position}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <TeamLogo constructorId={teamId} alt={constructor.Constructor?.name} size="sm" />
+                                <div
+                                  className="flex flex-col"
+                                  style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}
+                                >
+                                  <span className="font-medium leading-tight">
+                                    {constructor.Constructor.name}
+                                  </span>
+                                  {nat && (
+                                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                      {getNationalityCode(nat) && (
+                                        <ReactCountryFlag
+                                          countryCode={getNationalityCode(nat)}
+                                          svg
+                                          style={{ width: 13, height: "auto" }}
+                                          title={nat}
+                                        />
+                                      )}
+                                      {nat}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-bold">{constructor.points}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}

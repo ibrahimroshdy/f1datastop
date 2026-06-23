@@ -13,6 +13,7 @@ Usage:
 import argparse
 import io
 import os
+import re
 import sys
 import traceback
 
@@ -26,7 +27,9 @@ matplotlib.use("Agg")
 import matplotlib.font_manager as fm  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.collections import LineCollection  # noqa: E402
+from matplotlib.ticker import FuncFormatter  # noqa: E402
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage  # noqa: E402
+from matplotlib.markers import MarkerStyle  # noqa: E402
 from PIL import Image, ImageDraw, ImageFilter  # noqa: E402
 
 from io import BytesIO  # noqa: E402
@@ -63,6 +66,32 @@ COMPOUND_COLORS = {
 
 def team_color(team):
     return TEAM_COLORS.get(str(team), "#7A7468")
+
+
+def init_dynamic_styles(session):
+    """Pull season-correct team + compound colours from FastF1 and update the
+    palette dicts in place (the hardcoded values act as offline fallbacks)."""
+    try:
+        import fastf1.plotting as fp
+    except Exception:
+        return
+    try:
+        for t in session.results["TeamName"].dropna().unique():
+            try:
+                c = fp.get_team_color(t, session=session)
+                if c and str(c).lower() not in ("#ffffff", "#000000"):
+                    TEAM_COLORS[str(t)] = c if str(c).startswith("#") else f"#{c}"
+            except Exception:
+                pass
+    except Exception:
+        pass
+    for comp in ("SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"):
+        try:
+            c = fp.get_compound_color(comp, session=session)
+            if c:
+                COMPOUND_COLORS[comp] = c if str(c).startswith("#") else f"#{c}"
+        except Exception:
+            pass
 
 
 # ── Fonts ───────────────────────────────────────────────────────────────────
@@ -191,8 +220,20 @@ def fetch_headshot(url):
         r.raise_for_status()
         img = Image.open(BytesIO(r.content)).convert("RGBA")
         w, h = img.size
-        s = min(w, h)
-        img = img.crop(((w - s) // 2, (h - s) // 2, (w - s) // 2 + s, (h - s) // 2 + s)).resize((140, 140))
+        if h / w >= 1.5:
+            # F1 full-body render -> crop the head + shoulders from the top centre
+            sz = int(h * 0.185)
+            x0 = max(0, int(w / 2 - sz / 2))
+            y0 = int(h * 0.012)
+            img = img.crop((x0, y0, x0 + sz, y0 + sz))
+        else:
+            s = min(w, h)
+            img = img.crop(((w - s) // 2, (h - s) // 2, (w - s) // 2 + s, (h - s) // 2 + s))
+        img = img.resize((140, 140))
+        # F1 cutouts have a transparent background -> put them on white
+        bg = Image.new("RGBA", (140, 140), (255, 255, 255, 255))
+        bg.paste(img, (0, 0), img)
+        img = bg
         mask = Image.new("L", (140, 140), 0)
         ImageDraw.Draw(mask).ellipse((4, 4, 136, 136), fill=255)
         img.putalpha(mask)
@@ -251,24 +292,106 @@ def headshot_legend_row(fig, items, y=0.852, x0=0.5, step=0.105):
         x += step
 
 
-def compound_legend(fig, y=0.852):
-    items = [("Soft", "SOFT"), ("Medium", "MEDIUM"), ("Hard", "HARD"),
-             ("Inter", "INTERMEDIATE"), ("Wet", "WET")]
-    x = 0.50
-    for label, comp in items:
+PURPLE = "#B100E8"
+
+
+def compound_legend(fig, y=0.852, fastest=False):
+    items = [("Soft", COMPOUND_COLORS["SOFT"]), ("Medium", COMPOUND_COLORS["MEDIUM"]),
+             ("Hard", COMPOUND_COLORS["HARD"]), ("Inter", COMPOUND_COLORS["INTERMEDIATE"]),
+             ("Wet", COMPOUND_COLORS["WET"])]
+    if fastest:
+        items.append(("Fastest lap", PURPLE))
+    x = 0.43 if fastest else 0.50
+    step = 0.085 if fastest else 0.088
+    for label, col in items:
         fig.add_artist(plt.Rectangle((x, y - 0.009), 0.013, 0.02, transform=fig.transFigure,
-                                     color=COMPOUND_COLORS[comp], zorder=11))
+                                     color=col, zorder=11))
         fig.text(x + 0.021, y, label, va="center", ha="left", color=INK, fontsize=11.5,
                  fontproperties=FP_BODY)
-        x += 0.088
+        x += step
+
+
+TEAM_SLUG = {
+    "red bull racing": "redbullracing", "red bull": "redbullracing",
+    "ferrari": "ferrari", "mercedes": "mercedes", "mclaren": "mclaren",
+    "aston martin": "astonmartin", "alpine": "alpine", "williams": "williams",
+    "racing bulls": "racingbulls", "rb": "racingbulls", "alphatauri": "alphatauri",
+    "audi": "audi", "kick sauber": "kicksauber", "sauber": "sauber",
+    "alfa romeo": "alfaromeo", "haas f1 team": "haas", "haas": "haas",
+    "cadillac": "cadillac",
+}
+_MEDIA = "https://media.formula1.com/image/upload"
+
+
+def team_slug(team):
+    t = (team or "").strip().lower()
+    if not t:
+        return None
+    if t in TEAM_SLUG:
+        return TEAM_SLUG[t]
+    # Derive the F1 media slug: drop "f1 team"/"team", keep alphanumerics
+    return re.sub(r"[^a-z0-9]", "", t.replace("f1 team", "").replace(" team", "")) or None
+
+
+def f1_headshot_url(season, slug, code8):
+    c = code8.lower()
+    return f"{_MEDIA}/c_fill,w_720/q_auto/common/f1/{season}/{slug}/{c}/{season}{slug}{c}right.webp"
+
+
+def f1_car_url(season, slug):
+    return f"{_MEDIA}/c_lfill,w_1280/q_auto/common/f1/{season}/{slug}/{season}{slug}carright.webp"
+
+
+def _code8_from_legacy(url):
+    if not isinstance(url, str):
+        return None
+    m = re.search(r"/drivers/[A-Za-z]/([A-Za-z]{6}\d{2})_", url)
+    return m.group(1) if m else None
+
+
+_IMG_CACHE = {}
+
+
+def fetch_image_rgba(url):
+    """Fetch a raw RGBA image (no crop), cached. Returns np array or None."""
+    if not url:
+        return None
+    if url in _IMG_CACHE:
+        return _IMG_CACHE[url]
+    arr = None
+    try:
+        r = requests.get(url, timeout=12)
+        if r.ok:
+            arr = np.asarray(Image.open(io.BytesIO(r.content)).convert("RGBA"))
+    except Exception:
+        arr = None
+    _IMG_CACHE[url] = arr
+    return arr
+
+
+def fetch_car(season, team):
+    slug = team_slug(team)
+    if not (season and slug):
+        return None
+    return fetch_image_rgba(f1_car_url(season, slug))
 
 
 def driver_lookup(session):
     out = {}
     try:
+        season = int(getattr(session.event, "year", 0)) or None
+    except Exception:
+        season = None
+    try:
         for num, row in session.results.iterrows():
+            legacy = row.get("HeadshotUrl")
+            slug = team_slug(row.get("TeamName"))
+            code8 = _code8_from_legacy(legacy)
+            headshot = legacy
+            if season and slug and code8:
+                headshot = f1_headshot_url(season, slug, code8)
             info = {"abbr": row.get("Abbreviation"), "team": row.get("TeamName"),
-                    "headshot": row.get("HeadshotUrl")}
+                    "headshot": headshot, "headshot_legacy": legacy}
             out[str(num)] = info
             if info["abbr"]:
                 out[str(info["abbr"])] = info
@@ -277,10 +400,67 @@ def driver_lookup(session):
     return out
 
 
+F1_COUNTRY_ISO = {
+    "Australia": "au", "China": "cn", "Japan": "jp", "Bahrain": "bh",
+    "Saudi Arabia": "sa", "United States": "us", "USA": "us", "Italy": "it",
+    "Monaco": "mc", "Spain": "es", "Canada": "ca", "Austria": "at",
+    "United Kingdom": "gb", "Great Britain": "gb", "UK": "gb", "Hungary": "hu",
+    "Belgium": "be", "Netherlands": "nl", "Azerbaijan": "az", "Singapore": "sg",
+    "Mexico": "mx", "Brazil": "br", "Qatar": "qa", "United Arab Emirates": "ae",
+    "UAE": "ae", "France": "fr", "Germany": "de", "Portugal": "pt", "Turkey": "tr",
+}
+_FLAG_CACHE = {}
+
+
+def country_iso(country):
+    """Country name -> ISO alpha-2 (lowercase). Dynamic via pycountry, with a
+    small hardcoded fallback for offline use / F1-specific aliases."""
+    c = (country or "").strip()
+    if not c:
+        return None
+    try:
+        import pycountry
+        m = pycountry.countries.get(name=c)
+        if m is None:
+            m = pycountry.countries.search_fuzzy(c)[0]
+        if m is not None:
+            return m.alpha_2.lower()
+    except Exception:
+        pass
+    return F1_COUNTRY_ISO.get(c)
+
+
+def fetch_flag(country):
+    iso = country_iso(country)
+    if not iso:
+        return None
+    if iso in _FLAG_CACHE:
+        return _FLAG_CACHE[iso]
+    arr = None
+    try:
+        r = requests.get(f"https://flagcdn.com/w40/{iso}.png", timeout=8)
+        if r.ok:
+            arr = np.asarray(Image.open(io.BytesIO(r.content)).convert("RGBA"))
+    except Exception:
+        arr = None
+    _FLAG_CACHE[iso] = arr
+    return arr
+
+
 def footer(fig, meta):
-    fig.text(0.066, 0.045,
-             f"{meta['event']} {meta['year']} · {meta['session_name']}   —   f1datastop.com",
-             color=SUBINK, fontsize=11, fontproperties=FP_BODY)
+    country = meta.get("country")
+    circuit = meta.get("circuit") or meta.get("location")
+    bits = [b for b in (circuit, country) if b] or [meta.get("event", "")]
+    txt = f"{' · '.join(bits)} · {meta['year']} · {meta['session_name']}   —   f1datastop.com"
+    yc = 0.046
+    tx = 0.066
+    flag = fetch_flag(country)
+    if flag is not None:
+        fig.add_artist(AnnotationBbox(OffsetImage(flag, zoom=0.28), (0.072, yc),
+                       xycoords="figure fraction", frameon=False,
+                       box_alignment=(0.5, 0.5), zorder=11))
+        tx = 0.090
+    fig.text(tx, yc, txt, va="center", color=SUBINK, fontsize=11, fontproperties=FP_BODY)
 
 
 def add_watermark(fig):
@@ -289,7 +469,7 @@ def add_watermark(fig):
     for j, yy in enumerate(np.arange(0.03, 1.02, 0.092)):
         x0 = -0.06 + (0.07 if j % 2 else 0.0)
         for xx in np.arange(x0, 1.04, 0.143):
-            fig.text(xx, yy, "f1datastop.com", color="#FFFFFF", alpha=0.026, fontsize=8.5,
+            fig.text(xx, yy, "f1datastop.com", color="#FFFFFF", alpha=0.015, fontsize=8.5,
                      fontproperties=FP_BODY, rotation=16, ha="left", va="center", zorder=20)
 
 
@@ -365,8 +545,9 @@ def chart_position_changes(session, meta):
     if not plotted:
         plt.close(fig)
         return None
-    ax.set_ylim(20.6, 0.4)
-    ax.set_yticks([1, 5, 10, 15, 20])
+    npos = max(int(laps["Position"].dropna().max() or 0), len(session.drivers))
+    ax.set_ylim(npos + 0.6, 0.4)
+    ax.set_yticks(pos_yticks(npos))
     clean_axes(ax, "Lap", "Position")
     footer(fig, meta)
     return fig_png(fig)
@@ -416,13 +597,21 @@ def chart_team_pace(session, meta):
     fig, ax = editorial_fig(left=0.17)
     title_block(fig, "Race Pace", "Gap to Fastest Team", "Median race-lap delta")
     teams = list(med.index)[::-1]
+    span = float(med.max() - best) or 1.0
+    season = meta.get("year")
     for i, t in enumerate(teams):
         delta = med[t] - best
         ax.barh(i, delta, height=0.6, color=team_color(t), zorder=3,
                 edgecolor=PAPER, linewidth=1.2)
-        ax.text(delta + (med.max() - best) * 0.015, i,
+        ax.text(delta + span * 0.015, i,
                 "BASE" if delta == 0 else f"+{delta:.2f}s",
                 va="center", ha="left", fontsize=11, fontproperties=FP_BODY_B, color=INK)
+        car = fetch_car(season, t)
+        if car is not None:
+            ax.add_artist(AnnotationBbox(OffsetImage(car, zoom=0.052), (0.965, i),
+                          xycoords=("axes fraction", "data"), frameon=False,
+                          box_alignment=(0.5, 0.5), zorder=6))
+    ax.set_xlim(-span * 0.02, span * 1.34)
     ax.set_yticks(range(len(teams)))
     ax.set_yticklabels(teams, fontproperties=FP_BODY_B, color=INK, fontsize=11)
     ax.grid(axis="y", linewidth=0)
@@ -521,6 +710,9 @@ def chart_pace_tyre(session, meta):
     if laps.empty or laps["Team"].nunique() < 2:
         return None
     order = list(laps.groupby("Team")["s"].median().sort_values().index)  # fastest first
+    fastest = laps.loc[laps["s"].idxmin()]
+    fl_team, fl_s = fastest["Team"], float(fastest["s"])
+    fl_comp = COMPOUND_COLORS.get(str(fastest["Compound"]).upper(), "#999999")
     fig, ax = editorial_fig(left=0.17)
     title_block(fig, "Pace", "Race Pace by Tyre", "Lap-time spread per team · point colour = compound")
     data = [laps[laps["Team"] == t]["s"].values for t in order]
@@ -532,18 +724,27 @@ def chart_pace_tyre(session, meta):
         body.set_linewidth(1.3)
     for i, t in enumerate(order):
         sub = laps[laps["Team"] == t]
+        svals = sub["s"].values
         rng = np.random.RandomState(i)
         ys = (i + 1) + (rng.rand(len(sub)) - 0.5) * 0.55
         cols = [COMPOUND_COLORS.get(str(c).upper(), "#999999") for c in sub["Compound"]]
-        ax.scatter(sub["s"].values, ys, c=cols, s=22, alpha=0.9,
+        ax.scatter(svals, ys, c=cols, s=22, alpha=0.9,
                    edgecolor=PAPER, linewidth=0.5, zorder=5)
+        if t == fl_team:
+            idx = int(np.argmin(np.abs(svals - fl_s)))
+            fy = ys[idx]
+            ax.scatter([fl_s], [fy], marker=MarkerStyle("o", fillstyle="left"), s=95,
+                       c=PURPLE, edgecolor=PAPER, linewidth=0.6, zorder=8)
+            ax.scatter([fl_s], [fy], marker=MarkerStyle("o", fillstyle="right"), s=95,
+                       c=fl_comp, edgecolor=PAPER, linewidth=0.6, zorder=8)
     ax.set_yticks(range(1, len(order) + 1))
     ax.set_yticklabels(order, fontproperties=FP_BODY_B, color=INK, fontsize=11)
     ax.invert_yaxis()
     ax.grid(axis="y", linewidth=0)
     ax.grid(axis="x", color=GRID, linewidth=1.0)
-    clean_axes(ax, "Lap time (s)", None)
-    compound_legend(fig)
+    clean_axes(ax, "Lap time", None)
+    ax.xaxis.set_major_formatter(LAPTIME_FMT)
+    compound_legend(fig, fastest=True)
     footer(fig, meta)
     return fig_png(fig)
 
@@ -632,34 +833,63 @@ def chart_grid_flow(session, meta):
                 qpos[row["Abbreviation"]] = int(row["Position"])
     except Exception:
         qpos = {}
-    fig, ax = editorial_fig(left=0.10, right=0.90)
-    title_block(fig, "Race", "Qualifying · Grid · Finish", "Where every driver started and ended")
+    from matplotlib.path import Path as MPath
+    from matplotlib.patches import PathPatch
+    GAIN, LOSS, HELD = "#22C55E", "#EF4444", "#3B82F6"
     cols = [0, 1, 2]
+    n = len(res)
+    fig, ax = editorial_fig(left=0.10, right=0.90)
+    title_block(fig, "Race", "Qualifying to Race",
+                "Grid in the middle · every place gained and lost")
+
+    def band(x0, y0, x1, y1, color, w=0.56, alpha=0.5):
+        xm = (x0 + x1) / 2.0
+        h = w / 2.0
+        verts = [(x0, y0 - h), (xm, y0 - h), (xm, y1 - h), (x1, y1 - h),
+                 (x1, y1 + h), (xm, y1 + h), (xm, y0 + h), (x0, y0 + h), (x0, y0 - h)]
+        codes = [MPath.MOVETO, MPath.CURVE4, MPath.CURVE4, MPath.CURVE4,
+                 MPath.LINETO, MPath.CURVE4, MPath.CURVE4, MPath.CURVE4, MPath.CLOSEPOLY]
+        ax.add_patch(PathPatch(MPath(verts, codes), facecolor=color, edgecolor="none",
+                               alpha=alpha, zorder=2))
+
+    def seg_color(a, b):
+        return GAIN if b < a else (LOSS if b > a else HELD)
+
     for _, row in res.iterrows():
         abbr = row.get("Abbreviation")
         grid = int(row["GridPosition"])
         fin = int(row["Position"])
-        q = qpos.get(abbr, grid)
-        c = team_color(row.get("TeamName"))
-        ys = [q, grid, fin]
-        ax.plot(cols, ys, color=c, lw=3.0, alpha=0.85, solid_capstyle="round", zorder=3)
-        ax.scatter(cols, ys, s=38, color=c, edgecolor=PAPER, linewidth=1.2, zorder=4)
-        ax.annotate(abbr, (0, q), xytext=(-9, 0), textcoords="offset points",
-                    va="center", ha="right", fontsize=8.5, color=c, fontproperties=FP_BODY_B)
-        ax.annotate(abbr, (2, fin), xytext=(9, 0), textcoords="offset points",
-                    va="center", ha="left", fontsize=8.5, color=c, fontproperties=FP_BODY_B)
-    ax.set_xlim(-0.28, 2.28)
-    ax.set_ylim(20.6, 0.4)
+        qp = qpos.get(abbr, grid)
+        tc = team_color(row.get("TeamName"))
+        band(0, qp, 1, grid, seg_color(qp, grid))
+        band(1, grid, 2, fin, seg_color(grid, fin))
+        ax.annotate(abbr, (0, qp), xytext=(-11, 0), textcoords="offset points",
+                    va="center", ha="right", fontsize=8.5, color=tc,
+                    fontproperties=FP_BODY_B, zorder=6)
+        ax.annotate(abbr, (2, fin), xytext=(11, 0), textcoords="offset points",
+                    va="center", ha="left", fontsize=8.5, color=tc,
+                    fontproperties=FP_BODY_B, zorder=6)
+    for x in cols:
+        for p in range(1, n + 1):
+            ax.add_patch(plt.Rectangle((x - 0.016, p - 0.30), 0.032, 0.60,
+                                       color=INK, alpha=0.9, zorder=4))
+    ax.set_xlim(-0.3, 2.3)
+    ax.set_ylim(n + 0.7, 0.3)
     ax.set_xticks(cols)
-    ax.set_xticklabels(["QUALIFYING", "GRID", "FINISH"], fontproperties=FP_BODY_B, fontsize=12)
-    ax.set_yticks([1, 5, 10, 15, 20])
+    ax.set_xticklabels(["QUALIFYING", "GRID", "RACE"], fontproperties=FP_BODY_B, fontsize=12)
+    ax.set_yticks(pos_yticks(n))
     for s in ("top", "right", "left", "bottom"):
         ax.spines[s].set_visible(False)
     ax.tick_params(colors=SUBINK, length=0, labelsize=11)
-    ax.grid(axis="y", color=GRID, linewidth=0.8)
-    ax.set_axisbelow(True)
+    ax.grid(False)
     for lbl in ax.get_xticklabels():
         lbl.set_color(INK)
+    x0 = 0.60
+    for label, col in (("Gained", GAIN), ("Lost", LOSS), ("Held", HELD)):
+        fig.add_artist(plt.Rectangle((x0, 0.847), 0.014, 0.016, transform=fig.transFigure,
+                                     color=col, zorder=11))
+        fig.text(x0 + 0.02, 0.853, label, color=SUBINK, fontsize=10, fontproperties=FP_BODY)
+        x0 += 0.095
     footer(fig, meta)
     return fig_png(fig)
 
@@ -719,7 +949,8 @@ def chart_teammate_pace(session, meta):
     ax.set_xlim(lo - 0.3, hi + 0.08)
     ax.grid(axis="x", color=GRID, linewidth=1.0)
     ax.grid(axis="y", linewidth=0)
-    clean_axes(ax, "Lap time (s)", None)
+    clean_axes(ax, "Lap time", None)
+    ax.xaxis.set_major_formatter(LAPTIME_FMT)
     fig.add_artist(plt.Rectangle((0.60, 0.847), 0.014, 0.015, transform=fig.transFigure,
                                  color=INK, alpha=0.75, zorder=11))
     fig.text(0.62, 0.853, "faster", color=SUBINK, fontsize=9.5, fontproperties=FP_BODY)
@@ -759,6 +990,31 @@ def neon_lines(ax, segs, array=None, colors=None, cmap=None, lw=8):
         main.set_color(colors)
     ax.add_collection(main)
     return main
+
+
+def fmt_laptime(s, _pos=None):
+    """Seconds -> 'M:SS.mmm' for lap-time axes (e.g. 95.3 -> '1:35.300')."""
+    try:
+        s = float(s)
+    except (TypeError, ValueError):
+        return ""
+    if np.isnan(s):
+        return ""
+    m = int(s // 60)
+    sec = s - m * 60
+    return f"{m}:{sec:06.3f}" if m else f"{sec:.3f}"
+
+
+LAPTIME_FMT = FuncFormatter(fmt_laptime)
+
+
+def pos_yticks(n):
+    """Position ticks that always include 1 and the final position N
+    (handles 20-car grids and the 2026 22-car grid alike)."""
+    ticks = [1] + list(range(5, n + 1, 5))
+    if ticks[-1] != n:
+        ticks.append(n)
+    return ticks
 
 
 def place_headshot_column(ax, ends):
@@ -870,7 +1126,8 @@ def chart_lap_evolution(session, meta):
     if not ends:
         plt.close(fig)
         return None
-    clean_axes(ax, "Lap", "Lap time (s)")
+    clean_axes(ax, "Lap", "Lap time")
+    ax.yaxis.set_major_formatter(LAPTIME_FMT)
     place_headshot_column(ax, ends)
     footer(fig, meta)
     return fig_png(fig)
@@ -1002,11 +1259,9 @@ CHARTS = [
     ("lap_evolution", "Lap-Time Evolution", "Race pace through the stints", chart_lap_evolution),
     ("teammate_pace", "Teammate Distribution", "Teammate lap-time spread, side by side", chart_teammate_pace),
     ("top_speed", "Top Speed", "Highest speed per driver on the fastest lap", chart_top_speed),
-    ("speed_map", "Speed Map", "Fastest-lap speed mapped on the circuit", chart_speed_map),
     ("gear_map", "Gears", "Gear selection mapped on the circuit", chart_gear_map),
     ("driver_radar", "Driver Radar", "Performance profile of the top drivers", chart_driver_radar),
     ("track_dominance", "Track Dominance", "Fastest driver in each mini-sector", chart_track_dominance),
-    ("throttle_brake", "Throttle & Brake", "Throttle and brake inputs on the fastest lap", chart_throttle_brake),
     ("pace_tyre", "Race Pace by Tyre", "Lap-time distribution per team, coloured by compound", chart_pace_tyre),
     ("places_gained", "Places Gained & Lost", "Grid-to-finish position change per driver", chart_places_gained),
     ("speed_trace", "Speed Trace", "Fastest-lap speed vs distance for the top five", chart_speed_trace),
@@ -1057,6 +1312,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--season", type=int, default=pd.Timestamp.utcnow().year)
     ap.add_argument("--round", type=int)
+    ap.add_argument("--event", help="Race name, e.g. 'Monaco' or 'Bahrain' (instead of --round)")
     ap.add_argument("--session", default="R")
     ap.add_argument("--latest", action="store_true")
     ap.add_argument("--no-upload", action="store_true")
@@ -1067,6 +1323,14 @@ def main():
     fastf1.Cache.enable_cache(cache)
 
     rnd = args.round
+    if args.event:
+        try:
+            ev_row = fastf1.get_event(args.season, args.event)
+            rnd = int(ev_row["RoundNumber"])
+            print(f"Matched '{args.event}' -> {ev_row['EventName']} (round {rnd})")
+        except Exception as e:
+            print(f"Could not match event '{args.event}': {e}")
+            return 1
     if args.latest or rnd is None:
         rnd = latest_completed_round(args.season)
         if rnd is None:
@@ -1076,9 +1340,20 @@ def main():
     print(f"Loading {args.season} R{rnd} {args.session} ...")
     session = fastf1.get_session(args.season, rnd, args.session)
     session.load()
+    init_dynamic_styles(session)
     ev = session.event
+    circuit = None
+    try:
+        from fastf1.ergast import Ergast
+        circuits = Ergast().get_circuits(season=args.season, round=rnd)
+        if len(circuits):
+            circuit = circuits.iloc[0].get("circuitName")
+    except Exception:
+        circuit = None
     meta = {"event": ev["EventName"], "year": args.season, "round": rnd,
-            "session_name": getattr(session, "name", args.session)}
+            "session_name": getattr(session, "name", args.session),
+            "country": ev.get("Country"), "location": ev.get("Location"),
+            "circuit": circuit}
 
     ok = 0
     for ctype, title, desc, fn in CHARTS:
