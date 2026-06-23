@@ -3,6 +3,11 @@ import { Spinner } from '../ui/spinner';
 import { cn } from '../../lib/utils';
 import { TEAM_COLORS } from '../../constants/f1Colors';
 import { F1_API } from '../../constants/apiConfig';
+import {
+  getEmbeddableThemeClasses,
+  EmbeddableError,
+  EmbeddableTable,
+} from './embeddableShared';
 
 // Define interfaces for the component props and API responses
 interface EmbeddableDriverStandingsProps {
@@ -58,9 +63,6 @@ export default function EmbeddableDriverStandings({
   const [, setCurrentRound] = useState<string | null>(null);
 
   useEffect(() => {
-    // Log props to help debugging
-    console.log('EmbeddableDriverStandings props:', { initialSeason, initialTheme, initialFont });
-    
     fetchDriverStandings();
   }, [initialSeason]);
 
@@ -139,33 +141,8 @@ export default function EmbeddableDriverStandings({
     }
   };
 
-  // Get the appropriate styles for dark or light theme
-  const getThemeClasses = () => {
-    if (theme === 'dark') {
-      return {
-        background: 'bg-gray-900',
-        text: 'text-white',
-        headerBg: 'bg-gray-800',
-        rowBg: 'bg-gray-900',
-        border: 'border-gray-700',
-        divider: 'divide-gray-700',
-        footerText: 'text-gray-500',
-        footerHover: 'hover:text-gray-300'
-      };
-    }
-    return {
-      background: 'bg-white',
-      text: 'text-gray-900',
-      headerBg: 'bg-gray-50',
-      rowBg: 'bg-white',
-      border: 'border-gray-200',
-      divider: 'divide-gray-200',
-      footerText: 'text-gray-400',
-      footerHover: 'hover:text-gray-600'
-    };
-  };
-
-  const themeClasses = getThemeClasses();
+  // Shared light/dark theme class map (single source of truth across widgets)
+  const themeClasses = getEmbeddableThemeClasses(theme);
 
   return (
     <div style={{ fontFamily: `${fontFamily}, sans-serif` }} className={cn(
@@ -178,22 +155,21 @@ export default function EmbeddableDriverStandings({
           <Spinner size="lg" />
         </div>
       ) : error ? (
-        <div className="p-2 text-sm text-red-700">
-          {error}
-        </div>
+        <EmbeddableError theme={theme} message={error} />
       ) : (
-        <div className="overflow-x-auto h-full w-full flex-grow">
-          <table className="min-w-full divide-y" style={{ borderCollapse: 'collapse', width: '100%' }}>
-            <thead className={cn(themeClasses.headerBg)}>
-              <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">Pos</th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">Driver</th>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">Team</th>
-                <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider">Points</th>
-              </tr>
-            </thead>
-            <tbody className={cn("divide-y", themeClasses.divider)}>
-              {driverStandings.map((standing) => (
+        <EmbeddableTable
+          headerBg={themeClasses.headerBg}
+          divider={themeClasses.divider}
+          headers={
+            <>
+              <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">Pos</th>
+              <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">Driver</th>
+              <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">Team</th>
+              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider">Points</th>
+            </>
+          }
+        >
+          {driverStandings.map((standing) => (
                 <tr key={standing.position} className={themeClasses.rowBg}>
                   <td className="px-3 py-2 whitespace-nowrap text-sm">{standing.position}</td>
                   <td className="px-3 py-2 whitespace-nowrap text-sm">
@@ -215,9 +191,7 @@ export default function EmbeddableDriverStandings({
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+        </EmbeddableTable>
       )}
       
       {/* Subtle branding footer */}

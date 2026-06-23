@@ -13,7 +13,7 @@ const Footer = () => {
         isGlass ? "border-white/5 bg-card/50" : "border-border bg-muted/30",
       )}
     >
-      <div className="mx-auto flex max-w-[1600px] flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
         <p>© {currentYear} F1 DataStop</p>
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
           <Link to="/privacy" className="hover:text-foreground transition-colors">

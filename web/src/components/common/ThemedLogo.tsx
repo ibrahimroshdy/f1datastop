@@ -12,7 +12,7 @@ const ThemedLogo = ({ darkSrc, lightSrc, alt, className = "" }: ThemedLogoProps)
   const isDark = theme === "dark";
   
   return (
-    <div className={`relative ${className} ${isDark ? "bg-white/10 rounded p-1" : ""}`}>
+    <div className={`relative bg-muted rounded p-1 ${className}`}>
       <img 
         src={isDark ? lightSrc : darkSrc} 
         alt={alt} 

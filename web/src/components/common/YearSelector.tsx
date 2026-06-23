@@ -23,7 +23,7 @@ const YearSelector = ({ selectedYear, onYearChange, className }: YearSelectorPro
   
   return (
     <div className="flex items-center gap-2">
-      <span className="text-muted-foreground">Season:</span>
+      <span className="text-sm text-muted-foreground">Season:</span>
       <Select
         value={selectedYear.toString()}
         onValueChange={(value) => onYearChange(parseInt(value))}

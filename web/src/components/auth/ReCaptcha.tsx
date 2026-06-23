@@ -155,13 +155,13 @@ const ReCaptcha = ({
   if (version === 'v3') {
     if (hideBadge) {
       return (
-        <div className="text-xs text-gray-500 mt-3 text-center">
+        <div className="text-xs text-muted-foreground mt-3 text-center">
           This site is protected by reCAPTCHA and the Google{" "}
           <a 
             href="https://policies.google.com/privacy" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-blue-500 hover:underline"
+            className="text-primary hover:underline"
           >
             Privacy Policy
           </a>{" "}
@@ -170,7 +170,7 @@ const ReCaptcha = ({
             href="https://policies.google.com/terms" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-blue-500 hover:underline"
+            className="text-primary hover:underline"
           >
             Terms of Service
           </a>{" "}

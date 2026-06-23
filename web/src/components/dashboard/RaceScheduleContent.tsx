@@ -1,7 +1,7 @@
 import { Calendar, MapPin } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import CountryFlag from "@/components/common/CountryFlag";
+import { F1EmptyState, StatusBadge } from "@/components/f1";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 
 interface RaceScheduleContentProps {
@@ -14,9 +14,10 @@ const RaceScheduleContent = ({ raceSchedule, nextRace }: RaceScheduleContentProp
 
   if (!raceSchedule || raceSchedule.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        No race schedule available
-      </div>
+      <F1EmptyState
+        type="no-data"
+        title="No race schedule available"
+      />
     );
   }
 
@@ -41,7 +42,7 @@ const RaceScheduleContent = ({ raceSchedule, nextRace }: RaceScheduleContentProp
               <div className="flex items-center gap-3">
                 <CountryFlag country={country} size={24} />
                 <div>
-                  <h3 className="font-bold text-foreground">{removeFlag(race.raceName)}</h3>
+                  <h3 className="font-heading text-base font-bold text-foreground">{removeFlag(race.raceName)}</h3>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="h-3 w-3" />
                     <span>{race.Circuit?.circuitName}</span>
@@ -51,9 +52,7 @@ const RaceScheduleContent = ({ raceSchedule, nextRace }: RaceScheduleContentProp
             </div>
             <div className="flex items-center gap-2">
               {isNext && (
-                <Badge variant="default" className="bg-primary">
-                  Next Race
-                </Badge>
+                <StatusBadge status="upcoming">Next Race</StatusBadge>
               )}
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <Calendar className="h-3 w-3" />

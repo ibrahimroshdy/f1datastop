@@ -95,13 +95,13 @@ const MainLayout = () => {
             background:
               baseTheme === "dark"
                 ? `
-                radial-gradient(ellipse 80% 50% at 20% 20%, rgba(225, 6, 0, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(225, 6, 0, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse 80% 50% at 20% 20%, hsl(var(--primary) / 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, hsl(var(--primary) / 0.05) 0%, transparent 50%),
                 linear-gradient(180deg, hsl(0 0% 0%) 0%, hsl(0 0% 0%) 100%)
               `
                 : `
-                radial-gradient(ellipse 80% 50% at 20% 20%, rgba(225, 6, 0, 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(225, 6, 0, 0.04) 0%, transparent 50%),
+                radial-gradient(ellipse 80% 50% at 20% 20%, hsl(var(--primary) / 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, hsl(var(--primary) / 0.04) 0%, transparent 50%),
                 linear-gradient(180deg, hsl(0 0% 98%) 0%, hsl(0 0% 96%) 100%)
               `,
           }}

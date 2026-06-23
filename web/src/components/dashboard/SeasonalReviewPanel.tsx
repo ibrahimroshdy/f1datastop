@@ -61,7 +61,7 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
   const raceTypeColors: Record<string, { bg: string; text: string; border: string }> = {
     [SINGLE_RACE]: { bg: "bg-muted-foreground/50", text: "text-muted-foreground", border: "border-muted" },
     [DOUBLE_HEADER]: { bg: "bg-green-500", text: "text-green-500", border: "border-green-500/30" },
-    [TRIPLE_HEADER]: { bg: "bg-purple-500", text: "text-purple-500", border: "border-purple-500/30" },
+    [TRIPLE_HEADER]: { bg: "bg-primary", text: "text-primary", border: "border-primary/30" },
     "summer-break": { bg: "bg-sky-400", text: "text-sky-400", border: "border-sky-400/30" },
   };
 
@@ -231,7 +231,7 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
               <Progress 
                 value={progressPercentage} 
                 className="h-1.5 md:h-2"
-                indicatorClassName="bg-gradient-to-r from-purple-600 to-purple-500"
+                indicatorClassName="bg-gradient-to-r from-primary to-primary/80"
               />
               <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground">
                 <span>{completedRaces.length} completed</span>
@@ -264,7 +264,7 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
                     onClick={() => openRaceDetails(item.race)}
                     className={`flex items-center justify-between p-2 md:p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30 ${
                       isNext 
-                        ? `bg-gradient-to-r from-purple-500/10 to-transparent border-purple-500/30` 
+                        ? `bg-gradient-to-r from-primary/10 to-transparent border-primary/30`
                         : 'border-border'
                     }`}
                   >
@@ -280,7 +280,7 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
                     <div className="text-right shrink-0 ml-2">
                       <div className="text-[10px] sm:text-xs font-mono text-muted-foreground">in {timeUntil}</div>
                       {isNext && (
-                        <Badge variant="outline" className="text-[10px] sm:text-xs mt-0.5 md:mt-1 border-purple-500/50 text-purple-600 dark:text-purple-400">
+                        <Badge variant="outline" className="text-[10px] sm:text-xs mt-0.5 md:mt-1 border-primary/50 text-primary">
                           Next
                         </Badge>
                       )}
@@ -303,7 +303,7 @@ const SeasonalReviewPanel = ({ year, expandedView = false }: SeasonalReviewPanel
               <div className="text-base sm:text-lg font-mono font-bold text-foreground">{totalRaces - completedRaces.length}</div>
               <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Races Remaining</div>
             </div>
-            <div className="text-center p-2 sm:p-2.5 md:p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-transparent border border-purple-500/20">
+            <div className="text-center p-2 sm:p-2.5 md:p-3 rounded-lg bg-gradient-to-r from-[hsl(var(--position-gold)/0.1)] to-transparent border border-[hsl(var(--position-gold)/0.2)]">
               <div className="text-base sm:text-lg font-mono font-bold text-foreground">{sprintCount}</div>
               <div className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Sprint Weekends</div>
             </div>

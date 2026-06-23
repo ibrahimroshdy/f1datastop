@@ -29,14 +29,22 @@ const BuyMeCoffeeWidget = ({
     ? { width: 120, height: 26 }
     : { width: 180, height: 40 };
 
-  const buttonUrl = `https://img.buymeacoffee.com/button-api/?text=Buy me a PitStop&slug=f1datastop&button_colour=dd4040&font_colour=ffffff&font_family=Lato&outline_colour=ffffff&coffee_colour=FFDD00&count=${supporterCount}`;
+  const buttonUrl = `https://img.buymeacoffee.com/button-api/?text=Buy me a PitStop&slug=f1datastop&button_colour=E10600&font_colour=ffffff&font_family=Lato&outline_colour=ffffff&coffee_colour=FFDD00&count=${supporterCount}`;
 
-  const containerClasses = position === 'fixed' 
+  const containerClasses = position === 'fixed'
     ? "fixed right-5 bottom-5 z-50"
     : "inline-block";
 
+  const containerStyle =
+    position === 'fixed'
+      ? {
+          right: 'calc(1.25rem + env(safe-area-inset-right))',
+          bottom: 'calc(1.25rem + env(safe-area-inset-bottom))',
+        }
+      : undefined;
+
   return (
-    <div className={`${containerClasses} ${className}`}>
+    <div className={`${containerClasses} ${className}`} style={containerStyle}>
       <a 
         href="https://www.buymeacoffee.com/f1datastop" 
         target="_blank" 

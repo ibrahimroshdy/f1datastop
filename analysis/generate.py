@@ -1480,26 +1480,39 @@ def chart_driver_radar(session, meta):
 
 def chart_dominance_stack(session, meta):
     laps = session.laps
-    drivers = []
+    grid = rx = ry = None
+    drivers = []        # (drv, color)
+    speed_rows = []     # median speed per track point, across all the driver's quick laps
     for drv in top_drivers_by_pace(laps, 3):
         dl = laps[laps["Driver"] == drv]
-        lap = dl.pick_fastest()
-        if lap is None or (hasattr(lap, "empty") and lap.empty):
+        ql = dl.pick_quicklaps() if hasattr(dl, "pick_quicklaps") else dl
+        stack = []
+        for _, lap in ql.iterlaps():
+            try:
+                cd = lap.get_car_data().add_distance()
+            except Exception:
+                continue
+            if "Speed" not in cd or "Distance" not in cd or cd.empty:
+                continue
+            if grid is None:  # lock the track geometry from the first usable lap
+                try:
+                    tel = lap.get_telemetry()
+                    if not all(k in tel for k in ("X", "Y", "Distance")):
+                        continue
+                    grid = np.linspace(0, float(tel["Distance"].max()), 700)
+                    rx = np.interp(grid, tel["Distance"], tel["X"])
+                    ry = np.interp(grid, tel["Distance"], tel["Y"])
+                except Exception:
+                    grid = None
+                    continue
+            stack.append(np.interp(grid, cd["Distance"], cd["Speed"]))
+        if not stack:
             continue
-        try:
-            t = lap.get_telemetry()
-        except Exception:
-            continue
-        if not all(k in t for k in ("X", "Y", "Speed", "Distance")):
-            continue
-        drivers.append((drv, t, team_color(lap["Team"])))
-    if len(drivers) < 2:
+        drivers.append((drv, team_color(dl["Team"].iloc[0])))
+        speed_rows.append(np.median(np.vstack(stack), axis=0))
+    if len(drivers) < 2 or grid is None:
         return None
-    ref = drivers[0][1]
-    grid = np.linspace(0, ref["Distance"].max(), 700)
-    rx = np.interp(grid, ref["Distance"], ref["X"])
-    ry = np.interp(grid, ref["Distance"], ref["Y"])
-    speeds = np.vstack([np.interp(grid, t["Distance"], t["Speed"]) for _, t, _ in drivers])
+    speeds = np.vstack(speed_rows)
     winner = np.argmax(speeds, axis=0)
     cx0 = (rx.max() + rx.min()) / 2
     cy0 = (ry.max() + ry.min()) / 2
@@ -1516,7 +1529,8 @@ def chart_dominance_stack(session, meta):
     idxs = list(range(len(drivers)))[::-1]
     n = len(idxs)
     fig, ax = editorial_fig()
-    title_block(fig, "Telemetry", "Dominance Stack", "Where each driver is fastest · one layer per driver")
+    title_block(fig, "Telemetry", "Dominance Stack",
+                "Median pace across all race laps · who is quickest at each point of the track")
     pad = 0.18
     box = np.array([[-1 - pad, -1 - pad], [1 + pad, -1 - pad],
                     [1 + pad, 1 + pad], [-1 - pad, 1 + pad]])
@@ -1527,7 +1541,7 @@ def chart_dominance_stack(session, meta):
     for k, di in enumerate(idxs):
         frac = k / (n - 1) if n > 1 else 1.0
         dz = k * dz_step
-        col = drivers[di][2]
+        col = drivers[di][1]
         for mul, a in ((1.0, 0.20), (1.7, 0.10), (2.4, 0.05)):
             ax.add_patch(plt.Polygon(np.column_stack([bsx + shx * mul, bsy - shy * mul + dz]),
                          closed=True, facecolor="#000000", edgecolor="none", alpha=a, zorder=10 * k))
@@ -1555,7 +1569,7 @@ def chart_dominance_stack(session, meta):
                     va="center", ha="left", fontsize=13, fontproperties=FP_BODY_B,
                     color=INK, zorder=300,
                     bbox=dict(boxstyle="round,pad=0.2", facecolor=PAPER, edgecolor="none", alpha=0.82))
-        ax.annotate(f"{round(100 * wmask.mean())}% fastest", (lx, ay), xytext=(30, -10),
+        ax.annotate(f"quickest on {round(100 * wmask.mean())}% of the lap", (lx, ay), xytext=(30, -10),
                     textcoords="offset points", va="center", ha="left", fontsize=10,
                     fontproperties=FP_BODY, color=SUBINK, zorder=300)
     # registration connectors tying the same corner across every layer

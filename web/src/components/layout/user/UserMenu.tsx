@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Link } from "react-router-dom";
 
 const UserMenu = () => {
@@ -50,7 +51,7 @@ const UserMenu = () => {
         <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Avatar className="h-8 w-8 border border-border">
             <AvatarImage src={profile?.avatar_url} />
-            <AvatarFallback className="bg-f1-red text-white text-xs">
+            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
               {getInitials()}
             </AvatarFallback>
           </Avatar>
@@ -64,7 +65,7 @@ const UserMenu = () => {
           <p className="text-sm font-medium">{getDisplayName()}</p>
           {user.email && <p className="text-xs text-muted-foreground">{user.email}</p>}
         </div>
-        <div className="border-t border-border my-2"></div>
+        <Separator className="my-2" />
         <div className="flex flex-col space-y-1">
           <Link to="/profile" className="text-sm px-2 py-1.5 hover:bg-accent rounded-md transition-colors">
             Profile Settings

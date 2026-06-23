@@ -261,13 +261,13 @@ const Standings = () => {
                           <TableRow key={constructor.position}>
                             <TableCell className="font-medium">{constructor.position}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
                                 <TeamLogo constructorId={teamId} alt={constructor.Constructor?.name} size="sm" />
                                 <div
-                                  className="flex flex-col"
+                                  className="flex flex-col min-w-0"
                                   style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}
                                 >
-                                  <span className="font-medium leading-tight truncate max-w-[160px] sm:max-w-none">
+                                  <span className="font-medium leading-tight truncate">
                                     {constructor.Constructor.name}
                                   </span>
                                   {nat && (

@@ -70,7 +70,7 @@ const Circuits = () => {
       ) : isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
-            <F1Skeleton key={index} className="h-56 w-full rounded-xl" />
+            <F1Skeleton key={index} variant="card" className="h-full" />
           ))}
         </div>
       ) : circuits.length === 0 ? (
@@ -84,7 +84,7 @@ const Circuits = () => {
               <Link
                 key={`${circuit.round}-${circuit.circuitName}`}
                 to={`/race-analysis/${currentYear}/${circuit.round}`}
-                className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
+                className="group block rounded-xl"
               >
                 <F1Card
                   variant={cardVariant}
@@ -136,7 +136,7 @@ const Circuits = () => {
                           <Ruler className="h-3 w-3" /> {lengthKm} km
                         </span>
                       )}
-                      <span className="inline-flex items-center gap-1 font-medium text-foreground/70 group-hover:text-primary">
+                      <span className="inline-flex items-center gap-1 font-medium text-muted-foreground group-hover:text-primary">
                         Analysis <ArrowRight className="h-3 w-3" />
                       </span>
                     </div>

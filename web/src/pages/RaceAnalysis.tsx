@@ -132,32 +132,34 @@ const RaceAnalysis = () => {
   };
 
   return (
-    <div className={cn(pageShellWide, pageStack)}>
-      <RaceAnalysisHeader selectedYear={selectedYear} currentRace={currentRace} />
+    <div className={pageShellWide}>
+      <div className={cn(pageStack, "animate-fade-in")}>
+        <RaceAnalysisHeader selectedYear={selectedYear} currentRace={currentRace} />
 
-      <RacePicker
-        selectedYear={selectedYear}
-        selectedRace={selectedRace}
-        currentRace={currentRace}
-        raceSchedule={raceScheduleData?.data}
-        isRaceScheduleLoading={isRaceScheduleLoading}
-        hasOpenF1Data={hasOpenF1Data}
-        availableSessions={availableSessions}
-        selectedSessionKey={selectedSessionKey}
-        isOpenF1Loading={isOpenF1Loading}
-        onYearChange={handleYearChange}
-        onRaceChange={handleRaceChange}
-        onSessionChange={handleSessionChange}
-      />
+        <RacePicker
+          selectedYear={selectedYear}
+          selectedRace={selectedRace}
+          currentRace={currentRace}
+          raceSchedule={raceScheduleData?.data}
+          isRaceScheduleLoading={isRaceScheduleLoading}
+          hasOpenF1Data={hasOpenF1Data}
+          availableSessions={availableSessions}
+          selectedSessionKey={selectedSessionKey}
+          isOpenF1Loading={isOpenF1Loading}
+          onYearChange={handleYearChange}
+          onRaceChange={handleRaceChange}
+          onSessionChange={handleSessionChange}
+        />
 
-      <RaceAnalysisTabs
-        selectedTab={selectedTab}
-        onTabChange={setSelectedTab}
-        hasOpenF1Data={hasOpenF1Data}
-        selectedYear={selectedYear}
-        selectedRace={selectedRace}
-        selectedSessionKey={selectedSessionKey}
-      />
+        <RaceAnalysisTabs
+          selectedTab={selectedTab}
+          onTabChange={setSelectedTab}
+          hasOpenF1Data={hasOpenF1Data}
+          selectedYear={selectedYear}
+          selectedRace={selectedRace}
+          selectedSessionKey={selectedSessionKey}
+        />
+      </div>
     </div>
   );
 };
