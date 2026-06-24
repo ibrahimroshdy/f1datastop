@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useTheme } from '@/context/ThemeContext';
 import { F1Card, F1CardHeader, F1CardTitle, F1CardContent, F1Badge, PageHeader } from "@/components/f1";
 
 const EmbedInfoPage: React.FC = () => {
   const [domain, setDomain] = useState('https://f1datastop.com');
   const [copied, setCopied] = useState<string | null>(null);
-  const { theme } = useTheme();
-  const isDarkTheme = theme === 'dark';
 
   useEffect(() => {
     // Set document title and meta tags
@@ -43,7 +40,7 @@ const EmbedInfoPage: React.FC = () => {
   };
 
   return (
-    <div className={`max-w-4xl mx-auto p-6 font-sans ${isDarkTheme ? 'bg-background text-foreground' : 'bg-background text-foreground'}`}>
+    <div className="max-w-4xl mx-auto p-6 font-sans bg-background text-foreground">
       <PageHeader
         title="F1 DataStop Embeddable Components"
         description="Easily embed Formula 1 data on your website or blog"

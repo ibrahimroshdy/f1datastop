@@ -60,8 +60,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
   const animationRef = useRef<number>();
   const lastUpdateRef = useRef<number>(0);
   
-  const { isGlass, baseTheme } = useTheme();
-  const isDark = baseTheme === 'dark';
+  const { isGlass } = useTheme();
 
   // Fetch Ergast data for accurate grid positions and pit stops
   useEffect(() => {
@@ -600,7 +599,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
             {driverStats.slice(3).map((stat) => (
               <div 
                 key={stat.driver_number} 
-                className={cn("rounded-lg overflow-hidden", isDark ? "bg-zinc-900" : "bg-white border border-slate-200")}
+                className={cn("rounded-lg overflow-hidden bg-card border border-border")}
               >
                 <div className="h-1" style={{ backgroundColor: stat.color }} />
                 <div className="p-2">

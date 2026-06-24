@@ -286,11 +286,11 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
           <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur">
             <TableRow>
               <TableHead className="text-xs"><SortHeader field="driver">Driver</SortHeader></TableHead>
-              <TableHead className="text-xs">Team</TableHead>
+              <TableHead className="text-xs hidden sm:table-cell">Team</TableHead>
               <TableHead className="text-xs text-center"><SortHeader field="lap" className="justify-center">Lap</SortHeader></TableHead>
               <TableHead className="text-xs text-right"><SortHeader field="duration" className="justify-end">Duration</SortHeader></TableHead>
-              <TableHead className="text-xs">Time</TableHead>
-              <TableHead className="text-xs w-[28%]" />
+              <TableHead className="text-xs hidden sm:table-cell">Time</TableHead>
+              <TableHead className="text-xs w-[28%] hidden sm:table-cell" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -305,7 +305,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
                       <span className="font-bold text-xs">{row.driver}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="py-1.5">
+                  <TableCell className="py-1.5 hidden sm:table-cell">
                     <div className="flex items-center gap-2">
                       <TeamLogo constructorId={row.team} size="sm" />
                       <span className="text-xs text-muted-foreground capitalize">{row.team.replace(/_/g, ' ')}</span>
@@ -320,10 +320,10 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
                       {isRecord && <Zap className="h-3 w-3 shrink-0" fill="currentColor" />}
                     </span>
                   </TableCell>
-                  <TableCell className="py-1.5">
+                  <TableCell className="py-1.5 hidden sm:table-cell">
                     <span className="font-mono text-xs text-muted-foreground">{row.timeOfDay}</span>
                   </TableCell>
-                  <TableCell className="py-1.5">
+                  <TableCell className="py-1.5 hidden sm:table-cell">
                     <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className={cn("h-full rounded-full transition-all", isRecord ? "bg-purple-500" : "")}
