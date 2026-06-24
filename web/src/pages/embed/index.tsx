@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTheme } from '@/context/ThemeContext';
+import { F1Card, F1CardHeader, F1CardTitle, F1CardContent, F1Badge, PageHeader } from "@/components/f1";
 
 const EmbedInfoPage: React.FC = () => {
   const [domain, setDomain] = useState('https://f1datastop.com');
@@ -43,43 +44,44 @@ const EmbedInfoPage: React.FC = () => {
 
   return (
     <div className={`max-w-4xl mx-auto p-6 font-sans ${isDarkTheme ? 'bg-background text-foreground' : 'bg-background text-foreground'}`}>
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">F1 DataStop Embeddable Components</h1>
-        <p className="text-muted-foreground">Easily embed Formula 1 data on your website or blog</p>
-      </header>
+      <PageHeader
+        title="F1 DataStop Embeddable Components"
+        description="Easily embed Formula 1 data on your website or blog"
+        className="mb-8"
+      />
       
       <section className="mb-12">
         <h2 className="text-2xl font-semibold mb-4">Available Embeds</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="border border-border rounded-lg overflow-hidden">
-            <div className="bg-muted p-4 border-b border-border">
-              <h3 className="text-xl font-medium">Driver Standings</h3>
-            </div>
-            <div className="p-4">
+          <F1Card variant="default">
+            <F1CardHeader>
+              <F1CardTitle>Driver Standings</F1CardTitle>
+            </F1CardHeader>
+            <F1CardContent>
               <p className="mb-4">Display clean F1 driver standings with customizable theme and font.</p>
               <div className="flex justify-between items-center">
-                <a 
-                  href="/embed/driver-standings?season=2023" 
+                <a
+                  href="/embed/driver-standings?season=2023"
                   className="text-primary hover:underline"
                   target="_blank"
                 >
                   View Demo
                 </a>
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">Popular</span>
+                <F1Badge className="bg-green-500/20 text-green-500 border border-green-500/30">Popular</F1Badge>
               </div>
               <div className="mt-4 relative">
                 <div className="bg-muted rounded p-3 text-sm font-mono overflow-x-auto">
                   {`<iframe src="${domain}/embed/driver-standings?season=2023&theme=light&font=Inter" width="100%" height="500px" frameborder="0"></iframe>`}
                 </div>
-                <button 
+                <button
                   onClick={() => copyToClipboard('driver', `<iframe src="${domain}/embed/driver-standings?season=2023&theme=light&font=Inter" width="100%" height="500px" frameborder="0"></iframe>`)}
                   className="absolute right-2 top-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs"
                 >
                   {copied === 'driver' ? 'Copied!' : 'Copy'}
                 </button>
               </div>
-            </div>
-          </div>
+            </F1CardContent>
+          </F1Card>
           
           <div className="border border-border rounded-lg overflow-hidden">
             <div className="bg-muted p-4 border-b border-border">

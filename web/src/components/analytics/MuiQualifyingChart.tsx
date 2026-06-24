@@ -14,7 +14,6 @@ import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Flag, LayoutGrid } from 'lucide-react';
 import { useQualifyingData } from "@/hooks/useQualifyingData";
-import { useTheme } from "@/context/ThemeContext";
 import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
 import { F1ErrorState } from "@/components/f1/F1ErrorState";
 import { Badge } from "@/components/ui/badge";
@@ -32,8 +31,6 @@ type SessionType = 'Q1' | 'Q2' | 'Q3' | 'ALL';
 const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [selectedSession, setSelectedSession] = useState<SessionType>('Q3');
-  const { baseTheme } = useTheme();
-  const isDark = baseTheme === 'dark';
 
   // Mobile detection
   useEffect(() => {
@@ -182,9 +179,9 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
       color: sessionData.colors[idx],
     }));
 
-    const tickFill = isDark ? '#a1a1aa' : '#666';
-    const gridStroke = isDark ? '#333' : '#e5e5e5';
-    const labelFill = isDark ? '#fff' : '#333';
+    const tickFill = 'hsl(var(--chart-axis))';
+    const gridStroke = 'hsl(var(--chart-grid))';
+    const labelFill = 'hsl(var(--foreground))';
 
     return (
       <ResponsiveContainer width="100%" height={chartHeight}>
@@ -225,7 +222,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
             tick={{ fontSize: compact ? 9 : (isMobile ? 10 : 11), fill: tickFill }}
             width={compact ? 30 : (isMobile ? 40 : 45)}
           />
-          <Tooltip content={<QualifyingTooltip />} cursor={{ fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }} />
+          <Tooltip content={<QualifyingTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.4)' }} />
           <Bar dataKey="gap" radius={[0, 2, 2, 0]} isAnimationActive={false}>
             {rows.map((row, idx) => (
               <Cell key={`cell-${idx}`} fill={row.color} />
@@ -259,7 +256,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
         {/* Q1 Section */}
         <div className={cn(
           "flex-1 flex flex-col rounded-lg p-3",
-          isDark ? "bg-zinc-900/50 border border-zinc-800" : "bg-zinc-50 border border-zinc-200"
+          "bg-muted/30 border border-border"
         )}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -288,7 +285,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
         {/* Q2 Section */}
         <div className={cn(
           "flex-1 flex flex-col rounded-lg p-3",
-          isDark ? "bg-zinc-900/50 border border-zinc-800" : "bg-zinc-50 border border-zinc-200"
+          "bg-muted/30 border border-border"
         )}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -317,7 +314,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
         {/* Q3 Section */}
         <div className={cn(
           "flex-1 flex flex-col rounded-lg p-3",
-          isDark ? "bg-zinc-900/50 border border-zinc-800" : "bg-zinc-50 border border-zinc-200"
+          "bg-muted/30 border border-border"
         )}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">

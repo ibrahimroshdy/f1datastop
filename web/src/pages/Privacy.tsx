@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
-import { F1Card, F1CardContent } from "@/components/f1";
+import { F1Card, F1CardContent, PageHeader } from "@/components/f1";
 import { pageShellNarrow } from "@/lib/layout";
 
 const Privacy = () => {
@@ -16,12 +16,7 @@ const Privacy = () => {
           <meta name="description" content="F1 DataStop privacy policy and data collection practices" />
         </Helmet>
 
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Privacy Policy</h1>
-          <p className="text-sm text-muted-foreground">
-            Last updated: {new Date().toLocaleDateString()}
-          </p>
-        </div>
+        <PageHeader title="Privacy Policy" description={`Last updated: ${new Date().toLocaleDateString()}`} />
 
         <div
           className={cn(

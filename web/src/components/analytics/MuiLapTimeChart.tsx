@@ -17,7 +17,6 @@ import DriverSelector from "./DriverSelector";
 import DisplayModeToggle from "./DisplayModeToggle";
 import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
 import { F1ErrorState } from "@/components/f1/F1ErrorState";
-import { useTheme } from "@/context/ThemeContext";
 import { getPitStops } from "@/services/f1Service";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,8 +40,6 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
   const [showPitStops, setShowPitStops] = useState(true);
   const [pitStops, setPitStops] = useState<PitStopData[]>([]);
   const [, setPitStopsLoading] = useState(false);
-  const { baseTheme } = useTheme();
-  const isDark = baseTheme === 'dark';
 
   // Mobile detection
   useEffect(() => {
@@ -334,15 +331,15 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
             onClick={() => setShowPitStops(!showPitStops)}
             className={cn(
               "h-6 gap-1 text-[10px] px-2",
-              showPitStops 
-                ? "bg-zinc-700/50 text-zinc-200 hover:bg-zinc-700/70" 
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+              showPitStops
+                ? "bg-accent text-accent-foreground hover:bg-accent/80"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
             <Wrench className="h-3 w-3" />
             Pits
             {visiblePitStops.length > 0 && (
-              <span className="text-[9px] text-zinc-400">({visiblePitStops.length})</span>
+              <span className="text-[9px] text-muted-foreground">({visiblePitStops.length})</span>
             )}
           </Button>
         </div>
@@ -367,7 +364,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
               >
                 <CartesianGrid
                   vertical={false}
-                  stroke={isDark ? '#333' : '#e5e5e5'}
+                  stroke="hsl(var(--chart-grid))"
                   strokeDasharray="3 3"
                 />
                 <XAxis
@@ -376,14 +373,14 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
                   domain={[1, maxLap]}
                   allowDecimals={false}
                   tickLine={false}
-                  tick={{ fontSize: isMobile ? 10 : 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                  tick={{ fontSize: isMobile ? 10 : 11, fill: 'hsl(var(--chart-axis))' }}
                 />
                 <YAxis
                   domain={displayMode === 'gap' ? [0, 'auto'] : [yAxisMin, yAxisMax]}
                   tickFormatter={formatTime}
                   width={isMobile ? 52 : 62}
                   tickLine={false}
-                  tick={{ fontSize: isMobile ? 10 : 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                  tick={{ fontSize: isMobile ? 10 : 11, fill: 'hsl(var(--chart-axis))' }}
                 />
                 <Tooltip content={<LapTooltip />} />
                 {fastestLapTime && displayMode === 'absolute' && (

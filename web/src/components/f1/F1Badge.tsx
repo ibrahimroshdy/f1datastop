@@ -30,9 +30,9 @@ const F1Badge = React.forwardRef<HTMLDivElement, F1BadgeProps>(
     // Position badge styling
     if (variant === "position" && position !== undefined) {
       const positionStyles = {
-        1: "bg-yellow-500 text-yellow-950 border-yellow-400",
-        2: "bg-gray-300 text-gray-800 border-gray-400",
-        3: "bg-amber-600 text-amber-950 border-amber-500",
+        1: "bg-position-gold text-background border-position-gold",
+        2: "bg-position-silver text-background border-position-silver",
+        3: "bg-position-bronze text-foreground border-position-bronze",
       }[position] || "bg-secondary text-secondary-foreground border-border";
 
       const PositionIcon = position === 1 ? Trophy : position <= 3 ? Medal : null;
@@ -57,27 +57,27 @@ const F1Badge = React.forwardRef<HTMLDivElement, F1BadgeProps>(
     if (variant === "status" && status) {
       const statusConfig = {
         completed: {
-          classes: "bg-green-500/20 text-green-500 border-green-500/30",
+          classes: "bg-status-completed/20 text-status-completed border-status-completed/30",
           icon: CheckCircle,
           label: "Completed"
         },
         upcoming: {
-          classes: "bg-blue-500/20 text-blue-500 border-blue-500/30",
+          classes: "bg-status-upcoming/20 text-status-upcoming border-status-upcoming/30",
           icon: Clock,
           label: "Upcoming"
         },
         live: {
-          classes: "bg-red-500/20 text-red-500 border-red-500/30 animate-pulse",
+          classes: "bg-status-live/20 text-status-live border-status-live/30 animate-pulse",
           icon: Zap,
           label: "LIVE"
         },
         cancelled: {
-          classes: "bg-gray-500/20 text-gray-500 border-gray-500/30",
+          classes: "bg-status-cancelled/20 text-status-cancelled border-status-cancelled/30",
           icon: AlertTriangle,
           label: "Cancelled"
         },
         delayed: {
-          classes: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
+          classes: "bg-status-upcoming/20 text-status-upcoming border-status-upcoming/30",
           icon: Clock,
           label: "Delayed"
         },

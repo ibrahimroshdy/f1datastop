@@ -34,9 +34,8 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState("all");
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
-  const { isGlass, baseTheme } = useTheme();
-  const isDark = baseTheme === 'dark';
-  
+  const { isGlass } = useTheme();
+
   // Reset state when session changes  
   useEffect(() => {
     console.log("Session changed in WeatherAnalysis to:", externalSessionKey);
@@ -129,8 +128,8 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   );
 
   // Recharts theming helpers
-  const tickColor = isDark ? '#a1a1aa' : '#666';
-  const gridColor = isDark ? '#333' : '#e5e5e5';
+  const tickColor = 'hsl(var(--chart-axis))';
+  const gridColor = 'hsl(var(--chart-grid))';
   const axisTick = { fontSize: 10, fill: tickColor };
 
   // Shared themed x-axis (time) props for recharts

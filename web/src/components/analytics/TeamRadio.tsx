@@ -7,6 +7,7 @@ import { useOpenF1SessionFromErgast, useTeamRadio, useDrivers } from "@/hooks/us
 import { format } from 'date-fns';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { getTeamColorById } from '@/constants/f1Colors';
 
 interface TeamRadioProps {
   year: number;
@@ -65,20 +66,6 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
     refetch: refetchRadio
   } = useTeamRadio(effectiveSessionKey, selectedDriver || undefined);
   
-  // Team colors mapping
-  const teamColors: { [key: string]: string } = {
-    "Red Bull Racing": "#3671C6",
-    "Ferrari": "#E8002D",
-    "Mercedes": "#27F4D2",
-    "McLaren": "#FF8000",
-    "Aston Martin": "#229971",
-    "Alpine": "#FF87BC", 
-    "Williams": "#64C4FF",
-    "RB": "#6692FF",
-    "Haas F1 Team": "#B6BABD",
-    "Kick Sauber": "#52E252"
-  };
-  
   // Process available drivers
   const drivers = useMemo(() => {
     if (!driversData?.data) return [];
@@ -87,7 +74,7 @@ const TeamRadio: React.FC<TeamRadioProps> = ({
       code: driver.name_acronym || `${driver.first_name?.charAt(0)}${driver.last_name?.charAt(0)}`,
       name: `${driver.first_name} ${driver.last_name}`,
       team: driver.team_name || "Unknown",
-      color: teamColors[driver.team_name] || "#666666"
+      color: getTeamColorById(driver.team_name)
     }));
   }, [driversData]);
   

@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/table';
 import { TEAM_COLORS } from '@/constants/f1Colors';
 import { getPitStops, getRaceResults } from '@/services/f1Service';
-import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import TeamLogo from '@/components/common/TeamLogo';
 
@@ -57,8 +56,6 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
   const [circuitName, setCircuitName] = useState<string>('');
   const [sortField, setSortField] = useState<SortField>('duration');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const { baseTheme } = useTheme();
-  const isDark = baseTheme === 'dark';
 
   // Fetch pit stop data
   useEffect(() => {
@@ -237,10 +234,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
       </div>
 
       {/* Custom Bar Chart - Top 10 Fastest Stops */}
-      <div className={cn(
-        "rounded-lg p-3",
-        isDark ? "bg-zinc-900/30 border border-zinc-800/50" : "bg-zinc-50/50 border border-zinc-200"
-      )}>
+      <div className="rounded-lg p-3 bg-muted/30 border border-border">
         <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider">Top 10 Fastest Pit Stops</p>
         <div className="space-y-1">
           {chartData.map((item, i) => (

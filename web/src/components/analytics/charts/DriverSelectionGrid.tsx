@@ -1,6 +1,5 @@
 import React from "react";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
-import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 
 // Define types for the driver and position summary
@@ -36,9 +35,6 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
   onDriverToggle,
   getPositionChangeSummary
 }) => {
-  const { baseTheme } = useTheme();
-  const isDark = baseTheme === 'dark';
-
   // Track teammates for line indicator
   const teamDriverCounts: { [team: string]: number } = {};
 
@@ -47,7 +43,7 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
       {/* Compact grid of driver chips */}
       <div className={cn(
         "grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-0.5 p-1 rounded border",
-        isDark ? "bg-zinc-900/30 border-zinc-800" : "bg-zinc-50/50 border-zinc-200"
+        "bg-muted/30 border-border"
       )}>
         {availableDrivers.map(driver => {
           const summary = getPositionChangeSummary(driver.code);
@@ -67,12 +63,8 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
               className={cn(
                 "flex items-center justify-between gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium transition-all",
                 isSelected
-                  ? isDark
-                    ? "bg-zinc-800 text-white"
-                    : "bg-white text-zinc-900 shadow-sm"
-                  : isDark
-                    ? "bg-transparent text-zinc-500 hover:bg-zinc-800/50"
-                    : "bg-transparent text-zinc-400 hover:bg-zinc-100",
+                  ? "bg-accent text-accent-foreground shadow-sm"
+                  : "bg-transparent text-muted-foreground hover:bg-muted/50",
                 isDNF && isSelected && "ring-1 ring-red-500/30"
               )}
               onClick={() => onDriverToggle(driver.code)}
@@ -87,7 +79,7 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
                   className={cn(
                     "w-1.5 h-1.5 rounded-full shrink-0",
                     isSecondTeammate && "ring-1 ring-offset-0",
-                    isSecondTeammate && (isDark ? "ring-zinc-400" : "ring-zinc-500")
+                    isSecondTeammate && "ring-muted-foreground"
                   )}
                   style={{ backgroundColor: teamColor }}
                 />
@@ -100,7 +92,7 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
               {summary && !isDNF ? (
                 <span className={cn(
                   "text-[8px] font-mono",
-                  summary.improved ? "text-emerald-500" : summary.change < 0 ? "text-red-500" : "text-zinc-500"
+                  summary.improved ? "text-emerald-500" : summary.change < 0 ? "text-red-500" : "text-muted-foreground"
                 )}>
                   {summary.improved ? `+${summary.change}` : summary.change < 0 ? summary.change : "="}
                 </span>
@@ -115,10 +107,10 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
       {/* Inline legend */}
       <div className="flex items-center gap-2 text-[8px] text-muted-foreground px-0.5">
         <span className="flex items-center gap-0.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-zinc-500" />1st
+          <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />1st
         </span>
         <span className="flex items-center gap-0.5">
-          <div className={cn("w-1.5 h-1.5 rounded-full bg-zinc-500 ring-1", isDark ? "ring-zinc-400" : "ring-zinc-500")} />2nd
+          <div className={cn("w-1.5 h-1.5 rounded-full bg-muted-foreground ring-1", "ring-muted-foreground")} />2nd
         </span>
         <span className="text-emerald-500">+Gain</span>
         <span className="text-red-500">-Loss</span>

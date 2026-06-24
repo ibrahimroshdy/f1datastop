@@ -2,9 +2,8 @@ import React, { useMemo } from 'react';
 import { Trophy, Loader2, AlertCircle, Medal } from 'lucide-react';
 import { useLapData, useDrivers, useOpenF1SessionFromErgast, usePositionData } from "@/hooks/useOpenF1Data";
 import { formatTime } from "@/utils/lapTimeUtils";
-import { useTheme } from '@/context/ThemeContext';
-import { cn } from '@/lib/utils';
 import { Badge } from "@/components/ui/badge";
+import { getTeamColorById } from '@/constants/f1Colors';
 
 interface SessionResultsProps {
   year: number;
@@ -27,30 +26,13 @@ interface ProcessedResult {
   team_color: string;
 }
 
-// Team colors mapping
-const teamColors: { [key: string]: string } = {
-  "Red Bull Racing": "#3671C6",
-  "Ferrari": "#E8002D",
-  "Mercedes": "#27F4D2",
-  "McLaren": "#FF8000",
-  "Aston Martin": "#229971",
-  "Alpine": "#FF87BC",
-  "Williams": "#64C4FF",
-  "RB": "#6692FF",
-  "Haas F1 Team": "#B6BABD",
-  "Kick Sauber": "#52E252"
-};
-
 const SessionResults: React.FC<SessionResultsProps> = ({
   year,
   round,
   sessionType = "Race",
   sessionKey: externalSessionKey
 }) => {
-  const { baseTheme } = useTheme();
-  const isDark = baseTheme === 'dark';
-
-  const { 
+  const {
     data: sessionData, 
     isLoading: isSessionLoading 
   } = useOpenF1SessionFromErgast(
@@ -94,7 +76,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
         best_lap_time: null,
         gap_to_leader: 0,
         total_laps: 0,
-        team_color: teamColors[driver.team_name] || '#666666'
+        team_color: getTeamColorById(driver.team_name)
       };
     });
 
@@ -194,10 +176,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
             >
               {podiumResults[1].driver_acronym}
             </div>
-            <div className={cn(
-              "w-16 h-16 rounded-t-lg flex flex-col items-center justify-center",
-              isDark ? "bg-gradient-to-b from-slate-400 to-slate-600" : "bg-gradient-to-b from-slate-300 to-slate-500"
-            )}>
+            <div className="w-16 h-16 rounded-t-lg flex flex-col items-center justify-center bg-gradient-to-b from-slate-300 to-slate-500">
               <span className="text-xl font-bold text-white">2</span>
               <span className="text-[9px] text-white/80 font-mono">
                 {podiumResults[1].best_lap_time ? formatTime(podiumResults[1].best_lap_time) : '--'}
@@ -234,10 +213,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
             >
               {podiumResults[2].driver_acronym}
             </div>
-            <div className={cn(
-              "w-16 h-12 rounded-t-lg flex flex-col items-center justify-center",
-              isDark ? "bg-gradient-to-b from-amber-600 to-amber-800" : "bg-gradient-to-b from-amber-500 to-amber-700"
-            )}>
+            <div className="w-16 h-12 rounded-t-lg flex flex-col items-center justify-center bg-gradient-to-b from-amber-500 to-amber-700">
               <span className="text-lg font-bold text-white">3</span>
               <span className="text-[9px] text-white/80 font-mono">
                 {podiumResults[2].best_lap_time ? formatTime(podiumResults[2].best_lap_time) : '--'}
@@ -252,10 +228,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
         {otherResults.map((result, idx) => (
           <div
             key={result.id}
-            className={cn(
-              "relative rounded-lg overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-2",
-              isDark ? "bg-zinc-900 hover:bg-zinc-800" : "bg-white border border-slate-200 hover:border-slate-300"
-            )}
+            className="relative rounded-lg overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-2 bg-card border border-border hover:bg-accent"
             style={{ animationDelay: `${idx * 30}ms` }}
           >
             {/* Team Color Strip */}
@@ -266,10 +239,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
             
             <div className="p-2.5 pl-3.5">
               <div className="flex items-center justify-between">
-                <span className={cn(
-                  "text-lg font-bold",
-                  isDark ? "text-zinc-400" : "text-slate-500"
-                )}>
+                <span className="text-lg font-bold text-muted-foreground">
                   {result.position}
                 </span>
                 <span className="text-[10px] text-muted-foreground font-mono">

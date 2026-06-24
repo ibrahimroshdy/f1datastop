@@ -43,6 +43,26 @@ const currentSeason = new Date().getFullYear();
 const underlineTabTrigger =
   "rounded-none border-b-2 border-transparent bg-transparent px-4 pb-2 pt-1 shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
 
+const Flag = ({ nationality }: { nationality?: string }) => {
+  const code = getNationalityCode(nationality);
+  if (!code) return null;
+  return (
+    <ReactCountryFlag
+      countryCode={code}
+      svg
+      style={{ width: 13, height: "auto" }}
+      title={nationality}
+    />
+  );
+};
+
+const Points = ({ value }: { value: string }) => (
+  <div className="shrink-0 text-right">
+    <div className="font-bold leading-none tabular-nums">{value}</div>
+    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">pts</div>
+  </div>
+);
+
 const Standings = () => {
   const [activeTab, setActiveTab] = useState("drivers");
   const { isGlass } = useTheme();
@@ -64,6 +84,104 @@ const Standings = () => {
   const stickyHeaderClass = cn(
     "sticky top-0 z-10 shadow-[0_1px_0_0_hsl(var(--border))]",
     isGlass ? "bg-background/85 backdrop-blur-md" : "bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
+  );
+
+  const drivers = (driverStandings?.data ?? []) as DriverStandingRow[];
+  const constructors = (constructorStandings?.data ?? []) as ConstructorStandingRow[];
+
+  // ── Mobile card lists (no horizontal scroll, names wrap) ──────────────────
+  const driverCards = (
+    <div className="flex flex-col gap-2 md:hidden">
+      {drivers.map((driver) => {
+        const teamId = normalizeTeamId(driver.Constructors[0]?.constructorId || "default");
+        const teamColor = getTeamHexColor(teamId);
+        return (
+          <div
+            key={driver.position}
+            className="flex items-center gap-2.5 rounded-lg border border-border bg-card/40 p-2.5"
+          >
+            <span className="w-5 shrink-0 text-center text-sm font-bold text-muted-foreground">
+              {driver.position}
+            </span>
+            <DriverImage
+              driverId={driver.Driver.driverId || driver.Driver.code}
+              driverName={`${driver.Driver.givenName} ${driver.Driver.familyName}`}
+              season={currentSeason}
+              teamColor={teamColor}
+              fallbackCode={driver.Driver.code}
+              fallbackFamilyName={driver.Driver.familyName}
+              className="h-10 w-10 shrink-0"
+            />
+            <div className="min-w-0 flex-1 border-l-2 pl-2.5" style={{ borderColor: teamColor }}>
+              <div className="font-medium leading-tight break-words">
+                {driver.Driver.givenName} {driver.Driver.familyName}
+              </div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+                <Flag nationality={driver.Driver.nationality} />
+                <span className="font-medium">{driver.Driver.code}</span>
+                <span className="opacity-40">·</span>
+                <span className="break-words">{driver.Constructors[0]?.name}</span>
+              </div>
+            </div>
+            <Points value={driver.points} />
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const constructorCards = (
+    <div className="flex flex-col gap-2 md:hidden">
+      {constructors.map((constructor) => {
+        const teamId = normalizeTeamId(constructor.Constructor?.constructorId || "default");
+        const teamColor = getTeamHexColor(teamId);
+        const nat = constructor.Constructor?.nationality;
+        return (
+          <div
+            key={constructor.position}
+            className="flex items-center gap-2.5 rounded-lg border border-border bg-card/40 p-2.5"
+          >
+            <span className="w-5 shrink-0 text-center text-sm font-bold text-muted-foreground">
+              {constructor.position}
+            </span>
+            <TeamLogo
+              constructorId={teamId}
+              alt={constructor.Constructor?.name}
+              size="md"
+              className="shrink-0"
+            />
+            <div className="min-w-0 flex-1 border-l-2 pl-2.5" style={{ borderColor: teamColor }}>
+              <div className="font-medium leading-tight break-words">
+                {constructor.Constructor.name}
+              </div>
+              {nat && (
+                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Flag nationality={nat} />
+                  <span className="break-words">{nat}</span>
+                </div>
+              )}
+            </div>
+            <Points value={constructor.points} />
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const mobileSkeleton = (
+    <div className="flex flex-col gap-2 md:hidden">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-2.5 rounded-lg border border-border bg-card/40 p-2.5">
+          <Skeleton className="h-4 w-4 shrink-0" />
+          <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <Skeleton className="h-6 w-8 shrink-0" />
+        </div>
+      ))}
+    </div>
   );
 
   return (
@@ -90,112 +208,71 @@ const Standings = () => {
               <F1CardHeader>
                 <F1CardTitle>Drivers Championship {currentSeason}</F1CardTitle>
               </F1CardHeader>
-              <F1CardContent className="overflow-auto">
+              <F1CardContent>
                 {isDriversError ? (
-                  <F1ErrorState
-                    type="network"
-                    variant="inline"
-                    className="py-8"
-                    onRetry={() => refetchDrivers()}
-                  />
+                  <F1ErrorState type="network" variant="inline" className="py-8" onRetry={() => refetchDrivers()} />
                 ) : isDriversLoading ? (
-                  <Table>
-                    <TableHeader className={stickyHeaderClass}>
-                      <TableRow>
-                        <TableHead className="w-16">Pos</TableHead>
-                        <TableHead>Driver</TableHead>
-                        <TableHead>Team</TableHead>
-                        <TableHead className="text-right">Points</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {Array(10)
-                        .fill(0)
-                        .map((_, i) => (
-                          <TableRow key={i}>
-                            <TableCell>
-                              <Skeleton className="h-6 w-6" />
-                            </TableCell>
-                            <TableCell>
-                              <Skeleton className="h-6 w-40" />
-                            </TableCell>
-                            <TableCell>
-                              <Skeleton className="h-6 w-32" />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Skeleton className="h-6 w-10 ml-auto" />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                ) : !driverStandings?.data?.length ? (
+                  mobileSkeleton
+                ) : !drivers.length ? (
                   <F1EmptyState type="no-data" className="py-10" />
                 ) : (
-                  <Table>
-                    <TableHeader className={stickyHeaderClass}>
-                      <TableRow>
-                        <TableHead className="w-16">Pos</TableHead>
-                        <TableHead>Driver</TableHead>
-                        <TableHead>Team</TableHead>
-                        <TableHead className="text-right">Points</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(driverStandings.data as DriverStandingRow[]).map((driver) => {
-                        const teamId = normalizeTeamId(driver.Constructors[0]?.constructorId || "default");
-                        const teamColor = getTeamHexColor(teamId);
-                        return (
-                          <TableRow key={driver.position}>
-                            <TableCell className="font-medium">{driver.position}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-3 min-w-0">
-                                <DriverImage
-                                  driverId={driver.Driver.driverId || driver.Driver.code}
-                                  driverName={`${driver.Driver.givenName} ${driver.Driver.familyName}`}
-                                  season={currentSeason}
-                                  teamColor={teamColor}
-                                  fallbackCode={driver.Driver.code}
-                                  fallbackFamilyName={driver.Driver.familyName}
-                                  className="h-9 w-9 shrink-0"
-                                />
-                                <div
-                                  className="flex flex-col min-w-0"
-                                  style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}
-                                >
-                                  <span className="font-medium leading-tight truncate">
-                                    {driver.Driver.givenName} {driver.Driver.familyName}
-                                  </span>
-                                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    {getNationalityCode(driver.Driver.nationality) && (
-                                      <ReactCountryFlag
-                                        countryCode={getNationalityCode(driver.Driver.nationality)}
-                                        svg
-                                        style={{ width: 13, height: "auto" }}
-                                        title={driver.Driver.nationality}
-                                      />
-                                    )}
-                                    {driver.Driver.code}
-                                  </span>
+                  driverCards
+                )}
+
+                {/* Desktop table */}
+                {!isDriversError && !isDriversLoading && drivers.length > 0 && (
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader className={stickyHeaderClass}>
+                        <TableRow>
+                          <TableHead className="w-16">Pos</TableHead>
+                          <TableHead>Driver</TableHead>
+                          <TableHead>Team</TableHead>
+                          <TableHead className="text-right">Points</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {drivers.map((driver) => {
+                          const teamId = normalizeTeamId(driver.Constructors[0]?.constructorId || "default");
+                          const teamColor = getTeamHexColor(teamId);
+                          return (
+                            <TableRow key={driver.position}>
+                              <TableCell className="font-medium">{driver.position}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <DriverImage
+                                    driverId={driver.Driver.driverId || driver.Driver.code}
+                                    driverName={`${driver.Driver.givenName} ${driver.Driver.familyName}`}
+                                    season={currentSeason}
+                                    teamColor={teamColor}
+                                    fallbackCode={driver.Driver.code}
+                                    fallbackFamilyName={driver.Driver.familyName}
+                                    className="h-9 w-9 shrink-0"
+                                  />
+                                  <div className="flex flex-col" style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}>
+                                    <span className="font-medium leading-tight">
+                                      {driver.Driver.givenName} {driver.Driver.familyName}
+                                    </span>
+                                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                      <Flag nationality={driver.Driver.nationality} />
+                                      {driver.Driver.code}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <TeamLogo
-                                  constructorId={teamId}
-                                  alt={driver.Constructors[0]?.name}
-                                  size="sm"
-                                />
-                                <span>{driver.Constructors[0].name}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right font-bold">{driver.points}</TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <TeamLogo constructorId={teamId} alt={driver.Constructors[0]?.name} size="sm" />
+                                  <span>{driver.Constructors[0].name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right font-bold">{driver.points}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </F1CardContent>
             </F1Card>
@@ -206,92 +283,57 @@ const Standings = () => {
               <F1CardHeader>
                 <F1CardTitle>Constructors Championship {currentSeason}</F1CardTitle>
               </F1CardHeader>
-              <F1CardContent className="overflow-auto">
+              <F1CardContent>
                 {isConstructorsError ? (
-                  <F1ErrorState
-                    type="network"
-                    variant="inline"
-                    className="py-8"
-                    onRetry={() => refetchConstructors()}
-                  />
+                  <F1ErrorState type="network" variant="inline" className="py-8" onRetry={() => refetchConstructors()} />
                 ) : isConstructorsLoading ? (
-                  <Table>
-                    <TableHeader className={stickyHeaderClass}>
-                      <TableRow>
-                        <TableHead className="w-16">Pos</TableHead>
-                        <TableHead>Team</TableHead>
-                        <TableHead className="text-right">Points</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {Array(10)
-                        .fill(0)
-                        .map((_, i) => (
-                          <TableRow key={i}>
-                            <TableCell>
-                              <Skeleton className="h-6 w-6" />
-                            </TableCell>
-                            <TableCell>
-                              <Skeleton className="h-6 w-40" />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Skeleton className="h-6 w-10 ml-auto" />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                ) : !constructorStandings?.data?.length ? (
+                  mobileSkeleton
+                ) : !constructors.length ? (
                   <F1EmptyState type="no-data" className="py-10" />
                 ) : (
-                  <Table>
-                    <TableHeader className={stickyHeaderClass}>
-                      <TableRow>
-                        <TableHead className="w-16">Pos</TableHead>
-                        <TableHead>Team</TableHead>
-                        <TableHead className="text-right">Points</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(constructorStandings.data as ConstructorStandingRow[]).map((constructor) => {
-                        const teamId = normalizeTeamId(constructor.Constructor?.constructorId || "default");
-                        const teamColor = getTeamHexColor(teamId);
-                        const nat = constructor.Constructor?.nationality;
-                        return (
-                          <TableRow key={constructor.position}>
-                            <TableCell className="font-medium">{constructor.position}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-3 min-w-0">
-                                <TeamLogo constructorId={teamId} alt={constructor.Constructor?.name} size="sm" />
-                                <div
-                                  className="flex flex-col min-w-0"
-                                  style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}
-                                >
-                                  <span className="font-medium leading-tight truncate">
-                                    {constructor.Constructor.name}
-                                  </span>
-                                  {nat && (
-                                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                      {getNationalityCode(nat) && (
-                                        <ReactCountryFlag
-                                          countryCode={getNationalityCode(nat)}
-                                          svg
-                                          style={{ width: 13, height: "auto" }}
-                                          title={nat}
-                                        />
-                                      )}
-                                      {nat}
-                                    </span>
-                                  )}
+                  constructorCards
+                )}
+
+                {/* Desktop table */}
+                {!isConstructorsError && !isConstructorsLoading && constructors.length > 0 && (
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader className={stickyHeaderClass}>
+                        <TableRow>
+                          <TableHead className="w-16">Pos</TableHead>
+                          <TableHead>Team</TableHead>
+                          <TableHead className="text-right">Points</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {constructors.map((constructor) => {
+                          const teamId = normalizeTeamId(constructor.Constructor?.constructorId || "default");
+                          const teamColor = getTeamHexColor(teamId);
+                          const nat = constructor.Constructor?.nationality;
+                          return (
+                            <TableRow key={constructor.position}>
+                              <TableCell className="font-medium">{constructor.position}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <TeamLogo constructorId={teamId} alt={constructor.Constructor?.name} size="sm" />
+                                  <div className="flex flex-col" style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}>
+                                    <span className="font-medium leading-tight">{constructor.Constructor.name}</span>
+                                    {nat && (
+                                      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                        <Flag nationality={nat} />
+                                        {nat}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right font-bold">{constructor.points}</TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                              </TableCell>
+                              <TableCell className="text-right font-bold">{constructor.points}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </F1CardContent>
             </F1Card>

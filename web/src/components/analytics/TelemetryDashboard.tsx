@@ -41,8 +41,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   const [selectedDriver2, setSelectedDriver2] = useState<string>("");
   const [telemetryMetric, setTelemetryMetric] = useState<TelemetryMetric>("speed");
   
-  const { isGlass, baseTheme } = useTheme();
-  const isDark = baseTheme === 'dark';
+  const { isGlass } = useTheme();
 
   // Use metadata hook for drivers and colors
   const { drivers, getDriverColor, isLoading: isMetadataLoading } = useF1Metadata();
@@ -157,8 +156,8 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   }
 
   // Axis tick formatting + themed colors (mirrors the old MUI axis styling)
-  const tickColor = isDark ? '#a1a1aa' : '#666';
-  const gridColor = isDark ? '#333' : '#e5e5e5';
+  const tickColor = 'hsl(var(--chart-axis))';
+  const gridColor = 'hsl(var(--chart-grid))';
   const formatTime = (value: number) =>
     typeof value === 'number' ? value.toFixed(1) : String(value);
   const yAxisLabel = `${metricConfig[telemetryMetric].label}${

@@ -14,7 +14,6 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, TrendingUp, Wrench } from "lucide-react";
 import { usePositionChangeData } from "@/hooks/usePositionChangeData";
 import DriverSelectionGrid from "./charts/DriverSelectionGrid";
-import { useTheme } from "@/context/ThemeContext";
 import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
 import { F1ErrorState } from "@/components/f1/F1ErrorState";
 import { getPitStops } from "@/services/f1Service";
@@ -38,8 +37,6 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [showPitStops, setShowPitStops] = useState(true);
   const [pitStops, setPitStops] = useState<PitStopData[]>([]);
-  const { baseTheme } = useTheme();
-  const isDark = baseTheme === 'dark';
 
   // Mobile detection
   useEffect(() => {
@@ -272,7 +269,7 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
         {showPitStops && visiblePitStops.length > 0 && (
           <div className={cn(
             "flex flex-wrap gap-1 mb-2 p-1.5 rounded-md text-[9px]",
-            isDark ? "bg-zinc-900/50 border border-zinc-800" : "bg-zinc-50 border border-zinc-200"
+            "bg-muted/30 border border-border"
           )}>
             {Object.entries(
               visiblePitStops.reduce((acc, ps) => {
@@ -288,7 +285,7 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
                   key={driver} 
                   className={cn(
                     "flex items-center gap-1 px-1.5 py-0.5 rounded",
-                    isDark ? "bg-zinc-800" : "bg-white border border-zinc-200"
+                    "bg-card border border-border"
                   )}
                   style={{ borderLeft: `2px solid ${teamColor}` }}
                 >
@@ -331,7 +328,7 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
               >
                 <CartesianGrid
                   vertical={false}
-                  stroke={isDark ? '#333' : '#e5e5e5'}
+                  stroke="hsl(var(--chart-grid))"
                   strokeDasharray="3 3"
                 />
                 <XAxis
@@ -340,7 +337,7 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
                   domain={[0, maxLap]}
                   allowDecimals={false}
                   tickLine={false}
-                  tick={{ fontSize: isMobile ? 10 : 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                  tick={{ fontSize: isMobile ? 10 : 11, fill: 'hsl(var(--chart-axis))' }}
                 />
                 <YAxis
                   reversed
@@ -349,7 +346,7 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
                   tickCount={10}
                   width={isMobile ? 35 : 45}
                   tickLine={false}
-                  tick={{ fontSize: isMobile ? 10 : 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                  tick={{ fontSize: isMobile ? 10 : 11, fill: 'hsl(var(--chart-axis))' }}
                 />
                 <Tooltip content={<PositionTooltip />} />
                 {showPitStops && pitStopsByLap.map((ps) => {

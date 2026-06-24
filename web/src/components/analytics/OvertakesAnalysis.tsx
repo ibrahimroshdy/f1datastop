@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { getTeamColorById } from '@/constants/f1Colors';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface OvertakesAnalysisProps {
@@ -43,30 +44,6 @@ import {
   type OvertakeDriverInfo,
   type DriverOvertakeStats,
 } from "@/lib/f1/overtakes";
-
-// F1 Team Colors 2024
-const teamColors: { [key: string]: string } = {
-  "Red Bull Racing": "#3671C6",
-  "red_bull": "#3671C6",
-  "Ferrari": "#E8002D", 
-  "ferrari": "#E8002D",
-  "Mercedes": "#27F4D2",
-  "mercedes": "#27F4D2",
-  "McLaren": "#FF8000",
-  "mclaren": "#FF8000",
-  "Aston Martin": "#229971",
-  "aston_martin": "#229971",
-  "Alpine": "#FF87BC",
-  "alpine": "#FF87BC",
-  "Williams": "#64C4FF",
-  "williams": "#64C4FF",
-  "RB": "#6692FF",
-  "rb": "#6692FF",
-  "Haas F1 Team": "#B6BABD",
-  "haas": "#B6BABD",
-  "Kick Sauber": "#52E252",
-  "sauber": "#52E252"
-};
 
 const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
   year,
@@ -151,7 +128,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
         name: `${driver.first_name} ${driver.last_name}`,
         acronym: driver.name_acronym || `${driver.first_name?.charAt(0)}${driver.last_name?.charAt(0)}`,
         team: driver.team_name || 'Unknown',
-        color: teamColors[driver.team_name] || teamColors[driver.team_name?.toLowerCase().replace(/\s+/g, '_')] || '#666666',
+        color: getTeamColorById(driver.team_name),
         gridPosition: ergastResult ? parseInt(ergastResult.grid) : 20,
         finalPosition: ergastResult ? parseInt(ergastResult.position) : 20
       };
@@ -348,7 +325,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
         {/* Race Replay - Animated Timing Tower */}
         <TabsContent value="animation" className="mt-3 space-y-3">
           {/* Controls */}
-          <div className={cn("flex items-center gap-3 p-2 rounded-lg", isDark ? "bg-zinc-900" : "bg-slate-100")}>
+          <div className={cn("flex items-center gap-3 p-2 rounded-lg", "bg-muted")}>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setIsPlaying(false); setCurrentProgress(0); }}>
               <RotateCcw className="h-4 w-4" />
             </Button>
@@ -356,12 +333,12 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
               {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
             </Button>
             <Slider value={[currentProgress]} onValueChange={([v]) => setCurrentProgress(v)} max={100} step={0.5} className="flex-1" />
-            <div className={cn("px-2 py-1 rounded font-mono text-xs font-bold min-w-[70px] text-center", isDark ? "bg-black text-white" : "bg-slate-900 text-white")}>
+            <div className={cn("px-2 py-1 rounded font-mono text-xs font-bold min-w-[70px] text-center", "bg-foreground text-background")}>
               LAP {currentLap}/{totalLaps}
             </div>
             <div className="flex gap-0.5">
               {[1, 2, 4].map(s => (
-                <button key={s} onClick={() => setPlaybackSpeed(s)} className={cn("w-6 h-6 rounded text-[10px] font-bold transition-colors", playbackSpeed === s ? "bg-primary text-white" : isDark ? "bg-zinc-800 text-zinc-500 hover:bg-zinc-700" : "bg-slate-200 text-slate-500 hover:bg-slate-300")}>
+                <button key={s} onClick={() => setPlaybackSpeed(s)} className={cn("w-6 h-6 rounded text-[10px] font-bold transition-colors", playbackSpeed === s ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-accent")}>
                   {s}x
                 </button>
               ))}
@@ -369,9 +346,9 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
           </div>
 
           {/* Timing Tower */}
-          <div className={cn("rounded-xl overflow-hidden", isDark ? "bg-gradient-to-b from-zinc-950 to-zinc-900" : "bg-gradient-to-b from-slate-50 to-white border border-slate-200")}>
+          <div className={cn("rounded-xl overflow-hidden", "bg-gradient-to-b from-card to-background border border-border")}>
             {/* Header */}
-            <div className={cn("flex items-center justify-between px-3 py-2 border-b", isDark ? "border-zinc-800 bg-black/50" : "border-slate-200 bg-slate-100")}>
+            <div className={cn("flex items-center justify-between px-3 py-2 border-b", "border-border bg-muted/50")}>
               <div className="flex items-center gap-2">
                 <div className={cn("w-2 h-2 rounded-full animate-pulse", isPlaying ? "bg-red-500" : "bg-green-500")} />
                 <span className="text-xs font-medium">{isPlaying ? 'LIVE' : 'PAUSED'}</span>
@@ -408,7 +385,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                       }}
                       className={cn(
                         "flex items-center gap-2 px-2 py-1.5 rounded-lg",
-                        isDark ? "hover:bg-white/5" : "hover:bg-slate-100"
+                        "hover:bg-muted/50"
                       )}
                     >
                       {/* Position Badge */}
@@ -417,7 +394,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                         item.position === 1 && "bg-gradient-to-br from-yellow-400 to-yellow-600 text-black",
                         item.position === 2 && "bg-gradient-to-br from-slate-300 to-slate-500 text-black",
                         item.position === 3 && "bg-gradient-to-br from-amber-500 to-amber-700 text-white",
-                        item.position > 3 && (isDark ? "bg-zinc-800 text-zinc-400" : "bg-slate-200 text-slate-600")
+                        item.position > 3 && "bg-muted text-muted-foreground"
                       )}>
                         {item.position}
                       </div>
@@ -475,7 +452,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn("flex items-center justify-center gap-2 py-3 border-t", isDark ? "border-zinc-800 bg-black/50" : "border-slate-200 bg-slate-50")}
+                className={cn("flex items-center justify-center gap-2 py-3 border-t", "border-border bg-muted/50")}
               >
                 <Flag className="h-4 w-4 text-primary" />
                 <span className="font-bold">CHEQUERED FLAG</span>
@@ -537,7 +514,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                 margin={{ left: 40, right: 20, top: 10, bottom: 35 }}
               >
                 <CartesianGrid
-                  stroke={isDark ? '#333' : '#e5e5e5'}
+                  stroke="hsl(var(--chart-grid))"
                   strokeDasharray="3 3"
                 />
                 <XAxis
@@ -546,8 +523,8 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                   domain={[0, totalLaps]}
                   allowDecimals={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' }}
-                  label={{ value: 'Lap', position: 'insideBottom', offset: -10, fontSize: 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--chart-axis))' }}
+                  label={{ value: 'Lap', position: 'insideBottom', offset: -10, fontSize: 11, fill: 'hsl(var(--chart-axis))' }}
                 />
                 <YAxis
                   reversed
@@ -555,8 +532,8 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                   allowDecimals={false}
                   tickLine={false}
                   width={40}
-                  tick={{ fontSize: 10, fill: isDark ? '#a1a1aa' : '#666' }}
-                  label={{ value: 'Position', angle: -90, position: 'insideLeft', fontSize: 11, fill: isDark ? '#a1a1aa' : '#666' }}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--chart-axis))' }}
+                  label={{ value: 'Position', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'hsl(var(--chart-axis))' }}
                 />
                 <Tooltip content={<PositionTooltip />} />
                 {positionChartData.series.map(s => (
