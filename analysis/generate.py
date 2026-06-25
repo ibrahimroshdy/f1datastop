@@ -1598,6 +1598,108 @@ def chart_dominance_stack(session, meta):
     return fig_png(fig)
 
 
+def chart_race_strategy(session, meta):
+    laps = session.laps
+    if laps is None or len(laps) == 0:
+        return None
+    try:
+        order = [a for a in session.results["Abbreviation"].values if a]
+    except Exception:
+        order = list(laps["Driver"].dropna().unique())
+    if DRIVERS:
+        order = [d for d in order if d in DRIVERS]
+    order = order[:14]
+    if not order:
+        return None
+    L = LAYOUT[FMT]
+    fig = plt.figure(figsize=L["figsize"], dpi=L["dpi"])
+    fig.patch.set_facecolor(PAPER)
+    title_block(fig, "Strategy", "Race Strategy Board",
+                "Tyre stints · pit windows · track weather")
+    left = 0.16
+    w = 0.93 - left
+    by0, bh = L["ax"]
+    sax = fig.add_axes([left, by0, w, bh * 0.66])
+    wax = fig.add_axes([left, by0 + bh * 0.76, w, bh * 0.22])
+    sax.set_facecolor(PAPER)
+    wax.set_facecolor(PAPER)
+    lmax = int(laps["LapNumber"].max())
+
+    # tyre stints + pit markers
+    for i, drv in enumerate(order):
+        dl = laps[laps["Driver"] == drv].sort_values("LapNumber")
+        if dl.empty:
+            continue
+        for si, (_, st) in enumerate(dl.groupby("Stint")):
+            comp = str(st["Compound"].iloc[0]).upper()
+            start = st["LapNumber"].min()
+            length = st["LapNumber"].max() - start + 1
+            sax.barh(i, length, left=start - 1, height=0.62,
+                     color=COMPOUND_COLORS.get(comp, "#9A9486"),
+                     edgecolor=PAPER, linewidth=1.2, zorder=3)
+            if si > 0:
+                sax.scatter([start - 1], [i], marker="v", s=44, color=INK,
+                            edgecolor=PAPER, linewidth=0.8, zorder=6)
+    sax.set_yticks(range(len(order)))
+    sax.set_yticklabels(order, fontproperties=FP_BODY_B, color=INK, fontsize=10)
+    sax.set_ylim(-0.7, len(order) - 0.3)
+    sax.invert_yaxis()
+    sax.set_xlim(0, lmax + 1)
+    sax.grid(axis="x", color=GRID, linewidth=1.0)
+    sax.grid(axis="y", linewidth=0)
+    sax.set_axisbelow(True)
+    for s in ("top", "right", "left"):
+        sax.spines[s].set_visible(False)
+    sax.spines["bottom"].set_color(GRID)
+    sax.tick_params(colors=SUBINK, length=0, labelsize=9)
+    sax.set_xlabel("Lap", color=SUBINK, fontproperties=FP_BODY, fontsize=12)
+
+    # weather strip, aligned to the lap axis
+    wx = getattr(session, "weather_data", None)
+    if wx is not None and len(wx):
+        lt = laps.groupby("LapNumber")["Time"].median()
+        validlaps = [int(l) for l in sorted(lt.index) if pd.notna(lt[l])]
+        xs = [lt[l].total_seconds() for l in validlaps]
+        wt = wx["Time"].dt.total_seconds().to_numpy()
+
+        def interp(col):
+            return np.interp(xs, wt, wx[col].astype(float).to_numpy())
+
+        try:
+            track = interp("TrackTemp")
+            air = interp("AirTemp")
+            wax.plot(validlaps, track, color="#FF8000", lw=2.2, label="Track °C")
+            wax.plot(validlaps, air, color="#36A2E8", lw=2.2, label="Air °C")
+            lo, hi = wax.get_ylim()
+            rain = interp("Rainfall")
+            if (rain > 0).any():
+                wax.fill_between(validlaps, lo, hi, where=rain > 0,
+                                 color="#1E6FB8", alpha=0.20, step="mid", zorder=1)
+                wax.text(0.012, 0.86, "RAIN", transform=wax.transAxes, color="#5AA9E6",
+                         fontsize=8.5, fontproperties=FP_BODY_B, va="top")
+            wax.set_ylim(lo, hi)
+            leg = wax.legend(loc="upper right", frameon=False, fontsize=9, ncol=2,
+                             handlelength=1.2)
+            for t in leg.get_texts():
+                t.set_color(INK)
+        except Exception:
+            pass
+    wax.set_xlim(0, lmax + 1)
+    wax.set_xticklabels([])
+    wax.set_ylabel("°C", color=SUBINK, fontproperties=FP_BODY, fontsize=10)
+    for s in ("top", "right"):
+        wax.spines[s].set_visible(False)
+    wax.spines["left"].set_color(GRID)
+    wax.spines["bottom"].set_color(GRID)
+    wax.tick_params(colors=SUBINK, length=0, labelsize=8)
+    wax.grid(axis="y", color=GRID, linewidth=0.7)
+    wax.set_axisbelow(True)
+
+    compound_legend(fig)
+    footer(fig, meta)
+    return fig_png(fig)
+
+
 def chart_parallax_stack(session, meta):
     laps = session.laps
     drivers = []
@@ -1721,6 +1823,7 @@ CHARTS = [
     ("grid_flow", "Qualifying → Grid → Finish", "Driver flow from qualifying to the chequered flag", chart_grid_flow),
     ("gap_to_leader", "Gap to Leader", "Time behind the lead, lap by lap", chart_gap_to_leader),
     ("lap_evolution", "Lap-Time Evolution", "Race pace through the stints", chart_lap_evolution),
+    ("race_strategy", "Race Strategy Board", "Tyre stints, pit windows and track weather", chart_race_strategy),
     ("teammate_pace", "Teammate Distribution", "Teammate lap-time spread, side by side", chart_teammate_pace),
     ("teammate_laps", "Teammate Duel · Lap by Lap", "Each teammate's lap times through the race", chart_teammate_laps),
     ("top_speed", "Top Speed", "Highest speed per driver on the fastest lap", chart_top_speed),

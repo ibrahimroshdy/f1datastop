@@ -1,5 +1,6 @@
 import { F1_API } from "@/constants/apiConfig";
 import { supabase } from "@/integrations/supabase/client";
+import { tryWarehouse } from "@/services/f1Warehouse";
 
 export type F1ApiSource = "ergast" | "openf1";
 
@@ -94,6 +95,15 @@ export async function fetchF1Api(
   source: F1ApiSource,
   pathWithQuery: string,
 ): Promise<Response> {
+  // DB-first: serve from our warehouse when enabled + covered (no-op when the
+  // VITE_DB_SERVING_ENABLED flag is off or the season isn't backfilled), then
+  // fall back to the live proxy/direct path automatically.
+  try {
+    const fromDb = await tryWarehouse(source, pathWithQuery);
+    if (fromDb) return fromDb;
+  } catch {
+    // warehouse miss/error -> fall through to upstream
+  }
   if (isF1ProxyEnabled()) {
     return fetchViaProxy(source, pathWithQuery);
   }

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
-import { F1_API } from "@/constants/apiConfig";
+import { ergastFetch } from "@/lib/api/f1ApiFetch";
 import { f1Keys } from "@/lib/f1/queryKeys";
 import { processDataForSankey, buildSankeyFromRoundResults } from "@/lib/f1/sankey";
 
@@ -146,7 +146,7 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
         // Race results are required; qualifying is optional (if missing/fails, we use grid position as "quali" for all)
         let qualifyingData: any = { MRData: { RaceTable: { Races: [] } } };
         try {
-          const qualifyingResponse = await fetch(`${F1_API.ERGAST}/${year}/${round}/qualifying.json`);
+          const qualifyingResponse = await ergastFetch(`/f1/${year}/${round}/qualifying.json`);
           if (qualifyingResponse.ok) {
             qualifyingData = await qualifyingResponse.json();
           }
@@ -154,7 +154,7 @@ export function useQualifyingToRaceDataByRound(year: number, round: string) {
           // Qualifying fetch failed (e.g. CORS); continue with race-only data
         }
 
-        const raceResponse = await fetch(`${F1_API.ERGAST}/${year}/${round}/results.json`);
+        const raceResponse = await ergastFetch(`/f1/${year}/${round}/results.json`);
         if (!raceResponse.ok) {
           throw new Error('Failed to fetch race results');
         }

@@ -1,0 +1,858 @@
+#!/usr/bin/env python3
+"""
+Canonical data backfill for f1datastop — pulls Jolpica (Ergast-compatible) and
+OpenF1, writes canonical `f1_*` rows to Supabase via the PostgREST REST API.
+
+This is the Python sibling of the `f1-ingest` edge function: it runs the SAME
+idempotent UPSERT pipeline offline (the analysis venv already has requests /
+pandas / fastf1), so the window [currentYear-3 .. currentYear] + all future
+scheduled rounds of the current season can be seeded LOCAL-first. Older seasons
+are intentionally NOT backfilled — the live proxy serves them.
+
+Authority (mirrors the canonical translation layer):
+  - Jolpica/Ergast  -> identity, schedule, results, qualifying, sprint,
+                       pitstops, laps, standings  (AUTHORITATIVE)
+  - OpenF1          -> session_key crosswalk + session_drivers / weather /
+                       starting_grid / overtakes / team_radio / position
+                       (2023+ only; the explicit crosswalk kills the heuristic)
+
+Every write is an UPSERT on the table's UNIQUE natural key (see
+supabase/migrations/20260624120000_f1_warehouse.sql), so re-runs converge and
+are no-ops on unchanged data. Coverage / freshness is recorded per
+(domain, season, round[, session_type]) in `f1_sync_state`.
+
+Env (same as generate.py):
+  SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+Optional:
+  JOLPICA_BASE  (default https://api.jolpi.ca/ergast)
+  OPENF1_BASE   (default https://api.openf1.org/v1)
+
+Usage:
+  # one season, all completed rounds + future schedule rows
+  python backfill.py --season 2025
+
+  # a window (dependency-correct, dimensions before facts)
+  python backfill.py --from-season 2023 --to-season 2026
+
+  # a single round
+  python backfill.py --season 2025 --round 12
+
+  # only the latest completed round of the current season (cron-friendly)
+  python backfill.py --latest
+
+  # restrict to specific domains, skip OpenF1, dry-run
+  python backfill.py --season 2025 --domains schedule,results,laps
+  python backfill.py --season 2025 --no-openf1
+  python backfill.py --season 2025 --dry-run
+
+See the "Backfill" section of analysis/README.md for the full runbook.
+"""
+import argparse
+import os
+import re
+import sys
+import time
+import datetime as dt
+
+import requests
+
+# ── Config ───────────────────────────────────────────────────────────────────
+JOLPICA_BASE = os.environ.get("JOLPICA_BASE", "https://api.jolpi.ca/ergast").rstrip("/")
+OPENF1_BASE = os.environ.get("OPENF1_BASE", "https://api.openf1.org/v1").rstrip("/")
+WINDOW_YEARS = 3  # current + last 3 seasons => [currentYear-3 .. currentYear]
+PAGE_LIMIT = 100  # Ergast/Jolpica max page size
+REQUEST_PAUSE = 0.35  # polite inter-request delay (rate-safe, sequential)
+HTTP_TIMEOUT = 30
+
+ALL_DOMAINS = [
+    "schedule", "entities", "results", "qualifying", "sprint",
+    "pitstops", "laps", "driver_standings", "constructor_standings",
+    "openf1",
+]
+
+# OpenF1 session_name -> canonical session_type
+OPENF1_SESSION_TYPE = {
+    "Practice 1": "FP1", "Practice 2": "FP2", "Practice 3": "FP3",
+    "Qualifying": "Q", "Sprint Qualifying": "SQ", "Sprint Shootout": "SQ",
+    "Sprint": "S", "Race": "R",
+}
+
+DRY_RUN = False
+
+
+# ── HTTP helpers ─────────────────────────────────────────────────────────────
+def _env():
+    try:
+        url = os.environ["SUPABASE_URL"].rstrip("/")
+        key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    except KeyError as e:
+        raise SystemExit(f"Missing env {e}. Set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.")
+    return url, key
+
+
+def jolpica_get(path, limit=None, offset=None):
+    """GET a Jolpica/Ergast JSON document (path WITHOUT the .json suffix)."""
+    params = {}
+    if limit is not None:
+        params["limit"] = limit
+    if offset is not None:
+        params["offset"] = offset
+    url = f"{JOLPICA_BASE}/f1/{path}.json"
+    for attempt in range(4):
+        try:
+            r = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
+            if r.status_code == 404:
+                return None  # genuinely absent
+            if r.status_code in (429, 500, 502, 503, 521, 522) or r.status_code >= 500:
+                time.sleep(1.5 * (attempt + 1))  # transient -> backoff + retry
+                continue
+            r.raise_for_status()
+            time.sleep(REQUEST_PAUSE)
+            return r.json()
+        except requests.RequestException:
+            time.sleep(1.5 * (attempt + 1))
+    return None
+
+
+def openf1_get(resource, **params):
+    url = f"{OPENF1_BASE}/{resource}"
+    for attempt in range(4):
+        try:
+            r = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
+            if r.status_code == 404:
+                return []
+            if r.status_code >= 500 or r.status_code == 429:
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            r.raise_for_status()
+            time.sleep(REQUEST_PAUSE)
+            data = r.json()
+            return data if isinstance(data, list) else []
+        except requests.RequestException:
+            time.sleep(1.5 * (attempt + 1))
+    return []
+
+
+def supa_upsert(table, rows, on_conflict, *, returning="minimal"):
+    """UPSERT rows into a PostgREST table on its UNIQUE natural key.
+
+    Mirrors generate.py's upsert_index(): POST with
+    Prefer: resolution=merge-duplicates. Returns the number of rows sent.
+    """
+    if not rows:
+        return 0
+    if DRY_RUN:
+        print(f"    [dry-run] upsert {len(rows)} -> {table} (on_conflict={on_conflict})")
+        return len(rows)
+    url, key = _env()
+    headers = {
+        "Authorization": f"Bearer {key}", "apikey": key,
+        "Content-Type": "application/json",
+        "Prefer": f"resolution=merge-duplicates,return={returning}",
+    }
+    # PostgREST handles batch upserts; chunk to keep payloads sane.
+    sent = 0
+    for i in range(0, len(rows), 500):
+        chunk = rows[i:i + 500]
+        r = requests.post(
+            f"{url}/rest/v1/{table}?on_conflict={on_conflict}",
+            headers=headers, json=chunk, timeout=60,
+        )
+        if not r.ok:
+            raise RuntimeError(f"upsert {table} failed {r.status_code}: {r.text[:500]}")
+        sent += len(chunk)
+    return sent
+
+
+def supa_select(table, select="*", **filters):
+    """Lightweight GET against PostgREST (used for FK lookups, e.g. race_id)."""
+    if DRY_RUN and table.startswith("f1_race"):
+        return []  # race_id unknown in dry-run; callers tolerate None
+    url, key = _env()
+    headers = {"Authorization": f"Bearer {key}", "apikey": key}
+    params = {"select": select}
+    for k, v in filters.items():
+        params[k] = f"eq.{v}"
+    r = requests.get(f"{url}/rest/v1/{table}", headers=headers, params=params, timeout=30)
+    if not r.ok:
+        raise RuntimeError(f"select {table} failed {r.status_code}: {r.text[:300]}")
+    return r.json()
+
+
+# ── parsing helpers ──────────────────────────────────────────────────────────
+def to_int(v):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def to_num(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+_LAP_STATUS = re.compile(r"^\+\d+\s+Lap")
+
+
+def derive_dnf(status):
+    """Same rule as f1Service: classified if 'Finished' or '+N Lap(s)'; else DNF."""
+    if not status:
+        return None
+    s = str(status).strip()
+    return not (s == "Finished" or _LAP_STATUS.match(s))
+
+
+def slugify(*parts):
+    s = "-".join(p for p in parts if p)
+    s = re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+    return s or None
+
+
+def race_id_for(season, rnd):
+    """Resolve f1_race.id (surrogate PK) for FK columns; None if not present."""
+    rows = supa_select("f1_race", select="id", season=season, round=rnd)
+    return rows[0]["id"] if rows else None
+
+
+# ── sync_state ───────────────────────────────────────────────────────────────
+def mark_sync(domain, season, round_=None, session_type=None, *,
+              status="complete", row_count=0, upstream_total=None,
+              expected=None, error=None, source="ergast"):
+    now = dt.datetime.now(dt.timezone.utc).isoformat()
+    row = {
+        "domain": domain, "season": season,
+        "round": round_, "session_type": session_type,
+        "status": status, "source": source,
+        "row_count": row_count, "upstream_total": upstream_total,
+        "expected_count": expected, "last_attempt_at": now,
+        "last_error": error,
+    }
+    if status == "complete":
+        row["last_success_at"] = now
+        row["next_retry_at"] = None
+    # f1_sync_state natural key allows NULL round/session_type; PostgREST upsert
+    # treats NULLs in the conflict target correctly with merge-duplicates.
+    supa_upsert("f1_sync_state", [row],
+                "domain,season,round,session_type", returning="minimal")
+
+
+# ── DIMENSIONS ───────────────────────────────────────────────────────────────
+def backfill_schedule(season):
+    """Ergast /{year} -> f1_season + f1_circuit + f1_race + f1_session."""
+    doc = jolpica_get(f"{season}")
+    if not doc:
+        mark_sync("schedule", season, status="empty", error="no schedule")
+        return []
+    races = doc["MRData"]["RaceTable"].get("Races", [])
+    supa_upsert("f1_season", [{
+        "year": season, "has_results": False, "race_count": len(races),
+        "source": "ergast",
+    }], "year")
+
+    circuits, race_rows = {}, []
+    for rc in races:
+        circ = rc.get("Circuit", {})
+        cid = circ.get("circuitId")
+        if cid and cid not in circuits:
+            loc = circ.get("Location", {})
+            circuits[cid] = {
+                "circuit_id": cid, "name": circ.get("circuitName"),
+                "locality": loc.get("locality"), "country": loc.get("country"),
+                "lat": to_num(loc.get("lat")), "lng": to_num(loc.get("long")),
+                "url": circ.get("url"), "source": "ergast",
+            }
+        race_rows.append({
+            "season": season, "round": to_int(rc.get("round")),
+            "race_name": rc.get("raceName"), "circuit_id": cid,
+            "date": rc.get("date"), "time": rc.get("time"), "url": rc.get("url"),
+            "sprint_weekend": "Sprint" in rc,
+            "source": "ergast", "raw": rc,
+            "ingested_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        })
+    supa_upsert("f1_circuit", list(circuits.values()), "circuit_id")
+    supa_upsert("f1_race", race_rows, "season,round")
+
+    # Sessions: one row per present sub-object + the race itself.
+    sub_map = [
+        ("FirstPractice", "FP1"), ("SecondPractice", "FP2"),
+        ("ThirdPractice", "FP3"), ("Qualifying", "Q"),
+        ("SprintQualifying", "SQ"), ("SprintShootout", "SQ"), ("Sprint", "S"),
+    ]
+    sess_rows = []
+    for rc in races:
+        rnd = to_int(rc.get("round"))
+        for key, stype in sub_map:
+            if key in rc:
+                sess_rows.append({
+                    "season": season, "round": rnd, "session_type": stype,
+                    "session_name": key,
+                    "scheduled_date": rc[key].get("date"),
+                    "scheduled_time": rc[key].get("time"), "source": "ergast",
+                })
+        sess_rows.append({
+            "season": season, "round": rnd, "session_type": "R",
+            "session_name": "Race", "scheduled_date": rc.get("date"),
+            "scheduled_time": rc.get("time"), "source": "ergast",
+        })
+    supa_upsert("f1_session", sess_rows, "season,round,session_type")
+
+    mark_sync("schedule", season, status="complete",
+              row_count=len(race_rows), upstream_total=len(races))
+    print(f"  schedule {season}: {len(race_rows)} races, {len(sess_rows)} sessions, "
+          f"{len(circuits)} circuits")
+    return races
+
+
+def _upsert_driver(driver):
+    """Upsert a driver dimension row from an Ergast Driver sub-object."""
+    did = driver.get("driverId")
+    if not did:
+        return
+    slug = slugify(driver.get("givenName"), driver.get("familyName")) or did
+    supa_upsert("f1_driver", [{
+        "ergast_id": did,
+        "given_name": driver.get("givenName") or did,
+        "family_name": driver.get("familyName") or "",
+        "code": driver.get("code"),
+        "permanent_number": driver.get("permanentNumber"),
+        "nationality": driver.get("nationality"),
+        "date_of_birth": driver.get("dateOfBirth"),
+        "slug": slug,
+    }], "ergast_id")
+
+
+def _upsert_constructor(con):
+    cid = con.get("constructorId")
+    if not cid:
+        return
+    slug = slugify(con.get("name")) or cid
+    supa_upsert("f1_constructor", [{
+        "ergast_id": cid, "name": con.get("name") or cid,
+        "nationality": con.get("nationality"), "slug": slug,
+    }], "ergast_id")
+
+
+def backfill_entities(season):
+    """Expand f1_driver / f1_constructor to full season coverage (not just the
+    22-row current grid) from driverStandings + constructorStandings."""
+    n_d = n_c = 0
+    ds = jolpica_get(f"{season}/driverStandings")
+    if ds:
+        lists = ds["MRData"]["StandingsTable"].get("StandingsLists", [])
+        for sl in lists:
+            for s in sl.get("DriverStandings", []):
+                _upsert_driver(s.get("Driver", {}))
+                for con in s.get("Constructors", []):
+                    _upsert_constructor(con)
+                n_d += 1
+    cs = jolpica_get(f"{season}/constructorStandings")
+    if cs:
+        lists = cs["MRData"]["StandingsTable"].get("StandingsLists", [])
+        for sl in lists:
+            for s in sl.get("ConstructorStandings", []):
+                _upsert_constructor(s.get("Constructor", {}))
+                n_c += 1
+    mark_sync("entities", season, status="complete", row_count=n_d + n_c)
+    print(f"  entities {season}: {n_d} drivers, {n_c} constructors upserted")
+
+
+# ── ERGAST FACTS (per round) ─────────────────────────────────────────────────
+def _result_row(season, rnd, race_id, res, *, sprint=False):
+    drv = res.get("Driver", {})
+    con = res.get("Constructor", {})
+    _upsert_driver(drv)
+    _upsert_constructor(con)
+    fl = res.get("FastestLap", {}) or {}
+    avg = fl.get("AverageSpeed", {}) or {}
+    tm = res.get("Time", {}) or {}
+    row = {
+        "race_id": race_id, "season": season, "round": rnd,
+        "driver_id": drv.get("driverId"), "constructor_id": con.get("constructorId"),
+        "car_number": to_int(res.get("number")),
+        "position": to_int(res.get("position")),
+        "position_text": res.get("positionText"),
+        "points": to_num(res.get("points")), "grid": to_int(res.get("grid")),
+        "laps": to_int(res.get("laps")), "status": res.get("status"),
+        "is_dnf": derive_dnf(res.get("status")),
+        "time_millis": to_int(tm.get("millis")), "time_text": tm.get("time"),
+        "fastest_lap_number": to_int(fl.get("lap")),
+        "fastest_lap_time": (fl.get("Time") or {}).get("time"),
+        "source": "ergast", "raw": res,
+    }
+    if not sprint:
+        row["fastest_lap_rank"] = to_int(fl.get("rank"))
+        row["fastest_lap_avg_speed"] = to_num(avg.get("speed"))
+        row["fastest_lap_speed_units"] = avg.get("units")
+    return row
+
+
+def backfill_results(season, rnd, race_id):
+    doc = jolpica_get(f"{season}/{rnd}/results")
+    races = doc["MRData"]["RaceTable"].get("Races", []) if doc else []
+    if not races:
+        mark_sync("results", season, rnd, status="partial", error="no results yet")
+        return 0
+    rows = [_result_row(season, rnd, race_id, r) for r in races[0].get("Results", [])]
+    n = supa_upsert("f1_race_result", rows, "season,round,driver_id")
+    mark_sync("results", season, rnd, status="complete", row_count=n)
+    return n
+
+
+def backfill_qualifying(season, rnd, race_id):
+    doc = jolpica_get(f"{season}/{rnd}/qualifying")
+    races = doc["MRData"]["RaceTable"].get("Races", []) if doc else []
+    if not races:
+        mark_sync("qualifying", season, rnd, status="partial", error="no qualifying yet")
+        return 0
+    rows = []
+    for q in races[0].get("QualifyingResults", []):
+        drv = q.get("Driver", {})
+        con = q.get("Constructor", {})
+        _upsert_driver(drv)
+        _upsert_constructor(con)
+        rows.append({
+            "race_id": race_id, "season": season, "round": rnd,
+            "driver_id": drv.get("driverId"), "constructor_id": con.get("constructorId"),
+            "car_number": to_int(q.get("number")), "position": to_int(q.get("position")),
+            "q1": q.get("Q1"), "q2": q.get("Q2"), "q3": q.get("Q3"),
+            "source": "ergast", "raw": q,
+        })
+    n = supa_upsert("f1_qualifying_result", rows, "season,round,driver_id")
+    mark_sync("qualifying", season, rnd, status="complete", row_count=n)
+    return n
+
+
+def backfill_sprint(season, rnd, race_id):
+    doc = jolpica_get(f"{season}/{rnd}/sprint")
+    races = doc["MRData"]["RaceTable"].get("Races", []) if doc else []
+    if not races:
+        mark_sync("sprint", season, rnd, status="not_applicable")
+        return 0
+    rows = [_result_row(season, rnd, race_id, r, sprint=True)
+            for r in races[0].get("SprintResults", [])]
+    n = supa_upsert("f1_sprint_result", rows, "season,round,driver_id")
+    mark_sync("sprint", season, rnd, status="complete", row_count=n)
+    return n
+
+
+def backfill_pitstops(season, rnd, race_id):
+    rows, offset, total = [], 0, None
+    while True:
+        doc = jolpica_get(f"{season}/{rnd}/pitstops", limit=PAGE_LIMIT, offset=offset)
+        if not doc:
+            break
+        total = to_int(doc["MRData"].get("total"))
+        races = doc["MRData"]["RaceTable"].get("Races", [])
+        if not races:
+            break
+        stops = races[0].get("PitStops", [])
+        for ps in stops:
+            rows.append({
+                "race_id": race_id, "season": season, "round": rnd,
+                "driver_id": ps.get("driverId"), "stop": to_int(ps.get("stop")),
+                "lap": to_int(ps.get("lap")), "time_local": ps.get("time"),
+                "duration_seconds": to_num(ps.get("duration")), "source": "ergast",
+            })
+        offset += PAGE_LIMIT
+        if total is None or offset >= total:
+            break
+    if not rows:
+        mark_sync("pitstops", season, rnd, status="not_applicable")
+        return 0
+    n = supa_upsert("f1_pit_stop", rows, "season,round,driver_id,stop")
+    mark_sync("pitstops", season, rnd, status="complete", row_count=n, upstream_total=total)
+    return n
+
+
+def backfill_laps(season, rnd, race_id):
+    """Server-side pagination over /laps so the client never paginates again."""
+    rows, offset, total = [], 0, None
+    while True:
+        doc = jolpica_get(f"{season}/{rnd}/laps", limit=PAGE_LIMIT, offset=offset)
+        if not doc:
+            break
+        total = to_int(doc["MRData"].get("total"))
+        races = doc["MRData"]["RaceTable"].get("Races", [])
+        if not races:
+            break
+        for lap in races[0].get("Laps", []):
+            lapno = to_int(lap.get("number"))
+            for t in lap.get("Timings", []):
+                rows.append({
+                    "race_id": race_id, "season": season, "round": rnd,
+                    "lap_number": lapno, "driver_id": t.get("driverId"),
+                    "position": to_int(t.get("position")), "time_text": t.get("time"),
+                    "source": "ergast",
+                })
+        offset += PAGE_LIMIT
+        if total is None or offset >= total:
+            break
+    if not rows:
+        mark_sync("laps", season, rnd, status="partial", error="no laps yet")
+        return 0
+    n = supa_upsert("f1_lap", rows, "season,round,lap_number,driver_id")
+    status = "complete" if (total is None or len(rows) >= total) else "partial"
+    mark_sync("laps", season, rnd, status=status, row_count=n, upstream_total=total)
+    return n
+
+
+# ── STANDINGS (per season, final round) ──────────────────────────────────────
+def backfill_driver_standings(season):
+    doc = jolpica_get(f"{season}/driverStandings")
+    lists = doc["MRData"]["StandingsTable"].get("StandingsLists", []) if doc else []
+    if not lists:
+        mark_sync("driver_standings", season, status="partial")
+        return 0
+    sl = lists[0]
+    rnd = to_int(sl.get("round"))
+    rows = []
+    for s in sl.get("DriverStandings", []):
+        drv = s.get("Driver", {})
+        cons = s.get("Constructors", [])
+        # current constructor = LAST element (mirror adapters.getPrimaryConstructor)
+        cid = cons[-1].get("constructorId") if cons else None
+        rows.append({
+            "season": season, "round": rnd, "driver_id": drv.get("driverId"),
+            "constructor_id": cid, "position": to_int(s.get("position")),
+            "position_text": s.get("positionText"), "points": to_num(s.get("points")),
+            "wins": to_int(s.get("wins")), "source": "ergast",
+        })
+    n = supa_upsert("f1_driver_standing", rows, "season,round,driver_id")
+    mark_sync("driver_standings", season, rnd, status="complete", row_count=n)
+    return n
+
+
+def backfill_constructor_standings(season):
+    doc = jolpica_get(f"{season}/constructorStandings")
+    lists = doc["MRData"]["StandingsTable"].get("StandingsLists", []) if doc else []
+    if not lists:
+        mark_sync("constructor_standings", season, status="partial")
+        return 0
+    sl = lists[0]
+    rnd = to_int(sl.get("round"))
+    rows = []
+    for s in sl.get("ConstructorStandings", []):
+        con = s.get("Constructor", {})
+        rows.append({
+            "season": season, "round": rnd, "constructor_id": con.get("constructorId"),
+            "position": to_int(s.get("position")), "position_text": s.get("positionText"),
+            "points": to_num(s.get("points")), "wins": to_int(s.get("wins")),
+            "source": "ergast",
+        })
+    n = supa_upsert("f1_constructor_standing", rows, "season,round,constructor_id")
+    mark_sync("constructor_standings", season, rnd, status="complete", row_count=n)
+    return n
+
+
+# ── OPENF1 (2023+) ───────────────────────────────────────────────────────────
+def _resolve_session_type(name):
+    if not name:
+        return None
+    return OPENF1_SESSION_TYPE.get(name.strip())
+
+
+def backfill_openf1(season, schedule_races):
+    """Crosswalk first (populate f1_session.openf1_session_key), then resources.
+
+    Deterministic match: OpenF1 session -> (season,round,session_type) by date
+    proximity to the f1_race date + OpenF1 session_name->session_type table.
+    """
+    if season < 2023:
+        mark_sync("openf1", season, status="not_applicable", source="openf1")
+        print(f"  openf1 {season}: skipped (pre-2023, no OpenF1 coverage)")
+        return
+
+    sessions = openf1_get("sessions", year=season)
+    if not sessions:
+        mark_sync("openf1", season, status="empty", source="openf1")
+        print(f"  openf1 {season}: no sessions from OpenF1")
+        return
+
+    # round -> race date, for date-proximity matching
+    race_date = {}
+    for rc in schedule_races:
+        rnd = to_int(rc.get("round"))
+        try:
+            race_date[rnd] = dt.date.fromisoformat(rc.get("date"))
+        except (TypeError, ValueError):
+            pass
+
+    crosswalk = []   # (season, round, session_type, openf1_session_key, meeting_key)
+    for s in sessions:
+        stype = _resolve_session_type(s.get("session_name"))
+        skey = to_int(s.get("session_key"))
+        mkey = to_int(s.get("meeting_key"))
+        if not stype or skey is None:
+            continue
+        # parse OpenF1 date_start (e.g. 2024-03-02T15:00:00+00:00)
+        try:
+            sdate = dt.datetime.fromisoformat(
+                (s.get("date_start") or "").replace("Z", "+00:00")).date()
+        except (TypeError, ValueError):
+            sdate = None
+        # nearest race round by date proximity
+        rnd = None
+        if sdate and race_date:
+            rnd = min(race_date, key=lambda r: abs((race_date[r] - sdate).days))
+            if abs((race_date[rnd] - sdate).days) > 4:
+                rnd = None
+        if rnd is None:
+            continue
+        crosswalk.append((rnd, stype, skey, mkey, s))
+
+    # Persist the crosswalk onto f1_session (UPSERT by natural key carries the key)
+    sess_updates = []
+    for rnd, stype, skey, mkey, _s in crosswalk:
+        sess_updates.append({
+            "season": season, "round": rnd, "session_type": stype,
+            "openf1_session_key": skey, "openf1_meeting_key": mkey,
+            "source": "ergast",  # row originates from schedule; we only enrich keys
+        })
+    supa_upsert("f1_session", sess_updates, "season,round,session_type")
+
+    # Resources per resolved session_key
+    n_drv = n_wx = n_grid = n_ot = n_radio = n_pos = 0
+    for rnd, stype, skey, _mkey, _s in crosswalk:
+        # session_drivers
+        drivers = openf1_get("drivers", session_key=skey)
+        drows = []
+        for d in drivers:
+            drows.append({
+                "openf1_session_key": skey,
+                "driver_number": to_int(d.get("driver_number")),
+                "name_acronym": d.get("name_acronym"),
+                "first_name": d.get("first_name"), "last_name": d.get("last_name"),
+                "full_name": d.get("full_name"), "team_name": d.get("team_name"),
+                "team_colour": d.get("team_colour"), "headshot_url": d.get("headshot_url"),
+                "country_code": d.get("country_code"), "source": "openf1",
+            })
+        n_drv += supa_upsert("f1_session_driver", drows,
+                             "openf1_session_key,driver_number")
+
+        # weather
+        wrows = []
+        for w in openf1_get("weather", session_key=skey):
+            wrows.append({
+                "openf1_session_key": skey, "date": w.get("date"),
+                "air_temperature": to_num(w.get("air_temperature")),
+                "track_temperature": to_num(w.get("track_temperature")),
+                "humidity": to_num(w.get("humidity")), "pressure": to_num(w.get("pressure")),
+                "wind_speed": to_num(w.get("wind_speed")),
+                "wind_direction": to_int(w.get("wind_direction")),
+                "rainfall": to_int(w.get("rainfall")), "source": "openf1",
+            })
+        n_wx += supa_upsert("f1_weather", wrows, "openf1_session_key,date")
+
+        # starting_grid (race/sprint only)
+        grows = []
+        for g in openf1_get("starting_grid", session_key=skey):
+            grows.append({
+                "openf1_session_key": skey, "position": to_int(g.get("position")),
+                "driver_number": to_int(g.get("driver_number")), "source": "openf1",
+            })
+        n_grid += supa_upsert("f1_starting_grid", grows,
+                              "openf1_session_key,driver_number")
+
+        # overtakes
+        orows = []
+        for o in openf1_get("overtakes", session_key=skey):
+            orows.append({
+                "openf1_session_key": skey, "date": o.get("date"),
+                "overtaking_driver_number": to_int(o.get("overtaking_driver_number")),
+                "overtaken_driver_number": to_int(o.get("overtaken_driver_number")),
+                "position": to_int(o.get("position")), "source": "openf1",
+            })
+        n_ot += supa_upsert(
+            "f1_overtake", orows,
+            "openf1_session_key,date,overtaking_driver_number,overtaken_driver_number")
+
+        # team_radio
+        rrows = []
+        for tr in openf1_get("team_radio", session_key=skey):
+            rrows.append({
+                "openf1_session_key": skey,
+                "driver_number": to_int(tr.get("driver_number")),
+                "date": tr.get("date"), "recording_url": tr.get("recording_url"),
+                "source": "openf1",
+            })
+        n_radio += supa_upsert("f1_team_radio", rrows,
+                               "openf1_session_key,driver_number,date")
+
+        # position (post-session snapshot)
+        prows = []
+        for p in openf1_get("position", session_key=skey):
+            prows.append({
+                "openf1_session_key": skey,
+                "driver_number": to_int(p.get("driver_number")),
+                "date": p.get("date"), "position": to_int(p.get("position")),
+                "source": "openf1",
+            })
+        n_pos += supa_upsert("f1_position", prows,
+                             "openf1_session_key,driver_number,date")
+
+    mark_sync("openf1", season, status="complete", source="openf1",
+              row_count=n_drv + n_wx + n_grid + n_ot + n_radio + n_pos)
+    print(f"  openf1 {season}: {len(crosswalk)} sessions crosswalked; "
+          f"drivers={n_drv} weather={n_wx} grid={n_grid} overtakes={n_ot} "
+          f"radio={n_radio} position={n_pos}")
+
+
+# ── orchestration ────────────────────────────────────────────────────────────
+def round_is_completed(rc):
+    """A round is completed if its race date is strictly in the past (UTC)."""
+    try:
+        d = dt.date.fromisoformat(rc.get("date"))
+    except (TypeError, ValueError):
+        return False
+    return d < dt.datetime.now(dt.timezone.utc).date()
+
+
+def backfill_round(season, rc, domains):
+    rnd = to_int(rc.get("round"))
+    rid = race_id_for(season, rnd)
+    completed = round_is_completed(rc)
+    label = rc.get("raceName", f"R{rnd}")
+    if not completed:
+        # Future round: nothing to fetch yet; mark fact domains not_applicable.
+        for dom in ("results", "qualifying", "sprint", "pitstops", "laps"):
+            if dom in domains:
+                mark_sync(dom, season, rnd, status="not_applicable")
+        print(f"  round {rnd:>2} {label}: future — facts marked not_applicable")
+        return
+    print(f"  round {rnd:>2} {label}: ingesting facts")
+    if "results" in domains:
+        backfill_results(season, rnd, rid)
+    if "qualifying" in domains:
+        backfill_qualifying(season, rnd, rid)
+    if "sprint" in domains and "Sprint" in rc:
+        backfill_sprint(season, rnd, rid)
+    elif "sprint" in domains:
+        mark_sync("sprint", season, rnd, status="not_applicable")
+    if "pitstops" in domains:
+        backfill_pitstops(season, rnd, rid)
+    if "laps" in domains:
+        backfill_laps(season, rnd, rid)
+
+
+def backfill_season(season, domains, only_round=None):
+    print(f"== Season {season} ==")
+    # 1. Spine: schedule (always needed to enumerate rounds + resolve race_id)
+    races = backfill_schedule(season) if ("schedule" in domains or True) else []
+    if not races:
+        races = []
+        doc = jolpica_get(f"{season}")
+        if doc:
+            races = doc["MRData"]["RaceTable"].get("Races", [])
+
+    # 2. Dimensions: expand drivers/constructors for the season
+    if "entities" in domains:
+        backfill_entities(season)
+
+    # 3. Per-round facts (dependency-correct order inside backfill_round)
+    round_domains = domains & {"results", "qualifying", "sprint", "pitstops", "laps"}
+    if round_domains:
+        for rc in races:
+            rnd = to_int(rc.get("round"))
+            if only_round is not None and rnd != only_round:
+                continue
+            backfill_round(season, rc, round_domains)
+
+    # 4. Standings (season-level)
+    if "driver_standings" in domains:
+        backfill_driver_standings(season)
+    if "constructor_standings" in domains:
+        backfill_constructor_standings(season)
+
+    # 5. OpenF1 crosswalk + resources (2023+)
+    if "openf1" in domains and only_round is None:
+        backfill_openf1(season, races)
+
+    # mark the season as having results once any round is complete
+    if any(round_is_completed(rc) for rc in races):
+        supa_upsert("f1_season", [{"year": season, "has_results": True,
+                                   "source": "ergast"}], "year")
+
+
+def latest_completed_round(season):
+    doc = jolpica_get(f"{season}")
+    if not doc:
+        return None
+    races = doc["MRData"]["RaceTable"].get("Races", [])
+    done = [to_int(r.get("round")) for r in races if round_is_completed(r)]
+    return max(done) if done else None
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Backfill canonical f1_* warehouse tables.")
+    cur = dt.datetime.now(dt.timezone.utc).year
+    ap.add_argument("--season", type=int, help="single season")
+    ap.add_argument("--from-season", type=int, help="window start (inclusive)")
+    ap.add_argument("--to-season", type=int, help="window end (inclusive)")
+    ap.add_argument("--round", type=int, help="single round (requires --season)")
+    ap.add_argument("--latest", action="store_true",
+                    help="only the latest completed round of the current season")
+    ap.add_argument("--domains", default="all",
+                    help="comma-separated subset of: " + ",".join(ALL_DOMAINS))
+    ap.add_argument("--no-openf1", action="store_true", help="skip OpenF1 entirely")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="fetch + print row counts, do not write to Supabase")
+    args = ap.parse_args()
+
+    global DRY_RUN
+    DRY_RUN = args.dry_run
+    if not DRY_RUN:
+        _env()  # fail fast if env missing
+
+    if args.domains == "all":
+        domains = set(ALL_DOMAINS)
+    else:
+        domains = {d.strip() for d in args.domains.split(",") if d.strip()}
+        unknown = domains - set(ALL_DOMAINS)
+        if unknown:
+            raise SystemExit(f"Unknown domains: {', '.join(sorted(unknown))}")
+    if args.no_openf1:
+        domains.discard("openf1")
+
+    # Resolve the season window.
+    if args.latest:
+        season = cur
+        rnd = latest_completed_round(season)
+        if rnd is None:
+            print("No completed race this season.")
+            return 0
+        print(f"Latest completed: {season} round {rnd}")
+        backfill_season(season, domains, only_round=rnd)
+        # standings/openf1 are season-level; run them too for --latest
+        return 0
+
+    if args.season is not None:
+        seasons = [args.season]
+    elif args.from_season is not None or args.to_season is not None:
+        lo = args.from_season or (cur - WINDOW_YEARS)
+        hi = args.to_season or cur
+        seasons = list(range(lo, hi + 1))
+    else:
+        seasons = list(range(cur - WINDOW_YEARS, cur + 1))  # default window
+
+    # Guard: warn (don't hard-fail) on out-of-window seasons; user may force it.
+    for s in seasons:
+        if s < cur - WINDOW_YEARS:
+            print(f"WARNING: {s} is older than the [{cur - WINDOW_YEARS}..{cur}] "
+                  f"window; the live proxy normally serves it.")
+
+    print(f"Backfilling seasons {seasons[0]}..{seasons[-1]} "
+          f"domains={sorted(domains)} dry_run={DRY_RUN}")
+    for s in seasons:
+        backfill_season(s, domains, only_round=args.round if args.season else None)
+
+    print("Done. Verify coverage with:")
+    print("  SELECT domain, status, count(*) FROM f1_sync_state "
+          "GROUP BY domain, status ORDER BY domain;")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,149 @@
+name: F1 data sync
+
+# Alternative to in-database pg_cron scheduling (see
+# supabase/migrations/20260624130000_f1_cron.sql). This workflow drives the
+# SAME f1-ingest edge function over HTTP, but from GitHub's scheduler instead
+# of pg_cron. Use EITHER pg_cron OR this workflow — not both at full cadence,
+# or you double-fire ingest (harmless because ingest is idempotent, but wasteful).
+#
+# Trade-offs vs pg_cron — see the bottom of this file and the migration header.
+#
+# Required repo secrets:
+#   SUPABASE_FUNCTIONS_BASE  e.g. https://<ref>.functions.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY  service-role JWT (f1-ingest runs verify_jwt=true)
+
+on:
+  # PAUSED by default — uncomment to enable, mirroring analysis.yml convention.
+  # GitHub Actions cron is UTC. Two cadences below mirror the pg_cron jobs.
+  # schedule:
+  #   - cron: "0 */6 * * *"     # (A) steady-state sync, every 6h
+  #   - cron: "*/15 * * * *"    # (B) post-session poll, every 15m (self-gated by f1-ingest mode=poll)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Ingest mode"
+        required: true
+        default: "sync"
+        type: choice
+        options:
+          - sync
+          - poll
+          - backfill
+      season:
+        description: "Season (year). Blank = current year."
+        required: false
+      round:
+        description: "Round (optional; only meaningful for backfill of a single round)"
+        required: false
+
+concurrency:
+  group: f1-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve mode + payload
+        id: payload
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          IN_MODE: ${{ github.event.inputs.mode }}
+          IN_SEASON: ${{ github.event.inputs.season }}
+          IN_ROUND: ${{ github.event.inputs.round }}
+          SCHEDULE_CRON: ${{ github.event.schedule }}
+        run: |
+          set -euo pipefail
+
+          # Pick mode: manual run uses the chosen input; scheduled runs map the
+          # cron expression to a mode (the 15-min cron => poll, else sync).
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            MODE="${IN_MODE:-sync}"
+          elif [ "$SCHEDULE_CRON" = "*/15 * * * *" ]; then
+            MODE="poll"
+          else
+            MODE="sync"
+          fi
+
+          SEASON="${IN_SEASON:-$(date -u +%Y)}"
+
+          # Build JSON body. Include round only when provided (backfill of one round).
+          if [ -n "${IN_ROUND:-}" ]; then
+            BODY=$(printf '{"mode":"%s","season":%s,"round":%s}' "$MODE" "$SEASON" "$IN_ROUND")
+          else
+            BODY=$(printf '{"mode":"%s","season":%s}' "$MODE" "$SEASON")
+          fi
+
+          echo "mode=$MODE"     >> "$GITHUB_OUTPUT"
+          echo "body=$BODY"     >> "$GITHUB_OUTPUT"
+          echo "Resolved body: $BODY"
+
+      - name: Invoke f1-ingest
+        env:
+          FUNCTIONS_BASE: ${{ secrets.SUPABASE_FUNCTIONS_BASE }}
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BODY: ${{ steps.payload.outputs.body }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${FUNCTIONS_BASE:-}" ] || [ -z "${SERVICE_ROLE_KEY:-}" ]; then
+            echo "::error::SUPABASE_FUNCTIONS_BASE and SUPABASE_SERVICE_ROLE_KEY repo secrets are required."
+            exit 1
+          fi
+
+          URL="${FUNCTIONS_BASE%/}/f1-ingest"
+          echo "POST $URL"
+
+          # Capture body + HTTP status; fail the job on any non-2xx.
+          HTTP_CODE=$(curl -sS -o response.json -w '%{http_code}' \
+            -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${SERVICE_ROLE_KEY}" \
+            --max-time 120 \
+            --retry 2 --retry-delay 5 --retry-connrefused \
+            -d "$BODY")
+
+          echo "HTTP $HTTP_CODE"
+          echo "----- response -----"
+          cat response.json || true
+          echo
+          echo "--------------------"
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::f1-ingest returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+# ============================================================================
+# TRADE-OFFS: pg_cron (in-DB)  vs  GitHub Actions (this file)
+# ----------------------------------------------------------------------------
+# pg_cron (supabase/migrations/20260624130000_f1_cron.sql)
+#   + Runs inside Postgres; can SELF-GATE on f1_sync_state / f1_session before
+#     making any HTTP call (f1_in_weekend_window / f1_has_pending_sync), so the
+#     15-min poll tick is a near-free in-DB no-op most of the week.
+#   + No external dependency, no secrets leaving the DB; service-role key stays
+#     in a DB GUC. Survives even if GitHub is down.
+#   + Sub-minute schedules possible; co-located with the data it guards.
+#   - Requires the pg_cron + pg_net extensions enabled on the project and two
+#     DB GUCs set (app.settings.functions_base / service_role_key).
+#   - Job history lives in cron.job_run_details / net._http_response (less
+#     visible than CI logs); harder to alert on from outside the DB.
+#
+# GitHub Actions (this file)
+#   + Zero DB extensions/config; secrets managed in repo settings; first-class
+#     run history, logs, manual re-runs, and notifications in the Actions UI.
+#   + Easy to combine with the FastF1 analysis workflow on the same runner fleet.
+#   - GitHub cron is best-effort and can be DELAYED several minutes under load;
+#     not suitable for tight (<5 min) SLAs. Min granularity is 5 minutes.
+#   - Cannot cheaply self-gate: every scheduled poll tick spins a runner and
+#     calls the function (which then no-ops via mode=poll/sync_state) — more
+#     wasteful than pg_cron's in-DB gate, though still idempotent + harmless.
+#   - Scheduled workflows on the default branch can be auto-disabled after 60
+#     days of repo inactivity.
+#
+# RECOMMENDATION: prefer pg_cron for the steady cadence (in-DB gating is the
+# whole point of the f1_sync_state ledger). Keep this workflow as (1) a manual
+# workflow_dispatch backfill/sync trigger, and (2) a fallback if pg_cron/pg_net
+# are not available on the target project. Do NOT enable both schedule blocks at
+# the same cadence.
+# ============================================================================

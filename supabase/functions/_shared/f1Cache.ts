@@ -20,7 +20,10 @@ export type ProxyResponse = {
   status: number;
   cacheKey: string;
   error?: string;
+  stale?: boolean;
 };
+
+const UPSTREAM_TIMEOUT_MS = 8000;
 
 const UPSTREAM: Record<F1Source, string> = {
   ergast: "https://api.jolpi.ca/ergast",
@@ -117,27 +120,36 @@ export async function proxyF1Request(
   }
 
   const upstreamUrl = buildUpstreamUrl(source, path, params);
+
+  // When the upstream (Jolpica/OpenF1) is slow or down, fall back to the last
+  // cached payload even if expired — stale data beats a blank site.
+  const staleFallback = (status: number, error: string): ProxyResponse => {
+    if (cached) {
+      return { data: cached.data, cached: true, stale: true, status: 200, cacheKey };
+    }
+    return { data: null, cached: false, status, cacheKey, error };
+  };
+
   let upstreamResponse: Response;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), UPSTREAM_TIMEOUT_MS);
   try {
     upstreamResponse = await fetch(upstreamUrl, {
       headers: { Accept: "application/json" },
+      signal: ctrl.signal,
     });
   } catch (e) {
+    clearTimeout(timer);
     await logMetric(admin, {
       source,
       cacheKey,
       cacheHit: false,
-      statusCode: 502,
+      statusCode: 504,
       isRateLimit: false,
     });
-    return {
-      data: null,
-      cached: false,
-      status: 502,
-      cacheKey,
-      error: (e as Error).message,
-    };
+    return staleFallback(504, (e as Error).message);
   }
+  clearTimeout(timer);
 
   const isRateLimit = upstreamResponse.status === 429;
   await logMetric(admin, {
@@ -150,13 +162,10 @@ export async function proxyF1Request(
 
   if (!upstreamResponse.ok) {
     const text = await upstreamResponse.text();
-    return {
-      data: null,
-      cached: false,
-      status: upstreamResponse.status,
-      cacheKey,
-      error: text.slice(0, 500) || upstreamResponse.statusText,
-    };
+    return staleFallback(
+      upstreamResponse.status,
+      text.slice(0, 500) || upstreamResponse.statusText,
+    );
   }
 
   const payload = await upstreamResponse.json();
