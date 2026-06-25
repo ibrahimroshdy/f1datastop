@@ -45,6 +45,7 @@ const Circuits = () => {
     return races.map((race) => ({
       round: race.round,
       raceName: race.raceName,
+      circuitId: race.Circuit.circuitId,
       circuitName: race.Circuit.circuitName,
       locality: race.Circuit.Location.locality,
       country: race.Circuit.Location.country,
@@ -57,7 +58,7 @@ const Circuits = () => {
       <PageHeader
         eyebrow={`${currentYear} Season`}
         title="Circuits"
-        description={`${currentYear} Formula 1 venues — tap a circuit for full race analysis`}
+        description={`${currentYear} Formula 1 venues — tap a circuit for details and its lap record`}
       />
 
       {isError ? (
@@ -83,7 +84,11 @@ const Circuits = () => {
             return (
               <Link
                 key={`${circuit.round}-${circuit.circuitName}`}
-                to={`/race-analysis/${currentYear}/${circuit.round}`}
+                to={
+                  circuit.circuitId
+                    ? `/circuits/${circuit.circuitId}`
+                    : `/race-analysis/${currentYear}/${circuit.round}`
+                }
                 className="group block rounded-xl"
               >
                 <F1Card
@@ -137,7 +142,7 @@ const Circuits = () => {
                         </span>
                       )}
                       <span className="inline-flex items-center gap-1 font-medium text-muted-foreground group-hover:text-primary">
-                        Analysis <ArrowRight className="h-3 w-3" />
+                        Details <ArrowRight className="h-3 w-3" />
                       </span>
                     </div>
                   </F1CardContent>

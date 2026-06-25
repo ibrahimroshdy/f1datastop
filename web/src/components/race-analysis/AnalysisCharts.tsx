@@ -31,7 +31,7 @@ export default function AnalysisCharts({ year, round }: AnalysisChartsProps) {
         <Activity className="mb-3 h-8 w-8 text-muted-foreground" />
         <p className="font-medium">No deep-dive charts yet</p>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Advanced FastF1 telemetry &amp; strategy charts are generated automatically
+          Advanced telemetry &amp; strategy charts are generated automatically
           after each race weekend.
         </p>
       </div>

@@ -45,14 +45,14 @@ const MAX_DRIVERS = 3;
 
 interface Props {
   year: number;
-  round: number;
+  round: number | string;
   session?: string;
 }
 
-/** Interactive FastF1 telemetry (speed/throttle/brake/gear/rpm/DRS) by distance,
- *  served from our Supabase warehouse — richer than the OpenF1 feed. */
+/** Interactive car telemetry (speed/throttle/brake/gear/rpm/DRS) by distance,
+ *  served from our Supabase warehouse. */
 const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
-  const { data: index, isLoading: indexLoading } = useTelemetryIndex(year, round, session);
+  const { data: index, isLoading: indexLoading } = useTelemetryIndex(year, Number(round), session);
   const [metric, setMetric] = useState<Metric>("speed");
   const [codes, setCodes] = useState<string[]>([]);
 
@@ -92,7 +92,7 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
   if (!indexLoading && (!index || index.length === 0)) {
     return (
       <div className="flex h-[300px] items-center justify-center text-center text-sm text-muted-foreground">
-        No FastF1 telemetry exported for this session yet.
+        No telemetry available for this session yet.
       </div>
     );
   }

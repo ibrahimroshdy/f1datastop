@@ -201,7 +201,7 @@ export function RaceAnalysisTabs({
                 <F1CardTitle className="text-base">Deep Dive</F1CardTitle>
               </div>
               <F1CardDescription className="text-xs">
-                FastF1 telemetry &amp; strategy charts, generated after each race weekend
+                Telemetry &amp; strategy charts, generated after each race weekend
               </F1CardDescription>
             </F1CardHeader>
             <F1CardContent className="min-h-[400px] px-0 pb-2 pt-2">
@@ -356,7 +356,7 @@ export function RaceAnalysisTabs({
                   <TrackMapChart year={selectedYear} round={selectedRace} />
                   <div className="my-5 border-t border-border/40" />
                   <div className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
-                    Live session feed (OpenF1)
+                    Live session feed
                   </div>
                   <TelemetryDashboard
                     year={selectedYear}

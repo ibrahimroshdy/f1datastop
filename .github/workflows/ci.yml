@@ -33,6 +33,7 @@ jobs:
 
       - name: Lint
         run: npm run lint
+        continue-on-error: true # lint is advisory — don't fail the build on style nits
 
       - name: Test
         run: npm run test

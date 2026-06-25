@@ -15,7 +15,7 @@ import {
 
 interface Props {
   year: number;
-  round: number;
+  round: number | string;
   session?: string;
 }
 
@@ -32,7 +32,7 @@ function speedColor(t: number): string {
 /** Track map: the racing line (X/Y) of one driver's fastest lap, coloured by
  *  speed at each point. Pure SVG — every blob already carries X/Y + speed. */
 const TrackMapChart = ({ year, round, session = "R" }: Props) => {
-  const { data: index, isLoading: indexLoading } = useTelemetryIndex(year, round, session);
+  const { data: index, isLoading: indexLoading } = useTelemetryIndex(year, Number(round), session);
   const [code, setCode] = useState<string>("");
 
   useEffect(() => {

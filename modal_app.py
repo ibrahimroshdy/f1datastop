@@ -73,14 +73,16 @@ def _run(script: str, *args: str) -> None:
 
 
 # ── Scheduled: pull the latest completed round into the warehouse ────────────
-# Mondays 06:00 UTC — after a Sunday race weekend.
-@app.function(schedule=modal.Cron("0 6 * * 1"), **COMMON)
+# Every 3h on race-weekend days (Fri/Sat/Sun UTC) so new sessions land fast;
+# --latest only fetches the latest completed round and UPSERTs are idempotent,
+# so the extra runs are cheap no-ops outside of fresh data.
+@app.function(schedule=modal.Cron("0 */3 * * 5,6,0"), **COMMON)
 def backfill_latest() -> None:
     _run("backfill.py", "--latest")
 
 
 # ── Scheduled: regenerate + upload charts for the latest race ────────────────
-@app.function(schedule=modal.Cron("30 6 * * 1"), **COMMON)
+@app.function(schedule=modal.Cron("30 */3 * * 5,6,0"), **COMMON)
 def generate_latest() -> None:
     _run("generate.py", "--latest", "--session", "R", "--format", "all")
 
