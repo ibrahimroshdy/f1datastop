@@ -467,29 +467,116 @@ def backfill_pitstops(season, rnd, race_id):
     return n
 
 
+def _parse_lap_doc(doc, race_id, season, rnd):
+    """Flatten a Jolpica /laps page into canonical f1_lap rows."""
+    out = []
+    races = doc["MRData"]["RaceTable"].get("Races", []) if doc else []
+    if not races:
+        return out
+    for lap in races[0].get("Laps", []):
+        lapno = to_int(lap.get("number"))
+        for t in lap.get("Timings", []):
+            out.append({
+                "race_id": race_id, "season": season, "round": rnd,
+                "lap_number": lapno, "driver_id": t.get("driverId"),
+                "position": to_int(t.get("position")), "time_text": t.get("time"),
+                "source": "ergast",
+            })
+    return out
+
+
+def _fmt_laptime(td):
+    """Timedelta -> Ergast-style 'M:SS.mmm' lap time (None if missing)."""
+    try:
+        import pandas as pd
+        if td is None or pd.isna(td):
+            return None
+        total = td.total_seconds()
+    except Exception:
+        return None
+    if total <= 0:
+        return None
+    m = int(total // 60)
+    return f"{m}:{total - m * 60:06.3f}"
+
+
+def _laps_from_fastf1(season, rnd, race_id):
+    """Laps from FastF1 official timing (cached, NOT Jolpica-throttled).
+    FastF1 SessionResults.DriverId is the Ergast driverId, so f1_lap.driver_id
+    stays consistent with results/qualifying. Returns row count, or -1 when
+    FastF1 is unavailable for this round (caller falls back to Jolpica)."""
+    try:
+        import fastf1
+        import pandas as pd
+    except Exception:
+        return -1
+    try:
+        cache = os.environ.get("FASTF1_CACHE", ".fastf1cache")
+        os.makedirs(cache, exist_ok=True)
+        fastf1.Cache.enable_cache(cache)
+    except Exception:
+        pass
+    try:
+        s = fastf1.get_session(season, rnd, "R")
+        s.load(telemetry=False, weather=False, messages=False)
+    except Exception as e:  # noqa: BLE001
+        print(f"    fastf1 laps unavailable ({e}); falling back to Jolpica")
+        return -1
+    res, laps = getattr(s, "results", None), getattr(s, "laps", None)
+    if res is None or laps is None or len(laps) == 0:
+        return -1
+    abbr2id = {}
+    for _, r in res.iterrows():
+        did, ab = r.get("DriverId"), r.get("Abbreviation")
+        if did and ab:
+            abbr2id[ab] = did
+    rows = []
+    for _, lap in laps.iterrows():
+        did = abbr2id.get(lap.get("Driver"))
+        lapno = lap.get("LapNumber")
+        if not did or pd.isna(lapno):
+            continue
+        pos = lap.get("Position")
+        rows.append({
+            "race_id": race_id, "season": season, "round": rnd,
+            "lap_number": int(lapno), "driver_id": did,
+            "position": int(pos) if pd.notna(pos) else None,
+            "time_text": _fmt_laptime(lap.get("LapTime")),
+            "source": "fastf1",
+        })
+    if not rows:
+        return -1
+    return supa_upsert("f1_lap", rows, "season,round,lap_number,driver_id")
+
+
 def backfill_laps(season, rnd, race_id):
-    """Server-side pagination over /laps so the client never paginates again."""
-    rows, offset, total = [], 0, None
-    while True:
+    """Laps via FastF1 first (official timing, cached, dodges Jolpica's burst
+    throttle); fall back to Jolpica /laps when FastF1 has no data for the round."""
+    n = _laps_from_fastf1(season, rnd, race_id)
+    if n >= 0:
+        mark_sync("laps", season, rnd, status="complete", row_count=n, source="fastf1")
+        return n
+    return _laps_from_jolpica(season, rnd, race_id)
+
+
+def _laps_from_jolpica(season, rnd, race_id):
+    """Server-side pagination over /laps. Sequential + polite: Jolpica throttles
+    bursts hard (observed ~75s penalty), so concurrent paging is counter-
+    productive. Page 0 gives the total; subsequent pages walk the offset."""
+    first = jolpica_get(f"{season}/{rnd}/laps", limit=PAGE_LIMIT, offset=0)
+    if not first:
+        mark_sync("laps", season, rnd, status="partial", error="no laps yet")
+        return 0
+    total = to_int(first["MRData"].get("total"))
+    rows = _parse_lap_doc(first, race_id, season, rnd)
+    offset = PAGE_LIMIT
+    while total and offset < total:
         doc = jolpica_get(f"{season}/{rnd}/laps", limit=PAGE_LIMIT, offset=offset)
-        if not doc:
+        page_rows = _parse_lap_doc(doc, race_id, season, rnd)
+        if not page_rows:
             break
-        total = to_int(doc["MRData"].get("total"))
-        races = doc["MRData"]["RaceTable"].get("Races", [])
-        if not races:
-            break
-        for lap in races[0].get("Laps", []):
-            lapno = to_int(lap.get("number"))
-            for t in lap.get("Timings", []):
-                rows.append({
-                    "race_id": race_id, "season": season, "round": rnd,
-                    "lap_number": lapno, "driver_id": t.get("driverId"),
-                    "position": to_int(t.get("position")), "time_text": t.get("time"),
-                    "source": "ergast",
-                })
+        rows.extend(page_rows)
         offset += PAGE_LIMIT
-        if total is None or offset >= total:
-            break
     if not rows:
         mark_sync("laps", season, rnd, status="partial", error="no laps yet")
         return 0

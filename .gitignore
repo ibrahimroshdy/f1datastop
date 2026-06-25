@@ -46,7 +46,7 @@ docs/superpowers/*
 */.fastf1cache/
 
 # FastF1 analysis runtime artifacts
-analysis/out/
+analysis/out/*
 analysis/.fastf1cache/
 analysis/.venv/
 
@@ -169,3 +169,6 @@ pytype/
 cython_debug/
 # PyCharm
 idea/
+
+.fastf1cache/
+out/

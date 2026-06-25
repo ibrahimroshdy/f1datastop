@@ -6,3 +6,4 @@ scipy>=1.11
 pillow>=10.0
 requests>=2.31
 pycountry>=23.12
+modal>=1.5

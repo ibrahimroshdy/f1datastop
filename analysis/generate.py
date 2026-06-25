@@ -1598,6 +1598,88 @@ def chart_dominance_stack(session, meta):
     return fig_png(fig)
 
 
+def chart_strategy_history(years_data, circuit, meta):
+    """Multi-year strategy infographic for one circuit: per-year winner stint
+    bars + pit markers, field stop-mix, weather + winner. years_data newest-last."""
+    yd = sorted(years_data, key=lambda d: d["year"], reverse=True)  # newest top
+    if len(yd) < 2:
+        return None
+    L = LAYOUT[FMT]
+    fig = plt.figure(figsize=L["figsize"], dpi=L["dpi"])
+    fig.patch.set_facecolor(PAPER)
+    title_block(fig, "Strategy", "Strategy Through the Years",
+                f"{circuit} · how it's been won · tyres, stops & weather")
+    by0, bh = L["ax"]
+    n = len(yd)
+    maxlaps = max(d["total_laps"] for d in yd)
+    # stint timeline axis (centre) + stop-mix axis (right)
+    sax = fig.add_axes([0.30, by0, 0.48, bh])
+    max_ = fig.add_axes([0.82, by0, 0.11, bh])
+    sax.set_facecolor(PAPER)
+    max_.set_facecolor(PAPER)
+    # distinct from compound colours (so stop-counts don't read as tyres)
+    stopcols = {0: "#8C929B", 1: "#2BD46A", 2: "#3B82F6", 3: "#FF8000", 4: "#B100E8"}
+    for i, d in enumerate(yd):
+        y = n - 1 - i
+        for si, (comp, start, length) in enumerate(d["stints"]):
+            sax.barh(y, length, left=start - 1, height=0.56,
+                     color=COMPOUND_COLORS.get(comp, "#9A9486"),
+                     edgecolor=PAPER, linewidth=1.1, zorder=3)
+            if si > 0:
+                sax.scatter([start - 1], [y], marker="v", s=40, color=INK,
+                            edgecolor=PAPER, linewidth=0.7, zorder=6)
+        # left block: year + winner + weather + stops
+        wx_icon = "WET" if d["wet"] else (f"{round(d['track_temp'])}°" if d["track_temp"] else "")
+        yc = _hist_yfrac(y, n, by0, bh)
+        fig.text(0.060, yc + 0.020, str(d["year"]),
+                 color=INK, fontproperties=FP_TITLE, fontsize=20, va="center")
+        fig.text(0.060, yc - 0.004, d["winner"],
+                 color=d["winner_color"], fontproperties=FP_BODY_B, fontsize=14, va="center")
+        fig.text(0.060, yc - 0.026,
+                 f"{wx_icon} · {d['stops']}-stop", color=SUBINK,
+                 fontproperties=FP_BODY, fontsize=10, va="center")
+        # right: field stop-mix stacked bar (share of field per stop count)
+        total = sum(d["mix"].values()) or 1
+        left = 0.0
+        for stops in sorted(d["mix"]):
+            frac = d["mix"][stops] / total
+            max_.barh(y, frac, left=left, height=0.56,
+                      color=stopcols.get(stops, SUBINK), edgecolor=PAPER, linewidth=0.8, zorder=3)
+            left += frac
+        max_.text(1.04, y, f"{d['avg']:.1f}", transform=max_.get_yaxis_transform(),
+                  va="center", ha="left", color=INK, fontproperties=FP_BODY_B, fontsize=10)
+    for ax in (sax, max_):
+        ax.set_ylim(-0.6, n - 0.4)
+        for s in ax.spines.values():
+            s.set_visible(False)
+        ax.set_yticks([])
+    sax.set_xlim(0, maxlaps + 1)
+    sax.grid(axis="x", color=GRID, linewidth=0.9)
+    sax.set_axisbelow(True)
+    sax.tick_params(colors=SUBINK, length=0, labelsize=9)
+    sax.set_xlabel("Lap", color=SUBINK, fontproperties=FP_BODY, fontsize=11)
+    max_.set_xlim(0, 1)
+    max_.set_xticks([])
+    max_.set_title("field stops", color=SUBINK, fontproperties=FP_BODY, fontsize=9, pad=4)
+    compound_legend(fig)
+    # stop-mix legend (chips) bottom-right, clear of the footer text
+    fy = LY("footer_y")
+    fig.text(0.60, fy, "field stops:", color=SUBINK, fontsize=9, fontproperties=FP_BODY, va="center")
+    lx = 0.665
+    for stops, lab in ((1, "1"), (2, "2"), (3, "3"), (4, "4")):
+        fig.add_artist(plt.Rectangle((lx, fy - 0.007), 0.011, 0.014, transform=fig.transFigure,
+                                     color=stopcols[stops], zorder=11))
+        fig.text(lx + 0.014, fy, lab, color=SUBINK, fontsize=9, fontproperties=FP_BODY, va="center")
+        lx += 0.034
+    footer(fig, meta)
+    return fig_png(fig)
+
+
+def _hist_yfrac(y, n, by0, bh):
+    """Figure-fraction y for row index y (0..n-1) within the ax band."""
+    return by0 + bh * ((y + 0.5) / n)
+
+
 def chart_race_strategy(session, meta):
     laps = session.laps
     if laps is None or len(laps) == 0:
@@ -1875,6 +1957,92 @@ def latest_completed_round(year):
     return None if past.empty else int(past.iloc[-1]["RoundNumber"])
 
 
+def run_strategy_history(args):
+    from collections import Counter
+    if not args.event:
+        print("--strategy-history requires --event (e.g. --event Austria)")
+        return 1
+    years_data = []
+    ename = None
+    country = None
+    location = None
+    yy = args.season
+    tries = 0
+    print(f"Building strategy history for '{args.event}' ...")
+    while len(years_data) < args.years and tries < args.years + 7:
+        tries += 1
+        try:
+            s = fastf1.get_session(yy, args.event, "R")
+            s.load(telemetry=False, weather=True, messages=False)
+            laps, res = s.laps, s.results
+            if laps is None or len(laps) == 0 or res is None or len(res) == 0:
+                yy -= 1
+                continue
+            win = res.iloc[0]
+            winner, wteam = win.get("Abbreviation"), win.get("TeamName")
+            wl = laps[laps["Driver"] == winner].sort_values("LapNumber")
+            stints = []
+            for _, st in wl.groupby("Stint"):
+                comp = str(st["Compound"].iloc[0]).upper()
+                start = int(st["LapNumber"].min())
+                stints.append((comp, start, int(st["LapNumber"].max() - start + 1)))
+            if not stints:
+                yy -= 1
+                continue
+            spd = laps.groupby("Driver")["Stint"].nunique() - 1
+            mix = dict(Counter(int(x) for x in spd.dropna() if x >= 0))
+            wx = getattr(s, "weather_data", None)
+            has_wx = wx is not None and len(wx)
+            years_data.append({
+                "year": yy, "winner": winner, "winner_color": team_color(wteam),
+                "stints": stints, "stops": len(stints) - 1, "mix": mix,
+                "avg": float(spd.mean()),
+                "track_temp": float(wx["TrackTemp"].mean()) if has_wx else None,
+                "wet": bool(wx["Rainfall"].astype(bool).mean() > 0.1) if has_wx and "Rainfall" in wx else False,
+                "total_laps": int(laps["LapNumber"].max()),
+            })
+            ev = s.event
+            ename = ename or ev.get("EventName")
+            country = country or ev.get("Country")
+            location = location or ev.get("Location")
+            print(f"  {yy}: {winner} won, {len(stints) - 1}-stop")
+        except Exception as e:  # noqa: BLE001
+            print(f"  {yy}: skipped ({e})")
+        yy -= 1
+    if len(years_data) < 2:
+        print("Not enough editions with data.")
+        return 1
+    title = ename or args.event
+    meta = {"event": title, "year": years_data[0]["year"], "round": 0,
+            "session_name": "Race", "country": country, "location": location,
+            "circuit": location}
+    fmt_sets = {"landscape": ["landscape"], "twitter": ["twitter"],
+                "instagram": ["instagram"], "story": ["story"],
+                "both": ["landscape", "story"],
+                "all": ["landscape", "twitter", "instagram", "story"]}
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", str(location or args.event)).strip("-")
+    global FMT
+    ok = 0
+    for fmt in fmt_sets[args.format]:
+        FMT = fmt
+        try:
+            png = chart_strategy_history(years_data, title, meta)
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! {fmt} failed: {e}")
+            traceback.print_exc()
+            continue
+        if not png:
+            continue
+        outdir = os.path.join("out", f"{years_data[0]['year']}", f"history-{slug}", fmt)
+        os.makedirs(outdir, exist_ok=True)
+        with open(os.path.join(outdir, "strategy_history.png"), "wb") as f:
+            f.write(png)
+        print(f"  - {fmt}/strategy_history: {len(png) // 1024} KB")
+        ok += 1
+    print(f"Done. {ok} charts in out/{years_data[0]['year']}/history-{slug}/")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--season", type=int, default=pd.Timestamp.utcnow().year)
@@ -1891,11 +2059,17 @@ def main():
                     help="team y-axis labels: team logos (default) or text names")
     ap.add_argument("--drivers", help="comma-separated driver codes to feature in "
                     "driver charts, e.g. HAM,LEC,RUS,ANT,NOR")
+    ap.add_argument("--strategy-history", action="store_true",
+                    help="multi-year strategy infographic for --event over the last ~5 editions")
+    ap.add_argument("--years", type=int, default=5, help="how many past editions for --strategy-history")
     args = ap.parse_args()
 
     cache = os.environ.get("FASTF1_CACHE", ".fastf1cache")
     os.makedirs(cache, exist_ok=True)
     fastf1.Cache.enable_cache(cache)
+
+    if args.strategy_history:
+        return run_strategy_history(args)
 
     rnd = args.round
     if args.event:

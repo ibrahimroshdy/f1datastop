@@ -41,6 +41,8 @@ const MuiPitStopTable = lazy(() => import("@/components/analytics/MuiPitStopTabl
 const WeatherAnalysis = lazy(() => import("@/components/analytics/WeatherAnalysis"));
 const TeamRadio = lazy(() => import("@/components/analytics/TeamRadio"));
 const TelemetryDashboard = lazy(() => import("@/components/analytics/TelemetryDashboard"));
+const FastF1TelemetryChart = lazy(() => import("@/components/race/FastF1TelemetryChart"));
+const TrackMapChart = lazy(() => import("@/components/race/TrackMapChart"));
 const SessionResults = lazy(() => import("@/components/analytics/SessionResults"));
 const OvertakesAnalysis = lazy(() => import("@/components/analytics/OvertakesAnalysis"));
 
@@ -349,6 +351,13 @@ export function RaceAnalysisTabs({
                   </F1CardDescription>
                 </F1CardHeader>
                 <F1CardContent className="min-h-[500px] px-4 pb-4">
+                  <FastF1TelemetryChart year={selectedYear} round={selectedRace} />
+                  <div className="my-5 border-t border-border/40" />
+                  <TrackMapChart year={selectedYear} round={selectedRace} />
+                  <div className="my-5 border-t border-border/40" />
+                  <div className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Live session feed (OpenF1)
+                  </div>
                   <TelemetryDashboard
                     year={selectedYear}
                     round={selectedRace}
