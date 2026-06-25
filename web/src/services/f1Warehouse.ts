@@ -90,7 +90,14 @@ async function rpc<T = Jsonish>(
   args: Record<string, unknown>,
 ): Promise<T | null> {
   try {
-    const { data, error } = await supabase.rpc(fn, args);
+    // Cast: `fn` is dynamic and the warehouse RPCs aren't in the generated
+    // Database types, so the typed rpc() overload can't accept them.
+    const { data, error } = await (
+      supabase.rpc as unknown as (
+        f: string,
+        a: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>
+    )(fn, args);
     if (error) {
       // Soft-fail: log once, let caller fall through to proxy.
       console.warn(`[f1Warehouse] rpc ${fn} error, falling back:`, error.message);
