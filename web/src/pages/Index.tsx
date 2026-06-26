@@ -401,8 +401,8 @@ const TelemetryHero = ({
     >
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] divide-y divide-border lg:divide-x lg:divide-y-0">
         {/* Left — identity + live/next session readout */}
-        <div className="flex flex-col gap-4 p-4 md:p-6">
-          <div className="space-y-1.5">
+        <div className="flex flex-col gap-3 p-3 md:gap-4 md:p-6">
+          <div className="space-y-1">
             <div className="instrument-label flex items-center gap-1.5 text-primary">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-primary/60 animate-live-pulse" />
@@ -410,10 +410,10 @@ const TelemetryHero = ({
               </span>
               <span>Live Telemetry · Season {currentYear}</span>
             </div>
-            <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
+            <h1 className="font-heading text-xl font-bold tracking-tight md:text-3xl">
               Formula 1<span className="text-primary"> Pit Wall</span>
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="hidden text-sm text-muted-foreground sm:block">
               Real-time race data, championship standings, and analytics
             </p>
           </div>
@@ -479,7 +479,7 @@ const TelemetryHero = ({
                   <div key={u.l} className="text-center">
                     <div
                       className={cn(
-                        "readout text-xl md:text-2xl",
+                        "readout text-lg md:text-2xl",
                         isUrgent ? "text-primary" : "text-foreground"
                       )}
                     >
@@ -504,7 +504,7 @@ const TelemetryHero = ({
         </div>
 
         {/* Right — season status readouts (hairline instrument grid) */}
-        <div className="flex flex-col p-4 md:p-6">
+        <div className="flex flex-col p-3 md:p-6">
           <div className="instrument-label mb-2 flex items-center gap-1.5 text-primary">
             <Activity className="h-3 w-3" />
             Season Status

@@ -114,7 +114,7 @@ const DriverProfile = () => {
           }
         />
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,280px)_1fr]">
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-[minmax(0,280px)_1fr]">
           <F1Card
             variant={cardVariant}
             glassVariant={glassVariant}
@@ -143,7 +143,7 @@ const DriverProfile = () => {
                 </div>
               )}
             </div>
-            <F1CardContent className="pt-4">
+            <F1CardContent className="pt-3 md:pt-4">
               <div className="hairline-grid">
                 {profile?.nationality && (
                   <div className="data-row">
@@ -166,7 +166,7 @@ const DriverProfile = () => {
                   <>
                     <div className="data-row">
                       <span className="instrument-label">Position</span>
-                      <span className="readout text-2xl text-foreground">
+                      <span className="readout text-xl md:text-2xl text-foreground">
                         P{Number.isFinite(Number(standing.position)) ? (
                           <CountUp value={Number(standing.position)} />
                         ) : (
@@ -176,7 +176,7 @@ const DriverProfile = () => {
                     </div>
                     <div className="data-row">
                       <span className="instrument-label">Points</span>
-                      <span className="readout text-2xl text-foreground">
+                      <span className="readout text-xl md:text-2xl text-foreground">
                         {Number.isFinite(Number(standing.points)) ? (
                           <CountUp value={Number(standing.points)} />
                         ) : (
@@ -190,9 +190,9 @@ const DriverProfile = () => {
             </F1CardContent>
           </F1Card>
 
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <F1Card variant={cardVariant} glassVariant={glassVariant}>
-              <F1CardContent className="pt-6">
+              <F1CardContent className="pt-4 md:pt-6">
                 {isProfileLoading ? (
                   <F1Skeleton variant="card" className="h-40" />
                 ) : (
@@ -203,7 +203,7 @@ const DriverProfile = () => {
 
             {pointsHistory.length > 0 && (
               <F1Card variant={cardVariant} glassVariant={glassVariant}>
-                <F1CardContent className="pt-6 space-y-3">
+                <F1CardContent className="pt-4 md:pt-6 space-y-3">
                   <h2 className="instrument-label">
                     {currentYear} Season
                   </h2>

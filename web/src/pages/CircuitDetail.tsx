@@ -35,12 +35,12 @@ type ScheduleRace = {
 };
 
 const Stat = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) => (
-  <div className="rounded-lg border border-border/60 px-3 py-2.5">
+  <div className="rounded-lg border border-border/60 px-3 py-2 md:py-2.5">
     <div className="instrument-label flex items-center gap-1.5">
       {icon}
       {label}
     </div>
-    <div className="mt-1.5 font-mono text-sm font-semibold tabular-nums text-foreground">{value}</div>
+    <div className="mt-1 md:mt-1.5 font-mono text-sm font-semibold tabular-nums text-foreground">{value}</div>
   </div>
 );
 
@@ -109,7 +109,7 @@ const CircuitDetail = () => {
         <div className="grid gap-0 md:grid-cols-[1fr_1.2fr]">
           <div
             className={cn(
-              "scope-frame flex h-56 items-center justify-center border-b md:border-b-0 md:border-r",
+              "scope-frame flex h-44 md:h-56 items-center justify-center border-b md:border-b-0 md:border-r",
               isGlass ? "border-white/10 bg-white/[0.03]" : "border-border bg-muted/30",
             )}
           >
@@ -117,20 +117,20 @@ const CircuitDetail = () => {
               <CircuitTrackMap
                 circuitName={circuit.name}
                 locality={circuit.locality}
-                className="h-44 w-44 text-primary"
+                className="h-36 w-36 md:h-44 md:w-44 text-primary"
               />
             ) : (
               <MapPin className="h-10 w-10 text-muted-foreground/40" />
             )}
           </div>
-          <div className="p-5">
+          <div className="p-3 md:p-5">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CountryFlag country={circuit.country} size={20} />
               <span>
                 {circuit.locality}, {circuit.country}
               </span>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-3 md:mt-4 grid grid-cols-2 gap-2 md:gap-3">
               <Stat icon={<Ruler className="h-3 w-3" />} label="Length" value={lengthKm ? `${lengthKm} km` : "—"} />
               <Stat icon={<CalendarDays className="h-3 w-3" />} label="In our data" value={seasons} />
               <Stat
@@ -153,7 +153,7 @@ const CircuitDetail = () => {
             {thisYear && (
               <Link
                 to={`/race-analysis/${currentYear}/${thisYear.round}`}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                className="mt-3 md:mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
                 View {currentYear} race analysis <ArrowRight className="h-4 w-4" />
               </Link>
@@ -172,12 +172,12 @@ const CircuitDetail = () => {
         </F1CardHeader>
         <F1CardContent>
           {circuit.record_time ? (
-            <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-3 md:gap-x-10 md:gap-y-4">
               <div>
                 <div className="instrument-label flex items-center gap-1.5">
                   <Timer className="h-3 w-3" /> Fastest race lap
                 </div>
-                <div className="readout mt-2 text-4xl text-primary">
+                <div className="readout mt-1.5 md:mt-2 text-2xl md:text-4xl text-primary">
                   {circuit.record_time}
                 </div>
               </div>
