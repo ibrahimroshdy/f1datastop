@@ -18,6 +18,7 @@ import {
   getF1PortraitPathForErgastDriverId,
 } from "@/constants/f1DriverPortraitMedia";
 import { pageShell, pageStack } from "@/lib/layout";
+import { CountUp } from "@/components/CountUp";
 import { isEntityDbConfigured } from "@/services/entityService";
 import NotFound from "./NotFound";
 import { cn } from "@/lib/utils";
@@ -166,13 +167,21 @@ const DriverProfile = () => {
                     <div className="data-row">
                       <span className="instrument-label">Position</span>
                       <span className="readout text-2xl text-foreground">
-                        P{standing.position}
+                        P{Number.isFinite(Number(standing.position)) ? (
+                          <CountUp value={Number(standing.position)} />
+                        ) : (
+                          standing.position
+                        )}
                       </span>
                     </div>
                     <div className="data-row">
                       <span className="instrument-label">Points</span>
                       <span className="readout text-2xl text-foreground">
-                        {standing.points}
+                        {Number.isFinite(Number(standing.points)) ? (
+                          <CountUp value={Number(standing.points)} />
+                        ) : (
+                          standing.points
+                        )}
                       </span>
                     </div>
                   </>

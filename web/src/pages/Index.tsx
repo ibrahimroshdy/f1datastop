@@ -25,6 +25,7 @@ import { getNextSession } from "@/utils/nextSessionUtils";
 import { cn } from "@/lib/utils";
 import { F1Skeleton } from "@/components/f1";
 import { F1EmptyState } from "@/components/f1/F1EmptyState";
+import { CountUp } from "@/components/CountUp";
 
 import useAnalytics from '@/hooks/useAnalytics';
 import useClarity from '@/hooks/useClarity';
@@ -293,8 +294,8 @@ const ReadoutCell = ({
   className,
 }: {
   label: string;
-  value: string;
-  unit?: string;
+  value: React.ReactNode;
+  unit?: React.ReactNode;
   emphasis?: boolean;
   className?: string;
 }) => (
@@ -386,6 +387,11 @@ const TelemetryHero = ({
     ? `${driver.givenName ?? ""} ${driver.familyName ?? ""}`.trim()
     : "—";
   const constructorName = seasonStats.constructorLeader?.Constructor?.name ?? "—";
+  const driverLeaderPoints =
+    seasonStats.driverLeader?.points != null &&
+    Number.isFinite(Number(seasonStats.driverLeader.points))
+      ? Number(seasonStats.driverLeader.points)
+      : null;
 
   return (
     <F1Card
@@ -507,18 +513,25 @@ const TelemetryHero = ({
             <ReadoutCell
               label="Round"
               value={
-                seasonStats.totalRounds
-                  ? `${seasonStats.completedRounds} / ${seasonStats.totalRounds}`
-                  : "—"
+                seasonStats.totalRounds ? (
+                  <>
+                    <CountUp value={seasonStats.completedRounds} /> /{" "}
+                    {seasonStats.totalRounds}
+                  </>
+                ) : (
+                  "—"
+                )
               }
             />
             <ReadoutCell
               label="Drivers' Leader"
               value={driverName}
               unit={
-                seasonStats.driverLeader?.points
-                  ? `${seasonStats.driverLeader.points} pts`
-                  : undefined
+                driverLeaderPoints != null ? (
+                  <>
+                    <CountUp value={driverLeaderPoints} /> pts
+                  </>
+                ) : undefined
               }
               emphasis
             />

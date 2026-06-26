@@ -102,7 +102,7 @@ const Standings = () => {
 
   // ── Mobile card lists (no horizontal scroll, names wrap) ──────────────────
   const driverCards = (
-    <div className="hairline-grid md:hidden">
+    <div className="hairline-grid stagger-children md:hidden">
       {drivers.map((driver) => {
         const teamId = normalizeTeamId(driver.Constructors[0]?.constructorId || "default");
         const teamColor = getTeamHexColor(teamId);
@@ -139,7 +139,7 @@ const Standings = () => {
   );
 
   const constructorCards = (
-    <div className="hairline-grid md:hidden">
+    <div className="hairline-grid stagger-children md:hidden">
       {constructors.map((constructor) => {
         const teamId = normalizeTeamId(constructor.Constructor?.constructorId || "default");
         const teamColor = getTeamHexColor(teamId);
@@ -236,7 +236,7 @@ const Standings = () => {
                           <TableHead className="text-right instrument-label">Points</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
+                      <TableBody className="stagger-children">
                         {drivers.map((driver) => {
                           const teamId = normalizeTeamId(driver.Constructors[0]?.constructorId || "default");
                           const teamColor = getTeamHexColor(teamId);
@@ -310,7 +310,7 @@ const Standings = () => {
                           <TableHead className="text-right instrument-label">Points</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
+                      <TableBody className="stagger-children">
                         {constructors.map((constructor) => {
                           const teamId = normalizeTeamId(constructor.Constructor?.constructorId || "default");
                           const teamColor = getTeamHexColor(teamId);

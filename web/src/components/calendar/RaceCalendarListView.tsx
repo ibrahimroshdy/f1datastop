@@ -90,7 +90,7 @@ export default function RaceCalendarListView({
           className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
         >
         <ul
-          className="hairline-grid list-none p-0 m-0"
+          className="hairline-grid stagger-children list-none p-0 m-0"
           aria-label={`${selectedYear} race calendar`}
         >
           {racesWithBreak.map((item, idx) => {

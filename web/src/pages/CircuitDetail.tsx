@@ -16,6 +16,7 @@ import { useTheme } from "@/context/ThemeContext";
 import CountryFlag from "@/components/common/CountryFlag";
 import { CircuitTrackMap, getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
 import { pageShell, pageStack } from "@/lib/layout";
+import { CountUp } from "@/components/CountUp";
 import {
   F1Card,
   F1CardContent,
@@ -132,7 +133,17 @@ const CircuitDetail = () => {
             <div className="mt-4 grid grid-cols-2 gap-3">
               <Stat icon={<Ruler className="h-3 w-3" />} label="Length" value={lengthKm ? `${lengthKm} km` : "—"} />
               <Stat icon={<CalendarDays className="h-3 w-3" />} label="In our data" value={seasons} />
-              <Stat icon={<Gauge className="h-3 w-3" />} label="Races stored" value={circuit.races_in_db ?? "—"} />
+              <Stat
+                icon={<Gauge className="h-3 w-3" />}
+                label="Races stored"
+                value={
+                  circuit.races_in_db != null ? (
+                    <CountUp value={circuit.races_in_db} />
+                  ) : (
+                    "—"
+                  )
+                }
+              />
               <Stat
                 icon={<MapPin className="h-3 w-3" />}
                 label="Coordinates"
