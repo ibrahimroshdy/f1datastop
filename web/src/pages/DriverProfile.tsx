@@ -117,7 +117,7 @@ const DriverProfile = () => {
           <F1Card
             variant={cardVariant}
             glassVariant={glassVariant}
-            className="overflow-hidden p-0"
+            className="scope-frame overflow-hidden p-0"
           >
             <div
               className="aspect-[3/4] w-full bg-neutral-950 flex items-end justify-center overflow-hidden"
@@ -142,28 +142,42 @@ const DriverProfile = () => {
                 </div>
               )}
             </div>
-            <F1CardContent className="space-y-2 pt-4">
-              {profile?.nationality && (
-                <div className="flex items-center gap-2 text-sm">
-                  <CountryFlag country={profile.nationality} size={16} />
-                  <span>{profile.nationality}</span>
-                </div>
-              )}
-              {profile?.permanent_number && (
-                <p className="text-sm text-muted-foreground">
-                  #{profile.permanent_number}
-                </p>
-              )}
-              {standing && (
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Season standing: </span>
-                  <span className="font-semibold">P{standing.position}</span>
-                  <span className="text-muted-foreground">
-                    {" "}
-                    · {standing.points} pts
-                  </span>
-                </p>
-              )}
+            <F1CardContent className="pt-4">
+              <div className="hairline-grid">
+                {profile?.nationality && (
+                  <div className="data-row">
+                    <span className="instrument-label">Nationality</span>
+                    <span className="flex items-center gap-2 text-sm font-semibold">
+                      <CountryFlag country={profile.nationality} size={16} />
+                      {profile.nationality}
+                    </span>
+                  </div>
+                )}
+                {profile?.permanent_number && (
+                  <div className="data-row">
+                    <span className="instrument-label">Number</span>
+                    <span className="timing font-semibold">
+                      #{profile.permanent_number}
+                    </span>
+                  </div>
+                )}
+                {standing && (
+                  <>
+                    <div className="data-row">
+                      <span className="instrument-label">Position</span>
+                      <span className="readout text-2xl text-foreground">
+                        P{standing.position}
+                      </span>
+                    </div>
+                    <div className="data-row">
+                      <span className="instrument-label">Points</span>
+                      <span className="readout text-2xl text-foreground">
+                        {standing.points}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
             </F1CardContent>
           </F1Card>
 
@@ -181,7 +195,7 @@ const DriverProfile = () => {
             {pointsHistory.length > 0 && (
               <F1Card variant={cardVariant} glassVariant={glassVariant}>
                 <F1CardContent className="pt-6 space-y-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  <h2 className="instrument-label">
                     {currentYear} Season
                   </h2>
                   <DriverPositionChart

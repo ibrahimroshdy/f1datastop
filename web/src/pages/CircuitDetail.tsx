@@ -35,11 +35,11 @@ type ScheduleRace = {
 
 const Stat = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) => (
   <div className="rounded-lg border border-border/60 px-3 py-2.5">
-    <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+    <div className="instrument-label flex items-center gap-1.5">
       {icon}
       {label}
     </div>
-    <div className="mt-1 text-sm font-semibold tabular-nums">{value}</div>
+    <div className="mt-1.5 font-mono text-sm font-semibold tabular-nums text-foreground">{value}</div>
   </div>
 );
 
@@ -89,7 +89,7 @@ const CircuitDetail = () => {
       : "—";
 
   return (
-    <div className={cn(pageShell, pageStack)}>
+    <div className={cn(pageShell, pageStack, "animate-fade-in")}>
       <Link
         to="/circuits"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -108,7 +108,7 @@ const CircuitDetail = () => {
         <div className="grid gap-0 md:grid-cols-[1fr_1.2fr]">
           <div
             className={cn(
-              "flex h-56 items-center justify-center border-b md:border-b-0 md:border-r",
+              "scope-frame flex h-56 items-center justify-center border-b md:border-b-0 md:border-r",
               isGlass ? "border-white/10 bg-white/[0.03]" : "border-border bg-muted/30",
             )}
           >
@@ -161,29 +161,29 @@ const CircuitDetail = () => {
         </F1CardHeader>
         <F1CardContent>
           {circuit.record_time ? (
-            <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+            <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
               <div>
-                <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <div className="instrument-label flex items-center gap-1.5">
                   <Timer className="h-3 w-3" /> Fastest race lap
                 </div>
-                <div className="mt-1 text-3xl font-bold tabular-nums text-primary">
+                <div className="readout mt-2 text-4xl text-primary">
                   {circuit.record_time}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Holder</div>
-                <div className="mt-1 text-lg font-semibold">
+                <div className="instrument-label">Holder</div>
+                <div className="mt-2 text-lg font-semibold">
                   {circuit.record_driver_name ?? circuit.record_driver_code ?? "—"}
                   {circuit.record_driver_code && circuit.record_driver_name ? (
-                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    <span className="ml-2 font-mono text-sm font-normal tabular-nums text-muted-foreground">
                       {circuit.record_driver_code}
                     </span>
                   ) : null}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Set in</div>
-                <div className="mt-1 text-lg font-semibold tabular-nums">{circuit.record_season ?? "—"}</div>
+                <div className="instrument-label">Set in</div>
+                <div className="readout mt-2 text-lg">{circuit.record_season ?? "—"}</div>
               </div>
             </div>
           ) : (

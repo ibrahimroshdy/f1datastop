@@ -467,7 +467,7 @@ function SankeyTooltip({ x, y, children }: { x: number; y: number; children: Rea
 
 function NodeTooltipContent({ node }: { node: LaidOutNode & SankeyNodeData }) {
   return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-premium-lg">
+    <div className="rounded-lg border border-border bg-card px-3 py-2 font-mono text-xs text-foreground shadow-card">
       <div className="mb-1 font-bold">{node.fullName || node.name}</div>
       <div className="mb-2 text-muted-foreground">{node.teamName}</div>
       <div className="flex justify-between gap-4">
@@ -507,7 +507,7 @@ function LinkTooltipContent({ link }: { link: LaidOutLink & SankeyLinkData }) {
     changeColor = 'text-destructive';
   }
   return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-premium-lg">
+    <div className="rounded-lg border border-border bg-card px-3 py-2 font-mono text-xs text-foreground shadow-card">
       <div className="mb-1 font-bold">{link.driverName || sourceNode?.name}</div>
       <div className="mb-2 text-muted-foreground">{link.team || sourceNode?.teamName}</div>
       <div className="flex flex-col gap-1">

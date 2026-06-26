@@ -17,6 +17,7 @@ import {
   Legend,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { chartTheme, ScopeDefs, scopeFadeId, SCOPE_GLOW } from "@/lib/chartTheme";
 import { F1ChartContainer, F1EmptyState, F1ErrorState, F1Skeleton } from '@/components/f1';
 
 interface WeatherAnalysisProps {
@@ -139,10 +140,11 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     </div>
   );
 
-  // Recharts theming helpers
-  const tickColor = 'hsl(var(--chart-axis))';
-  const gridColor = 'hsl(var(--chart-grid))';
-  const axisTick = { fontSize: 11, fill: tickColor, fontFamily: 'var(--font-mono, monospace)' };
+  // Recharts theming helpers — Telemetry Terminal "scope" theme (see chartTheme.tsx)
+  const tickColor = chartTheme.tick.fill;
+  const gridColor = chartTheme.grid;
+  const axisColor = chartTheme.axis;
+  const axisTick = chartTheme.tick;
 
   // Shared themed x-axis (time) props for recharts
   const timeXAxisProps = {
@@ -153,6 +155,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     tickFormatter: (value: number) => formatTimeForAxis(value),
     tickLine: false,
     tick: axisTick,
+    stroke: axisColor,
   };
 
   // Custom tooltip rendering each active series with its unit
@@ -161,13 +164,13 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     const rows = payload.filter((p: any) => p.value != null);
     if (!rows.length) return null;
     return (
-      <div className="rounded-md border border-border bg-popover/95 px-2 py-1.5 text-xs shadow-premium-md">
-        <div className="mb-1 font-mono tabular-nums text-muted-foreground">{formatTimeForAxis(label)}</div>
+      <div className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-xs shadow-card">
+        <div className="mb-1 uppercase tracking-[0.1em] tabular-nums text-muted-foreground">{formatTimeForAxis(label)}</div>
         {rows.map((p: any) => (
           <div key={p.dataKey} className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.stroke }} />
             <span className="font-medium">{p.name}</span>
-            <span className="ml-auto font-mono tabular-nums">{Number(p.value).toFixed(1)}{unit}</span>
+            <span className="ml-auto tabular-nums">{Number(p.value).toFixed(1)}{unit}</span>
           </div>
         ))}
       </div>
@@ -292,15 +295,20 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                     onMouseMove={handleHighlightChange}
                     onMouseLeave={() => setHighlightedIndex(null)}
                   >
+                    <defs>
+                      <ScopeDefs id="air" color={WEATHER_SERIES.air} />
+                      <ScopeDefs id="track" color={WEATHER_SERIES.track} />
+                    </defs>
                     <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
                     <XAxis {...timeXAxisProps} />
                     <YAxis
                       width={40}
                       tickLine={false}
                       tick={axisTick}
+                      stroke={axisColor}
                       label={{ value: '°C', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                     />
-                    <Tooltip content={<WeatherTooltip unit="°C" />} />
+                    <Tooltip content={<WeatherTooltip unit="°C" />} cursor={chartTheme.cursor} />
                     <Line
                       type="monotone"
                       dataKey="air_temperature"
@@ -309,6 +317,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
+                      filter={SCOPE_GLOW}
                     />
                     <Line
                       type="monotone"
@@ -318,6 +327,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
+                      filter={SCOPE_GLOW}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -335,15 +345,19 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                     onMouseMove={handleHighlightChange}
                     onMouseLeave={() => setHighlightedIndex(null)}
                   >
+                    <defs>
+                      <ScopeDefs id="wind" color={WEATHER_SERIES.wind} />
+                    </defs>
                     <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
                     <XAxis {...timeXAxisProps} />
                     <YAxis
                       width={40}
                       tickLine={false}
                       tick={axisTick}
+                      stroke={axisColor}
                       label={{ value: 'm/s', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                     />
-                    <Tooltip content={<WeatherTooltip unit=" m/s" />} />
+                    <Tooltip content={<WeatherTooltip unit=" m/s" />} cursor={chartTheme.cursor} />
                     <Line
                       type="monotone"
                       dataKey="wind_speed"
@@ -352,6 +366,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
+                      filter={SCOPE_GLOW}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -369,6 +384,9 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                     onMouseMove={handleHighlightChange}
                     onMouseLeave={() => setHighlightedIndex(null)}
                   >
+                    <defs>
+                      <ScopeDefs id="humidity" color={WEATHER_SERIES.humidity} />
+                    </defs>
                     <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
                     <XAxis {...timeXAxisProps} />
                     <YAxis
@@ -376,9 +394,10 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       width={40}
                       tickLine={false}
                       tick={axisTick}
+                      stroke={axisColor}
                       label={{ value: '%', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                     />
-                    <Tooltip content={<WeatherTooltip unit="%" />} />
+                    <Tooltip content={<WeatherTooltip unit="%" />} cursor={chartTheme.cursor} />
                     <Line
                       type="monotone"
                       dataKey="humidity"
@@ -387,6 +406,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
+                      filter={SCOPE_GLOW}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -404,6 +424,9 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                     onMouseMove={handleHighlightChange}
                     onMouseLeave={() => setHighlightedIndex(null)}
                   >
+                    <defs>
+                      <ScopeDefs id="pressure" color={WEATHER_SERIES.pressure} />
+                    </defs>
                     <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
                     <XAxis {...timeXAxisProps} />
                     <YAxis
@@ -411,9 +434,10 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       width={50}
                       tickLine={false}
                       tick={axisTick}
+                      stroke={axisColor}
                       label={{ value: 'mbar', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                     />
-                    <Tooltip content={<WeatherTooltip unit=" mbar" />} />
+                    <Tooltip content={<WeatherTooltip unit=" mbar" />} cursor={chartTheme.cursor} />
                     <Line
                       type="monotone"
                       dataKey="pressure"
@@ -422,6 +446,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
+                      filter={SCOPE_GLOW}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -466,15 +491,20 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 data={chartData}
                 margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
               >
+                <defs>
+                  <ScopeDefs id="air" color={WEATHER_SERIES.air} />
+                  <ScopeDefs id="track" color={WEATHER_SERIES.track} />
+                </defs>
                 <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
                 <XAxis {...timeXAxisProps} />
                 <YAxis
                   width={50}
                   tickLine={false}
                   tick={axisTick}
+                  stroke={axisColor}
                   label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                 />
-                <Tooltip content={<WeatherTooltip unit="°C" />} />
+                <Tooltip content={<WeatherTooltip unit="°C" />} cursor={chartTheme.cursor} />
                 <Legend wrapperStyle={{ fontSize: 11 }} align="right" verticalAlign="top" />
                 <Line
                   type="monotone"
@@ -484,6 +514,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   strokeWidth={2}
                   dot={false}
                   isAnimationActive={false}
+                  filter={SCOPE_GLOW}
                 />
                 <Line
                   type="monotone"
@@ -493,6 +524,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   strokeWidth={2}
                   dot={false}
                   isAnimationActive={false}
+                  filter={SCOPE_GLOW}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -510,10 +542,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
               >
                 <defs>
-                  <linearGradient id="windGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={WEATHER_SERIES.wind} stopOpacity={0.4} />
-                    <stop offset="100%" stopColor={WEATHER_SERIES.wind} stopOpacity={0.05} />
-                  </linearGradient>
+                  <ScopeDefs id="wind" color={WEATHER_SERIES.wind} />
                 </defs>
                 <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
                 <XAxis {...timeXAxisProps} />
@@ -522,18 +551,20 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   width={50}
                   tickLine={false}
                   tick={axisTick}
+                  stroke={axisColor}
                   label={{ value: 'Wind Speed (m/s)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                 />
-                <Tooltip content={<WeatherTooltip unit=" m/s" />} />
+                <Tooltip content={<WeatherTooltip unit=" m/s" />} cursor={chartTheme.cursor} />
                 <Area
                   type="monotone"
                   dataKey="wind_speed"
                   name="Wind Speed"
                   stroke={WEATHER_SERIES.wind}
                   strokeWidth={2}
-                  fill="url(#windGradient)"
+                  fill={`url(#${scopeFadeId("wind")})`}
                   dot={false}
                   isAnimationActive={false}
+                  filter={SCOPE_GLOW}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -551,10 +582,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
               >
                 <defs>
-                  <linearGradient id="humidityGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={WEATHER_SERIES.humidity} stopOpacity={0.4} />
-                    <stop offset="100%" stopColor={WEATHER_SERIES.humidity} stopOpacity={0.05} />
-                  </linearGradient>
+                  <ScopeDefs id="humidity" color={WEATHER_SERIES.humidity} />
                 </defs>
                 <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
                 <XAxis {...timeXAxisProps} />
@@ -563,18 +591,20 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   width={50}
                   tickLine={false}
                   tick={axisTick}
+                  stroke={axisColor}
                   label={{ value: 'Humidity (%)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                 />
-                <Tooltip content={<WeatherTooltip unit="%" />} />
+                <Tooltip content={<WeatherTooltip unit="%" />} cursor={chartTheme.cursor} />
                 <Area
                   type="monotone"
                   dataKey="humidity"
                   name="Humidity"
                   stroke={WEATHER_SERIES.humidity}
                   strokeWidth={2}
-                  fill="url(#humidityGradient)"
+                  fill={`url(#${scopeFadeId("humidity")})`}
                   dot={false}
                   isAnimationActive={false}
+                  filter={SCOPE_GLOW}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -592,10 +622,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 margin={{ left: 55, right: 20, top: 20, bottom: 30 }}
               >
                 <defs>
-                  <linearGradient id="pressureGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={WEATHER_SERIES.pressure} stopOpacity={0.4} />
-                    <stop offset="100%" stopColor={WEATHER_SERIES.pressure} stopOpacity={0.05} />
-                  </linearGradient>
+                  <ScopeDefs id="pressure" color={WEATHER_SERIES.pressure} />
                 </defs>
                 <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
                 <XAxis {...timeXAxisProps} />
@@ -604,18 +631,20 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   width={55}
                   tickLine={false}
                   tick={axisTick}
+                  stroke={axisColor}
                   label={{ value: 'Pressure (mbar)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                 />
-                <Tooltip content={<WeatherTooltip unit=" mbar" />} />
+                <Tooltip content={<WeatherTooltip unit=" mbar" />} cursor={chartTheme.cursor} />
                 <Area
                   type="monotone"
                   dataKey="pressure"
                   name="Atmospheric Pressure"
                   stroke={WEATHER_SERIES.pressure}
                   strokeWidth={2}
-                  fill="url(#pressureGradient)"
+                  fill={`url(#${scopeFadeId("pressure")})`}
                   dot={false}
                   isAnimationActive={false}
+                  filter={SCOPE_GLOW}
                 />
               </AreaChart>
             </ResponsiveContainer>

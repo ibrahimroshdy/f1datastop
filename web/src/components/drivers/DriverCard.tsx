@@ -121,7 +121,7 @@ const DriverCard = ({
                   style={{ backgroundColor: teamColor }}
                 />
                 {teamName}
-                <span className="ml-1 text-xs font-medium">
+                <span className="ml-1 timing text-xs">
                   #{displayDriverNumber}
                 </span>
               </p>
@@ -129,32 +129,32 @@ const DriverCard = ({
           </div>
           <Badge
             variant="outline"
-            className={cn("bg-card", isGlass && "bg-white/10 border-white/20")}
+            className={cn("timing bg-card", isGlass && "bg-white/10 border-white/20")}
           >
             P{driver.position}
           </Badge>
         </F1CardHeader>
         <F1CardContent className="px-3 pb-2 pt-0">
-          <div className="grid grid-cols-2 gap-1.5 text-xs">
-            <div>
-              <p className="text-muted-foreground">Points</p>
-              <p className="font-semibold">{driver.points}</p>
+          <div className="hairline-grid grid grid-cols-2 gap-x-3 text-xs">
+            <div className="data-row">
+              <span className="instrument-label">Points</span>
+              <span className="timing font-semibold text-foreground">{driver.points}</span>
             </div>
-            <div>
-              <p className="text-muted-foreground">Wins</p>
-              <p className="font-semibold flex items-center gap-1">
+            <div className="data-row">
+              <span className="instrument-label">Wins</span>
+              <span className="timing font-semibold flex items-center gap-1 text-foreground">
                 {wins > 0 && <Trophy className="h-3 w-3 text-yellow-500" />}
                 {wins}
-              </p>
+              </span>
             </div>
-            <div>
-              <p className="text-muted-foreground">Nationality</p>
-              <p className="font-semibold">{driver.Driver.nationality}</p>
+            <div className="data-row">
+              <span className="instrument-label">Nat.</span>
+              <span className="font-semibold text-foreground">{driver.Driver.nationality}</span>
             </div>
             {contributionPercent !== null && (
-              <div>
-                <p className="text-muted-foreground">Team Contrib.</p>
-                <p className="font-semibold">{contributionPercent}%</p>
+              <div className="data-row">
+                <span className="instrument-label">Contrib.</span>
+                <span className="timing font-semibold text-foreground">{contributionPercent}%</span>
               </div>
             )}
           </div>

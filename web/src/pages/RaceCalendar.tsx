@@ -40,15 +40,15 @@ const RaceCalendar = () => {
           <PageHeader
             eyebrow={String(selectedYear)}
             title="Race Calendar"
-            description={`${raceCount} races scheduled for ${selectedYear}`}
+            description={`${raceCount} rounds scheduled for ${selectedYear}`}
             actions={
               <div className="flex items-center gap-3">
-                <div className="flex items-center rounded-lg border border-border p-1 bg-muted/30">
+                <div className="flex items-center rounded-lg border border-border bg-card p-1 shadow-card">
                 <Button
                   variant={viewMode === "list" ? "default" : "ghost"}
                   size="sm"
                   className={cn(
-                    "h-8 px-2 sm:px-3 gap-1.5",
+                    "h-8 gap-1.5 px-2 text-xs font-semibold uppercase tracking-widest sm:px-3",
                     viewMode === "list" && "bg-primary text-primary-foreground",
                   )}
                   onClick={() => setViewMode("list")}
@@ -60,7 +60,7 @@ const RaceCalendar = () => {
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
                   className={cn(
-                    "h-8 px-2 sm:px-3 gap-1.5",
+                    "h-8 gap-1.5 px-2 text-xs font-semibold uppercase tracking-widest sm:px-3",
                     viewMode === "grid" && "bg-primary text-primary-foreground",
                   )}
                   onClick={() => setViewMode("grid")}
@@ -77,28 +77,34 @@ const RaceCalendar = () => {
           {(viewMode === "list" || viewMode === "grid") && (
             <div
               className={cn(
-                "flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-3 py-2 text-xs sm:text-sm",
-                isGlass ? "border-white/10 bg-white/[0.03]" : "border-border bg-muted/25",
+                "flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border px-3 py-2 shadow-card",
+                isGlass ? "border-white/10 bg-white/[0.03]" : "border-border bg-card",
               )}
             >
-              <span className="text-muted-foreground font-medium hidden sm:inline">Legend</span>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="instrument-label hidden sm:inline">Legend</span>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <div className="flex items-center gap-1.5">
                   <div className="h-2.5 w-1 rounded-full bg-blue-500" />
-                  <span className="text-muted-foreground text-xs">Single</span>
+                  <span className="instrument-label">Single</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="h-2.5 w-1 rounded-full bg-green-500" />
-                  <span className="text-muted-foreground text-xs">Double</span>
+                  <span className="instrument-label">Double</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="h-2.5 w-1 rounded-full bg-violet-500" />
-                  <span className="text-muted-foreground text-xs">Triple</span>
+                  <span className="instrument-label">Triple</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                  <span className="text-muted-foreground text-xs">Sprint</span>
+                  <span className="instrument-label">Sprint</span>
                 </div>
+              </div>
+              <div className="ml-auto flex items-center gap-1.5">
+                <span className="instrument-label">Rounds</span>
+                <span className="timing text-sm font-semibold text-foreground">
+                  {String(raceCount).padStart(2, "0")}
+                </span>
               </div>
             </div>
           )}

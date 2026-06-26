@@ -23,6 +23,7 @@ import {
   F1EmptyState,
   F1ErrorState,
   PageHeader,
+  PositionBadge,
 } from "@/components/f1";
 
 type DriverStandingRow = {
@@ -58,10 +59,20 @@ const Flag = ({ nationality }: { nationality?: string }) => {
 
 const Points = ({ value }: { value: string }) => (
   <div className="shrink-0 text-right">
-    <div className="font-bold leading-none tabular-nums">{value}</div>
-    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">pts</div>
+    <div className="readout text-lg">{value}</div>
+    <div className="instrument-label text-[10px] tracking-wide">pts</div>
   </div>
 );
+
+// Terminal-style position cell: P1 gets the restrained-red PositionBadge,
+// everyone else stays monochrome mono-numeric.
+const Pos = ({ position }: { position: string }) => {
+  const n = Number(position);
+  if (n === 1) return <PositionBadge position={1} />;
+  return (
+    <span className="timing text-sm font-semibold text-muted-foreground">{position}</span>
+  );
+};
 
 const Standings = () => {
   const [activeTab, setActiveTab] = useState("drivers");
@@ -91,17 +102,14 @@ const Standings = () => {
 
   // ── Mobile card lists (no horizontal scroll, names wrap) ──────────────────
   const driverCards = (
-    <div className="flex flex-col gap-2 md:hidden">
+    <div className="hairline-grid md:hidden">
       {drivers.map((driver) => {
         const teamId = normalizeTeamId(driver.Constructors[0]?.constructorId || "default");
         const teamColor = getTeamHexColor(teamId);
         return (
-          <div
-            key={driver.position}
-            className="flex items-center gap-2.5 rounded-lg border border-border bg-card/40 p-2.5"
-          >
-            <span className="w-5 shrink-0 text-center text-sm font-bold text-muted-foreground">
-              {driver.position}
+          <div key={driver.position} className="flex items-center gap-2.5 py-2">
+            <span className="flex w-6 shrink-0 justify-center">
+              <Pos position={driver.position} />
             </span>
             <DriverImage
               driverId={driver.Driver.driverId || driver.Driver.code}
@@ -118,7 +126,7 @@ const Standings = () => {
               </div>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
                 <Flag nationality={driver.Driver.nationality} />
-                <span className="font-medium">{driver.Driver.code}</span>
+                <span className="timing font-medium">{driver.Driver.code}</span>
                 <span className="opacity-40">·</span>
                 <span className="break-words">{driver.Constructors[0]?.name}</span>
               </div>
@@ -131,18 +139,15 @@ const Standings = () => {
   );
 
   const constructorCards = (
-    <div className="flex flex-col gap-2 md:hidden">
+    <div className="hairline-grid md:hidden">
       {constructors.map((constructor) => {
         const teamId = normalizeTeamId(constructor.Constructor?.constructorId || "default");
         const teamColor = getTeamHexColor(teamId);
         const nat = constructor.Constructor?.nationality;
         return (
-          <div
-            key={constructor.position}
-            className="flex items-center gap-2.5 rounded-lg border border-border bg-card/40 p-2.5"
-          >
-            <span className="w-5 shrink-0 text-center text-sm font-bold text-muted-foreground">
-              {constructor.position}
+          <div key={constructor.position} className="flex items-center gap-2.5 py-2">
+            <span className="flex w-6 shrink-0 justify-center">
+              <Pos position={constructor.position} />
             </span>
             <TeamLogo
               constructorId={teamId}
@@ -169,10 +174,10 @@ const Standings = () => {
   );
 
   const mobileSkeleton = (
-    <div className="flex flex-col gap-2 md:hidden">
+    <div className="hairline-grid md:hidden">
       {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-2.5 rounded-lg border border-border bg-card/40 p-2.5">
-          <Skeleton className="h-4 w-4 shrink-0" />
+        <div key={i} className="flex items-center gap-2.5 py-2">
+          <Skeleton className="h-4 w-6 shrink-0" />
           <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
           <div className="flex-1 space-y-1.5">
             <Skeleton className="h-4 w-32" />
@@ -225,10 +230,10 @@ const Standings = () => {
                     <Table>
                       <TableHeader className={stickyHeaderClass}>
                         <TableRow>
-                          <TableHead className="w-16">Pos</TableHead>
-                          <TableHead>Driver</TableHead>
-                          <TableHead>Team</TableHead>
-                          <TableHead className="text-right">Points</TableHead>
+                          <TableHead className="w-16 instrument-label">Pos</TableHead>
+                          <TableHead className="instrument-label">Driver</TableHead>
+                          <TableHead className="instrument-label">Team</TableHead>
+                          <TableHead className="text-right instrument-label">Points</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -237,8 +242,8 @@ const Standings = () => {
                           const teamColor = getTeamHexColor(teamId);
                           return (
                             <TableRow key={driver.position}>
-                              <TableCell className="font-medium">{driver.position}</TableCell>
-                              <TableCell>
+                              <TableCell className="py-2"><Pos position={driver.position} /></TableCell>
+                              <TableCell className="py-2">
                                 <div className="flex items-center gap-3">
                                   <DriverImage
                                     driverId={driver.Driver.driverId || driver.Driver.code}
@@ -255,18 +260,18 @@ const Standings = () => {
                                     </span>
                                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                       <Flag nationality={driver.Driver.nationality} />
-                                      {driver.Driver.code}
+                                      <span className="timing">{driver.Driver.code}</span>
                                     </span>
                                   </div>
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="py-2">
                                 <div className="flex items-center gap-2">
                                   <TeamLogo constructorId={teamId} alt={driver.Constructors[0]?.name} size="sm" />
                                   <span>{driver.Constructors[0].name}</span>
                                 </div>
                               </TableCell>
-                              <TableCell className="text-right font-bold">{driver.points}</TableCell>
+                              <TableCell className="py-2 text-right"><span className="readout text-base">{driver.points}</span></TableCell>
                             </TableRow>
                           );
                         })}
@@ -300,9 +305,9 @@ const Standings = () => {
                     <Table>
                       <TableHeader className={stickyHeaderClass}>
                         <TableRow>
-                          <TableHead className="w-16">Pos</TableHead>
-                          <TableHead>Team</TableHead>
-                          <TableHead className="text-right">Points</TableHead>
+                          <TableHead className="w-16 instrument-label">Pos</TableHead>
+                          <TableHead className="instrument-label">Team</TableHead>
+                          <TableHead className="text-right instrument-label">Points</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -312,8 +317,8 @@ const Standings = () => {
                           const nat = constructor.Constructor?.nationality;
                           return (
                             <TableRow key={constructor.position}>
-                              <TableCell className="font-medium">{constructor.position}</TableCell>
-                              <TableCell>
+                              <TableCell className="py-2"><Pos position={constructor.position} /></TableCell>
+                              <TableCell className="py-2">
                                 <div className="flex items-center gap-3">
                                   <TeamLogo constructorId={teamId} alt={constructor.Constructor?.name} size="sm" />
                                   <div className="flex flex-col" style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: 8 }}>
@@ -327,7 +332,7 @@ const Standings = () => {
                                   </div>
                                 </div>
                               </TableCell>
-                              <TableCell className="text-right font-bold">{constructor.points}</TableCell>
+                              <TableCell className="py-2 text-right"><span className="readout text-base">{constructor.points}</span></TableCell>
                             </TableRow>
                           );
                         })}

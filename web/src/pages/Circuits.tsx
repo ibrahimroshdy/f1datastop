@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, MapPin, Ruler } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { useTheme } from "@/context/ThemeContext";
 import CountryFlag from "@/components/common/CountryFlag";
@@ -54,7 +54,7 @@ const Circuits = () => {
   }, [data?.data]);
 
   return (
-    <div className={cn(pageShell, pageStack)}>
+    <div className={cn(pageShell, pageStack, "animate-fade-in")}>
       <PageHeader
         eyebrow={`${currentYear} Season`}
         title="Circuits"
@@ -94,12 +94,13 @@ const Circuits = () => {
                 <F1Card
                   variant={cardVariant}
                   glassVariant={glassVariant}
+                  size="sm"
                   className="h-full overflow-hidden transition-shadow group-hover:shadow-md"
                 >
                   {/* Track outline banner */}
                   <div
                     className={cn(
-                      "relative flex h-28 items-center justify-center border-b",
+                      "relative -m-3 mb-0 flex h-28 items-center justify-center border-b",
                       isGlass ? "border-white/10 bg-white/[0.03]" : "border-border bg-muted/30",
                     )}
                   >
@@ -112,36 +113,49 @@ const Circuits = () => {
                     ) : (
                       <MapPin className="h-8 w-8 text-muted-foreground/50" />
                     )}
-                    <span className="absolute right-2 top-2 rounded-md bg-background/80 px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground backdrop-blur">
+                    <span className="instrument-label absolute right-2 top-2 rounded-md bg-background/80 px-2 py-0.5 tabular-nums backdrop-blur">
                       R{circuit.round}
                     </span>
                   </div>
 
-                  <F1CardHeader className="pb-2">
+                  <F1CardHeader className="px-0 pb-2 pt-3">
                     <F1CardTitle className="text-base leading-snug group-hover:text-primary transition-colors">
                       {circuit.circuitName}
                     </F1CardTitle>
                   </F1CardHeader>
-                  <F1CardContent className="space-y-2">
+                  <F1CardContent className="px-0 pb-0">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CountryFlag country={circuit.country} size={18} />
                       <span>
                         {circuit.locality}, {circuit.country}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
-                      <span>
-                        {new Date(circuit.date).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                      {lengthKm && (
-                        <span className="inline-flex items-center gap-1">
-                          <Ruler className="h-3 w-3" /> {lengthKm} km
+                    {/* Hairline instrument meta */}
+                    <div className="hairline-grid mt-3">
+                      <div className="data-row">
+                        <span className="instrument-label">Round</span>
+                        <span className="font-mono text-sm tabular-nums text-foreground">
+                          {circuit.round.padStart(2, "0")}
                         </span>
-                      )}
-                      <span className="inline-flex items-center gap-1 font-medium text-muted-foreground group-hover:text-primary">
+                      </div>
+                      <div className="data-row">
+                        <span className="instrument-label">Length</span>
+                        <span className="font-mono text-sm tabular-nums text-foreground">
+                          {lengthKm ? `${lengthKm} km` : "—"}
+                        </span>
+                      </div>
+                      <div className="data-row">
+                        <span className="instrument-label">Date</span>
+                        <span className="font-mono text-sm tabular-nums text-foreground">
+                          {new Date(circuit.date).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-end">
+                      <span className="instrument-label inline-flex items-center gap-1 group-hover:text-primary">
                         Details <ArrowRight className="h-3 w-3" />
                       </span>
                     </div>

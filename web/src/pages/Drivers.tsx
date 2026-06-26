@@ -70,14 +70,24 @@ const Drivers = () => {
           actions={<YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />}
         />
 
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search drivers..."
-            className="pl-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-y border-border py-2">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search drivers..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          {!isLoading && (
+            <div className="flex items-center gap-2">
+              <span className="instrument-label">Drivers</span>
+              <span className="readout text-lg text-foreground">
+                {filteredDrivers?.length ?? 0}
+              </span>
+            </div>
+          )}
         </div>
 
         {isLoading ? (
@@ -89,7 +99,7 @@ const Drivers = () => {
                 glassVariant={glassVariant}
                 className="overflow-hidden"
               >
-                <div className="p-3">
+                <div className="border-t-[3px] border-border p-3">
                   <div className="flex items-center gap-2">
                     <Skeleton className="h-10 w-10 rounded-full" />
                     <div className="space-y-1.5">
@@ -97,8 +107,10 @@ const Drivers = () => {
                       <Skeleton className="h-3 w-20" />
                     </div>
                   </div>
-                  <div className="mt-3 space-y-1.5">
+                  <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
                     <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-3/4" />
                     <Skeleton className="h-3 w-3/4" />
                   </div>
                 </div>

@@ -36,6 +36,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
 import { getTeamColorById } from '@/constants/f1Colors';
 import { useThemeVariant } from '@/hooks/useThemeVariant';
 import {
@@ -598,9 +599,13 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                 data={positionChartData.rows}
                 margin={{ left: 40, right: 20, top: 10, bottom: 35 }}
               >
+                <defs>
+                  <ScopeDefs id="ot" color={chartTheme.primary} />
+                </defs>
                 <CartesianGrid
-                  stroke="hsl(var(--chart-grid))"
+                  stroke={chartTheme.grid}
                   strokeDasharray="3 3"
+                  vertical={false}
                 />
                 <XAxis
                   dataKey="lap"
@@ -608,7 +613,8 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                   domain={[0, totalLaps]}
                   allowDecimals={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: 'hsl(var(--chart-axis))', fontFamily: 'var(--font-mono)' }}
+                  stroke={chartTheme.axis}
+                  tick={chartTheme.tick}
                   label={{ value: 'Lap', position: 'insideBottom', offset: -10, fontSize: 11, fill: 'hsl(var(--chart-axis))' }}
                 />
                 <YAxis
@@ -617,10 +623,16 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                   allowDecimals={false}
                   tickLine={false}
                   width={40}
-                  tick={{ fontSize: 11, fill: 'hsl(var(--chart-axis))', fontFamily: 'var(--font-mono)' }}
+                  stroke={chartTheme.axis}
+                  tick={chartTheme.tick}
                   label={{ value: 'Position', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'hsl(var(--chart-axis))' }}
                 />
-                <Tooltip content={<PositionTooltip />} />
+                <Tooltip
+                  content={<PositionTooltip />}
+                  contentStyle={chartTheme.tooltipContentStyle}
+                  labelStyle={chartTheme.tooltipLabelStyle}
+                  cursor={chartTheme.cursor}
+                />
                 {positionChartData.series.map(s => (
                   <Line
                     key={s.id}
@@ -632,6 +644,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                     activeDot={{ r: 3 }}
                     connectNulls
                     isAnimationActive={false}
+                    filter={SCOPE_GLOW}
                   />
                 ))}
               </LineChart>

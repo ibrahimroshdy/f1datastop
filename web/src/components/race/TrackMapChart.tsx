@@ -8,6 +8,7 @@ import {
   F1Skeleton,
 } from "@/components/f1";
 import { cn } from "@/lib/utils";
+import { ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
 import {
   useTelemetryIndex,
   useTelemetryLaps,
@@ -80,7 +81,7 @@ const TrackMapChart = ({ year, round, session = "R" }: Props) => {
   }
 
   return (
-    <F1Card variant="default" className="border-0 bg-transparent p-0 shadow-none">
+    <F1Card variant="default" className="scope-frame border-0 bg-transparent p-0 shadow-none">
       <F1CardHeader className="px-0 pt-0">
         <F1CardTitle className="text-base">Track map · speed</F1CardTitle>
         <F1CardDescription className="text-xs">
@@ -118,15 +119,20 @@ const TrackMapChart = ({ year, round, session = "R" }: Props) => {
               className="h-auto w-full"
               style={{ maxHeight: 440 }}
             >
-              {geom.segs.map((s, i) => (
-                <line
-                  key={i}
-                  x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
-                  stroke={s.color}
-                  strokeWidth={5}
-                  strokeLinecap="round"
-                />
-              ))}
+              <defs>
+                <ScopeDefs id="track" color="hsl(var(--primary))" />
+              </defs>
+              <g filter={SCOPE_GLOW}>
+                {geom.segs.map((s, i) => (
+                  <line
+                    key={i}
+                    x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2}
+                    stroke={s.color}
+                    strokeWidth={5}
+                    strokeLinecap="round"
+                  />
+                ))}
+              </g>
             </svg>
             {/* speed legend */}
             <div className="mt-2 flex items-center justify-center gap-2 text-xs tabular-nums text-muted-foreground">

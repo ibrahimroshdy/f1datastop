@@ -79,6 +79,11 @@ parts/
 sdist/
 var/
 wheels/
+
+# The Python packaging ignores above (esp. unanchored `lib/`) must NOT swallow
+# the web app's source — keep web/src/lib tracked.
+!web/src/lib/
+!web/src/lib/**
 share/python-wheels/
 *.egg-info/
 installed.cfg

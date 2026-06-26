@@ -10,6 +10,7 @@ import {
 } from "@/components/f1";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
@@ -85,37 +86,43 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
             data={chartData}
             margin={{ top: 20, left: 12, right: 12, bottom: 0 }}
           >
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <defs>
+              <ScopeDefs id="dpos" color={chartTheme.primary} />
+            </defs>
+            <CartesianGrid stroke={chartTheme.grid} vertical={false} strokeDasharray="3 3" />
             <XAxis
               dataKey="round"
+              stroke={chartTheme.axis}
+              tick={chartTheme.tick}
               tickLine={false}
               axisLine={false}
               tickMargin={8}
               interval={history.length > 15 ? 2 : history.length > 10 ? 1 : 0}
-              fontSize={10}
             />
             <YAxis
               domain={yDomain}
               reversed
+              stroke={chartTheme.axis}
+              tick={chartTheme.tick}
               tickLine={false}
               axisLine={false}
               tickMargin={8}
               tickFormatter={(value) => `P${value}`}
               width={32}
-              fontSize={10}
             />
             <ChartTooltip
-              cursor={false}
+              cursor={chartTheme.cursor}
               content={
                 <ChartTooltipContent
                   indicator="line"
+                  className="bg-card border-border rounded-lg shadow-card font-mono text-xs"
                   labelFormatter={(value, payload) => {
                     if (payload?.[0]) {
                       const data = payload[0].payload;
                       return (
                         <div className="flex flex-col gap-0.5">
                           <span className="font-medium">{data.raceName}</span>
-                          <span className="text-muted-foreground text-xs">{value}</span>
+                          <span className="text-muted-foreground text-xs uppercase tracking-wider">{value}</span>
                         </div>
                       );
                     }
@@ -157,9 +164,9 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
                                     : teamColor,
                           }}
                         />
-                        <span className={cn("font-medium", color)}>P{value}</span>
+                        <span className={cn("font-medium font-mono tabular-nums", color)}>P{value}</span>
                         {data && (data.points ?? 0) > 0 && (
-                          <span className="text-muted-foreground text-xs">
+                          <span className="text-muted-foreground text-xs font-mono tabular-nums">
                             +{data.points} pts
                           </span>
                         )}
@@ -174,6 +181,7 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
               type="natural"
               stroke="var(--color-position)"
               strokeWidth={2}
+              filter={SCOPE_GLOW}
               dot={({ cx, cy, payload }) => {
                 if (payload.isDNF || payload.position === null) {
                   return (
