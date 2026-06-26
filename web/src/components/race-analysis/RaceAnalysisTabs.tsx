@@ -65,32 +65,25 @@ interface TabButtonGroupProps {
 }
 
 function TabButtonGroup({ label, tabs, selectedTab, onTabChange }: TabButtonGroupProps) {
-  const { isGlass } = useThemeVariant();
-
   return (
-    <div
-      className={cn(
-        "rounded-lg p-3",
-        isGlass ? "border border-zinc-800/50 bg-zinc-900/30" : "bg-muted/30"
-      )}
-    >
-      <span className="mb-2 block text-[10px] uppercase tracking-wider text-muted-foreground">
+    <div className="flex items-center gap-2 border-b border-border py-1.5">
+      <span className="w-16 shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         {label}
       </span>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => onTabChange(tab.id)}
             className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+              "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-fast",
               selectedTab === tab.id
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-foreground"
             )}
           >
-            <tab.icon className="h-3 w-3" />
+            <tab.icon className="h-3.5 w-3.5" />
             <span>{tab.label}</span>
           </button>
         ))}
@@ -116,12 +109,12 @@ export function RaceAnalysisTabs({
   selectedRace,
   selectedSessionKey,
 }: RaceAnalysisTabsProps) {
-  const { cardVariant, glassVariant, isGlass } = useThemeVariant();
-  const cardClassName = cn("overflow-hidden p-0", isGlass && "border-white/10");
+  const { cardVariant, glassVariant } = useThemeVariant();
+  const cardClassName = "overflow-hidden p-0";
 
   return (
     <Tabs value={selectedTab} onValueChange={(value) => onTabChange(value as RaceAnalysisTabId)}>
-      <div className="hidden space-y-3 lg:block">
+      <div className="hidden lg:flex lg:flex-col lg:gap-1">
         <TabButtonGroup
           label="Essentials"
           tabs={ESSENTIALS_TABS}
@@ -143,7 +136,7 @@ export function RaceAnalysisTabs({
           value={selectedTab}
           onValueChange={(value) => onTabChange(value as RaceAnalysisTabId)}
         >
-          <SelectTrigger className={cn("w-full", isGlass && "border-white/10 bg-white/5")}>
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="Select analysis" />
           </SelectTrigger>
           <SelectContent>
@@ -355,7 +348,7 @@ export function RaceAnalysisTabs({
                   <div className="my-5 border-t border-border/40" />
                   <TrackMapChart year={selectedYear} round={selectedRace} />
                   <div className="my-5 border-t border-border/40" />
-                  <div className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                     Live session feed
                   </div>
                   <TelemetryDashboard

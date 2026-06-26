@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   sankey,
   sankeyLinkHorizontal,
@@ -9,11 +9,16 @@ import {
 } from 'd3-sankey';
 import { useQualifyingToRaceDataByRound } from '@/hooks/useF1Data';
 import { TEAM_COLORS } from '@/constants/f1Colors';
-import { useTheme } from '@/context/ThemeContext';
-import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { F1ChartContainer } from '@/components/f1';
+import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Semantic SVG color tokens (DESIGN.md: SVG fills/strokes route through hsl(var(--*)))
+const TOKEN = {
+  gain: 'hsl(var(--status-completed))',
+  loss: 'hsl(var(--destructive))',
+  neutral: 'hsl(var(--muted-foreground))',
+} as const;
 
 // Ensure a value is a finite number >= minVal (prevents NaN in the d3-sankey layout)
 const toValidNumber = (v: unknown, minVal: number = 1): number => {
@@ -73,40 +78,25 @@ const getTeamColor = (team: string): string => {
   let normalizedTeam = team.toLowerCase();
   if (normalizedTeam === 'alphatauri') normalizedTeam = 'rb';
   if (normalizedTeam === 'alfa') normalizedTeam = 'sauber';
-  return TEAM_COLORS[normalizedTeam] || '#666666';
+  return TEAM_COLORS[normalizedTeam] || TEAM_COLORS.default;
 };
 
-// Determine link color based on position change
+// Determine link color based on position change (semantic tokens only)
 const getLinkColor = (source: any, target: any): string => {
   const isQualiToGrid = source.type === 'qualifying' && target.type === 'grid';
   const isGridToRace = source.type === 'grid' && target.type === 'race';
 
-  if (isQualiToGrid) {
-    if (source.position > target.position) return '#10b981'; // Gained - green
-    if (source.position < target.position) return '#ef4444'; // Lost - red
-    return '#3b82f6'; // Same - blue
-  }
-  
-  if (isGridToRace) {
-    if (source.position > target.position) return '#10b981'; // Gained - green
-    if (source.position < target.position) return '#ef4444'; // Lost - red
-    return '#3b82f6'; // Same - blue
+  if (isQualiToGrid || isGridToRace) {
+    if (source.position > target.position) return TOKEN.gain; // positions up
+    if (source.position < target.position) return TOKEN.loss; // positions down
+    return TOKEN.neutral; // no change
   }
 
   return getTeamColor(source.team || '');
 };
 
 const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
-  const { data, isLoading, error, refetch } = useQualifyingToRaceDataByRound(year, round);
-  const { baseTheme } = useTheme();
-  const isDark = baseTheme === 'dark';
-  const [isRetrying, setIsRetrying] = useState(false);
-
-  const handleRetry = useCallback(async () => {
-    setIsRetrying(true);
-    await refetch();
-    setIsRetrying(false);
-  }, [refetch]);
+  const { data, isLoading, error } = useQualifyingToRaceDataByRound(year, round);
 
   // Transform data into d3-sankey nodes + links
   const sankeyData = useMemo<{ nodes: SankeyNodeData[]; links: SankeyLinkData[] } | null>(() => {
@@ -222,93 +212,60 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
     return { nodes: connectedNodes, links: nivoLinks };
   }, [data]);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center p-4">
-        <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-        <p className="text-sm text-muted-foreground">Loading progression...</p>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error || !sankeyData) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-4">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Failed to load data</AlertTitle>
-          <AlertDescription className="mt-2">
-            Unable to load qualifying to race progression data.
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-3 w-full"
-              onClick={handleRetry}
-              disabled={isRetrying}
-            >
-              {isRetrying ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              Retry
-            </Button>
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  // No data state
-  if (sankeyData.nodes.length === 0) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-4 text-center">
-        <AlertTriangle className="h-8 w-8 text-muted-foreground mb-3" />
-        <p className="text-sm text-muted-foreground">No progression data available for this race.</p>
-      </div>
-    );
-  }
+  const isEmpty = !!sankeyData && sankeyData.nodes.length === 0;
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Legend */}
-      <div className="flex justify-center flex-wrap gap-4 mb-4 items-center text-xs px-2 py-2">
-        <span className="text-muted-foreground font-medium">Position Change:</span>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <div className="w-5 h-[3px] bg-emerald-500 rounded" />
-            <span className="text-muted-foreground">Gained</span>
+    <F1ChartContainer
+      isLoading={isLoading}
+      error={error as Error | null}
+      isEmpty={!sankeyData || isEmpty}
+      useSkeleton
+      minHeight={400}
+      loadingMessage="Loading progression..."
+      emptyTitle="No progression data"
+      emptyDescription="No qualifying to race progression for this round."
+      className="flex flex-col"
+    >
+      {sankeyData && (
+        <div className="flex h-full flex-col">
+          {/* Legend */}
+          <div className="mb-4 flex flex-wrap items-center justify-center gap-3 px-2 py-2">
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Position Change
+            </span>
+            <div className="flex items-center gap-3 font-mono text-xs">
+              <span className="flex items-center gap-1 text-status-completed">
+                <ArrowUp className="h-3 w-3" />
+                Gain
+              </span>
+              <span className="flex items-center gap-1 text-destructive">
+                <ArrowDown className="h-3 w-3" />
+                Loss
+              </span>
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Minus className="h-3 w-3" />
+                Hold
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-5 h-[3px] bg-red-500 rounded" />
-            <span className="text-muted-foreground">Lost</span>
+
+          {/* Column headers */}
+          <div className="mb-2 grid grid-cols-3 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            <span>Quali</span>
+            <span>Grid</span>
+            <span>Race</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-5 h-[3px] bg-blue-500 rounded" />
-            <span className="text-muted-foreground">Same</span>
-          </div>
+
+          {/* Sankey Chart - only render when container has non-zero size to avoid NaN in d3-sankey layout */}
+          <SankeyWithDimensionGuard sankeyData={sankeyData} />
+
+          <p className="mt-2 px-2 text-center text-xs text-muted-foreground">
+            Drivers without a qualifying time (e.g. pit lane start) appear only in Grid and Race.
+          </p>
+          <div className="pb-6" />
         </div>
-      </div>
-
-      {/* Column headers */}
-      <div className="grid grid-cols-3 text-xs text-center mb-2">
-        <span className="text-muted-foreground font-medium">Qualifying</span>
-        <span className="text-muted-foreground font-medium">Grid</span>
-        <span className="text-muted-foreground font-medium">Race</span>
-      </div>
-
-      {/* Sankey Chart - only render when container has non-zero size to avoid NaN in d3-sankey layout */}
-      <SankeyWithDimensionGuard
-        sankeyData={sankeyData}
-        isDark={isDark}
-      />
-      <p className="text-[10px] text-muted-foreground text-center mt-2 px-2">
-        Drivers without a qualifying time (e.g. pit lane start) appear only in Grid and Race.
-      </p>
-      <div className="pb-6" />
-    </div>
+      )}
+    </F1ChartContainer>
   );
 };
 
@@ -326,10 +283,8 @@ type HoverTarget =
 
 function SankeyWithDimensionGuard({
   sankeyData,
-  isDark,
 }: {
   sankeyData: { nodes: SankeyNodeData[]; links: SankeyLinkData[] };
-  isDark: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -385,7 +340,8 @@ function SankeyWithDimensionGuard({
   }, [sankeyData, dimensions.width, dimensions.height, hasSize]);
 
   const linkPath = useMemo(() => sankeyLinkHorizontal<SankeyNodeData, SankeyLinkData>(), []);
-  const labelColor = isDark ? '#a1a1aa' : '#666';
+  // Token-driven label color adapts across all three themes.
+  const labelColor = 'hsl(var(--muted-foreground))';
 
   return (
     <div ref={containerRef} className="relative flex-1 min-h-[400px]" style={{ minHeight: 400 }}>
@@ -407,7 +363,7 @@ function SankeyWithDimensionGuard({
                 <path
                   key={`link-${i}`}
                   d={d}
-                  stroke={data.color || '#666'}
+                  stroke={data.color || TEAM_COLORS.default}
                   strokeWidth={Math.max(1, link.width ?? 1)}
                   strokeOpacity={isHovered ? 0.7 : baseOpacity}
                   style={{ cursor: 'pointer' }}
@@ -447,7 +403,7 @@ function SankeyWithDimensionGuard({
                     height={h}
                     rx={NODE_RADIUS}
                     ry={NODE_RADIUS}
-                    fill={data.color || '#666'}
+                    fill={data.color || TEAM_COLORS.default}
                     fillOpacity={isHovered ? 1 : 0.9}
                     style={{ cursor: 'pointer' }}
                     onMouseMove={(e) => {
@@ -467,7 +423,8 @@ function SankeyWithDimensionGuard({
                       y={(y0n + (node.y1 ?? 0)) / 2}
                       dy="0.35em"
                       textAnchor={labelOnLeft ? 'end' : 'start'}
-                      fontSize={10}
+                      fontSize={11}
+                      fontFamily="var(--font-mono, monospace)"
                       fill={labelColor}
                       style={{ pointerEvents: 'none' }}
                     >
@@ -484,12 +441,12 @@ function SankeyWithDimensionGuard({
       {/* Tooltip overlay (replaces Nivo's built-in node/link tooltips) */}
       {hover?.kind === 'node' && (
         <SankeyTooltip x={hover.x} y={hover.y}>
-          <NodeTooltipContent node={hover.node as LaidOutNode & SankeyNodeData} isDark={isDark} />
+          <NodeTooltipContent node={hover.node as LaidOutNode & SankeyNodeData} />
         </SankeyTooltip>
       )}
       {hover?.kind === 'link' && (
         <SankeyTooltip x={hover.x} y={hover.y}>
-          <LinkTooltipContent link={hover.link as LaidOutLink & SankeyLinkData} isDark={isDark} />
+          <LinkTooltipContent link={hover.link as LaidOutLink & SankeyLinkData} />
         </SankeyTooltip>
       )}
     </div>
@@ -508,99 +465,73 @@ function SankeyTooltip({ x, y, children }: { x: number; y: number; children: Rea
   );
 }
 
-function NodeTooltipContent({
-  node,
-  isDark,
-}: {
-  node: LaidOutNode & SankeyNodeData;
-  isDark: boolean;
-}) {
+function NodeTooltipContent({ node }: { node: LaidOutNode & SankeyNodeData }) {
   return (
-    <div
-      className={cn(
-        'px-3 py-2 rounded-lg shadow-lg text-xs',
-        isDark
-          ? 'bg-zinc-900 text-white border border-zinc-800'
-          : 'bg-white text-zinc-900 border border-zinc-200'
-      )}
-    >
-      <div className="font-bold mb-1">{node.fullName || node.name}</div>
-      <div className="text-muted-foreground mb-2">{node.teamName}</div>
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-premium-lg">
+      <div className="mb-1 font-bold">{node.fullName || node.name}</div>
+      <div className="mb-2 text-muted-foreground">{node.teamName}</div>
       <div className="flex justify-between gap-4">
         <span className="text-muted-foreground">
-          {node.type === 'qualifying' ? 'Quali' : node.type === 'grid' ? 'Grid' : 'Race'} Position:
+          {node.type === 'qualifying' ? 'Quali' : node.type === 'grid' ? 'Grid' : 'Race'} Position
         </span>
-        <span className="font-mono font-medium">P{node.position}</span>
+        <span className="font-mono font-medium tabular-nums">P{node.position}</span>
       </div>
       {node.type === 'race' && node.points !== undefined && node.points > 0 && (
-        <div className="flex justify-between gap-4 mt-1">
-          <span className="text-muted-foreground">Points:</span>
-          <span className="font-mono font-medium text-primary">{node.points}</span>
+        <div className="mt-1 flex justify-between gap-4">
+          <span className="text-muted-foreground">Points</span>
+          <span className="font-mono font-medium tabular-nums text-primary">{node.points}</span>
         </div>
       )}
       {node.isDNF && node.status && (
-        <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">{node.status}</div>
+        <div className="mt-1 border-t border-border pt-1 font-medium text-destructive">{node.status}</div>
       )}
     </div>
   );
 }
 
-function LinkTooltipContent({
-  link,
-  isDark,
-}: {
-  link: LaidOutLink & SankeyLinkData;
-  isDark: boolean;
-}) {
+function LinkTooltipContent({ link }: { link: LaidOutLink & SankeyLinkData }) {
   const sourceNode = link.source as LaidOutNode & SankeyNodeData;
   const targetNode = link.target as LaidOutNode & SankeyNodeData;
   const isQualiToGrid = sourceNode?.type === 'qualifying' && targetNode?.type === 'grid';
   const isGridToRace = sourceNode?.type === 'grid' && targetNode?.type === 'race';
   let change = 0;
   let changeText = 'No change';
-  let changeColor = 'text-blue-500';
+  let changeColor = 'text-muted-foreground';
   if (isQualiToGrid) change = (sourceNode?.position ?? 0) - (targetNode?.position ?? 0);
   else if (isGridToRace) change = (sourceNode?.position ?? 0) - (targetNode?.position ?? 0);
   if (change > 0) {
     changeText = `+${change} positions`;
-    changeColor = 'text-emerald-500';
+    changeColor = 'text-status-completed';
   } else if (change < 0) {
     changeText = `${change} positions`;
-    changeColor = 'text-red-500';
+    changeColor = 'text-destructive';
   }
   return (
-    <div
-      className={cn(
-        'px-3 py-2 rounded-lg shadow-lg text-xs',
-        isDark
-          ? 'bg-zinc-900 text-white border border-zinc-800'
-          : 'bg-white text-zinc-900 border border-zinc-200'
-      )}
-    >
-      <div className="font-bold mb-1">{link.driverName || sourceNode?.name}</div>
-      <div className="text-muted-foreground mb-2">{link.team || sourceNode?.teamName}</div>
-      <div className="space-y-1">
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-premium-lg">
+      <div className="mb-1 font-bold">{link.driverName || sourceNode?.name}</div>
+      <div className="mb-2 text-muted-foreground">{link.team || sourceNode?.teamName}</div>
+      <div className="flex flex-col gap-1">
         <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">{isQualiToGrid ? 'Qualifying:' : 'Grid:'}</span>
-          <span className="font-mono font-medium">P{sourceNode?.position}</span>
+          <span className="text-muted-foreground">{isQualiToGrid ? 'Qualifying' : 'Grid'}</span>
+          <span className="font-mono font-medium tabular-nums">P{sourceNode?.position}</span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">{isQualiToGrid ? 'Grid:' : 'Race:'}</span>
-          <span className="font-mono font-medium">P{targetNode?.position}</span>
+          <span className="text-muted-foreground">{isQualiToGrid ? 'Grid' : 'Race'}</span>
+          <span className="font-mono font-medium tabular-nums">P{targetNode?.position}</span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">Change:</span>
-          <span className={cn('font-mono font-medium', changeColor)}>{changeText}</span>
+          <span className="text-muted-foreground">Change</span>
+          <span className={cn('font-mono font-medium tabular-nums', changeColor)}>{changeText}</span>
         </div>
         {isGridToRace && link.points !== undefined && link.points > 0 && (
-          <div className="flex justify-between gap-4 mt-1 pt-1 border-t border-muted">
-            <span className="text-muted-foreground">Points:</span>
-            <span className="font-mono font-medium text-primary">{link.points}</span>
+          <div className="mt-1 flex justify-between gap-4 border-t border-border pt-1">
+            <span className="text-muted-foreground">Points</span>
+            <span className="font-mono font-medium tabular-nums text-primary">{link.points}</span>
           </div>
         )}
       </div>
       {link.isDNF && link.status && (
-        <div className="mt-1 pt-1 border-t border-muted text-red-500 font-medium">{link.status}</div>
+        <div className="mt-1 border-t border-border pt-1 font-medium text-destructive">{link.status}</div>
       )}
     </div>
   );

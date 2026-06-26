@@ -44,7 +44,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
         {availableDrivers.map(driver => {
           const isSelected = selectedDrivers.includes(driver.code);
           const hasFastestLap = fastestLapTime && driver.code === fastestLapTime.driver;
-          const teamColor = TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666";
+          const teamColor = TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || TEAM_COLORS.default;
           
           // Track which teammate this is
           const currentCount = teamDriverCounts[driver.team] || 0;
@@ -55,11 +55,11 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
             <button
               key={driver.code}
               className={cn(
-                "flex items-center justify-between gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium transition-all",
+                "flex items-center justify-between gap-0.5 px-1 py-0.5 rounded text-xs font-medium transition-all",
                 isSelected
                   ? "bg-accent text-accent-foreground shadow-sm"
                   : "bg-transparent text-muted-foreground hover:bg-muted/50",
-                hasFastestLap && isSelected && "ring-1 ring-purple-500/30"
+                hasFastestLap && isSelected && "ring-1 ring-primary/30"
               )}
               onClick={() => onDriverToggle(driver.code)}
               style={{ 
@@ -77,14 +77,14 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
                   )}
                   style={{ backgroundColor: teamColor }}
                 />
-                <span className={cn("font-bold", hasFastestLap && "text-purple-400")}>
+                <span className={cn("font-bold", hasFastestLap && "text-primary")}>
                   {driver.code}
                 </span>
-                {hasFastestLap && <Zap className="h-2 w-2 text-purple-400" fill="currentColor" />}
+                {hasFastestLap && <Zap className="h-2 w-2 text-primary" fill="currentColor" />}
               </div>
-              
+
               {/* Right: Position or time */}
-              <span className="text-[8px] font-mono text-muted-foreground">
+              <span className="text-xs font-mono tabular-nums text-muted-foreground">
                 P{driver.finishPosition}
               </span>
             </button>
@@ -93,7 +93,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
       </div>
       
       {/* Inline legend */}
-      <div className="flex items-center gap-2 text-[8px] text-muted-foreground px-0.5">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground px-0.5">
         <span className="flex items-center gap-0.5">
           <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />1st
         </span>
@@ -101,7 +101,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
           <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground ring-1 ring-muted-foreground" />2nd
         </span>
         {fastestLapTime && (
-          <span className="flex items-center gap-0.5 text-purple-500">
+          <span className="flex items-center gap-0.5 text-primary">
             <Zap className="h-2 w-2" fill="currentColor" />FL
           </span>
         )}

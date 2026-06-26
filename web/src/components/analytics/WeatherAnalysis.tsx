@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Thermometer, Cloud, Droplets, Wind, Loader2 } from "lucide-react";
+import { Thermometer, Cloud, Droplets, Wind, Gauge } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useOpenF1SessionFromErgast } from '@/hooks/useOpenF1Data';
 import { useWeatherData } from "@/hooks/useOpenF1Data";
@@ -16,8 +16,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import { F1ChartContainer, F1EmptyState, F1ErrorState, F1Skeleton } from '@/components/f1';
 
 interface WeatherAnalysisProps {
   year: number;
@@ -25,6 +25,19 @@ interface WeatherAnalysisProps {
   sessionType?: string;
   sessionKey?: number;
 }
+
+// Weather metric series — single source of truth for stroke + legend swatch.
+// Hues are defined as named CSS variables in index.css (DESIGN.md §1.7).
+const WEATHER_SERIES = {
+  air: 'hsl(var(--weather-air))',
+  track: 'hsl(var(--weather-track))',
+  wind: 'hsl(var(--weather-wind))',
+  humidity: 'hsl(var(--weather-humidity))',
+  pressure: 'hsl(var(--weather-pressure))',
+} as const;
+
+const underlineTabTrigger =
+  "rounded-none border-b-2 border-transparent bg-transparent px-3 pb-2 pt-1 text-xs uppercase tracking-wider shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
 
 const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   year,
@@ -34,51 +47,50 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState("all");
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
-  const { isGlass } = useTheme();
 
-  // Reset state when session changes  
+  // Reset state when session changes
   useEffect(() => {
-    console.log("Session changed in WeatherAnalysis to:", externalSessionKey);
+    setHighlightedIndex(null);
   }, [externalSessionKey]);
-  
+
   // Get the OpenF1 session directly only if we don't have an external session key
-  const { 
-    data: sessionData, 
-    isLoading: isSessionLoading 
+  const {
+    data: sessionData,
+    isLoading: isSessionLoading
   } = useOpenF1SessionFromErgast(
-    externalSessionKey ? 0 : year, 
-    externalSessionKey ? "" : round, 
+    externalSessionKey ? 0 : year,
+    externalSessionKey ? "" : round,
     externalSessionKey ? "" : sessionType
   );
-  
+
   // Use the external session key if provided, otherwise use the one from the hook
   const effectiveSessionKey = externalSessionKey || sessionData?.data?.session_key || 0;
-  
+
   // Get weather data for this session
   const {
     data: weatherData,
     isLoading: isWeatherLoading,
     error: weatherError
   } = useWeatherData(effectiveSessionKey);
-  
+
   // Process weather data
   const processedData = React.useMemo(() => {
     if (!weatherData?.data || weatherData.data.length === 0) return [];
     return processOpenF1WeatherData(weatherData.data);
   }, [weatherData]);
-  
+
   // Get the most recent weather readings
   const currentWeather = React.useMemo(() => {
     if (processedData.length === 0) return null;
     return processedData[processedData.length - 1];
   }, [processedData]);
-  
+
   // Format time for the x-axis
   const formatTimeForAxis = (time: number) => {
     const date = new Date(time);
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
-  
+
   // Prepare chart data
   const chartData = React.useMemo(() => {
     if (processedData.length === 0) return [];
@@ -86,7 +98,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     const step = Math.max(1, Math.floor(processedData.length / 100));
     return processedData.filter((_, i) => i % step === 0);
   }, [processedData]);
-  
+
 
   const isLoading = isSessionLoading || isWeatherLoading;
   const hasNoData = !isLoading && (!weatherData?.data || weatherData.data.length === 0);
@@ -100,37 +112,37 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
       setHighlightedIndex(null);
     }
   }, []);
-  
-  // Stat card component
-  const StatCard = ({ 
-    label, 
-    value, 
-    unit, 
-    icon: Icon, 
-    color 
-  }: { 
-    label: string; 
-    value: string; 
-    unit: string; 
-    icon: React.ElementType; 
+
+  // Compact metric tile (label eyebrow + mono value/unit + icon)
+  const MetricTile = ({
+    label,
+    value,
+    unit,
+    icon: Icon,
+    color,
+  }: {
+    label: string;
+    value: string;
+    unit: string;
+    icon: React.ElementType;
     color: string;
   }) => (
-    <div className={cn(
-      "rounded-lg p-3 flex flex-col",
-      isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50"
-    )}>
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</span>
-      <div className="flex items-end justify-between">
-        <span className="text-xl font-semibold tabular-nums">{value}<span className="text-sm ml-0.5">{unit}</span></span>
-        <Icon className={cn("h-4 w-4", color)} />
+    <div className="flex flex-col rounded-md border border-border bg-muted/40 p-2.5">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+        <Icon className="h-3.5 w-3.5" style={{ color }} />
       </div>
+      <span className="font-mono text-lg font-semibold tabular-nums leading-none">
+        {value}
+        <span className="ml-0.5 text-xs text-muted-foreground">{unit}</span>
+      </span>
     </div>
   );
 
   // Recharts theming helpers
   const tickColor = 'hsl(var(--chart-axis))';
   const gridColor = 'hsl(var(--chart-grid))';
-  const axisTick = { fontSize: 10, fill: tickColor };
+  const axisTick = { fontSize: 11, fill: tickColor, fontFamily: 'var(--font-mono, monospace)' };
 
   // Shared themed x-axis (time) props for recharts
   const timeXAxisProps = {
@@ -149,113 +161,130 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     const rows = payload.filter((p: any) => p.value != null);
     if (!rows.length) return null;
     return (
-      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
-        <div className="font-mono text-muted-foreground mb-1">{formatTimeForAxis(label)}</div>
+      <div className="rounded-md border border-border bg-popover/95 px-2 py-1.5 text-xs shadow-premium-md">
+        <div className="mb-1 font-mono tabular-nums text-muted-foreground">{formatTimeForAxis(label)}</div>
         {rows.map((p: any) => (
           <div key={p.dataKey} className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ background: p.color || p.stroke }} />
+            <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.stroke }} />
             <span className="font-medium">{p.name}</span>
-            <span className="font-mono ml-auto">{Number(p.value).toFixed(1)}{unit}</span>
+            <span className="ml-auto font-mono tabular-nums">{Number(p.value).toFixed(1)}{unit}</span>
           </div>
         ))}
       </div>
     );
   };
 
+  // Compact chart-panel header (icon swatch + eyebrow)
+  const ChartHeading = ({
+    icon: Icon,
+    label,
+    color,
+  }: {
+    icon: React.ElementType;
+    label: string;
+    color: string;
+  }) => (
+    <div className="mb-1 flex items-center gap-2 px-2">
+      <Icon className="h-3 w-3" style={{ color }} />
+      <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{label}</span>
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center p-4">
-        <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-        <p className="text-sm text-muted-foreground">Loading weather data...</p>
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <F1Skeleton key={i} className="h-16 rounded-md" />
+          ))}
+        </div>
+        <F1Skeleton className="h-7 w-64" />
+        <F1Skeleton className="h-[180px] w-full rounded-md" />
       </div>
     );
   }
 
   if (hasError) {
     return (
-      <div className="min-h-[300px] flex flex-col items-center justify-center p-4 text-center">
-        <Cloud className="h-8 w-8 text-muted-foreground mb-3" />
-        <p className="text-muted-foreground font-medium">Weather data unavailable</p>
-        <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-          {year >= new Date().getFullYear() 
-            ? "Current season data may not be available yet"
-            : "Weather data is only available for races from 2023 onwards"}
-        </p>
-      </div>
+      <F1ErrorState
+        type="generic"
+        variant="inline"
+        title="Weather data unavailable"
+        message={
+          year >= new Date().getFullYear()
+            ? "Current season data may not be available yet."
+            : "Weather data is only available for races from 2023 onwards."
+        }
+        className="py-8"
+      />
     );
   }
 
   if (hasNoData) {
     return (
-      <div className="min-h-[300px] flex flex-col items-center justify-center p-4 text-center">
-        <Cloud className="h-8 w-8 text-muted-foreground mb-3" />
-        <p className="text-muted-foreground">No weather data for this session</p>
-      </div>
+      <F1EmptyState
+        type="no-data"
+        title="No weather data"
+        description="No weather telemetry was recorded for this session."
+        size="sm"
+        className="py-8"
+      />
     );
   }
-  
+
   return (
-    <div className="space-y-4">
-      {/* Current Conditions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard 
+    <div className="flex flex-col gap-4">
+      {/* Current conditions — compact metric strip */}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <MetricTile
           label="Air Temp"
           value={currentWeather?.air_temperature.toFixed(1) || '--'}
           unit="°C"
           icon={Thermometer}
-          color="text-blue-500"
+          color={WEATHER_SERIES.air}
         />
-        <StatCard 
+        <MetricTile
           label="Track Temp"
           value={currentWeather?.track_temperature.toFixed(1) || '--'}
           unit="°C"
           icon={Thermometer}
-          color="text-amber-500"
+          color={WEATHER_SERIES.track}
         />
-        <StatCard 
+        <MetricTile
           label="Humidity"
           value={currentWeather?.humidity.toFixed(0) || '--'}
           unit="%"
           icon={Droplets}
-          color="text-indigo-500"
+          color={WEATHER_SERIES.humidity}
         />
-        <StatCard 
+        <MetricTile
           label="Wind Speed"
           value={currentWeather?.wind_speed.toFixed(1) || '--'}
           unit="m/s"
           icon={Wind}
-          color="text-emerald-500"
+          color={WEATHER_SERIES.wind}
         />
       </div>
-      
+
       {/* Charts */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className={cn(
-          "inline-flex h-8 w-auto",
-          isGlass && "bg-white/5 border border-white/10"
-        )}>
-          <TabsTrigger value="all" className="text-xs px-3">Overview</TabsTrigger>
-          <TabsTrigger value="temp" className="text-xs px-3">Temp</TabsTrigger>
-          <TabsTrigger value="wind" className="text-xs px-3">Wind</TabsTrigger>
-          <TabsTrigger value="humidity" className="text-xs px-3">Humidity</TabsTrigger>
-          <TabsTrigger value="pressure" className="text-xs px-3">Pressure</TabsTrigger>
+        <TabsList className="inline-flex h-auto w-full justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
+          <TabsTrigger value="all" className={underlineTabTrigger}>Overview</TabsTrigger>
+          <TabsTrigger value="temp" className={underlineTabTrigger}>Temp</TabsTrigger>
+          <TabsTrigger value="wind" className={underlineTabTrigger}>Wind</TabsTrigger>
+          <TabsTrigger value="humidity" className={underlineTabTrigger}>Humidity</TabsTrigger>
+          <TabsTrigger value="pressure" className={underlineTabTrigger}>Pressure</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="all" className="mt-3">
-          <div 
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+          <div
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2"
             onMouseLeave={() => setHighlightedIndex(null)}
           >
             {/* Temperature Chart */}
-            <div className={cn(
-              "rounded-lg p-2",
-              isGlass ? "bg-white/5 border border-white/10" : "bg-muted/30"
-            )}>
-              <div className="flex items-center gap-2 mb-1 px-2">
-                <Thermometer className="h-3 w-3 text-blue-500" />
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Temperature</span>
-              </div>
-              <div className="h-[180px]">
+            <div className="rounded-md border border-border bg-muted/40 p-2">
+              <ChartHeading icon={Thermometer} label="Temperature" color={WEATHER_SERIES.air} />
+              <F1ChartContainer minHeight={180} isEmpty={chartData.length === 0}>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart
                     data={chartData}
@@ -269,14 +298,14 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       width={40}
                       tickLine={false}
                       tick={axisTick}
-                      label={{ value: '°C', angle: -90, position: 'insideLeft', fontSize: 10, fill: tickColor }}
+                      label={{ value: '°C', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                     />
                     <Tooltip content={<WeatherTooltip unit="°C" />} />
                     <Line
                       type="monotone"
                       dataKey="air_temperature"
                       name="Air"
-                      stroke="#3b82f6"
+                      stroke={WEATHER_SERIES.air}
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
@@ -285,26 +314,20 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       type="monotone"
                       dataKey="track_temperature"
                       name="Track"
-                      stroke="#f59e0b"
+                      stroke={WEATHER_SERIES.track}
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
+              </F1ChartContainer>
             </div>
-            
+
             {/* Wind Chart */}
-            <div className={cn(
-              "rounded-lg p-2",
-              isGlass ? "bg-white/5 border border-white/10" : "bg-muted/30"
-            )}>
-              <div className="flex items-center gap-2 mb-1 px-2">
-                <Wind className="h-3 w-3 text-emerald-500" />
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Wind Speed</span>
-              </div>
-              <div className="h-[180px]">
+            <div className="rounded-md border border-border bg-muted/40 p-2">
+              <ChartHeading icon={Wind} label="Wind Speed" color={WEATHER_SERIES.wind} />
+              <F1ChartContainer minHeight={180} isEmpty={chartData.length === 0}>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart
                     data={chartData}
@@ -318,33 +341,27 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       width={40}
                       tickLine={false}
                       tick={axisTick}
-                      label={{ value: 'm/s', angle: -90, position: 'insideLeft', fontSize: 10, fill: tickColor }}
+                      label={{ value: 'm/s', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                     />
                     <Tooltip content={<WeatherTooltip unit=" m/s" />} />
                     <Line
                       type="monotone"
                       dataKey="wind_speed"
                       name="Wind"
-                      stroke="#10b981"
+                      stroke={WEATHER_SERIES.wind}
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
+              </F1ChartContainer>
             </div>
-            
+
             {/* Humidity Chart */}
-            <div className={cn(
-              "rounded-lg p-2",
-              isGlass ? "bg-white/5 border border-white/10" : "bg-muted/30"
-            )}>
-              <div className="flex items-center gap-2 mb-1 px-2">
-                <Droplets className="h-3 w-3 text-indigo-500" />
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Humidity</span>
-              </div>
-              <div className="h-[180px]">
+            <div className="rounded-md border border-border bg-muted/40 p-2">
+              <ChartHeading icon={Droplets} label="Humidity" color={WEATHER_SERIES.humidity} />
+              <F1ChartContainer minHeight={180} isEmpty={chartData.length === 0}>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart
                     data={chartData}
@@ -359,33 +376,27 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       width={40}
                       tickLine={false}
                       tick={axisTick}
-                      label={{ value: '%', angle: -90, position: 'insideLeft', fontSize: 10, fill: tickColor }}
+                      label={{ value: '%', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                     />
                     <Tooltip content={<WeatherTooltip unit="%" />} />
                     <Line
                       type="monotone"
                       dataKey="humidity"
                       name="Humidity"
-                      stroke="#6366f1"
+                      stroke={WEATHER_SERIES.humidity}
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
+              </F1ChartContainer>
             </div>
-            
+
             {/* Pressure Chart */}
-            <div className={cn(
-              "rounded-lg p-2",
-              isGlass ? "bg-white/5 border border-white/10" : "bg-muted/30"
-            )}>
-              <div className="flex items-center gap-2 mb-1 px-2">
-                <Cloud className="h-3 w-3 text-purple-500" />
-                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Pressure</span>
-              </div>
-              <div className="h-[180px]">
+            <div className="rounded-md border border-border bg-muted/40 p-2">
+              <ChartHeading icon={Gauge} label="Pressure" color={WEATHER_SERIES.pressure} />
+              <F1ChartContainer minHeight={180} isEmpty={chartData.length === 0}>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart
                     data={chartData}
@@ -400,70 +411,67 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       width={50}
                       tickLine={false}
                       tick={axisTick}
-                      label={{ value: 'mbar', angle: -90, position: 'insideLeft', fontSize: 10, fill: tickColor }}
+                      label={{ value: 'mbar', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                     />
                     <Tooltip content={<WeatherTooltip unit=" mbar" />} />
                     <Line
                       type="monotone"
                       dataKey="pressure"
                       name="Pressure"
-                      stroke="#8b5cf6"
+                      stroke={WEATHER_SERIES.pressure}
                       strokeWidth={2}
                       dot={false}
                       isAnimationActive={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
+              </F1ChartContainer>
             </div>
           </div>
-          
-          {/* Synced data display when hovering */}
+
+          {/* Synced data readout when hovering */}
           {highlightedIndex !== null && chartData[highlightedIndex] && (
-            <div className={cn(
-              "mt-3 p-3 rounded-lg text-xs flex items-center justify-center gap-6 flex-wrap",
-              isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50"
-            )}>
-              <span className="font-mono text-muted-foreground">
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 rounded-md border border-border bg-muted/40 p-2.5 text-xs">
+              <span className="font-mono tabular-nums text-muted-foreground">
                 {formatTimeForAxis(chartData[highlightedIndex].time)}
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-blue-500" />
-                Air: {chartData[highlightedIndex].air_temperature.toFixed(1)}°C
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ background: WEATHER_SERIES.air }} />
+                Air <span className="font-mono tabular-nums">{chartData[highlightedIndex].air_temperature.toFixed(1)}°C</span>
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                Track: {chartData[highlightedIndex].track_temperature.toFixed(1)}°C
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ background: WEATHER_SERIES.track }} />
+                Track <span className="font-mono tabular-nums">{chartData[highlightedIndex].track_temperature.toFixed(1)}°C</span>
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                Wind: {chartData[highlightedIndex].wind_speed.toFixed(1)} m/s
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ background: WEATHER_SERIES.wind }} />
+                Wind <span className="font-mono tabular-nums">{chartData[highlightedIndex].wind_speed.toFixed(1)} m/s</span>
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                Humidity: {chartData[highlightedIndex].humidity.toFixed(0)}%
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ background: WEATHER_SERIES.humidity }} />
+                Humidity <span className="font-mono tabular-nums">{chartData[highlightedIndex].humidity.toFixed(0)}%</span>
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-purple-500" />
-                Pressure: {chartData[highlightedIndex].pressure.toFixed(0)} mbar
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ background: WEATHER_SERIES.pressure }} />
+                Pressure <span className="font-mono tabular-nums">{chartData[highlightedIndex].pressure.toFixed(0)} mbar</span>
               </span>
             </div>
           )}
         </TabsContent>
-        
+
         <TabsContent value="temp" className="mt-3">
-          <div className="h-[280px]">
+          <F1ChartContainer minHeight={280} isEmpty={chartData.length === 0}>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart
                 data={chartData}
                 margin={{ left: 50, right: 20, top: 20, bottom: 30 }}
               >
                 <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
-                <XAxis {...timeXAxisProps} tick={{ fontSize: 11, fill: tickColor }} />
+                <XAxis {...timeXAxisProps} />
                 <YAxis
                   width={50}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: tickColor }}
+                  tick={axisTick}
                   label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                 />
                 <Tooltip content={<WeatherTooltip unit="°C" />} />
@@ -472,7 +480,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   type="monotone"
                   dataKey="air_temperature"
                   name="Air Temperature"
-                  stroke="#3b82f6"
+                  stroke={WEATHER_SERIES.air}
                   strokeWidth={2}
                   dot={false}
                   isAnimationActive={false}
@@ -481,21 +489,21 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   type="monotone"
                   dataKey="track_temperature"
                   name="Track Temperature"
-                  stroke="#f59e0b"
+                  stroke={WEATHER_SERIES.track}
                   strokeWidth={2}
                   dot={false}
                   isAnimationActive={false}
                 />
               </LineChart>
             </ResponsiveContainer>
-          </div>
-          <p className="text-xs text-muted-foreground text-center mt-2">
+          </F1ChartContainer>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
             Track temperature is typically higher than air temperature due to solar radiation
           </p>
         </TabsContent>
-        
+
         <TabsContent value="wind" className="mt-3">
-          <div className="h-[280px]">
+          <F1ChartContainer minHeight={280} isEmpty={chartData.length === 0}>
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart
                 data={chartData}
@@ -503,17 +511,17 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
               >
                 <defs>
                   <linearGradient id="windGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity={0.05} />
+                    <stop offset="0%" stopColor={WEATHER_SERIES.wind} stopOpacity={0.4} />
+                    <stop offset="100%" stopColor={WEATHER_SERIES.wind} stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
-                <XAxis {...timeXAxisProps} tick={{ fontSize: 11, fill: tickColor }} />
+                <XAxis {...timeXAxisProps} />
                 <YAxis
                   domain={[0, 'auto']}
                   width={50}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: tickColor }}
+                  tick={axisTick}
                   label={{ value: 'Wind Speed (m/s)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                 />
                 <Tooltip content={<WeatherTooltip unit=" m/s" />} />
@@ -521,7 +529,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   type="monotone"
                   dataKey="wind_speed"
                   name="Wind Speed"
-                  stroke="#10b981"
+                  stroke={WEATHER_SERIES.wind}
                   strokeWidth={2}
                   fill="url(#windGradient)"
                   dot={false}
@@ -529,14 +537,14 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
-          <p className="text-xs text-muted-foreground text-center mt-2">
+          </F1ChartContainer>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
             Wind speeds affect aerodynamics and car behavior on high-speed corners
           </p>
         </TabsContent>
-        
+
         <TabsContent value="humidity" className="mt-3">
-          <div className="h-[280px]">
+          <F1ChartContainer minHeight={280} isEmpty={chartData.length === 0}>
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart
                 data={chartData}
@@ -544,17 +552,17 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
               >
                 <defs>
                   <linearGradient id="humidityGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05} />
+                    <stop offset="0%" stopColor={WEATHER_SERIES.humidity} stopOpacity={0.4} />
+                    <stop offset="100%" stopColor={WEATHER_SERIES.humidity} stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
-                <XAxis {...timeXAxisProps} tick={{ fontSize: 11, fill: tickColor }} />
+                <XAxis {...timeXAxisProps} />
                 <YAxis
                   domain={[0, 100]}
                   width={50}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: tickColor }}
+                  tick={axisTick}
                   label={{ value: 'Humidity (%)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                 />
                 <Tooltip content={<WeatherTooltip unit="%" />} />
@@ -562,7 +570,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   type="monotone"
                   dataKey="humidity"
                   name="Humidity"
-                  stroke="#6366f1"
+                  stroke={WEATHER_SERIES.humidity}
                   strokeWidth={2}
                   fill="url(#humidityGradient)"
                   dot={false}
@@ -570,14 +578,14 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
-          <p className="text-xs text-muted-foreground text-center mt-2">
+          </F1ChartContainer>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
             Higher humidity reduces air density, affecting engine performance
           </p>
         </TabsContent>
-        
+
         <TabsContent value="pressure" className="mt-3">
-          <div className="h-[280px]">
+          <F1ChartContainer minHeight={280} isEmpty={chartData.length === 0}>
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart
                 data={chartData}
@@ -585,17 +593,17 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
               >
                 <defs>
                   <linearGradient id="pressureGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.05} />
+                    <stop offset="0%" stopColor={WEATHER_SERIES.pressure} stopOpacity={0.4} />
+                    <stop offset="100%" stopColor={WEATHER_SERIES.pressure} stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke={gridColor} strokeDasharray="3 3" />
-                <XAxis {...timeXAxisProps} tick={{ fontSize: 11, fill: tickColor }} />
+                <XAxis {...timeXAxisProps} />
                 <YAxis
                   domain={['auto', 'auto']}
                   width={55}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: tickColor }}
+                  tick={axisTick}
                   label={{ value: 'Pressure (mbar)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
                 />
                 <Tooltip content={<WeatherTooltip unit=" mbar" />} />
@@ -603,7 +611,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   type="monotone"
                   dataKey="pressure"
                   name="Atmospheric Pressure"
-                  stroke="#8b5cf6"
+                  stroke={WEATHER_SERIES.pressure}
                   strokeWidth={2}
                   fill="url(#pressureGradient)"
                   dot={false}
@@ -611,8 +619,8 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
-          <p className="text-xs text-muted-foreground text-center mt-2">
+          </F1ChartContainer>
+          <p className="mt-2 text-center text-xs text-muted-foreground">
             Atmospheric pressure influences engine power output and aerodynamic downforce
           </p>
         </TabsContent>

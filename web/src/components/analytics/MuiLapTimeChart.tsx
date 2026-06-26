@@ -10,16 +10,15 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
-import { Progress } from "@/components/ui/progress";
-import { Loader2, Clock, Wrench } from "lucide-react";
+import { Clock, Wrench } from "lucide-react";
 import { useLapTimeData } from '@/hooks/useLapTimeData';
 import DriverSelector from "./DriverSelector";
 import DisplayModeToggle from "./DisplayModeToggle";
-import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
-import { F1ErrorState } from "@/components/f1/F1ErrorState";
+import { F1ChartContainer } from "@/components/f1";
 import { getPitStops } from "@/services/f1Service";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
 
 interface MuiLapTimeChartProps {
   year: number;
@@ -151,7 +150,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
       return {
         data,
         label: driver.code,
-        color: TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666",
+        color: TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || TEAM_COLORS.default,
         showMark: false,
         curve: 'linear' as const,
         connectNulls: true,
@@ -185,7 +184,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
       teamCounts[driver.team] = teamCount + 1;
       return {
         code: driver.code,
-        color: TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666",
+        color: TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || TEAM_COLORS.default,
         dashed: teamCount > 0,
       };
     });
@@ -234,54 +233,36 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
   }, [visiblePitStops]);
 
 
-  // Render loading state with progress indicator
+  // Loading / error / empty routed through F1ChartContainer (ChartSkeleton, F1ErrorState, F1EmptyState)
   if (isLoading) {
     return (
-      <div className="min-h-[350px] flex flex-col items-center justify-center p-4">
-        <div className="flex flex-col items-center justify-center space-y-3 max-w-xs">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <div className="w-full space-y-2 text-center">
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <span>Loading lap times</span>
-              <span className="font-mono text-xs">{loadingProgress}%</span>
-            </div>
-            <Progress value={loadingProgress} className="h-1.5 w-full" />
-            {retryCount > 0 && (
-              <p className="text-[10px] text-muted-foreground">
-                Rate limited. Retry {retryCount}/15
-              </p>
-            )}
-          </div>
-        </div>
+      <div className="flex flex-col gap-2">
+        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          Loading lap times • {loadingProgress}%
+          {retryCount > 0 ? ` • rate-limited retry ${retryCount}/15` : ""}
+        </p>
+        <F1ChartContainer isLoading useSkeleton minHeight={300} />
       </div>
     );
   }
 
-  // Handle error state
   if (isError && chartData.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center p-4">
-        <F1ErrorState
-          type="rate-limit"
-          title="Unable to Load Lap Times"
-          message="The F1 API rate limit was reached. Please wait a moment and try again."
-          variant="card"
-        />
-      </div>
+      <F1ChartContainer
+        minHeight={300}
+        error="The F1 API rate limit was reached. Please wait a moment and try again."
+      />
     );
   }
 
-  // Handle no data state
   if (chartData.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center p-4">
-        <F1ChartEmpty
-          chartType="line"
-          title="No Lap Time Data"
-          message="Lap time data is not available for this race. This may be because the race hasn't occurred yet."
-          icon={<Clock className="h-12 w-12 text-muted-foreground" />}
-        />
-      </div>
+      <F1ChartContainer
+        minHeight={300}
+        isEmpty
+        emptyTitle="No Lap Time Data"
+        emptyDescription="Lap time data is not available for this race. This may be because the race hasn't occurred yet."
+      />
     );
   }
 
@@ -307,13 +288,15 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
       .sort((a: any, b: any) => a.value - b.value);
     if (!rows.length) return null;
     return (
-      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
-        <div className="font-mono text-muted-foreground mb-1">Lap {label}</div>
+      <div className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-xs shadow-card">
+        <div className="mb-1 font-mono uppercase tracking-widest text-muted-foreground">
+          Lap {label}
+        </div>
         {rows.map((p: any) => (
           <div key={p.dataKey} className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ background: p.color || p.stroke }} />
-            <span className="font-bold w-9">{p.dataKey}</span>
-            <span className="font-mono">{formatTime(p.value)}</span>
+            <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.stroke }} />
+            <span className="w-9 font-mono font-bold text-foreground">{p.dataKey}</span>
+            <span className="font-mono tabular-nums text-foreground">{formatTime(p.value)}</span>
           </div>
         ))}
       </div>
@@ -321,16 +304,19 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
   };
 
   return (
-      <div className="h-full flex flex-col">
-        <div className="flex flex-row gap-1.5 items-center mb-2">
+      <div className="flex h-full flex-col gap-2">
+        <div className="flex flex-row items-center gap-2">
+          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            Pace
+          </span>
           <DisplayModeToggle displayMode={displayMode} onToggle={toggleDisplayMode} />
-          
+
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowPitStops(!showPitStops)}
             className={cn(
-              "h-6 gap-1 text-[10px] px-2",
+              "h-7 gap-1 px-2 text-xs font-mono",
               showPitStops
                 ? "bg-accent text-accent-foreground hover:bg-accent/80"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -339,13 +325,13 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
             <Wrench className="h-3 w-3" />
             Pits
             {visiblePitStops.length > 0 && (
-              <span className="text-[9px] text-muted-foreground">({visiblePitStops.length})</span>
+              <span className="text-xs tabular-nums text-muted-foreground">({visiblePitStops.length})</span>
             )}
           </Button>
         </div>
-        
+
         {/* Driver selection grid */}
-        <DriverSelector 
+        <DriverSelector
           availableDrivers={availableDrivers}
           selectedDrivers={selectedDrivers}
           onDriverToggle={handleDriverToggle}
@@ -355,16 +341,25 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
           getAverageTime={getAverageTime}
         />
         
-        <div className="flex-1 mt-2 min-h-0">
+        <F1ChartContainer
+          className="min-h-0 flex-1"
+          minHeight={chartHeight}
+          isEmpty={lines.length === 0}
+          emptyTitle="No Drivers Selected"
+          emptyDescription="Select one or more drivers above to plot lap times."
+        >
           {lines.length > 0 && (
             <ResponsiveContainer width="100%" height={chartHeight}>
               <LineChart
                 data={chartData}
                 margin={{ top: 10, right: isMobile ? 10 : 20, bottom: 25, left: isMobile ? 5 : 10 }}
               >
+                <defs>
+                  <ScopeDefs id="lap" color={chartTheme.primary} />
+                </defs>
                 <CartesianGrid
                   vertical={false}
-                  stroke="hsl(var(--chart-grid))"
+                  stroke={chartTheme.grid}
                   strokeDasharray="3 3"
                 />
                 <XAxis
@@ -373,32 +368,35 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
                   domain={[1, maxLap]}
                   allowDecimals={false}
                   tickLine={false}
-                  tick={{ fontSize: isMobile ? 10 : 11, fill: 'hsl(var(--chart-axis))' }}
+                  stroke={chartTheme.axis}
+                  tick={chartTheme.tick}
                 />
                 <YAxis
                   domain={displayMode === 'gap' ? [0, 'auto'] : [yAxisMin, yAxisMax]}
                   tickFormatter={formatTime}
                   width={isMobile ? 52 : 62}
                   tickLine={false}
-                  tick={{ fontSize: isMobile ? 10 : 11, fill: 'hsl(var(--chart-axis))' }}
+                  stroke={chartTheme.axis}
+                  tick={chartTheme.tick}
                 />
-                <Tooltip content={<LapTooltip />} />
+                <Tooltip content={<LapTooltip />} cursor={chartTheme.cursor} />
                 {fastestLapTime && displayMode === 'absolute' && (
                   <ReferenceLine
                     y={fastestLapTime.time}
-                    stroke="#c026d3"
+                    stroke="hsl(var(--primary))"
                     strokeDasharray="4 4"
                     strokeWidth={1.5}
                     label={{
                       value: `FL ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`,
                       position: 'insideTopRight',
-                      fontSize: 10,
-                      fill: '#c026d3',
+                      fontSize: 11,
+                      fill: 'hsl(var(--primary))',
+                      fontFamily: 'var(--font-mono, monospace)',
                     }}
                   />
                 )}
                 {showPitStops && pitStopsByLap.map((ps) => {
-                  const color = ps.teams[0] ? (TEAM_COLORS[ps.teams[0]] || '#f59e0b') : '#f59e0b';
+                  const color = ps.teams[0] ? (TEAM_COLORS[ps.teams[0]] || TEAM_COLORS.default) : TEAM_COLORS.default;
                   return (
                     <ReferenceLine
                       key={`pit-${ps.lap}`}
@@ -411,8 +409,9 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
                         value: ps.drivers.map((d, i) => `${d} ${ps.durations[i]}s`).join(' · '),
                         position: 'insideBottomLeft',
                         angle: -90,
-                        fontSize: 9,
+                        fontSize: 11,
                         fill: color,
+                        fontFamily: 'var(--font-mono, monospace)',
                       }}
                     />
                   );
@@ -425,6 +424,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
                     stroke={ln.color}
                     strokeWidth={2}
                     strokeDasharray={ln.dashed ? '5 3' : undefined}
+                    filter={SCOPE_GLOW}
                     dot={false}
                     activeDot={{ r: 3 }}
                     connectNulls
@@ -434,7 +434,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
               </LineChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </F1ChartContainer>
       </div>
   );
 };

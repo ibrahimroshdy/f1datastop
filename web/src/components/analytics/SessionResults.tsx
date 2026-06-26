@@ -1,9 +1,15 @@
 import React, { useMemo } from 'react';
-import { Trophy, Loader2, AlertCircle, Medal } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { useLapData, useDrivers, useOpenF1SessionFromErgast, usePositionData } from "@/hooks/useOpenF1Data";
 import { formatTime } from "@/utils/lapTimeUtils";
-import { Badge } from "@/components/ui/badge";
 import { getTeamColorById } from '@/constants/f1Colors';
+import {
+  PositionBadge,
+  F1Badge,
+  F1Skeleton,
+  F1EmptyState,
+  F1ErrorState,
+} from "@/components/f1";
 
 interface SessionResultsProps {
   year: number;
@@ -33,11 +39,11 @@ const SessionResults: React.FC<SessionResultsProps> = ({
   sessionKey: externalSessionKey
 }) => {
   const {
-    data: sessionData, 
-    isLoading: isSessionLoading 
+    data: sessionData,
+    isLoading: isSessionLoading
   } = useOpenF1SessionFromErgast(
-    externalSessionKey ? 0 : year, 
-    externalSessionKey ? "" : round, 
+    externalSessionKey ? 0 : year,
+    externalSessionKey ? "" : round,
     externalSessionKey ? "" : sessionType
   );
 
@@ -64,7 +70,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
     if (!positionData?.data || !driversData?.data || !lapData?.data) return [];
 
     const driverResults: { [key: number]: ProcessedResult } = {};
-    
+
     driversData.data.forEach((driver: any) => {
       driverResults[driver.driver_number] = {
         id: driver.driver_number,
@@ -93,11 +99,11 @@ const SessionResults: React.FC<SessionResultsProps> = ({
     });
 
     const finalPositions: { [key: number]: { position: number; date: string } } = {};
-    
+
     positionData.data.forEach((position: any) => {
       const driverNumber = position.driver_number;
       const positionValue = position.position;
-      
+
       if (!finalPositions[driverNumber] || position.date > finalPositions[driverNumber].date) {
         finalPositions[driverNumber] = {
           position: positionValue,
@@ -132,136 +138,162 @@ const SessionResults: React.FC<SessionResultsProps> = ({
 
   if (isLoading) {
     return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center p-4">
-        <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-        <p className="text-sm text-muted-foreground">Loading results...</p>
+      <div className="flex flex-col gap-1.5">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 border-b border-border py-2">
+            <F1Skeleton className="h-5 w-7 shrink-0" />
+            <F1Skeleton className="h-4 flex-1" />
+            <F1Skeleton className="h-4 w-16 shrink-0" />
+          </div>
+        ))}
       </div>
     );
   }
 
   if (lapDataError || positionDataError || !effectiveSessionKey) {
     return (
-      <div className="min-h-[300px] flex flex-col items-center justify-center p-4 text-center">
-        <AlertCircle className="h-8 w-8 text-muted-foreground mb-3" />
-        <p className="text-muted-foreground font-medium">Results unavailable</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          {lapDataError || positionDataError ? 'Failed to load session results' : 'No session data available'}
-        </p>
-      </div>
+      <F1ErrorState
+        type={lapDataError || positionDataError ? "server" : "not-found"}
+        variant="inline"
+        size="sm"
+        className="my-2"
+        title="Results unavailable"
+        message={
+          lapDataError || positionDataError
+            ? "Failed to load session results"
+            : "No session data available"
+        }
+      />
     );
   }
 
   if (processedResults.length === 0) {
-    return (
-      <div className="min-h-[300px] flex flex-col items-center justify-center p-4 text-center">
-        <Trophy className="h-8 w-8 text-muted-foreground mb-3" />
-        <p className="text-muted-foreground">No results available for this session</p>
-      </div>
-    );
+    return <F1EmptyState type="no-results" size="sm" showDecoration={false} />;
   }
 
-  const podiumResults = processedResults.slice(0, 3);
-  const otherResults = processedResults.slice(3);
+  // Fastest lap across the session
+  const fastestLap = processedResults.reduce<ProcessedResult | null>((best, r) => {
+    if (r.best_lap_time == null) return best;
+    if (!best || (best.best_lap_time ?? Infinity) > r.best_lap_time) return r;
+    return best;
+  }, null);
 
   return (
-    <div className="space-y-4">
-      {/* Podium Section */}
-      <div className="flex items-end justify-center gap-3 h-36">
-        {/* P2 */}
-        {podiumResults[1] && (
-          <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-            <div 
-              className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-sm mb-2 shadow-lg"
-              style={{ backgroundColor: podiumResults[1].team_color }}
-            >
-              {podiumResults[1].driver_acronym}
-            </div>
-            <div className="w-16 h-16 rounded-t-lg flex flex-col items-center justify-center bg-gradient-to-b from-slate-300 to-slate-500">
-              <span className="text-xl font-bold text-white">2</span>
-              <span className="text-[9px] text-white/80 font-mono">
-                {podiumResults[1].best_lap_time ? formatTime(podiumResults[1].best_lap_time) : '--'}
-              </span>
-            </div>
-          </div>
-        )}
-        
-        {/* P1 */}
-        {podiumResults[0] && (
-          <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Trophy className="h-5 w-5 text-yellow-500 mb-1" />
-            <div 
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold mb-2 shadow-lg ring-4 ring-yellow-500"
-              style={{ backgroundColor: podiumResults[0].team_color }}
-            >
-              {podiumResults[0].driver_acronym}
-            </div>
-            <div className="w-20 h-24 rounded-t-lg flex flex-col items-center justify-center bg-gradient-to-b from-yellow-400 to-yellow-600">
-              <span className="text-2xl font-bold text-white">1</span>
-              <span className="text-[9px] text-white/90 font-mono font-medium">
-                {podiumResults[0].best_lap_time ? formatTime(podiumResults[0].best_lap_time) : '--'}
-              </span>
-            </div>
-          </div>
-        )}
-        
-        {/* P3 */}
-        {podiumResults[2] && (
-          <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
-            <div 
-              className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-sm mb-2 shadow-lg"
-              style={{ backgroundColor: podiumResults[2].team_color }}
-            >
-              {podiumResults[2].driver_acronym}
-            </div>
-            <div className="w-16 h-12 rounded-t-lg flex flex-col items-center justify-center bg-gradient-to-b from-amber-500 to-amber-700">
-              <span className="text-lg font-bold text-white">3</span>
-              <span className="text-[9px] text-white/80 font-mono">
-                {podiumResults[2].best_lap_time ? formatTime(podiumResults[2].best_lap_time) : '--'}
-              </span>
-            </div>
-          </div>
+    <div className="flex flex-col gap-3">
+      {/* Eyebrow + fastest lap */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Classification
+        </span>
+        {fastestLap?.best_lap_time != null && (
+          <F1Badge variant="time" className="gap-1.5">
+            <Zap className="h-3 w-3 text-primary" />
+            <span className="text-primary">{fastestLap.driver_acronym}</span>
+            <span className="opacity-50">•</span>
+            {formatTime(fastestLap.best_lap_time)}
+          </F1Badge>
         )}
       </div>
 
-      {/* Rest of Results - Grid Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-        {otherResults.map((result, idx) => (
-          <div
-            key={result.id}
-            className="relative rounded-lg overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-2 bg-card border border-border hover:bg-accent"
-            style={{ animationDelay: `${idx * 30}ms` }}
-          >
-            {/* Team Color Strip */}
-            <div 
-              className="absolute left-0 top-0 bottom-0 w-1"
-              style={{ backgroundColor: result.team_color }}
-            />
-            
-            <div className="p-2.5 pl-3.5">
-              <div className="flex items-center justify-between">
-                <span className="text-lg font-bold text-muted-foreground">
+      {/* ── Mobile: compact cards (no horizontal scroll, names wrap) ── */}
+      <div className="flex flex-col gap-1.5 md:hidden">
+        {processedResults.map((result) => {
+          const isFastest = fastestLap?.id === result.id;
+          return (
+            <div
+              key={result.id}
+              className="flex items-center gap-2.5 rounded-lg border border-border bg-card/40 p-2"
+            >
+              {result.position <= 3 ? (
+                <PositionBadge position={result.position} showIcon={false} className="shrink-0" />
+              ) : (
+                <span className="w-7 shrink-0 text-center text-sm font-bold tabular-nums text-muted-foreground">
                   {result.position}
                 </span>
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  {result.best_lap_time ? formatTime(result.best_lap_time) : '--'}
-                </span>
+              )}
+              <div
+                className="min-w-0 flex-1 border-l-2 pl-2.5"
+                style={{ borderColor: result.team_color }}
+              >
+                <div className="flex items-center gap-1.5 font-bold leading-tight">
+                  <span className="font-mono">{result.driver_acronym}</span>
+                  {isFastest && <Zap className="h-3 w-3 shrink-0 text-primary" />}
+                </div>
+                <div className="mt-0.5 break-words text-xs text-muted-foreground">
+                  {result.constructor_name}
+                </div>
               </div>
-              <div className="font-bold text-sm mt-0.5">{result.driver_acronym}</div>
-              <div className="text-[10px] text-muted-foreground truncate">{result.constructor_name}</div>
+              <div className="shrink-0 text-right">
+                <div className="timing text-sm leading-none">
+                  {result.best_lap_time ? formatTime(result.best_lap_time) : '--'}
+                </div>
+                {result.gap_to_leader > 0 && (
+                  <div className="timing mt-0.5 text-xs text-muted-foreground">
+                    +{result.gap_to_leader.toFixed(3)}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Fastest Lap Badge */}
-      {processedResults[0]?.best_lap_time && (
-        <div className="flex justify-center">
-          <Badge variant="outline" className="text-xs px-3 py-1 gap-1.5 bg-purple-500/10 text-purple-500 border-purple-500/30">
-            <Medal className="h-3 w-3" />
-            Fastest: {processedResults.sort((a, b) => (a.best_lap_time || 999) - (b.best_lap_time || 999))[0]?.driver_acronym} - {formatTime(processedResults.sort((a, b) => (a.best_lap_time || 999) - (b.best_lap_time || 999))[0]?.best_lap_time || 0)}
-          </Badge>
-        </div>
-      )}
+      {/* ── Desktop: dense timing-screen table ── */}
+      <div className="hidden md:block">
+        <table className="w-full border-separate border-spacing-0">
+          <thead>
+            <tr className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <th className="border-b border-border py-2 pr-3 text-left font-semibold">Pos</th>
+              <th className="border-b border-border py-2 pr-3 text-left font-semibold">Driver</th>
+              <th className="border-b border-border py-2 pr-3 text-left font-semibold">Team</th>
+              <th className="border-b border-border py-2 pr-3 text-right font-semibold">Best Lap</th>
+              <th className="border-b border-border py-2 text-right font-semibold">Gap</th>
+            </tr>
+          </thead>
+          <tbody>
+            {processedResults.map((result) => {
+              const isFastest = fastestLap?.id === result.id;
+              return (
+                <tr key={result.id} className="group">
+                  <td className="border-b border-border py-1.5 pr-3 align-middle">
+                    {result.position <= 3 ? (
+                      <PositionBadge position={result.position} showIcon={false} />
+                    ) : (
+                      <span className="inline-block w-7 text-center text-sm font-bold tabular-nums text-muted-foreground">
+                        {result.position}
+                      </span>
+                    )}
+                  </td>
+                  <td className="border-b border-border py-1.5 pr-3 align-middle">
+                    <div
+                      className="flex items-center gap-2 border-l-2 pl-2.5"
+                      style={{ borderColor: result.team_color }}
+                    >
+                      <span className="font-mono text-sm font-bold">{result.driver_acronym}</span>
+                      {isFastest && <Zap className="h-3 w-3 shrink-0 text-primary" />}
+                    </div>
+                  </td>
+                  <td className="border-b border-border py-1.5 pr-3 align-middle">
+                    <span className="break-words text-sm text-muted-foreground">
+                      {result.constructor_name}
+                    </span>
+                  </td>
+                  <td className="border-b border-border py-1.5 pr-3 text-right align-middle">
+                    <span className="timing text-sm">
+                      {result.best_lap_time ? formatTime(result.best_lap_time) : '--'}
+                    </span>
+                  </td>
+                  <td className="border-b border-border py-1.5 text-right align-middle">
+                    <span className="timing text-sm text-muted-foreground">
+                      {result.gap_to_leader > 0 ? `+${result.gap_to_leader.toFixed(3)}` : '--'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
 import {
   F1Card,
   F1CardContent,
   F1CardDescription,
   F1CardHeader,
   F1CardTitle,
+  F1Skeleton,
 } from "@/components/f1";
 import { cn } from "@/lib/utils";
 import {
@@ -106,9 +106,7 @@ const TrackMapChart = ({ year, round, session = "R" }: Props) => {
 
       <F1CardContent className="px-0 pb-0">
         {indexLoading || isLoading ? (
-          <div className="flex h-[340px] items-center justify-center text-muted-foreground">
-            <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Loading track map…
-          </div>
+          <F1Skeleton className="h-[340px] w-full" />
         ) : !geom ? (
           <div className="flex h-[340px] items-center justify-center text-muted-foreground">
             Select a driver.
@@ -131,7 +129,7 @@ const TrackMapChart = ({ year, round, session = "R" }: Props) => {
               ))}
             </svg>
             {/* speed legend */}
-            <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+            <div className="mt-2 flex items-center justify-center gap-2 text-xs tabular-nums text-muted-foreground">
               <span>{Math.round(geom.minS)} km/h</span>
               <span
                 className="h-2 w-40 rounded-full"

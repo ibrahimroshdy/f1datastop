@@ -9,14 +9,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Loader2 } from "lucide-react";
 import {
   F1Card,
   F1CardContent,
   F1CardDescription,
   F1CardHeader,
   F1CardTitle,
+  F1Skeleton,
 } from "@/components/f1";
+import { TEAM_COLORS } from "@/constants/f1Colors";
+import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
 import {
   Select,
   SelectContent,
@@ -87,7 +89,7 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
   };
 
   const colorFor = (code: string) =>
-    laps.find((l) => l.driver === code)?.team_color || "#E10600";
+    laps.find((l) => l.driver === code)?.team_color || TEAM_COLORS.default;
 
   if (!indexLoading && (!index || index.length === 0)) {
     return (
@@ -139,7 +141,7 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
               >
                 {r.driver_code}
                 {r.top_speed ? (
-                  <span className="ml-1 opacity-70">{Math.round(r.top_speed)}</span>
+                  <span className="ml-1 font-mono tabular-nums opacity-70">{Math.round(r.top_speed)}</span>
                 ) : null}
               </button>
             );
@@ -150,9 +152,7 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
       <F1CardContent className="px-0 pb-0">
         <div className="h-[360px] w-full">
           {indexLoading || lapsLoading ? (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
-              <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Loading telemetry…
-            </div>
+            <F1Skeleton className="h-full w-full" />
           ) : !laps.length ? (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               Select a driver to view telemetry.
@@ -160,20 +160,33 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                <defs>
+                  {laps.map((lap) => (
+                    <ScopeDefs
+                      key={lap.driver}
+                      id={lap.driver}
+                      color={lap.team_color || TEAM_COLORS.default}
+                    />
+                  ))}
+                </defs>
+                <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="distance"
-                  tick={{ fontSize: 11 }}
+                  stroke={chartTheme.axis}
+                  tick={chartTheme.tick}
                   tickFormatter={(v) => `${v}m`}
-                  label={{ value: "Distance", position: "insideBottomRight", offset: -2, fontSize: 11 }}
+                  label={{ value: "Distance", position: "insideBottomRight", offset: -2, fontSize: 11, fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)" }}
                 />
                 <YAxis
-                  tick={{ fontSize: 11 }}
+                  stroke={chartTheme.axis}
+                  tick={chartTheme.tick}
                   width={44}
-                  label={{ value: metricMeta.unit, angle: -90, position: "insideLeft", fontSize: 11 }}
+                  label={{ value: metricMeta.unit, angle: -90, position: "insideLeft", fontSize: 11, fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)" }}
                 />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#15151e", borderColor: "#2a2a35", color: "#f3f4f6", fontSize: 12 }}
+                  contentStyle={chartTheme.tooltipContentStyle}
+                  labelStyle={chartTheme.tooltipLabelStyle}
+                  cursor={chartTheme.cursor}
                   labelFormatter={(v) => `${v} m`}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -183,8 +196,9 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
                     type={metricMeta.step ? "stepAfter" : "monotone"}
                     dataKey={lap.driver}
                     name={`${lap.driver}${lap.lap_time ? ` · ${lap.lap_time}` : ""}`}
-                    stroke={lap.team_color || "#E10600"}
+                    stroke={lap.team_color || TEAM_COLORS.default}
                     strokeWidth={2}
+                    filter={SCOPE_GLOW}
                     dot={false}
                     activeDot={{ r: 4 }}
                     connectNulls
@@ -202,10 +216,10 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
               <div
                 key={lap.driver}
                 className="rounded-lg border border-border/60 px-3 py-2"
-                style={{ borderLeftColor: lap.team_color || "#E10600", borderLeftWidth: 3 }}
+                style={{ borderLeftColor: lap.team_color || TEAM_COLORS.default, borderLeftWidth: 3 }}
               >
                 <div className="text-sm font-semibold">{lap.driver}</div>
-                <div className="mt-0.5 text-[11px] leading-tight text-muted-foreground">
+                <div className="mt-0.5 font-mono text-xs leading-tight text-muted-foreground tabular-nums">
                   top {lap.metrics.top_speed ?? "–"} km/h · {lap.metrics.full_throttle_pct ?? "–"}% WOT
                   {" · "}
                   {lap.metrics.brake_zones ?? "–"} brake zones

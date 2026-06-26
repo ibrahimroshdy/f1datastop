@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Gauge, Activity } from 'lucide-react';
-import { Badge } from "@/components/ui/badge";
+import { Gauge } from 'lucide-react';
+import { F1Badge, F1ChartContainer } from "@/components/f1";
 import { useTelemetryData } from "@/hooks/useTelemetryData";
 import { useF1Metadata } from "@/hooks/useF1Metadata";
 import {
@@ -13,7 +13,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { useTheme } from '@/context/ThemeContext';
+import { useThemeVariant } from '@/hooks/useThemeVariant';
 import { cn } from '@/lib/utils';
 
 interface TelemetryDashboardProps {
@@ -25,13 +25,13 @@ interface TelemetryDashboardProps {
 
 type TelemetryMetric = 'speed' | 'throttle' | 'brake' | 'rpm' | 'gear' | 'drs';
 
-const metricConfig: Record<TelemetryMetric, { label: string; unit: string; color: string }> = {
-  speed: { label: 'Speed', unit: 'km/h', color: '#3b82f6' },
-  throttle: { label: 'Throttle', unit: '%', color: '#22c55e' },
-  brake: { label: 'Brake', unit: '%', color: '#ef4444' },
-  rpm: { label: 'RPM', unit: 'rpm', color: '#f59e0b' },
-  gear: { label: 'Gear', unit: '', color: '#8b5cf6' },
-  drs: { label: 'DRS', unit: '', color: '#06b6d4' },
+const metricConfig: Record<TelemetryMetric, { label: string; unit: string }> = {
+  speed: { label: 'Speed', unit: 'km/h' },
+  throttle: { label: 'Throttle', unit: '%' },
+  brake: { label: 'Brake', unit: '%' },
+  rpm: { label: 'RPM', unit: 'rpm' },
+  gear: { label: 'Gear', unit: '' },
+  drs: { label: 'DRS', unit: '' },
 };
 
 const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
@@ -40,8 +40,8 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   const [selectedDriver1, setSelectedDriver1] = useState<string>("");
   const [selectedDriver2, setSelectedDriver2] = useState<string>("");
   const [telemetryMetric, setTelemetryMetric] = useState<TelemetryMetric>("speed");
-  
-  const { isGlass } = useTheme();
+
+  const { isGlass } = useThemeVariant();
 
   // Use metadata hook for drivers and colors
   const { drivers, getDriverColor, isLoading: isMetadataLoading } = useF1Metadata();
@@ -86,14 +86,14 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     for (let i = 0; i < maxLength; i++) {
       const p1 = d1Data[i];
       const p2 = d2Data[i];
-      
+
       times.push(p1?.time || p2?.time || i);
       driver1Values.push(p1 ? p1[telemetryMetric] : null);
       driver2Values.push(p2 ? p2[telemetryMetric] : null);
     }
 
     const series: Array<{ data: (number | null)[]; label: string; color: string; showMark: boolean }> = [];
-    
+
     if (selectedDriver1) {
       const driver = drivers.find(d => d.permanentNumber === selectedDriver1);
       series.push({
@@ -103,7 +103,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
         showMark: false,
       });
     }
-    
+
     if (selectedDriver2 && selectedDriver2 !== "none") {
       const driver = drivers.find(d => d.permanentNumber === selectedDriver2);
       series.push({
@@ -138,30 +138,24 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     return (
       <div className="min-h-[300px] flex flex-col items-center justify-center p-4 text-center">
         <Gauge className="h-8 w-8 text-muted-foreground mb-3" />
-        <p className="text-muted-foreground font-medium">Select a Session</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Please select a specific session (Practice, Qualifying, or Race) to view telemetry.
+        <p className="font-medium text-foreground">Select a Session</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Select a specific session (Practice, Qualifying, or Race) to view telemetry.
         </p>
       </div>
     );
   }
 
-  if (isTelemetryLoading || isMetadataLoading) {
-    return (
-      <div className="min-h-[400px] flex flex-col items-center justify-center p-4">
-        <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-        <p className="text-sm text-muted-foreground">Loading telemetry data...</p>
-      </div>
-    );
-  }
+  const isLoading = isTelemetryLoading || isMetadataLoading;
 
-  // Axis tick formatting + themed colors (mirrors the old MUI axis styling)
-  const tickColor = 'hsl(var(--chart-axis))';
-  const gridColor = 'hsl(var(--chart-grid))';
+  // Token-driven chart colors (axis ticks, gridlines, tooltip surfaces).
+  const tickColor = 'hsl(var(--muted-foreground))';
+  const gridColor = 'hsl(var(--border))';
   const formatTime = (value: number) =>
     typeof value === 'number' ? value.toFixed(1) : String(value);
+  const metricUnit = metricConfig[telemetryMetric].unit;
   const yAxisLabel = `${metricConfig[telemetryMetric].label}${
-    metricConfig[telemetryMetric].unit ? ` (${metricConfig[telemetryMetric].unit})` : ''
+    metricUnit ? ` (${metricUnit})` : ''
   }`;
 
   // Custom tooltip: time header + one row per driver series.
@@ -170,8 +164,8 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
     const rows = payload.filter((p: any) => p.value != null);
     if (!rows.length) return null;
     return (
-      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
-        <div className="font-mono text-muted-foreground mb-1">
+      <div className="rounded-md border border-border bg-card/95 px-2 py-1.5 text-xs shadow-premium-sm">
+        <div className="font-mono tabular-nums text-muted-foreground mb-1">
           {formatTime(label)}s
         </div>
         {rows.map((p: any) => (
@@ -180,10 +174,10 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
               className="w-2 h-2 rounded-full"
               style={{ background: p.color || p.stroke }}
             />
-            <span className="font-bold w-9">{p.dataKey}</span>
-            <span className="font-mono">
+            <span className="font-bold w-9 text-foreground">{p.dataKey}</span>
+            <span className="font-mono tabular-nums text-foreground">
               {p.value.toFixed(1)}
-              {metricConfig[telemetryMetric].unit ? ` ${metricConfig[telemetryMetric].unit}` : ''}
+              {metricUnit ? ` ${metricUnit}` : ''}
             </span>
           </div>
         ))}
@@ -192,11 +186,11 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-2">
         <Select value={selectedDriver1} onValueChange={setSelectedDriver1}>
-          <SelectTrigger className={cn("w-[120px] h-8 text-xs", isGlass && "bg-white/5 border-white/10")}>
+          <SelectTrigger className="w-[120px] h-8 text-xs font-mono">
             <SelectValue placeholder="Driver 1" />
           </SelectTrigger>
           <SelectContent>
@@ -207,7 +201,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: getDriverColor(driver.driverId) }}
                   />
-                  <span className="text-xs">{driver.code}</span>
+                  <span className="text-xs font-mono">{driver.code}</span>
                 </div>
               </SelectItem>
             ))}
@@ -217,7 +211,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
         <span className="text-xs text-muted-foreground">vs</span>
 
         <Select value={selectedDriver2} onValueChange={setSelectedDriver2}>
-          <SelectTrigger className={cn("w-[120px] h-8 text-xs", isGlass && "bg-white/5 border-white/10")}>
+          <SelectTrigger className="w-[120px] h-8 text-xs font-mono">
             <SelectValue placeholder="Driver 2" />
           </SelectTrigger>
           <SelectContent>
@@ -229,7 +223,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: getDriverColor(driver.driverId) }}
                   />
-                  <span className="text-xs">{driver.code}</span>
+                  <span className="text-xs font-mono">{driver.code}</span>
                 </div>
               </SelectItem>
             ))}
@@ -238,21 +232,24 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
 
         <div className="flex-1" />
 
-        <div className="flex gap-1">
-          {(Object.keys(metricConfig) as TelemetryMetric[]).map(metric => (
-            <button
-              key={metric}
-              onClick={() => setTelemetryMetric(metric)}
-              className={cn(
-                "px-2 py-1 rounded text-[10px] font-medium transition-colors",
-                telemetryMetric === metric
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              {metricConfig[metric].label}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-1">
+          {(Object.keys(metricConfig) as TelemetryMetric[]).map(metric => {
+            const active = telemetryMetric === metric;
+            return (
+              <button
+                key={metric}
+                onClick={() => setTelemetryMetric(metric)}
+                className={cn(
+                  "px-2 py-1 rounded-md text-xs font-medium transition-fast",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+              >
+                {metricConfig[metric].label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -264,7 +261,7 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: getDriverColor(drivers.find(d => d.permanentNumber === selectedDriver1)?.driverId || "") }}
             />
-            <span className="text-xs font-medium">{getDriverCode(selectedDriver1)}</span>
+            <span className="text-xs font-mono font-medium text-foreground">{getDriverCode(selectedDriver1)}</span>
           </div>
         )}
         {selectedDriver2 && selectedDriver2 !== "none" && (
@@ -273,81 +270,77 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: getDriverColor(drivers.find(d => d.permanentNumber === selectedDriver2)?.driverId || "") }}
             />
-            <span className="text-xs font-medium">{getDriverCode(selectedDriver2)}</span>
+            <span className="text-xs font-mono font-medium text-foreground">{getDriverCode(selectedDriver2)}</span>
           </div>
         )}
-        <Badge variant="outline" className="text-[10px] ml-auto">
+        <F1Badge variant="time" className="ml-auto">
           {metricConfig[telemetryMetric].label}
-          {metricConfig[telemetryMetric].unit && ` (${metricConfig[telemetryMetric].unit})`}
-        </Badge>
+          {metricUnit && ` (${metricUnit})`}
+        </F1Badge>
       </div>
 
       {/* Chart */}
-      {!hasData ? (
-        <div className={cn(
-          "min-h-[300px] flex flex-col items-center justify-center rounded-lg",
-          isGlass ? "bg-white/5 border border-white/10" : "bg-muted/30"
-        )}>
-          <Activity className="h-8 w-8 text-muted-foreground mb-3" />
-          <p className="text-muted-foreground text-sm">No telemetry data available</p>
-          <p className="text-xs text-muted-foreground mt-1">Select different drivers or check data availability</p>
-        </div>
-      ) : (
-        <div className="h-[350px]">
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart
-              data={rechartsRows}
-              margin={{ left: 10, right: 20, top: 20, bottom: 40 }}
-            >
-              <CartesianGrid
-                vertical={false}
-                stroke={gridColor}
-                strokeDasharray="3 3"
+      <F1ChartContainer
+        isLoading={isLoading}
+        useSkeleton
+        isEmpty={!isLoading && !hasData}
+        emptyTitle="No telemetry data"
+        emptyDescription="Select different drivers or check data availability"
+        minHeight={350}
+      >
+        <ResponsiveContainer width="100%" height={350}>
+          <LineChart
+            data={rechartsRows}
+            margin={{ left: 10, right: 20, top: 20, bottom: 40 }}
+          >
+            <CartesianGrid
+              vertical={false}
+              stroke={gridColor}
+              strokeDasharray="3 3"
+            />
+            <XAxis
+              dataKey="time"
+              type="number"
+              domain={['dataMin', 'dataMax']}
+              tickFormatter={formatTime}
+              tickLine={false}
+              tick={{ fontSize: 10, fill: tickColor, fontFamily: 'var(--font-mono, monospace)' }}
+              label={{
+                value: 'Time (s)',
+                position: 'insideBottom',
+                offset: -10,
+                fontSize: 11,
+                fill: tickColor,
+              }}
+            />
+            <YAxis
+              width={55}
+              tickLine={false}
+              tick={{ fontSize: 10, fill: tickColor, fontFamily: 'var(--font-mono, monospace)' }}
+              label={{
+                value: yAxisLabel,
+                angle: -90,
+                position: 'insideLeft',
+                style: { textAnchor: 'middle', fontSize: 11, fill: tickColor },
+              }}
+            />
+            <Tooltip content={<TelemetryTooltip />} />
+            {chartData.series.map(s => (
+              <Line
+                key={s.label}
+                type="linear"
+                dataKey={s.label}
+                stroke={s.color}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3 }}
+                connectNulls
+                isAnimationActive={false}
               />
-              <XAxis
-                dataKey="time"
-                type="number"
-                domain={['dataMin', 'dataMax']}
-                tickFormatter={formatTime}
-                tickLine={false}
-                tick={{ fontSize: 10, fill: tickColor }}
-                label={{
-                  value: 'Time (s)',
-                  position: 'insideBottom',
-                  offset: -10,
-                  fontSize: 11,
-                  fill: tickColor,
-                }}
-              />
-              <YAxis
-                width={55}
-                tickLine={false}
-                tick={{ fontSize: 10, fill: tickColor }}
-                label={{
-                  value: yAxisLabel,
-                  angle: -90,
-                  position: 'insideLeft',
-                  style: { textAnchor: 'middle', fontSize: 11, fill: tickColor },
-                }}
-              />
-              <Tooltip content={<TelemetryTooltip />} />
-              {chartData.series.map(s => (
-                <Line
-                  key={s.label}
-                  type="linear"
-                  dataKey={s.label}
-                  stroke={s.color}
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 3 }}
-                  connectNulls
-                  isAnimationActive={false}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </F1ChartContainer>
 
       {/* Stats Summary */}
       {hasData && chartData.series.length > 0 && (
@@ -357,34 +350,35 @@ const TelemetryDashboard: React.FC<TelemetryDashboardProps> = ({
             const max = validValues.length > 0 ? Math.max(...validValues) : 0;
             const min = validValues.length > 0 ? Math.min(...validValues) : 0;
             const avg = validValues.length > 0 ? validValues.reduce((a, b) => a + b, 0) / validValues.length : 0;
-            
+
             return (
               <div
                 key={s.label}
                 className={cn(
-                  "rounded-lg p-3",
-                  isGlass ? "bg-white/5 border border-white/10" : "bg-muted/30"
+                  "rounded-lg p-3 border border-border",
+                  isGlass ? "bg-muted/20" : "bg-muted/40"
                 )}
+                style={{ borderLeftColor: s.color, borderLeftWidth: 3 }}
               >
                 <div className="flex items-center gap-2 mb-2">
                   <div
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: s.color }}
                   />
-                  <span className="text-xs font-semibold">{s.label}</span>
+                  <span className="text-xs font-mono font-semibold text-foreground">{s.label}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <div className="grid grid-cols-3 gap-2 text-xs">
                   <div>
                     <div className="text-muted-foreground">Max</div>
-                    <div className="font-mono font-medium">{max.toFixed(1)}</div>
+                    <div className="font-mono tabular-nums font-medium text-foreground">{max.toFixed(1)}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Min</div>
-                    <div className="font-mono font-medium">{min.toFixed(1)}</div>
+                    <div className="font-mono tabular-nums font-medium text-foreground">{min.toFixed(1)}</div>
                   </div>
                   <div>
                     <div className="text-muted-foreground">Avg</div>
-                    <div className="font-mono font-medium">{avg.toFixed(1)}</div>
+                    <div className="font-mono tabular-nums font-medium text-foreground">{avg.toFixed(1)}</div>
                   </div>
                 </div>
               </div>

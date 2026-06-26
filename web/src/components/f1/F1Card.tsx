@@ -16,14 +16,14 @@ export type F1CardAccent = "none" | "red" | "team" | "top";
 export type F1CardGlassVariant = "default" | "glow" | "panel" | "subtle";
 
 const f1CardVariants = cva(
-  "relative rounded-xl overflow-hidden transition-all duration-300 border",
+  "relative rounded-xl overflow-hidden transition-all duration-300 ease-spring border",
   {
     variants: {
       variant: {
-        default: "bg-card border-border shadow-sm",
-        gradient: "bg-gradient-to-br from-card to-card/80 border-border shadow-sm",
+        default: "bg-card border-border shadow-card",
+        gradient: "bg-gradient-to-br from-card to-card/80 border-border shadow-card",
         glass: "border-border/50",
-        "team-accent": "bg-card border-border shadow-sm",
+        "team-accent": "bg-card border-border shadow-card",
       },
       glassVariant: {
         default: "glass",
@@ -39,9 +39,9 @@ const f1CardVariants = cva(
       },
       hover: {
         false: "",
-        true: "hover:scale-[1.02] hover:shadow-lg cursor-pointer",
-        lift: "hover:-translate-y-1 hover:shadow-lg cursor-pointer",
-        glow: "hover:shadow-glow cursor-pointer",
+        true: "hover:-translate-y-0.5 hover:shadow-premium-lg active:scale-[0.99] cursor-pointer",
+        lift: "hover:-translate-y-1 hover:shadow-premium-lg active:scale-[0.99] cursor-pointer",
+        glow: "hover:-translate-y-0.5 hover:shadow-glow hover:border-primary/30 cursor-pointer",
       },
       accent: {
         none: "",

@@ -1,10 +1,30 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Car, AlertCircle, Trophy, Users, Zap, Play, Pause, RotateCcw, Flag, ChevronUp, ChevronDown, Wrench, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import {
+  Trophy,
+  Users,
+  Zap,
+  Play,
+  Pause,
+  RotateCcw,
+  Flag,
+  ChevronUp,
+  ChevronDown,
+  Wrench,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { usePositionData, useDrivers, useOvertakes, useLaps, useStartingGrid, useOpenF1SessionFromErgast } from "@/hooks/useOpenF1Data";
+import {
+  usePositionData,
+  useDrivers,
+  useOvertakes,
+  useLaps,
+  useStartingGrid,
+  useOpenF1SessionFromErgast,
+} from "@/hooks/useOpenF1Data";
 import { getRaceResults, getPitStops as getErgastPitStops } from "@/services/f1Service";
 import {
   LineChart,
@@ -15,9 +35,17 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
 import { getTeamColorById } from '@/constants/f1Colors';
+import { useThemeVariant } from '@/hooks/useThemeVariant';
+import {
+  F1Card,
+  F1CardContent,
+  F1ChartContainer,
+  F1EmptyState,
+  F1ErrorState,
+  F1Skeleton,
+} from '@/components/f1';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface OvertakesAnalysisProps {
@@ -45,6 +73,11 @@ import {
   type DriverOvertakeStats,
 } from "@/lib/f1/overtakes";
 
+const eyebrow = "text-xs font-semibold uppercase tracking-widest text-muted-foreground";
+
+const underlineTabTrigger =
+  "rounded-none border-b-2 border-transparent bg-transparent px-3 pb-2 pt-1 text-xs shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
+
 const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
   year,
   round,
@@ -59,8 +92,8 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
   const [isErgastLoading, setIsErgastLoading] = useState(true);
   const animationRef = useRef<number>();
   const lastUpdateRef = useRef<number>(0);
-  
-  const { isGlass } = useTheme();
+
+  const { cardVariant, glassVariant } = useThemeVariant();
 
   // Fetch Ergast data for accurate grid positions and pit stops
   useEffect(() => {
@@ -73,7 +106,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
         ]);
 
         const results = resultsRes?.data?.Results || [];
-        
+
         // Process pit stops
         const pitStopsByDriver: { [driver: string]: number } = {};
         const pitStops: PitStopInfo[] = (pitStopsRes?.data?.Races?.[0]?.PitStops || []).map((ps: any) => {
@@ -88,8 +121,9 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
         });
 
         setErgastData({ results, pitStops });
-      } catch (error) {
-        console.error('Error fetching Ergast data:', error);
+      } catch {
+        // Swallow — UI degrades gracefully via empty guards below.
+        setErgastData({ results: [], pitStops: [] });
       } finally {
         setIsErgastLoading(false);
       }
@@ -100,10 +134,16 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
     }
   }, [year, round]);
 
-  const { data: sessionData, isLoading: isSessionLoading } = useOpenF1SessionFromErgast(year, round, "Race");
+  const {
+    data: sessionData,
+    isLoading: isSessionLoading,
+    isError: isSessionError,
+  } = useOpenF1SessionFromErgast(year, round, "Race");
   const effectiveSessionKey = externalSessionKey || sessionData?.data?.session_key || 0;
+  // OpenF1 returns no matching session → surface as empty, not a crash.
+  const sessionUnavailable = !isSessionLoading && !effectiveSessionKey;
 
-  const { data: positionData, isLoading: isPositionLoading } = usePositionData(effectiveSessionKey);
+  const { data: positionData, isLoading: isPositionLoading, isError: isPositionError } = usePositionData(effectiveSessionKey);
   const { data: driversData, isLoading: isDriversLoading } = useDrivers(effectiveSessionKey);
   const { data: overtakesData, isLoading: isOvertakesLoading } = useOvertakes(effectiveSessionKey);
   const { data: lapsData, isLoading: isLapsLoading } = useLaps(effectiveSessionKey);
@@ -112,16 +152,16 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
   // Build driver map with grid positions from Ergast (more reliable)
   const drivers = useMemo((): { [key: number]: DriverInfo } => {
     if (!driversData?.data) return {};
-    
+
     const driverMap: { [key: number]: DriverInfo } = {};
-    
+
     driversData.data.forEach((driver: any) => {
       // Find matching Ergast result for grid position
-      const ergastResult = ergastData.results.find((r: any) => 
+      const ergastResult = ergastData.results.find((r: any) =>
         r.Driver?.code === driver.name_acronym ||
         r.Driver?.driverId?.toLowerCase().includes(driver.last_name?.toLowerCase())
       );
-      
+
       driverMap[driver.driver_number] = {
         number: driver.driver_number,
         name: `${driver.first_name} ${driver.last_name}`,
@@ -132,14 +172,14 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
         finalPosition: ergastResult ? parseInt(ergastResult.position) : 20
       };
     });
-    
+
     return driverMap;
   }, [driversData, ergastData.results]);
 
   // Map pit stops to driver numbers
   const pitStopsWithNumbers = useMemo(() => {
     return ergastData.pitStops.map(ps => {
-      const driver = Object.values(drivers).find(d => 
+      const driver = Object.values(drivers).find(d =>
         d.acronym.toLowerCase() === ps.driver.substring(0, 3).toLowerCase() ||
         d.name.toLowerCase().includes(ps.driver.toLowerCase())
       );
@@ -148,7 +188,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
   }, [ergastData.pitStops, drivers]);
 
   const totalLaps = useMemo(() => {
-    if (!lapsData?.data) return 0;
+    if (!lapsData?.data?.length) return 0;
     return Math.max(...lapsData.data.map((lap: any) => lap.lap_number || 0));
   }, [lapsData]);
 
@@ -168,57 +208,57 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
 
   // Current positions with movement indicators
   const currentPositions = useMemo(() => {
-    const positions: { 
-      driverNumber: number; 
-      position: number; 
-      previousPosition: number; 
+    const positions: {
+      driverNumber: number;
+      position: number;
+      previousPosition: number;
       gridPosition: number;
-      driver: DriverInfo; 
+      driver: DriverInfo;
       posChange: number;
       totalChange: number;
       hasPitStop: boolean;
     }[] = [];
-    
+
     // Get pit stops on current lap
     const currentLapPitStops = new Set(
       pitStopsWithNumbers.filter(ps => ps.lap === currentLap).map(ps => ps.driverNumber)
     );
-    
+
     Object.entries(positionsByLap).forEach(([driverNum, lapPositions]) => {
       const driverNumber = parseInt(driverNum);
       const driver = drivers[driverNumber];
       if (!driver) return;
-      
+
       let position = 20, previousPosition = 20;
-      for (let lap = currentLap; lap >= 0; lap--) { 
-        if (lapPositions[lap] !== undefined) { 
-          position = lapPositions[lap]; 
-          break; 
-        } 
+      for (let lap = currentLap; lap >= 0; lap--) {
+        if (lapPositions[lap] !== undefined) {
+          position = lapPositions[lap];
+          break;
+        }
       }
-      for (let lap = previousLap; lap >= 0; lap--) { 
-        if (lapPositions[lap] !== undefined) { 
-          previousPosition = lapPositions[lap]; 
-          break; 
-        } 
+      for (let lap = previousLap; lap >= 0; lap--) {
+        if (lapPositions[lap] !== undefined) {
+          previousPosition = lapPositions[lap];
+          break;
+        }
       }
-      
+
       const gridPosition = driver.gridPosition;
       const posChange = previousPosition - position;
       const totalChange = gridPosition - position;
-      
-      positions.push({ 
-        driverNumber, 
-        position, 
-        previousPosition, 
+
+      positions.push({
+        driverNumber,
+        position,
+        previousPosition,
         gridPosition,
-        driver, 
+        driver,
         posChange,
         totalChange,
         hasPitStop: currentLapPitStops.has(driverNumber)
       });
     });
-    
+
     return positions.sort((a, b) => a.position - b.position);
   }, [positionsByLap, drivers, currentLap, previousLap, pitStopsWithNumbers]);
 
@@ -250,8 +290,10 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
   );
 
   const isLoading = isSessionLoading || isPositionLoading || isDriversLoading || isOvertakesLoading || isLapsLoading || isStartingGridLoading || isErgastLoading;
+  const hasError = isSessionError || isPositionError;
   const totalOvertakes = overtakesData?.data?.length || 0;
   const totalPitStops = pitStopsWithNumbers.length;
+  const hasPositionData = !!positionData?.data?.length;
 
   // Custom tooltip for the position chart (sorted by position, P1 first)
   const PositionTooltip = ({ active, payload, label }: any) => {
@@ -261,83 +303,123 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
       .sort((a: any, b: any) => a.value - b.value);
     if (!rows.length) return null;
     return (
-      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
-        <div className="font-mono text-muted-foreground mb-1">Lap {label}</div>
+      <div className="rounded-md border border-border bg-popover/95 px-2 py-1.5 text-xs shadow-premium-sm">
+        <div className="mb-1 font-mono tabular-nums text-muted-foreground">LAP {label}</div>
         {rows.map((p: any) => (
           <div key={p.dataKey} className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ background: p.color || p.stroke }} />
-            <span className="font-bold w-9">{p.dataKey}</span>
-            <span className="font-mono">P{p.value}</span>
+            <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.stroke }} />
+            <span className="w-9 font-bold">{p.dataKey}</span>
+            <span className="font-mono tabular-nums">P{p.value}</span>
           </div>
         ))}
       </div>
     );
   };
 
-  if (isLoading) return (
-    <div className="min-h-[400px] flex flex-col items-center justify-center p-4">
-      <Car className="h-8 w-8 text-primary mb-2 animate-pulse" />
-      <p className="text-sm text-muted-foreground">Loading race data...</p>
-    </div>
-  );
-  
-  if (!effectiveSessionKey) return (
-    <div className="min-h-[300px] flex flex-col items-center justify-center p-4 text-center">
-      <AlertCircle className="h-8 w-8 text-muted-foreground mb-3" />
-      <p className="text-muted-foreground">No session data available</p>
-    </div>
-  );
-  
-  if (!positionData?.data || positionData.data.length === 0) return (
-    <div className="min-h-[300px] flex flex-col items-center justify-center p-4 text-center">
-      <Car className="h-8 w-8 text-muted-foreground mb-3" />
-      <p className="text-muted-foreground">No position data available</p>
-    </div>
-  );
+  // ── Loading / error / empty guards (never crash on missing OpenF1 data) ──
+  if (isLoading) {
+    return (
+      <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm">
+        <F1CardContent className="space-y-3">
+          <div className="grid grid-cols-5 gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <F1Skeleton key={i} className="h-16 rounded-lg" />
+            ))}
+          </div>
+          <F1Skeleton className="h-8 w-48" />
+          <F1Skeleton className="h-[280px] w-full rounded-lg" />
+        </F1CardContent>
+      </F1Card>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm">
+        <F1CardContent>
+          <F1ErrorState
+            type="server"
+            variant="inline"
+            size="sm"
+            message="Live timing data for this session could not be loaded."
+            className="py-8"
+          />
+        </F1CardContent>
+      </F1Card>
+    );
+  }
+
+  if (sessionUnavailable || !hasPositionData) {
+    return (
+      <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm">
+        <F1CardContent>
+          <F1EmptyState
+            type="no-data"
+            size="sm"
+            showDecoration={false}
+            title="No Telemetry Available"
+            description="OpenF1 has no position or timing feed for this session yet."
+            className="py-8"
+          />
+        </F1CardContent>
+      </F1Card>
+    );
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-3">
       {/* Stats Row */}
       <div className="grid grid-cols-5 gap-2">
         {[
-          { label: 'Overtakes', value: totalOvertakes, icon: Zap, color: 'text-primary' },
-          { label: 'Pit Stops', value: totalPitStops, icon: Wrench, color: 'text-amber-500' },
-          { label: 'Laps', value: totalLaps, icon: Flag, color: 'text-muted-foreground' },
-          { label: 'Drivers', value: Object.keys(drivers).length, icon: Users, color: 'text-muted-foreground' },
-          { label: 'Leader', value: currentPositions[0]?.driver.acronym || '-', icon: Trophy, color: 'text-yellow-500' },
+          { label: 'Overtakes', value: totalOvertakes, icon: Zap, accent: 'text-primary' },
+          { label: 'Pit Stops', value: totalPitStops, icon: Wrench, accent: 'text-muted-foreground' },
+          { label: 'Laps', value: totalLaps, icon: Flag, accent: 'text-muted-foreground' },
+          { label: 'Drivers', value: Object.keys(drivers).length, icon: Users, accent: 'text-muted-foreground' },
+          { label: 'Leader', value: currentPositions[0]?.driver.acronym || '—', icon: Trophy, accent: 'text-position-gold' },
         ].map(stat => (
-          <div key={stat.label} className={cn("rounded-lg p-2 text-center", isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50")}>
-            <stat.icon className={cn("h-4 w-4 mx-auto mb-1", stat.color)} />
-            <div className="text-lg font-bold">{stat.value}</div>
-            <div className="text-[9px] text-muted-foreground uppercase">{stat.label}</div>
+          <div key={stat.label} className="rounded-lg border border-border bg-muted/40 p-2 text-center">
+            <stat.icon className={cn("mx-auto mb-1 h-3.5 w-3.5", stat.accent)} />
+            <div className="font-mono text-lg font-bold tabular-nums">{stat.value}</div>
+            <div className={eyebrow}>{stat.label}</div>
           </div>
         ))}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className={cn("inline-flex h-8", isGlass && "bg-white/5 border border-white/10")}>
-          <TabsTrigger value="animation" className="text-xs px-3">Race Replay</TabsTrigger>
-          <TabsTrigger value="position" className="text-xs px-3">Position Chart</TabsTrigger>
-          <TabsTrigger value="stats" className="text-xs px-3">Results</TabsTrigger>
+        <TabsList className="inline-flex h-auto w-full justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
+          <TabsTrigger value="animation" className={underlineTabTrigger}>Race Replay</TabsTrigger>
+          <TabsTrigger value="position" className={underlineTabTrigger}>Position Chart</TabsTrigger>
+          <TabsTrigger value="stats" className={underlineTabTrigger}>Results</TabsTrigger>
         </TabsList>
 
         {/* Race Replay - Animated Timing Tower */}
-        <TabsContent value="animation" className="mt-3 space-y-3">
+        <TabsContent value="animation" className="mt-3 flex flex-col gap-3">
           {/* Controls */}
-          <div className={cn("flex items-center gap-3 p-2 rounded-lg", "bg-muted")}>
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-2">
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setIsPlaying(false); setCurrentProgress(0); }}>
               <RotateCcw className="h-4 w-4" />
             </Button>
-            <Button size="sm" className={cn("h-9 w-9 rounded-full p-0", isPlaying ? "bg-red-500" : "bg-green-500")} onClick={() => setIsPlaying(!isPlaying)}>
-              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+            <Button
+              size="sm"
+              className={cn("h-9 w-9 rounded-full p-0", isPlaying ? "bg-primary hover:bg-primary/90" : "bg-status-completed hover:bg-status-completed/90")}
+              onClick={() => setIsPlaying(!isPlaying)}
+            >
+              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="ml-0.5 h-4 w-4" />}
             </Button>
             <Slider value={[currentProgress]} onValueChange={([v]) => setCurrentProgress(v)} max={100} step={0.5} className="flex-1" />
-            <div className={cn("px-2 py-1 rounded font-mono text-xs font-bold min-w-[70px] text-center", "bg-foreground text-background")}>
+            <div className="min-w-[70px] rounded bg-foreground px-2 py-1 text-center font-mono text-xs font-bold tabular-nums text-background">
               LAP {currentLap}/{totalLaps}
             </div>
             <div className="flex gap-0.5">
               {[1, 2, 4].map(s => (
-                <button key={s} onClick={() => setPlaybackSpeed(s)} className={cn("w-6 h-6 rounded text-[10px] font-bold transition-colors", playbackSpeed === s ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-accent")}>
+                <button
+                  key={s}
+                  onClick={() => setPlaybackSpeed(s)}
+                  className={cn(
+                    "h-6 w-6 rounded font-mono text-xs font-bold tabular-nums transition-colors",
+                    playbackSpeed === s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+                  )}
+                >
                   {s}x
                 </button>
               ))}
@@ -345,81 +427,82 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
           </div>
 
           {/* Timing Tower */}
-          <div className={cn("rounded-xl overflow-hidden", "bg-gradient-to-b from-card to-background border border-border")}>
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
             {/* Header */}
-            <div className={cn("flex items-center justify-between px-3 py-2 border-b", "border-border bg-muted/50")}>
+            <div className="flex items-center justify-between border-b border-border bg-muted/40 px-3 py-2">
               <div className="flex items-center gap-2">
-                <div className={cn("w-2 h-2 rounded-full animate-pulse", isPlaying ? "bg-red-500" : "bg-green-500")} />
-                <span className="text-xs font-medium">{isPlaying ? 'LIVE' : 'PAUSED'}</span>
+                <div className={cn("h-2 w-2 animate-pulse rounded-full", isPlaying ? "bg-status-live" : "bg-status-completed")} />
+                <span className={eyebrow}>{isPlaying ? 'LIVE' : 'PAUSED'}</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>GRID</span>
-                <ArrowUp className="h-3 w-3 text-green-500" />
-                <ArrowDown className="h-3 w-3 text-red-500" />
+                <ArrowUp className="h-3 w-3 text-status-completed" />
+                <ArrowDown className="h-3 w-3 text-destructive" />
                 <span>NOW</span>
               </div>
             </div>
 
             {/* Driver List */}
-            <div className="p-2 space-y-0.5">
+            <div className="flex flex-col gap-0.5 p-2">
               <AnimatePresence>
                 {currentPositions.slice(0, 20).map((item) => {
                   const isGaining = item.posChange > 0;
                   const isLosing = item.posChange < 0;
-                  
+
                   return (
                     <motion.div
                       key={item.driverNumber}
                       layout
                       initial={{ opacity: 0, x: -20 }}
-                      animate={{ 
-                        opacity: 1, 
+                      animate={{
+                        opacity: 1,
                         x: 0,
-                        backgroundColor: isGaining ? 'rgba(34, 197, 94, 0.15)' : isLosing ? 'rgba(239, 68, 68, 0.15)' : 'transparent'
+                        backgroundColor: isGaining
+                          ? 'hsl(var(--status-completed) / 0.15)'
+                          : isLosing
+                            ? 'hsl(var(--destructive) / 0.18)'
+                            : 'transparent'
                       }}
                       exit={{ opacity: 0, x: 20 }}
-                      transition={{ 
+                      transition={{
                         layout: { type: "spring", stiffness: 350, damping: 30 },
                         backgroundColor: { duration: 0.5 }
                       }}
-                      className={cn(
-                        "flex items-center gap-2 px-2 py-1.5 rounded-lg",
-                        "hover:bg-muted/50"
-                      )}
+                      className="flex items-center gap-2 rounded-lg border-b border-border/40 px-2 py-1.5 last:border-b-0 hover:bg-muted/50"
                     >
-                      {/* Position Badge */}
+                      {/* Position */}
                       <div className={cn(
-                        "w-7 h-7 rounded flex items-center justify-center text-xs font-bold shrink-0",
-                        item.position === 1 && "bg-gradient-to-br from-yellow-400 to-yellow-600 text-black",
-                        item.position === 2 && "bg-gradient-to-br from-slate-300 to-slate-500 text-black",
-                        item.position === 3 && "bg-gradient-to-br from-amber-500 to-amber-700 text-white",
+                        "flex h-6 w-6 shrink-0 items-center justify-center rounded font-mono text-xs font-bold tabular-nums",
+                        item.position === 1 && "bg-position-gold text-background",
+                        item.position === 2 && "bg-position-silver text-background",
+                        item.position === 3 && "bg-position-bronze text-foreground",
                         item.position > 3 && "bg-muted text-muted-foreground"
                       )}>
                         {item.position}
                       </div>
 
-                      {/* Team Color Bar */}
-                      <div className="w-1 h-6 rounded-full" style={{ backgroundColor: item.driver.color }} />
+                      {/* Team Color Bar (sanctioned dynamic team hex) */}
+                      <div className="h-6 w-1 rounded-full" style={{ backgroundColor: item.driver.color }} />
 
                       {/* Driver Info */}
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm">{item.driver.acronym}</span>
-                          <span className="text-[10px] text-muted-foreground truncate">{item.driver.team}</span>
+                          <span className="font-mono text-sm font-bold">{item.driver.acronym}</span>
+                          <span className="truncate text-xs text-muted-foreground">{item.driver.team}</span>
                         </div>
                       </div>
 
                       {/* Grid Position */}
-                      <div className="text-[10px] text-muted-foreground font-mono w-6 text-center">
+                      <div className="w-7 text-center font-mono text-xs tabular-nums text-muted-foreground">
                         P{item.gridPosition}
                       </div>
 
                       {/* Total Change from Grid */}
-                      <div className="w-10 flex justify-center">
+                      <div className="flex w-10 justify-center">
                         {item.totalChange !== 0 ? (
                           <div className={cn(
-                            "flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-bold",
-                            item.totalChange > 0 ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                            "flex items-center gap-0.5 rounded px-1 py-0.5 font-mono text-xs font-bold tabular-nums",
+                            item.totalChange > 0 ? "bg-status-completed/20 text-status-completed" : "bg-destructive/20 text-destructive"
                           )}>
                             {item.totalChange > 0 ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                             {Math.abs(item.totalChange)}
@@ -434,7 +517,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                         <motion.div
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 text-[10px] font-bold"
+                          className="flex items-center gap-0.5 rounded bg-primary/15 px-1.5 py-0.5 text-xs font-bold text-primary"
                         >
                           <Wrench className="h-3 w-3" />
                           PIT
@@ -448,10 +531,10 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
 
             {/* Race Complete Banner */}
             {currentProgress >= 100 && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={cn("flex items-center justify-center gap-2 py-3 border-t", "border-border bg-muted/50")}
+                className="flex items-center justify-center gap-2 border-t border-border bg-muted/40 py-3"
               >
                 <Flag className="h-4 w-4 text-primary" />
                 <span className="font-bold">CHEQUERED FLAG</span>
@@ -461,25 +544,24 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
 
           {/* Pit Stop Timeline */}
           {pitStopsWithNumbers.length > 0 && (
-            <div className={cn("rounded-lg p-3", isGlass ? "bg-white/5 border border-white/10" : "bg-muted/30")}>
-              <div className="flex items-center gap-2 mb-2">
-                <Wrench className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Pit Stops</span>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <Wrench className="h-3.5 w-3.5 text-primary" />
+                <span className={eyebrow}>Pit Stops</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {pitStopsWithNumbers.filter(ps => ps.lap <= currentLap).slice(-10).map((ps) => {
                   const driver = drivers[ps.driverNumber];
                   return (
-                    <Badge 
-                      key={`${ps.driver}-${ps.stop}`} 
-                      variant="outline" 
-                      className="text-[9px] px-1.5 py-0.5 gap-1"
+                    <div
+                      key={`${ps.driver}-${ps.stop}`}
+                      className="flex items-center gap-1 rounded border bg-card px-1.5 py-0.5 text-xs"
                       style={{ borderColor: driver?.color }}
                     >
-                      <span className="font-bold" style={{ color: driver?.color }}>{driver?.acronym || ps.driver}</span>
-                      <span className="text-muted-foreground">L{ps.lap}</span>
-                      <span className="font-mono text-amber-500">{ps.duration}s</span>
-                    </Badge>
+                      <span className="font-mono font-bold" style={{ color: driver?.color }}>{driver?.acronym || ps.driver}</span>
+                      <span className="font-mono tabular-nums text-muted-foreground">L{ps.lap}</span>
+                      <span className="font-mono tabular-nums text-primary">{ps.duration}s</span>
+                    </div>
                   );
                 })}
               </div>
@@ -488,25 +570,29 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
         </TabsContent>
 
         {/* Position Chart */}
-        <TabsContent value="position" className="mt-3 space-y-3">
-          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
+        <TabsContent value="position" className="mt-3 flex flex-col gap-3">
+          <div className="grid grid-cols-5 gap-1 sm:grid-cols-10">
             {Object.values(drivers).slice(0, 20).map(driver => (
-              <button 
-                key={driver.number} 
+              <button
+                key={driver.number}
                 onClick={() => setSelectedDriver(selectedDriver === driver.number ? null : driver.number)}
                 className={cn(
-                  "flex items-center gap-1 px-1.5 py-1 rounded-full text-[10px] font-medium transition-all",
-                  selectedDriver === driver.number ? "ring-2" : "opacity-70 hover:opacity-100", 
-                  isGlass ? "bg-white/5" : "bg-muted/50"
+                  "flex items-center gap-1 rounded-full border bg-muted/40 px-1.5 py-1 font-mono text-xs font-medium transition-all",
+                  selectedDriver === driver.number ? "ring-2" : "opacity-70 hover:opacity-100"
                 )}
                 style={{ borderColor: driver.color, color: selectedDriver === driver.number ? driver.color : undefined }}
               >
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: driver.color }} />
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: driver.color }} />
                 {driver.acronym}
               </button>
             ))}
           </div>
-          <div className="h-[300px]">
+          <F1ChartContainer
+            minHeight={300}
+            isEmpty={!positionChartData.rows.length || !positionChartData.series.length}
+            emptyTitle="No Position Data"
+            emptyDescription="Lap-by-lap positions are not available for this session."
+          >
             <ResponsiveContainer width="100%" height={300}>
               <LineChart
                 data={positionChartData.rows}
@@ -522,7 +608,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                   domain={[0, totalLaps]}
                   allowDecimals={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: 'hsl(var(--chart-axis))' }}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--chart-axis))', fontFamily: 'var(--font-mono)' }}
                   label={{ value: 'Lap', position: 'insideBottom', offset: -10, fontSize: 11, fill: 'hsl(var(--chart-axis))' }}
                 />
                 <YAxis
@@ -531,7 +617,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                   allowDecimals={false}
                   tickLine={false}
                   width={40}
-                  tick={{ fontSize: 10, fill: 'hsl(var(--chart-axis))' }}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--chart-axis))', fontFamily: 'var(--font-mono)' }}
                   label={{ value: 'Position', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'hsl(var(--chart-axis))' }}
                 />
                 <Tooltip content={<PositionTooltip />} />
@@ -550,76 +636,86 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({
                 ))}
               </LineChart>
             </ResponsiveContainer>
-          </div>
+          </F1ChartContainer>
         </TabsContent>
 
         {/* Final Results */}
         <TabsContent value="stats" className="mt-3">
-          {/* Podium */}
-          <div className="flex items-end justify-center gap-3 h-32 mb-4">
-            {[1, 0, 2].map((idx) => {
-              const stat = driverStats[idx];
-              if (!stat) return null;
-              const heights = ['h-24', 'h-20', 'h-16'];
-              const sizes = ['w-14 h-14', 'w-12 h-12', 'w-12 h-12'];
-              return (
-                <motion.div 
-                  key={stat.driver_number} 
-                  initial={{ y: 50, opacity: 0 }} 
-                  animate={{ y: 0, opacity: 1 }} 
-                  transition={{ delay: idx * 0.1 }} 
-                  className="flex flex-col items-center"
-                >
-                  {idx === 0 && <Trophy className="h-4 w-4 text-yellow-500 mb-1" />}
-                  <div 
-                    className={cn(sizes[idx], "rounded-full flex items-center justify-center text-white font-bold text-sm mb-1 shadow-lg", idx === 0 && "ring-2 ring-yellow-500")} 
-                    style={{ backgroundColor: stat.color }}
-                  >
-                    {stat.acronym}
-                  </div>
-                  <div className={cn(heights[idx], "w-16 rounded-t flex flex-col items-center justify-center", 
-                    idx === 0 ? "bg-gradient-to-b from-yellow-400 to-yellow-600" : 
-                    idx === 1 ? "bg-gradient-to-b from-slate-300 to-slate-500" : 
-                    "bg-gradient-to-b from-amber-500 to-amber-700"
-                  )}>
-                    <span className="text-xl font-bold text-white">{stat.final_position}</span>
-                    {stat.position_change !== 0 && (
-                      <span className={cn("text-[10px] font-bold", stat.position_change > 0 ? "text-green-200" : "text-red-200")}>
-                        {stat.position_change > 0 ? '+' : ''}{stat.position_change}
-                      </span>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-          
-          {/* Results Grid */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-1.5">
-            {driverStats.slice(3).map((stat) => (
-              <div 
-                key={stat.driver_number} 
-                className={cn("rounded-lg overflow-hidden bg-card border border-border")}
-              >
-                <div className="h-1" style={{ backgroundColor: stat.color }} />
-                <div className="p-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground text-xs">P{stat.final_position}</span>
-                    {stat.position_change !== 0 && (
-                      <span className={cn("text-[9px] font-bold flex items-center gap-0.5", stat.position_change > 0 ? "text-green-500" : "text-red-500")}>
-                        {stat.position_change > 0 ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
-                        {Math.abs(stat.position_change)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="font-bold text-sm">{stat.acronym}</div>
-                  <div className="text-[9px] text-muted-foreground">
-                    Grid: P{stat.starting_position}
-                  </div>
-                </div>
+          {!driverStats.length ? (
+            <F1EmptyState
+              type="no-results"
+              size="sm"
+              showDecoration={false}
+              description="Classified results are not available for this session yet."
+              className="py-8"
+            />
+          ) : (
+            <div className="flex flex-col gap-4">
+              {/* Podium */}
+              <div className="mb-1 flex h-32 items-end justify-center gap-3">
+                {[1, 0, 2].map((idx) => {
+                  const stat = driverStats[idx];
+                  if (!stat) return null;
+                  const heights = ['h-24', 'h-20', 'h-16'];
+                  const sizes = ['h-14 w-14', 'h-12 w-12', 'h-12 w-12'];
+                  const podiumBg = idx === 0 ? 'bg-position-gold' : idx === 1 ? 'bg-position-silver' : 'bg-position-bronze';
+                  const podiumText = idx === 2 ? 'text-foreground' : 'text-background';
+                  return (
+                    <motion.div
+                      key={stat.driver_number}
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="flex flex-col items-center"
+                    >
+                      {idx === 0 && <Trophy className="mb-1 h-4 w-4 text-position-gold" />}
+                      <div
+                        className={cn(sizes[idx], "mb-1 flex items-center justify-center rounded-full font-mono text-sm font-bold text-primary-foreground shadow-premium-md", idx === 0 && "ring-2 ring-position-gold")}
+                        style={{ backgroundColor: stat.color }}
+                      >
+                        {stat.acronym}
+                      </div>
+                      <div className={cn(heights[idx], "flex w-16 flex-col items-center justify-center rounded-t", podiumBg)}>
+                        <span className={cn("font-mono text-xl font-bold tabular-nums", podiumText)}>{stat.final_position}</span>
+                        {stat.position_change !== 0 && (
+                          <span className={cn("font-mono text-xs font-bold tabular-nums", podiumText)}>
+                            {stat.position_change > 0 ? '+' : ''}{stat.position_change}
+                          </span>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+
+              {/* Results Grid */}
+              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-5 md:grid-cols-6">
+                {driverStats.slice(3).map((stat) => (
+                  <div
+                    key={stat.driver_number}
+                    className="overflow-hidden rounded-lg border border-border bg-card"
+                  >
+                    <div className="h-1" style={{ backgroundColor: stat.color }} />
+                    <div className="p-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs tabular-nums text-muted-foreground">P{stat.final_position}</span>
+                        {stat.position_change !== 0 && (
+                          <span className={cn("flex items-center gap-0.5 font-mono text-xs font-bold tabular-nums", stat.position_change > 0 ? "text-status-completed" : "text-destructive")}>
+                            {stat.position_change > 0 ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />}
+                            {Math.abs(stat.position_change)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="font-mono text-sm font-bold">{stat.acronym}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Grid: P{stat.starting_position}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

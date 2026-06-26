@@ -11,12 +11,10 @@ import {
   LabelList,
 } from "recharts";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
-import { Progress } from "@/components/ui/progress";
-import { Loader2, Flag, LayoutGrid } from 'lucide-react';
+import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
+import { LayoutGrid } from "lucide-react";
 import { useQualifyingData } from "@/hooks/useQualifyingData";
-import { F1ChartEmpty } from "@/components/charts/F1ChartEmpty";
-import { F1ErrorState } from "@/components/f1/F1ErrorState";
-import { Badge } from "@/components/ui/badge";
+import { F1ChartContainer } from "@/components/f1/F1ChartContainer";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -27,6 +25,15 @@ interface MuiQualifyingChartProps {
 }
 
 type SessionType = 'Q1' | 'Q2' | 'Q3' | 'ALL';
+
+// Qualifying-phase encodings — progression of rounds via sanctioned position
+// tokens (bronze → silver → gold), never raw palette hues. Legend swatch and
+// any chart accent read from this single source so they can't drift.
+const PHASE_TOKEN: Record<'Q1' | 'Q2' | 'Q3', string> = {
+  Q1: 'hsl(var(--position-bronze))',
+  Q2: 'hsl(var(--position-silver))',
+  Q3: 'hsl(var(--position-gold))',
+};
 
 const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) => {
   const [isMobile, setIsMobile] = useState(false);
@@ -45,7 +52,6 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     isLoading,
     isError,
   } = useQualifyingData(year, round);
-  const loadingProgress: number = isLoading ? 50 : 100;
 
   // Get data for a specific session
   const getSessionData = (session: 'Q1' | 'Q2' | 'Q3') => {
@@ -60,7 +66,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     const rawTimes = driversWithTimes.map(d => d[sessionKey] as number);
     // Sanitize to finite numbers to avoid NaN in SVG/animation
     const times = rawTimes.map(t => (typeof t === 'number' && Number.isFinite(t) ? t : 0));
-    const colors = driversWithTimes.map(d => TEAM_COLORS[d.team] || DRIVER_COLORS[d.code] || "#666");
+    const colors = driversWithTimes.map(d => TEAM_COLORS[d.team] || DRIVER_COLORS[d.code] || TEAM_COLORS.default);
     const fastestSessionTime = times.length > 0 ? Math.min(...times) : 0;
     const gaps = times.map(t => {
       const gap = t - fastestSessionTime;
@@ -92,62 +98,34 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     return `${mins}:${secs.padStart(6, '0')}`;
   };
 
-  // Render loading state
-  if (isLoading) {
+  // Loading / error / empty all routed through F1ChartContainer
+  if (isLoading || (isError && availableDrivers.length === 0) || availableDrivers.length === 0) {
     return (
-      <div className="min-h-[300px] flex flex-col items-center justify-center p-4">
-        <div className="flex flex-col items-center justify-center space-y-3 max-w-xs">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <div className="w-full space-y-2 text-center">
-            <span className="text-sm text-muted-foreground">Loading qualifying...</span>
-            <Progress value={loadingProgress} className="h-1.5 w-full" />
-          </div>
-        </div>
-      </div>
+      <F1ChartContainer
+        minHeight={300}
+        useSkeleton
+        isLoading={isLoading}
+        error={isError && availableDrivers.length === 0 ? "F1 API rate limit reached. Please wait a moment and try again." : null}
+        isEmpty={!isLoading && availableDrivers.length === 0}
+        emptyTitle="No Qualifying Data"
+        emptyDescription="Qualifying data is not available for this race."
+      />
     );
   }
 
-  // Handle error state
-  if (isError && availableDrivers.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center p-4">
-        <F1ErrorState
-          type="rate-limit"
-          title="Unable to Load Qualifying Data"
-          message="The F1 API rate limit was reached. Please wait a moment and try again."
-          variant="card"
-        />
-      </div>
-    );
-  }
-
-  // Handle no data state
-  if (availableDrivers.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center p-4">
-        <F1ChartEmpty
-          chartType="bar"
-          title="No Qualifying Data"
-          message="Qualifying data is not available for this race."
-          icon={<Flag className="h-12 w-12 text-muted-foreground" />}
-        />
-      </div>
-    );
-  }
-
-  // Custom tooltip mirroring the old MUI hover (gap + absolute formatted time)
+  // Custom tooltip mirroring the old hover (gap + absolute formatted time)
   const QualifyingTooltip = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null;
     const row = payload[0]?.payload;
     if (!row) return null;
     return (
-      <div className="rounded-md border border-border bg-background/95 px-2 py-1.5 text-[11px] shadow-md">
+      <div className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-xs shadow-card">
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full" style={{ background: row.color }} />
-          <span className="font-bold w-9">{row.code}</span>
-          <span className="font-mono">{formatTime(row.time)}</span>
+          <span className="h-2 w-2 rounded-full" style={{ background: row.color }} />
+          <span className="w-9 font-bold">{row.code}</span>
+          <span className="timing">{formatTime(row.time)}</span>
         </div>
-        <div className="font-mono text-muted-foreground mt-0.5">
+        <div className="timing mt-0.5 text-muted-foreground">
           {`+${(row.gap ?? 0).toFixed(3)}s`}
         </div>
       </div>
@@ -163,7 +141,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     if (sessionData.labels.length === 0) {
       return (
         <div className={cn(
-          "flex items-center justify-center text-muted-foreground text-sm",
+          "flex items-center justify-center text-xs text-muted-foreground",
           compact ? "h-[180px]" : "h-[300px]"
         )}>
           No data for {session}
@@ -179,9 +157,8 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
       color: sessionData.colors[idx],
     }));
 
-    const tickFill = 'hsl(var(--chart-axis))';
-    const gridStroke = 'hsl(var(--chart-grid))';
     const labelFill = 'hsl(var(--foreground))';
+    const axisFontSize = compact ? 9 : (isMobile ? 10 : 11);
 
     return (
       <ResponsiveContainer width="100%" height={chartHeight}>
@@ -196,34 +173,39 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
           }}
           barCategoryGap={compact ? '20%' : '25%'}
         >
+          <defs>
+            <ScopeDefs id="quali" color={chartTheme.primary} />
+          </defs>
           <CartesianGrid
             horizontal={false}
-            stroke={gridStroke}
+            stroke={chartTheme.grid}
             strokeDasharray="3 3"
           />
           <XAxis
             type="number"
             domain={[0, 'auto']}
+            stroke={chartTheme.axis}
             tickLine={false}
             tickFormatter={(value) => (value !== null ? `+${Number(value).toFixed(3)}s` : 'N/A')}
-            tick={{ fontSize: compact ? 8 : (isMobile ? 10 : 11), fill: tickFill }}
+            tick={{ ...chartTheme.tick, fontSize: axisFontSize }}
             label={compact ? undefined : {
               value: 'Gap to Pole (s)',
               position: 'insideBottom',
               offset: -10,
               fontSize: 11,
-              fill: tickFill,
+              fill: chartTheme.tick.fill,
             }}
           />
           <YAxis
             type="category"
             dataKey="code"
+            stroke={chartTheme.axis}
             tickLine={false}
-            tick={{ fontSize: compact ? 9 : (isMobile ? 10 : 11), fill: tickFill }}
+            tick={{ ...chartTheme.tick, fontSize: axisFontSize }}
             width={compact ? 30 : (isMobile ? 40 : 45)}
           />
-          <Tooltip content={<QualifyingTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.4)' }} />
-          <Bar dataKey="gap" radius={[0, 2, 2, 0]} isAnimationActive={false}>
+          <Tooltip content={<QualifyingTooltip />} cursor={chartTheme.cursor} />
+          <Bar dataKey="gap" radius={[0, 2, 2, 0]} isAnimationActive={false} filter={compact ? undefined : SCOPE_GLOW}>
             {rows.map((row, idx) => (
               <Cell key={`cell-${idx}`} fill={row.color} />
             ))}
@@ -235,7 +217,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
                 style={{
                   fill: labelFill,
                   fontSize: isMobile ? 9 : 10,
-                  fontFamily: 'monospace',
+                  fontFamily: 'JetBrains Mono, monospace',
                 }}
               />
             )}
@@ -245,119 +227,78 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     );
   };
 
+  // Compact column header for a qualifying phase (eyebrow + count + pole)
+  const PhaseHeader = ({ phase, count, pole }: { phase: 'Q1' | 'Q2' | 'Q3'; count: number; pole: number }) => (
+    <div className="mb-2 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <span
+          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest"
+          style={{ color: PHASE_TOKEN[phase] }}
+        >
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: PHASE_TOKEN[phase] }} />
+          {phase}
+        </span>
+        <span className="text-xs text-muted-foreground tabular-nums">{count} drivers</span>
+      </div>
+      {pole > 0 && (
+        <span className="timing text-xs" style={{ color: PHASE_TOKEN[phase] }}>
+          {formatTime(pole)}
+        </span>
+      )}
+    </div>
+  );
+
   // Render "ALL" view with three sessions side by side
   const renderAllSessions = () => {
     const q1Data = getSessionData('Q1');
     const q2Data = getSessionData('Q2');
     const q3Data = getSessionData('Q3');
+    const columns: Array<{ phase: 'Q1' | 'Q2' | 'Q3'; data: ReturnType<typeof getSessionData> }> = [
+      { phase: 'Q1', data: q1Data },
+      { phase: 'Q2', data: q2Data },
+      { phase: 'Q3', data: q3Data },
+    ];
 
     return (
-      <div className="flex flex-col lg:flex-row gap-2 h-full">
-        {/* Q1 Section */}
-        <div className={cn(
-          "flex-1 flex flex-col rounded-lg p-3",
-          "bg-muted/30 border border-border"
-        )}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-500 border-amber-500/30">
-                Q1
-              </Badge>
-              <span className="text-[10px] text-muted-foreground">
-                {q1Data.labels.length} drivers
-              </span>
-            </div>
-            {q1Data.fastestSessionTime > 0 && (
-              <span className="font-mono text-[10px] text-amber-500">
-                {formatTime(q1Data.fastestSessionTime)}
-              </span>
+      <div className="flex h-full flex-col gap-2 lg:flex-row">
+        {columns.map(({ phase, data }, idx) => (
+          <React.Fragment key={phase}>
+            {idx > 0 && (
+              <>
+                <Separator orientation="vertical" className="hidden h-auto lg:block" />
+                <Separator orientation="horizontal" className="lg:hidden" />
+              </>
             )}
-          </div>
-          <div className="flex-1 min-h-0 overflow-auto">
-            {renderSessionChart(q1Data, 'Q1', true)}
-          </div>
-        </div>
-
-        {/* Vertical Separator */}
-        <Separator orientation="vertical" className="hidden lg:block h-auto" />
-        <Separator orientation="horizontal" className="lg:hidden" />
-
-        {/* Q2 Section */}
-        <div className={cn(
-          "flex-1 flex flex-col rounded-lg p-3",
-          "bg-muted/30 border border-border"
-        )}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-500 border-blue-500/30">
-                Q2
-              </Badge>
-              <span className="text-[10px] text-muted-foreground">
-                {q2Data.labels.length} drivers
-              </span>
+            <div className="flex flex-1 flex-col rounded-lg border border-border bg-muted/40 p-3">
+              <PhaseHeader phase={phase} count={data.labels.length} pole={data.fastestSessionTime} />
+              <div className="min-h-0 flex-1 overflow-auto">
+                {renderSessionChart(data, phase, true)}
+              </div>
             </div>
-            {q2Data.fastestSessionTime > 0 && (
-              <span className="font-mono text-[10px] text-blue-500">
-                {formatTime(q2Data.fastestSessionTime)}
-              </span>
-            )}
-          </div>
-          <div className="flex-1 min-h-0 overflow-auto">
-            {renderSessionChart(q2Data, 'Q2', true)}
-          </div>
-        </div>
-
-        {/* Vertical Separator */}
-        <Separator orientation="vertical" className="hidden lg:block h-auto" />
-        <Separator orientation="horizontal" className="lg:hidden" />
-
-        {/* Q3 Section */}
-        <div className={cn(
-          "flex-1 flex flex-col rounded-lg p-3",
-          "bg-muted/30 border border-border"
-        )}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-purple-500/10 text-purple-500 border-purple-500/30">
-                Q3
-              </Badge>
-              <span className="text-[10px] text-muted-foreground">
-                {q3Data.labels.length} drivers
-              </span>
-            </div>
-            {q3Data.fastestSessionTime > 0 && (
-              <span className="font-mono text-[10px] text-purple-500">
-                {formatTime(q3Data.fastestSessionTime)}
-              </span>
-            )}
-          </div>
-          <div className="flex-1 min-h-0 overflow-auto">
-            {renderSessionChart(q3Data, 'Q3', true)}
-          </div>
-        </div>
+          </React.Fragment>
+        ))}
       </div>
     );
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Session selector */}
-      <div className="flex flex-wrap gap-2 mb-3 items-center">
-        {/* Individual session badges */}
+    <div className="flex h-full flex-col">
+      {/* Session selector — underline-style phase toggles + view-all */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         {(['Q1', 'Q2', 'Q3'] as const).map((session) => (
-          <Badge
+          <button
             key={session}
-            variant={selectedSession === session ? "default" : "outline"}
-            className={cn(
-              "cursor-pointer px-3 py-1 text-xs transition-all",
-              selectedSession === session
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-accent"
-            )}
+            type="button"
             onClick={() => setSelectedSession(session)}
+            className={cn(
+              "rounded-none border-b-2 px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-widest transition-fast",
+              selectedSession === session
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
           >
             {session}
-          </Badge>
+          </button>
         ))}
 
         {/* View All Button */}
@@ -365,7 +306,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
           variant={selectedSession === 'ALL' ? "default" : "outline"}
           size="sm"
           className={cn(
-            "h-6 px-2 text-xs gap-1",
+            "h-6 gap-1 px-2 text-xs",
             selectedSession === 'ALL' && "bg-primary text-primary-foreground"
           )}
           onClick={() => setSelectedSession('ALL')}
@@ -377,8 +318,9 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
         {/* Pole time (only show for single session) */}
         {selectedSession !== 'ALL' && 'fastestSessionTime' in muiChartData && (muiChartData.fastestSessionTime ?? 0) > 0 && (
           <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Pole:</span>
-            <span className="font-mono text-primary font-medium">
+            <span className="uppercase tracking-widest">Pole</span>
+            <span className="opacity-40">•</span>
+            <span className="timing font-medium text-primary">
               {formatTime(muiChartData.fastestSessionTime!)}
             </span>
           </div>
@@ -386,12 +328,14 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
       </div>
 
       {/* Chart content */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
         {selectedSession === 'ALL' ? (
           renderAllSessions()
         ) : (
           'labels' in muiChartData && (muiChartData.labels?.length ?? 0) > 0 && (
-            renderSessionChart(muiChartData as ReturnType<typeof getSessionData>, selectedSession)
+            <F1ChartContainer minHeight={300}>
+              {renderSessionChart(muiChartData as ReturnType<typeof getSessionData>, selectedSession)}
+            </F1ChartContainer>
           )
         )}
       </div>

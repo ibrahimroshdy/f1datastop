@@ -121,6 +121,7 @@ export default {
         'premium-md': 'var(--shadow-md)',
         'premium-lg': 'var(--shadow-lg)',
         'premium-xl': 'var(--shadow-xl)',
+        'card': 'var(--shadow-card)',
       },
       backdropBlur: {
         'glass': 'var(--glass-blur)',
@@ -265,6 +266,7 @@ export default {
       transitionTimingFunction: {
         'bounce-in': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
         'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
+        'spring': 'cubic-bezier(0.32, 0.72, 0, 1)',
       },
       transitionDuration: {
         'fast': '150ms',

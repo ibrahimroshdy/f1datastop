@@ -141,6 +141,15 @@ def supa_upsert(table, rows, on_conflict, *, returning="minimal"):
     """
     if not rows:
         return 0
+    # Dedup within the batch on the conflict key — PostgREST rejects a single
+    # command that touches the same on_conflict tuple twice ("ON CONFLICT DO
+    # UPDATE command cannot affect row a second time"). Keep the last occurrence.
+    conflict_cols = [c.strip() for c in on_conflict.split(",") if c.strip()]
+    if conflict_cols:
+        deduped = {}
+        for row in rows:
+            deduped[tuple(row.get(c) for c in conflict_cols)] = row
+        rows = list(deduped.values())
     if DRY_RUN:
         print(f"    [dry-run] upsert {len(rows)} -> {table} (on_conflict={on_conflict})")
         return len(rows)
@@ -853,9 +862,14 @@ def backfill_season(season, domains, only_round=None):
     if "constructor_standings" in domains:
         backfill_constructor_standings(season)
 
-    # 5. OpenF1 crosswalk + resources (2023+)
+    # 5. OpenF1 crosswalk + resources (2023+) — enrichment only; never let an
+    # OpenF1 hiccup abort the rest of the (multi-season) run.
     if "openf1" in domains and only_round is None:
-        backfill_openf1(season, races)
+        try:
+            backfill_openf1(season, races)
+        except Exception as e:  # noqa: BLE001
+            print(f"  ! openf1 {season} failed (non-fatal): {e}")
+            mark_sync("openf1", season, status="partial", error=str(e)[:300], source="openf1")
 
     # mark the season as having results once any round is complete
     if any(round_is_completed(rc) for rc in races):

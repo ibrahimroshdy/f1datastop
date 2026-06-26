@@ -59,7 +59,14 @@
     --chart-tooltip-bg: 0 0% 0%;
     --chart-tooltip-border: 0 0% 15%;
     --chart-tooltip-text: 0 0% 98%;
-    
+
+    /* Weather metric series (categorical chart hues, per DESIGN.md §1.7) */
+    --weather-air: 217 91% 60%;
+    --weather-track: 30 95% 55%;
+    --weather-wind: 142 71% 45%;
+    --weather-humidity: 199 89% 56%;
+    --weather-pressure: 262 60% 60%;
+
     /* F1 Brand Colors */
     --f1-red: 0 100% 44%;
     --f1-black: 240 20% 7%;
@@ -99,6 +106,8 @@
     --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.4);
     --shadow-glow: 0 0 20px rgba(225, 6, 0, 0.2);
     --shadow-glow-lg: 0 0 40px rgba(225, 6, 0, 0.25);
+    /* Machined-edge card shadow: top inset highlight + layered soft elevation */
+    --shadow-card: inset 0 1px 0 0 hsl(0 0% 100% / 0.05), 0 1px 2px hsl(0 0% 0% / 0.4), 0 6px 16px hsl(0 0% 0% / 0.3);
 
     /* Animation Tokens */
     --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -170,7 +179,14 @@
     --chart-tooltip-bg: 0 0% 100%;
     --chart-tooltip-border: 240 5% 87%;
     --chart-tooltip-text: 240 10% 4%;
-    
+
+    /* Weather metric series (categorical chart hues, per DESIGN.md §1.7) */
+    --weather-air: 217 91% 50%;
+    --weather-track: 30 95% 45%;
+    --weather-wind: 142 71% 38%;
+    --weather-humidity: 199 89% 46%;
+    --weather-pressure: 262 55% 52%;
+
     /* F1 Brand Colors - Same in both themes */
     --f1-red: 0 100% 44%;
     --f1-black: 240 20% 7%;
@@ -210,6 +226,7 @@
     --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.15);
     --shadow-glow: 0 0 20px rgba(225, 6, 0, 0.12);
     --shadow-glow-lg: 0 0 40px rgba(225, 6, 0, 0.16);
+    --shadow-card: inset 0 1px 0 0 hsl(0 0% 100% / 0.7), 0 1px 2px hsl(0 0% 0% / 0.06), 0 6px 16px hsl(0 0% 0% / 0.05);
 
     --glass-mode: 0;
   }
@@ -263,7 +280,14 @@
     --chart-tooltip-bg: 0 0% 0%;
     --chart-tooltip-border: 0 0% 15%;
     --chart-tooltip-text: 0 0% 98%;
-    
+
+    /* Weather metric series (categorical chart hues, per DESIGN.md §1.7) */
+    --weather-air: 217 91% 60%;
+    --weather-track: 30 95% 55%;
+    --weather-wind: 142 71% 45%;
+    --weather-humidity: 199 89% 56%;
+    --weather-pressure: 262 60% 60%;
+
     /* F1 Brand Colors */
     --f1-red: 0 100% 44%;
     --f1-black: 240 20% 7%;
@@ -303,6 +327,7 @@
     --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.5);
     --shadow-glow: 0 0 25px rgba(225, 6, 0, 0.22);
     --shadow-glow-lg: 0 0 50px rgba(225, 6, 0, 0.28);
+    --shadow-card: inset 0 1px 0 0 hsl(0 0% 100% / 0.06), 0 2px 8px hsl(0 0% 0% / 0.45);
 
     --glass-mode: 1;
   }
@@ -843,6 +868,49 @@
 
   .body-sm {
     @apply text-sm leading-relaxed text-muted-foreground;
+  }
+
+  /* ── Telemetry Terminal motifs (see web/DESIGN_TERMINAL.md) ───────────── */
+
+  /* Big instrument readout number */
+  .readout {
+    @apply font-mono font-semibold tabular-nums tracking-tight leading-none;
+  }
+
+  /* Micro instrument label / eyebrow above a value */
+  .instrument-label {
+    @apply text-xs font-semibold uppercase tracking-widest text-muted-foreground;
+  }
+
+  /* Auto hairline rows — a timing-screen list */
+  .hairline-grid > * + * {
+    @apply border-t border-border;
+  }
+
+  /* Compact data row */
+  .data-row {
+    @apply flex items-center justify-between gap-3 py-1.5;
+  }
+
+  /* Corner-tick HUD framing for hero/feature panels */
+  .scope-frame {
+    @apply relative;
+  }
+  .scope-frame::before,
+  .scope-frame::after {
+    content: "";
+    @apply pointer-events-none absolute h-3 w-3;
+    border-color: hsl(var(--primary) / 0.55);
+  }
+  .scope-frame::before {
+    @apply left-1.5 top-1.5;
+    border-top: 1.5px solid hsl(var(--primary) / 0.55);
+    border-left: 1.5px solid hsl(var(--primary) / 0.55);
+  }
+  .scope-frame::after {
+    @apply bottom-1.5 right-1.5;
+    border-bottom: 1.5px solid hsl(var(--primary) / 0.55);
+    border-right: 1.5px solid hsl(var(--primary) / 0.55);
   }
 
   .position-pill {

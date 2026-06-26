@@ -1,15 +1,45 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Download, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Download } from "lucide-react";
 import { getAnalysisCharts } from "@/services/analysisService";
 import { Button } from "@/components/ui/button";
+import {
+  F1Card,
+  F1CardContent,
+  F1EmptyState,
+  F1Skeleton,
+  ChartSkeleton,
+} from "@/components/f1";
+import { useThemeVariant } from "@/hooks/useThemeVariant";
 
 interface AnalysisChartsProps {
   year: number;
   round: string;
 }
 
+function ChartImage({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative overflow-hidden rounded-md border border-border">
+      {!loaded ? (
+        <div className="absolute inset-0">
+          <F1Skeleton className="h-full w-full rounded-none" />
+        </div>
+      ) : null}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        className="w-full"
+      />
+    </div>
+  );
+}
+
 export default function AnalysisCharts({ year, round }: AnalysisChartsProps) {
   const r = parseInt(round, 10);
+  const { cardVariant, glassVariant } = useThemeVariant();
   const { data, isLoading } = useQuery({
     queryKey: ["analysisCharts", year, r],
     queryFn: () => getAnalysisCharts(year, r),
@@ -19,53 +49,52 @@ export default function AnalysisCharts({ year, round }: AnalysisChartsProps) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="grid gap-4 px-4 pb-4 lg:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <ChartSkeleton key={i} height={220} />
+        ))}
       </div>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex min-h-[300px] flex-col items-center justify-center p-6 text-center">
-        <Activity className="mb-3 h-8 w-8 text-muted-foreground" />
-        <p className="font-medium">No deep-dive charts yet</p>
-        <p className="max-w-sm text-sm text-muted-foreground">
-          Advanced telemetry &amp; strategy charts are generated automatically
-          after each race weekend.
-        </p>
-      </div>
+      <F1EmptyState
+        type="no-data"
+        title="No deep-dive charts yet"
+        description="Advanced telemetry & strategy charts are generated automatically after each race weekend."
+        className="min-h-[300px]"
+      />
     );
   }
 
   return (
     <div className="grid gap-4 px-4 pb-4 lg:grid-cols-2">
       {data.map((c) => (
-        <figure
-          key={c.id}
-          className="overflow-hidden rounded-lg border border-border bg-muted/20"
-        >
-          <img src={c.public_url} alt={c.title} loading="lazy" className="w-full" />
-          <figcaption className="flex items-center justify-between gap-2 p-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">{c.title}</p>
-              {c.description ? (
-                <p className="truncate text-xs text-muted-foreground">{c.description}</p>
-              ) : null}
+        <F1Card key={c.id} variant={cardVariant} glassVariant={glassVariant} size="sm">
+          <F1CardContent className="flex flex-col gap-2.5">
+            <ChartImage src={c.public_url} alt={c.title} />
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{c.title}</p>
+                {c.description ? (
+                  <p className="truncate text-xs text-muted-foreground">{c.description}</p>
+                ) : null}
+              </div>
+              <Button asChild variant="outline" size="sm" className="shrink-0">
+                <a
+                  href={c.public_url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Download ${c.title}`}
+                >
+                  <Download className="h-4 w-4" />
+                </a>
+              </Button>
             </div>
-            <Button asChild variant="outline" size="sm" className="shrink-0">
-              <a
-                href={c.public_url}
-                download
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Download ${c.title}`}
-              >
-                <Download className="h-4 w-4" />
-              </a>
-            </Button>
-          </figcaption>
-        </figure>
+          </F1CardContent>
+        </F1Card>
       ))}
     </div>
   );
