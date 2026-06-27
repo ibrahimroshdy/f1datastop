@@ -1,4 +1,4 @@
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme } from "@/context/ThemeContext";
 import {
   getF1TeamLogoUrl,
   normalizeConstructorIdForTeamLogo,
@@ -20,8 +20,8 @@ const TeamLogo = ({
   size = "md",
   noBackground = false,
 }: TeamLogoProps) => {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const { baseTheme } = useTheme();
+  const isDark = baseTheme === "dark";
 
   if (!constructorId) {
     return <span className={`text-sm ${className}`}>{alt || "Unknown"}</span>;

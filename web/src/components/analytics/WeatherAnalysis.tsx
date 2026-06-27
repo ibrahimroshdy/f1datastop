@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Thermometer, Cloud, Droplets, Wind, Gauge } from "lucide-react";
+import { Thermometer, Droplets, Wind, Gauge } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useOpenF1SessionFromErgast } from '@/hooks/useOpenF1Data';
 import { useWeatherData } from "@/hooks/useOpenF1Data";
@@ -16,7 +16,6 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { cn } from '@/lib/utils';
 import { chartTheme, ScopeDefs, scopeFadeId, SCOPE_GLOW } from "@/lib/chartTheme";
 import { F1ChartContainer, F1EmptyState, F1ErrorState, F1Skeleton } from '@/components/f1';
 

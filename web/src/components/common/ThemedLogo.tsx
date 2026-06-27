@@ -1,4 +1,4 @@
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme } from "@/context/ThemeContext";
 
 interface ThemedLogoProps {
   darkSrc: string;
@@ -8,8 +8,8 @@ interface ThemedLogoProps {
 }
 
 const ThemedLogo = ({ darkSrc, lightSrc, alt, className = "" }: ThemedLogoProps) => {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const { baseTheme } = useTheme();
+  const isDark = baseTheme === "dark";
   
   return (
     <div className={`relative bg-muted rounded p-1 ${className}`}>

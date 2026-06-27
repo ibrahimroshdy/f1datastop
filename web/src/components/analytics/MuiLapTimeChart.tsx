@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
-import { Clock, Wrench } from "lucide-react";
+import { Wrench } from "lucide-react";
 import { useLapTimeData } from '@/hooks/useLapTimeData';
 import DriverSelector from "./DriverSelector";
 import DisplayModeToggle from "./DisplayModeToggle";
