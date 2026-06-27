@@ -1,6 +1,5 @@
 import { Suspense, lazy } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   F1Card,
   F1CardContent,
@@ -66,27 +65,61 @@ interface TabButtonGroupProps {
 
 function TabButtonGroup({ label, tabs, selectedTab, onTabChange }: TabButtonGroupProps) {
   return (
-    <div className="flex items-center gap-2 border-b border-border py-1.5">
-      <span className="w-16 shrink-0 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className="flex items-center gap-3 border-b border-border py-1.5">
+      <span className="instrument-label w-16 shrink-0 text-primary">
         {label}
       </span>
       <div className="flex flex-wrap gap-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onTabChange(tab.id)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-fast",
-              selectedTab === tab.id
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-            )}
-          >
-            <tab.icon className="h-3.5 w-3.5" />
-            <span>{tab.label}</span>
-          </button>
-        ))}
+        {tabs.map((tab) => {
+          const active = selectedTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onTabChange(tab.id)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-fast",
+                active
+                  ? "border-primary/40 bg-primary text-primary-foreground shadow-glow"
+                  : "border-transparent text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground"
+              )}
+            >
+              <tab.icon className="h-3.5 w-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MobileTabRow({ label, tabs, selectedTab, onTabChange }: TabButtonGroupProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="instrument-label w-16 shrink-0 text-primary">{label}</span>
+      <div className="flex flex-1 gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {tabs.map((tab) => {
+          const active = selectedTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onTabChange(tab.id)}
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-fast",
+                active
+                  ? "border-primary/40 bg-primary text-primary-foreground shadow-glow"
+                  : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <tab.icon className="h-3.5 w-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -131,41 +164,22 @@ export function RaceAnalysisTabs({
         ) : null}
       </div>
 
-      <div className="mb-4 block lg:hidden">
-        <Select
-          value={selectedTab}
-          onValueChange={(value) => onTabChange(value as RaceAnalysisTabId)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select analysis" />
-          </SelectTrigger>
-          <SelectContent>
-            <div className="px-2 py-1 text-xs text-muted-foreground">Essentials</div>
-            {ESSENTIALS_TABS.map((tab) => (
-              <SelectItem key={tab.id} value={tab.id}>
-                <div className="flex items-center gap-2">
-                  <tab.icon className="h-4 w-4" />
-                  <span>{tab.label}</span>
-                </div>
-              </SelectItem>
-            ))}
-            {hasOpenF1Data ? (
-              <>
-                <div className="mt-1 border-t px-2 py-1 pt-1 text-xs text-muted-foreground">
-                  Advanced
-                </div>
-                {ADVANCED_TABS.map((tab) => (
-                  <SelectItem key={tab.id} value={tab.id}>
-                    <div className="flex items-center gap-2">
-                      <tab.icon className="h-4 w-4" />
-                      <span>{tab.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </>
-            ) : null}
-          </SelectContent>
-        </Select>
+      {/* Mobile: app-native horizontally-scrollable chip rows */}
+      <div className="-mx-4 mb-3 block space-y-1.5 px-4 lg:hidden">
+        <MobileTabRow
+          label="Essentials"
+          tabs={ESSENTIALS_TABS}
+          selectedTab={selectedTab}
+          onTabChange={onTabChange}
+        />
+        {hasOpenF1Data ? (
+          <MobileTabRow
+            label="Advanced"
+            tabs={ADVANCED_TABS}
+            selectedTab={selectedTab}
+            onTabChange={onTabChange}
+          />
+        ) : null}
       </div>
 
       <Suspense fallback={<TabLoadingFallback />}>
@@ -348,9 +362,7 @@ export function RaceAnalysisTabs({
                   <div className="my-5 border-t border-border/40" />
                   <TrackMapChart year={selectedYear} round={selectedRace} />
                   <div className="my-5 border-t border-border/40" />
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                    Live session feed
-                  </div>
+                  <div className="instrument-label mb-2">Live session feed</div>
                   <TelemetryDashboard
                     year={selectedYear}
                     round={selectedRace}

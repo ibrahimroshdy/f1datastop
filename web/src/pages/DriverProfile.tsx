@@ -1,10 +1,11 @@
 import { Link, useParams } from "react-router-dom";
 import {
+  DriverAvatar,
   F1Card,
   F1CardContent,
   F1EmptyState,
   F1Skeleton,
-  PageHeader,
+  PositionBadge,
 } from "@/components/f1";
 import CountryFlag from "@/components/common/CountryFlag";
 import DriverCareerPanel from "@/components/drivers/DriverCareerPanel";
@@ -20,8 +21,48 @@ import {
 import { pageShell, pageStack } from "@/lib/layout";
 import { CountUp } from "@/components/CountUp";
 import { isEntityDbConfigured } from "@/services/entityService";
+import { Activity, ChevronLeft, Flag as FlagIcon } from "lucide-react";
 import NotFound from "./NotFound";
 import { cn } from "@/lib/utils";
+
+// ── Instrument section eyebrow (mirrors Home) ──────────────────────────────
+const SectionLabel = ({
+  icon,
+  children,
+}: {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) => (
+  <div className="instrument-label -mb-1 flex items-center gap-1.5 text-primary">
+    {icon}
+    <span>{children}</span>
+  </div>
+);
+
+// ── Stat readout tile (mono number + instrument caption) ───────────────────
+const StatTile = ({
+  label,
+  value,
+  count,
+  accent,
+}: {
+  label: string;
+  value: string | number | undefined;
+  count?: number;
+  accent?: boolean;
+}) => (
+  <div className="flex flex-col gap-1 rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
+    <span className="instrument-label text-muted-foreground">{label}</span>
+    <span
+      className={cn(
+        "readout text-xl md:text-2xl leading-none",
+        accent ? "text-primary" : "text-foreground",
+      )}
+    >
+      {count != null && Number.isFinite(count) ? <CountUp value={count} /> : value ?? "—"}
+    </span>
+  </div>
+);
 
 const DriverProfile = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -45,8 +86,7 @@ const DriverProfile = () => {
       (slug && row.Driver.driverId.replace(/_/g, "-") === slug),
   );
 
-  const resolvedDriverId =
-    ergastId ?? standing?.Driver?.driverId ?? undefined;
+  const resolvedDriverId = ergastId ?? standing?.Driver?.driverId ?? undefined;
 
   const { data: seasonResultsResp } = useDriverResultsBySeason(
     currentYear,
@@ -63,8 +103,8 @@ const DriverProfile = () => {
   }
 
   const constructorId = standing?.Constructors?.[0]?.constructorId ?? "";
-  const teamColor =
-    TEAM_COLORS[constructorId] ?? TEAM_COLORS.default;
+  const teamColor = TEAM_COLORS[constructorId] ?? TEAM_COLORS.default;
+  const teamName = standing?.Constructors?.[0]?.name;
   const portraitPath =
     profile?.portrait_path ??
     (resolvedDriverId
@@ -80,6 +120,14 @@ const DriverProfile = () => {
       ? `${standing.Driver.givenName} ${standing.Driver.familyName}`
       : slug.replace(/-/g, " "));
 
+  const driverCode =
+    profile?.code ??
+    standing?.Driver?.code ??
+    displayName.slice(0, 3).toUpperCase();
+
+  const nationality = profile?.nationality ?? standing?.Driver?.nationality;
+  const driverNumber = profile?.permanent_number ?? standing?.Driver?.permanentNumber;
+
   const pointsHistory =
     seasonResultsResp?.data?.map((race) => ({
       round: race.round,
@@ -92,139 +140,189 @@ const DriverProfile = () => {
       constructor: race.constructor,
     })) ?? [];
 
-  return (
-    <div className={cn(pageShell, pageStack)}>
-        <PageHeader
-          eyebrow="Driver Profile"
-          title={displayName}
-          description={
-            profile?.nationality
-              ? `${profile.nationality}${profile.code ? ` · ${profile.code}` : ""}`
-              : standing?.Driver?.nationality
-          }
-          actions={
-            standing ? (
-              <Link
-                to="/drivers"
-                className="text-sm text-primary hover:underline"
-              >
-                All drivers
-              </Link>
-            ) : undefined
-          }
-        />
+  const podiumCount = pointsHistory.filter(
+    (r) => !r.isDNF && Number(r.position) <= 3,
+  ).length;
+  const winCount = pointsHistory.filter(
+    (r) => !r.isDNF && Number(r.position) === 1,
+  ).length;
 
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-[minmax(0,280px)_1fr]">
+  const pointsNum = standing ? Number(standing.points) : NaN;
+
+  return (
+    <div className={pageShell}>
+      <div className={cn("mx-auto w-full max-w-5xl", pageStack, "animate-fade-in")}>
+        {/* ── Back link (← Drivers) ───────────────────────────────────────── */}
+        <Link
+          to="/drivers"
+          className="inline-flex w-fit items-center gap-1 text-2xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Drivers
+        </Link>
+
+        {/* ── Compact identity + stat readouts header ─────────────────────── */}
+        <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-[minmax(0,360px)_1fr] lg:items-start">
+          {/* Identity row */}
           <F1Card
             variant={cardVariant}
             glassVariant={glassVariant}
             className="scope-frame overflow-hidden p-0"
           >
             <div
-              className="aspect-[3/4] w-full bg-neutral-950 flex items-end justify-center overflow-hidden"
-              style={{
-                borderBottom: `3px solid ${teamColor}`,
-              }}
+              className="flex items-center gap-3 p-4"
+              style={{ borderLeft: `3px solid ${teamColor}` }}
             >
-              {headshotUrl ? (
-                <img
-                  src={headshotUrl}
-                  alt={displayName}
-                  className="h-full w-full object-cover object-top"
-                />
-              ) : (
-                <div
-                  className="flex h-full w-full items-center justify-center text-4xl font-bold text-white/80"
-                  style={{ backgroundColor: teamColor }}
-                >
-                  {profile?.code ??
-                    standing?.Driver?.code ??
-                    displayName.slice(0, 2).toUpperCase()}
+              <DriverAvatar
+                src={headshotUrl}
+                driverCode={driverCode}
+                driverName={displayName}
+                teamColor={teamColor}
+                size="xl"
+                className="shrink-0"
+              />
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="instrument-label flex items-center gap-1.5 text-primary">
+                  <FlagIcon className="h-3 w-3" />
+                  Driver Profile
                 </div>
-              )}
-            </div>
-            <F1CardContent className="pt-3 md:pt-4">
-              <div className="hairline-grid">
-                {profile?.nationality && (
-                  <div className="data-row">
-                    <span className="instrument-label">Nationality</span>
-                    <span className="flex items-center gap-2 text-sm font-semibold">
-                      <CountryFlag country={profile.nationality} size={16} />
-                      {profile.nationality}
+                <h1 className="truncate font-heading text-xl font-bold leading-tight tracking-tight md:text-2xl">
+                  {displayName}
+                </h1>
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
+                  {driverNumber != null && (
+                    <span className="timing font-semibold text-foreground">
+                      #{driverNumber}
                     </span>
-                  </div>
-                )}
-                {profile?.permanent_number && (
-                  <div className="data-row">
-                    <span className="instrument-label">Number</span>
-                    <span className="timing font-semibold">
-                      #{profile.permanent_number}
+                  )}
+                  {teamName && (
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: teamColor }}
+                        aria-hidden
+                      />
+                      <span className="truncate">{teamName}</span>
                     </span>
-                  </div>
-                )}
-                {standing && (
-                  <>
-                    <div className="data-row">
-                      <span className="instrument-label">Position</span>
-                      <span className="readout text-xl md:text-2xl text-foreground">
-                        P{Number.isFinite(Number(standing.position)) ? (
-                          <CountUp value={Number(standing.position)} />
-                        ) : (
-                          standing.position
-                        )}
-                      </span>
-                    </div>
-                    <div className="data-row">
-                      <span className="instrument-label">Points</span>
-                      <span className="readout text-xl md:text-2xl text-foreground">
-                        {Number.isFinite(Number(standing.points)) ? (
-                          <CountUp value={Number(standing.points)} />
-                        ) : (
-                          standing.points
-                        )}
-                      </span>
-                    </div>
-                  </>
-                )}
+                  )}
+                  {nationality && (
+                    <span className="flex items-center gap-1.5">
+                      <CountryFlag country={nationality} size={14} />
+                      {nationality}
+                    </span>
+                  )}
+                </div>
               </div>
-            </F1CardContent>
+            </div>
           </F1Card>
 
-          <div className="space-y-4 md:space-y-6">
-            <F1Card variant={cardVariant} glassVariant={glassVariant}>
-              <F1CardContent className="pt-4 md:pt-6">
-                {isProfileLoading ? (
-                  <F1Skeleton variant="card" className="h-40" />
-                ) : (
-                  <DriverCareerPanel slug={slug} ergastId={resolvedDriverId} />
-                )}
-              </F1CardContent>
-            </F1Card>
-
-            {pointsHistory.length > 0 && (
-              <F1Card variant={cardVariant} glassVariant={glassVariant}>
-                <F1CardContent className="pt-4 md:pt-6 space-y-3">
-                  <h2 className="instrument-label">
-                    {currentYear} Season
-                  </h2>
-                  <DriverPositionChart
-                    history={pointsHistory}
-                    teamColor={teamColor}
-                  />
-                </F1CardContent>
-              </F1Card>
-            )}
-
-            {!isEntityDbConfigured() && !isProfileLoading && (
-              <F1EmptyState
-                type="coming-soon"
-                title="Entity database not configured"
-                description="Connect Supabase to load career records for this driver."
-              />
-            )}
+          {/* Stat readout tiles */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:gap-3">
+            <StatTile
+              label="Points"
+              count={Number.isFinite(pointsNum) ? pointsNum : undefined}
+              value={standing?.points}
+              accent
+            />
+            <StatTile label="Wins" value={winCount} count={winCount} />
+            <StatTile
+              label="Position"
+              value={standing ? `P${standing.position}` : undefined}
+            />
+            <StatTile label="Podiums" value={podiumCount} count={podiumCount} />
           </div>
         </div>
+
+        {/* ── Career records ──────────────────────────────────────────────── */}
+        <SectionLabel icon={<FlagIcon className="h-3 w-3" />}>
+          Career Records
+        </SectionLabel>
+        <F1Card variant={cardVariant} glassVariant={glassVariant}>
+          <F1CardContent className="pt-4 md:pt-5">
+            {isProfileLoading ? (
+              <F1Skeleton variant="card" className="h-32" />
+            ) : (
+              <DriverCareerPanel slug={slug} ergastId={resolvedDriverId} />
+            )}
+          </F1CardContent>
+        </F1Card>
+
+        {/* ── Recent results — dense hairline list ────────────────────────── */}
+        {pointsHistory.length > 0 && (
+          <>
+            <SectionLabel icon={<FlagIcon className="h-3 w-3" />}>
+              {currentYear} Results
+            </SectionLabel>
+            <F1Card
+              variant={cardVariant}
+              glassVariant={glassVariant}
+              className="overflow-hidden p-0"
+            >
+              <ul className="divide-y divide-border">
+                {pointsHistory.map((race) => {
+                  const pos = Number(race.position);
+                  const isPodium = !race.isDNF && pos <= 3;
+                  return (
+                    <li
+                      key={race.round}
+                      className="flex items-center gap-3 px-4 py-2"
+                    >
+                      <span className="timing w-7 shrink-0 text-center text-2xs text-muted-foreground">
+                        R{race.round}
+                      </span>
+                      {race.country && (
+                        <span className="shrink-0 rounded-md bg-muted p-1">
+                          <CountryFlag country={race.country} size={16} />
+                        </span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold leading-tight">
+                          {race.raceName}
+                        </div>
+                        <div className="truncate text-2xs text-muted-foreground">
+                          {race.constructor ?? teamName ?? ""}
+                        </div>
+                      </div>
+                      {race.isDNF ? (
+                        <span className="timing shrink-0 rounded px-1.5 py-0.5 text-2xs font-semibold uppercase text-status-cancelled">
+                          DNF
+                        </span>
+                      ) : isPodium && Number.isFinite(pos) ? (
+                        <PositionBadge position={pos} className="shrink-0" />
+                      ) : (
+                        <span className="timing w-7 shrink-0 text-center text-sm font-semibold tabular-nums">
+                          P{race.position}
+                        </span>
+                      )}
+                      <span className="timing w-11 shrink-0 text-right text-sm font-semibold tabular-nums">
+                        {race.points}
+                        <span className="ml-1 text-2xs text-muted-foreground">
+                          PTS
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </F1Card>
+
+            {/* ── Season position scope (self-themed chart) ───────────────── */}
+            <SectionLabel icon={<Activity className="h-3 w-3" />}>
+              Race Progression Scope
+            </SectionLabel>
+            <DriverPositionChart history={pointsHistory} teamColor={teamColor} />
+          </>
+        )}
+
+        {!isEntityDbConfigured() && !isProfileLoading && (
+          <F1EmptyState
+            type="coming-soon"
+            title="Entity database not configured"
+            description="Connect Supabase to load career records for this driver."
+          />
+        )}
       </div>
+    </div>
   );
 };
 

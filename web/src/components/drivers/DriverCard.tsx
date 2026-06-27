@@ -101,8 +101,8 @@ const DriverCard = ({
         )}
         style={{ borderTopColor: teamColor }}
       >
-        <F1CardHeader className="flex flex-row items-center justify-between p-3 pb-2">
-          <div className="flex items-center gap-2">
+        <F1CardHeader className="flex flex-row items-center justify-between p-3 pb-2 md:p-4 md:pb-2">
+          <div className="flex min-w-0 items-center gap-2 md:gap-3">
             <DriverImage
               driverId={driver.Driver.driverId}
               driverName={driverFullName}
@@ -111,17 +111,17 @@ const DriverCard = ({
               teamColor={teamColor}
               fallbackCode={driver.Driver.code}
               fallbackFamilyName={driver.Driver.familyName}
-              className="h-10 w-10"
+              className="h-9 w-9 shrink-0 md:h-10 md:w-10"
             />
-            <div>
-              <h3 className="text-sm font-bold leading-tight">{driverFullName}</h3>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold leading-tight break-words">{driverFullName}</h3>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <span
                   className="inline-block w-2 h-2 rounded-full"
                   style={{ backgroundColor: teamColor }}
                 />
                 {teamName}
-                <span className="ml-1 timing text-xs">
+                <span className="ml-1 timing tabular-nums text-xs">
                   #{displayDriverNumber}
                 </span>
               </p>
@@ -129,16 +129,16 @@ const DriverCard = ({
           </div>
           <Badge
             variant="outline"
-            className={cn("timing bg-card", isGlass && "bg-white/10 border-white/20")}
+            className={cn("timing tabular-nums shrink-0 bg-card", isGlass && "bg-white/10 border-white/20")}
           >
             P{driver.position}
           </Badge>
         </F1CardHeader>
-        <F1CardContent className="px-3 pb-2 pt-0">
+        <F1CardContent className="px-3 pb-2 pt-0 md:px-4">
           <div className="hairline-grid grid grid-cols-2 gap-x-3 text-xs">
             <div className="data-row">
               <span className="instrument-label">Points</span>
-              <span className="timing font-semibold text-foreground">{driver.points}</span>
+              <span className="timing tabular-nums font-semibold text-foreground">{driver.points}</span>
             </div>
             <div className="data-row">
               <span className="instrument-label">Wins</span>
@@ -159,7 +159,7 @@ const DriverCard = ({
             )}
           </div>
         </F1CardContent>
-        <F1CardFooter className="border-t-0 p-3 pt-1 gap-2">
+        <F1CardFooter className="border-t-0 p-3 pt-1 gap-2 md:p-4 md:pt-1">
           <Button asChild size="sm" className="flex-1">
             <Link to={`/drivers/${driver.Driver.driverId}`}>
               <User className="h-4 w-4 mr-2" /> View Profile

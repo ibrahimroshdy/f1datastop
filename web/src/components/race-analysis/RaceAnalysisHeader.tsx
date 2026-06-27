@@ -1,8 +1,4 @@
-import CountryFlag from "@/components/common/CountryFlag";
-import { PageHeader } from "@/components/f1";
-import { useThemeVariant } from "@/hooks/useThemeVariant";
-import { cn } from "@/lib/utils";
-import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { Activity } from "lucide-react";
 
 export type RaceContext = {
   round: string;
@@ -19,54 +15,29 @@ export function RaceAnalysisHeader({
   selectedYear,
   currentRace,
 }: RaceAnalysisHeaderProps) {
-  const { isGlass } = useThemeVariant();
-
-  const raceLabel = currentRace
-    ? getRaceNameWithoutEmoji(currentRace.raceName)
-    : "Select a Grand Prix";
-
   return (
-    <div className="space-y-4">
-      <PageHeader
-        eyebrow={String(selectedYear)}
-        title="Race Analysis"
-        description="Lap times, qualifying, strategy, and session-level insights for each Grand Prix."
-      />
-
-      <div
-        className={cn(
-          "sticky top-0 z-20 -mx-4 border-b px-4 py-3 md:-mx-6 md:px-6",
-          isGlass
-            ? "border-white/10 bg-background/90 backdrop-blur-md"
-            : "border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
-        )}
-      >
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          {currentRace ? (
-            <CountryFlag
-              country={currentRace.Circuit?.Location?.country || ""}
-              size={20}
-            />
-          ) : null}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">{raceLabel}</p>
-            {currentRace?.Circuit?.circuitName ? (
-              <p className="truncate text-xs text-muted-foreground">
-                {currentRace.Circuit.circuitName}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {currentRace ? (
-              <span className="rounded-md bg-muted px-2 py-1 font-medium text-foreground">
-                Round {currentRace.round}
-              </span>
-            ) : null}
-            <span className="rounded-md bg-muted px-2 py-1 font-medium text-foreground">
-              {selectedYear}
-            </span>
-          </div>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0 space-y-1.5">
+        <div className="instrument-label flex items-center gap-1.5 text-primary">
+          <Activity className="h-3 w-3" />
+          <span>
+            Telemetry · Season <span className="timing">{selectedYear}</span>
+          </span>
         </div>
+        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
+          Race<span className="text-primary"> Analysis</span>
+        </h1>
+      </div>
+
+      <div className="flex w-fit flex-wrap items-center gap-1.5">
+        {currentRace ? (
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-primary">
+            Round <span className="timing">{currentRace.round}</span>
+          </span>
+        ) : null}
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-border bg-secondary/50 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-secondary-foreground">
+          <span className="timing">{selectedYear}</span>
+        </span>
       </div>
     </div>
   );

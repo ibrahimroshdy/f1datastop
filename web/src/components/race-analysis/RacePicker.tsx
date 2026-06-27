@@ -2,9 +2,6 @@ import YearSelector from "@/components/common/YearSelector";
 import CountryFlag from "@/components/common/CountryFlag";
 import {
   F1Card,
-  F1CardContent,
-  F1CardHeader,
-  F1CardTitle,
   SessionSelector,
   type SessionOption,
 } from "@/components/f1";
@@ -50,89 +47,105 @@ export function RacePicker({
 }: RacePickerProps) {
   const { cardVariant, glassVariant, isGlass } = useThemeVariant();
 
+  const raceLabel = currentRace?.raceName
+    ?.replace("Grand Prix", "GP")
+    .replace(/[\u{1F1E0}-\u{1F1FF}]{2}/gu, "")
+    .trim();
+
   return (
     <F1Card
+      size="sm"
       variant={cardVariant}
       glassVariant={glassVariant}
       className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
     >
-      <F1CardHeader className="px-4 pb-3 pt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Flag className="h-4 w-4 text-primary" />
-            <F1CardTitle className="text-base">Race Selection</F1CardTitle>
-          </div>
-          {currentRace ? (
-            <div className="flex items-center gap-2">
+      {/* Compact summary strip — primary readout (flag + GP + round) */}
+      <div className="flex items-center gap-2.5 border-b border-border px-3 py-2 md:px-4">
+        <span className="instrument-label flex shrink-0 items-center gap-1.5 text-primary">
+          <Flag className="h-3 w-3" />
+          <span className="hidden sm:inline">Race</span>
+        </span>
+        {currentRace ? (
+          <>
+            <span className="shrink-0 rounded bg-muted p-1">
               <CountryFlag
                 country={currentRace.Circuit?.Location?.country || ""}
                 size={16}
               />
-              <span className="text-sm font-medium">
-                {currentRace.raceName
-                  ?.replace("Grand Prix", "GP")
-                  .replace(/[\u{1F1E0}-\u{1F1FF}]{2}/gu, "")
-                  .trim()}
-              </span>
-            </div>
-          ) : null}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight">
+              {raceLabel}
+            </span>
+            <span className="timing shrink-0 rounded bg-secondary px-1.5 py-0.5 text-2xs text-secondary-foreground">
+              R{currentRace.round}
+            </span>
+          </>
+        ) : (
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-muted-foreground">
+            Select a Grand Prix
+          </span>
+        )}
+      </div>
+
+      {/* Tight controls row — instrument-label fields */}
+      <div className="flex flex-wrap gap-2 px-3 py-2.5 md:gap-3 md:px-4">
+        <div className="flex w-full items-end sm:w-auto">
+          {/* YearSelector renders its own "Season:" label */}
+          <YearSelector
+            selectedYear={selectedYear}
+            onYearChange={onYearChange}
+            className="h-9"
+          />
         </div>
-      </F1CardHeader>
-      <F1CardContent className="px-4 pb-4">
-        <div className="flex flex-wrap gap-4">
-          <div className="w-full sm:w-auto">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Season
-            </label>
-            <YearSelector selectedYear={selectedYear} onYearChange={onYearChange} />
-          </div>
 
-          <div className="w-full sm:min-w-[200px] sm:flex-1">
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Grand Prix
-            </label>
-            {isRaceScheduleLoading ? (
-              <div className="flex w-full items-center gap-2">
-                <Skeleton className="h-10 w-full" />
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <Select value={selectedRace} onValueChange={onRaceChange}>
-                <SelectTrigger
-                  className={cn("w-full", isGlass && "border-white/10 bg-white/5")}
-                >
-                  <SelectValue placeholder="Select race" />
-                </SelectTrigger>
-                <SelectContent>
-                  {raceSchedule?.map((race) => (
-                    <SelectItem key={race.round} value={race.round}>
-                      <span className="flex items-center gap-2">
-                        <CountryFlag
-                          country={race.Circuit?.Location?.country || ""}
-                          size={14}
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          R{race.round}
-                        </span>
-                        {race.Circuit?.circuitName || race.raceName}
+        <div className="w-full sm:min-w-[180px] sm:flex-1">
+          <label className="instrument-label mb-1 block">Grand Prix</label>
+          {isRaceScheduleLoading ? (
+            <div className="flex w-full items-center gap-2">
+              <Skeleton className="h-9 w-full" />
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Select value={selectedRace} onValueChange={onRaceChange}>
+              <SelectTrigger
+                className={cn("h-9 w-full", isGlass && "border-white/10 bg-white/5")}
+              >
+                <SelectValue placeholder="Select race" />
+              </SelectTrigger>
+              <SelectContent>
+                {raceSchedule?.map((race) => (
+                  <SelectItem key={race.round} value={race.round}>
+                    <span className="flex items-center gap-2">
+                      <CountryFlag
+                        country={race.Circuit?.Location?.country || ""}
+                        size={14}
+                      />
+                      <span className="timing text-xs text-muted-foreground">
+                        R{race.round}
                       </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
+                      {race.Circuit?.circuitName || race.raceName}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
 
-          {hasOpenF1Data ? (
+        {hasOpenF1Data ? (
+          <div className="w-full sm:w-auto">
+            <label className="instrument-label mb-1 block">Session</label>
             <SessionSelector
               sessions={availableSessions}
               selectedSessionKey={selectedSessionKey}
               onSessionChange={onSessionChange}
               isLoading={isOpenF1Loading}
+              label=""
+              triggerClassName="h-9 w-full md:w-[180px]"
             />
-          ) : null}
-        </div>
-      </F1CardContent>
+          </div>
+        ) : null}
+      </div>
     </F1Card>
   );
 }

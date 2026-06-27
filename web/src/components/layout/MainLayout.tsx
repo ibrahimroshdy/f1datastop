@@ -4,6 +4,8 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import Footer from "./Footer";
 import BottomNav from "./BottomNav";
+import PullToRefresh from "./PullToRefresh";
+import { AddToHome } from "@/components/pwa/AddToHome";
 import { useIsMediumOrSmaller } from "@/hooks/use-mobile";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
@@ -122,14 +124,17 @@ const MainLayout = () => {
           role="main"
           className="flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"
         >
-          <div className={cn("min-h-full p-4 md:p-6 lg:px-8", isGlass && "relative")}>
-            <div className="animate-fade-in">
-              <Outlet />
+          <PullToRefresh>
+            <div className={cn("min-h-full p-4 md:p-6 lg:px-8", isGlass && "relative")}>
+              <div className="animate-fade-in">
+                <Outlet />
+              </div>
             </div>
-          </div>
-          <Footer />
+            <Footer />
+          </PullToRefresh>
         </main>
 
+        <AddToHome />
         <BottomNav />
       </div>
     </div>

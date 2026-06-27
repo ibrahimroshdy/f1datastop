@@ -4,12 +4,11 @@ import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import CalendarAnalyticsTracker from "@/components/calendar/CalendarAnalyticsTracker";
 import RaceCalendarListView from "@/components/calendar/RaceCalendarListView";
 import RaceCalendarGridView from "@/components/calendar/RaceCalendarGridView";
-import { PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { useRaceCalendar } from "@/hooks/useRaceCalendar";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
-import { Grid3x3, List, Star } from "lucide-react";
+import { Grid3x3, List, Star, CalendarDays } from "lucide-react";
 
 const RaceCalendar = () => {
   const { isGlass, cardVariant, glassVariant } = useThemeVariant();
@@ -36,14 +35,25 @@ const RaceCalendar = () => {
   return (
     <CalendarAnalyticsTracker selectedYear={selectedYear} viewType="list">
       <div className={pageShell}>
-        <div className={cn(pageStack, "animate-fade-in")}>
-          <PageHeader
-            eyebrow={String(selectedYear)}
-            title="Race Calendar"
-            description={`${raceCount} rounds scheduled for ${selectedYear}`}
-            actions={
-              <div className="flex items-center gap-3">
-                <div className="flex items-center rounded-lg border border-border bg-card p-1 shadow-card">
+        <div className={cn("mx-auto w-full max-w-6xl", pageStack, "animate-fade-in")}>
+          {/* ── Compact app header (eyebrow + title + round readout) ──────── */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0 space-y-1.5">
+              <div className="instrument-label flex items-center gap-1.5 text-primary">
+                <CalendarDays className="h-3 w-3" />
+                <span>Season {selectedYear}</span>
+              </div>
+              <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
+                Race<span className="text-primary"> Calendar</span>
+              </h1>
+            </div>
+
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-fit sm:justify-end">
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-primary">
+                Rounds
+                <span className="timing">{String(raceCount).padStart(2, "0")}</span>
+              </span>
+              <div className="flex items-center rounded-lg border border-border bg-card p-1 shadow-card">
                 <Button
                   variant={viewMode === "list" ? "default" : "ghost"}
                   size="sm"
@@ -70,44 +80,29 @@ const RaceCalendar = () => {
                 </Button>
               </div>
               <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
-              </div>
-            }
-          />
-
-          {(viewMode === "list" || viewMode === "grid") && (
-            <div
-              className={cn(
-                "flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border px-3 py-2 shadow-card",
-                isGlass ? "border-white/10 bg-white/[0.03]" : "border-border bg-card",
-              )}
-            >
-              <span className="instrument-label hidden sm:inline">Legend</span>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-1 rounded-full bg-blue-500" />
-                  <span className="instrument-label">Single</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-1 rounded-full bg-green-500" />
-                  <span className="instrument-label">Double</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-1 rounded-full bg-violet-500" />
-                  <span className="instrument-label">Triple</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                  <span className="instrument-label">Sprint</span>
-                </div>
-              </div>
-              <div className="ml-auto flex items-center gap-1.5">
-                <span className="instrument-label">Rounds</span>
-                <span className="timing text-sm font-semibold text-foreground">
-                  {String(raceCount).padStart(2, "0")}
-                </span>
-              </div>
             </div>
-          )}
+          </div>
+
+          {/* ── Weekend-encoding legend (compact instrument row) ──────────── */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <span className="instrument-label hidden text-primary sm:inline">Legend</span>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-1 rounded-full bg-blue-500" aria-hidden />
+              <span className="instrument-label">Single</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-1 rounded-full bg-green-500" aria-hidden />
+              <span className="instrument-label">Double</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-1 rounded-full bg-violet-500" aria-hidden />
+              <span className="instrument-label">Triple</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" aria-hidden />
+              <span className="instrument-label">Sprint</span>
+            </div>
+          </div>
 
           {viewMode === "list" && (
             <RaceCalendarListView

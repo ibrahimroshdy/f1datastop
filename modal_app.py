@@ -100,6 +100,22 @@ def generate_event(season: int, event: str, session: str = "R", fmt: str = "all"
          "--session", session, "--format", fmt)
 
 
+# ── Manual: export interactive telemetry (per-lap JSON → Storage) for a season ─
+# Populates f1_telemetry_index so the FastF1 telemetry + track-map charts have
+# data. Loops every round; rounds that haven't run yet just fail-and-skip.
+@app.function(**COMMON)
+def export_telemetry(season: int, rounds: int = 24, session: str = "R") -> None:
+    done = 0
+    for r in range(1, rounds + 1):
+        try:
+            _run("telemetry_export.py", "--season", str(season),
+                 "--round", str(r), "--session", session)
+            done += 1
+        except Exception as e:  # noqa: BLE001
+            print(f"  R{r}: skipped ({e})")
+    print(f"Done. telemetry exported for {done} rounds of {season}.")
+
+
 @app.local_entrypoint()
 def main() -> None:
     """`modal run modal_app.py` → backfill the current 4-season window once."""

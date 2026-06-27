@@ -353,6 +353,8 @@
   /* Smooth transitions for theme changes */
   html {
     transition: background-color var(--transition-slow), color var(--transition-slow);
+    /* Stop overscroll chaining to the browser chrome (native PWA feel) */
+    overscroll-behavior-y: contain;
   }
 }
 

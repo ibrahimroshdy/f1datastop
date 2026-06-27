@@ -25,7 +25,8 @@ export function useRaceCalendar() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedRace, setSelectedRace] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<CalendarView>("grid");
+  // Dense list is the native-app default; grid remains available via the toggle
+  const [viewMode, setViewMode] = useState<CalendarView>("list");
   const [expandedRaces, setExpandedRaces] = useState<Set<string>>(new Set());
 
   const { data: raceSchedule, isLoading } = useRaceSchedule(selectedYear);
