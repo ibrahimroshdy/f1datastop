@@ -749,7 +749,7 @@ def chart_speed_distribution(session, meta):
     fig, ax = editorial_fig(left=0.17)
     title_block(fig, "Telemetry", "Speed Distribution", "Per team · fastest-lap car speed")
     data = [pooled[t] for t in teams]
-    parts = ax.violinplot(data, vert=False, showextrema=False, widths=0.85)
+    parts = ax.violinplot(data, orientation="horizontal", showextrema=False, widths=0.85)
     for body, t in zip(parts["bodies"], teams):
         body.set_facecolor(team_color(t))
         body.set_edgecolor(team_color(t))
@@ -821,7 +821,7 @@ def chart_pace_tyre(session, meta):
     fig, ax = editorial_fig(left=0.17)
     title_block(fig, "Pace", "Race Pace by Tyre", "Lap-time spread per team · point colour = compound")
     data = [laps[laps["Team"] == t]["s"].values for t in order]
-    parts = ax.violinplot(data, vert=False, showextrema=False, widths=0.9)
+    parts = ax.violinplot(data, orientation="horizontal", showextrema=False, widths=0.9)
     for body, t in zip(parts["bodies"], order):
         body.set_facecolor(team_color(t))
         body.set_alpha(0.22)
@@ -1036,7 +1036,7 @@ def chart_teammate_pace(session, meta):
         for data, side, alpha, hatch in ((a, 1, 0.62, None), (b, -1, 0.30, "////")):
             if len(data) < 2:
                 continue
-            parts = ax.violinplot([data], positions=[i], vert=False, widths=0.92,
+            parts = ax.violinplot([data], positions=[i], orientation="horizontal", widths=0.92,
                                   showextrema=False)
             for body in parts["bodies"]:
                 v = body.get_paths()[0].vertices

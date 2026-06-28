@@ -86,10 +86,25 @@ const Index = () => {
   const lastCompletedRace = useMemo(() => {
     if (!raceSchedule?.data) return null;
     const races = raceSchedule.data;
-    const now = new Date();
-    const completedRaces = races.filter((race: IndexScheduleRace) => new Date(race.date) < now);
-    if (completedRaces.length === 0) return null;
-    const lastRace = completedRaces[completedRaces.length - 1];
+    // Prefer the most recent race that actually has published results (resolved
+    // by useLastRaceResults, which walks back past not-yet-scored races). A race
+    // flips to date<now at the START of race day, hours before results land —
+    // scoping by date alone leaves the Sankey/dialog empty until Ergast catches
+    // up. Fall back to the date-based pick if results aren't loaded yet.
+    const lr = lastRaceResults?.data as { season?: string; round?: string } | null | undefined;
+    let lastRace = lr?.round
+      ? races.find(
+          (race: IndexScheduleRace) =>
+            String(race.round) === String(lr.round) &&
+            (!lr.season || String(race.season) === String(lr.season)),
+        )
+      : undefined;
+    if (!lastRace) {
+      const now = new Date();
+      const completedRaces = races.filter((race: IndexScheduleRace) => new Date(race.date) < now);
+      if (completedRaces.length === 0) return null;
+      lastRace = completedRaces[completedRaces.length - 1];
+    }
     return {
       year: parseInt(lastRace.season),
       round: lastRace.round,
@@ -98,7 +113,7 @@ const Index = () => {
       countryCode: getCountryCode(lastRace.Circuit?.Location?.country || "") || "",
       raceData: lastRace, // Full race data for the dialog
     };
-  }, [raceSchedule?.data]);
+  }, [raceSchedule?.data, lastRaceResults?.data]);
 
   useEffect(() => {
     // Only show offline warning for critical API failures (standings and schedule)

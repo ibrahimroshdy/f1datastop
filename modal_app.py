@@ -96,11 +96,18 @@ def backfill_range(from_season: int = 2023, to_season: int = 2026) -> None:
     _run("backfill.py", "--from-season", str(from_season), "--to-season", str(to_season))
 
 
-# ── Manual: charts for one specific event ────────────────────────────────────
+# ── Manual: charts for one specific event (by name OR round number) ──────────
 @app.function(**COMMON)
-def generate_event(season: int, event: str, session: str = "R", fmt: str = "all") -> None:
-    _run("generate.py", "--season", str(season), "--event", event,
-         "--session", session, "--format", fmt)
+def generate_event(season: int, event: str = "", round: int = 0,
+                   session: str = "R", fmt: str = "all") -> None:
+    args = ["generate.py", "--season", str(season), "--session", session, "--format", fmt]
+    if round:
+        args += ["--round", str(round)]
+    elif event:
+        args += ["--event", event]
+    else:
+        raise SystemExit("generate_event: provide --event NAME or --round N")
+    _run(*args)
 
 
 # ── Manual: export interactive telemetry (per-lap JSON → Storage) for a season ─

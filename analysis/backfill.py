@@ -803,12 +803,16 @@ def backfill_openf1(season, schedule_races):
 
 # ── orchestration ────────────────────────────────────────────────────────────
 def round_is_completed(rc):
-    """A round is completed if its race date is strictly in the past (UTC)."""
+    """A round counts as completed once its race date has arrived (UTC,
+    inclusive of race day). Using `<` excluded same-day races, so a round
+    stayed `not_applicable` all of race day even after results were published.
+    backfill_results marks empty fetches `partial` (retryable), so attempting an
+    as-yet-unpublished same-day race is safe — it just retries until data lands."""
     try:
         d = dt.date.fromisoformat(rc.get("date"))
     except (TypeError, ValueError):
         return False
-    return d < dt.datetime.now(dt.timezone.utc).date()
+    return d <= dt.datetime.now(dt.timezone.utc).date()
 
 
 def backfill_round(season, rc, domains):

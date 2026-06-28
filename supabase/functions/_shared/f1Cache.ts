@@ -25,6 +25,23 @@ export type ProxyResponse = {
 
 const UPSTREAM_TIMEOUT_MS = 8000;
 
+/**
+ * True when an Ergast payload is a "not yet published" shell: a race row exists
+ * but every known result array is present-and-empty, or the Races list is empty.
+ * Such payloads must not be durably cached (they'd mask real data for the TTL).
+ * Returns false for unknown shapes (standings/schedule) so they cache normally.
+ */
+function isEmptyErgastPayload(payload: unknown): boolean {
+  const races = (payload as any)?.MRData?.RaceTable?.Races;
+  if (!Array.isArray(races)) return false;
+  if (races.length === 0) return true;
+  const r0 = races[0] ?? {};
+  const arrays = [r0.Results, r0.QualifyingResults, r0.SprintResults, r0.PitStops, r0.Laps];
+  const present = arrays.filter((a: unknown) => Array.isArray(a));
+  if (present.length === 0) return false; // no result arrays in this endpoint's shape
+  return present.every((a: unknown[]) => a.length === 0);
+}
+
 const UPSTREAM: Record<F1Source, string> = {
   ergast: "https://api.jolpi.ca/ergast",
   openf1: "https://api.openf1.org/v1",
@@ -169,7 +186,14 @@ export async function proxyF1Request(
   }
 
   const payload = await upstreamResponse.json();
-  const ttl = resolveTtlSeconds(source, path, params);
+  let ttl = resolveTtlSeconds(source, path, params);
+  // Never durably cache an empty / not-yet-published Ergast payload (e.g. a race
+  // whose results aren't out yet returns a race shell with empty result arrays).
+  // The long durable TTL would otherwise mask the real data for weeks once it
+  // lands. Keep such responses short-lived so they refresh on the next request.
+  if (ttl > 300 && isEmptyErgastPayload(payload)) {
+    ttl = 120;
+  }
   const expiresAt = new Date(now.getTime() + ttl * 1000).toISOString();
 
   const { error: upsertErr } = await admin.from("api_cache").upsert(

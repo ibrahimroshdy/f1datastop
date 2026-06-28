@@ -359,17 +359,23 @@ export const getLastRaceResults = async (year?: number) => {
     if (completedRaces.length === 0) {
       return { data: null, error: "No completed races found for this season" };
     }
-    const lastRace = completedRaces[completedRaces.length - 1];
-    const resultsResponse = await ergastFetch(`${ERGAST}/${lastRace.season}/${lastRace.round}/results.json`);
-    if (!resultsResponse.ok) {
-      throw new Error(`API request failed with status ${resultsResponse.status}`);
+    // A race flips to "completed" at the start of race day, but Ergast results
+    // lag by hours/days — so the newest by-date race can have no results yet.
+    // Walk back through the last few completed races until one is published.
+    const recent = completedRaces.slice(-4).reverse();
+    for (const race of recent) {
+      const resultsResponse = await ergastFetch(`${ERGAST}/${race.season}/${race.round}/results.json`);
+      if (!resultsResponse.ok) continue;
+      const resultsData = await resultsResponse.json();
+      const results = resultsData.MRData?.RaceTable?.Races?.[0]?.Results || [];
+      if (results.length > 0) {
+        return {
+          data: { raceName: race.raceName, season: race.season, round: race.round, results },
+          error: null,
+        };
+      }
     }
-    const resultsData = await resultsResponse.json();
-    const data = {
-      raceName: lastRace.raceName,
-      results: resultsData.MRData?.RaceTable?.Races?.[0]?.Results || []
-    };
-    return { data, error: null };
+    return { data: null, error: "No race results available yet" };
   } catch (error) {
     console.error("Failed to fetch race results:", error);
     return { data: null, error };
