@@ -1,8 +1,9 @@
 import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults, useLastRacePitStops } from "@/hooks/useF1Data";
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
 import { getTeamColor } from "@/utils/teamUtils";
 import { pageShell, pageStack } from "@/lib/layout";
+import CombinedStandingsCard from "@/components/dashboard/CombinedStandingsCard";
+import SeasonChampionshipCard from "@/components/dashboard/SeasonChampionshipCard";
 import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
 import FastestPitStopCard from "@/components/dashboard/FastestPitStopCard";
 import QualifyingResultsCard from "@/components/dashboard/QualifyingResultsCard";
@@ -16,7 +17,6 @@ import {
   F1CardHeader,
   F1CardTitle,
 } from "@/components/f1";
-import { DriverAvatar } from "@/components/f1";
 import { GitCompare, Activity, Calendar, Clock, ChevronRight, Flag as FlagIcon, TriangleAlert } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
 import CountryFlag, { getCountryCode } from "@/components/common/CountryFlag";
@@ -39,12 +39,6 @@ type IndexScheduleRace = {
   [key: string]: unknown;
 };
 
-type DriverStanding = {
-  position?: string;
-  points?: string;
-  Driver?: { driverId?: string; givenName?: string; familyName?: string; code?: string };
-  Constructors?: Array<{ constructorId?: string; name?: string }>;
-};
 
 const Index = () => {
   const {
@@ -71,6 +65,7 @@ const Index = () => {
   const { isGlass } = useTheme();
   const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading || isPitStopsLoading;
   const [isOffline, setIsOffline] = useState(false);
+  const [, setStandingsExpanded] = useState(false);
   const [isSankeyDialogOpen, setIsSankeyDialogOpen] = useState(false);
   const [isNextRaceDialogOpen, setIsNextRaceDialogOpen] = useState(false);
 
@@ -142,21 +137,6 @@ const Index = () => {
     return { totalRounds, completedRounds };
   }, [raceSchedule?.data]);
 
-  // Top drivers for the championship mini-list (dense app rows)
-  const topDrivers = useMemo(
-    () => ((driverStandings?.data ?? []) as DriverStanding[]).slice(0, 5),
-    [driverStandings?.data]
-  );
-
-  // Upcoming races for the "Next races" list
-  const upcomingRaces = useMemo(() => {
-    const races = (raceSchedule?.data ?? []) as IndexScheduleRace[];
-    const now = new Date();
-    return races
-      .filter((race) => new Date(race.date + "T" + (race.time || "00:00:00Z")) > now)
-      .slice(0, 5);
-  }, [raceSchedule?.data]);
-
   return (
     <div className={pageShell}>
       <div className={cn("mx-auto w-full max-w-6xl", pageStack, "animate-fade-in")}>
@@ -178,10 +158,20 @@ const Index = () => {
           <DashboardSkeleton />
         ) : (
           <>
-            {/* ── Dense app-list row: Championship + Next races ─────────── */}
-            <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
-              <ChampionshipMiniList drivers={topDrivers} />
-              <NextRacesList races={upcomingRaces} isSeasonComplete={isSeasonComplete} />
+            {/* ── Full standings + season championship ──────────────────── */}
+            <SectionLabel icon={<FlagIcon className="h-3 w-3" />}>
+              Championship Standings
+            </SectionLabel>
+            <div className={`grid grid-cols-1 gap-4 md:gap-6 ${isSeasonComplete ? '' : 'lg:grid-cols-3'}`}>
+              <div className={isSeasonComplete ? '' : 'lg:col-span-2'}>
+                <CombinedStandingsCard
+                  constructorStandings={constructorStandings}
+                  driverStandings={driverStandings}
+                  getTeamColor={getTeamColor}
+                  onExpandChange={setStandingsExpanded}
+                />
+              </div>
+              {!isSeasonComplete && <SeasonChampionshipCard />}
             </div>
 
             {/* ── Qualifying → Race Progression (full width) ─────────────── */}
@@ -518,157 +508,6 @@ const NextSessionCard = ({
   );
 };
 
-// ── Championship mini standings list (dense hairline rows) ───────────────────
-const ChampionshipMiniList = ({ drivers }: { drivers: DriverStanding[] }) => {
-  return (
-    <F1Card className="overflow-hidden p-0">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <div className="instrument-label flex items-center gap-1.5 text-primary">
-          <FlagIcon className="h-3 w-3" />
-          Championship
-        </div>
-        <Link
-          to="/standings"
-          className="inline-flex shrink-0 items-center gap-1 text-2xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
-        >
-          Standings
-          <ChevronRight className="h-3 w-3" />
-        </Link>
-      </div>
-
-      {drivers.length === 0 ? (
-        <div className="px-4 py-8">
-          <F1EmptyState type="season-start" size="sm" />
-        </div>
-      ) : (
-        <ul className="divide-y divide-border">
-          {drivers.map((d, idx) => {
-            const pos = Number(d.position) || idx + 1;
-            const name = `${d.Driver?.givenName ?? ""} ${d.Driver?.familyName ?? ""}`.trim();
-            const code = d.Driver?.code ?? d.Driver?.familyName?.slice(0, 3).toUpperCase() ?? "—";
-            const team = d.Constructors?.[0]?.name ?? "";
-            const driverId = d.Driver?.driverId;
-            const teamColor = getTeamColor(d.Constructors?.[0]?.constructorId ?? "default");
-
-            const row = (
-              <div className="flex items-center gap-3 px-4 py-2">
-                <span
-                  className={cn(
-                    "timing w-5 shrink-0 text-center text-sm",
-                    pos === 1 ? "text-position-gold" : "text-muted-foreground"
-                  )}
-                >
-                  {pos}
-                </span>
-                <span
-                  className="h-7 w-0.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: teamColor }}
-                  aria-hidden
-                />
-                <DriverAvatar driverCode={code} driverName={name} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold leading-tight">{name || code}</div>
-                  <div className="truncate text-2xs text-muted-foreground">{team}</div>
-                </div>
-                <span className="timing shrink-0 text-sm font-semibold tabular-nums">
-                  {d.points ?? "0"}
-                  <span className="ml-1 text-2xs text-muted-foreground">PTS</span>
-                </span>
-              </div>
-            );
-
-            return (
-              <li key={driverId ?? `${code}-${idx}`}>
-                {driverId ? (
-                  <Link
-                    to={`/drivers/${driverId}`}
-                    className="block transition-colors hover:bg-muted/50"
-                  >
-                    {row}
-                  </Link>
-                ) : (
-                  row
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </F1Card>
-  );
-};
-
-// ── Next races compact list (dense hairline rows) ────────────────────────────
-const NextRacesList = ({
-  races,
-  isSeasonComplete,
-}: {
-  races: IndexScheduleRace[];
-  isSeasonComplete: boolean;
-}) => {
-  return (
-    <F1Card className="overflow-hidden p-0">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <div className="instrument-label flex items-center gap-1.5 text-primary">
-          <Calendar className="h-3 w-3" />
-          Next Races
-        </div>
-        <Link
-          to="/calendar"
-          className="inline-flex shrink-0 items-center gap-1 text-2xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
-        >
-          Calendar
-          <ChevronRight className="h-3 w-3" />
-        </Link>
-      </div>
-
-      {races.length === 0 ? (
-        <div className="px-4 py-8 text-center">
-          <p className="timing text-sm text-muted-foreground">
-            {isSeasonComplete ? "Season complete" : "Schedule pending"}
-          </p>
-        </div>
-      ) : (
-        <ul className="divide-y divide-border">
-          {races.map((race) => {
-            const date = new Date(race.date + "T" + (race.time || "00:00:00Z"));
-            const country = race.Circuit?.Location?.country ?? "";
-            return (
-              <li key={race.round} className="flex items-center gap-3 px-4 py-2">
-                <span className="timing w-7 shrink-0 text-center text-2xs text-muted-foreground">
-                  R{race.round}
-                </span>
-                <span className="shrink-0 rounded-md bg-muted p-1">
-                  <CountryFlag country={country} size={16} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold leading-tight">
-                    {getRaceNameWithoutEmoji(race.raceName)}
-                  </div>
-                  <div className="truncate text-2xs text-muted-foreground">
-                    {race.Circuit?.Location?.locality ?? country}
-                  </div>
-                </div>
-                <span className="timing shrink-0 text-right text-xs leading-tight text-muted-foreground">
-                  <span className="block font-semibold text-foreground">
-                    {date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                  </span>
-                  <span className="block text-2xs">
-                    {date.toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    })}
-                  </span>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </F1Card>
-  );
-};
 
 // Dashboard Loading Skeleton
 const DashboardSkeleton = () => {

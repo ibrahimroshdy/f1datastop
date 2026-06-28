@@ -15,7 +15,9 @@
 # First time only:  python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 set -euo pipefail
 cd "$(dirname "$0")"
-source .venv/bin/activate
+if [ -d venv ]; then source venv/bin/activate;
+elif [ -d .venv ]; then source .venv/bin/activate;
+fi
 
 FMT="${4:-landscape}"; LABELS="${5:-logo}"
 

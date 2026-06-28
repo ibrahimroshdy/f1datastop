@@ -15,6 +15,7 @@ import { useThemeVariant } from "@/hooks/useThemeVariant";
 interface AnalysisChartsProps {
   year: number;
   round: string;
+  session?: string;
 }
 
 function ChartImage({ src, alt }: { src: string; alt: string }) {
@@ -37,12 +38,12 @@ function ChartImage({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-export default function AnalysisCharts({ year, round }: AnalysisChartsProps) {
+export default function AnalysisCharts({ year, round, session = "R" }: AnalysisChartsProps) {
   const r = parseInt(round, 10);
   const { cardVariant, glassVariant } = useThemeVariant();
   const { data, isLoading } = useQuery({
-    queryKey: ["analysisCharts", year, r],
-    queryFn: () => getAnalysisCharts(year, r),
+    queryKey: ["analysisCharts", year, r, session],
+    queryFn: () => getAnalysisCharts(year, r, session),
     staleTime: 60 * 60 * 1000,
     enabled: !!year && !!r,
   });

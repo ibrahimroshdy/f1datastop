@@ -107,6 +107,22 @@ const RaceAnalysis = () => {
 
   const hasOpenF1Data = selectedYear >= 2023 && availableSessions.length > 0;
 
+  // Map the selected OpenF1 session to the chart/telemetry session code
+  // (R/Q/S/SQ/FP1-3) used by analysis_charts + f1_telemetry_index.
+  const selectedSession = useMemo(() => {
+    const s = (availableSessions as unknown as OpenF1SessionEntry[]).find(
+      (x) => x.session_key === selectedSessionKey,
+    );
+    const n = (s?.session_name ?? "").toLowerCase();
+    if (n.includes("sprint") && (n.includes("qual") || n.includes("shootout"))) return "SQ";
+    if (n.includes("sprint")) return "S";
+    if (n.includes("qual")) return "Q";
+    if (n.includes("practice 3")) return "FP3";
+    if (n.includes("practice 2")) return "FP2";
+    if (n.includes("practice 1")) return "FP1";
+    return "R";
+  }, [availableSessions, selectedSessionKey]);
+
   useEffect(() => {
     if (!hasOpenF1Data && isAdvancedTab(selectedTab)) {
       setSelectedTab(DEFAULT_RACE_ANALYSIS_TAB);
@@ -158,6 +174,7 @@ const RaceAnalysis = () => {
           selectedYear={selectedYear}
           selectedRace={selectedRace}
           selectedSessionKey={selectedSessionKey}
+          selectedSession={selectedSession}
         />
       </div>
     </div>

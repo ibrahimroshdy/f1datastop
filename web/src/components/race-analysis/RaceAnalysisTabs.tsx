@@ -132,6 +132,7 @@ interface RaceAnalysisTabsProps {
   selectedYear: number;
   selectedRace: string;
   selectedSessionKey: number | null;
+  selectedSession?: string;
 }
 
 export function RaceAnalysisTabs({
@@ -141,6 +142,7 @@ export function RaceAnalysisTabs({
   selectedYear,
   selectedRace,
   selectedSessionKey,
+  selectedSession = "R",
 }: RaceAnalysisTabsProps) {
   const { cardVariant, glassVariant } = useThemeVariant();
   const cardClassName = "overflow-hidden p-0";
@@ -212,7 +214,7 @@ export function RaceAnalysisTabs({
               </F1CardDescription>
             </F1CardHeader>
             <F1CardContent className="min-h-[400px] px-0 pb-2 pt-2">
-              <AnalysisCharts year={selectedYear} round={selectedRace} />
+              <AnalysisCharts year={selectedYear} round={selectedRace} session={selectedSession} />
             </F1CardContent>
           </F1Card>
         </TabsContent>
@@ -358,9 +360,9 @@ export function RaceAnalysisTabs({
                   </F1CardDescription>
                 </F1CardHeader>
                 <F1CardContent className="min-h-[500px] px-4 pb-4">
-                  <FastF1TelemetryChart year={selectedYear} round={selectedRace} />
+                  <FastF1TelemetryChart year={selectedYear} round={selectedRace} session={selectedSession} />
                   <div className="my-5 border-t border-border/40" />
-                  <TrackMapChart year={selectedYear} round={selectedRace} />
+                  <TrackMapChart year={selectedYear} round={selectedRace} session={selectedSession} />
                   <div className="my-5 border-t border-border/40" />
                   <div className="instrument-label mb-2">Live session feed</div>
                   <TelemetryDashboard
