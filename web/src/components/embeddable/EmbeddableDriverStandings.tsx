@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Spinner } from '../ui/spinner';
 import { cn } from '../../lib/utils';
 import { TEAM_COLORS } from '../../constants/f1Colors';
-import { F1_API } from '../../constants/apiConfig';
+import { ergastFetch } from '../../lib/api/f1ApiFetch';
 import {
   getEmbeddableThemeClasses,
   EmbeddableError,
@@ -86,17 +86,10 @@ export default function EmbeddableDriverStandings({
     setError(null);
     
     try {
-      // Use the f1Service pattern from the codebase (proxy in dev to avoid CORS)
-      const BASE_URL = F1_API.ERGAST_BASE;
-      
-      // Fetch without specifying a round to get the latest data
-      const response = await fetch(`${BASE_URL}/f1/${season}/driverStandings.json`, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
+      // Route through the warehouse-aware F1 client (proxy fallback, throttled,
+      // cached) instead of hitting Ergast directly — avoids CORS + rate limits.
+      const response = await ergastFetch(`/f1/${season}/driverStandings.json`);
+
       if (!response.ok) {
         throw new Error(`Failed to fetch driver standings: ${response.statusText}`);
       }

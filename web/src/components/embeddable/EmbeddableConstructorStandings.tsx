@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Spinner } from '../ui/spinner';
 import { cn } from '../../lib/utils';
 import { TEAM_COLORS } from '../../constants/f1Colors';
-import { F1_API } from '../../constants/apiConfig';
+import { ergastFetch } from '../../lib/api/f1ApiFetch';
 import {
   getEmbeddableThemeClasses,
   EmbeddableError,
@@ -61,14 +61,10 @@ const EmbeddableConstructorStandings: React.FC<EmbeddableConstructorStandingsPro
     setError(null);
 
     try {
-      const BASE_URL = F1_API.ERGAST_BASE;
-      const response = await fetch(`${BASE_URL}/f1/${season}/constructorStandings.json`, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
+      // Route through the warehouse-aware F1 client (proxy fallback, throttled,
+      // cached) instead of hitting Ergast directly — avoids CORS + rate limits.
+      const response = await ergastFetch(`/f1/${season}/constructorStandings.json`);
+
       if (!response.ok) {
         throw new Error(`Failed to fetch constructor standings: ${response.statusText}`);
       }

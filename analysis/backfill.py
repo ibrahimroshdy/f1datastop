@@ -78,6 +78,11 @@ OPENF1_SESSION_TYPE = {
 }
 
 DRY_RUN = False
+FORCE = False  # when True, re-ingest rounds even if sync_state says they're complete
+
+# A round counts as fully ingested once these fact domains are 'complete' in
+# f1_sync_state — used to skip already-done rounds on a reconcile run.
+ROUND_COMPLETE_DOMAINS = {"results", "qualifying", "laps"}
 
 
 # ── HTTP helpers ─────────────────────────────────────────────────────────────
@@ -833,6 +838,22 @@ def backfill_round(season, rc, domains):
         backfill_laps(season, rnd, rid)
 
 
+def completed_rounds_in_db(season):
+    """Rounds whose core fact-domains (results, qualifying, laps) are all marked
+    'complete' in f1_sync_state. Used to skip already-ingested rounds."""
+    try:
+        rows = supa_select("f1_sync_state", "round,domain,status", season=season)
+    except Exception:  # noqa: BLE001
+        return set()
+    by_round = {}
+    for r in rows or []:
+        if (r.get("status") == "complete"
+                and r.get("domain") in ROUND_COMPLETE_DOMAINS
+                and r.get("round") is not None):
+            by_round.setdefault(int(r["round"]), set()).add(r["domain"])
+    return {rnd for rnd, doms in by_round.items() if ROUND_COMPLETE_DOMAINS <= doms}
+
+
 def backfill_season(season, domains, only_round=None):
     print(f"== Season {season} ==")
     # 1. Spine: schedule (always needed to enumerate rounds + resolve race_id)
@@ -847,14 +868,23 @@ def backfill_season(season, domains, only_round=None):
     if "entities" in domains:
         backfill_entities(season)
 
-    # 3. Per-round facts (dependency-correct order inside backfill_round)
+    # 3. Per-round facts (dependency-correct order inside backfill_round).
+    # Skip rounds already 'complete' in sync_state so a whole-season reconcile
+    # is cheap (only un-ingested/new rounds hit the rate-limited sources).
     round_domains = domains & {"results", "qualifying", "sprint", "pitstops", "laps"}
     if round_domains:
+        done = set() if (FORCE or only_round is not None) else completed_rounds_in_db(season)
+        skipped = 0
         for rc in races:
             rnd = to_int(rc.get("round"))
             if only_round is not None and rnd != only_round:
                 continue
+            if rnd in done:
+                skipped += 1
+                continue
             backfill_round(season, rc, round_domains)
+        if skipped:
+            print(f"  ({skipped} completed rounds skipped via sync_state; --force to re-ingest)")
 
     # 4. Standings (season-level)
     if "driver_standings" in domains:
@@ -898,12 +928,15 @@ def main():
     ap.add_argument("--domains", default="all",
                     help="comma-separated subset of: " + ",".join(ALL_DOMAINS))
     ap.add_argument("--no-openf1", action="store_true", help="skip OpenF1 entirely")
+    ap.add_argument("--force", action="store_true",
+                    help="re-ingest rounds even if sync_state marks them complete")
     ap.add_argument("--dry-run", action="store_true",
                     help="fetch + print row counts, do not write to Supabase")
     args = ap.parse_args()
 
-    global DRY_RUN
+    global DRY_RUN, FORCE
     DRY_RUN = args.dry_run
+    FORCE = args.force
     if not DRY_RUN:
         _env()  # fail fast if env missing
 

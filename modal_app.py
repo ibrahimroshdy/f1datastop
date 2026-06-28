@@ -72,13 +72,16 @@ def _run(script: str, *args: str) -> None:
     cache_vol.commit()  # persist any newly downloaded FastF1 sessions
 
 
-# ── Scheduled: pull the latest completed round into the warehouse ────────────
-# Every 3h on race-weekend days (Fri/Sat/Sun UTC) so new sessions land fast;
-# --latest only fetches the latest completed round and UPSERTs are idempotent,
-# so the extra runs are cheap no-ops outside of fresh data.
-@app.function(schedule=modal.Cron("0 */3 * * 5,6,0"), **COMMON)
-def backfill_latest() -> None:
-    _run("backfill.py", "--latest")
+# ── Scheduled: reconcile the CURRENT season into the warehouse ───────────────
+# Every 6h, all week. backfill.py skips rounds already 'complete' in
+# f1_sync_state, so this whole-season pass only hits the rate-limited sources
+# for new/incomplete rounds — cheap, and it self-heals any gap a missed run
+# would otherwise leave (which is exactly how 2026 fell behind on --latest).
+@app.function(schedule=modal.Cron("0 */6 * * *"), **COMMON)
+def backfill_current() -> None:
+    from datetime import datetime, timezone
+    year = datetime.now(timezone.utc).year
+    _run("backfill.py", "--season", str(year))
 
 
 # ── Scheduled: regenerate + upload charts for the latest race ────────────────
