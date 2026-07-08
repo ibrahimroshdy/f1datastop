@@ -126,6 +126,24 @@ def export_telemetry(season: int, rounds: int = 24, session: str = "R") -> None:
     print(f"Done. telemetry exported for {done} rounds of {season}.")
 
 
+# ── Scheduled: keep the CURRENT season's telemetry filled ────────────────────
+# Every 6h (offset 30m from backfill_current). telemetry_export.py skips rounds
+# already in f1_telemetry_index and no-ops on rounds that haven't run yet, so a
+# whole-season pass is cheap and self-heals gaps (why 6/9 were missing before).
+@app.function(schedule=modal.Cron("30 */6 * * *"), **COMMON)
+def export_telemetry_current() -> None:
+    from datetime import datetime, timezone
+    year = datetime.now(timezone.utc).year
+    done = 0
+    for r in range(1, 25):
+        try:
+            _run("telemetry_export.py", "--season", str(year), "--round", str(r), "--session", "R")
+            done += 1
+        except Exception as e:  # noqa: BLE001
+            print(f"  R{r}: skipped ({e})")
+    print(f"Done. telemetry pass for {year}: {done} rounds attempted.")
+
+
 @app.local_entrypoint()
 def main() -> None:
     """`modal run modal_app.py` → backfill the current 4-season window once."""

@@ -39,7 +39,6 @@ const MuiSankeyChart = lazy(() => import("@/components/analytics/MuiSankeyChart"
 const MuiPitStopTable = lazy(() => import("@/components/analytics/MuiPitStopTable"));
 const WeatherAnalysis = lazy(() => import("@/components/analytics/WeatherAnalysis"));
 const TeamRadio = lazy(() => import("@/components/analytics/TeamRadio"));
-const TelemetryDashboard = lazy(() => import("@/components/analytics/TelemetryDashboard"));
 const FastF1TelemetryChart = lazy(() => import("@/components/race/FastF1TelemetryChart"));
 const TrackMapChart = lazy(() => import("@/components/race/TrackMapChart"));
 const SessionResults = lazy(() => import("@/components/analytics/SessionResults"));
@@ -66,7 +65,7 @@ interface TabButtonGroupProps {
 function TabButtonGroup({ label, tabs, selectedTab, onTabChange }: TabButtonGroupProps) {
   return (
     <div className="flex items-center gap-3 border-b border-border py-1.5">
-      <span className="instrument-label w-16 shrink-0 text-primary">
+      <span className="instrument-label w-24 shrink-0 whitespace-nowrap text-primary">
         {label}
       </span>
       <div className="flex flex-wrap gap-1">
@@ -98,7 +97,7 @@ function TabButtonGroup({ label, tabs, selectedTab, onTabChange }: TabButtonGrou
 function MobileTabRow({ label, tabs, selectedTab, onTabChange }: TabButtonGroupProps) {
   return (
     <div className="flex items-center gap-2">
-      <span className="instrument-label w-16 shrink-0 text-primary">{label}</span>
+      <span className="instrument-label w-24 shrink-0 whitespace-nowrap text-primary">{label}</span>
       <div className="flex flex-1 gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => {
           const active = selectedTab === tab.id;
@@ -363,13 +362,6 @@ export function RaceAnalysisTabs({
                   <FastF1TelemetryChart year={selectedYear} round={selectedRace} session={selectedSession} />
                   <div className="my-5 border-t border-border/40" />
                   <TrackMapChart year={selectedYear} round={selectedRace} session={selectedSession} />
-                  <div className="my-5 border-t border-border/40" />
-                  <div className="instrument-label mb-2">Live session feed</div>
-                  <TelemetryDashboard
-                    year={selectedYear}
-                    round={selectedRace}
-                    sessionKey={selectedSessionKey || undefined}
-                  />
                 </F1CardContent>
               </F1Card>
             </TabsContent>

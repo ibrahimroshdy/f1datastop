@@ -52,6 +52,25 @@ def _env():
     return url.rstrip("/"), key
 
 
+def _already_exported(season, rnd, session_code):
+    """True if f1_telemetry_index already has rows for this session — lets a
+    whole-season cron pass skip finished rounds before the costly FastF1 load."""
+    try:
+        url, key = _env()
+        r = requests.get(
+            f"{url}/rest/v1/f1_telemetry_index",
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+            params={"season": f"eq.{season}", "round": f"eq.{rnd}",
+                    "session": f"eq.{session_code}", "select": "driver_code", "limit": "30"},
+            timeout=30,
+        )
+        # Require a substantially-complete session (>=10 drivers), so a partial
+        # or broken export (e.g. 1 row) is re-run instead of counted as done.
+        return r.ok and len(r.json()) >= 10
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _fmt_laptime(td):
     if td is None or pd.isna(td):
         return None
@@ -98,9 +117,16 @@ def _metrics(channels):
     }
 
 
-def export_session(season, rnd, session_code, drivers=None, upload=True):
+def export_session(season, rnd, session_code, drivers=None, upload=True, force=False):
+    if upload and not force and _already_exported(season, rnd, session_code):
+        print(f"  {season} R{rnd} {session_code}: already exported, skip (--force to redo)")
+        return []
     s = fastf1.get_session(season, rnd, session_code)
-    s.load(telemetry=True, weather=False, messages=False)
+    try:
+        s.load(telemetry=True, weather=False, messages=False)
+    except Exception as e:  # noqa: BLE001 — future/unpublished round: skip, don't crash
+        print(f"  {season} R{rnd} {session_code}: load failed ({e}); skip")
+        return []
     res = s.results
     abbr2id = {r.get("Abbreviation"): r.get("DriverId") for _, r in res.iterrows()}
     abbr2team = {r.get("Abbreviation"): r.get("TeamName") for _, r in res.iterrows()}
@@ -189,6 +215,8 @@ def main():
     ap.add_argument("--session", default="R")
     ap.add_argument("--drivers", help="comma-separated codes, e.g. NOR,LEC,VER")
     ap.add_argument("--no-upload", action="store_true")
+    ap.add_argument("--force", action="store_true",
+                    help="re-export even if already in f1_telemetry_index")
     args = ap.parse_args()
 
     cache = os.environ.get("FASTF1_CACHE", ".fastf1cache")
@@ -204,7 +232,8 @@ def main():
     drivers = [d.strip().upper() for d in args.drivers.split(",")] if args.drivers else None
     print(f"Telemetry export {args.season} R{rnd} {args.session} "
           f"({'all drivers' if not drivers else ','.join(drivers)})")
-    export_session(args.season, rnd, args.session, drivers, upload=not args.no_upload)
+    export_session(args.season, rnd, args.session, drivers,
+                   upload=not args.no_upload, force=args.force)
 
 
 if __name__ == "__main__":
