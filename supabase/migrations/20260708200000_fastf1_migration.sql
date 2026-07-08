@@ -110,3 +110,9 @@ grant execute on function
   public.get_race_control(int,int,text), public.get_sessions(int,int),
   public.get_laps(int,int,text), public.get_lap_positions(int,int,text)
   to anon, authenticated;
+
+-- Entity slugs collide across FastF1/Ergast constructor lineages (Force India →
+-- Racing Point → Aston Martin, etc.); routing resolves by ergast_id, so drop
+-- the slug unique constraints.
+alter table public.f1_constructor drop constraint if exists f1_constructor_slug_key;
+alter table public.f1_driver drop constraint if exists f1_driver_slug_key;
