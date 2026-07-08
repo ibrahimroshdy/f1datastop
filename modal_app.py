@@ -89,11 +89,26 @@ def generate_latest() -> None:
     _run("generate.py", "--latest", "--session", "R", "--format", "all")
 
 
+# ── One season, its own container ────────────────────────────────────────────
+# Own container = own IP (own Ergast 500-calls/h budget) + own timeout. This is
+# why backfill_range fans out per season instead of looping in one container:
+# a single container serialising 8 fresh seasons blew both the Ergast hourly cap
+# (mid-2022) and Modal's timeout (2024 R9). 2h/season is ample for 24 rounds.
+SEASON = {**COMMON, "timeout": 7200}
+
+
+@app.function(**SEASON)
+def ingest_season(season: int) -> None:
+    _run("ingest.py", "--season", str(season))
+
+
 # ── Manual: backfill a season range on demand (FastF1-only, 2018+) ───────────
+# Fans out one container per season (parallel). ingest.py skips rounds already
+# ingested, so re-running only fills gaps (e.g. 2022 R15+, 2024 R9+).
 @app.function(**COMMON)
 def backfill_range(from_season: int = 2018, to_season: int = 2026) -> None:
-    for season in range(from_season, to_season + 1):
-        _run("ingest.py", "--season", str(season))
+    seasons = list(range(from_season, to_season + 1))
+    list(ingest_season.map(seasons))  # per-season fan-out; wait for all
 
 
 # ── Manual: charts for one specific event (by name OR round number) ──────────

@@ -18,7 +18,7 @@ import {
   F1Skeleton,
 } from "@/components/f1";
 import { TEAM_COLORS } from "@/constants/f1Colors";
-import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
+import { chartTheme } from "@/lib/chartTheme";
 import {
   Select,
   SelectContent,
@@ -123,25 +123,37 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
           </Select>
         </div>
 
-        {/* driver toggles, sorted by top speed (from the index) */}
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        {/* driver toggles — same grammar as the shared DriverSelector */}
+        <div className="mt-3 grid grid-cols-4 gap-1 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
           {(index ?? []).map((r) => {
             const active = codes.includes(r.driver_code);
+            const teamColor = active ? colorFor(r.driver_code) : null;
             return (
               <button
                 key={r.driver_code}
                 onClick={() => toggleDriver(r.driver_code)}
                 className={cn(
-                  "rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
+                  "flex items-center justify-between gap-1 rounded px-1.5 py-1 text-xs font-medium transition-all",
                   active
-                    ? "border-transparent text-white"
-                    : "border-border text-muted-foreground hover:text-foreground",
+                    ? "bg-accent text-accent-foreground shadow-sm"
+                    : "bg-transparent text-muted-foreground hover:bg-muted/50",
                 )}
-                style={active ? { backgroundColor: colorFor(r.driver_code) } : undefined}
+                style={{
+                  opacity: active ? 1 : 0.6,
+                  borderLeft: `2px solid ${teamColor ?? "hsl(var(--border))"}`,
+                }}
               >
-                {r.driver_code}
+                <span className="flex items-center gap-1 truncate">
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: teamColor ?? "hsl(var(--muted-foreground))" }}
+                  />
+                  <span className="font-bold">{r.driver_code}</span>
+                </span>
                 {r.top_speed ? (
-                  <span className="ml-1 font-mono tabular-nums opacity-70">{Math.round(r.top_speed)}</span>
+                  <span className="font-mono tabular-nums text-muted-foreground">
+                    {Math.round(r.top_speed)}
+                  </span>
                 ) : null}
               </button>
             );
@@ -160,15 +172,6 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
-                <defs>
-                  {laps.map((lap) => (
-                    <ScopeDefs
-                      key={lap.driver}
-                      id={lap.driver}
-                      color={lap.team_color || TEAM_COLORS.default}
-                    />
-                  ))}
-                </defs>
                 <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="distance"
@@ -198,9 +201,8 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
                     name={`${lap.driver}${lap.lap_time ? ` · ${lap.lap_time}` : ""}`}
                     stroke={lap.team_color || TEAM_COLORS.default}
                     strokeWidth={2}
-                    filter={SCOPE_GLOW}
                     dot={false}
-                    activeDot={{ r: 4 }}
+                    activeDot={{ r: 3 }}
                     connectNulls
                   />
                 ))}

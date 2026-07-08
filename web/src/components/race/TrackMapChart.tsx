@@ -81,27 +81,38 @@ const TrackMapChart = ({ year, round, session = "R" }: Props) => {
   }
 
   return (
-    <F1Card variant="default" className="scope-frame border-0 bg-transparent p-0 shadow-none">
+    <F1Card variant="default" className="border-0 bg-transparent p-0 shadow-none">
       <F1CardHeader className="px-0 pt-0">
         <F1CardTitle className="text-base">Track map · speed</F1CardTitle>
         <F1CardDescription className="text-xs">
           Racing line coloured by speed — fastest lap
         </F1CardDescription>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {(index ?? []).map((r) => (
-            <button
-              key={r.driver_code}
-              onClick={() => setCode(r.driver_code)}
-              className={cn(
-                "rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
-                code === r.driver_code
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {r.driver_code}
-            </button>
-          ))}
+        <div className="mt-3 grid grid-cols-4 gap-1 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
+          {(index ?? []).map((r) => {
+            const active = code === r.driver_code;
+            return (
+              <button
+                key={r.driver_code}
+                onClick={() => setCode(r.driver_code)}
+                className={cn(
+                  "flex items-center gap-1 rounded px-1.5 py-1 text-xs font-medium transition-all",
+                  active
+                    ? "bg-accent text-accent-foreground shadow-sm"
+                    : "bg-transparent text-muted-foreground hover:bg-muted/50",
+                )}
+                style={{
+                  opacity: active ? 1 : 0.6,
+                  borderLeft: `2px solid ${active ? "hsl(var(--primary))" : "hsl(var(--border))"}`,
+                }}
+              >
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: active ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))" }}
+                />
+                <span className="font-bold">{r.driver_code}</span>
+              </button>
+            );
+          })}
         </div>
       </F1CardHeader>
 
