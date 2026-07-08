@@ -12,10 +12,10 @@ const YearSelector = ({ selectedYear, onYearChange, className }: YearSelectorPro
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   
   useEffect(() => {
-    // Generate available years (from 2010 to current year)
+    // FastF1 native data starts 2018 — the app is FastF1-only, so cap there.
     const currentYear = new Date().getFullYear();
     const years = [];
-    for (let year = currentYear; year >= 2010; year--) {
+    for (let year = currentYear; year >= 2018; year--) {
       years.push(year);
     }
     setAvailableYears(years);

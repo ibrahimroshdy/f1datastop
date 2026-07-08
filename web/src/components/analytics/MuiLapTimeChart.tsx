@@ -266,14 +266,14 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
     );
   }
 
-  // Format time for Y-axis (MM:SS.s format)
+  // Format time as F1-standard m:ss.mmm (never rounded to whole/tenths).
   const formatTime = (value: number) => {
     if (displayMode === 'absolute') {
       const mins = Math.floor(value / 60);
-      const secs = (value % 60).toFixed(1);
-      return `${mins}:${secs.padStart(4, '0')}`;
+      const secs = (value % 60).toFixed(3);
+      return `${mins}:${secs.padStart(6, '0')}`;
     } else {
-      return `+${value.toFixed(1)}s`;
+      return `+${value.toFixed(3)}s`;
     }
   };
 

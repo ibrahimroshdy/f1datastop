@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Thermometer, Droplets, Wind, Gauge } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useOpenF1SessionFromErgast } from '@/hooks/useOpenF1Data';
-import { useWeatherData } from "@/hooks/useOpenF1Data";
-import { processOpenF1WeatherData } from "@/utils/apiAdapters";
+import { useDbWeather } from "@/hooks/useWarehouse";
 import {
   LineChart,
   Line,
@@ -22,8 +20,8 @@ import { F1ChartContainer, F1EmptyState, F1ErrorState, F1Skeleton } from '@/comp
 interface WeatherAnalysisProps {
   year: number;
   round: string;
-  sessionType?: string;
-  sessionKey?: number;
+  /** Canonical session code (R/Q/S/SQ/FP1-3). */
+  session?: string;
 }
 
 // Weather metric series — single source of truth for stroke + legend swatch.
@@ -42,8 +40,7 @@ const underlineTabTrigger =
 const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   year,
   round,
-  sessionType = "Race",
-  sessionKey: externalSessionKey
+  session = "R",
 }) => {
   const [activeTab, setActiveTab] = useState("all");
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
@@ -51,33 +48,29 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   // Reset state when session changes
   useEffect(() => {
     setHighlightedIndex(null);
-  }, [externalSessionKey]);
+  }, [session, round]);
 
-  // Get the OpenF1 session directly only if we don't have an external session key
+  // FastF1-native weather from the warehouse (get_weather RPC).
   const {
-    data: sessionData,
-    isLoading: isSessionLoading
-  } = useOpenF1SessionFromErgast(
-    externalSessionKey ? 0 : year,
-    externalSessionKey ? "" : round,
-    externalSessionKey ? "" : sessionType
-  );
+    data: weatherRows,
+    isLoading,
+    error: weatherError,
+  } = useDbWeather(year, parseInt(round, 10), session);
 
-  // Use the external session key if provided, otherwise use the one from the hook
-  const effectiveSessionKey = externalSessionKey || sessionData?.data?.session_key || 0;
-
-  // Get weather data for this session
-  const {
-    data: weatherData,
-    isLoading: isWeatherLoading,
-    error: weatherError
-  } = useWeatherData(effectiveSessionKey);
-
-  // Process weather data
+  // Map DB rows -> the chart shape. `time` is seconds elapsed into the session.
   const processedData = React.useMemo(() => {
-    if (!weatherData?.data || weatherData.data.length === 0) return [];
-    return processOpenF1WeatherData(weatherData.data);
-  }, [weatherData]);
+    if (!weatherRows || weatherRows.length === 0) return [];
+    return weatherRows
+      .filter((w) => w.time_seconds != null)
+      .map((w) => ({
+        time: Number(w.time_seconds),
+        air_temperature: Number(w.air_temp ?? 0),
+        track_temperature: Number(w.track_temp ?? 0),
+        humidity: Number(w.humidity ?? 0),
+        wind_speed: Number(w.wind_speed ?? 0),
+        pressure: Number(w.pressure ?? 0),
+      }));
+  }, [weatherRows]);
 
   // Get the most recent weather readings
   const currentWeather = React.useMemo(() => {
@@ -85,10 +78,11 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     return processedData[processedData.length - 1];
   }, [processedData]);
 
-  // Format time for the x-axis
+  // Format the x-axis: seconds elapsed -> m:ss into the session.
   const formatTimeForAxis = (time: number) => {
-    const date = new Date(time);
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    const s = Math.max(0, Math.floor(Number(time)));
+    const m = Math.floor(s / 60);
+    return `${m}:${(s % 60).toString().padStart(2, "0")}`;
   };
 
   // Prepare chart data
@@ -99,10 +93,8 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     return processedData.filter((_, i) => i % step === 0);
   }, [processedData]);
 
-
-  const isLoading = isSessionLoading || isWeatherLoading;
-  const hasNoData = !isLoading && (!weatherData?.data || weatherData.data.length === 0);
-  const hasError = !!weatherError || (!isLoading && !effectiveSessionKey);
+  const hasNoData = !isLoading && processedData.length === 0;
+  const hasError = !!weatherError;
 
   // Handle highlight change for synchronized hover (driven by recharts onMouseMove)
   const handleHighlightChange = useCallback((state: any) => {

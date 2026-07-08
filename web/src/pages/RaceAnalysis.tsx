@@ -5,12 +5,11 @@ import { RacePicker } from "@/components/race-analysis/RacePicker";
 import { RaceAnalysisTabs } from "@/components/race-analysis/RaceAnalysisTabs";
 import {
   DEFAULT_RACE_ANALYSIS_TAB,
-  isAdvancedTab,
   type RaceAnalysisTabId,
 } from "@/components/race-analysis/raceAnalysisTabs.config";
 import { type SessionOption } from "@/components/f1";
 import { useRaceSchedule } from "@/hooks/useF1Data";
-import { useSessionsByYear } from "@/hooks/useOpenF1Data";
+import { useDbSessions } from "@/hooks/useWarehouse";
 import { pageShellWide, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 
@@ -21,13 +20,10 @@ type RaceScheduleEntry = {
   Circuit?: { circuitName?: string; Location?: { country?: string } };
 };
 
-type OpenF1SessionEntry = {
-  date_start: string;
-  session_key: number;
-  session_type: string;
-  meeting_key: number;
-  session_name: string;
-  date_end: string;
+// Stable synthetic session_key per canonical code, so the existing RacePicker
+// (which keys sessions by number) keeps working without OpenF1 session keys.
+const SESSION_KEY: Record<string, number> = {
+  FP1: 1, FP2: 2, FP3: 3, SQ: 4, S: 5, Q: 6, R: 7,
 };
 
 const getDefaultYear = () => new Date().getFullYear();
@@ -48,8 +44,8 @@ const RaceAnalysis = () => {
 
   const { data: raceScheduleData, isLoading: isRaceScheduleLoading } =
     useRaceSchedule(selectedYear);
-  const { data: openF1SessionsData, isLoading: isOpenF1Loading } =
-    useSessionsByYear(selectedYear);
+  const { data: dbSessions, isLoading: isSessionsLoading } =
+    useDbSessions(selectedYear, parseInt(selectedRace, 10));
 
   const currentRace = useMemo(() => {
     if (!raceScheduleData?.data) return null;
@@ -67,67 +63,40 @@ const RaceAnalysis = () => {
     }
   }, [urlYear, urlRound]);
 
+  // Build the picker's session list from the warehouse (canonical, deduped,
+  // correctly named). session_type IS the code (R/Q/S/SQ/FP1-3).
   useEffect(() => {
-    if (!openF1SessionsData?.data || !currentRace) {
+    const rows = (dbSessions ?? []).filter(
+      (s) => String(s.round) === String(selectedRace),
+    );
+    if (rows.length === 0) {
       setAvailableSessions([]);
       return;
     }
-
-    const raceDate = new Date(currentRace.date);
-    const matchingSessions = openF1SessionsData.data.filter(
-      (session: OpenF1SessionEntry) => {
-        const sessionDate = new Date(session.date_start);
-        const daysDiff = Math.abs(
-          (sessionDate.getTime() - raceDate.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        return daysDiff < 7;
-      }
-    );
-
-    if (matchingSessions.length === 0) {
-      setAvailableSessions([]);
-      return;
+    const opts: SessionOption[] = rows
+      .map((s) => ({
+        session_key: SESSION_KEY[s.session_type] ?? 99,
+        session_name: s.session_name,
+        session_type: s.session_type,
+        date_start: s.date_start ?? "",
+        date_end: s.date_end ?? "",
+        meeting_key: 0,
+      }))
+      .sort((a, b) => a.session_key - b.session_key);
+    setAvailableSessions(opts);
+    if (!selectedSessionKey) {
+      const race = opts.find((o) => o.session_type === "R");
+      setSelectedSessionKey(race ? race.session_key : opts[opts.length - 1].session_key);
     }
+  }, [dbSessions, selectedRace, selectedSessionKey]);
 
-    const sortedSessions = [...matchingSessions].sort(
-      (a: OpenF1SessionEntry, b: OpenF1SessionEntry) =>
-        new Date(a.date_start).getTime() - new Date(b.date_start).getTime()
-    );
-    setAvailableSessions(sortedSessions);
+  const hasSessions = availableSessions.length > 0;
 
-    const raceSession = sortedSessions.find(
-      (session: OpenF1SessionEntry) => session.session_type === "Race"
-    );
-    if (raceSession && !selectedSessionKey) {
-      setSelectedSessionKey(raceSession.session_key);
-    } else if (!selectedSessionKey && sortedSessions.length > 0) {
-      setSelectedSessionKey(sortedSessions[0].session_key);
-    }
-  }, [openF1SessionsData, currentRace, selectedSessionKey]);
-
-  const hasOpenF1Data = selectedYear >= 2023 && availableSessions.length > 0;
-
-  // Map the selected OpenF1 session to the chart/telemetry session code
-  // (R/Q/S/SQ/FP1-3) used by analysis_charts + f1_telemetry_index.
+  // The selected canonical session code (R/Q/S/SQ/FP1-3).
   const selectedSession = useMemo(() => {
-    const s = (availableSessions as unknown as OpenF1SessionEntry[]).find(
-      (x) => x.session_key === selectedSessionKey,
-    );
-    const n = (s?.session_name ?? "").toLowerCase();
-    if (n.includes("sprint") && (n.includes("qual") || n.includes("shootout"))) return "SQ";
-    if (n.includes("sprint")) return "S";
-    if (n.includes("qual")) return "Q";
-    if (n.includes("practice 3")) return "FP3";
-    if (n.includes("practice 2")) return "FP2";
-    if (n.includes("practice 1")) return "FP1";
-    return "R";
+    const s = availableSessions.find((x) => x.session_key === selectedSessionKey);
+    return (s?.session_type as string) || "R";
   }, [availableSessions, selectedSessionKey]);
-
-  useEffect(() => {
-    if (!hasOpenF1Data && isAdvancedTab(selectedTab)) {
-      setSelectedTab(DEFAULT_RACE_ANALYSIS_TAB);
-    }
-  }, [hasOpenF1Data, selectedTab]);
 
   const handleYearChange = (year: number) => {
     setSelectedYear(year);
@@ -158,10 +127,10 @@ const RaceAnalysis = () => {
           currentRace={currentRace}
           raceSchedule={raceScheduleData?.data}
           isRaceScheduleLoading={isRaceScheduleLoading}
-          hasOpenF1Data={hasOpenF1Data}
+          hasOpenF1Data={hasSessions}
           availableSessions={availableSessions}
           selectedSessionKey={selectedSessionKey}
-          isOpenF1Loading={isOpenF1Loading}
+          isOpenF1Loading={isSessionsLoading}
           onYearChange={handleYearChange}
           onRaceChange={handleRaceChange}
           onSessionChange={handleSessionChange}
@@ -170,10 +139,9 @@ const RaceAnalysis = () => {
         <RaceAnalysisTabs
           selectedTab={selectedTab}
           onTabChange={setSelectedTab}
-          hasOpenF1Data={hasOpenF1Data}
+          hasOpenF1Data
           selectedYear={selectedYear}
           selectedRace={selectedRace}
-          selectedSessionKey={selectedSessionKey}
           selectedSession={selectedSession}
         />
       </div>

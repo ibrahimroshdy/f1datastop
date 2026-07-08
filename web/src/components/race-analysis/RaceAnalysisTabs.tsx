@@ -11,8 +11,8 @@ import {
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
 import {
-  ADVANCED_TABS,
-  ESSENTIALS_TABS,
+  LIVE_TABS,
+  CORE_TABS,
   type RaceAnalysisTabId,
 } from "./raceAnalysisTabs.config";
 import {
@@ -38,7 +38,6 @@ const MuiQualifyingChart = lazy(() => import("@/components/analytics/MuiQualifyi
 const MuiSankeyChart = lazy(() => import("@/components/analytics/MuiSankeyChart"));
 const MuiPitStopTable = lazy(() => import("@/components/analytics/MuiPitStopTable"));
 const WeatherAnalysis = lazy(() => import("@/components/analytics/WeatherAnalysis"));
-const TeamRadio = lazy(() => import("@/components/analytics/TeamRadio"));
 const FastF1TelemetryChart = lazy(() => import("@/components/race/FastF1TelemetryChart"));
 const TrackMapChart = lazy(() => import("@/components/race/TrackMapChart"));
 const SessionResults = lazy(() => import("@/components/analytics/SessionResults"));
@@ -57,7 +56,7 @@ const TabLoadingFallback = () => {
 
 interface TabButtonGroupProps {
   label: string;
-  tabs: typeof ESSENTIALS_TABS;
+  tabs: typeof CORE_TABS;
   selectedTab: string;
   onTabChange: (tabId: RaceAnalysisTabId) => void;
 }
@@ -130,7 +129,6 @@ interface RaceAnalysisTabsProps {
   hasOpenF1Data: boolean;
   selectedYear: number;
   selectedRace: string;
-  selectedSessionKey: number | null;
   selectedSession?: string;
 }
 
@@ -140,7 +138,6 @@ export function RaceAnalysisTabs({
   hasOpenF1Data,
   selectedYear,
   selectedRace,
-  selectedSessionKey,
   selectedSession = "R",
 }: RaceAnalysisTabsProps) {
   const { cardVariant, glassVariant } = useThemeVariant();
@@ -150,15 +147,15 @@ export function RaceAnalysisTabs({
     <Tabs value={selectedTab} onValueChange={(value) => onTabChange(value as RaceAnalysisTabId)}>
       <div className="hidden lg:flex lg:flex-col lg:gap-1">
         <TabButtonGroup
-          label="Essentials"
-          tabs={ESSENTIALS_TABS}
+          label="Race"
+          tabs={CORE_TABS}
           selectedTab={selectedTab}
           onTabChange={onTabChange}
         />
         {hasOpenF1Data ? (
           <TabButtonGroup
-            label="Advanced"
-            tabs={ADVANCED_TABS}
+            label="Live"
+            tabs={LIVE_TABS}
             selectedTab={selectedTab}
             onTabChange={onTabChange}
           />
@@ -168,15 +165,15 @@ export function RaceAnalysisTabs({
       {/* Mobile: app-native horizontally-scrollable chip rows */}
       <div className="-mx-4 mb-3 block space-y-1.5 px-4 lg:hidden">
         <MobileTabRow
-          label="Essentials"
-          tabs={ESSENTIALS_TABS}
+          label="Race"
+          tabs={CORE_TABS}
           selectedTab={selectedTab}
           onTabChange={onTabChange}
         />
         {hasOpenF1Data ? (
           <MobileTabRow
-            label="Advanced"
-            tabs={ADVANCED_TABS}
+            label="Live"
+            tabs={LIVE_TABS}
             selectedTab={selectedTab}
             onTabChange={onTabChange}
           />
@@ -320,7 +317,7 @@ export function RaceAnalysisTabs({
                   <WeatherAnalysis
                     year={selectedYear}
                     round={selectedRace}
-                    sessionKey={selectedSessionKey || undefined}
+                    session={selectedSession}
                   />
                 </F1CardContent>
               </F1Card>
@@ -338,17 +335,22 @@ export function RaceAnalysisTabs({
                   </F1CardDescription>
                 </F1CardHeader>
                 <F1CardContent className="min-h-[400px] px-4 pb-4">
-                  <TeamRadio
-                    year={selectedYear}
-                    round={selectedRace}
-                    sessionKey={selectedSessionKey || undefined}
-                  />
+                  <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 text-center">
+                    <Radio className="h-8 w-8 text-muted-foreground/50" />
+                    <p className="text-sm font-medium">Team Radio coming soon</p>
+                    <p className="max-w-sm text-xs text-muted-foreground">
+                      A richer team-radio experience is in the works, sourced directly
+                      from the official F1 feed.
+                    </p>
+                  </div>
                 </F1CardContent>
               </F1Card>
             </TabsContent>
 
             <TabsContent value="telemetry" className="mt-4">
-              <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
+              {/* select-none: hovering/dragging the interactive charts was
+                  selecting the card text (blue highlight). Charts aren't text. */}
+              <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn(cardClassName, "select-none")}>
                 <F1CardHeader className="px-4 pb-2 pt-3">
                   <div className="flex items-center gap-2">
                     <Gauge className="h-4 w-4 text-primary" />
@@ -381,7 +383,7 @@ export function RaceAnalysisTabs({
                   <SessionResults
                     year={selectedYear}
                     round={selectedRace}
-                    sessionKey={selectedSessionKey || undefined}
+                    session={selectedSession}
                   />
                 </F1CardContent>
               </F1Card>
@@ -402,7 +404,7 @@ export function RaceAnalysisTabs({
                   <OvertakesAnalysis
                     year={selectedYear}
                     round={selectedRace}
-                    sessionKey={selectedSessionKey || undefined}
+                    session={selectedSession}
                   />
                 </F1CardContent>
               </F1Card>

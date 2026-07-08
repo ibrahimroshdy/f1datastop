@@ -73,15 +73,14 @@ def _run(script: str, *args: str) -> None:
 
 
 # ── Scheduled: reconcile the CURRENT season into the warehouse ───────────────
-# Every 6h, all week. backfill.py skips rounds already 'complete' in
-# f1_sync_state, so this whole-season pass only hits the rate-limited sources
-# for new/incomplete rounds — cheap, and it self-heals any gap a missed run
-# would otherwise leave (which is exactly how 2026 fell behind on --latest).
+# Every 6h, all week. ingest.py (FastF1-only) skips rounds already ingested, so
+# this whole-season pass only loads FastF1 for new rounds — cheap, and self-heals
+# any gap a missed run would leave.
 @app.function(schedule=modal.Cron("0 */6 * * *"), **COMMON)
 def backfill_current() -> None:
     from datetime import datetime, timezone
     year = datetime.now(timezone.utc).year
-    _run("backfill.py", "--season", str(year))
+    _run("ingest.py", "--season", str(year))
 
 
 # ── Scheduled: regenerate + upload charts for the latest race ────────────────
@@ -90,10 +89,11 @@ def generate_latest() -> None:
     _run("generate.py", "--latest", "--session", "R", "--format", "all")
 
 
-# ── Manual: backfill a season range on demand ────────────────────────────────
+# ── Manual: backfill a season range on demand (FastF1-only, 2018+) ───────────
 @app.function(**COMMON)
-def backfill_range(from_season: int = 2023, to_season: int = 2026) -> None:
-    _run("backfill.py", "--from-season", str(from_season), "--to-season", str(to_season))
+def backfill_range(from_season: int = 2018, to_season: int = 2026) -> None:
+    for season in range(from_season, to_season + 1):
+        _run("ingest.py", "--season", str(season))
 
 
 # ── Manual: charts for one specific event (by name OR round number) ──────────

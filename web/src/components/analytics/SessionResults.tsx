@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Zap } from 'lucide-react';
-import { useLapData, useDrivers, useOpenF1SessionFromErgast, usePositionData } from "@/hooks/useOpenF1Data";
+import { useRaceResults, useRaceQualifying, useSprintResults } from "@/hooks/f1";
 import { formatTime } from "@/utils/lapTimeUtils";
 import { getTeamColorById } from '@/constants/f1Colors';
 import {
@@ -14,9 +14,8 @@ import {
 interface SessionResultsProps {
   year: number;
   round: string;
-  sessionType?: string;
-  sessionKey?: number;
-  sessionName?: string;
+  /** Canonical session code (R/Q/S/SQ/FP1-3). */
+  session?: string;
 }
 
 interface ProcessedResult {
@@ -32,109 +31,69 @@ interface ProcessedResult {
   team_color: string;
 }
 
+/** Parse an "m:ss.mmm" (or "ss.mmm") lap-time string to seconds. */
+function parseLap(t?: string | null): number | null {
+  if (!t) return null;
+  const m = String(t).match(/^(?:(\d+):)?(\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  return (m[1] ? parseInt(m[1], 10) * 60 : 0) + parseFloat(m[2]);
+}
+
 const SessionResults: React.FC<SessionResultsProps> = ({
   year,
   round,
-  sessionType = "Race",
-  sessionKey: externalSessionKey
+  session = "R",
 }) => {
-  const {
-    data: sessionData,
-    isLoading: isSessionLoading
-  } = useOpenF1SessionFromErgast(
-    externalSessionKey ? 0 : year,
-    externalSessionKey ? "" : round,
-    externalSessionKey ? "" : sessionType
-  );
+  const race = useRaceResults(year, round);
+  const quali = useRaceQualifying(year, round);
+  const sprint = useSprintResults(year, round);
 
-  const effectiveSessionKey = externalSessionKey || sessionData?.data?.session_key || 0;
-
-  const {
-    data: driversData,
-    isLoading: isDriversLoading
-  } = useDrivers(effectiveSessionKey);
-
-  const {
-    data: lapData,
-    isLoading: isLapDataLoading,
-    error: lapDataError
-  } = useLapData(effectiveSessionKey);
-
-  const {
-    data: positionData,
-    isLoading: isPositionDataLoading,
-    error: positionDataError
-  } = usePositionData(effectiveSessionKey);
+  const isQuali = session === "Q" || session === "SQ";
+  const isSprint = session === "S";
+  const active = isQuali ? quali : isSprint ? sprint : race;
 
   const processedResults = useMemo<ProcessedResult[]>(() => {
-    if (!positionData?.data || !driversData?.data || !lapData?.data) return [];
-
-    const driverResults: { [key: number]: ProcessedResult } = {};
-
-    driversData.data.forEach((driver: any) => {
-      driverResults[driver.driver_number] = {
-        id: driver.driver_number,
-        position: 0,
-        driver_number: driver.driver_number,
-        driver_name: `${driver.first_name} ${driver.last_name}`,
-        driver_acronym: driver.name_acronym || `${driver.first_name?.charAt(0)}${driver.last_name?.charAt(0)}`,
-        constructor_name: driver.team_name || 'Unknown',
-        best_lap_time: null,
+    const raceObj: any = (active.data as any)?.data ?? {};
+    const list: any[] = isQuali
+      ? raceObj.QualifyingResults ?? []
+      : isSprint
+        ? raceObj.SprintResults ?? []
+        : raceObj.Results ?? [];
+    const rows: ProcessedResult[] = list.map((r: any, i: number) => {
+      const best = isQuali
+        ? parseLap(r.Q3 || r.Q2 || r.Q1)
+        : parseLap(r.FastestLap?.Time?.time);
+      const cid = r.Constructor?.constructorId || r.Constructor?.name || "";
+      return {
+        id: parseInt(r.number, 10) || i + 1,
+        position: parseInt(r.position, 10) || i + 1,
+        driver_number: parseInt(r.number, 10) || 0,
+        driver_name: `${r.Driver?.givenName ?? ""} ${r.Driver?.familyName ?? ""}`.trim(),
+        driver_acronym: r.Driver?.code || `${r.Driver?.givenName?.[0] ?? ""}${r.Driver?.familyName?.[0] ?? ""}`,
+        constructor_name: r.Constructor?.name || "Unknown",
+        best_lap_time: best,
         gap_to_leader: 0,
-        total_laps: 0,
-        team_color: getTeamColorById(driver.team_name)
+        total_laps: parseInt(r.laps, 10) || 0,
+        team_color: getTeamColorById(cid),
       };
     });
+    rows.sort((a, b) => a.position - b.position);
+    const fastest = rows.reduce<number | null>(
+      (m, r) => (r.best_lap_time != null && (m == null || r.best_lap_time < m) ? r.best_lap_time : m),
+      null,
+    );
+    if (fastest != null) {
+      rows.forEach((r) => {
+        if (r.best_lap_time != null) r.gap_to_leader = r.best_lap_time - fastest;
+      });
+    }
+    return rows;
+  }, [active.data, isQuali, isSprint]);
 
-    lapData.data.forEach((lap: any) => {
-      const driverNumber = lap.driver_number;
-      if (!driverResults[driverNumber]) return;
-
-      const result = driverResults[driverNumber];
-      result.total_laps++;
-
-      if (lap.lap_duration && (result.best_lap_time === null || lap.lap_duration < result.best_lap_time)) {
-        result.best_lap_time = lap.lap_duration;
-      }
-    });
-
-    const finalPositions: { [key: number]: { position: number; date: string } } = {};
-
-    positionData.data.forEach((position: any) => {
-      const driverNumber = position.driver_number;
-      const positionValue = position.position;
-
-      if (!finalPositions[driverNumber] || position.date > finalPositions[driverNumber].date) {
-        finalPositions[driverNumber] = {
-          position: positionValue,
-          date: position.date
-        };
-      }
-    });
-
-    Object.keys(driverResults).forEach(driverNumberStr => {
-      const driverNumber = parseInt(driverNumberStr);
-      const finalPos = finalPositions[driverNumber];
-      if (finalPos) {
-        driverResults[driverNumber].position = finalPos.position;
-      }
-    });
-
-    const resultsArray = Object.values(driverResults)
-      .filter(result => result.position > 0)
-      .sort((a, b) => a.position - b.position);
-
-    const fastestTime = resultsArray[0]?.best_lap_time || 0;
-    resultsArray.forEach((result) => {
-      if (result.best_lap_time && fastestTime) {
-        result.gap_to_leader = result.best_lap_time - fastestTime;
-      }
-    });
-
-    return resultsArray;
-  }, [positionData, lapData, driversData]);
-
-  const isLoading = isSessionLoading || isDriversLoading || isLapDataLoading || isPositionDataLoading;
+  const isLoading = active.isLoading;
+  const lapDataError = active.error;
+  const positionDataError = null;
+  const effectiveSessionKey = 1;
 
   if (isLoading) {
     return (

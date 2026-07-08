@@ -122,7 +122,22 @@ export const getLapTimes = async (
     retryAttempts: { [key: string]: number }
   ) => void
 ) => {
-  // Original lap times fetching logic
+  // FastF1-first: the warehouse (get_laps) returns every lap in a single call.
+  // Fall back to the legacy paginated fetch only if it yields nothing.
+  try {
+    const resp = await ergastFetch(`${ERGAST}/${year}/${round}/laps.json`);
+    if (resp.ok) {
+      const json = await resp.json();
+      const races = json?.MRData?.RaceTable?.Races || [];
+      const laps = races[0]?.Laps || [];
+      if (laps.length > 0) {
+        onProgress?.(1, 1, 1, {});
+        return { data: { Races: races }, error: null, isPartialData: false };
+      }
+    }
+  } catch {
+    /* fall through to the paginated path */
+  }
   return await fetchLapTimesUncached(year, round, firstDriverOnly, onProgress);
 };
 
