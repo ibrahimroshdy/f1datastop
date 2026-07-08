@@ -98,8 +98,14 @@ SEASON = {**COMMON, "timeout": 7200}
 
 
 @app.function(**SEASON)
-def ingest_season(season: int) -> None:
-    _run("ingest.py", "--season", str(season))
+def ingest_season(season: int, force: bool = False) -> None:
+    # force=True redoes every round incl. enrichment — use to refill a season
+    # whose race data landed but whose weather/overtake pass got rate-limited
+    # (e.g. 2025, where a shared-budget run exhausted 500/h before enrichment).
+    args = ["ingest.py", "--season", str(season)]
+    if force:
+        args.append("--force")
+    _run(*args)
 
 
 # ── Manual: backfill a season range on demand (FastF1-only, 2018+) ───────────

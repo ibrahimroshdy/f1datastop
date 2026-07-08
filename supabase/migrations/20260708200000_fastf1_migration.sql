@@ -116,3 +116,62 @@ grant execute on function
 -- the slug unique constraints.
 alter table public.f1_constructor drop constraint if exists f1_constructor_slug_key;
 alter table public.f1_driver drop constraint if exists f1_driver_slug_key;
+
+-- get_schedule: fill the Ergast-shaped session blocks (FirstPractice/…/Qualifying)
+-- from f1_session.date_start (what FastF1 ingest writes). The old body read the
+-- dead OpenF1-era scheduled_date/scheduled_time columns (always NULL under FastF1),
+-- so every practice/quali block serialized empty → UI showed "-".
+create or replace function public.get_schedule(p_season integer)
+returns jsonb language sql stable set search_path to 'public','pg_temp' as $function$
+  select coalesce(jsonb_agg(race order by (race->>'round')::int), '[]'::jsonb)
+  from (
+    select jsonb_build_object(
+             'season',   r.season::text,
+             'round',    r.round::text,
+             'url',      r.url,
+             'raceName', r.race_name,
+             'Circuit',  jsonb_build_object(
+               'circuitId',   c.circuit_id,
+               'url',         c.url,
+               'circuitName', c.name,
+               'Location',    jsonb_strip_nulls(jsonb_build_object(
+                 'lat',      c.lat::text,
+                 'long',     c.lng::text,
+                 'locality', c.locality,
+                 'country',  c.country))),
+             'date', to_char(r.date, 'YYYY-MM-DD'),
+             'time', r.time
+           )
+           || coalesce((
+                select jsonb_object_agg(ergast_key, payload)
+                from (
+                  select
+                    case s.session_type
+                      when 'FP1' then 'FirstPractice'
+                      when 'FP2' then 'SecondPractice'
+                      when 'FP3' then 'ThirdPractice'
+                      when 'Q'   then 'Qualifying'
+                      when 'SQ'  then 'SprintQualifying'
+                      when 'SS'  then 'SprintShootout'
+                      when 'S'   then 'Sprint'
+                      else null
+                    end as ergast_key,
+                    jsonb_strip_nulls(jsonb_build_object(
+                      'date', to_char(
+                                coalesce(s.scheduled_date, (s.date_start at time zone 'UTC')::date),
+                                'YYYY-MM-DD'),
+                      'time', coalesce(
+                                s.scheduled_time,
+                                to_char(s.date_start at time zone 'UTC', 'HH24:MI:SS') || 'Z')
+                    )) as payload
+                  from public.f1_session s
+                  where s.season = r.season and s.round = r.round
+                    and s.session_type <> 'R'
+                ) sess
+                where ergast_key is not null
+              ), '{}'::jsonb) as race
+    from public.f1_race r
+    left join public.f1_circuit c on c.circuit_id = r.circuit_id
+    where r.season = p_season
+  ) races;
+$function$;
