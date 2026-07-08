@@ -33,5 +33,9 @@ export async function getAnalysisCharts(
     console.warn("[analysisService] getAnalysisCharts:", error.message);
     return [];
   }
-  return (data ?? []) as AnalysisChart[];
+  // Charts are uploaded in 4 social formats; only the landscape (16:9) variant
+  // has a bare chart_type — the others are suffixed `_twitter|_instagram|_story`.
+  // Show the landscape variant only so the web grid isn't 4x duplicated.
+  const rows = (data ?? []) as AnalysisChart[];
+  return rows.filter((c) => !/_(twitter|instagram|story)$/.test(c.chart_type));
 }
