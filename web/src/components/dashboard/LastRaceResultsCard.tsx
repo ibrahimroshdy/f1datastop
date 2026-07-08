@@ -114,7 +114,8 @@ const LastRaceResultsCard = ({
               <div className="border border-dashed border-violet-500/50 dark:border-violet-400/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-[10px]">
                 <span className="text-violet-600 dark:text-violet-400 font-medium">Fastest:</span>
                           <span
-                            className="font-mono font-bold text-violet-600 dark:text-violet-400"
+                            className="font-mono font-bold"
+                            style={{ color: getTeamHexColor(fastestLapDriver.Constructor.constructorId) }}
                           >
                             {fastestLapDriver.Driver.code}
                           </span>

@@ -11,15 +11,32 @@ type Track = {
 const tracks = circuitTracks as Record<string, Track>;
 
 const slugify = (s: string) =>
-  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  s
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "") // strip accents: Montréal→montreal, São Paulo→sao-paulo
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
-/** Look up a circuit's track outline by Ergast circuit name, falling back to locality. */
+// FastF1 names a few circuits differently than the track-geometry file keys.
+// Map the leftover mismatches (post-accent-strip) to their canonical track key.
+const TRACK_ALIASES: Record<string, string> = {
+  "marina-bay": "marina-bay-street-circuit",
+  "miami-gardens": "miami",
+  "monte-carlo": "monaco",
+};
+
+/** Look up a circuit's track outline by circuit name, falling back to locality. */
 export function getCircuitTrack(
   circuitName?: string | null,
   locality?: string | null,
 ): Track | null {
-  if (circuitName && tracks[slugify(circuitName)]) return tracks[slugify(circuitName)];
-  if (locality && tracks[slugify(locality)]) return tracks[slugify(locality)];
+  for (const raw of [circuitName, locality]) {
+    if (!raw) continue;
+    const slug = slugify(raw);
+    const key = TRACK_ALIASES[slug] ?? slug;
+    if (tracks[key]) return tracks[key];
+  }
   return null;
 }
 
