@@ -124,6 +124,10 @@ def ingest_schedule(season):
                 "date_start": dstart.isoformat() if pd.notna(dstart) else None,
                 "source": "fastf1", "_rid_key": (season, rnd),
             })
+    # f1_race FKs f1_season(year) — ensure the parent season row exists first.
+    bf.supa_upsert("f1_season",
+                   [{"year": season, "has_results": True,
+                     "race_count": len(races), "source": "fastf1"}], "year")
     bf.supa_upsert("f1_circuit", circuits, "circuit_id")
     bf.supa_upsert("f1_race", races, "season,round")
     # resolve race_id for sessions
