@@ -8,9 +8,19 @@ import {
   F1EmptyState,
   F1Skeleton,
   PageHeader,
-  PositionBadge,
   DriverAvatar,
 } from "@/components/f1";
+import {
+  buildF1DriverHeadshotUrl,
+  getF1PortraitPathForErgastDriverId,
+} from "@/constants/f1DriverPortraitMedia";
+
+/** F1-media headshot for a current-grid driver; undefined falls back to initials. */
+const headshotSrc = (driverId?: string): string | undefined => {
+  if (!driverId) return undefined;
+  const path = getF1PortraitPathForErgastDriverId(driverId);
+  return path ? buildF1DriverHeadshotUrl(path) : undefined;
+};
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { Search, Users, Trophy, ChevronRight } from "lucide-react";
@@ -51,18 +61,20 @@ const Flag = ({ nationality }: { nationality?: string }) => {
   );
 };
 
-// ── Mono position cell — P1 gets the restrained-red badge, rest stay mono ─────
+// ── Mono position cell — podium gets medal-tinted mono digits, rest stay muted.
+// (No pill: a badge in the w-6 column broke the mono column rhythm.)
 const Pos = ({ position }: { position: string }) => {
   const n = Number(position);
-  if (n === 1) {
-    return (
-      <span className="flex w-6 shrink-0 justify-center">
-        <PositionBadge position={1} />
-      </span>
-    );
-  }
+  const medal =
+    n === 1
+      ? "text-position-gold"
+      : n === 2
+        ? "text-position-silver"
+        : n === 3
+          ? "text-position-bronze"
+          : "text-muted-foreground";
   return (
-    <span className="timing w-6 shrink-0 text-center text-sm font-semibold text-muted-foreground">
+    <span className={`timing w-6 shrink-0 text-center text-sm font-semibold ${medal}`}>
       {position}
     </span>
   );
@@ -139,6 +151,8 @@ const Drivers = () => {
                   driverName={name}
                   teamColor={teamColor}
                   size="sm"
+                  // Portraits are current-grid (team suit) — historical years keep initials.
+                  src={selectedYear === currentYear ? headshotSrc(driver.Driver.driverId) : undefined}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold leading-tight md:text-base">

@@ -29,10 +29,12 @@ const F1Badge = React.forwardRef<HTMLDivElement, F1BadgeProps>(
   }, ref) => {
     // Position badge styling
     if (variant === "position" && position !== undefined) {
+      // Tinted outline chips (same grammar as the status badges) — the old solid
+      // gold/silver fills read as heavy blobs against the terminal skin.
       const positionStyles = {
-        1: "bg-position-gold text-background border-position-gold",
-        2: "bg-position-silver text-background border-position-silver",
-        3: "bg-position-bronze text-foreground border-position-bronze",
+        1: "border-[hsl(var(--position-gold)/0.45)] bg-[hsl(var(--position-gold)/0.12)] text-position-gold",
+        2: "border-[hsl(var(--position-silver)/0.45)] bg-[hsl(var(--position-silver)/0.12)] text-position-silver",
+        3: "border-[hsl(var(--position-bronze)/0.55)] bg-[hsl(var(--position-bronze)/0.16)] text-position-bronze",
       }[position] || "bg-secondary text-secondary-foreground border-border";
 
       const PositionIcon = position === 1 ? Trophy : position <= 3 ? Medal : null;
