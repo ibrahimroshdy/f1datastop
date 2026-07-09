@@ -1,4 +1,4 @@
-# F1 DataStop
+# F1 DataStop 
 
 <p align="center">
   <img src="web/public/f1-cover.png" alt="F1 DataStop" width="320">
