@@ -82,7 +82,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
                   <p className="truncate text-xs text-muted-foreground">{c.description}</p>
                 ) : null}
               </div>
-              <Button asChild variant="outline" size="sm" className="shrink-0">
+              <Button asChild variant="outline" size="sm" className="h-11 w-11 shrink-0 p-0">
                 <a
                   href={c.public_url}
                   download

@@ -115,7 +115,7 @@ export default function RaceCalendarGridView({
                       <h3 className="font-semibold text-xs sm:text-sm leading-tight truncate mb-0.5">
                         {raceName}
                       </h3>
-                      <div className="flex items-center justify-center gap-1 text-[9px] sm:text-[10px] text-muted-foreground">
+                      <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
                         <span>R{race.round}</span>
                         {hasSprint && (
                           <>
@@ -124,14 +124,14 @@ export default function RaceCalendarGridView({
                           </>
                         )}
                       </div>
-                      <p className="text-[9px] sm:text-[10px] text-muted-foreground mt-1">
+                      <p className="text-[11px] text-muted-foreground mt-1">
                         {format(raceDate, "dd MMM")}
                       </p>
                     </div>
                     <Badge
                       variant={status === "next" ? "default" : "secondary"}
                       className={cn(
-                        "text-[9px] sm:text-[10px] h-4 px-1.5",
+                        "text-[11px] h-5 px-1.5",
                         status === "next" && "bg-f1-red hover:bg-f1-red",
                       )}
                     >

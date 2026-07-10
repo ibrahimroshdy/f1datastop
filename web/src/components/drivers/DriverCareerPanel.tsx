@@ -97,7 +97,7 @@ const DriverCareerPanel = ({
           <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
             {formatStat(profile.championships)}
           </p>
-          <p className="text-[8px] text-muted-foreground">WDC</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">WDC</p>
         </div>
         <div className={cn("text-center rounded-md p-2", mutedSurface)}>
           <PitIcon
@@ -108,7 +108,7 @@ const DriverCareerPanel = ({
           <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
             {formatStat(profile.race_wins)}
           </p>
-          <p className="text-[8px] text-muted-foreground">Wins</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Wins</p>
         </div>
         <div className={cn("text-center rounded-md p-2", mutedSurface)}>
           <PitIcon
@@ -119,14 +119,14 @@ const DriverCareerPanel = ({
           <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
             {formatStat(profile.podiums)}
           </p>
-          <p className="text-[8px] text-muted-foreground">Podiums</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Podiums</p>
         </div>
         <div className={cn("text-center rounded-md p-2", mutedSurface)}>
           <PitIcon icon={Zap} size="xs" className="mx-auto mb-0.5 text-blue-500" />
           <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
             {formatStat(profile.pole_positions)}
           </p>
-          <p className="text-[8px] text-muted-foreground">Poles</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Poles</p>
         </div>
       </div>
 

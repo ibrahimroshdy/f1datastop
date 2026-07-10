@@ -194,7 +194,7 @@ const FastestPitStopCard = () => {
             {!isLoading && (!error || error === "pending") && raceName && (
               <button
                 onClick={() => setIsDialogOpen(true)}
-                className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:border-primary/50 transition-all"
+                className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 min-h-11 py-2 px-3 cursor-pointer hover:border-primary/50 transition-all"
               >
                 {countryCode && (
                   <ReactCountryFlag
@@ -212,7 +212,7 @@ const FastestPitStopCard = () => {
           {/* Record Stop Highlight */}
           {!isLoading && !error && fastestStop && (
             <div className="mt-2 flex items-center justify-center">
-              <div className="border border-dashed border-amber-500/50 dark:border-amber-400/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-[10px]">
+              <div className="border border-dashed border-amber-500/50 dark:border-amber-400/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-xs">
                 <span className="text-amber-600 dark:text-amber-400 font-medium">Record:</span>
                         <span 
                           className="font-mono font-bold" 

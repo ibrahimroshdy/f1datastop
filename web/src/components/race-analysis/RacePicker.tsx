@@ -76,7 +76,7 @@ export function RacePicker({
             <span className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight">
               {raceLabel}
             </span>
-            <span className="timing shrink-0 rounded bg-secondary px-1.5 py-0.5 text-2xs text-secondary-foreground">
+            <span className="timing shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
               R{currentRace.round}
             </span>
           </>

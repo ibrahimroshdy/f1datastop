@@ -37,7 +37,7 @@ const MoreNavSheet = ({ open, onOpenChange }: MoreNavSheetProps) => {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-xl pb-8">
+      <SheetContent side="bottom" className="rounded-t-xl">
         <SheetHeader>
           <SheetTitle>More</SheetTitle>
         </SheetHeader>
@@ -48,7 +48,7 @@ const MoreNavSheet = ({ open, onOpenChange }: MoreNavSheetProps) => {
                 to={link.href}
                 onClick={() => onOpenChange(false)}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium",
+                  "flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium",
                   "hover:bg-accent transition-colors",
                 )}
               >

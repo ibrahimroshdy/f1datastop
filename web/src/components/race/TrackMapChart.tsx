@@ -95,7 +95,7 @@ const TrackMapChart = ({ year, round, session = "R" }: Props) => {
                 key={r.driver_code}
                 onClick={() => setCode(r.driver_code)}
                 className={cn(
-                  "flex items-center gap-1 rounded px-1.5 py-1 text-xs font-medium transition-all",
+                  "flex items-center min-h-9 gap-1 rounded px-1.5 py-1 text-xs font-medium transition-all",
                   active
                     ? "bg-accent text-accent-foreground shadow-sm"
                     : "bg-transparent text-muted-foreground hover:bg-muted/50",

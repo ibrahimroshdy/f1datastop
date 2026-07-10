@@ -38,7 +38,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
     <div className="flex flex-col gap-1">
       {/* Compact grid of driver chips */}
       <div className={cn(
-        "grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-0.5 p-1 rounded border",
+        "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1 p-1 rounded border",
         "bg-muted/30 border-border"
       )}>
         {availableDrivers.map(driver => {
@@ -55,7 +55,7 @@ const DriverSelector: React.FC<DriverSelectorProps> = ({
             <button
               key={driver.code}
               className={cn(
-                "flex items-center justify-between gap-0.5 px-1 py-0.5 rounded text-xs font-medium transition-all",
+                "flex min-h-9 items-center justify-between gap-0.5 rounded px-1.5 py-1.5 text-xs font-medium transition-all",
                 isSelected
                   ? "bg-accent text-accent-foreground shadow-sm"
                   : "bg-transparent text-muted-foreground hover:bg-muted/50",

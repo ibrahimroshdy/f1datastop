@@ -132,7 +132,7 @@ const Circuits = () => {
                 <div className="truncate text-sm font-semibold leading-tight transition-colors group-hover:text-primary md:text-base">
                   {circuit.circuitName}
                 </div>
-                <div className="mt-0.5 flex items-center gap-1.5 text-2xs text-muted-foreground md:text-xs">
+                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <CountryFlag country={circuit.country} size={14} />
                   <span className="truncate">
                     {circuit.locality}, {circuit.country}

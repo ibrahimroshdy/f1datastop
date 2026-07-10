@@ -19,7 +19,7 @@ export function RaceDriverCell({
       style={{ borderLeft: `3px solid ${color}`, paddingLeft: "0.25rem" }}
     >
       <span className="font-medium">{driver.code}</span>
-      <span className="text-[10px] text-muted-foreground truncate max-w-16">
+      <span className="text-[11px] text-muted-foreground truncate">
         {driver.familyName}
       </span>
     </div>

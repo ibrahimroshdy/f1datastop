@@ -93,7 +93,7 @@ const LastRaceResultsCard = ({
             {!isResultsLoading && raceName && (
               <button
                 onClick={() => setIsDialogOpen(true)}
-                className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:border-primary/50 transition-all"
+                className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 min-h-11 py-2 px-3 cursor-pointer hover:border-primary/50 transition-all"
               >
                 {countryCode && (
                   <ReactCountryFlag
@@ -111,7 +111,7 @@ const LastRaceResultsCard = ({
           {/* Fastest Lap */}
           {!isResultsLoading && fastestLapDriver && (
                     <div className="mt-2 flex items-center justify-center">
-              <div className="border border-dashed border-violet-500/50 dark:border-violet-400/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-[10px]">
+              <div className="border border-dashed border-violet-500/50 dark:border-violet-400/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-xs">
                 <span className="text-violet-600 dark:text-violet-400 font-medium">Fastest:</span>
                           <span
                             className="font-mono font-bold"
@@ -146,11 +146,11 @@ const LastRaceResultsCard = ({
                 const isWinner = position === 1;
                 
                 return (
-                <div 
-                  key={result.position} 
+                <div
+                  key={result.position}
                   className="flex items-center justify-between p-2 bg-card rounded-lg hover:bg-accent/50 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div className="text-xl font-bold">{result.position}</div>
                       <div style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: '0.5rem' }}>
                       <div className="font-semibold">{result.Driver.code}</div>
@@ -160,7 +160,7 @@ const LastRaceResultsCard = ({
                     </div>
                   </div>
                     
-                  <div className="text-right">
+                  <div className="shrink-0 whitespace-nowrap text-right">
                     <div className="font-mono font-medium">
                         {isWinner 
                           ? result.Time?.time 

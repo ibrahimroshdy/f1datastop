@@ -45,7 +45,7 @@ const BottomNav = () => {
                 <Link
                   to={tab.href}
                   className={cn(
-                    "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors",
+                    "flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors",
                     active
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground",
@@ -62,7 +62,7 @@ const BottomNav = () => {
             <button
               type="button"
               onClick={() => setMoreOpen(true)}
-              className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+              className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
               aria-label="More navigation"
             >
               <MoreHorizontal className="h-5 w-5" />

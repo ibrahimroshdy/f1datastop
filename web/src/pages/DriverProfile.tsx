@@ -155,7 +155,7 @@ const DriverProfile = () => {
         {/* ── Back link (← Drivers) ───────────────────────────────────────── */}
         <Link
           to="/drivers"
-          className="inline-flex w-fit items-center gap-1 text-2xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
+          className="inline-flex min-h-11 w-fit -ml-1 items-center gap-1 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           Drivers

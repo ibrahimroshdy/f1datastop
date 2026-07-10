@@ -236,13 +236,13 @@ const LiveTimingTable = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "track":
-        return "text-white";
+        return "text-foreground";
       case "pits":
         return "text-yellow-500";
       case "dnf":
         return "text-red-500";
       default:
-        return "text-white";
+        return "text-foreground";
     }
   };
 
@@ -254,11 +254,11 @@ const LiveTimingTable = () => {
             <TableHead className="w-12">Pos</TableHead>
             <TableHead className="w-12">#</TableHead>
             <TableHead>Driver</TableHead>
-            <TableHead>Team</TableHead>
+            <TableHead className="hidden md:table-cell">Team</TableHead>
             <TableHead>Last Lap</TableHead>
             <TableHead>Gap</TableHead>
-            <TableHead>Interval</TableHead>
-            <TableHead>Laps</TableHead>
+            <TableHead className="hidden md:table-cell">Interval</TableHead>
+            <TableHead className="hidden md:table-cell">Laps</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -277,11 +277,11 @@ const LiveTimingTable = () => {
                   <span>{driver.driver}</span>
                 </div>
               </TableCell>
-              <TableCell>{driver.team}</TableCell>
+              <TableCell className="hidden md:table-cell">{driver.team}</TableCell>
               <TableCell>{driver.lastLap}</TableCell>
               <TableCell>{driver.gap}</TableCell>
-              <TableCell>{driver.interval}</TableCell>
-              <TableCell>{driver.laps}</TableCell>
+              <TableCell className="hidden md:table-cell">{driver.interval}</TableCell>
+              <TableCell className="hidden md:table-cell">{driver.laps}</TableCell>
               <TableCell>
                 <Badge className={`uppercase ${getStatusColor(driver.status)}`} variant="outline">
                   {driver.status}

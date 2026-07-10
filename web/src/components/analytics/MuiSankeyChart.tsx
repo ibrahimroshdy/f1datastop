@@ -305,14 +305,18 @@ function SankeyWithDimensionGuard({
   }, []);
 
   const hasSize = dimensions.width >= 50 && dimensions.height >= 50;
+  // Narrow (phone) layout: shrink side margins and drop the outside P{n} labels
+  // (they clip past the SVG edge); tap tooltips carry the detail instead.
+  const isNarrow = dimensions.width > 0 && dimensions.width < 480;
 
   // Compute the d3-sankey layout. Clone the data because d3-sankey mutates the
   // node/link objects in place (resolving source/target and adding x0/y0/...).
   const graph = useMemo<SankeyGraph<SankeyNodeData, SankeyLinkData> | null>(() => {
     if (!hasSize) return null;
 
-    const x0 = MARGIN.left;
-    const x1 = dimensions.width - MARGIN.right;
+    const side = isNarrow ? 24 : MARGIN.left;
+    const x0 = side;
+    const x1 = dimensions.width - side;
     const y0 = MARGIN.top;
     const y1 = dimensions.height - MARGIN.bottom;
     if (x1 <= x0 || y1 <= y0) return null;
@@ -337,7 +341,7 @@ function SankeyWithDimensionGuard({
     } catch {
       return null;
     }
-  }, [sankeyData, dimensions.width, dimensions.height, hasSize]);
+  }, [sankeyData, dimensions.width, dimensions.height, hasSize, isNarrow]);
 
   const linkPath = useMemo(() => sankeyLinkHorizontal<SankeyNodeData, SankeyLinkData>(), []);
   // Token-driven label color adapts across all three themes.
@@ -350,6 +354,7 @@ function SankeyWithDimensionGuard({
           width={dimensions.width}
           height={dimensions.height}
           onMouseLeave={() => setHover(null)}
+          onPointerDown={() => setHover(null)}
         >
           {/* Links (drawn first so nodes sit on top) */}
           <g fill="none">
@@ -376,6 +381,16 @@ function SankeyWithDimensionGuard({
                       y: e.clientY - (rect?.top ?? 0),
                     });
                   }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation(); // don't let the svg clear it
+                    const rect = containerRef.current?.getBoundingClientRect();
+                    setHover({
+                      kind: 'link',
+                      link,
+                      x: e.clientX - (rect?.left ?? 0),
+                      y: e.clientY - (rect?.top ?? 0),
+                    });
+                  }}
                   onMouseLeave={() => setHover(null)}
                 />
               );
@@ -391,8 +406,10 @@ function SankeyWithDimensionGuard({
               const w = (node.x1 ?? 0) - x0n;
               const h = Math.max(0, (node.y1 ?? 0) - y0n);
               const isHovered = hover?.kind === 'node' && hover.node === node;
-              // Grid column is unlabeled; quali labels left, race labels right
-              const showLabel = data.type !== 'grid';
+              // Grid column is unlabeled; quali labels left, race labels right.
+              // On narrow (phone) widths, drop outside labels (they clip) — tap
+              // a node/link for the tooltip instead.
+              const showLabel = data.type !== 'grid' && !isNarrow;
               const labelOnLeft = data.type === 'qualifying';
               return (
                 <g key={`node-${i}`}>
@@ -407,6 +424,16 @@ function SankeyWithDimensionGuard({
                     fillOpacity={isHovered ? 1 : 0.9}
                     style={{ cursor: 'pointer' }}
                     onMouseMove={(e) => {
+                      const rect = containerRef.current?.getBoundingClientRect();
+                      setHover({
+                        kind: 'node',
+                        node,
+                        x: e.clientX - (rect?.left ?? 0),
+                        y: e.clientY - (rect?.top ?? 0),
+                      });
+                    }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
                       const rect = containerRef.current?.getBoundingClientRect();
                       setHover({
                         kind: 'node',

@@ -1,5 +1,6 @@
 import { Suspense, lazy } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { ViewSwitcher, type ViewItem } from "@/components/ui/view-switcher";
 import {
   F1Card,
   F1CardContent,
@@ -93,32 +94,25 @@ function TabButtonGroup({ label, tabs, selectedTab, onTabChange }: TabButtonGrou
   );
 }
 
-function MobileTabRow({ label, tabs, selectedTab, onTabChange }: TabButtonGroupProps) {
+// Mobile: canonical ViewSwitcher (stack grid — all views visible, no scroll).
+function MobileTabGroup({ label, tabs, selectedTab, onTabChange }: TabButtonGroupProps) {
+  const items: ViewItem<RaceAnalysisTabId>[] = tabs.map((tab) => ({
+    key: tab.id as RaceAnalysisTabId,
+    label: tab.label,
+    icon: tab.icon,
+  }));
   return (
-    <div className="flex items-center gap-2">
-      <span className="instrument-label w-24 shrink-0 whitespace-nowrap text-primary">{label}</span>
-      <div className="flex flex-1 gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {tabs.map((tab) => {
-          const active = selectedTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onTabChange(tab.id)}
-              className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-fast",
-                active
-                  ? "border-primary/40 bg-primary text-primary-foreground shadow-glow"
-                  : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <tab.icon className="h-3.5 w-3.5" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+    <div className="space-y-1">
+      <span className="instrument-label text-primary">{label}</span>
+      <ViewSwitcher
+        stack
+        compact
+        cols={3}
+        items={items}
+        value={selectedTab as RaceAnalysisTabId}
+        onChange={onTabChange}
+        className="w-full sm:w-full"
+      />
     </div>
   );
 }
@@ -162,16 +156,16 @@ export function RaceAnalysisTabs({
         ) : null}
       </div>
 
-      {/* Mobile: app-native horizontally-scrollable chip rows */}
-      <div className="-mx-4 mb-3 block space-y-1.5 px-4 lg:hidden">
-        <MobileTabRow
+      {/* Mobile: compact icon-tile grid — all views visible, no horizontal scroll */}
+      <div className="mb-3 block space-y-2 lg:hidden">
+        <MobileTabGroup
           label="Race"
           tabs={CORE_TABS}
           selectedTab={selectedTab}
           onTabChange={onTabChange}
         />
         {hasOpenF1Data ? (
-          <MobileTabRow
+          <MobileTabGroup
             label="Live"
             tabs={LIVE_TABS}
             selectedTab={selectedTab}
@@ -277,7 +271,7 @@ export function RaceAnalysisTabs({
                 Visualize progression from qualifying to race results
               </F1CardDescription>
             </F1CardHeader>
-            <F1CardContent className="h-[550px] px-4 pb-4">
+            <F1CardContent className="h-[420px] px-4 pb-4 sm:h-[550px]">
               <MuiSankeyChart year={selectedYear} round={selectedRace} />
             </F1CardContent>
           </F1Card>

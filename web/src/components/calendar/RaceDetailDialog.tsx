@@ -73,7 +73,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
       <DialogContent
         className={cn(
-          "max-w-[calc(100vw-2rem)] sm:max-w-[640px] max-h-[90vh] overflow-y-auto p-4 sm:p-6",
+          "max-w-[calc(100vw-2rem)] sm:max-w-[640px] max-h-[90dvh] overflow-y-auto p-4 sm:p-6",
           isGlass && "border-white/10",
         )}
         style={isGlass ? cardStyle : undefined}
@@ -103,35 +103,35 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
           <TabsList
             className={cn(
-              `grid w-full ${hasSprint ? "grid-cols-6" : "grid-cols-4"} mb-3 h-8 p-0.5`,
+              `grid w-full ${hasSprint ? "grid-cols-6" : "grid-cols-4"} mb-3 min-h-9 h-auto p-0.5`,
               isGlass && "bg-white/5",
             )}
           >
-            <TabsTrigger value="info" className="text-[10px] h-7 px-1.5">
+            <TabsTrigger value="info" className="text-[11px] h-9 px-1.5">
               Schedule
             </TabsTrigger>
             {hasSprint && (
-              <TabsTrigger value="sprint-qualifying" className="text-[10px] h-7 px-1.5 gap-1">
+              <TabsTrigger value="sprint-qualifying" className="text-[11px] h-9 px-1.5 gap-1">
                 <Zap className="h-2.5 w-2.5" />
                 <span className="hidden sm:inline">Sprint Q</span>
                 <span className="sm:hidden">SQ</span>
               </TabsTrigger>
             )}
             {hasSprint && (
-              <TabsTrigger value="sprint" className="text-[10px] h-7 px-1.5 gap-1">
+              <TabsTrigger value="sprint" className="text-[11px] h-9 px-1.5 gap-1">
                 <Zap className="h-2.5 w-2.5" />
                 Sprint
               </TabsTrigger>
             )}
-            <TabsTrigger value="qualifying" className="text-[10px] h-7 px-1.5">
+            <TabsTrigger value="qualifying" className="text-[11px] h-9 px-1.5">
               Qualifying
             </TabsTrigger>
-            <TabsTrigger value="results" className="text-[10px] h-7 px-1.5">
+            <TabsTrigger value="results" className="text-[11px] h-9 px-1.5">
               Results
             </TabsTrigger>
           </TabsList>
 
-          <div className="h-[600px] sm:h-[700px] overflow-y-auto">
+          <div className="h-[60vh] sm:h-[700px] overflow-y-auto">
             <TabsContent value="info" className="h-full mt-0">
               <RaceSchedulePanel
                 race={race}
@@ -182,7 +182,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         </Tabs>
 
         <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={closeDialog} className="text-[10px] h-7 px-2">
+          <Button variant="outline" size="sm" onClick={closeDialog} className="min-h-11 px-4 text-xs">
             Close
           </Button>
         </DialogFooter>

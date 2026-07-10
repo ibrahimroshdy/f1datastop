@@ -107,7 +107,7 @@ const CircuitDetail = () => {
         {/* ── BackLink ──────────────────────────────────────────────────────── */}
         <Link
           to="/circuits"
-          className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex min-h-11 w-fit -ml-1 items-center gap-1.5 px-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" /> Circuits
         </Link>
@@ -224,7 +224,7 @@ const CircuitDetail = () => {
         {thisYear && (
           <Link
             to={`/race-analysis/${currentYear}/${thisYear.round}`}
-            className="group inline-flex w-fit items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            className="group inline-flex w-fit items-center gap-1.5 min-h-11 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
             View {currentYear} race analysis
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
