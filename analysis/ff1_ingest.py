@@ -16,7 +16,6 @@ Reuses backfill.py's Supabase helpers so the write path / creds stay identical.
 """
 import argparse
 import os
-import sys
 
 import backfill as bf  # supa_upsert, _env, to_int, DRY_RUN
 
@@ -64,7 +63,7 @@ def _abbr_to_id(session):
 
 
 # ── weather ──────────────────────────────────────────────────────────────────
-def ingest_weather(season, rnd, session_code, upload=True):
+def ingest_weather(season, rnd, session_code):
     import pandas as pd
     s = _load(season, rnd, session_code, weather=True)
     wx = getattr(s, "weather_data", None)
@@ -93,7 +92,7 @@ def ingest_weather(season, rnd, session_code, upload=True):
 
 
 # ── overtakes (computed from per-lap position) ────────────────────────────────
-def ingest_overtakes(season, rnd, session_code="R", upload=True):
+def ingest_overtakes(season, rnd, session_code="R"):
     import pandas as pd
     s = _load(season, rnd, session_code, laps=True)
     laps = s.laps
@@ -127,7 +126,7 @@ def ingest_overtakes(season, rnd, session_code="R", upload=True):
         now, prev = by_lap[ln], by_lap[prev_ln]
         for a in now:
             # A on an out-lap gains many places from the pit cycle, not on track.
-            if a not in prev or (ln, a) in pit_laps or (prev_ln, a) in pit_laps:
+            if a not in prev or pitted(ln, prev_ln, a):
                 continue
             for b in now:
                 if a == b or b not in prev:
@@ -154,7 +153,7 @@ def ingest_overtakes(season, rnd, session_code="R", upload=True):
 
 
 # ── race control ──────────────────────────────────────────────────────────────
-def ingest_race_control(season, rnd, session_code="R", upload=True):
+def ingest_race_control(season, rnd, session_code="R"):
     import pandas as pd
     s = _load(season, rnd, session_code, messages=True)
     rc = getattr(s, "race_control_messages", None)

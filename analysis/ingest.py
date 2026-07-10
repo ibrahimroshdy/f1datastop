@@ -18,7 +18,6 @@ real session once and writes every domain from that session object:
 """
 import argparse
 import os
-import sys
 
 import backfill as bf   # supa_upsert, supa_select, _env, to_int, _fmt_laptime, race_id_for
 import ff1_ingest as enrich
@@ -31,7 +30,6 @@ SESSION_CODE = {
 }
 # Sessions we ingest structured data for (FP handled on-demand by generate.py)
 TIMED = {"Q", "S", "SQ", "R"}
-POINTS_SESSIONS = ("R", "S")
 FORCE = False  # re-ingest rounds even if already complete
 
 
@@ -43,17 +41,21 @@ def _cache():
 
 
 def _purge_season(table, season):
-    """Delete a whole season's rows from a table (used to drop stale non-FastF1
-    session rows before rewriting the clean set)."""
+    """Delete a season's stale NON-FastF1 rows before rewriting the clean set.
+
+    Only legacy (Ergast/OpenF1) rows are removed — current FastF1 rows are left
+    intact so that a later upsert failure can never empty the season. The DELETE
+    response is checked so a failed purge surfaces instead of silently passing."""
     if bf.DRY_RUN:
         return
     import requests
     url, key = bf._env()
-    requests.delete(
+    r = requests.delete(
         f"{url}/rest/v1/{table}",
         headers={"apikey": key, "Authorization": f"Bearer {key}"},
-        params={"season": f"eq.{season}"}, timeout=60,
+        params={"season": f"eq.{season}", "source": "neq.fastf1"}, timeout=60,
     )
+    r.raise_for_status()
 
 
 def _millis(td):
@@ -109,7 +111,6 @@ def ingest_schedule(season):
             "sprint_weekend": "sprint" in fmt,
             "source": "fastf1",
         })
-        rid = None  # resolved after f1_race upsert
         for i in range(1, 6):
             name = ev.get(f"Session{i}")
             if not name or pd.isna(name):
@@ -369,7 +370,6 @@ def _round_done(season, rnd):
 
 
 def ingest_round(season, rnd):
-    import datetime as dt
     _cache()
     if not FORCE and _round_done(season, rnd):
         print(f"== {season} R{rnd} == already ingested, skip (--force to redo)")

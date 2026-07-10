@@ -492,7 +492,7 @@ def _parse_lap_doc(doc, race_id, season, rnd):
         for t in lap.get("Timings", []):
             out.append({
                 "race_id": race_id, "season": season, "round": rnd,
-                "lap_number": lapno, "driver_id": t.get("driverId"),
+                "session_type": "R", "lap_number": lapno, "driver_id": t.get("driverId"),
                 "position": to_int(t.get("position")), "time_text": t.get("time"),
                 "source": "ergast",
             })
@@ -553,14 +553,14 @@ def _laps_from_fastf1(season, rnd, race_id):
         pos = lap.get("Position")
         rows.append({
             "race_id": race_id, "season": season, "round": rnd,
-            "lap_number": int(lapno), "driver_id": did,
+            "session_type": "R", "lap_number": int(lapno), "driver_id": did,
             "position": int(pos) if pd.notna(pos) else None,
             "time_text": _fmt_laptime(lap.get("LapTime")),
             "source": "fastf1",
         })
     if not rows:
         return -1
-    return supa_upsert("f1_lap", rows, "season,round,lap_number,driver_id")
+    return supa_upsert("f1_lap", rows, "season,round,session_type,driver_id,lap_number")
 
 
 def backfill_laps(season, rnd, race_id):
@@ -594,7 +594,7 @@ def _laps_from_jolpica(season, rnd, race_id):
     if not rows:
         mark_sync("laps", season, rnd, status="partial", error="no laps yet")
         return 0
-    n = supa_upsert("f1_lap", rows, "season,round,lap_number,driver_id")
+    n = supa_upsert("f1_lap", rows, "season,round,session_type,driver_id,lap_number")
     status = "complete" if (total is None or len(rows) >= total) else "partial"
     mark_sync("laps", season, rnd, status=status, row_count=n, upstream_total=total)
     return n
