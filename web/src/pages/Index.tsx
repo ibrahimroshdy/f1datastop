@@ -215,7 +215,7 @@ const Index = () => {
                   {lastCompletedRace && (
                     <button
                       onClick={() => setIsSankeyDialogOpen(true)}
-                      className="shrink-0 rounded-md border timing text-xs font-medium uppercase tracking-wide border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 min-h-11 py-2 px-3 cursor-pointer sm:min-h-0 sm:py-1 sm:px-2 hover:border-primary/50 transition-all"
+                      className="shrink-0 rounded-md border timing text-xs font-medium uppercase tracking-wide border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:border-primary/50 transition-all"
                     >
                       <ReactCountryFlag
                         countryCode={lastCompletedRace.countryCode}
@@ -263,7 +263,7 @@ const Index = () => {
 
         {/* ── Support ───────────────────────────────────────────────────── */}
         <div className="flex justify-center py-2">
-          <BuyMeCoffeeWidget size="large" position="inline" showSupporterCount showNextMilestone />
+          <BuyMeCoffeeWidget size="large" position="inline" />
         </div>
       </div>
 
