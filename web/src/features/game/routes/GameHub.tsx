@@ -57,11 +57,17 @@ function ActivatedHub({ entryId }: { entryId: string }) {
 
       {nextOpen && (
         <Link to={`/game/predict/${nextOpen.round}`}>
-          <F1Card className="transition-colors hover:border-primary/50">
+          <F1Card hover="lift" className="border-primary/30 bg-gradient-to-br from-primary/[0.08] to-transparent">
             <F1CardContent className="flex items-center justify-between gap-3 py-4">
               <div>
-                <div className="instrument-label text-primary">Next up · Round {nextOpen.round}</div>
-                <div className="text-base font-semibold">{nextOpen.race_name}</div>
+                <div className="instrument-label flex items-center gap-1.5 text-primary">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-live-pulse rounded-full bg-primary/60" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+                  </span>
+                  Next up · Round {nextOpen.round}
+                </div>
+                <div className="mt-0.5 text-lg font-bold">{nextOpen.race_name}</div>
                 <div className="text-xs text-muted-foreground">Make your picks →</div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />

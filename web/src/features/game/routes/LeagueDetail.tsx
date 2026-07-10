@@ -15,8 +15,10 @@ import { ACTIVE_GAME_SEASON, getGameSeasons, getGameSchedule } from "../api/game
 import {
   getLeague, getLeagueStandings, getLeagueMembers, getLeagueRoundAwards, getLeagueAlltime,
 } from "../api/leaguesClient";
+import { Podium } from "../components/Podium";
+import { medalBadge } from "../utils/medal";
 
-const MEDAL = ["text-yellow-500", "text-slate-300", "text-amber-600"];
+const RANK_PILL = "inline-flex h-7 min-w-7 items-center justify-center rounded-full border px-1.5 text-xs font-semibold tabular-nums";
 
 export default function LeagueDetail() {
   const { id } = useParams<{ id: string }>();
@@ -92,6 +94,11 @@ export default function LeagueDetail() {
           )}
         </div>
 
+        {/* Podium (season view) */}
+        {view === "season" && (standings.data?.length ?? 0) > 0 && (
+          <Podium rows={standings.data!} meId={user?.id} />
+        )}
+
         {/* All-time standings */}
         {view === "alltime" ? (
           alltime.isLoading ? (
@@ -111,7 +118,7 @@ export default function LeagueDetail() {
                   <tbody>
                     {alltime.data?.map((row) => (
                       <tr key={row.user_id} className={cn("border-b border-border/60", row.user_id === user?.id && "bg-primary/[0.06]")}>
-                        <td className={cn("px-3 py-2 font-semibold tabular-nums", row.rank <= 3 ? MEDAL[row.rank - 1] : "text-muted-foreground")}>{row.rank}</td>
+                        <td className="px-3 py-2"><span className={cn(RANK_PILL, medalBadge(row.rank))}>{row.rank}</span></td>
                         <td className="px-3 py-2 font-medium">{row.username ?? "—"}</td>
                         <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.seasons_played}</td>
                         <td className="px-4 py-2 text-right font-semibold tabular-nums">{Number(row.total_points)}</td>
@@ -140,9 +147,8 @@ export default function LeagueDetail() {
                   {standings.data?.map((row) => (
                     <tr key={row.user_id}
                       className={cn("border-b border-border/60", row.user_id === user?.id && "bg-primary/[0.06]")}>
-                      <td className={cn("px-3 py-2 font-semibold tabular-nums",
-                        row.rank <= 3 ? MEDAL[row.rank - 1] : "text-muted-foreground")}>
-                        {row.rank}
+                      <td className="px-3 py-2">
+                        <span className={cn(RANK_PILL, medalBadge(row.rank))}>{row.rank}</span>
                       </td>
                       <td className="px-3 py-2">
                         <span className="font-medium">{row.username ?? "—"}</span>
