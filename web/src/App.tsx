@@ -22,7 +22,6 @@ import Constructors from "./pages/Constructors";
 import DriverProfile from "./pages/DriverProfile";
 import TeamProfile from "./pages/TeamProfile";
 import Standings from "./pages/Standings";
-import Circuits from "./pages/Circuits";
 import CircuitDetail from "./pages/CircuitDetail";
 import Developers from "./pages/Developers";
 import NotFound from "./pages/NotFound";
@@ -142,7 +141,7 @@ const App = () => (
                           <Route path="/" element={<Index />} />
                           <Route path="/calendar" element={<RaceCalendar />} />
                           <Route path="/standings" element={<Standings />} />
-                          <Route path="/circuits" element={<Circuits />} />
+                          <Route path="/circuits" element={<Navigate to="/calendar" replace />} />
                           <Route path="/circuits/:circuitId" element={<CircuitDetail />} />
                           <Route path="/race-analysis" element={<RaceAnalysis />} />
                           <Route path="/race-analysis/:year/:round" element={<RaceAnalysis />} />

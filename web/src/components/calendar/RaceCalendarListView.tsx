@@ -2,13 +2,16 @@ import { F1Card, F1EmptyState } from "@/components/f1";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { Link } from "react-router-dom";
 import {
   Star,
   ChevronDown,
   ChevronUp,
-  ChevronRight,
+  MapPin,
 } from "lucide-react";
 import CountryFlag from "@/components/common/CountryFlag";
+import { CircuitTrackMap, getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
+import CircuitDrawer from "@/components/calendar/CircuitDrawer";
 import { cn } from "@/lib/utils";
 import {
   SINGLE_RACE,
@@ -136,6 +139,9 @@ export default function RaceCalendarListView({
             race.Circuit?.Location?.locality ||
             race.Circuit?.circuitName ||
             country;
+          const circuitId = race.Circuit?.circuitId as string | undefined;
+          const circuitName = race.Circuit?.circuitName || raceName;
+          const track = getCircuitTrack(circuitName, locality);
           const raceType = raceTypes[index] || SINGLE_RACE;
           const hasSprint = !!race.Sprint;
           const isExpanded = expandedRaces.has(race.round);
@@ -192,8 +198,9 @@ export default function RaceCalendarListView({
                       }
                     }}
                   >
-                    {/* Round + flag */}
-                    <div className="flex w-10 shrink-0 flex-col items-center gap-1">
+                    {/* Round + circuit thumbnail → circuit deep-dive (row body opens
+                        the race dialog; the thumbnail is a distinct action). */}
+                    <div className="flex w-12 shrink-0 flex-col items-center gap-1">
                       <span
                         className={cn(
                           "timing text-2xs font-semibold",
@@ -202,9 +209,32 @@ export default function RaceCalendarListView({
                       >
                         R{String(race.round).padStart(2, "0")}
                       </span>
-                      <span className="rounded-md bg-muted p-1">
-                        <CountryFlag country={country} size={18} className="shrink-0" />
-                      </span>
+                      {circuitId ? (
+                        <Link
+                          to={`/circuits/${circuitId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`${circuitName} circuit details`}
+                          className="group/circ relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/30 transition-colors hover:border-primary/50"
+                        >
+                          {track ? (
+                            <CircuitTrackMap
+                              circuitName={circuitName}
+                              locality={locality}
+                              className="h-8 w-8 text-primary transition-transform group-hover/circ:scale-110"
+                            />
+                          ) : (
+                            <MapPin className="h-4 w-4 text-muted-foreground/50" />
+                          )}
+                        </Link>
+                      ) : (
+                        <span className="flex h-11 w-11 items-center justify-center rounded-md border border-border bg-muted/30">
+                          {track ? (
+                            <CircuitTrackMap circuitName={circuitName} locality={locality} className="h-8 w-8 text-primary" />
+                          ) : (
+                            <MapPin className="h-4 w-4 text-muted-foreground/50" />
+                          )}
+                        </span>
+                      )}
                     </div>
 
                     {/* GP name + locality */}
@@ -227,6 +257,7 @@ export default function RaceCalendarListView({
                         )}
                       </div>
                       <div className="mt-0.5 flex items-center gap-1.5 text-2xs text-muted-foreground">
+                        <CountryFlag country={country} size={14} className="shrink-0" />
                         <span className="truncate">{locality}</span>
                         {raceTypeLabel[raceType] && (
                           <>
@@ -290,23 +321,12 @@ export default function RaceCalendarListView({
                   </div>
 
                   {isExpanded && (
-                    <div className="border-t border-border/60 bg-muted/20 px-4 py-2.5">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {hasSprint && (
-                          <SessionChip>Sprint</SessionChip>
-                        )}
-                        {race.Qualifying && <SessionChip>Qualifying</SessionChip>}
-                        {race.FirstPractice && <SessionChip>Practice</SessionChip>}
-                        <button
-                          type="button"
-                          className="ml-auto inline-flex items-center gap-1 text-2xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
-                          onClick={() => openRaceDetails(race)}
-                        >
-                          Details
-                          <ChevronRight className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
+                    <CircuitDrawer
+                      circuitId={circuitId}
+                      circuitName={circuitName}
+                      locality={locality}
+                      onOpenDetails={() => openRaceDetails(race)}
+                    />
                   )}
                 </div>
               </div>
@@ -318,9 +338,3 @@ export default function RaceCalendarListView({
   );
 }
 
-// Small session/type chip — token-only, mono-uppercase
-const SessionChip = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-flex w-fit items-center rounded-md border border-border bg-secondary/50 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-secondary-foreground">
-    {children}
-  </span>
-);

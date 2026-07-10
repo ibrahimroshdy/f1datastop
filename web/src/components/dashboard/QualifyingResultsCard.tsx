@@ -198,7 +198,7 @@ const QualifyingResultsCard = () => {
             {!isLoading && !error && circuitName && (
               <button
                 onClick={() => setIsDialogOpen(true)}
-                className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 min-h-11 py-2 px-3 cursor-pointer hover:border-primary/50 transition-all"
+                className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 min-h-11 py-2 px-3 cursor-pointer sm:min-h-0 sm:py-1 sm:px-2 hover:border-primary/50 transition-all"
               >
                 {countryCode && (
                   <ReactCountryFlag

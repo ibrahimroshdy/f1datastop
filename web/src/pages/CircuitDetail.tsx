@@ -105,7 +105,7 @@ const CircuitDetail = () => {
     <div className={pageShell}>
       <div className={cn("mx-auto w-full max-w-4xl", pageStack, "animate-fade-in")}>
         {/* ── BackLink ──────────────────────────────────────────────────────── */}
-        <BackLink to="/circuits">Circuits</BackLink>
+        <BackLink to="/calendar">Calendar</BackLink>
 
         {/* ── Compact identity (eyebrow + name + locality flag) ──────────────── */}
         <div className="space-y-1.5">

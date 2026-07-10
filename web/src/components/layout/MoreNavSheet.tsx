@@ -23,7 +23,6 @@ const MoreNavSheet = ({ open, onOpenChange }: MoreNavSheetProps) => {
   const extraLinks = [
     { label: "Drivers", href: "/drivers" },
     { label: "Teams", href: "/constructors" },
-    { label: "Circuits", href: "/circuits" },
     { label: "Privacy", href: "/privacy" },
     ...(user
       ? [

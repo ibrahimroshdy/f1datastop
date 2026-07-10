@@ -6,7 +6,6 @@ import {
   Home,
   ListOrdered,
   LogIn,
-  MapPin,
   Shield,
   User,
 } from "lucide-react";
@@ -44,7 +43,6 @@ export const navGroups: NavGroup[] = [
       { label: "Race Analysis", href: "/race-analysis", icon: GitCompare },
       { label: "Drivers", href: "/drivers", icon: User },
       { label: "Teams", href: "/constructors", icon: Factory },
-      { label: "Circuits", href: "/circuits", icon: MapPin },
     ],
   },
   {

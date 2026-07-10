@@ -3,8 +3,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
-import { Star } from "lucide-react";
+import { Star, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 import CountryFlag from "@/components/common/CountryFlag";
+import { CircuitTrackMap, getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
 import { cn } from "@/lib/utils";
 import { SINGLE_RACE, raceTypeColors } from "@/components/calendar/raceCalendarUtils";
 import type { RaceStatus, RaceWithBreakItem } from "@/hooks/useRaceCalendar";
@@ -91,6 +93,11 @@ export default function RaceCalendarGridView({
             const raceDate = parseISO(race.date);
             const country = race.Circuit?.Location?.country || "";
             const raceName = getRaceNameWithoutEmoji(race.raceName);
+            const locality =
+              race.Circuit?.Location?.locality || race.Circuit?.circuitName || country;
+            const circuitId = race.Circuit?.circuitId as string | undefined;
+            const circuitName = race.Circuit?.circuitName || raceName;
+            const track = getCircuitTrack(circuitName, locality);
             const raceType = raceTypes[index] || SINGLE_RACE;
             const hasSprint = !!race.Sprint;
 
@@ -109,11 +116,36 @@ export default function RaceCalendarGridView({
                 <div className={`h-0.5 w-full ${raceTypeColors[raceType]}`} />
                 <F1CardContent className="p-1.5 sm:p-2.5">
                   <div className="flex flex-col items-center text-center gap-1 sm:gap-2">
-                    <CountryFlag country={country} size={16} className="sm:hidden" />
-                    <CountryFlag country={country} size={20} className="hidden sm:block" />
+                    {circuitId ? (
+                      <Link
+                        to={`/circuits/${circuitId}`}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`${circuitName} circuit details`}
+                        className="group/circ flex h-12 w-12 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/30 transition-colors hover:border-primary/50"
+                      >
+                        {track ? (
+                          <CircuitTrackMap
+                            circuitName={circuitName}
+                            locality={locality}
+                            className="h-9 w-9 text-primary transition-transform group-hover/circ:scale-110"
+                          />
+                        ) : (
+                          <MapPin className="h-5 w-5 text-muted-foreground/50" />
+                        )}
+                      </Link>
+                    ) : (
+                      <span className="flex h-12 w-12 items-center justify-center rounded-md border border-border bg-muted/30">
+                        {track ? (
+                          <CircuitTrackMap circuitName={circuitName} locality={locality} className="h-9 w-9 text-primary" />
+                        ) : (
+                          <MapPin className="h-5 w-5 text-muted-foreground/50" />
+                        )}
+                      </span>
+                    )}
                     <div className="w-full">
-                      <h3 className="font-semibold text-xs sm:text-sm leading-tight truncate mb-0.5">
-                        {raceName}
+                      <h3 className="flex items-center justify-center gap-1 truncate text-xs font-semibold leading-tight sm:text-sm mb-0.5">
+                        <CountryFlag country={country} size={13} className="shrink-0" />
+                        <span className="truncate">{raceName}</span>
                       </h3>
                       <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
                         <span>R{race.round}</span>
