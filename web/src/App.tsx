@@ -30,6 +30,19 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
+import GameHub from "@/features/game/routes/GameHub";
+import PredictRound from "@/features/game/routes/PredictRound";
+import GameHistory from "@/features/game/routes/GameHistory";
+import GameRules from "@/features/game/routes/GameRules";
+import Leagues from "@/features/game/routes/Leagues";
+import BrowseLeagues from "@/features/game/routes/BrowseLeagues";
+import LeagueDetail from "@/features/game/routes/LeagueDetail";
+import LeagueManage from "@/features/game/routes/LeagueManage";
+import LeagueRoundReveal from "@/features/game/routes/LeagueRoundReveal";
+import JoinLeague from "@/features/game/routes/JoinLeague";
+import Champions from "@/features/game/routes/Champions";
+import GameProfilePage from "@/features/game/routes/GameProfile";
+import GameAdmin from "@/features/game/routes/GameAdmin";
 import ResetPassword from "./pages/auth/ResetPassword";
 import Privacy from "./pages/Privacy";
 import React, { Suspense } from "react";
@@ -152,6 +165,19 @@ const App = () => (
                           <Route path="/constructors" element={<Constructors />} />
                           <Route path="/privacy" element={<Privacy />} />
                           <Route element={<ProtectedRoute />}>
+                            <Route path="/game" element={<GameHub />} />
+                            <Route path="/game/predict/:round" element={<PredictRound />} />
+                            <Route path="/game/history" element={<GameHistory />} />
+                            <Route path="/game/rules" element={<GameRules />} />
+                            <Route path="/game/leagues" element={<Leagues />} />
+                            <Route path="/game/leagues/browse" element={<BrowseLeagues />} />
+                            <Route path="/game/leagues/:id" element={<LeagueDetail />} />
+                            <Route path="/game/leagues/:id/manage" element={<LeagueManage />} />
+                            <Route path="/game/leagues/:id/round/:round" element={<LeagueRoundReveal />} />
+                            <Route path="/game/champions" element={<Champions />} />
+                            <Route path="/game/profile" element={<GameProfilePage />} />
+                            <Route path="/game/admin" element={<GameAdmin />} />
+                            <Route path="/join/:code" element={<JoinLeague />} />
                             <Route path="/profile" element={<Profile />} />
                             <Route path="/developers" element={<Developers />} />
                           </Route>

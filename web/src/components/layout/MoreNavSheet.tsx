@@ -26,6 +26,7 @@ const MoreNavSheet = ({ open, onOpenChange }: MoreNavSheetProps) => {
     { label: "Privacy", href: "/privacy" },
     ...(user
       ? [
+          { label: "Predictions", href: "/game" },
           { label: "Profile", href: "/profile" },
           ...(isDeveloperMode
             ? [{ label: "Developers", href: "/developers" }]

@@ -2,6 +2,7 @@ import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRa
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { getTeamColor } from "@/utils/teamUtils";
 import { pageShell, pageStack } from "@/lib/layout";
+import BuyMeCoffeeWidget from "@/components/common/BuyMeCoffeeWidget";
 import CombinedStandingsCard from "@/components/dashboard/CombinedStandingsCard";
 import SeasonChampionshipCard from "@/components/dashboard/SeasonChampionshipCard";
 import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
@@ -214,7 +215,7 @@ const Index = () => {
                   {lastCompletedRace && (
                     <button
                       onClick={() => setIsSankeyDialogOpen(true)}
-                      className="shrink-0 rounded-md border timing text-xs font-medium uppercase tracking-wide border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 min-h-11 py-2 px-3 cursor-pointer sm:min-h-0 sm:py-1 sm:px-2 hover:border-primary/50 transition-all"
+                      className="shrink-0 rounded-md border timing text-xs font-medium uppercase tracking-wide border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:border-primary/50 transition-all"
                     >
                       <ReactCountryFlag
                         countryCode={lastCompletedRace.countryCode}
@@ -259,6 +260,11 @@ const Index = () => {
             </div>
           </>
         )}
+
+        {/* ── Support ───────────────────────────────────────────────────── */}
+        <div className="flex justify-center py-2">
+          <BuyMeCoffeeWidget size="large" position="inline" />
+        </div>
       </div>
 
       {/* Race Detail Dialog for Sankey Chart */}
