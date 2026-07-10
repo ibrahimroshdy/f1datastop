@@ -47,6 +47,10 @@ export async function adminUpdateSeason(
 export async function openSeason(season: number, name: string): Promise<void> {
   const { error } = await db.rpc("open_season", { p_season: season, p_name: name }); throwIf(error);
 }
+export async function adminBroadcast(title: string, body: string, url = "/game"): Promise<void> {
+  const { error } = await db.rpc("admin_broadcast", { p_title: title, p_body: body, p_url: url });
+  throwIf(error);
+}
 export async function getAuditLog(): Promise<AuditRow[]> {
   const { data, error } = await db
     .from("game_audit_log").select("id, action, detail, created_at").order("created_at", { ascending: false }).limit(100);

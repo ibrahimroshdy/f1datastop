@@ -13,7 +13,7 @@ import { isGameAdmin } from "../utils/isGameAdmin";
 import { ACTIVE_GAME_SEASON } from "../api/gameClient";
 import {
   adminStats, adminListPlayers, adminListLeagues, adminRegrade, adminUpdateSeason,
-  openSeason, getAuditLog, getSeasonConfig,
+  openSeason, getAuditLog, getSeasonConfig, adminBroadcast,
 } from "../api/adminClient";
 
 type Tab = "overview" | "players" | "leagues" | "settings" | "logs";
@@ -56,6 +56,12 @@ export default function GameAdmin() {
   const [rulesText, setRulesText] = useState("");
   const [rulesErr, setRulesErr] = useState<string | null>(null);
   const [newYear, setNewYear] = useState(season + 1);
+  const [bcTitle, setBcTitle] = useState("");
+  const [bcBody, setBcBody] = useState("");
+  const broadcast = useMutation({
+    mutationFn: () => adminBroadcast(bcTitle.trim(), bcBody.trim()),
+    onSuccess: () => { setBcTitle(""); setBcBody(""); },
+  });
   useEffect(() => { if (config.data) setRulesText(JSON.stringify(config.data.scoring_rules, null, 2)); }, [config.data]);
 
   if (!isGameAdmin(user)) {
@@ -213,6 +219,22 @@ export default function GameAdmin() {
                   <Button variant="outline" className="min-h-11" onClick={() => newSeason.mutate(newYear)} disabled={newSeason.isPending}>
                     Open {newYear} (carries all league members)
                   </Button>
+                </F1CardContent>
+              </F1Card>
+
+              <F1Card>
+                <F1CardHeader><F1CardTitle className="text-base">Broadcast notification</F1CardTitle></F1CardHeader>
+                <F1CardContent className="flex flex-col gap-2">
+                  <Input placeholder="Title" value={bcTitle} onChange={(e) => setBcTitle(e.target.value)} className="h-11" />
+                  <Input placeholder="Message" value={bcBody} onChange={(e) => setBcBody(e.target.value)} className="h-11" />
+                  <div className="flex items-center gap-3">
+                    <Button className="min-h-11" disabled={bcTitle.trim().length === 0 || broadcast.isPending}
+                      onClick={() => broadcast.mutate()}>
+                      {broadcast.isPending ? "Sending…" : broadcast.isSuccess ? "Sent ✓" : "Send to all players"}
+                    </Button>
+                    {broadcast.error ? <span className="text-xs text-destructive">{(broadcast.error as Error).message}</span> : null}
+                  </div>
+                  <p className="text-2xs text-muted-foreground">Push notification to everyone who enabled reminders.</p>
                 </F1CardContent>
               </F1Card>
             </>
