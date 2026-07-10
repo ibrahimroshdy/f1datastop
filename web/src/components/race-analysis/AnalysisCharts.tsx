@@ -62,10 +62,13 @@ async function saveImage(url: string, filename: string) {
   URL.revokeObjectURL(objectUrl);
 }
 
-function ChartImage({ src, alt }: { src: string; alt: string }) {
+function ChartImage({ src, alt, aspect }: { src: string; alt: string; aspect: string }) {
   const [loaded, setLoaded] = useState(false);
   return (
-    <div className="relative overflow-hidden rounded-md border border-border">
+    <div
+      className="relative overflow-hidden rounded-md border border-border bg-muted/20"
+      style={{ aspectRatio: aspect }}
+    >
       {!loaded ? (
         <div className="absolute inset-0">
           <F1Skeleton className="h-full w-full rounded-none" />
@@ -76,7 +79,7 @@ function ChartImage({ src, alt }: { src: string; alt: string }) {
         alt={alt}
         loading="lazy"
         onLoad={() => setLoaded(true)}
-        className="w-full"
+        className="absolute inset-0 h-full w-full object-contain"
       />
     </div>
   );
@@ -197,7 +200,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
         {charts.map((c) => (
           <F1Card key={c.id} variant={cardVariant} glassVariant={glassVariant} size="sm">
             <F1CardContent className="flex flex-col gap-2.5">
-              <ChartImage src={c.public_url} alt={c.title} />
+              <ChartImage src={c.public_url} alt={c.title} aspect={FORMATS[format].aspect} />
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{c.title}</p>
