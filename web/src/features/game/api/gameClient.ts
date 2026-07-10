@@ -162,6 +162,30 @@ export async function saveChampionPick(
   throwIf(error);
 }
 
+export type GameProfile = {
+  username: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  favorite_driver_id: string | null;
+  favorite_constructor_id: string | null;
+  country: string | null;
+};
+
+export async function getMyProfile(userId: string): Promise<GameProfile | null> {
+  const { data, error } = await db
+    .from("profiles")
+    .select("username, avatar_url, bio, favorite_driver_id, favorite_constructor_id, country")
+    .eq("id", userId)
+    .maybeSingle();
+  throwIf(error);
+  return (data as GameProfile) ?? null;
+}
+
+export async function updateMyProfile(userId: string, patch: Partial<GameProfile>): Promise<void> {
+  const { error } = await db.from("profiles").update(patch).eq("id", userId);
+  throwIf(error);
+}
+
 export type GameSeasonRow = { season: number; name: string; status: string };
 export async function getGameSeasons(): Promise<GameSeasonRow[]> {
   const { data, error } = await db

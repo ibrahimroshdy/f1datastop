@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Flag, ChevronRight, Lock, History, BookOpen, Users, Medal } from "lucide-react";
+import { Trophy, Flag, ChevronRight, Lock, History, BookOpen, Users, Medal, UserCircle, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 import { useGameActivation } from "../hooks/useGameActivation";
+import { isGameAdmin } from "../utils/isGameAdmin";
 import { getGameSchedule, getMyTotal, ACTIVE_GAME_SEASON } from "../api/gameClient";
 
 function QuickLink({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
@@ -21,6 +23,7 @@ function QuickLink({ to, icon, label }: { to: string; icon: React.ReactNode; lab
 }
 
 function ActivatedHub({ entryId }: { entryId: string }) {
+  const { user } = useAuth();
   const schedule = useQuery({ queryKey: ["game", "schedule", ACTIVE_GAME_SEASON], queryFn: () => getGameSchedule() });
   const total = useQuery({ queryKey: ["game", "total", entryId], queryFn: () => getMyTotal(entryId), enabled: !!entryId });
 
@@ -45,7 +48,11 @@ function ActivatedHub({ entryId }: { entryId: string }) {
         <QuickLink to="/game/champions" icon={<Medal className="h-4 w-4 text-primary" />} label="Champions" />
         <QuickLink to="/game/leagues" icon={<Users className="h-4 w-4 text-primary" />} label="Leagues" />
         <QuickLink to="/game/history" icon={<History className="h-4 w-4 text-primary" />} label="History" />
+        <QuickLink to="/game/profile" icon={<UserCircle className="h-4 w-4 text-primary" />} label="Profile" />
         <QuickLink to="/game/rules" icon={<BookOpen className="h-4 w-4 text-primary" />} label="Rules" />
+        {isGameAdmin(user) && (
+          <QuickLink to="/game/admin" icon={<ShieldAlert className="h-4 w-4 text-primary" />} label="Admin" />
+        )}
       </div>
 
       {nextOpen && (

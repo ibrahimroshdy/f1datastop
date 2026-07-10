@@ -40,6 +40,9 @@ import LeagueDetail from "@/features/game/routes/LeagueDetail";
 import LeagueManage from "@/features/game/routes/LeagueManage";
 import LeagueRoundReveal from "@/features/game/routes/LeagueRoundReveal";
 import JoinLeague from "@/features/game/routes/JoinLeague";
+import Champions from "@/features/game/routes/Champions";
+import GameProfilePage from "@/features/game/routes/GameProfile";
+import GameAdmin from "@/features/game/routes/GameAdmin";
 import ResetPassword from "./pages/auth/ResetPassword";
 import Privacy from "./pages/Privacy";
 import React, { Suspense } from "react";
@@ -171,6 +174,9 @@ const App = () => (
                             <Route path="/game/leagues/:id" element={<LeagueDetail />} />
                             <Route path="/game/leagues/:id/manage" element={<LeagueManage />} />
                             <Route path="/game/leagues/:id/round/:round" element={<LeagueRoundReveal />} />
+                            <Route path="/game/champions" element={<Champions />} />
+                            <Route path="/game/profile" element={<GameProfilePage />} />
+                            <Route path="/game/admin" element={<GameAdmin />} />
                             <Route path="/join/:code" element={<JoinLeague />} />
                             <Route path="/profile" element={<Profile />} />
                             <Route path="/developers" element={<Developers />} />

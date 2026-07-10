@@ -89,3 +89,9 @@ export async function getRoundReveal(leagueId: string, round: number, season = A
   const { data, error } = await db.rpc("get_round_reveal", { p_league_id: leagueId, p_season: season, p_round: round });
   throwIf(error); return (data as RevealRow[]) ?? [];
 }
+
+export type AllTimeRow = { user_id: string; username: string | null; total_points: number; seasons_played: number; rank: number };
+export async function getLeagueAlltime(leagueId: string): Promise<AllTimeRow[]> {
+  const { data, error } = await db.rpc("get_league_alltime", { p_league_id: leagueId });
+  throwIf(error); return (data as AllTimeRow[]) ?? [];
+}

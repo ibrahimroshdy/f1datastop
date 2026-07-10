@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { ACTIVE_GAME_SEASON, getGameSeasons, getGameSchedule } from "../api/gameClient";
 import {
-  getLeague, getLeagueStandings, getLeagueMembers, getLeagueRoundAwards,
+  getLeague, getLeagueStandings, getLeagueMembers, getLeagueRoundAwards, getLeagueAlltime,
 } from "../api/leaguesClient";
 
 const MEDAL = ["text-yellow-500", "text-slate-300", "text-amber-600"];
@@ -23,6 +23,7 @@ export default function LeagueDetail() {
   const leagueId = id as string;
   const { user } = useAuth();
   const [season, setSeason] = useState(ACTIVE_GAME_SEASON);
+  const [view, setView] = useState<"season" | "alltime">("season");
 
   const seasons = useQuery({ queryKey: ["game", "seasons"], queryFn: () => getGameSeasons() });
   const league = useQuery({ queryKey: ["game", "league", leagueId], queryFn: () => getLeague(leagueId) });
@@ -36,6 +37,11 @@ export default function LeagueDetail() {
     queryFn: () => getLeagueRoundAwards(leagueId, season),
   });
   const schedule = useQuery({ queryKey: ["game", "schedule", season], queryFn: () => getGameSchedule(season) });
+  const alltime = useQuery({
+    queryKey: ["game", "alltime", leagueId],
+    queryFn: () => getLeagueAlltime(leagueId),
+    enabled: view === "alltime",
+  });
 
   const iAmCaptain = members.data?.some((m) => m.user_id === user?.id && m.role === "captain");
   const gradedRounds = schedule.data?.filter((r) => r.has_results) ?? [];
@@ -62,21 +68,61 @@ export default function LeagueDetail() {
           )}
         </div>
 
-        {/* Season selector */}
-        <div className="flex items-center gap-2">
-          <span className="instrument-label text-muted-foreground">Season</span>
-          <Select value={String(season)} onValueChange={(v) => setSeason(parseInt(v, 10))}>
-            <SelectTrigger className="h-9 w-[120px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(seasons.data ?? [{ season: ACTIVE_GAME_SEASON, name: `${ACTIVE_GAME_SEASON}`, status: "active" }]).map((s) => (
-                <SelectItem key={s.season} value={String(s.season)}>{s.season}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Season selector + view toggle */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1 rounded-lg border border-border bg-card/40 p-1">
+            <button onClick={() => setView("season")}
+              className={cn("min-h-9 rounded-md px-3 py-1 text-xs font-medium", view === "season" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>
+              Season
+            </button>
+            <button onClick={() => setView("alltime")}
+              className={cn("min-h-9 rounded-md px-3 py-1 text-xs font-medium", view === "alltime" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}>
+              All-time
+            </button>
+          </div>
+          {view === "season" && (
+            <Select value={String(season)} onValueChange={(v) => setSeason(parseInt(v, 10))}>
+              <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(seasons.data ?? [{ season: ACTIVE_GAME_SEASON, name: `${ACTIVE_GAME_SEASON}`, status: "active" }]).map((s) => (
+                  <SelectItem key={s.season} value={String(s.season)}>{s.season}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
-        {/* Standings */}
-        {standings.isLoading ? (
+        {/* All-time standings */}
+        {view === "alltime" ? (
+          alltime.isLoading ? (
+            <F1Skeleton variant="card" className="h-64" />
+          ) : (
+            <F1Card className="overflow-hidden p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                      <th className="w-10 px-3 py-2">#</th>
+                      <th className="px-3 py-2">Player</th>
+                      <th className="px-3 py-2 text-right">Seasons</th>
+                      <th className="px-4 py-2 text-right">Points</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {alltime.data?.map((row) => (
+                      <tr key={row.user_id} className={cn("border-b border-border/60", row.user_id === user?.id && "bg-primary/[0.06]")}>
+                        <td className={cn("px-3 py-2 font-semibold tabular-nums", row.rank <= 3 ? MEDAL[row.rank - 1] : "text-muted-foreground")}>{row.rank}</td>
+                        <td className="px-3 py-2 font-medium">{row.username ?? "—"}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.seasons_played}</td>
+                        <td className="px-4 py-2 text-right font-semibold tabular-nums">{Number(row.total_points)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </F1Card>
+          )
+        ) : standings.isLoading ? (
           <F1Skeleton variant="card" className="h-64" />
         ) : (
           <F1Card className="overflow-hidden p-0">
