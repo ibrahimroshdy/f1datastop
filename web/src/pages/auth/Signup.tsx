@@ -294,11 +294,6 @@ const Signup = () => {
             className="transition-colors hover:text-foreground">
             Product Hunt
           </a>
-          <span aria-hidden>·</span>
-          <a href="https://ko-fi.com/f1datastop" target="_blank" rel="noopener noreferrer"
-            className="transition-colors hover:text-foreground">
-            Ko-fi
-          </a>
         </div>
       </div>
     </div>

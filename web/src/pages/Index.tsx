@@ -2,7 +2,7 @@ import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRa
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { getTeamColor } from "@/utils/teamUtils";
 import { pageShell, pageStack } from "@/lib/layout";
-import { KofiSupportStrip } from "@/components/common/KofiButton";
+import BuyMeCoffeeWidget from "@/components/common/BuyMeCoffeeWidget";
 import CombinedStandingsCard from "@/components/dashboard/CombinedStandingsCard";
 import SeasonChampionshipCard from "@/components/dashboard/SeasonChampionshipCard";
 import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
@@ -262,7 +262,9 @@ const Index = () => {
         )}
 
         {/* ── Support ───────────────────────────────────────────────────── */}
-        <KofiSupportStrip />
+        <div className="flex justify-center py-2">
+          <BuyMeCoffeeWidget size="large" position="inline" showSupporterCount showNextMilestone />
+        </div>
       </div>
 
       {/* Race Detail Dialog for Sankey Chart */}
