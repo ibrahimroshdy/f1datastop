@@ -98,7 +98,7 @@ grant execute on function public.get_league_round_awards(uuid, int) to authentic
 
 -- Reveal all members' picks for a round — only after the weekend lock and if policy allows.
 create or replace function public.get_round_reveal(p_league_id uuid, p_season int, p_round int)
-returns table (user_id uuid, username text, session_type text, position smallint, driver_id text)
+returns table (user_id uuid, username text, session_type text, pos smallint, driver_id text)
 language sql stable security definer set search_path = public, pg_temp as $$
   with ok as (
     select public.can_view_league(p_league_id)

@@ -124,7 +124,7 @@ create or replace function public.list_public_leagues()
 returns table (id uuid, name text, slug text, member_count int)
 language sql stable security definer set search_path = public, pg_temp as $$
   select l.id, l.name, l.slug,
-    (select count(*)::int from public.game_league_member m where m.league_id = l.id)
+    (select count(*)::int from public.game_league_member m where m.league_id = l.id) as member_count
   from public.game_league l
   where l.is_public and l.slug <> 'global'
   order by member_count desc, l.created_at desc
@@ -136,7 +136,7 @@ create or replace function public.get_league_invite_preview(p_code text)
 returns table (id uuid, name text, member_count int)
 language sql stable security definer set search_path = public, pg_temp as $$
   select l.id, l.name,
-    (select count(*)::int from public.game_league_member m where m.league_id = l.id)
+    (select count(*)::int from public.game_league_member m where m.league_id = l.id) as member_count
   from public.game_league l
   where l.invite_code = upper(trim(p_code))
 $$;
