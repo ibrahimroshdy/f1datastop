@@ -13,6 +13,8 @@ export function useGameActivation(season = ACTIVE_GAME_SEASON) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["game", "entry", season] }),
   });
   return {
+    entry: entry.data ?? null,
+    entryId: entry.data?.id ?? null,
     isActivated: !!entry.data,
     isLoading: entry.isLoading,
     activate: activate.mutate,
