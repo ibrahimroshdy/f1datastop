@@ -12,7 +12,7 @@ import {
   F1CardHeader,
   F1CardTitle,
 } from '@/components/f1';
-import { Eye, EyeOff, ArrowLeft, Mail, Twitter } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, Twitter, LifeBuoy } from 'lucide-react';
 import f1Logo from '@/assets/f1-logo.svg';
 import { useTheme } from '@/context/ThemeContext';
 import BuyMeCoffeeWidget from '@/components/common/BuyMeCoffeeWidget';
@@ -227,6 +227,23 @@ const Login = () => {
             </p>
           </F1CardFooter>
         </F1Card>
+
+        {/* Support + community footer */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <a href="mailto:admin@f1datastop.com" className="inline-flex items-center gap-1 transition-colors hover:text-foreground">
+            <LifeBuoy className="h-3.5 w-3.5" /> Support
+          </a>
+          <span aria-hidden>·</span>
+          <a href="https://www.producthunt.com/posts/f1-datastop" target="_blank" rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground">
+            Product Hunt
+          </a>
+          <span aria-hidden>·</span>
+          <a href="https://ko-fi.com/f1datastop" target="_blank" rel="noopener noreferrer"
+            className="transition-colors hover:text-foreground">
+            Ko-fi
+          </a>
+        </div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRa
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { getTeamColor } from "@/utils/teamUtils";
 import { pageShell, pageStack } from "@/lib/layout";
+import { KofiSupportStrip } from "@/components/common/KofiButton";
 import CombinedStandingsCard from "@/components/dashboard/CombinedStandingsCard";
 import SeasonChampionshipCard from "@/components/dashboard/SeasonChampionshipCard";
 import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
@@ -259,6 +260,9 @@ const Index = () => {
             </div>
           </>
         )}
+
+        {/* ── Support ───────────────────────────────────────────────────── */}
+        <KofiSupportStrip />
       </div>
 
       {/* Race Detail Dialog for Sankey Chart */}
