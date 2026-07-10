@@ -31,6 +31,7 @@ import {
   useTelemetryIndex,
   useTelemetryLaps,
 } from "@/hooks/useFastF1Telemetry";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Metric = "speed" | "throttle" | "brake" | "gear" | "rpm" | "drs";
 
@@ -55,6 +56,7 @@ interface Props {
  *  served from our Supabase warehouse. */
 const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
   const { data: index, isLoading: indexLoading } = useTelemetryIndex(year, Number(round), session);
+  const isMobile = useIsMobile();
   const [metric, setMetric] = useState<Metric>("speed");
   const [codes, setCodes] = useState<string[]>([]);
 
@@ -198,7 +200,7 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
                     key={lap.driver}
                     type={metricMeta.step ? "stepAfter" : "monotone"}
                     dataKey={lap.driver}
-                    name={`${lap.driver}${lap.lap_time ? ` · ${lap.lap_time}` : ""}`}
+                    name={isMobile ? lap.driver : `${lap.driver}${lap.lap_time ? ` · ${lap.lap_time}` : ""}`}
                     stroke={lap.team_color || TEAM_COLORS.default}
                     strokeWidth={2}
                     dot={false}

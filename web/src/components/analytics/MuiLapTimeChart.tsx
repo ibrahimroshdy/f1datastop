@@ -406,7 +406,11 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
                       strokeWidth={1.5}
                       strokeOpacity={0.6}
                       label={{
-                        value: ps.drivers.map((d, i) => `${d} ${ps.durations[i]}s`).join(' · '),
+                        value: isMobile
+                          ? (ps.drivers.length > 1
+                              ? `${ps.drivers[0]} +${ps.drivers.length - 1}`
+                              : `${ps.drivers[0]} ${ps.durations[0]}s`)
+                          : ps.drivers.map((d, i) => `${d} ${ps.durations[i]}s`).join(' · '),
                         position: 'insideBottomLeft',
                         angle: -90,
                         fontSize: 11,

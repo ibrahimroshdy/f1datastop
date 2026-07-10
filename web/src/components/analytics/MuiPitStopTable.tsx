@@ -5,6 +5,7 @@ import { getPitStops, getRaceResults } from '@/services/f1Service';
 import { cn } from '@/lib/utils';
 import TeamLogo from '@/components/common/TeamLogo';
 import { F1Badge, F1Skeleton, F1EmptyState, F1ErrorState, PitIcon } from '@/components/f1';
+import { ViewSwitcher } from '@/components/ui/view-switcher';
 
 interface MuiPitStopTableProps {
   year: number;
@@ -273,6 +274,24 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* ── Mobile: sort control (desktop sorts via table headers) ─────────── */}
+      <div className="mb-2 flex items-center gap-2 md:hidden">
+        <span className="instrument-label shrink-0 text-muted-foreground">Sort</span>
+        <ViewSwitcher
+          stack
+          compact
+          cols={3}
+          className="flex-1"
+          value={sortField}
+          onChange={(f) => toggleSort(f as SortField)}
+          items={[
+            { key: "driver", label: `Driver${sortField === "driver" ? (sortDir === "asc" ? " ↑" : " ↓") : ""}` },
+            { key: "lap", label: `Lap${sortField === "lap" ? (sortDir === "asc" ? " ↑" : " ↓") : ""}` },
+            { key: "duration", label: `Time${sortField === "duration" ? (sortDir === "asc" ? " ↑" : " ↓") : ""}` },
+          ]}
+        />
       </div>
 
       {/* ── Mobile: compact stacked cards (no horizontal scroll) ───────────── */}

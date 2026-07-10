@@ -267,7 +267,7 @@ const DriverProfile = () => {
                       key={race.round}
                       className="flex items-center gap-3 px-4 py-2"
                     >
-                      <span className="timing w-7 shrink-0 text-center text-2xs text-muted-foreground">
+                      <span className="timing w-7 shrink-0 text-center text-xs text-muted-foreground">
                         R{race.round}
                       </span>
                       {race.country && (
