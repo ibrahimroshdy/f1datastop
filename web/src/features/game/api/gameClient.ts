@@ -162,6 +162,16 @@ export async function saveChampionPick(
   throwIf(error);
 }
 
+export type GameSeasonRow = { season: number; name: string; status: string };
+export async function getGameSeasons(): Promise<GameSeasonRow[]> {
+  const { data, error } = await db
+    .from("game_season")
+    .select("season, name, status")
+    .order("season", { ascending: false });
+  throwIf(error);
+  return (data as GameSeasonRow[]) ?? [];
+}
+
 export async function getSeasonConstructors(
   season = ACTIVE_GAME_SEASON,
 ): Promise<{ constructor_id: string; constructor_name: string | null }[]> {
