@@ -4,6 +4,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
+    <!-- Google tag (gtag.js) — measurement id injected at BUILD time from the
+         VITE_GA_MEASUREMENT_ID Vercel env var (Vite replaces %VITE_*%). Not a
+         hardcode; the value is public by design. Auto page_view is ON here so the
+         initial load is always counted; SPA route changes are sent in-app
+         (AnalyticsProvider), which skips the first render to avoid a double. -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){ dataLayer.push(arguments); }
+      (function () {
+        var GA_ID = '%VITE_GA_MEASUREMENT_ID%';
+        if (!GA_ID || GA_ID.indexOf('%') !== -1) return; // unset in this environment
+        // EEA/UK/CH consent defaults (must precede config). Rest of world: granted.
+        gtag('consent', 'default', {
+          ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied',
+          analytics_storage: 'denied', functionality_storage: 'denied',
+          personalization_storage: 'denied', security_storage: 'granted',
+          wait_for_update: 500,
+          region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','IS','LI','NO','GB','CH']
+        });
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+        document.head.appendChild(s);
+        gtag('js', new Date());
+        gtag('config', GA_ID); // auto page_view ON
+      })();
+    </script>
+
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

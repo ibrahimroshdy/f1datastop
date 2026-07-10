@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { isGaEnabled } from '@/config/integrations';
 import { trackPageView, initializeGA, trackPerformance, trackDeviceInfo, trackError } from './GA4.tsx';
@@ -38,10 +38,19 @@ if (isGaEnabled) {
 
 const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => {
   const location = useLocation();
+  // index.html's gtag config already auto-sends the FIRST page_view. Skip the
+  // initial render here so the landing page isn't counted twice; send manual
+  // page_views only on subsequent SPA route changes.
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     if (!isGaEnabled) return;
-    trackPageView(location.pathname + location.search);
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+    } else {
+      trackPageView(location.pathname + location.search);
+    }
 
     const timer = setTimeout(() => {
       trackPerformance();

@@ -89,7 +89,6 @@ export const trackPageView = (url: string) => {
       page_path: url,
       page_location: window.location.href,
       page_title: document.title,
-      send_to: gaMeasurementId
     });
   } catch (error) {
     console.error('[GA4] Error tracking page view:', error);
@@ -116,7 +115,6 @@ export const trackEvent = (
     const params = {
       ...eventParams,
       timestamp: eventParams?.timestamp || new Date().toISOString(),
-      send_to: gaMeasurementId
     };
     
     window.gtag('event', eventName, params);
