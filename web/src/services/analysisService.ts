@@ -33,9 +33,23 @@ export async function getAnalysisCharts(
     console.warn("[analysisService] getAnalysisCharts:", error.message);
     return [];
   }
-  // Charts are uploaded in 4 social formats; only the landscape (16:9) variant
-  // has a bare chart_type — the others are suffixed `_twitter|_instagram|_story`.
-  // Show the landscape variant only so the web grid isn't 4x duplicated.
-  const rows = (data ?? []) as AnalysisChart[];
-  return rows.filter((c) => !/_(twitter|instagram|story)$/.test(c.chart_type));
+  // Charts are uploaded in 4 social formats: the landscape (16:9) variant has a
+  // bare chart_type, the others are suffixed `_twitter|_instagram|_story`. Return
+  // every variant — the UI groups them by base type and lets the user pick a format.
+  return (data ?? []) as AnalysisChart[];
+}
+
+/** Social export formats. `landscape` = bare chart_type; others carry a suffix. */
+export const CHART_FORMATS = ["landscape", "twitter", "instagram", "story"] as const;
+export type ChartFormat = (typeof CHART_FORMATS)[number];
+
+/** Strip a format suffix to get the base chart type (e.g. `top_speed_story` → `top_speed`). */
+export function baseChartType(chartType: string): string {
+  return chartType.replace(/_(twitter|instagram|story)$/, "");
+}
+
+/** Which format a row belongs to. */
+export function chartFormatOf(chartType: string): ChartFormat {
+  const m = chartType.match(/_(twitter|instagram|story)$/);
+  return m ? (m[1] as ChartFormat) : "landscape";
 }

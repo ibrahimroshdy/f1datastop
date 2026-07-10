@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Download, DownloadCloud, Loader2 } from "lucide-react";
-import { getAnalysisCharts } from "@/services/analysisService";
+import {
+  getAnalysisCharts,
+  baseChartType,
+  chartFormatOf,
+  type AnalysisChart,
+  type ChartFormat,
+} from "@/services/analysisService";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -25,14 +31,18 @@ interface AnalysisChartsProps {
   session?: string;
 }
 
-type ChartSize = "s" | "m" | "l";
-
-// Display size → grid columns. Fewer columns = larger images.
-const SIZE_GRID: Record<ChartSize, string> = {
-  s: "grid-cols-2 xl:grid-cols-3",
-  m: "grid-cols-1 md:grid-cols-2",
-  l: "grid-cols-1",
+// Social export formats — label, aspect hint, and grid density tuned to the
+// variant's shape (wide 16:9 → few columns; tall 9:16 story → many columns).
+const FORMATS: Record<
+  ChartFormat,
+  { label: string; grid: string; aspect: string }
+> = {
+  landscape: { label: "Landscape · 16:9", grid: "grid-cols-1 lg:grid-cols-2", aspect: "16 / 9" },
+  twitter: { label: "Twitter · 16:9", grid: "grid-cols-1 lg:grid-cols-2", aspect: "16 / 9" },
+  instagram: { label: "Instagram · 1:1", grid: "grid-cols-2 lg:grid-cols-3", aspect: "1 / 1" },
+  story: { label: "Story · 9:16", grid: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4", aspect: "9 / 16" },
 };
+const FORMAT_ORDER: ChartFormat[] = ["landscape", "twitter", "instagram", "story"];
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -75,7 +85,7 @@ function ChartImage({ src, alt }: { src: string; alt: string }) {
 export default function AnalysisCharts({ year, round, session = "R" }: AnalysisChartsProps) {
   const r = parseInt(round, 10);
   const { cardVariant, glassVariant } = useThemeVariant();
-  const [size, setSize] = useState<ChartSize>("m");
+  const [format, setFormat] = useState<ChartFormat>("landscape");
   const [downloadingAll, setDownloadingAll] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -85,12 +95,38 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
     enabled: !!year && !!r,
   });
 
+  // Group every variant by base chart type, then pick the selected format for
+  // each (falling back to the landscape variant if a format is missing).
+  const { charts, formatsAvailable } = useMemo(() => {
+    const rows = data ?? [];
+    const groups = new Map<string, Partial<Record<ChartFormat, AnalysisChart>>>();
+    const order: string[] = [];
+    const available = new Set<ChartFormat>();
+    for (const row of rows) {
+      const base = baseChartType(row.chart_type);
+      const fmt = chartFormatOf(row.chart_type);
+      available.add(fmt);
+      if (!groups.has(base)) {
+        groups.set(base, {});
+        order.push(base);
+      }
+      groups.get(base)![fmt] = row;
+    }
+    const picked = order
+      .map((base) => {
+        const g = groups.get(base)!;
+        return g[format] ?? g.landscape ?? null;
+      })
+      .filter((c): c is AnalysisChart => c !== null);
+    return { charts: picked, formatsAvailable: available };
+  }, [data, format]);
+
   const downloadAll = async () => {
-    if (!data || downloadingAll) return;
+    if (!charts.length || downloadingAll) return;
     setDownloadingAll(true);
-    for (const c of data) {
+    for (const c of charts) {
       try {
-        await saveImage(c.public_url, `${year}-r${r}-${slugify(c.title)}.png`);
+        await saveImage(c.public_url, `${year}-r${r}-${slugify(c.title)}-${format}.png`);
       } catch {
         /* skip failures, keep going */
       }
@@ -121,20 +157,22 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
 
   return (
     <div className="flex flex-col gap-3 px-4 pb-4">
-      {/* Controls: image size + download all */}
+      {/* Controls: social format + download all */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="instrument-label text-muted-foreground">
-          {data.length} chart{data.length === 1 ? "" : "s"}
+          {charts.length} chart{charts.length === 1 ? "" : "s"}
         </span>
         <div className="flex items-center gap-2">
-          <Select value={size} onValueChange={(v) => setSize(v as ChartSize)}>
-            <SelectTrigger className="h-10 w-[120px]" aria-label="Image size">
+          <Select value={format} onValueChange={(v) => setFormat(v as ChartFormat)}>
+            <SelectTrigger className="h-10 w-[168px]" aria-label="Export format">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="s">Small</SelectItem>
-              <SelectItem value="m">Medium</SelectItem>
-              <SelectItem value="l">Large</SelectItem>
+              {FORMAT_ORDER.filter((f) => formatsAvailable.has(f)).map((f) => (
+                <SelectItem key={f} value={f}>
+                  {FORMATS[f].label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Button
@@ -155,8 +193,8 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
         </div>
       </div>
 
-      <div className={`grid gap-4 ${SIZE_GRID[size]}`}>
-        {data.map((c) => (
+      <div className={`grid gap-4 ${FORMATS[format].grid}`}>
+        {charts.map((c) => (
           <F1Card key={c.id} variant={cardVariant} glassVariant={glassVariant} size="sm">
             <F1CardContent className="flex flex-col gap-2.5">
               <ChartImage src={c.public_url} alt={c.title} />
@@ -170,7 +208,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
                 <Button
                   variant="outline"
                   className="h-11 w-11 shrink-0 p-0"
-                  onClick={() => saveImage(c.public_url, `${year}-r${r}-${slugify(c.title)}.png`)}
+                  onClick={() => saveImage(c.public_url, `${year}-r${r}-${slugify(c.title)}-${format}.png`)}
                   aria-label={`Download ${c.title}`}
                 >
                   <Download className="h-4 w-4" />

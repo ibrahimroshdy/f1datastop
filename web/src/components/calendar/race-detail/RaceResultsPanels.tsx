@@ -232,17 +232,17 @@ function RaceResultsTable({
         ))}
       </div>
 
-      <div className="hidden sm:block">
+      <div className="hidden sm:block overflow-x-auto">
         <Table className="w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10 text-xs md:text-sm py-2">Pos</TableHead>
-              <TableHead className="text-xs md:text-sm py-2">Driver</TableHead>
-              <TableHead className="text-xs md:text-sm py-2">Team</TableHead>
+              <TableHead className="w-10 whitespace-nowrap text-xs md:text-sm py-2">Pos</TableHead>
+              <TableHead className="whitespace-nowrap text-xs md:text-sm py-2">Driver</TableHead>
+              <TableHead className="whitespace-nowrap text-xs md:text-sm py-2">Team</TableHead>
               {desktopColumns.map((col) => (
                 <TableHead
                   key={col.header}
-                  className={`text-xs md:text-sm py-2 ${col.align === "right" ? "text-right" : ""}`}
+                  className={`whitespace-nowrap text-xs md:text-sm py-2 ${col.align === "right" ? "text-right" : ""}`}
                 >
                   {col.header}
                 </TableHead>
@@ -252,12 +252,12 @@ function RaceResultsTable({
           <TableBody>
             {results.map((result) => (
               <TableRow key={result.position}>
-                <TableCell className="font-medium text-xs md:text-sm py-1 md:py-2">{result.position}</TableCell>
-                <TableCell className="text-xs md:text-sm py-1 md:py-2">
+                <TableCell className="font-medium whitespace-nowrap text-xs md:text-sm py-1 md:py-2">{result.position}</TableCell>
+                <TableCell className="whitespace-nowrap text-xs md:text-sm py-1 md:py-2">
                   <RaceDriverNameCell driver={result.Driver} constructorId={result.Constructor.constructorId} />
                 </TableCell>
                 <TableCell
-                  className="text-xs md:text-sm py-1 md:py-2"
+                  className="whitespace-nowrap text-xs md:text-sm py-1 md:py-2"
                   style={{ color: getTeamColor(result.Constructor.constructorId) }}
                 >
                   {result.Constructor.name}
@@ -265,7 +265,7 @@ function RaceResultsTable({
                 {desktopColumns.map((col) => (
                   <TableCell
                     key={col.header}
-                    className={`text-xs md:text-sm py-1 md:py-2 ${col.align === "right" ? "text-right" : ""} ${col.italic ? "italic" : ""}`}
+                    className={`whitespace-nowrap text-xs md:text-sm py-1 md:py-2 ${col.align === "right" ? "text-right" : ""} ${col.italic ? "italic" : ""}`}
                   >
                     {col.render(result)}
                   </TableCell>

@@ -73,7 +73,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
       <DialogContent
         className={cn(
-          "max-w-[calc(100vw-2rem)] sm:max-w-[640px] max-h-[90dvh] overflow-y-auto p-4 sm:p-6",
+          "max-w-[calc(100vw-1.5rem)] sm:max-w-[720px] lg:max-w-[900px] max-h-[92dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6",
           isGlass && "border-white/10",
         )}
         style={isGlass ? cardStyle : undefined}
@@ -103,7 +103,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
           <TabsList
             className={cn(
-              `grid w-full ${hasSprint ? "grid-cols-6" : "grid-cols-4"} mb-3 min-h-9 h-auto p-0.5`,
+              `grid w-full ${hasSprint ? "grid-cols-5" : "grid-cols-4"} mb-3 min-h-9 h-auto p-0.5`,
               isGlass && "bg-white/5",
             )}
           >
@@ -131,8 +131,8 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             </TabsTrigger>
           </TabsList>
 
-          <div className="h-[60vh] sm:h-[700px] overflow-y-auto">
-            <TabsContent value="info" className="h-full mt-0">
+          <div className="max-h-[58vh] sm:max-h-[560px] overflow-y-auto overflow-x-hidden">
+            <TabsContent value="info" className="mt-0">
               <RaceSchedulePanel
                 race={race}
                 isGlass={isGlass}
@@ -143,7 +143,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               />
             </TabsContent>
 
-            <TabsContent value="results" className="h-full">
+            <TabsContent value="results" className="mt-0">
               <RaceResultsPanel
                 isLoading={isResultsLoading}
                 results={raceResults?.data?.Results}
@@ -154,7 +154,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             </TabsContent>
 
             {hasSprint && (
-              <TabsContent value="sprint-qualifying" className="h-full">
+              <TabsContent value="sprint-qualifying" className="mt-0">
                 <RaceSprintQualifyingPanel
                   isLoading={isSprintLoading}
                   results={sprintQualifyingResults ?? undefined}
@@ -163,7 +163,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             )}
 
             {hasSprint && (
-              <TabsContent value="sprint" className="h-full">
+              <TabsContent value="sprint" className="mt-0">
                 <RaceSprintPanel
                   isLoading={isSprintLoading}
                   results={sprintResults?.data?.SprintResults}
@@ -171,7 +171,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               </TabsContent>
             )}
 
-            <TabsContent value="qualifying" className="h-full">
+            <TabsContent value="qualifying" className="mt-0">
               <RaceQualifyingPanel
                 isLoading={isQualifyingLoading}
                 results={qualifyingResults?.data?.QualifyingResults}
