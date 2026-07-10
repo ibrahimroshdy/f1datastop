@@ -30,6 +30,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
+import GameHub from "@/features/game/routes/GameHub";
 import ResetPassword from "./pages/auth/ResetPassword";
 import Privacy from "./pages/Privacy";
 import React, { Suspense } from "react";
@@ -152,6 +153,7 @@ const App = () => (
                           <Route path="/constructors" element={<Constructors />} />
                           <Route path="/privacy" element={<Privacy />} />
                           <Route element={<ProtectedRoute />}>
+                            <Route path="/game" element={<GameHub />} />
                             <Route path="/profile" element={<Profile />} />
                             <Route path="/developers" element={<Developers />} />
                           </Route>
