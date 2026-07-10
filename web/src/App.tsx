@@ -27,6 +27,7 @@ import CircuitDetail from "./pages/CircuitDetail";
 import Developers from "./pages/Developers";
 import NotFound from "./pages/NotFound";
 import MainLayout from "@/components/layout/MainLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
@@ -97,14 +98,6 @@ const AuthCallback = () => {
   );
 };
 
-const ErrorBoundaryWrapper = ({ children }: { children: React.ReactNode }) => {
-  try {
-    return <>{children}</>;
-  } catch (error) {
-    console.error('Error in analytics providers:', error);
-    return <>{children}</>;
-  }
-};
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -135,7 +128,7 @@ const App = () => (
           <ThemeProvider>
             <DeveloperProvider>
               <TooltipProvider>
-                <ErrorBoundaryWrapper>
+                <ErrorBoundary>
                   <ClarityProvider projectId={clarityProjectId}>
                     <AnalyticsProvider>
                       <Toaster />
@@ -203,7 +196,7 @@ const App = () => (
                       </Routes>
                     </AnalyticsProvider>
                   </ClarityProvider>
-                </ErrorBoundaryWrapper>
+                </ErrorBoundary>
               </TooltipProvider>
             </DeveloperProvider>
           </ThemeProvider>

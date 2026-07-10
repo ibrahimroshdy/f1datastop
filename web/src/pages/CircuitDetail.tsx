@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
+import { BackLink } from "@/components/ui/back-link";
 import {
-  ArrowLeft,
   ArrowRight,
   CalendarDays,
   Gauge,
@@ -105,12 +105,7 @@ const CircuitDetail = () => {
     <div className={pageShell}>
       <div className={cn("mx-auto w-full max-w-4xl", pageStack, "animate-fade-in")}>
         {/* ── BackLink ──────────────────────────────────────────────────────── */}
-        <Link
-          to="/circuits"
-          className="inline-flex min-h-11 w-fit -ml-1 items-center gap-1.5 px-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Circuits
-        </Link>
+        <BackLink to="/circuits">Circuits</BackLink>
 
         {/* ── Compact identity (eyebrow + name + locality flag) ──────────────── */}
         <div className="space-y-1.5">

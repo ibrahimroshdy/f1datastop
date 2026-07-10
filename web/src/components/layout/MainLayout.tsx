@@ -5,6 +5,7 @@ import TopBar from "./TopBar";
 import Footer from "./Footer";
 import BottomNav from "./BottomNav";
 import PullToRefresh from "./PullToRefresh";
+import ScrollToTop from "./ScrollToTop";
 import { AddToHome } from "@/components/pwa/AddToHome";
 import { useIsMediumOrSmaller } from "@/hooks/use-mobile";
 import { useTheme } from "@/context/ThemeContext";
@@ -117,6 +118,7 @@ const MainLayout = () => {
       />
 
       <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
+        <ScrollToTop />
         <TopBar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
         <main

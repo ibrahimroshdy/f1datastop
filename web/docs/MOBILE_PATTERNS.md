@@ -67,6 +67,11 @@ Overflow items go in the **More sheet** (`MoreNavSheet`) — bottom `Sheet`, 44p
 Close button is a 44px hit box; `Sheet` variants carry safe-area + inner scroll; dialogs
 use `max-h-[90dvh]`. Content heights are viewport-relative (`60vh`), not fixed `h-[600px]`.
 
+### `BackLink` — detail/sub-page back affordance
+`web/src/components/ui/back-link.tsx`. Quiet arrow + text link above the PageHeader
+(`<BackLink to="/circuits">Circuits</BackLink>`), 44px touch. Use it instead of
+hand-rolling a `<Link>` with an arrow — keeps every back control consistent + tappable.
+
 ### Section labels
 `.instrument-label` / `.eyebrow` (uppercase, tracked, muted) above a group or value.
 

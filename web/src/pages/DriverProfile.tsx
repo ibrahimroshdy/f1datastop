@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   DriverAvatar,
   F1Card,
@@ -21,7 +21,8 @@ import {
 import { pageShell, pageStack } from "@/lib/layout";
 import { CountUp } from "@/components/CountUp";
 import { isEntityDbConfigured } from "@/services/entityService";
-import { Activity, ChevronLeft, Flag as FlagIcon } from "lucide-react";
+import { Activity, Flag as FlagIcon } from "lucide-react";
+import { BackLink } from "@/components/ui/back-link";
 import NotFound from "./NotFound";
 import { cn } from "@/lib/utils";
 
@@ -153,13 +154,7 @@ const DriverProfile = () => {
     <div className={pageShell}>
       <div className={cn("mx-auto w-full max-w-5xl", pageStack, "animate-fade-in")}>
         {/* ── Back link (← Drivers) ───────────────────────────────────────── */}
-        <Link
-          to="/drivers"
-          className="inline-flex min-h-11 w-fit -ml-1 items-center gap-1 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-primary"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" />
-          Drivers
-        </Link>
+        <BackLink to="/drivers">Drivers</BackLink>
 
         {/* ── Compact identity + stat readouts header ─────────────────────── */}
         <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-[minmax(0,360px)_1fr] lg:items-start">
