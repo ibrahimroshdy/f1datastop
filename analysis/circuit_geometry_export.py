@@ -181,11 +181,14 @@ def export_circuit(season, rnd, upload=True, force=False):
     if upload:
         circuit_id, circuit_name = _lookup_circuit(season, rnd)
 
-    s = fastf1.get_session(season, rnd, "R")
     try:
+        # get_session raises ValueError for a round that doesn't exist (seasons
+        # before 2021 have <24 rounds), and load() fails on sessions FastF1 has no
+        # telemetry for (some 2018-2020 races) — both are clean skips, not crashes.
+        s = fastf1.get_session(season, rnd, "R")
         s.load(telemetry=True, weather=False, messages=False)
-    except Exception as e:  # noqa: BLE001 — future/unpublished round: skip, don't crash
-        print(f"  {season} R{rnd}: load failed ({e}); skip")
+    except Exception as e:  # noqa: BLE001
+        print(f"  {season} R{rnd}: unavailable ({e}); skip")
         return None
 
     # Fall back to the event's own naming when the warehouse lookup is unavailable

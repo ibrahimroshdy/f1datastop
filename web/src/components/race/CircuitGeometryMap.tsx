@@ -5,16 +5,20 @@ import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/
 import { cn } from "@/lib/utils";
 import {
   getCircuitGeometry,
+  getCircuitGeometryByCircuit,
   fetchCircuitGeometryBlob,
   type CircuitGeometryBlob,
 } from "@/services/circuitGeometryService";
 
-interface Props {
-  season: number;
-  round: number;
+// Two lookup modes: by race (season + round) or by circuit (latest season for a
+// circuit_id — used on the circuit detail page).
+type Props = {
   className?: string;
   accent?: string;
-}
+} & (
+  | { season: number; round: number; circuitId?: undefined }
+  | { circuitId: string; season?: undefined; round?: undefined }
+);
 
 /** Build an SVG path from [x, y, d] points, flipping Y (telemetry Y is up, SVG Y is down). */
 function toPath(pts: [number, number, number][], flipY: (y: number) => number): string {
@@ -146,14 +150,18 @@ function Toggle({
 
 /** Telemetry-derived track map: real outline + numbered corners + full-throttle
  *  straights. Renders nothing-yet state when a round hasn't been extracted. */
-export function CircuitGeometryMap({ season, round, className, accent = "hsl(var(--primary))" }: Props) {
+export function CircuitGeometryMap({ season, round, circuitId, className, accent = "hsl(var(--primary))" }: Props) {
   const [showCorners, setShowCorners] = useState(true);
   const [showStraights, setShowStraights] = useState(true);
   const [showSectors, setShowSectors] = useState(false);
 
   const index = useQuery({
-    queryKey: ["circuit-geometry", "index", season, round],
-    queryFn: () => getCircuitGeometry(season, round),
+    queryKey: circuitId
+      ? ["circuit-geometry", "by-circuit", circuitId]
+      : ["circuit-geometry", "index", season, round],
+    queryFn: () =>
+      circuitId ? getCircuitGeometryByCircuit(circuitId) : getCircuitGeometry(season!, round!),
+    enabled: circuitId ? !!circuitId : season != null && round != null,
   });
   const blob = useQuery({
     queryKey: ["circuit-geometry", "blob", index.data?.public_url],

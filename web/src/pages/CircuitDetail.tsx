@@ -14,7 +14,8 @@ import { useRaceSchedule } from "@/hooks/useF1Data";
 import { useCircuitDetail } from "@/hooks/useCircuitDetail";
 import { useTheme } from "@/context/ThemeContext";
 import CountryFlag from "@/components/common/CountryFlag";
-import { CircuitTrackMap, getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
+import { getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
+import CircuitGeometryMap from "@/components/race/CircuitGeometryMap";
 import { pageShell, pageStack } from "@/lib/layout";
 import { CountUp } from "@/components/CountUp";
 import {
@@ -124,25 +125,8 @@ const CircuitDetail = () => {
           </div>
         </div>
 
-        {/* ── Track map panel (scope-framed) ────────────────────────────────── */}
-        <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
-          <div
-            className={cn(
-              "scope-frame flex h-44 items-center justify-center md:h-56",
-              isGlass ? "bg-white/[0.03]" : "bg-muted/30",
-            )}
-          >
-            {track ? (
-              <CircuitTrackMap
-                circuitName={circuit.name}
-                locality={circuit.locality}
-                className="h-36 w-36 text-primary md:h-44 md:w-44"
-              />
-            ) : (
-              <MapPin className="h-10 w-10 text-muted-foreground/40" />
-            )}
-          </div>
-        </F1Card>
+        {/* ── Telemetry-derived track map (numbered corners + straights) ─────── */}
+        <CircuitGeometryMap circuitId={circuit.circuit_id} />
 
         {/* ── Stat readout tiles ────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
