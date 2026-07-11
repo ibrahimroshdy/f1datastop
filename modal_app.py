@@ -40,7 +40,10 @@ image = (
             ".fastf1cache", ".fastf1cache/**", "**/.fastf1cache/**",
             "out", "out/**", "**/out/**",
             "telemetry_out", "telemetry_out/**", "**/telemetry_out/**",
+            "circuits_out", "circuits_out/**", "**/circuits_out/**",
+            # the local virtualenv is `venv/` (no dot) here — ship none of it
             ".venv", ".venv/**", "**/.venv/**",
+            "venv", "venv/**", "**/venv/**",
             "__pycache__", "**/__pycache__/**", "**/*.pyc",
             "*.log",
         ],
@@ -163,6 +166,49 @@ def export_telemetry_current() -> None:
         except Exception as e:  # noqa: BLE001
             print(f"  R{r}: skipped ({e})")
     print(f"Done. telemetry pass for {year}: {done} rounds attempted.")
+
+
+# ── Manual: export circuit geometry (track map + corners + straights) ────────
+# One blob per circuit per season → Storage bucket `circuits` + f1_circuit_geometry.
+# Loops every round; rounds that haven't run yet fail-and-skip. NOTE: 2026 has no
+# DRS zones (regs dropped DRS) — straights are computed from full-throttle stretches.
+@app.function(**COMMON)
+def export_circuits(season: int, rounds: int = 24) -> None:
+    done = 0
+    for r in range(1, rounds + 1):
+        try:
+            _run("circuit_geometry_export.py", "--season", str(season), "--round", str(r))
+            done += 1
+        except Exception as e:  # noqa: BLE001
+            print(f"  R{r}: skipped ({e})")
+    print(f"Done. circuit geometry exported for {done} rounds of {season}.")
+
+
+# ── Scheduled: keep the CURRENT season's circuit geometry filled ─────────────
+# Every 6h (offset 45m). circuit_geometry_export.py skips circuits already indexed
+# and no-ops on rounds that haven't run yet, so a whole-season pass is cheap.
+@app.function(schedule=modal.Cron("45 */6 * * *"), **COMMON)
+def export_circuits_current() -> None:
+    from datetime import datetime, timezone
+    year = datetime.now(timezone.utc).year
+    done = 0
+    for r in range(1, 25):
+        try:
+            _run("circuit_geometry_export.py", "--season", str(year), "--round", str(r))
+            done += 1
+        except Exception as e:  # noqa: BLE001
+            print(f"  R{r}: skipped ({e})")
+    print(f"Done. circuit geometry pass for {year}: {done} rounds attempted.")
+
+
+# ── Manual: backfill circuit geometry across a season range (2018+ = FastF1 floor) ─
+# Fans out one container per season (own IP + own timeout), same rationale as
+# backfill_range. circuit_geometry_export.py skips circuits already indexed, so
+# re-running only fills gaps. FastF1 telemetry/position data starts in 2018.
+@app.function(**COMMON)
+def backfill_circuits(from_season: int = 2018, to_season: int = 2026) -> None:
+    seasons = list(range(from_season, to_season + 1))
+    list(export_circuits.map(seasons))  # per-season fan-out; wait for all
 
 
 @app.local_entrypoint()

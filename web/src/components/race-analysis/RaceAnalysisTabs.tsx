@@ -41,6 +41,7 @@ const MuiPitStopTable = lazy(() => import("@/components/analytics/MuiPitStopTabl
 const WeatherAnalysis = lazy(() => import("@/components/analytics/WeatherAnalysis"));
 const FastF1TelemetryChart = lazy(() => import("@/components/race/FastF1TelemetryChart"));
 const TrackMapChart = lazy(() => import("@/components/race/TrackMapChart"));
+const CircuitGeometryMap = lazy(() => import("@/components/race/CircuitGeometryMap"));
 const SessionResults = lazy(() => import("@/components/analytics/SessionResults"));
 const OvertakesAnalysis = lazy(() => import("@/components/analytics/OvertakesAnalysis"));
 
@@ -360,6 +361,7 @@ export function RaceAnalysisTabs({
                   <TrackMapChart year={selectedYear} round={selectedRace} session={selectedSession} />
                 </F1CardContent>
               </F1Card>
+              <CircuitGeometryMap season={selectedYear} round={Number(selectedRace)} className="mt-4" />
             </TabsContent>
 
             <TabsContent value="results" className="mt-4">

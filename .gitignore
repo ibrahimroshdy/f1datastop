@@ -49,6 +49,8 @@ docs/superpowers/*
 analysis/out/*
 analysis/.fastf1cache/
 analysis/.venv/
+analysis/telemetry_out/
+analysis/circuits_out/
 
 # Playwright mcp and more
 .playwright-mcp
