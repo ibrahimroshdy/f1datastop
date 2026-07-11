@@ -19,6 +19,7 @@ import {
   F1CardTitle,
 } from "@/components/f1";
 import { GitCompare, Activity, Calendar, Clock, ChevronRight, Flag as FlagIcon, TriangleAlert } from "lucide-react";
+import { CircuitTrackMap, getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
 import ReactCountryFlag from "react-country-flag";
 import CountryFlag, { getCountryCode } from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
@@ -36,7 +37,7 @@ type IndexScheduleRace = {
   season: string;
   round: string;
   raceName: string;
-  Circuit?: { Location?: { country?: string; locality?: string } };
+  Circuit?: { circuitId?: string; circuitName?: string; Location?: { country?: string; locality?: string } };
   [key: string]: unknown;
 };
 
@@ -394,6 +395,12 @@ const NextSessionCard = ({
     [nextRace]
   );
 
+  // Small track outline for the island (falls back to locality; null → hidden).
+  const track = useMemo(
+    () => getCircuitTrack(nextRace?.Circuit?.circuitName, nextRace?.Circuit?.Location?.locality),
+    [nextRace]
+  );
+
   const sessionDate = useMemo(() => {
     if (!nextSession) return null;
     return new Date(nextSession.date + "T" + (nextSession.time || "00:00:00Z"));
@@ -480,6 +487,16 @@ const NextSessionCard = ({
         <span className="shrink-0 rounded-md bg-muted p-1.5">
           <CountryFlag country={country} size={20} />
         </span>
+        {track && (
+          <span className="shrink-0 rounded-md bg-muted p-1.5" aria-hidden>
+            <CircuitTrackMap
+              circuitName={nextRace?.Circuit?.circuitName}
+              locality={nextRace?.Circuit?.Location?.locality}
+              className="h-5 w-5 text-primary"
+              strokeWidth={4}
+            />
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <div className="truncate font-semibold leading-tight">
             {getRaceNameWithoutEmoji(raceName)}
