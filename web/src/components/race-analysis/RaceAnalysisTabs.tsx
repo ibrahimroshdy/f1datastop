@@ -44,6 +44,7 @@ const TrackMapChart = lazy(() => import("@/components/race/TrackMapChart"));
 const CircuitGeometryMap = lazy(() => import("@/components/race/CircuitGeometryMap"));
 const SessionResults = lazy(() => import("@/components/analytics/SessionResults"));
 const OvertakesAnalysis = lazy(() => import("@/components/analytics/OvertakesAnalysis"));
+const RaceReplay = lazy(() => import("@/components/analytics/RaceReplay"));
 
 const TabLoadingFallback = () => {
   const { cardVariant, glassVariant } = useThemeVariant();
@@ -385,15 +386,16 @@ export function RaceAnalysisTabs({
               </F1Card>
             </TabsContent>
 
-            <TabsContent value="overtakes" className="mt-4">
+            <TabsContent value="overtakes" className="mt-4 space-y-4">
+              <RaceReplay year={selectedYear} round={selectedRace} session={selectedSession} />
               <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
                 <F1CardHeader className="px-4 pb-2 pt-3">
                   <div className="flex items-center gap-2">
                     <Car className="h-4 w-4 text-primary" />
-                    <F1CardTitle className="text-base">Overtakes Analysis</F1CardTitle>
+                    <F1CardTitle className="text-base">Overtake details</F1CardTitle>
                   </div>
                   <F1CardDescription className="text-xs">
-                    Track every overtake during the race
+                    Every overtake, position-by-lap chart, and per-driver passes
                   </F1CardDescription>
                 </F1CardHeader>
                 <F1CardContent className="min-h-[500px] px-4 pb-4">

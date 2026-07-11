@@ -5,6 +5,7 @@ import {
   getRaceControl,
   getSessionsDb,
   getLapsDb,
+  getPitLaps,
 } from "@/services/warehouseEnrichment";
 
 const HOUR = 60 * 60 * 1000;
@@ -50,6 +51,15 @@ export const useDbLaps = (season: number, round: number, session = "R") =>
   useQuery({
     queryKey: ["dbLaps", season, round, session],
     queryFn: () => getLapsDb(season, round, session),
+    enabled: !!season && !!round,
+    staleTime: HOUR,
+  });
+
+/** Pit stops as flat {driver_id, lap} rows (for the race replay's pit markers). */
+export const useDbPitLaps = (season: number, round: number) =>
+  useQuery({
+    queryKey: ["dbPitLaps", season, round],
+    queryFn: () => getPitLaps(season, round),
     enabled: !!season && !!round,
     staleTime: HOUR,
   });
