@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useUrlTab } from "@/hooks/useUrlTab";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
@@ -137,7 +137,7 @@ const skeletonPlate = (
 );
 
 const Standings = () => {
-  const [activeTab, setActiveTab] = useState("drivers");
+  const [activeTab, setActiveTab] = useUrlTab("tab", ["drivers", "constructors"] as const, "drivers");
   const { isGlass } = useTheme();
   const {
     data: driverStandings,
@@ -292,7 +292,8 @@ const Standings = () => {
           description="Current Formula 1 season standings"
         />
 
-        <Tabs defaultValue="drivers" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs defaultValue="drivers" value={activeTab}
+          onValueChange={(v) => setActiveTab(v as "drivers" | "constructors")} className="w-full">
           <TabsList className="inline-flex h-auto w-full justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
             <TabsTrigger value="drivers" className={underlineTabTrigger}>
               Drivers

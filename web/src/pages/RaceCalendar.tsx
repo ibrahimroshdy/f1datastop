@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import YearSelector from "@/components/common/YearSelector";
 import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
@@ -7,6 +9,7 @@ import RaceCalendarGridView from "@/components/calendar/RaceCalendarGridView";
 import { pageShell, pageStack } from "@/lib/layout";
 import { useRaceCalendar } from "@/hooks/useRaceCalendar";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
+import { useUrlTab } from "@/hooks/useUrlTab";
 import { cn } from "@/lib/utils";
 import { Grid3x3, List, Star, CalendarDays } from "lucide-react";
 
@@ -16,8 +19,6 @@ const RaceCalendar = () => {
     selectedYear,
     selectedRace,
     isDialogOpen,
-    viewMode,
-    setViewMode,
     expandedRaces,
     raceSchedule,
     isLoading,
@@ -29,6 +30,23 @@ const RaceCalendar = () => {
     raceTypes,
     racesWithBreak,
   } = useRaceCalendar();
+  // List/grid view is URL-backed so a shared /calendar link keeps the chosen view.
+  const [viewMode, setViewMode] = useUrlTab("view", ["list", "grid"] as const, "list");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Season is URL-backed (?year=) so a shared /calendar link pins the year.
+  useEffect(() => {
+    const y = parseInt(searchParams.get("year") ?? "", 10);
+    if (!Number.isNaN(y) && y !== selectedYear) handleYearChange(y);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const onYearChange = (year: number) => {
+    handleYearChange(year);
+    const next = new URLSearchParams(searchParams);
+    next.set("year", String(year));
+    setSearchParams(next, { replace: true });
+  };
 
   const raceCount = raceSchedule?.data?.length ?? 0;
 
@@ -79,7 +97,7 @@ const RaceCalendar = () => {
                   <span className="hidden sm:inline">Grid</span>
                 </Button>
               </div>
-              <YearSelector selectedYear={selectedYear} onYearChange={handleYearChange} />
+              <YearSelector selectedYear={selectedYear} onYearChange={onYearChange} />
             </div>
           </div>
 

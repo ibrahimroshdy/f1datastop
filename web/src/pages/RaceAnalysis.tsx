@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { RaceAnalysisHeader } from "@/components/race-analysis/RaceAnalysisHeader";
 import { RacePicker } from "@/components/race-analysis/RacePicker";
 import { RaceAnalysisTabs } from "@/components/race-analysis/RaceAnalysisTabs";
 import {
   DEFAULT_RACE_ANALYSIS_TAB,
+  isRaceAnalysisTab,
   type RaceAnalysisTabId,
 } from "@/components/race-analysis/raceAnalysisTabs.config";
 import { type SessionOption } from "@/components/f1";
@@ -31,14 +32,16 @@ const getDefaultYear = () => new Date().getFullYear();
 const RaceAnalysis = () => {
   const { year: urlYear, round: urlRound } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [selectedYear, setSelectedYear] = useState<number>(
     urlYear ? parseInt(urlYear, 10) : getDefaultYear()
   );
   const [selectedRace, setSelectedRace] = useState<string>(urlRound || "1");
-  const [selectedTab, setSelectedTab] = useState<RaceAnalysisTabId>(
-    DEFAULT_RACE_ANALYSIS_TAB
-  );
+  const [selectedTab, setSelectedTab] = useState<RaceAnalysisTabId>(() => {
+    const t = searchParams.get("tab");
+    return isRaceAnalysisTab(t) ? t : DEFAULT_RACE_ANALYSIS_TAB;
+  });
   const [selectedSessionKey, setSelectedSessionKey] = useState<number | null>(null);
   const [availableSessions, setAvailableSessions] = useState<SessionOption[]>([]);
 
@@ -63,6 +66,13 @@ const RaceAnalysis = () => {
     }
   }, [urlYear, urlRound]);
 
+  // Keep the active tab in the URL so views are shareable, and react to a
+  // shared link / back-button that carries a different ?tab=.
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (isRaceAnalysisTab(t) && t !== selectedTab) setSelectedTab(t);
+  }, [searchParams, selectedTab]);
+
   // Build the picker's session list from the warehouse (canonical, deduped,
   // correctly named). session_type IS the code (R/Q/S/SQ/FP1-3).
   useEffect(() => {
@@ -85,10 +95,13 @@ const RaceAnalysis = () => {
       .sort((a, b) => a.session_key - b.session_key);
     setAvailableSessions(opts);
     if (!selectedSessionKey) {
+      const urlSession = searchParams.get("session");
+      const fromUrl = urlSession ? opts.find((o) => o.session_type === urlSession) : undefined;
       const race = opts.find((o) => o.session_type === "R");
-      setSelectedSessionKey(race ? race.session_key : opts[opts.length - 1].session_key);
+      const chosen = fromUrl ?? race ?? opts[opts.length - 1];
+      setSelectedSessionKey(chosen.session_key);
     }
-  }, [dbSessions, selectedRace, selectedSessionKey]);
+  }, [dbSessions, selectedRace, selectedSessionKey, searchParams]);
 
   const hasSessions = availableSessions.length > 0;
 
@@ -102,18 +115,32 @@ const RaceAnalysis = () => {
     setSelectedYear(year);
     setSelectedRace("1");
     setSelectedSessionKey(null);
-    navigate(`/race-analysis/${year}/1`);
+    navigate(`/race-analysis/${year}/1?tab=${selectedTab}`);
   };
 
   const handleRaceChange = (round: string) => {
     setSelectedRace(round);
     setSelectedSessionKey(null);
-    navigate(`/race-analysis/${selectedYear}/${round}`);
+    navigate(`/race-analysis/${selectedYear}/${round}?tab=${selectedTab}`);
+  };
+
+  const handleTabChange = (tab: RaceAnalysisTabId) => {
+    setSelectedTab(tab);
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", tab);
+    setSearchParams(next, { replace: true });
   };
 
   const handleSessionChange = (value: string) => {
     setSelectedSessionKey(null);
-    setTimeout(() => setSelectedSessionKey(Number(value)), 50);
+    const key = Number(value);
+    const st = availableSessions.find((s) => s.session_key === key)?.session_type;
+    setTimeout(() => setSelectedSessionKey(key), 50);
+    if (st) {
+      const next = new URLSearchParams(searchParams);
+      next.set("session", st);
+      setSearchParams(next, { replace: true });
+    }
   };
 
   return (
@@ -138,7 +165,7 @@ const RaceAnalysis = () => {
 
         <RaceAnalysisTabs
           selectedTab={selectedTab}
-          onTabChange={setSelectedTab}
+          onTabChange={handleTabChange}
           hasOpenF1Data
           selectedYear={selectedYear}
           selectedRace={selectedRace}

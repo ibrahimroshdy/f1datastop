@@ -71,3 +71,8 @@ export function isLiveTab(tabId: string): tabId is RaceAnalysisTabId {
 export function getVisibleTabs(hasOpenF1Data: boolean): RaceAnalysisTabConfig[] {
   return hasOpenF1Data ? [...CORE_TABS, ...LIVE_TABS] : [...CORE_TABS];
 }
+
+/** Every valid tab id (core + live) — used to validate a `?tab=` URL param. */
+export function isRaceAnalysisTab(tabId: string | null | undefined): tabId is RaceAnalysisTabId {
+  return !!tabId && [...CORE_TABS, ...LIVE_TABS].some((tab) => tab.id === tabId);
+}
