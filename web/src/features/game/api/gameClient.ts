@@ -51,12 +51,17 @@ export async function activatePlayer(season = ACTIVE_GAME_SEASON): Promise<strin
   return data as string;
 }
 
-/** The caller's entry for a season, or null if not activated. */
+/** The caller's entry for a season, or null if not activated. Filters by the user's own id —
+ *  admin RLS returns every entry, so season-only + maybeSingle would throw on multiple rows. */
 export async function getMyEntry(season = ACTIVE_GAME_SEASON): Promise<GameEntry | null> {
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth?.user?.id;
+  if (!uid) return null;
   const { data, error } = await db
     .from("game_entry")
     .select("id, season, created_at")
     .eq("season", season)
+    .eq("user_id", uid)
     .maybeSingle();
   throwIf(error);
   return (data as GameEntry) ?? null;
@@ -159,6 +164,27 @@ export async function saveChampionPick(
   season = ACTIVE_GAME_SEASON,
 ): Promise<void> {
   const { error } = await db.rpc("save_champion_pick", { p_season: season, p_wdc: wdc, p_wcc: wcc });
+  throwIf(error);
+}
+
+export type Badge = { key: string; label: string; count: number };
+export async function getPlayerBadges(userId: string, season = ACTIVE_GAME_SEASON): Promise<Badge[]> {
+  const { data, error } = await db.rpc("get_player_badges", { p_season: season, p_user_id: userId });
+  throwIf(error);
+  return (data as Badge[]) ?? [];
+}
+export async function getGlobalPercentile(userId: string, season = ACTIVE_GAME_SEASON): Promise<number | null> {
+  const { data, error } = await db.rpc("get_global_percentile", { p_season: season, p_user_id: userId });
+  throwIf(error);
+  return (data as number) ?? null;
+}
+export async function getMyJoker(season = ACTIVE_GAME_SEASON): Promise<number | null> {
+  const { data, error } = await db.rpc("get_my_joker", { p_season: season });
+  throwIf(error);
+  return (data as number) ?? null;
+}
+export async function setJoker(round: number, season = ACTIVE_GAME_SEASON): Promise<void> {
+  const { error } = await db.rpc("set_joker", { p_season: season, p_round: round });
   throwIf(error);
 }
 

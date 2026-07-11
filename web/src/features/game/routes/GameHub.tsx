@@ -1,15 +1,21 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Flag, ChevronRight, Lock, History, BookOpen, Users, Medal, UserCircle, ShieldAlert } from "lucide-react";
+import { Trophy, Flag, ChevronRight, Lock, History, BookOpen, Users, Medal, UserCircle, ShieldAlert, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useGameActivation } from "../hooks/useGameActivation";
 import { isGameAdmin } from "../utils/isGameAdmin";
-import { getGameSchedule, getMyTotal, ACTIVE_GAME_SEASON } from "../api/gameClient";
+import {
+  getGameSchedule, getMyTotal, getGlobalPercentile, getPlayerBadges, getMyHistory, ACTIVE_GAME_SEASON,
+} from "../api/gameClient";
 import { Countdown } from "../components/Countdown";
+import { BadgeRow } from "../components/BadgeRow";
+import { FormSparkline } from "../components/FormSparkline";
+import { JokerPicker } from "../components/JokerPicker";
 
 function QuickLink({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
   return (
@@ -25,8 +31,18 @@ function QuickLink({ to, icon, label }: { to: string; icon: React.ReactNode; lab
 
 function ActivatedHub({ entryId }: { entryId: string }) {
   const { user } = useAuth();
+  const uid = user?.id as string;
   const schedule = useQuery({ queryKey: ["game", "schedule", ACTIVE_GAME_SEASON], queryFn: () => getGameSchedule() });
   const total = useQuery({ queryKey: ["game", "total", entryId], queryFn: () => getMyTotal(entryId), enabled: !!entryId });
+  const percentile = useQuery({ queryKey: ["game", "percentile", uid], queryFn: () => getGlobalPercentile(uid), enabled: !!uid });
+  const badges = useQuery({ queryKey: ["game", "badges", uid], queryFn: () => getPlayerBadges(uid), enabled: !!uid });
+  const history = useQuery({ queryKey: ["game", "history", entryId], queryFn: () => getMyHistory(entryId), enabled: !!entryId });
+
+  const form = useMemo(() => {
+    const byRound = new Map<number, number>();
+    for (const s of history.data ?? []) byRound.set(s.round, (byRound.get(s.round) ?? 0) + Number(s.points));
+    return [...byRound.entries()].sort((a, b) => a[0] - b[0]).slice(-5).map(([, v]) => v);
+  }, [history.data]);
 
   const nextOpen = schedule.data?.find((r) => !r.is_locked);
 
@@ -55,6 +71,27 @@ function ActivatedHub({ entryId }: { entryId: string }) {
           <QuickLink to="/game/admin" icon={<ShieldAlert className="h-4 w-4 text-primary" />} label="Admin" />
         )}
       </div>
+
+      {/* Your season — form, percentile, badges */}
+      <F1Card>
+        <F1CardHeader className="flex-row items-center justify-between pb-2">
+          <F1CardTitle className="text-base">Your season</F1CardTitle>
+          {percentile.data != null && (
+            <span className="instrument-label inline-flex items-center gap-1 text-primary">
+              <TrendingUp className="h-3 w-3" /> Top {percentile.data}%
+            </span>
+          )}
+        </F1CardHeader>
+        <F1CardContent className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">Recent form</span>
+            {form.length >= 2 ? <FormSparkline points={form} /> : <span className="text-2xs text-muted-foreground">—</span>}
+          </div>
+          <BadgeRow badges={badges.data ?? []} />
+        </F1CardContent>
+      </F1Card>
+
+      <JokerPicker />
 
       {nextOpen && (
         <Link to={`/game/predict/${nextOpen.round}`}>

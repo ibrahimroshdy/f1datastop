@@ -99,6 +99,12 @@ export async function getRoundReveal(leagueId: string, round: number, season = A
   throwIf(error); return (data as RevealRow[]) ?? [];
 }
 
+export type H2HRow = { round: number; a_points: number; b_points: number };
+export async function getH2H(leagueId: string, a: string, b: string, season = ACTIVE_GAME_SEASON): Promise<H2HRow[]> {
+  const { data, error } = await db.rpc("get_h2h", { p_league_id: leagueId, p_season: season, p_a: a, p_b: b });
+  throwIf(error); return (data as H2HRow[]) ?? [];
+}
+
 export type AllTimeRow = { user_id: string; username: string | null; total_points: number; seasons_played: number; rank: number };
 export async function getLeagueAlltime(leagueId: string): Promise<AllTimeRow[]> {
   const { data, error } = await db.rpc("get_league_alltime", { p_league_id: leagueId });

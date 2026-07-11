@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Settings, Crown, ChevronRight, ChevronUp, ChevronDown, Minus } from "lucide-react";
+import { Settings, Crown, ChevronRight, ChevronUp, ChevronDown, Minus, Swords } from "lucide-react";
 import { BackLink } from "@/components/ui/back-link";
 import { Button } from "@/components/ui/button";
 import {
@@ -171,6 +171,13 @@ export default function LeagueDetail() {
                       <td className="px-3 py-2">
                         <span className="font-medium">{row.username ?? "—"}</span>
                         {row.champions_correct > 0 && <Crown className="ml-1 inline h-3 w-3 text-yellow-500" />}
+                        {row.user_id !== user?.id && (
+                          <Link to={`/game/leagues/${leagueId}/h2h/${row.user_id}`}
+                            className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-primary"
+                            aria-label={`Head to head vs ${row.username ?? "player"}`}>
+                            <Swords className="h-3.5 w-3.5" />
+                          </Link>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.exact_hits}</td>
                       <td className="px-4 py-2 text-right font-semibold tabular-nums">{Number(row.total_points)}</td>
