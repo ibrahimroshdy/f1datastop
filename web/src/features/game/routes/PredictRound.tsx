@@ -17,6 +17,7 @@ import {
   type SessionType,
 } from "../api/gameClient";
 import { SessionPredict } from "../components/SessionPredict";
+import { Countdown } from "../components/Countdown";
 
 export default function PredictRound() {
   const { round: roundParam } = useParams<{ round: string }>();
@@ -65,11 +66,16 @@ export default function PredictRound() {
             {meta?.race_name ?? `Round ${round}`}
           </h1>
           {meta?.deadline && (
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
               <CalendarClock className="h-4 w-4" />
-              {editable.data
-                ? `Picks lock ${format(parseISO(meta.deadline), "EEE dd MMM, HH:mm")} UTC`
-                : "Picks are locked for this weekend"}
+              {editable.data ? (
+                <>
+                  Locks {format(parseISO(meta.deadline), "EEE dd MMM, HH:mm")} UTC ·{" "}
+                  <Countdown to={meta.deadline} className="readout font-semibold" />
+                </>
+              ) : (
+                "Picks are locked for this weekend"
+              )}
             </div>
           )}
         </div>

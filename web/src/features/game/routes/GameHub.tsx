@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useGameActivation } from "../hooks/useGameActivation";
 import { isGameAdmin } from "../utils/isGameAdmin";
 import { getGameSchedule, getMyTotal, ACTIVE_GAME_SEASON } from "../api/gameClient";
+import { Countdown } from "../components/Countdown";
 
 function QuickLink({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
   return (
@@ -68,7 +69,12 @@ function ActivatedHub({ entryId }: { entryId: string }) {
                   Next up · Round {nextOpen.round}
                 </div>
                 <div className="mt-0.5 text-lg font-bold">{nextOpen.race_name}</div>
-                <div className="text-xs text-muted-foreground">Make your picks →</div>
+                <div className="text-xs text-muted-foreground">
+                  {nextOpen.deadline ? (
+                    <>Locks in <Countdown to={nextOpen.deadline} className="readout text-primary" /> · </>
+                  ) : null}
+                  Make your picks →
+                </div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </F1CardContent>

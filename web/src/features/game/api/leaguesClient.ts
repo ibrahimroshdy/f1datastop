@@ -15,7 +15,12 @@ export type MyLeague = {
 export type PublicLeague = { id: string; name: string; slug: string; member_count: number };
 export type StandingRow = {
   user_id: string; username: string | null; avatar_url: string | null;
-  total_points: number; exact_hits: number; champions_correct: number; goat_count: number; rank: number;
+  total_points: number; exact_hits: number; champions_correct: number; goat_count: number;
+  rank: number; movement: number;
+};
+export type LeagueStatRow = {
+  user_id: string; username: string | null; rounds_played: number;
+  total_points: number; best_round: number; avg_round: number; exact_hits: number;
 };
 export type LeagueMember = { user_id: string; username: string | null; avatar_url: string | null; role: string; joined_at: string };
 export type RankHistoryRow = { round: number; user_id: string; username: string | null; rank: number; total_points: number };
@@ -76,6 +81,10 @@ export async function getLeagueStandings(leagueId: string, season = ACTIVE_GAME_
 export async function getLeagueMembers(leagueId: string): Promise<LeagueMember[]> {
   const { data, error } = await db.rpc("get_league_members", { p_league_id: leagueId });
   throwIf(error); return (data as LeagueMember[]) ?? [];
+}
+export async function getLeagueStats(leagueId: string, season = ACTIVE_GAME_SEASON): Promise<LeagueStatRow[]> {
+  const { data, error } = await db.rpc("get_league_stats", { p_league_id: leagueId, p_season: season });
+  throwIf(error); return (data as LeagueStatRow[]) ?? [];
 }
 export async function getLeagueRankHistory(leagueId: string, season = ACTIVE_GAME_SEASON): Promise<RankHistoryRow[]> {
   const { data, error } = await db.rpc("get_league_rank_history", { p_league_id: leagueId, p_season: season });

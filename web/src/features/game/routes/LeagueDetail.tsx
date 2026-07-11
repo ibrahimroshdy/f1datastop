@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Settings, Crown, ChevronRight } from "lucide-react";
+import { Settings, Crown, ChevronRight, ChevronUp, ChevronDown, Minus } from "lucide-react";
 import { BackLink } from "@/components/ui/back-link";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,11 +14,24 @@ import { useAuth } from "@/context/AuthContext";
 import { ACTIVE_GAME_SEASON, getGameSeasons, getGameSchedule } from "../api/gameClient";
 import {
   getLeague, getLeagueStandings, getLeagueMembers, getLeagueRoundAwards, getLeagueAlltime,
+  getLeagueStats, getLeagueRankHistory,
 } from "../api/leaguesClient";
 import { Podium } from "../components/Podium";
+import { RankChart } from "../components/RankChart";
 import { medalBadge } from "../utils/medal";
 
 const RANK_PILL = "inline-flex h-7 min-w-7 items-center justify-center rounded-full border px-1.5 text-xs font-semibold tabular-nums";
+
+function Movement({ n }: { n: number }) {
+  if (!n) return <Minus className="h-3 w-3 text-muted-foreground/40" aria-label="no change" />;
+  const up = n > 0;
+  return (
+    <span className={cn("inline-flex items-center text-2xs font-semibold tabular-nums", up ? "text-emerald-500" : "text-destructive")}>
+      {up ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+      {Math.abs(n)}
+    </span>
+  );
+}
 
 export default function LeagueDetail() {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +52,8 @@ export default function LeagueDetail() {
     queryFn: () => getLeagueRoundAwards(leagueId, season),
   });
   const schedule = useQuery({ queryKey: ["game", "schedule", season], queryFn: () => getGameSchedule(season) });
+  const stats = useQuery({ queryKey: ["game", "leagueStats", leagueId, season], queryFn: () => getLeagueStats(leagueId, season) });
+  const history = useQuery({ queryKey: ["game", "rankHistory", leagueId, season], queryFn: () => getLeagueRankHistory(leagueId, season) });
   const alltime = useQuery({
     queryKey: ["game", "alltime", leagueId],
     queryFn: () => getLeagueAlltime(leagueId),
@@ -148,7 +163,10 @@ export default function LeagueDetail() {
                     <tr key={row.user_id}
                       className={cn("border-b border-border/60", row.user_id === user?.id && "bg-primary/[0.06]")}>
                       <td className="px-3 py-2">
-                        <span className={cn(RANK_PILL, medalBadge(row.rank))}>{row.rank}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn(RANK_PILL, medalBadge(row.rank))}>{row.rank}</span>
+                          <Movement n={row.movement} />
+                        </div>
                       </td>
                       <td className="px-3 py-2">
                         <span className="font-medium">{row.username ?? "—"}</span>
@@ -156,6 +174,45 @@ export default function LeagueDetail() {
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.exact_hits}</td>
                       <td className="px-4 py-2 text-right font-semibold tabular-nums">{Number(row.total_points)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </F1Card>
+        )}
+
+        {/* Rank movement chart */}
+        {view === "season" && (history.data?.length ?? 0) > 0 && (
+          <F1Card>
+            <F1CardHeader><F1CardTitle className="text-base">Rank movement</F1CardTitle></F1CardHeader>
+            <F1CardContent><RankChart rows={history.data!} meId={user?.id} /></F1CardContent>
+          </F1Card>
+        )}
+
+        {/* Player stats */}
+        {view === "season" && (stats.data?.length ?? 0) > 0 && (
+          <F1Card className="overflow-hidden p-0">
+            <F1CardHeader className="px-4 pt-3"><F1CardTitle className="text-base">Player stats</F1CardTitle></F1CardHeader>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="px-4 py-2">Player</th>
+                    <th className="px-3 py-2 text-right">Rds</th>
+                    <th className="px-3 py-2 text-right">Avg</th>
+                    <th className="px-3 py-2 text-right">Best</th>
+                    <th className="px-4 py-2 text-right">Exact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.data?.map((s) => (
+                    <tr key={s.user_id} className={cn("border-b border-border/60", s.user_id === user?.id && "bg-primary/[0.06]")}>
+                      <td className="px-4 py-2 font-medium">{s.username ?? "—"}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{s.rounds_played}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{Number(s.avg_round)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{Number(s.best_round)}</td>
+                      <td className="px-4 py-2 text-right font-semibold tabular-nums">{s.exact_hits}</td>
                     </tr>
                   ))}
                 </tbody>
