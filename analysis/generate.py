@@ -610,7 +610,9 @@ def safety_periods(session):
         virtual = "VIRTUAL SAFETY CAR" in msg or "VSC" in msg
         deploy = "DEPLOY" in msg
         end = "ENDING" in msg or "IN THIS LAP" in msg
-        if flag == "RED" or "RED FLAG" in msg:
+        # `flag` column is authoritative; the message fallback is word-bounded so
+        # "CHEQUERED FLAG" (ends every race, contains "…RED FLAG") never trips it.
+        if flag == "RED" or re.search(r"\bRED FLAG\b", msg):
             red = red or {"kind": "RED", "start": lap, "end": lap}; continue
         if (flag == "GREEN" or "GREEN" in msg or "TRACK CLEAR" in msg):
             for p, nm in ((red, "red"), (vsc, "vsc"), (sc, "sc")):

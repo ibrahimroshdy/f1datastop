@@ -226,7 +226,7 @@ const Index = () => {
                   )}
                 </div>
               </F1CardHeader>
-              <F1CardContent className="p-0 h-[420px] sm:h-[550px]">
+              <F1CardContent className="p-0">
                 {lastCompletedRace ? (
                   <MuiSankeyChart
                     year={lastCompletedRace.year}

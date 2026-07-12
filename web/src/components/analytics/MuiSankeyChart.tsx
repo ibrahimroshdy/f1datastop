@@ -314,9 +314,12 @@ function SankeyWithDimensionGuard({
   const graph = useMemo<SankeyGraph<SankeyNodeData, SankeyLinkData> | null>(() => {
     if (!hasSize) return null;
 
-    const side = isNarrow ? 34 : MARGIN.left;
-    const x0 = side;
-    const x1 = dimensions.width - side;
+    // Left column carries "position + code" so it needs a wider margin than the
+    // right (code only). Keep the generous margins on wide screens.
+    const leftM = isNarrow ? 48 : MARGIN.left;
+    const rightM = isNarrow ? 48 : MARGIN.right;
+    const x0 = leftM;
+    const x1 = dimensions.width - rightM;
     const y0 = MARGIN.top;
     const y1 = dimensions.height - MARGIN.bottom;
     if (x1 <= x0 || y1 <= y0) return null;
@@ -428,7 +431,10 @@ function SankeyWithDimensionGuard({
               const showLabel = data.type !== 'grid';
               const labelOnLeft = data.type === 'qualifying';
               const labelPad = isNarrow ? 5 : LABEL_PADDING;
-              const labelText = codeById.get(data.id) ?? `P${data.position}`;
+              const codeStr = codeById.get(data.id) ?? `P${data.position}`;
+              // Position reads outward on both ends: "1 ANT" on the quali (left),
+              // "LEC 1" on the race (right).
+              const labelText = labelOnLeft ? `${data.position} ${codeStr}` : `${codeStr} ${data.position}`;
               return (
                 <g key={`node-${i}`}>
                   <rect

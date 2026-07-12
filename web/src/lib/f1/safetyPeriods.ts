@@ -71,8 +71,10 @@ export function deriveSafetyPeriods(rows: DbRaceControlRow[] | undefined | null)
     const isDeploy = msg.includes("DEPLOY");
     const isEnd = msg.includes("ENDING") || msg.includes("IN THIS LAP");
 
-    // Red flag — flag column is the reliable signal.
-    if (flag === "RED" || msg.includes("RED FLAG")) {
+    // Red flag — the `flag` column is authoritative. The message fallback is
+    // word-bounded so "CHEQUERED FLAG" (ends EVERY race and contains the
+    // substring "…RED FLAG") can never falsely open a red-flag period.
+    if (flag === "RED" || /\bRED FLAG\b/.test(msg)) {
       if (!openRed) openRed = open("RED", lap);
       continue;
     }
