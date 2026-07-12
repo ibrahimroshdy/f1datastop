@@ -1,5 +1,5 @@
 import { format, parseISO } from "date-fns";
-import { Calendar, Flag, MapPin, Trophy, Zap, Clock } from "lucide-react";
+import { MapPin, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type RaceDetailSummaryProps = {
@@ -27,79 +27,97 @@ export function RaceDetailSummary({
   locality,
   country,
 }: RaceDetailSummaryProps) {
-  const raceDate = race.date ? format(parseISO(race.date), "MMM d") : "-";
+  const raceDate = race.date ? format(parseISO(race.date), "MMM d") : "—";
   const isRaceCompleted = race.date ? parseISO(race.date) < new Date() : false;
+  const surface = isGlass ? "bg-white/[0.04]" : "bg-card/50";
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-3 mt-3">
-        <StatCell icon={Calendar} iconClass="text-blue-500" label="Race Date" value={raceDate} isGlass={isGlass} />
-        <StatCell icon={Flag} iconClass="text-green-500" label="Round" value={`R${race.round}`} isGlass={isGlass} />
+      {/* Instrument cluster — one cohesive strip, hairline-divided columns */}
+      <div
+        className={cn(
+          "mb-3 mt-3 grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-xl border border-border sm:grid-cols-4 sm:divide-y-0",
+          surface,
+        )}
+      >
+        <StatCell label="Race Date" value={raceDate} />
+        <StatCell label="Round" value={`R${race.round}`} />
         <StatCell
-          icon={Trophy}
-          iconClass="text-yellow-500"
           label="Winner"
-          value={winner || (isRaceCompleted ? "-" : "TBD")}
-          isGlass={isGlass}
+          value={winner || (isRaceCompleted ? "—" : "TBD")}
+          accent={winner ? "gold" : undefined}
         />
         {hasSprint ? (
-          <StatCell icon={Zap} iconClass="text-orange-500" label="Sprint" value="Yes" isGlass={isGlass} />
+          <StatCell label="Sprint" value="Yes" accent="primary" />
         ) : (
           <StatCell
-            icon={Clock}
-            iconClass="text-purple-500"
             label="Pole"
-            value={polePosition || (isRaceCompleted ? "-" : "TBD")}
-            isGlass={isGlass}
+            value={polePosition || (isRaceCompleted ? "—" : "TBD")}
+            accent={polePosition ? "purple" : undefined}
           />
         )}
       </div>
 
-      <div
-        className={cn(
-          "grid grid-cols-2 gap-1.5 mb-3 p-2 rounded-md",
-          isGlass ? "bg-white/5" : "bg-muted/50",
-        )}
-      >
-        <div className="flex items-center gap-1.5">
-          <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[8px] text-muted-foreground">Circuit</p>
-            <p className="text-xs font-medium truncate">{circuitName || "-"}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Flag className="h-3 w-3 text-muted-foreground shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[8px] text-muted-foreground">Location</p>
-            <p className="text-xs font-medium truncate">
-              {locality || "-"}, {country || "-"}
-            </p>
-          </div>
-        </div>
+      {/* Circuit + location — a clean two-up readout */}
+      <div className={cn("mb-3 grid grid-cols-1 gap-2.5 rounded-xl border border-border p-3 sm:grid-cols-2", surface)}>
+        <InfoCell icon={MapPin} label="Circuit" value={circuitName || "—"} />
+        <InfoCell icon={Flag} label="Location" value={`${locality || "—"}, ${country || "—"}`} />
       </div>
     </>
   );
 }
 
 function StatCell({
-  icon: Icon,
-  iconClass,
   label,
   value,
-  isGlass,
+  accent,
 }: {
-  icon: typeof Calendar;
-  iconClass: string;
   label: string;
   value: string;
-  isGlass: boolean;
+  accent?: "gold" | "purple" | "primary";
+}) {
+  const isTbd = value === "TBD" || value === "—";
+  return (
+    <div className="px-3 py-2.5">
+      <p className="instrument-label text-[10px]">{label}</p>
+      <p
+        className={cn(
+          "readout mt-1.5 text-lg",
+          isTbd
+            ? "text-muted-foreground/50"
+            : accent === "gold"
+              ? "text-position-gold"
+              : accent === "purple"
+                ? "text-fastest-lap"
+                : accent === "primary"
+                  ? "text-primary"
+                  : "text-foreground",
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function InfoCell({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof MapPin;
+  label: string;
+  value: string;
 }) {
   return (
-    <div className={cn("text-center p-2 rounded-md", isGlass ? "bg-white/5" : "bg-muted")}>
-      <Icon className={cn("h-3 w-3 mx-auto mb-0.5", iconClass)} />
-      <p className="text-sm font-bold">{value}</p>
-      <p className="text-[8px] text-muted-foreground">{label}</p>
+    <div className="flex items-center gap-2.5">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border bg-background/40">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      </span>
+      <div className="min-w-0">
+        <p className="instrument-label text-[9px]">{label}</p>
+        <p className="mt-0.5 truncate text-sm font-medium text-foreground">{value}</p>
+      </div>
     </div>
   );
 }

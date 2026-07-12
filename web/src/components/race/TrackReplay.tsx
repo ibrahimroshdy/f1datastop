@@ -228,8 +228,10 @@ function ReplaySVG({
         )}
       </div>
 
+      {/* Track + driver table — side-by-side on desktop, stacked on mobile */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
       <div
-        className="aspect-[4/3] w-full rounded-lg transition-shadow duration-300"
+        className="aspect-[4/3] w-full rounded-lg transition-shadow duration-300 lg:aspect-auto lg:h-[clamp(360px,52vh,560px)] lg:min-w-0 lg:flex-1"
         style={active ? { boxShadow: `inset 0 0 0 1.5px color-mix(in srgb, ${SAFETY_STYLE[active.kind].color} 55%, transparent)` } : undefined}
       >
         <svg
@@ -309,8 +311,41 @@ function ReplaySVG({
         </svg>
       </div>
 
-      {/* Driver legend — tap a chip (or a dot) to follow that car. */}
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Desktop driver table — timing-tower feel beside the track */}
+      <div className="hidden lg:flex lg:h-[clamp(360px,52vh,560px)] lg:w-52 lg:shrink-0 lg:flex-col lg:overflow-hidden lg:rounded-lg lg:border lg:border-border/50">
+        <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
+          <span className="instrument-label text-[10px]">Drivers</span>
+          <span className="text-2xs text-muted-foreground">{blob.drivers.length}</span>
+        </div>
+        <div className="flex-1 divide-y divide-border/40 overflow-y-auto">
+          {blob.drivers.map((d) => {
+            const id = d.driver_id;
+            const dcode = d.code ?? id.slice(0, 3).toUpperCase();
+            const rowSel = id === sel;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setSel((s) => (s === id ? null : id))}
+                onMouseEnter={() => setHover(id)}
+                onMouseLeave={() => setHover((hv) => (hv === id ? null : hv))}
+                className={cn(
+                  "flex w-full items-center gap-2.5 px-3 py-1.5 text-left transition-colors",
+                  rowSel ? "bg-primary/10" : "hover:bg-accent/60",
+                )}
+              >
+                <span className="w-5 shrink-0 text-right text-2xs tabular-nums text-muted-foreground">{d.number ?? ""}</span>
+                <span className="h-4 w-1 shrink-0 rounded-full" style={{ backgroundColor: d.team_color ?? "hsl(var(--muted-foreground))" }} />
+                <span className="text-sm font-bold" style={{ color: d.team_color ?? undefined }}>{dcode}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      </div>
+
+      {/* Mobile chip legend — tap a chip (or a dot) to follow that car. */}
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {blob.drivers.map((d) => {
           const id = d.driver_id;
           const code = d.code ?? id.slice(0, 3).toUpperCase();

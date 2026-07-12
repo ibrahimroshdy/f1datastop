@@ -303,8 +303,8 @@ export default function RaceReplay({ year, round }: Props) {
           )}
         </div>
 
-        {/* Position board */}
-        <div className="flex flex-col gap-1">
+        {/* Position board — dense hairline rows so all 20 fit without a giant scroll */}
+        <div className="flex flex-col divide-y divide-border/40 overflow-hidden rounded-lg border border-border/50">
           <AnimatePresence initial={false}>
             {board.map((d) => {
               const pitting = lapPits?.has(d.id);
@@ -319,24 +319,24 @@ export default function RaceReplay({ year, round }: Props) {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ layout: { type: "spring", stiffness: 600, damping: 42 }, opacity: { duration: 0.2 } }}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-md border px-2.5 py-1.5",
-                    passing ? "border-primary/50 bg-primary/[0.06]" : "border-border/50 bg-card",
+                    "flex items-center gap-2 px-2 py-1.5 transition-colors",
+                    passing ? "bg-primary/[0.08]" : "bg-transparent",
                   )}
                 >
-                  <span className="timing w-6 shrink-0 text-right text-sm font-bold tabular-nums text-muted-foreground">
+                  <span className="timing w-5 shrink-0 text-right text-xs font-bold tabular-nums text-muted-foreground">
                     {d.pos}
                   </span>
-                  <span className="h-4 w-1 shrink-0 rounded-full" style={{ backgroundColor: color(d.id) }} />
-                  <span className="w-10 shrink-0 font-bold" style={{ color: color(d.id) }}>{code(d.id)}</span>
+                  <span className="h-3.5 w-1 shrink-0 rounded-full" style={{ backgroundColor: color(d.id) }} />
+                  <span className="w-9 shrink-0 text-sm font-bold" style={{ color: color(d.id) }}>{code(d.id)}</span>
 
                   {/* delta vs previous lap */}
-                  <span className="w-10 shrink-0 text-xs tabular-nums">
+                  <span className="w-8 shrink-0 text-2xs tabular-nums">
                     {d.delta > 0 ? (
                       <span className="text-status-completed">▲{d.delta}</span>
                     ) : d.delta < 0 ? (
                       <span className="text-destructive">▼{-d.delta}</span>
                     ) : (
-                      <span className="text-muted-foreground/40">–</span>
+                      <span className="text-muted-foreground/30">–</span>
                     )}
                   </span>
 

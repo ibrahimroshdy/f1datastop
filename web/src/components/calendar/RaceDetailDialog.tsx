@@ -79,14 +79,14 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         style={isGlass ? cardStyle : undefined}
       >
         <DialogHeader className="pb-3">
-          <DialogTitle className="flex items-center gap-2 pr-8">
+          <DialogTitle className="flex items-center gap-2.5 pr-8 font-display text-xl font-bold tracking-tight sm:text-2xl">
             {race.Circuit?.Location?.country && (
-              <CountryFlag country={race.Circuit.Location.country} size={18} />
+              <CountryFlag country={race.Circuit.Location.country} size={20} />
             )}
             {getRaceNameWithoutEmoji(race.raceName)}
           </DialogTitle>
-          <DialogDescription className="text-xs">
-            Round {race.round} of the {race.season} Formula 1 Season
+          <DialogDescription className="instrument-label text-[10px]">
+            Round {race.round} · {race.season} Formula 1 Season
           </DialogDescription>
           <RaceDetailSummary
             race={race}
@@ -107,26 +107,26 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
               isGlass && "bg-white/5",
             )}
           >
-            <TabsTrigger value="info" className="text-[11px] h-9 px-1.5">
+            <TabsTrigger value="info" className="text-[11px] h-9 px-1.5 rounded-md transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none">
               Schedule
             </TabsTrigger>
             {hasSprint && (
-              <TabsTrigger value="sprint-qualifying" className="text-[11px] h-9 px-1.5 gap-1">
+              <TabsTrigger value="sprint-qualifying" className="text-[11px] h-9 px-1.5 rounded-md transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none gap-1">
                 <Zap className="h-2.5 w-2.5" />
                 <span className="hidden sm:inline">Sprint Q</span>
                 <span className="sm:hidden">SQ</span>
               </TabsTrigger>
             )}
             {hasSprint && (
-              <TabsTrigger value="sprint" className="text-[11px] h-9 px-1.5 gap-1">
+              <TabsTrigger value="sprint" className="text-[11px] h-9 px-1.5 rounded-md transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none gap-1">
                 <Zap className="h-2.5 w-2.5" />
                 Sprint
               </TabsTrigger>
             )}
-            <TabsTrigger value="qualifying" className="text-[11px] h-9 px-1.5">
+            <TabsTrigger value="qualifying" className="text-[11px] h-9 px-1.5 rounded-md transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none">
               Qualifying
             </TabsTrigger>
-            <TabsTrigger value="results" className="text-[11px] h-9 px-1.5">
+            <TabsTrigger value="results" className="text-[11px] h-9 px-1.5 rounded-md transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none">
               Results
             </TabsTrigger>
           </TabsList>
