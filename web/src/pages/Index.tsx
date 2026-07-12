@@ -204,14 +204,11 @@ const Index = () => {
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
                     <F1CardTitle
-                      icon={<GitCompare className="h-5 w-5 text-primary" />}
+                      icon={<GitCompare className="h-5 w-5 shrink-0 text-primary" />}
                       className="text-lg md:text-xl"
                     >
-                      Qualifying to Race Progression
+                      Qualifying to Race
                     </F1CardTitle>
-                    <F1CardDescription>
-                      How drivers progressed from qualifying to race positions
-                    </F1CardDescription>
                   </div>
                   {lastCompletedRace && (
                     <button

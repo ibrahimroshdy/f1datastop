@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import Footer from "./Footer";
@@ -21,6 +21,7 @@ const MainLayout = () => {
     return window.innerWidth >= 1024;
   });
   const { isGlass, baseTheme } = useTheme();
+  const location = useLocation();
 
   const [_sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== "undefined") {
@@ -128,7 +129,7 @@ const MainLayout = () => {
         >
           <PullToRefresh>
             <div className={cn("min-h-full p-4 md:p-6 lg:px-8", isGlass && "relative")}>
-              <div className="animate-fade-in">
+              <div key={location.pathname} className="animate-fade-in">
                 <Outlet />
               </div>
             </div>

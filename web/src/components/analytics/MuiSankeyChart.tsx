@@ -314,7 +314,7 @@ function SankeyWithDimensionGuard({
   const graph = useMemo<SankeyGraph<SankeyNodeData, SankeyLinkData> | null>(() => {
     if (!hasSize) return null;
 
-    const side = isNarrow ? 24 : MARGIN.left;
+    const side = isNarrow ? 34 : MARGIN.left;
     const x0 = side;
     const x1 = dimensions.width - side;
     const y0 = MARGIN.top;
@@ -347,6 +347,19 @@ function SankeyWithDimensionGuard({
   // Token-driven label color adapts across all three themes.
   const labelColor = 'hsl(var(--muted-foreground))';
 
+  // node id -> driver 3-letter code (reliable, from link data) so every node can
+  // be labelled at any width instead of showing anonymous colour squares.
+  const codeById = useMemo(() => {
+    const m = new Map<string, string>();
+    sankeyData.links.forEach((l) => {
+      if (l.driverCode) {
+        m.set(l.source, l.driverCode);
+        m.set(l.target, l.driverCode);
+      }
+    });
+    return m;
+  }, [sankeyData.links]);
+
   return (
     <div ref={containerRef} className="relative flex-1 min-h-[400px]" style={{ minHeight: 400 }}>
       {hasSize && graph ? (
@@ -363,14 +376,17 @@ function SankeyWithDimensionGuard({
               if (!d) return null;
               const data = link as LaidOutLink & SankeyLinkData;
               const isHovered = hover?.kind === 'link' && hover.link === link;
-              const baseOpacity = data.dimLine ? 0.2 : 0.4;
+              // Holds (no position change — mostly the quali→grid stage) fade to
+              // faint threads; gain/loss ribbons stay bold so movement reads first.
+              const isHold = data.color === TOKEN.neutral;
+              const baseOpacity = data.dimLine ? 0.14 : isHold ? 0.09 : 0.5;
               return (
                 <path
                   key={`link-${i}`}
                   d={d}
                   stroke={data.color || TEAM_COLORS.default}
-                  strokeWidth={Math.max(1, link.width ?? 1)}
-                  strokeOpacity={isHovered ? 0.7 : baseOpacity}
+                  strokeWidth={Math.max(isHold ? 1 : 2, link.width ?? 1)}
+                  strokeOpacity={isHovered ? (isHold ? 0.5 : 0.85) : baseOpacity}
                   style={{ cursor: 'pointer' }}
                   onMouseMove={(e) => {
                     const rect = containerRef.current?.getBoundingClientRect();
@@ -406,11 +422,13 @@ function SankeyWithDimensionGuard({
               const w = (node.x1 ?? 0) - x0n;
               const h = Math.max(0, (node.y1 ?? 0) - y0n);
               const isHovered = hover?.kind === 'node' && hover.node === node;
-              // Grid column is unlabeled; quali labels left, race labels right.
-              // On narrow (phone) widths, drop outside labels (they clip) — tap
-              // a node/link for the tooltip instead.
-              const showLabel = data.type !== 'grid' && !isNarrow;
+              // Grid column stays unlabeled (it's the middle); quali codes sit on
+              // the left, race codes on the right — shown at every width now
+              // (short 3-letter codes fit; anonymous squares were unreadable).
+              const showLabel = data.type !== 'grid';
               const labelOnLeft = data.type === 'qualifying';
+              const labelPad = isNarrow ? 5 : LABEL_PADDING;
+              const labelText = codeById.get(data.id) ?? `P${data.position}`;
               return (
                 <g key={`node-${i}`}>
                   <rect
@@ -421,7 +439,7 @@ function SankeyWithDimensionGuard({
                     rx={NODE_RADIUS}
                     ry={NODE_RADIUS}
                     fill={data.color || TEAM_COLORS.default}
-                    fillOpacity={isHovered ? 1 : 0.9}
+                    fillOpacity={isHovered ? 1 : 0.95}
                     style={{ cursor: 'pointer' }}
                     onMouseMove={(e) => {
                       const rect = containerRef.current?.getBoundingClientRect();
@@ -446,16 +464,17 @@ function SankeyWithDimensionGuard({
                   />
                   {showLabel && (
                     <text
-                      x={labelOnLeft ? x0n - LABEL_PADDING : (node.x1 ?? 0) + LABEL_PADDING}
+                      x={labelOnLeft ? x0n - labelPad : (node.x1 ?? 0) + labelPad}
                       y={(y0n + (node.y1 ?? 0)) / 2}
                       dy="0.35em"
                       textAnchor={labelOnLeft ? 'end' : 'start'}
-                      fontSize={11}
+                      fontSize={isNarrow ? 9 : 11}
+                      fontWeight={600}
                       fontFamily="var(--font-mono, monospace)"
-                      fill={labelColor}
+                      fill={isHovered ? 'hsl(var(--foreground))' : labelColor}
                       style={{ pointerEvents: 'none' }}
                     >
-                      {`P${data.position} ${data.name}`}
+                      {labelText}
                     </text>
                   )}
                 </g>

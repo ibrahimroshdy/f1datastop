@@ -364,6 +364,12 @@
     /* Stop overscroll chaining to the browser chrome (native PWA feel) */
     overscroll-behavior-y: contain;
   }
+
+  /* Branded text selection — a red wash, not raw browser grey */
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+    color: hsl(0 0% 100%);
+  }
 }
 
 /* ============================================
@@ -821,7 +827,7 @@
   }
 
   .animate-slide-up {
-    animation: slide-up 0.3s ease-out forwards;
+    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   /* Slide in from right */
@@ -867,7 +873,7 @@
   }
 
   .animate-fade-in {
-    animation: fade-in 0.3s ease-out forwards;
+    animation: fade-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   /* Pit Wall typography utilities (R0) */
@@ -933,19 +939,29 @@
   /* Stagger children animations */
   .stagger-children > * {
     opacity: 0;
-    animation: slide-up 0.4s ease-out forwards;
+    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-  .stagger-children > *:nth-child(2) { animation-delay: 50ms; }
-  .stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+  .stagger-children > *:nth-child(1) { animation-delay: 30ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 70ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 110ms; }
   .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-  .stagger-children > *:nth-child(5) { animation-delay: 200ms; }
-  .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
-  .stagger-children > *:nth-child(7) { animation-delay: 300ms; }
-  .stagger-children > *:nth-child(8) { animation-delay: 350ms; }
-  .stagger-children > *:nth-child(9) { animation-delay: 400ms; }
-  .stagger-children > *:nth-child(10) { animation-delay: 450ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 190ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 230ms; }
+  .stagger-children > *:nth-child(7) { animation-delay: 270ms; }
+  .stagger-children > *:nth-child(8) { animation-delay: 310ms; }
+  .stagger-children > *:nth-child(9) { animation-delay: 350ms; }
+  .stagger-children > *:nth-child(10) { animation-delay: 390ms; }
+
+  /* Tactile list row — settles rightward + brightens on hover (uses the
+     shared spring). Pair with a left team/accent bar that grows. */
+  .row-tactile {
+    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+                background-color 200ms ease, border-color 200ms ease;
+  }
+  .row-tactile:hover {
+    transform: translateX(3px);
+  }
 
   /* Live pulse */
   @keyframes live-pulse {
@@ -1014,6 +1030,42 @@
 
 .dark-glass ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary) / 0.7);
+}
+
+/* ============================================
+   ATMOSPHERIC DEPTH — carbon reads as a lit surface, not dead-flat black.
+   ::before = layered radial depth + faint red bloom from the top.
+   ::after  = ultra-fine film grain so large dark areas have texture.
+   ============================================ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 75% at 50% -12%, hsl(var(--primary) / 0.055), transparent 55%),
+    radial-gradient(90% 90% at 100% 0%, hsl(240 24% 10% / 0.55), transparent 60%),
+    radial-gradient(85% 85% at 0% 100%, hsl(240 22% 8% / 0.5), transparent 62%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.light body::before {
+  background:
+    radial-gradient(120% 75% at 50% -12%, hsl(var(--primary) / 0.04), transparent 55%),
+    radial-gradient(90% 90% at 100% 0%, hsl(240 14% 90% / 0.5), transparent 60%);
+}
+.light body::after {
+  opacity: 0.014;
 }
 
 /* ============================================

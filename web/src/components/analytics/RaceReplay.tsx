@@ -67,6 +67,22 @@ export default function RaceReplay({ year, round }: Props) {
     return m;
   }, [pitRows]);
 
+  // driver -> sorted pit laps (for the running stop count) + all distinct pit laps
+  // (for the scrubber tick marks).
+  const pitLapsByDriver = useMemo(() => {
+    const m = new Map<string, number[]>();
+    (pitRows ?? []).forEach((p) => {
+      if (!m.has(p.driver_id)) m.set(p.driver_id, []);
+      m.get(p.driver_id)!.push(p.lap_number);
+    });
+    m.forEach((a) => a.sort((x, y) => x - y));
+    return m;
+  }, [pitRows]);
+  const allPitLaps = useMemo(
+    () => [...new Set((pitRows ?? []).map((p) => p.lap_number))].sort((a, b) => a - b),
+    [pitRows],
+  );
+
   // lap -> overtakes made on that lap.
   const otByLap = useMemo(() => {
     const m = new Map<number, typeof overtakes>();
@@ -193,16 +209,35 @@ export default function RaceReplay({ year, round }: Props) {
           </div>
         </div>
 
-        {/* Scrubber */}
-        <input
-          type="range"
-          min={firstLap}
-          max={lastLap}
-          value={lap}
-          onChange={(e) => { setPlaying(false); setLap(Number(e.target.value)); }}
-          className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
-          aria-label="Lap scrubber"
-        />
+        {/* Scrubber with pit-lap ticks */}
+        <div className="relative pt-2.5">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-2.5">
+            {allPitLaps.map((l) => {
+              const pct = lastLap > firstLap ? ((l - firstLap) / (lastLap - firstLap)) * 100 : 0;
+              return (
+                <span
+                  key={l}
+                  className="absolute top-0 h-2 w-px bg-position-gold/70"
+                  style={{ left: `${pct}%` }}
+                />
+              );
+            })}
+          </div>
+          <input
+            type="range"
+            min={firstLap}
+            max={lastLap}
+            value={lap}
+            onChange={(e) => { setPlaying(false); setLap(Number(e.target.value)); }}
+            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+            aria-label="Lap scrubber"
+          />
+          {allPitLaps.length > 0 && (
+            <div className="mt-1 flex items-center gap-1.5 text-2xs text-muted-foreground">
+              <span className="h-2 w-px bg-position-gold/70" /> pit stops
+            </div>
+          )}
+        </div>
 
         {/* Overtake ticker for this lap */}
         <div className="min-h-5">
@@ -226,6 +261,7 @@ export default function RaceReplay({ year, round }: Props) {
             {board.map((d) => {
               const pitting = lapPits?.has(d.id);
               const passing = otMovers.has(d.id);
+              const stops = (pitLapsByDriver.get(d.id) ?? []).filter((l) => l <= lap).length;
               return (
                 <motion.div
                   key={d.id}
@@ -257,9 +293,21 @@ export default function RaceReplay({ year, round }: Props) {
                   </span>
 
                   <div className="ml-auto flex items-center gap-1.5">
+                    {/* running stop count — one gold lollipop per completed stop */}
+                    {stops > 0 && (
+                      <span
+                        className="flex items-center gap-0.5"
+                        title={`${stops} pit stop${stops > 1 ? "s" : ""}`}
+                        aria-label={`${stops} pit stops`}
+                      >
+                        {Array.from({ length: stops }).map((_, i) => (
+                          <span key={i} className="h-1.5 w-1.5 rounded-full bg-position-gold/70" />
+                        ))}
+                      </span>
+                    )}
                     {pitting && (
-                      <span className="rounded bg-position-gold/15 px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-position-gold">
-                        Pit
+                      <span className="rounded bg-position-gold/20 px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-position-gold">
+                        In Pit
                       </span>
                     )}
                   </div>
