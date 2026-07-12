@@ -181,7 +181,7 @@ const FastestPitStopCard = () => {
       <F1Card
         variant={surfaceVariant}
         glassVariant={surfaceGlass}
-        className={cn("h-full min-h-[280px] overflow-hidden p-0", isGlass && "border-white/10")}
+        className={cn("h-full overflow-hidden p-0", isGlass && "border-white/10")}
       >
         <F1CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between gap-2">
@@ -255,37 +255,27 @@ const FastestPitStopCard = () => {
               size="sm"
             />
           ) : (
-            <div className="space-y-3">
+            <div className="divide-y divide-border">
               {fastestPitStops.map((stop, index) => {
                 const teamColor = getTeamHexColor(stop.driver.team);
-                
                 return (
-                <div
-                  key={`${stop.driver.code}-${index}`}
-                  className="flex items-center justify-between p-2 bg-card rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-xl font-bold">{index + 1}</div>
-                      <div style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: '0.5rem' }}>
-                      <div className="font-semibold">{stop.driver.code}</div>
-                      <div className="text-xs text-muted-foreground capitalize">
-                        {stop.driver.constructor}
-                      </div>
+                  <div
+                    key={`${stop.driver.code}-${index}`}
+                    className="flex items-center gap-2.5 py-1.5 transition-colors hover:bg-accent/40"
+                  >
+                    <span className="w-5 shrink-0 text-center text-sm font-bold tabular-nums text-muted-foreground">
+                      {index + 1}
+                    </span>
+                    <span className="h-5 w-1 shrink-0 rounded-full" style={{ backgroundColor: teamColor }} />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-sm font-semibold">{stop.driver.code}</span>
+                      <span className="ml-1.5 text-xs capitalize text-muted-foreground">{stop.driver.constructor}</span>
                     </div>
+                    <span className="timing shrink-0 text-sm text-foreground">{formatPitStopDuration(stop.duration)}</span>
+                    <Badge variant="outline" className="shrink-0 text-xs">Lap {stop.lap}</Badge>
                   </div>
-                    
-                  <div className="text-right">
-                      <div className="font-mono font-medium">
-                        {formatPitStopDuration(stop.duration)}
-                      </div>
-                    <Badge variant="outline" className="text-xs">
-                      Lap {stop.lap}
-                    </Badge>
-                  </div>
-                </div>
                 );
               })}
-              
             </div>
           )}
         </F1CardContent>

@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Skeleton } from "@/components/ui/skeleton";
 import TeamLogo from "@/components/common/TeamLogo";
 import YearSelector from "@/components/common/YearSelector";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { cn } from "@/lib/utils";
 import TeamHeritagePanel from "@/components/constructors/TeamHeritagePanel";
 
@@ -46,7 +47,7 @@ type DriverStandingForTeam = {
 const Stat = ({ label, value }: { label: string; value: string }) => (
   <div className="min-w-[3.25rem]">
     <div className="instrument-label">{label}</div>
-    <div className="readout mt-0.5 text-xl text-foreground">{value}</div>
+    <AnimatedNumber value={Number(value) || 0} mono className="readout mt-0.5 block text-xl text-foreground" />
   </div>
 );
 

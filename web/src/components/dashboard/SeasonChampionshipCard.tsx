@@ -6,6 +6,7 @@ import { CalendarDays, Clock } from "lucide-react";
 import { useState, useMemo } from "react";
 import { formatDistance, parseISO, differenceInDays, getMonth, getWeek, getYear } from "date-fns";
 import { useRaceSchedule, useNextRace } from "@/hooks/useF1Data";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { getNextSession } from "@/utils/nextSessionUtils";
@@ -187,9 +188,9 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
           </F1CardTitle>
         </F1CardHeader>
         
-        <F1CardContent className="space-y-4">
+        <F1CardContent className="space-y-3">
           {/* Season Progress */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-foreground">{currentYear} Championship Progress</span>
               <Badge variant="secondary" className="font-mono text-xs">
@@ -218,13 +219,13 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
           </div>
           
           {/* Next Sessions */}
-          <div className={`space-y-3 pt-4 border-t border-dashed ${statusColors.border}`}>
+          <div className={`space-y-2.5 pt-3 border-t border-dashed ${statusColors.border}`}>
             <div className="flex items-center gap-2">
               <Clock className={`h-4 w-4 ${statusColors.text}`} />
               <span className="text-sm font-medium text-foreground">Next Sessions</span>
             </div>
-            
-            <div className="space-y-2">
+
+            <div className="space-y-1.5">
               {upcomingSessions.map((item: { race: { round: string }; session?: { session_type?: string; shortName?: string } | null; date: Date; country: string; raceName: string }, index: number) => {
                 const timeUntil = formatDistance(item.date, now, { addSuffix: false });
                 const isNext = index === 0;
@@ -233,7 +234,7 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
                     key={item.race.round}
                     onClick={() => openRaceDetails(item.race)}
                     className={cn(
-                      "flex items-center justify-between p-2.5 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30",
+                      "flex items-center justify-between p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30",
                       isNext 
                         ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/30" 
                         : "border-border"
@@ -261,21 +262,21 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
           </div>
 
           {/* Season Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-4 border-t border-border">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-border">
             <div className="text-center p-2 rounded-lg bg-gradient-to-r from-status-completed/10 to-transparent border border-status-completed/20">
-              <div className="text-lg font-mono font-bold text-foreground">{completedRaces.length}</div>
+              <AnimatedNumber value={completedRaces.length} mono className="block text-lg font-bold text-foreground" />
               <div className="text-[10px] text-muted-foreground">Done</div>
             </div>
             <div className="text-center p-2 rounded-lg bg-gradient-to-r from-status-upcoming/10 to-transparent border border-status-upcoming/20">
-              <div className="text-lg font-mono font-bold text-foreground">{remainingRaces}</div>
+              <AnimatedNumber value={remainingRaces} mono className="block text-lg font-bold text-foreground" />
               <div className="text-[10px] text-muted-foreground">Left</div>
             </div>
             <div className="text-center p-2 rounded-lg bg-gradient-to-r from-position-gold/10 to-transparent border border-position-gold/20">
-              <div className="text-lg font-mono font-bold text-foreground">{sprintCount}</div>
+              <AnimatedNumber value={sprintCount} mono className="block text-lg font-bold text-foreground" />
               <div className="text-[10px] text-muted-foreground">Sprints</div>
             </div>
             <div className="text-center p-2 rounded-lg bg-gradient-to-r from-position-bronze/10 to-transparent border border-position-bronze/20">
-              <div className="text-lg font-mono font-bold text-foreground">{longestBreakDays}d</div>
+              <AnimatedNumber value={longestBreakDays} mono suffix="d" className="block text-lg font-bold text-foreground" />
               <div className="text-[10px] text-muted-foreground">Max Gap</div>
             </div>
           </div>

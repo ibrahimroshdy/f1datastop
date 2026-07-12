@@ -237,6 +237,49 @@ def backfill_circuits(from_season: int = 2018, to_season: int = 2026) -> None:
     list(export_circuits.map(seasons))  # per-season fan-out; wait for all
 
 
+# ── Manual: export GPS car-dot race replays (full-race position → Storage) ────
+# One blob per circuit per season → bucket `replays` + f1_race_replay. Powers the
+# Track Replay component. Loops rounds; rounds that haven't run / lack position
+# data fail-and-skip. Post-race historical (FastF1), NOT live.
+@app.function(**COMMON)
+def export_race_replays(season: int, rounds: int = 24, force: bool = False) -> None:
+    done = 0
+    for r in range(1, rounds + 1):
+        try:
+            args = ["race_replay_export.py", "--season", str(season), "--round", str(r)]
+            if force:
+                args.append("--force")  # re-export stale blobs (schema/window changes)
+            _run(*args)
+            done += 1
+        except Exception as e:  # noqa: BLE001
+            print(f"  R{r}: skipped ({e})")
+    print(f"Done. race replays exported for {done} rounds of {season}.")
+
+
+# ── Scheduled: keep the CURRENT season's replays filled (every 6h, offset 50m) ─
+@app.function(schedule=modal.Cron("50 */6 * * *"), **COMMON)
+def export_race_replays_current() -> None:
+    from datetime import datetime, timezone
+    year = datetime.now(timezone.utc).year
+    done = 0
+    for r in range(1, 25):
+        try:
+            _run("race_replay_export.py", "--season", str(year), "--round", str(r))
+            done += 1
+        except Exception as e:  # noqa: BLE001
+            print(f"  R{r}: skipped ({e})")
+    print(f"Done. race-replay pass for {year}: {done} rounds attempted.")
+
+
+# ── Manual: backfill replays across a season range (per-season fan-out) ───────
+# e.g.  modal run modal_app.py::backfill_replays --from-season 2024 --to-season 2026
+@app.function(**COMMON)
+def backfill_replays(from_season: int = 2018, to_season: int = 2026, force: bool = False) -> None:
+    seasons = list(range(from_season, to_season + 1))
+    # starmap so `force` reaches each per-season container
+    list(export_race_replays.starmap([(s, 24, force) for s in seasons]))
+
+
 @app.local_entrypoint()
 def main() -> None:
     """`modal run modal_app.py` → backfill the current 4-season window once."""

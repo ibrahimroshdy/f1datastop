@@ -633,14 +633,50 @@ def safety_periods(session):
 _SAFETY_COLOR = {"SC": "#F5B301", "VSC": "#F5B301", "RED": RED}
 
 
+_SAFETY_LABEL = {"SC": "Safety Car", "VSC": "Virtual SC", "RED": "Red Flag"}
+
+
 def shade_safety(ax, session):
-    """axvspan SC/VSC/red-flag bands on a lap x-axis. Returns kinds seen (for a legend)."""
+    """Shade SC/VSC/red-flag lap ranges on a lap x-axis, tag each band, and draw a
+    compact legend in the title band (right side, under the brand). No-op when the
+    session has no safety periods. Returns the kinds seen."""
+    import matplotlib.patches as mpatches
+
+    periods = safety_periods(session)
     seen = set()
-    for p in safety_periods(session):
+    # Blended transform: x in data (lap), y in axes fraction — robust to call order
+    # (works before the series are plotted / autoscaled).
+    xtr = ax.get_xaxis_transform()
+    for p in periods:
         c = _SAFETY_COLOR[p["kind"]]
-        ax.axvspan(p["start"] - 0.5, p["end"] + 0.5, color=c, alpha=0.12, zorder=0,
+        ax.axvspan(p["start"] - 0.5, p["end"] + 0.5, facecolor=c, alpha=0.12, zorder=0,
                    hatch="///" if p["kind"] == "VSC" else None, lw=0)
+        # hairline edges
+        for xx in (p["start"] - 0.5, p["end"] + 0.5):
+            ax.axvline(xx, color=c, alpha=0.32, lw=0.8, zorder=0.5)
+        # kind tag at the band top
+        ax.text((p["start"] + p["end"]) / 2.0, 0.975, p["kind"], transform=xtr,
+                ha="center", va="top", color=c, alpha=0.95, fontsize=8.5,
+                fontproperties=FP_BODY_B, zorder=3)
         seen.add(p["kind"])
+
+    if seen:
+        handles = [
+            mpatches.Patch(facecolor=_SAFETY_COLOR[k], alpha=0.45, edgecolor="none",
+                           hatch="///" if k == "VSC" else None, label=_SAFETY_LABEL[k])
+            for k in ("SC", "VSC", "RED") if k in seen
+        ]
+        try:
+            yleg = LY("subtitle_y")
+        except Exception:  # noqa: BLE001
+            yleg = 0.86
+        leg = ax.figure.legend(
+            handles=handles, loc="upper right", bbox_to_anchor=(0.928, yleg),
+            ncol=len(handles), frameon=False, fontsize=9.5, handlelength=1.3,
+            handleheight=1.05, columnspacing=1.2, borderaxespad=0.0, handletextpad=0.5,
+        )
+        for t in leg.get_texts():
+            t.set_color(SUBINK)
     return seen
 
 

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import TeamLogo from "@/components/common/TeamLogo";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -88,7 +89,7 @@ const CombinedStandingsTab = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
-                    {row.team.points}
+                    <AnimatedNumber value={row.totalPts} />
                   </TableCell>
                   <TableCell className="py-2 px-2 lg:p-4">
                     <div className="flex flex-col gap-1 text-[10px] lg:text-xs">
@@ -115,8 +116,8 @@ const CombinedStandingsTab = ({
                   <TableCell className="text-right py-2 px-2 lg:p-4 text-[10px] lg:text-xs text-muted-foreground">
                     {idx > 0 && (
                       <div className="flex flex-col items-end gap-0.5">
-                        <span>To Leader: {row.toLeader}</span>
-                        <span>To P{row.aheadPosition ?? idx}: {row.toNext}</span>
+                        <span>To Leader: <AnimatedNumber value={row.toLeader} /></span>
+                        <span>To P{row.aheadPosition ?? idx}: <AnimatedNumber value={row.toNext} /></span>
                       </div>
                     )}
                   </TableCell>
@@ -144,7 +145,7 @@ const CombinedStandingsTab = ({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-semibold">{row.team.points}</div>
+                  <div className="text-sm font-semibold"><AnimatedNumber value={row.totalPts} /></div>
                 </div>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
@@ -163,8 +164,8 @@ const CombinedStandingsTab = ({
               </div>
               {idx > 0 && (
                 <div className="mt-2 text-[10px] text-muted-foreground text-right">
-                  <div>To Leader: {row.toLeader}</div>
-                  <div>To P{row.aheadPosition ?? idx}: {row.toNext}</div>
+                  <div>To Leader: <AnimatedNumber value={row.toLeader} /></div>
+                  <div>To P{row.aheadPosition ?? idx}: <AnimatedNumber value={row.toNext} /></div>
                 </div>
               )}
               <div className="mt-2">

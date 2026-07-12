@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Trophy, Flag, ChevronRight, Lock, History, BookOpen, Users, Medal, UserCircle, ShieldAlert, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
@@ -55,8 +56,8 @@ function ActivatedHub({ entryId }: { entryId: string }) {
         <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Your F1 League</h1>
         {total.data && (
           <p className="text-sm text-muted-foreground">
-            <span className="readout text-primary">{Number(total.data.total_points)}</span> points ·{" "}
-            {total.data.exact_hits} exact hits
+            <AnimatedNumber value={Number(total.data.total_points) || 0} mono className="readout text-primary" /> points ·{" "}
+            <AnimatedNumber value={Number(total.data.exact_hits) || 0} /> exact hits
           </p>
         )}
       </div>
@@ -78,7 +79,7 @@ function ActivatedHub({ entryId }: { entryId: string }) {
           <F1CardTitle className="text-base">Your season</F1CardTitle>
           {percentile.data != null && (
             <span className="instrument-label inline-flex items-center gap-1 text-primary">
-              <TrendingUp className="h-3 w-3" /> Top {percentile.data}%
+              <TrendingUp className="h-3 w-3" /> Top <AnimatedNumber value={Number(percentile.data) || 0} suffix="%" />
             </span>
           )}
         </F1CardHeader>

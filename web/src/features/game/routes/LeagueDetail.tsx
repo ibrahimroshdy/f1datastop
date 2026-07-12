@@ -8,6 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/components/f1";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -136,7 +137,7 @@ export default function LeagueDetail() {
                         <td className="px-3 py-2"><span className={cn(RANK_PILL, medalBadge(row.rank))}>{row.rank}</span></td>
                         <td className="px-3 py-2 font-medium">{row.username ?? "—"}</td>
                         <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.seasons_played}</td>
-                        <td className="px-4 py-2 text-right font-semibold tabular-nums">{Number(row.total_points)}</td>
+                        <td className="px-4 py-2 text-right font-semibold tabular-nums"><AnimatedNumber value={Number(row.total_points) || 0} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -180,7 +181,7 @@ export default function LeagueDetail() {
                         )}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.exact_hits}</td>
-                      <td className="px-4 py-2 text-right font-semibold tabular-nums">{Number(row.total_points)}</td>
+                      <td className="px-4 py-2 text-right font-semibold tabular-nums"><AnimatedNumber value={Number(row.total_points) || 0} /></td>
                     </tr>
                   ))}
                 </tbody>

@@ -148,20 +148,25 @@ const RaceAnalysis = () => {
       <div className={cn(pageStack, "animate-fade-in")}>
         <RaceAnalysisHeader selectedYear={selectedYear} currentRace={currentRace} />
 
-        <RacePicker
-          selectedYear={selectedYear}
-          selectedRace={selectedRace}
-          currentRace={currentRace}
-          raceSchedule={raceScheduleData?.data}
-          isRaceScheduleLoading={isRaceScheduleLoading}
-          hasOpenF1Data={hasSessions}
-          availableSessions={availableSessions}
-          selectedSessionKey={selectedSessionKey}
-          isOpenF1Loading={isSessionsLoading}
-          onYearChange={handleYearChange}
-          onRaceChange={handleRaceChange}
-          onSessionChange={handleSessionChange}
-        />
+        {/* Sticky race-context bar (desktop only — the picker is a single compact
+            row there; on mobile it stacks tall so it scrolls normally). Keeps the
+            selected GP/session visible while scrolling long analysis tabs. */}
+        <div className="lg:sticky lg:top-0 lg:z-20 lg:-mx-6 lg:border-b lg:border-border/60 lg:bg-background/90 lg:px-6 lg:py-2 lg:backdrop-blur-sm">
+          <RacePicker
+            selectedYear={selectedYear}
+            selectedRace={selectedRace}
+            currentRace={currentRace}
+            raceSchedule={raceScheduleData?.data}
+            isRaceScheduleLoading={isRaceScheduleLoading}
+            hasOpenF1Data={hasSessions}
+            availableSessions={availableSessions}
+            selectedSessionKey={selectedSessionKey}
+            isOpenF1Loading={isSessionsLoading}
+            onYearChange={handleYearChange}
+            onRaceChange={handleRaceChange}
+            onSessionChange={handleSessionChange}
+          />
+        </div>
 
         <RaceAnalysisTabs
           selectedTab={selectedTab}

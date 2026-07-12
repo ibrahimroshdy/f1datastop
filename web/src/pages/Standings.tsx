@@ -26,6 +26,7 @@ import {
   buildF1DriverHeadshotUrl,
   getF1PortraitPathForErgastDriverId,
 } from "@/constants/f1DriverPortraitMedia";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 
 /** F1-media headshot for a current-grid driver; undefined falls back to initials. */
 const headshotSrc = (driverId?: string): string | undefined => {
@@ -90,7 +91,7 @@ const Pos = ({ position }: { position: string }) => {
 // ── Mono points readout (matches Home's `.readout` + PTS suffix) ─────────────
 const Points = ({ value }: { value: string }) => (
   <span className="shrink-0 text-right">
-    <span className="readout text-sm md:text-base">{value}</span>
+    <AnimatedNumber value={Number(value) || 0} mono className="readout text-sm md:text-base" />
     <span className="ml-1 text-2xs text-muted-foreground">PTS</span>
   </span>
 );
@@ -202,10 +203,10 @@ const Standings = () => {
             {/* Desktop-only extra columns: wins · gap (same row skeleton) */}
             <span className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground md:flex">
               <Trophy className="h-3 w-3" />
-              <span className="timing tabular-nums">{wins}</span>
+              <AnimatedNumber value={wins} mono className="timing" />
             </span>
             <span className="timing hidden w-16 shrink-0 text-right text-2xs text-muted-foreground md:block">
-              {gap > 0 ? `+${gap}` : "—"}
+              {gap > 0 ? <AnimatedNumber value={gap} mono prefix="+" /> : "—"}
             </span>
 
             <Points value={driver.points} />
@@ -261,10 +262,10 @@ const Standings = () => {
             {/* Desktop-only extra columns: wins · gap (same row skeleton) */}
             <span className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground md:flex">
               <Trophy className="h-3 w-3" />
-              <span className="timing tabular-nums">{wins}</span>
+              <AnimatedNumber value={wins} mono className="timing" />
             </span>
             <span className="timing hidden w-16 shrink-0 text-right text-2xs text-muted-foreground md:block">
-              {gap > 0 ? `+${gap}` : "—"}
+              {gap > 0 ? <AnimatedNumber value={gap} mono prefix="+" /> : "—"}
             </span>
 
             <Points value={constructor.points} />

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import TeamLogo from "@/components/common/TeamLogo";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { Progress } from "@/components/ui/progress";
 import ReactCountryFlag from "react-country-flag";
 import DriverStandingsTable from "./DriverStandingsTable";
@@ -45,7 +46,7 @@ const DriverStandingsCard = ({
         showAll={showAll}
       />
 
-      <div className="lg:hidden space-y-2">
+      <div className="lg:hidden space-y-1.5">
         {visible.map((standing: any, idx: number) => {
           const currentConstructor = standing.Constructors?.length
             ? standing.Constructors[standing.Constructors.length - 1]
@@ -61,46 +62,44 @@ const DriverStandingsCard = ({
           const displayPosition = standing.position || (idx + 1);
 
           return (
-            <div key={displayPosition} className="rounded-md border border-border p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="text-xs text-muted-foreground w-6">{displayPosition}</div>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <TeamLogo constructorId={teamId} alt={currentConstructor?.name} size="sm" />
-                    <ReactCountryFlag
-                      countryCode={getNationalityCode(standing.Driver?.nationality)}
-                      svg
-                      style={{ width: 14, height: "auto" }}
-                      title={standing.Driver?.nationality}
-                    />
-                    <div className="min-w-0">
-                      <div
-                        className="font-medium truncate"
-                        style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: "6px" }}
-                      >
-                        {standing.Driver?.givenName} {standing.Driver?.familyName}
-                      </div>
-                      {idx > 0 && (
-                        <div className="mt-1 text-[10px] text-muted-foreground">
-                          <div>To Leader: {toLeader}</div>
-                          <div>To P{aheadPosition ?? idx}: {toNext}</div>
-                        </div>
-                      )}
+            <div key={displayPosition} className="rounded-md border border-border px-2.5 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="w-5 shrink-0 text-center text-xs font-semibold tabular-nums text-muted-foreground">
+                    {displayPosition}
+                  </span>
+                  <TeamLogo constructorId={teamId} alt={currentConstructor?.name} size="sm" />
+                  <ReactCountryFlag
+                    countryCode={getNationalityCode(standing.Driver?.nationality)}
+                    svg
+                    style={{ width: 13, height: "auto" }}
+                    title={standing.Driver?.nationality}
+                  />
+                  <div
+                    className="min-w-0"
+                    style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: "6px" }}
+                  >
+                    <div className="truncate text-sm font-medium leading-tight">
+                      {standing.Driver?.givenName} {standing.Driver?.familyName}
                     </div>
+                    {idx > 0 && (
+                      <div className="text-2xs text-muted-foreground">
+                        Leader <AnimatedNumber value={toLeader} /> · P{aheadPosition ?? idx}{" "}
+                        <AnimatedNumber value={toNext} />
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold">{standing.points}</div>
-                  <div className="text-[10px] text-muted-foreground">{contrib}%</div>
+                <div className="shrink-0 text-right">
+                  <div className="text-sm font-semibold leading-tight"><AnimatedNumber value={points} /></div>
+                  <div className="text-2xs text-muted-foreground">{contrib}%</div>
                 </div>
               </div>
-              <div className="mt-2">
-                <Progress
-                  value={progressPct}
-                  className="h-1.5"
-                  indicatorStyle={{ backgroundColor: borderColor, opacity: 0.8 }}
-                />
-              </div>
+              <Progress
+                value={progressPct}
+                className="mt-1.5 h-1"
+                indicatorStyle={{ backgroundColor: borderColor, opacity: 0.8 }}
+              />
             </div>
           );
         })}

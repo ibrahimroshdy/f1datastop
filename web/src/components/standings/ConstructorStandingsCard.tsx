@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import TeamLogo from "@/components/common/TeamLogo";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -73,13 +74,13 @@ const ConstructorStandingsCard = ({
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
-                    {team.points}
+                    <AnimatedNumber value={totalPts} />
                   </TableCell>
                   <TableCell className="text-right py-2 px-2 lg:p-4 text-[10px] lg:text-xs text-muted-foreground">
                     {idx > 0 && (
                       <div className="flex flex-col items-end gap-0.5">
-                        <span>To Leader: {toLeader}</span>
-                        <span>To P{aheadPosition ?? idx}: {toNext}</span>
+                        <span>To Leader: <AnimatedNumber value={toLeader} /></span>
+                        <span>To P{aheadPosition ?? idx}: <AnimatedNumber value={toNext} /></span>
                       </div>
                     )}
                   </TableCell>
@@ -90,7 +91,7 @@ const ConstructorStandingsCard = ({
         </Table>
       </div>
 
-      <div className="lg:hidden space-y-2">
+      <div className="lg:hidden space-y-1.5">
         {visible.map((team: any, idx: number) => {
           const teamId = normalizeTeamId(team.Constructor?.constructorId || "default");
           const borderColor = getTeamHexColor(teamId);
@@ -101,35 +102,32 @@ const ConstructorStandingsCard = ({
           const displayPosition = team.position || (idx + 1);
 
           return (
-            <div key={displayPosition} className="rounded-md border border-border p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="text-xs text-muted-foreground w-6">{displayPosition}</div>
+            <div key={displayPosition} className="rounded-md border border-border px-2.5 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="w-5 shrink-0 text-center text-xs font-semibold tabular-nums text-muted-foreground">
+                    {displayPosition}
+                  </span>
                   <TeamLogo constructorId={teamId} alt={team.Constructor?.name} size="sm" />
-                  <div
-                    className="font-medium truncate"
-                    style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: "6px" }}
-                  >
-                    {team.Constructor?.name}
+                  <div className="min-w-0" style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: "6px" }}>
+                    <div className="truncate text-sm font-medium leading-tight">{team.Constructor?.name}</div>
+                    {idx > 0 && (
+                      <div className="text-2xs text-muted-foreground">
+                        Leader <AnimatedNumber value={toLeader} /> · P{aheadPosition ?? idx}{" "}
+                        <AnimatedNumber value={toNext} />
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold">{team.points}</div>
+                <div className="shrink-0 text-right text-sm font-semibold leading-tight">
+                  <AnimatedNumber value={totalPts} />
                 </div>
               </div>
-              {idx > 0 && (
-                <div className="mt-2 text-[10px] text-muted-foreground text-right">
-                  <div>To Leader: {toLeader}</div>
-                  <div>To P{aheadPosition ?? idx}: {toNext}</div>
-                </div>
-              )}
-              <div className="mt-2">
-                <Progress
-                  value={progressPct}
-                  className="h-1.5"
-                  indicatorStyle={{ backgroundColor: borderColor, opacity: 0.8 }}
-                />
-              </div>
+              <Progress
+                value={progressPct}
+                className="mt-1.5 h-1"
+                indicatorStyle={{ backgroundColor: borderColor, opacity: 0.8 }}
+              />
             </div>
           );
         })}

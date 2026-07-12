@@ -1,0 +1,367 @@
+#!/usr/bin/env python3
+"""
+FastF1 full-race position exporter — powers the GPS car-dot race replay.
+
+For every driver we resample their whole-race X/Y position (`session.pos_data`)
+onto ONE shared time grid, rotated into the circuit's display orientation (same
+frame the circuit-geometry track map uses), so the frontend can animate ~20 dots
+along the real racing line and scrub the race by time. Off-track / not-yet-started
+samples become null so a dot simply doesn't render for those frames.
+
+Grid is trimmed to the RACE itself — green flag (`session_start_time`) to the
+leader's chequered flag — using `SessionTime`, NOT the raw `pos_data` window
+(which spans ~55 min of garage boot-up + cool-down and would bunch every car at
+the origin). Frames are ~1.5s apart so the client's linear tween between samples
+hugs the racing line instead of chording across corners.
+
+SC / VSC / red-flag periods are detected from race-control messages and embedded
+as time ranges (seconds from green) so the frontend can shade the scrubber and
+flag the active period — the same safety context the deep-dive charts show.
+
+This is post-race / historical (FastF1 batch) — NOT live. No OpenF1 live feed.
+
+Storage layout:  replays/{season}/{circuit_id}.json  + index row in f1_race_replay.
+Env (same as circuit_geometry_export.py): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
+
+Usage:
+    python race_replay_export.py --season 2024 --event Austria --no-upload
+    python race_replay_export.py --season 2024 --round 11
+"""
+import argparse
+import json
+import os
+import re
+import sys
+import unicodedata
+
+import fastf1
+import numpy as np
+import pandas as pd
+import requests
+
+STEP_S = 1.5       # target seconds between shared time-grid samples
+MAX_FRAMES = 4000  # cap blob size on long red-flagged races
+BUCKET = "replays"
+
+
+def _env():
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
+        sys.exit("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (use --no-upload to skip)")
+    return url.rstrip("/"), key
+
+
+def _slug(s):
+    return re.sub(r"[^a-z0-9]+", "_", str(s).lower()).strip("_")
+
+
+def _ascii_key(s):
+    """ASCII-safe Storage key. Supabase Storage rejects non-ASCII object keys, so
+    DB circuit_ids like 'montréal' / 'são_paulo' must be folded ('montreal',
+    'sao_paulo') for the path — the original circuit_id still rides in the blob +
+    index, which is what the frontend matches on."""
+    n = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode("ascii")
+    n = re.sub(r"[^a-zA-Z0-9._-]+", "_", n).strip("_")
+    return n or "circuit"
+
+
+def _lookup_circuit(season, rnd):
+    try:
+        url, key = _env()
+        r = requests.get(
+            f"{url}/rest/v1/f1_race",
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+            params={"season": f"eq.{season}", "round": f"eq.{rnd}",
+                    "select": "circuit_id,f1_circuit(name)", "limit": "1"},
+            timeout=30,
+        )
+        if r.ok and r.json():
+            row = r.json()[0]
+            return row.get("circuit_id"), (row.get("f1_circuit") or {}).get("name")
+    except Exception:  # noqa: BLE001
+        pass
+    return None, None
+
+
+def _already_exported(season, circuit_id):
+    try:
+        url, key = _env()
+        r = requests.get(
+            f"{url}/rest/v1/f1_race_replay",
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+            params={"season": f"eq.{season}", "circuit_id": f"eq.{circuit_id}",
+                    "select": "id", "limit": "1"},
+            timeout=30,
+        )
+        return r.ok and len(r.json()) >= 1
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _rotate(x, y, deg):
+    a = float(deg) / 180.0 * np.pi
+    return x * np.cos(a) + y * np.sin(a), -x * np.sin(a) + y * np.cos(a)
+
+
+def _race_window(session):
+    """(race_start_s, race_end_s) in SessionTime seconds — green flag to the
+    leader's chequered. Falls back to the lap-time span if session_start_time is
+    missing (older FastF1 data)."""
+    laps = session.laps
+    try:
+        start = float(session.session_start_time.total_seconds())
+    except Exception:  # noqa: BLE001
+        start = float(laps["LapStartTime"].min().total_seconds())
+    end = float(laps["Time"].max().total_seconds())
+    if not (end > start > 0):
+        return None
+    return start, end
+
+
+def _t0_date(pos):
+    """Absolute Timestamp for SessionTime=0 (so race-control Time — which is
+    absolute — can be mapped onto the SessionTime clock)."""
+    for df in pos.values():
+        if df is not None and len(df) and "SessionTime" in df and "Date" in df:
+            return df["Date"].iloc[0] - df["SessionTime"].iloc[0]
+    return None
+
+
+def safety_periods_time(session, t0_date, race_start, duration):
+    """SC / VSC / red-flag periods as {kind, start_s, end_s} in seconds from the
+    green flag. Mirrors generate.py's lap-domain state machine but keyed on the
+    race-control message Time (absolute → SessionTime → seconds-from-green)."""
+    try:
+        rc = getattr(session, "race_control_messages", None)
+        if rc is None or len(rc) == 0 or t0_date is None:
+            return []
+    except Exception:  # noqa: BLE001
+        return []
+
+    def to_s(t):
+        if t is None or pd.isna(t):
+            return None
+        return (t - t0_date).total_seconds() - race_start  # seconds from green
+
+    rows = []
+    for _, m in rc.iterrows():
+        s = to_s(m.get("Time"))
+        if s is None:
+            continue
+        rows.append((s, str(m.get("Message") or "").upper(), str(m.get("Flag") or "").upper()))
+    rows.sort(key=lambda r: r[0])
+
+    def clamp(v):
+        return max(0.0, min(duration, v))
+
+    periods, sc, vsc, red = [], None, None, None
+    for t, msg, flag in rows:
+        virtual = "VIRTUAL SAFETY CAR" in msg or "VSC" in msg
+        deploy = "DEPLOY" in msg
+        ending = "ENDING" in msg or "IN THIS LAP" in msg
+        # `flag` column authoritative; message fallback word-bounded so
+        # "CHEQUERED FLAG" (contains "…RED FLAG") never trips a red band.
+        if flag == "RED" or re.search(r"\bRED FLAG\b", msg):
+            red = red or {"kind": "RED", "start": t, "end": t}
+            continue
+        if flag == "GREEN" or "GREEN" in msg or "TRACK CLEAR" in msg:
+            for p in (red, vsc, sc):
+                if p:
+                    p["end"] = max(p["start"], t)
+                    periods.append(p)
+            red = vsc = sc = None
+            continue
+        if virtual:
+            if deploy and not vsc:
+                vsc = {"kind": "VSC", "start": t, "end": t}
+            elif ending and vsc:
+                vsc["end"] = max(vsc["start"], t)
+                periods.append(vsc)
+                vsc = None
+            continue
+        if "SAFETY CAR" in msg:
+            if deploy and not sc:
+                sc = {"kind": "SC", "start": t, "end": t}
+            elif ending and sc:
+                sc["end"] = max(sc["start"], t)
+                periods.append(sc)
+                sc = None
+    for p in (sc, vsc, red):
+        if p:
+            p["end"] = duration
+            periods.append(p)
+
+    out = []
+    for p in sorted(periods, key=lambda p: p["start"]):
+        a, b = clamp(p["start"]), clamp(p["end"])
+        if b - a >= 1.0:  # drop noise-thin bands
+            out.append({"kind": p["kind"], "start_s": round(a, 1), "end_s": round(b, 1)})
+    return out
+
+
+def export_replay(season, rnd, upload=True, force=False):
+    circuit_id, circuit_name = (None, None)
+    if upload:
+        circuit_id, circuit_name = _lookup_circuit(season, rnd)
+
+    try:
+        s = fastf1.get_session(season, rnd, "R")
+        s.load(telemetry=True, weather=False, messages=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"  {season} R{rnd}: unavailable ({e}); skip")
+        return None
+
+    if not circuit_id:
+        circuit_id = _slug(s.event.get("Location") or s.event.get("EventName") or f"r{rnd}")
+        circuit_name = circuit_name or s.event.get("EventName")
+
+    if upload and not force and _already_exported(season, circuit_id):
+        print(f"  {season} {circuit_id}: already exported, skip (--force to redo)")
+        return None
+
+    # Future / dataless races have no telemetry — get_circuit_info() then raises
+    # DataNotLoadedError. Skip cleanly instead of a traceback.
+    try:
+        ci = s.get_circuit_info()
+    except Exception as e:  # noqa: BLE001
+        print(f"  {season} R{rnd}: no telemetry/circuit info ({type(e).__name__}); skip")
+        return None
+    rot = getattr(ci, "rotation", 0.0) or 0.0
+
+    res = s.results
+    num2id = {str(r.get("DriverNumber")): r.get("DriverId") for _, r in res.iterrows()}
+    num2code = {str(r.get("DriverNumber")): r.get("Abbreviation") for _, r in res.iterrows()}
+    num2color = {str(r.get("DriverNumber")): r.get("TeamColor") for _, r in res.iterrows()}
+
+    pos = getattr(s, "pos_data", None)
+    if not pos:
+        print(f"  {season} R{rnd}: no position data; skip")
+        return None
+
+    win = _race_window(s)
+    if win is None:
+        print(f"  {season} R{rnd}: bad race window; skip")
+        return None
+    race_start, race_end = win
+    duration = race_end - race_start
+    frames = min(MAX_FRAMES, max(2, int(duration / STEP_S) + 1))
+    grid = np.linspace(race_start, race_end, frames)  # SessionTime seconds
+
+    drivers_out, xs_all, ys_all = [], [], []
+    for num, df in pos.items():
+        did = num2id.get(str(num))
+        if did is None or df is None or len(df) < 2 or "X" not in df or "SessionTime" not in df:
+            continue
+        secs = df["SessionTime"].dt.total_seconds().to_numpy(dtype=float)
+        order = np.argsort(secs)  # SessionTime should be sorted, but be safe for np.interp
+        secs = secs[order]
+        rx, ry = _rotate(df["X"].to_numpy(dtype=float)[order],
+                         df["Y"].to_numpy(dtype=float)[order], rot)
+        gx = np.interp(grid, secs, rx, left=np.nan, right=np.nan)
+        gy = np.interp(grid, secs, ry, left=np.nan, right=np.nan)
+        xy = [
+            None if (np.isnan(a) or np.isnan(b)) else [int(round(a)), int(round(b))]
+            for a, b in zip(gx, gy)
+        ]
+        if not any(p is not None for p in xy):
+            continue
+        color = num2color.get(str(num))
+        drivers_out.append({
+            "driver_id": did,
+            "code": num2code.get(str(num)),
+            "number": int(num) if str(num).isdigit() else None,
+            "team_color": f"#{color}" if color and not str(color).startswith("#") else color,
+            "xy": xy,
+        })
+        for p in xy:
+            if p is not None:
+                xs_all.append(p[0])
+                ys_all.append(p[1])
+
+    if not drivers_out or not xs_all:
+        print(f"  {season} R{rnd}: no usable driver traces; skip")
+        return None
+
+    safety = safety_periods_time(s, _t0_date(pos), race_start, duration)
+
+    blob = {
+        "season": season, "round": rnd,
+        "circuit_id": circuit_id, "circuit_name": circuit_name,
+        "rotation": round(float(rot), 2),
+        "frames": frames, "duration_s": round(duration, 1),
+        "bounds": {"min_x": min(xs_all), "max_x": max(xs_all),
+                   "min_y": min(ys_all), "max_y": max(ys_all)},
+        "times": [round(float(g - race_start), 1) for g in grid],
+        "safety": safety,
+        "drivers": drivers_out,
+        "source": "fastf1",
+    }
+    path = f"{season}/{_ascii_key(circuit_id)}.json"
+    _emit(blob, path, upload)
+    print(f"  {season} R{rnd} {circuit_id}: {len(drivers_out)} drivers, {frames} frames, "
+          f"{blob['duration_s']}s, {len(safety)} safety period(s) -> {path}")
+    return blob
+
+
+def _emit(blob, path, upload):
+    data = json.dumps(blob, separators=(",", ":")).encode()
+    if not upload:
+        local = os.path.join("replays_out", path)
+        os.makedirs(os.path.dirname(local), exist_ok=True)
+        with open(local, "wb") as f:
+            f.write(data)
+        return
+    url, key = _env()
+    r = requests.post(
+        f"{url}/storage/v1/object/{BUCKET}/{path}",
+        headers={"Authorization": f"Bearer {key}", "apikey": key,
+                 "Content-Type": "application/json", "x-upsert": "true"},
+        data=data, timeout=120,
+    )
+    if not r.ok:
+        raise RuntimeError(f"upload {path} failed {r.status_code}: {r.text[:300]}")
+    public_url = f"{url}/storage/v1/object/public/{BUCKET}/{path}"
+    idx = {
+        "season": blob["season"], "round": blob["round"],
+        "circuit_id": blob["circuit_id"], "circuit_name": blob["circuit_name"],
+        "storage_path": path, "public_url": public_url,
+        "driver_count": len(blob["drivers"]), "frames": blob["frames"],
+        "duration_s": blob["duration_s"], "rotation": blob["rotation"], "source": "fastf1",
+    }
+    ir = requests.post(
+        f"{url}/rest/v1/f1_race_replay?on_conflict=season,circuit_id",
+        headers={"Authorization": f"Bearer {key}", "apikey": key,
+                 "Content-Type": "application/json",
+                 "Prefer": "resolution=merge-duplicates,return=minimal"},
+        json=[idx], timeout=30,
+    )
+    if not ir.ok:
+        raise RuntimeError(f"index upsert failed {ir.status_code}: {ir.text[:300]}")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--season", type=int, required=True)
+    ap.add_argument("--round", type=int)
+    ap.add_argument("--event")
+    ap.add_argument("--no-upload", action="store_true")
+    ap.add_argument("--force", action="store_true")
+    args = ap.parse_args()
+
+    cache = os.environ.get("FASTF1_CACHE", ".fastf1cache")
+    os.makedirs(cache, exist_ok=True)
+    fastf1.Cache.enable_cache(cache)
+
+    rnd = args.round
+    if args.event:
+        rnd = int(fastf1.get_event(args.season, args.event)["RoundNumber"])
+    if rnd is None:
+        sys.exit("Provide --round or --event")
+
+    print(f"Race replay export {args.season} R{rnd}")
+    export_replay(args.season, rnd, upload=not args.no_upload, force=args.force)
+
+
+if __name__ == "__main__":
+    main()

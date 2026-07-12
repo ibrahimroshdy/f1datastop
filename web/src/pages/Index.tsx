@@ -14,7 +14,6 @@ import { useTheme } from "@/context/ThemeContext";
 import {
   F1Card,
   F1CardContent,
-  F1CardDescription,
   F1CardHeader,
   F1CardTitle,
 } from "@/components/f1";

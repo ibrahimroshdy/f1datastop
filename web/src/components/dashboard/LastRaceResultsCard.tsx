@@ -80,7 +80,7 @@ const LastRaceResultsCard = ({
       <F1Card
         variant={surfaceVariant}
         glassVariant={surfaceGlass}
-        className={cn("h-full min-h-[280px] overflow-hidden p-0", isGlass && "border-white/10")}
+        className={cn("h-full overflow-hidden p-0", isGlass && "border-white/10")}
       >
         <F1CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between gap-2">
@@ -139,46 +139,36 @@ const LastRaceResultsCard = ({
               showDecoration={false}
             />
           ) : (
-            <div className="space-y-3 max-w-3xl mx-auto">
+            <div className="divide-y divide-border">
               {lastRaceResults?.data?.results?.slice(0, 5).map((result: any) => {
                 const position = Number(result.position);
                 const teamColor = getTeamHexColor(result.Constructor.constructorId);
                 const isWinner = position === 1;
-                
+                const timeLabel = isWinner
+                  ? result.Time?.time
+                  : result.Time?.time?.startsWith('+')
+                    ? result.Time.time
+                    : result.status === "Finished"
+                      ? "+" + result.Time?.time
+                      : result.status;
                 return (
-                <div
-                  key={result.position}
-                  className="flex items-center justify-between p-2 bg-card rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="text-xl font-bold">{result.position}</div>
-                      <div style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: '0.5rem' }}>
-                      <div className="font-semibold">{result.Driver.code}</div>
-                      <div className="text-xs text-muted-foreground capitalize">
-                        {result.Constructor.name}
-                      </div>
+                  <div
+                    key={result.position}
+                    className="flex items-center gap-2.5 py-1.5 transition-colors hover:bg-accent/40"
+                  >
+                    <span className="w-5 shrink-0 text-center text-sm font-bold tabular-nums text-muted-foreground">
+                      {result.position}
+                    </span>
+                    <span className="h-5 w-1 shrink-0 rounded-full" style={{ backgroundColor: teamColor }} />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-sm font-semibold">{result.Driver.code}</span>
+                      <span className="ml-1.5 text-xs capitalize text-muted-foreground">{result.Constructor.name}</span>
                     </div>
+                    <span className="timing shrink-0 whitespace-nowrap text-sm text-foreground">{timeLabel}</span>
+                    <Badge variant="outline" className="shrink-0 text-xs">Lap {result.laps}</Badge>
                   </div>
-                    
-                  <div className="shrink-0 whitespace-nowrap text-right">
-                    <div className="font-mono font-medium">
-                        {isWinner 
-                          ? result.Time?.time 
-                          : result.Time?.time?.startsWith('+') 
-                            ? result.Time.time 
-                            : result.status === "Finished" 
-                              ? "+" + result.Time?.time 
-                              : result.status
-                        }
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      Lap {result.laps}
-                    </Badge>
-                  </div>
-                </div>
                 );
               })}
-              
             </div>
           )}
         </F1CardContent>

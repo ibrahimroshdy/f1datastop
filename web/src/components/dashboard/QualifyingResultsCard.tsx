@@ -185,7 +185,7 @@ const QualifyingResultsCard = () => {
       <F1Card
         variant={surfaceVariant}
         glassVariant={surfaceGlass}
-        className={cn("h-full min-h-[280px] overflow-hidden p-0", isGlass && "border-white/10")}
+        className={cn("h-full overflow-hidden p-0", isGlass && "border-white/10")}
       >
         <F1CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between gap-2">
@@ -255,35 +255,31 @@ const QualifyingResultsCard = () => {
               size="sm"
             />
           ) : (
-            <div className="space-y-3 max-w-3xl mx-auto">
+            <div className="divide-y divide-border">
               {qualifyingResults.map((result) => {
                 const teamColor = getTeamHexColor(result.team);
-                
                 return (
-                <div
-                  key={result.position}
-                  className="flex items-center justify-between p-2 bg-card rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-xl font-bold">{result.position}</div>
-                      <div style={{ borderLeft: `3px solid ${teamColor}`, paddingLeft: '0.5rem' }}>
-                      <div className="font-semibold">{result.driver.code}</div>
-                      <div className="text-xs text-muted-foreground capitalize">
+                  <div
+                    key={result.position}
+                    className="flex items-center gap-2.5 py-1.5 transition-colors hover:bg-accent/40"
+                  >
+                    <span className="w-5 shrink-0 text-center text-sm font-bold tabular-nums text-muted-foreground">
+                      {result.position}
+                    </span>
+                    <span className="h-5 w-1 shrink-0 rounded-full" style={{ backgroundColor: teamColor }} />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-sm font-semibold">{result.driver.code}</span>
+                      <span className="ml-1.5 text-xs capitalize text-muted-foreground">
                         {result.team.replace("_", " ")}
-                      </div>
+                      </span>
                     </div>
-                  </div>
-                    
-                  <div className="text-right">
-                    <div className="font-mono font-medium">{result.bestTime}</div>
-                    <Badge variant="outline" className="text-xs">
+                    <span className="timing shrink-0 text-sm text-foreground">{result.bestTime}</span>
+                    <Badge variant="outline" className="shrink-0 text-xs">
                       {result.session}
                     </Badge>
                   </div>
-                </div>
                 );
               })}
-              
             </div>
           )}
         </F1CardContent>

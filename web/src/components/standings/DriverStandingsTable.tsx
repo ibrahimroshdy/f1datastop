@@ -1,4 +1,5 @@
 import TeamLogo from "@/components/common/TeamLogo";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy } from "lucide-react";
@@ -93,13 +94,13 @@ const DriverStandingsTable = ({
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
-                  {standing.points}
+                  <AnimatedNumber value={points} />
                 </TableCell>
                 <TableCell className="text-center py-2 px-2 lg:p-4">
                   {Number(standing.wins || 0) > 0 ? (
                     <div className="inline-flex items-center justify-center gap-1 text-xs font-medium text-primary">
                       <Trophy className="h-3 w-3" />
-                      <span>{standing.wins}</span>
+                      <AnimatedNumber value={Number(standing.wins) || 0} />
                     </div>
                   ) : (
                     <span className="text-muted-foreground text-xs">-</span>
@@ -108,8 +109,8 @@ const DriverStandingsTable = ({
                 <TableCell className="text-right py-2 px-2 lg:p-4 text-[10px] lg:text-xs text-muted-foreground">
                   {idx > 0 && (
                     <div className="flex flex-col items-end gap-0.5">
-                      <span>To Leader: {toLeader}</span>
-                      <span>To P{aheadPosition ?? idx}: {toNext}</span>
+                      <span>To Leader: <AnimatedNumber value={toLeader} /></span>
+                      <span>To P{aheadPosition ?? idx}: <AnimatedNumber value={toNext} /></span>
                     </div>
                   )}
                 </TableCell>

@@ -88,6 +88,13 @@
     --status-upcoming: 217 91% 60%;
     --status-cancelled: 0 0% 50%;
 
+    /* Categorical encodings (DESIGN.md §1.7) — beyond the single red accent.
+       Purple = fastest lap / overall-best segment (F1 broadcast convention);
+       gain/loss reuse the status ramp so the palette stays coherent. */
+    --fastest-lap: 271 91% 68%;
+    --gain: 142 71% 45%;
+    --loss: 0 84% 62%;
+
     /* Glass Morphism Variables - Dark */
     --glass-bg: rgba(255, 255, 255, 0.03);
     --glass-bg-hover: rgba(255, 255, 255, 0.06);
@@ -208,6 +215,11 @@
     --status-upcoming: 217 91% 55%;
     --status-cancelled: 0 0% 45%;
 
+    /* Categorical encodings (see dark theme). */
+    --fastest-lap: 271 81% 56%;
+    --gain: 142 71% 40%;
+    --loss: 0 84% 55%;
+
     /* Glass Morphism Variables - Light */
     --glass-bg: rgba(255, 255, 255, 0.7);
     --glass-bg-hover: rgba(255, 255, 255, 0.8);
@@ -310,6 +322,13 @@
     --status-completed: 142 71% 45%;
     --status-upcoming: 217 91% 60%;
     --status-cancelled: 0 0% 50%;
+
+    /* Categorical encodings (DESIGN.md §1.7) — beyond the single red accent.
+       Purple = fastest lap / overall-best segment (F1 broadcast convention);
+       gain/loss reuse the status ramp so the palette stays coherent. */
+    --fastest-lap: 271 91% 68%;
+    --gain: 142 71% 45%;
+    --loss: 0 84% 62%;
 
     /* Glass Morphism Variables - Dark Glass (Enhanced) */
     --glass-bg: rgba(255, 255, 255, 0.05);
@@ -993,6 +1012,22 @@
 
   .animate-count {
     animation: count-up 0.5s ease-out forwards;
+  }
+
+  /* Branded loader — three sector segments sweeping in sequence (F1 timing feel) */
+  @keyframes sector-sweep {
+    0% { transform: scaleX(0); opacity: 0.35; }
+    45% { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(0); opacity: 0.35; }
+  }
+  .animate-sector-sweep {
+    animation: sector-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  /* Fade the edges of a horizontal scroller so clipped content dissolves */
+  .scroll-fade-x {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
   }
 }
 

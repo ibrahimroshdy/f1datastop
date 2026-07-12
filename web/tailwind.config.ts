@@ -104,6 +104,10 @@ export default {
           silver: 'hsl(var(--position-silver))',
           bronze: 'hsl(var(--position-bronze))',
         },
+        // Categorical encodings (fastest lap / gain / loss)
+        'fastest-lap': 'hsl(var(--fastest-lap))',
+        gain: 'hsl(var(--gain))',
+        loss: 'hsl(var(--loss))',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
