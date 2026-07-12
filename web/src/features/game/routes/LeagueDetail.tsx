@@ -27,7 +27,7 @@ function Movement({ n }: { n: number }) {
   if (!n) return <Minus className="h-3 w-3 text-muted-foreground/40" aria-label="no change" />;
   const up = n > 0;
   return (
-    <span className={cn("inline-flex items-center text-2xs font-semibold tabular-nums", up ? "text-emerald-500" : "text-destructive")}>
+    <span className={cn("inline-flex items-center text-2xs font-semibold tabular-nums", up ? "text-gain" : "text-destructive")}>
       {up ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
       {Math.abs(n)}
     </span>
@@ -152,38 +152,44 @@ export default function LeagueDetail() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="w-10 px-3 py-2">#</th>
-                    <th className="px-3 py-2">Player</th>
-                    <th className="px-3 py-2 text-right">Exact</th>
-                    <th className="px-4 py-2 text-right">Points</th>
+                  <tr className="border-b border-border">
+                    <th className="instrument-label w-10 px-3 py-2 text-left text-[10px]">#</th>
+                    <th className="instrument-label px-3 py-2 text-left text-[10px]">Player</th>
+                    <th className="instrument-label px-3 py-2 text-right text-[10px]">Exact</th>
+                    <th className="instrument-label px-4 py-2 text-right text-[10px]">Points</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {standings.data?.map((row) => (
-                    <tr key={row.user_id}
-                      className={cn("border-b border-border/60", row.user_id === user?.id && "bg-primary/[0.06]")}>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className={cn(RANK_PILL, medalBadge(row.rank))}>{row.rank}</span>
-                          <Movement n={row.movement} />
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className="font-medium">{row.username ?? "—"}</span>
-                        {row.champions_correct > 0 && <Crown className="ml-1 inline h-3 w-3 text-yellow-500" />}
-                        {row.user_id !== user?.id && (
-                          <Link to={`/game/leagues/${leagueId}/h2h/${row.user_id}`}
-                            className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-primary"
-                            aria-label={`Head to head vs ${row.username ?? "player"}`}>
-                            <Swords className="h-3.5 w-3.5" />
-                          </Link>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.exact_hits}</td>
-                      <td className="px-4 py-2 text-right font-semibold tabular-nums"><AnimatedNumber value={Number(row.total_points) || 0} /></td>
-                    </tr>
-                  ))}
+                  {standings.data?.map((row) => {
+                    const isMe = row.user_id === user?.id;
+                    return (
+                      <tr key={row.user_id}
+                        className={cn("border-b border-border/60 transition-colors", isMe ? "bg-primary/[0.08]" : "hover:bg-muted/30")}>
+                        <td className={cn("px-3 py-2", isMe && "border-l-2 border-l-primary")}>
+                          <div className="flex items-center gap-1.5">
+                            <span className={cn(RANK_PILL, medalBadge(row.rank))}>{row.rank}</span>
+                            <Movement n={row.movement} />
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className="font-medium">{row.username ?? "—"}</span>
+                          {isMe && <span className="ml-1.5 rounded bg-primary/15 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary">You</span>}
+                          {row.champions_correct > 0 && <Crown className="ml-1 inline h-3 w-3 text-position-gold" />}
+                          {!isMe && (
+                            <Link to={`/game/leagues/${leagueId}/h2h/${row.user_id}`}
+                              className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-primary"
+                              aria-label={`Head to head vs ${row.username ?? "player"}`}>
+                              <Swords className="h-3.5 w-3.5" />
+                            </Link>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.exact_hits}</td>
+                        <td className="px-4 py-2 text-right">
+                          <AnimatedNumber value={Number(row.total_points) || 0} mono className="readout font-bold text-primary" />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -244,7 +250,7 @@ export default function LeagueDetail() {
               ).map(([round, v]) => (
                 <div key={round} className="flex items-center gap-2 text-xs">
                   <span className="timing w-8 text-muted-foreground">R{round}</span>
-                  {v.goat && <span className="text-emerald-500">🐐 {v.goat}</span>}
+                  {v.goat && <span className="text-gain">🐐 {v.goat}</span>}
                   {v.flop && <span className="text-muted-foreground">🥶 {v.flop}</span>}
                 </div>
               ))}

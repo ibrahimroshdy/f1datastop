@@ -104,14 +104,17 @@ type Snap = {
   pos: number | null;
   gap: number | null;
   int: number | null;
-  lastLap: { last: number | null; s1: number | null; s2: number | null; s3: number | null } | null;
+  /** Current lap's sectors (ms), each revealed only once it's been set. */
+  secLive: (number | null)[];
+  /** Last fully-completed lap time (s). */
+  lastTime: number | null;
   pb: [number, number, number];
   curLapN: number | null;
   tyre: string | null;
   tyl: number | null;
   lapsDown: number;
   isFL: boolean; // holds the race fastest lap
-  isFLLap: boolean; // their current last lap IS the race fastest (purple moment)
+  isFLLap: boolean; // the displayed last lap IS the race fastest (purple moment)
   pit: boolean;
   drs: boolean;
 };
@@ -125,22 +128,37 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
     const snaps: Snap[] = [];
     for (const d of blob.drivers) {
       const laps = d.laps ?? [];
-      const done = laps.filter((l) => l.te != null && l.te <= t);
       const pb: [number, number, number] = [Infinity, Infinity, Infinity];
-      for (const l of done) {
-        [l.s1, l.s2, l.s3].forEach((s, k) => {
-          if (s != null) {
-            if (s < pb[k]) pb[k] = s;
-            if (s < bestSession[k]) bestSession[k] = s;
+      let live: (typeof laps)[number] | null = null; // lap the driver is currently on
+      let lastC: (typeof laps)[number] | null = null; // last fully-completed lap
+      for (const l of laps) {
+        const sv = [l.s1, l.s2, l.s3];
+        const st = [l.s1t, l.s2t, l.s3t];
+        for (let k = 0; k < 3; k++) {
+          // a sector counts (bests + live reveal) the moment it's been set
+          if (sv[k] != null && st[k] != null && (st[k] as number) <= t) {
+            if (sv[k]! < pb[k]) pb[k] = sv[k]!;
+            if (sv[k]! < bestSession[k]) bestSession[k] = sv[k]!;
           }
-        });
-        if (l.last != null && !l.pit && l.last < flTime) {
-          flTime = l.last;
-          flId = d.driver_id;
         }
+        const complete = l.s3t != null ? l.s3t <= t : l.te != null && l.te <= t;
+        if (complete) {
+          if (!lastC || l.n > lastC.n) lastC = l;
+          if (!l.pit && l.last != null && l.last < flTime) {
+            flTime = l.last;
+            flId = d.driver_id;
+          }
+        }
+        if (l.ts <= t && (!live || l.n > live.n)) live = l;
       }
-      const lastLap = done.length ? done[done.length - 1] : null;
-      const curLap = [...laps].reverse().find((l) => l.ts <= t) ?? lastLap;
+      const secLive: (number | null)[] = live
+        ? [
+            live.s1t != null && live.s1t <= t ? live.s1 : null,
+            live.s2t != null && live.s2t <= t ? live.s2 : null,
+            live.s3t != null && live.s3t <= t ? live.s3 : null,
+          ]
+        : [null, null, null];
+      const curLap = live ?? lastC;
       snaps.push({
         id: d.driver_id,
         code: d.code ?? d.driver_id.slice(0, 3).toUpperCase(),
@@ -148,7 +166,8 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
         pos: d.pos?.[fi] ?? null,
         gap: d.gap?.[fi] ?? null,
         int: null,
-        lastLap: lastLap ? { last: lastLap.last, s1: lastLap.s1, s2: lastLap.s2, s3: lastLap.s3 } : null,
+        secLive,
+        lastTime: lastC?.last ?? null,
         pb,
         curLapN: curLap?.n ?? null,
         tyre: curLap?.tyre ?? null,
@@ -166,7 +185,7 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
       if (i > 0 && s.gap != null && snaps[i - 1].gap != null) s.int = s.gap - snaps[i - 1].gap!;
       s.lapsDown = s.curLapN != null ? Math.max(0, leaderLap - s.curLapN) : 0;
       s.isFL = s.id === flId;
-      s.isFLLap = s.lastLap?.last != null && s.lastLap.last === flTime;
+      s.isFLLap = s.lastTime != null && s.lastTime === flTime;
     });
     return { snaps, bestSession, leaderLap, t, flTime, flId };
   }, [blob, fi]);
@@ -279,7 +298,7 @@ function TrackSVG({
 
 // ── Timing tower ──────────────────────────────────────────────────────────────
 function SectorBars({ snap, bestSession }: { snap: Snap; bestSession: [number, number, number] }) {
-  const secs = [snap.lastLap?.s1, snap.lastLap?.s2, snap.lastLap?.s3];
+  const secs = snap.secLive;
   return (
     <div className="flex items-center gap-0.5">
       {secs.map((s, k) => {
@@ -354,7 +373,7 @@ function TimingTower({
                   {s.pos !== 1 && s.int != null && <span className="text-[9px] text-muted-foreground/60">{fmtGap(s.int)}</span>}
                 </span>
                 <span className="flex w-[3.9rem] shrink-0 flex-col items-end gap-0.5">
-                  <span className={cn("readout text-[11px]", s.isFLLap ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(s.lastLap?.last ?? null)}</span>
+                  <span className={cn("readout text-[11px]", s.isFLLap ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(s.lastTime)}</span>
                   <SectorBars snap={s} bestSession={bestSession} />
                 </span>
               </motion.button>
@@ -568,7 +587,7 @@ function SimBody({
             )}
           </span>
           <span className="flex items-center gap-2.5 text-xs tabular-nums">
-            {([selSnap.lastLap?.s1, selSnap.lastLap?.s2, selSnap.lastLap?.s3] as (number | null | undefined)[]).map((v, k) => {
+            {selSnap.secLive.map((v, k) => {
               const cls = v == null ? "text-muted-foreground/40" : v === bestSession[k] ? "text-fastest-lap" : v === selSnap.pb[k] ? "text-gain" : "text-foreground";
               return (
                 <span key={k} className="flex items-baseline gap-1">
@@ -581,7 +600,7 @@ function SimBody({
           <span className="ml-auto flex items-center gap-3 text-xs">
             <span className="flex items-baseline gap-1">
               <span className="text-[9px] uppercase text-muted-foreground/60">Last</span>
-              <span className={cn("readout", selSnap.isFLLap ? "text-fastest-lap" : "text-foreground")}>{fmtLap(selSnap.lastLap?.last ?? null)}</span>
+              <span className={cn("readout", selSnap.isFLLap ? "text-fastest-lap" : "text-foreground")}>{fmtLap(selSnap.lastTime)}</span>
             </span>
             <span className="flex items-baseline gap-1">
               <span className="text-[9px] uppercase text-muted-foreground/60">Gap</span>

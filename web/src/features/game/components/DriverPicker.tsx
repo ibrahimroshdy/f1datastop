@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ChevronUp, ChevronDown, X, Check, Plus } from "lucide-react";
+import { ChevronUp, ChevronDown, X, Plus } from "lucide-react";
 import { getTeamColorById } from "@/constants/f1Colors";
 import { cn } from "@/lib/utils";
 import { medalBadge } from "../utils/medal";
@@ -92,8 +92,8 @@ export function DriverPicker({
                   )}
                 </>
               ) : (
-                <span className="text-xs text-muted-foreground/60">
-                  {editable ? "Tap a driver below" : "No pick"}
+                <span className="text-xs text-muted-foreground/50">
+                  {!editable ? "No pick" : i === value.length ? "Tap a driver to add ↓" : ""}
                 </span>
               )}
             </li>
@@ -110,6 +110,7 @@ export function DriverPicker({
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
             {drivers.map((d) => {
               const isPicked = picked.has(d.driver_id);
+              const pickPos = isPicked ? value.indexOf(d.driver_id) + 1 : 0;
               const full = value.length >= depth && !isPicked;
               const team = d.constructor_id ? getTeamColorById(d.constructor_id) : "transparent";
               return (
@@ -132,7 +133,15 @@ export function DriverPicker({
                     <span className="block truncate text-2xs text-muted-foreground">{d.name}</span>
                   </span>
                   {isPicked ? (
-                    <Check className="h-4 w-4 shrink-0 text-primary" />
+                    <span
+                      className={cn(
+                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-2xs font-bold tabular-nums",
+                        medalBadge(pickPos),
+                      )}
+                      aria-label={`Picked P${pickPos}`}
+                    >
+                      {pickPos}
+                    </span>
                   ) : (
                     <Plus className="h-4 w-4 shrink-0 text-muted-foreground/40" />
                   )}

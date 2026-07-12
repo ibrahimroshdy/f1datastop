@@ -242,12 +242,21 @@ def _lap_timing(session, race_start):
             n = int(lp["LapNumber"])
             te = st + lt if lt else None
             tyl = lp.get("TyreLife")
+
+            def _st(col):  # sector completion time, seconds from green (for live reveal)
+                v = _secs(lp.get(col))
+                return round(v - race_start, 1) if v is not None else None
+
             rows.append({
                 "n": n, "ts": round(st, 1),
                 "te": round(te, 1) if te is not None else None,
                 "last": round(lt, 3) if lt else None,
                 "s1": _ms(lp.get("Sector1Time")), "s2": _ms(lp.get("Sector2Time")),
                 "s3": _ms(lp.get("Sector3Time")),
+                # sector completion times (s from green) so the tower reveals each
+                # sector the moment it's set, instead of only at lap end.
+                "s1t": _st("Sector1SessionTime"), "s2t": _st("Sector2SessionTime"),
+                "s3t": _st("Sector3SessionTime"),
                 "tyre": _compound(lp.get("Compound")),
                 "tyl": int(tyl) if tyl is not None and not pd.isna(tyl) else None,
                 "pit": bool(not pd.isna(lp.get("PitInTime")) or not pd.isna(lp.get("PitOutTime"))),

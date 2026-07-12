@@ -386,7 +386,7 @@ export function RaceAnalysisTabs({
               </F1Card>
             </TabsContent>
 
-            <TabsContent value="overtakes" className="mt-4 space-y-4">
+            <TabsContent value="racecontrol" className="mt-4 space-y-4">
               <RaceSimulator year={selectedYear} round={selectedRace} session={selectedSession} />
               <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
                 <F1CardHeader className="px-4 pb-2 pt-3">

@@ -26,7 +26,7 @@ export type RaceAnalysisTabId =
   | "radio"
   | "telemetry"
   | "results"
-  | "overtakes";
+  | "racecontrol";
 
 export type RaceAnalysisTabGroup = "core" | "live";
 
@@ -56,7 +56,7 @@ export const CORE_TABS: RaceAnalysisTabConfig[] = [
 // OpenF1 covers 2023+ and lags the current season, so these are gated on
 // session availability.
 export const LIVE_TABS: RaceAnalysisTabConfig[] = [
-  { id: "overtakes", label: "Overtakes", icon: Car, group: "live" },
+  { id: "racecontrol", label: "Race Control", icon: Car, group: "live" },
   { id: "weather", label: "Weather", icon: Cloud, group: "live" },
   { id: "radio", label: "Team Radio", icon: Radio, group: "live" },
 ];

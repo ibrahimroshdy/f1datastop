@@ -29,7 +29,7 @@ export function Podium({ rows, meId }: { rows: StandingRow[]; meId?: string }) {
         const tb = tiebreakReason(e, below);
         return (
           <div key={e.user_id} className="flex w-full max-w-[9rem] flex-col items-center gap-1">
-            {e.rank === 1 && <Crown className="h-5 w-5 text-amber-400" />}
+            {e.rank === 1 && <Crown className="h-5 w-5 text-position-gold" />}
             <div className="w-full truncate text-center">
               <div className={cn("truncate text-sm font-semibold", mine && "text-primary")}>
                 {e.username ?? "—"}

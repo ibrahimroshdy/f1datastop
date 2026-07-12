@@ -24,6 +24,11 @@ export type ReplayLap = {
   s1: number | null;
   s2: number | null;
   s3: number | null;
+  /** Sector completion times (seconds from green) — when each sector was set,
+   *  so the tower can reveal them live instead of only at lap end. */
+  s1t?: number | null;
+  s2t?: number | null;
+  s3t?: number | null;
   /** Tyre compound letter (S/M/H/I/W) and age in laps. */
   tyre?: string | null;
   tyl?: number | null;

@@ -55,7 +55,7 @@ export default function Leagues() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate text-sm font-semibold">{l.name}</span>
-                        {l.role === "captain" && <Crown className="h-3.5 w-3.5 text-yellow-500" />}
+                        {l.role === "captain" && <Crown className="h-3.5 w-3.5 text-position-gold" />}
                         {l.slug === "global" ? <Globe className="h-3 w-3 text-muted-foreground" />
                           : l.is_public ? <Globe className="h-3 w-3 text-muted-foreground" />
                           : <Lock className="h-3 w-3 text-muted-foreground" />}

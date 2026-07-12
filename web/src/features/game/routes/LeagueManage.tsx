@@ -105,7 +105,7 @@ export default function LeagueManage() {
               <li key={m.user_id} className="flex items-center gap-2 px-4 py-2.5">
                 <span className="flex-1 truncate text-sm">
                   {m.username ?? "—"}
-                  {m.role === "captain" && <Crown className="ml-1 inline h-3 w-3 text-yellow-500" />}
+                  {m.role === "captain" && <Crown className="ml-1 inline h-3 w-3 text-position-gold" />}
                 </span>
                 {m.role !== "captain" && m.user_id !== user?.id && (
                   <Button variant="ghost" size="sm" className="h-9 text-destructive"
