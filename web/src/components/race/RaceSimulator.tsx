@@ -29,6 +29,18 @@ const SAFETY_STYLE: Record<ReplaySafetyPeriod["kind"], { label: string; color: s
 
 const SECTOR_COLOR = ["hsl(330 85% 60%)", "hsl(210 90% 58%)", "hsl(150 70% 48%)"]; // S1/S2/S3
 
+const SESSION_NAME: Record<string, string> = {
+  R: "Race", Q: "Qualifying", S: "Sprint",
+  SQ: "Sprint Quali", FP1: "Practice 1", FP2: "Practice 2", FP3: "Practice 3",
+};
+
+// In-card session toggle (the sim fetches each session's own replay blob).
+const SIM_SESSIONS = [
+  { key: "R", label: "Race" },
+  { key: "Q", label: "Quali" },
+  { key: "S", label: "Sprint" },
+] as const;
+
 const TYRE_COLOR: Record<string, string> = {
   S: "hsl(0 85% 55%)",
   M: "hsl(45 95% 55%)",
@@ -104,8 +116,8 @@ type Snap = {
   pos: number | null;
   gap: number | null;
   int: number | null;
-  /** Current lap's sectors (ms), each revealed only once it's been set. */
-  secLive: (number | null)[];
+  /** Last time set for each sector (ms) — per-sector last crossing, F1 style. */
+  sec: (number | null)[];
   /** Last fully-completed lap time (s). */
   lastTime: number | null;
   pb: [number, number, number];
@@ -123,6 +135,7 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
   return useMemo(() => {
     const t = blob.times[fi] ?? 0;
     const bestSession: [number, number, number] = [Infinity, Infinity, Infinity];
+    const bestHolder: (string | null)[] = [null, null, null]; // who holds each sector best (purple)
     let flTime = Infinity;
     let flId: string | null = null;
     const snaps: Snap[] = [];
@@ -131,14 +144,25 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
       const pb: [number, number, number] = [Infinity, Infinity, Infinity];
       let live: (typeof laps)[number] | null = null; // lap the driver is currently on
       let lastC: (typeof laps)[number] | null = null; // last fully-completed lap
+      // Per-sector last crossing (F1 timing: each sector bar = your latest time for
+      // THAT sector, from whichever lap you last completed it — not the whole lap).
+      const sec: (number | null)[] = [null, null, null];
+      const secT = [-1, -1, -1];
       for (const l of laps) {
         const sv = [l.s1, l.s2, l.s3];
         const st = [l.s1t, l.s2t, l.s3t];
         for (let k = 0; k < 3; k++) {
-          // a sector counts (bests + live reveal) the moment it's been set
-          if (sv[k] != null && st[k] != null && (st[k] as number) <= t) {
+          const stt = st[k];
+          if (sv[k] != null && stt != null && stt <= t) {
             if (sv[k]! < pb[k]) pb[k] = sv[k]!;
-            if (sv[k]! < bestSession[k]) bestSession[k] = sv[k]!;
+            if (sv[k]! < bestSession[k]) {
+              bestSession[k] = sv[k]!;
+              bestHolder[k] = d.driver_id;
+            }
+            if (stt > secT[k]) {
+              secT[k] = stt;
+              sec[k] = sv[k]!;
+            }
           }
         }
         const complete = l.s3t != null ? l.s3t <= t : l.te != null && l.te <= t;
@@ -151,13 +175,6 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
         }
         if (l.ts <= t && (!live || l.n > live.n)) live = l;
       }
-      const secLive: (number | null)[] = live
-        ? [
-            live.s1t != null && live.s1t <= t ? live.s1 : null,
-            live.s2t != null && live.s2t <= t ? live.s2 : null,
-            live.s3t != null && live.s3t <= t ? live.s3 : null,
-          ]
-        : [null, null, null];
       const curLap = live ?? lastC;
       snaps.push({
         id: d.driver_id,
@@ -166,7 +183,7 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
         pos: d.pos?.[fi] ?? null,
         gap: d.gap?.[fi] ?? null,
         int: null,
-        secLive,
+        sec,
         lastTime: lastC?.last ?? null,
         pb,
         curLapN: curLap?.n ?? null,
@@ -187,7 +204,7 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
       s.isFL = s.id === flId;
       s.isFLLap = s.lastTime != null && s.lastTime === flTime;
     });
-    return { snaps, bestSession, leaderLap, t, flTime, flId };
+    return { snaps, bestSession, bestHolder, leaderLap, t, flTime, flId };
   }, [blob, fi]);
 }
 
@@ -297,17 +314,14 @@ function TrackSVG({
 }
 
 // ── Timing tower ──────────────────────────────────────────────────────────────
-function SectorBars({ snap, bestSession }: { snap: Snap; bestSession: [number, number, number] }) {
-  const secs = snap.secLive;
+function SectorBars({ snap, bestHolder }: { snap: Snap; bestHolder: (string | null)[] }) {
   return (
     <div className="flex items-center gap-0.5">
-      {secs.map((s, k) => {
-        let cls = "bg-muted-foreground/25";
-        if (s != null) {
-          if (s === bestSession[k]) cls = "bg-fastest-lap";
-          else if (s === snap.pb[k]) cls = "bg-gain";
-          else cls = "bg-muted-foreground/50";
-        }
+      {snap.sec.map((s, k) => {
+        let cls = "bg-muted-foreground/25"; // no time yet
+        if (snap.id === bestHolder[k]) cls = "bg-fastest-lap"; // session best (purple)
+        else if (s != null && s === snap.pb[k]) cls = "bg-gain"; // personal best (green)
+        else if (s != null) cls = "bg-muted-foreground/50"; // set, not a best
         return <span key={k} className={cn("h-1 w-2.5 rounded-sm", cls)} />;
       })}
     </div>
@@ -316,14 +330,16 @@ function SectorBars({ snap, bestSession }: { snap: Snap; bestSession: [number, n
 
 function TimingTower({
   snaps,
-  bestSession,
+  bestHolder,
   aidLabel,
+  isRace,
   sel,
   setSel,
 }: {
   snaps: Snap[];
-  bestSession: [number, number, number];
+  bestHolder: (string | null)[];
   aidLabel: string;
+  isRace: boolean;
   sel: string | null;
   setSel: (v: string | null) => void;
 }) {
@@ -339,7 +355,7 @@ function TimingTower({
         <AnimatePresence initial={false}>
           {snaps.map((s) => {
             const isSel = s.id === sel;
-            const gapText = s.pos === 1 ? "LEADER" : s.lapsDown >= 1 ? `+${s.lapsDown}L` : fmtGap(s.gap);
+            const gapText = s.pos === 1 ? (isRace ? "LEADER" : "—") : isRace && s.lapsDown >= 1 ? `+${s.lapsDown}L` : fmtGap(s.gap);
             return (
               <motion.button
                 key={s.id}
@@ -374,7 +390,7 @@ function TimingTower({
                 </span>
                 <span className="flex w-[3.9rem] shrink-0 flex-col items-end gap-0.5">
                   <span className={cn("readout text-[11px]", s.isFLLap ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(s.lastTime)}</span>
-                  <SectorBars snap={s} bestSession={bestSession} />
+                  <SectorBars snap={s} bestHolder={bestHolder} />
                 </span>
               </motion.button>
             );
@@ -386,12 +402,15 @@ function TimingTower({
 }
 
 // ── Root ──────────────────────────────────────────────────────────────────────
-export default function RaceSimulator({ year, round }: Props) {
+export default function RaceSimulator({ year, round, session = "R" }: Props) {
   const roundNum = parseInt(round, 10);
   const [sel, setSel] = useState<string | null>(null);
   const [showSectors, setShowSectors] = useState(false);
+  const [sess, setSess] = useState(session);
+  useEffect(() => setSess(session), [session]); // follow the page's session dropdown
+  useEffect(() => setSel(null), [sess, roundNum]); // clear follow when switching session/round
 
-  const index = useQuery({ queryKey: ["race-replay", "index", year, roundNum], queryFn: () => getRaceReplay(year, roundNum) });
+  const index = useQuery({ queryKey: ["race-replay", "index", year, roundNum, sess], queryFn: () => getRaceReplay(year, roundNum, sess) });
   const blobQ = useQuery({
     queryKey: ["race-replay", "blob", index.data?.public_url],
     queryFn: () => fetchRaceReplayBlob(index.data!.public_url),
@@ -432,28 +451,36 @@ export default function RaceSimulator({ year, round }: Props) {
     return { outlinePath, sectorPaths, startFinish };
   }, [geomBlob.data, blob]);
 
-  if (index.isLoading) return <F1Skeleton variant="card" className="h-[560px]" />;
-  if (!index.data) {
-    return (
-      <F1Card>
-        <F1CardContent className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-          <Radio className="h-6 w-6 text-muted-foreground/50" />
-          <p className="text-sm text-muted-foreground">Race simulation not available yet.</p>
-        </F1CardContent>
-      </F1Card>
-    );
-  }
-
   return (
     <F1Card>
-      <F1CardHeader className="flex-row items-center gap-2 pb-2">
+      <F1CardHeader className="flex-row flex-wrap items-center gap-x-2 gap-y-1.5 pb-2">
         <Radio className="h-4 w-4 text-primary" />
         <F1CardTitle className="text-base">Race Control</F1CardTitle>
-        <span className="instrument-label ml-auto text-muted-foreground">{index.data.driver_count ?? "—"} cars</span>
+        <div className="ml-auto flex items-center gap-1 rounded-lg border border-border/60 p-0.5">
+          {SIM_SESSIONS.map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => setSess(s.key)}
+              className={cn(
+                "min-h-7 rounded-md px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide transition-colors",
+                sess === s.key ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent",
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </F1CardHeader>
       <F1CardContent>
-        {blobQ.isLoading || !blob ? (
+        {index.isLoading || (index.data && blobQ.isLoading) ? (
           <F1Skeleton variant="card" className="h-[440px]" />
+        ) : !index.data || !blob ? (
+          <div className="flex h-[360px] flex-col items-center justify-center gap-2 text-center">
+            <Radio className="h-6 w-6 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">{SESSION_NAME[sess] ?? sess} replay not available for this round yet.</p>
+            <p className="text-2xs text-muted-foreground">Generated from FastF1 once that session is exported.</p>
+          </div>
         ) : (
           <SimBody blob={blob} geom={geom} sel={sel} setSel={setSel} showSectors={showSectors} setShowSectors={setShowSectors} />
         )}
@@ -479,7 +506,7 @@ function SimBody({
 }) {
   const { frame, setFrame, playing, setPlaying, speed, setSpeed, lastFrame } = usePlayhead(blob.frames);
   const fi = Math.round(frame);
-  const { snaps, bestSession, leaderLap, t } = useTiming(blob, fi);
+  const { snaps, bestSession, bestHolder, leaderLap, t } = useTiming(blob, fi);
   const dur = blob.duration_s || 1;
   const safety = blob.safety ?? [];
   const overtakes = blob.overtakes ?? [];
@@ -488,6 +515,9 @@ function SimBody({
   const atEnd = frame >= lastFrame;
   // 2026 regs dropped DRS (active aero + battery override instead) — never show "DRS".
   const aidLabel = blob.season >= 2026 ? "OVR" : "DRS";
+  // Race/Sprint = progress-ordered (lap X/Y, laps-down); Quali/practice = best-lap-ordered.
+  const isRace = blob.is_race !== false;
+  const sessionName = SESSION_NAME[blob.session ?? "R"] ?? blob.session ?? "Session";
   // Older blobs lack the per-frame position schema — show the track alone, not dashes.
   const hasTiming = useMemo(
     () => blob.drivers.some((d) => Array.isArray(d.pos) && d.pos.some((v) => v != null)),
@@ -520,10 +550,14 @@ function SimBody({
         <button type="button" onClick={() => { setPlaying(false); setFrame(0); }} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border hover:bg-accent" aria-label="Restart">
           <RotateCcw className="h-3.5 w-3.5" />
         </button>
-        <div className="instrument-label ml-1 flex items-baseline gap-1 text-muted-foreground">
-          Lap <span className="readout text-lg text-primary">{leaderLap || "—"}</span>
-          <span className="text-muted-foreground/60">/ {blob.total_laps ?? "—"}</span>
-        </div>
+        {isRace ? (
+          <div className="instrument-label ml-1 flex items-baseline gap-1 text-muted-foreground">
+            Lap <span className="readout text-lg text-primary">{leaderLap || "—"}</span>
+            <span className="text-muted-foreground/60">/ {blob.total_laps ?? "—"}</span>
+          </div>
+        ) : (
+          <div className="instrument-label ml-1 text-primary">{sessionName}</div>
+        )}
         <span className="readout ml-2 text-sm text-foreground/80">{fmtClock(t)}</span>
         {active && (
           <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide animate-pulse" style={{ color: SAFETY_STYLE[active.kind].color, backgroundColor: `color-mix(in srgb, ${SAFETY_STYLE[active.kind].color} 16%, transparent)` }}>
@@ -565,7 +599,7 @@ function SimBody({
         </div>
         {hasTiming && (
           <div className="lg:h-[clamp(380px,56vh,600px)]">
-            <TimingTower snaps={snaps} bestSession={bestSession} aidLabel={aidLabel} sel={sel} setSel={setSel} />
+            <TimingTower snaps={snaps} bestHolder={bestHolder} aidLabel={aidLabel} isRace={isRace} sel={sel} setSel={setSel} />
           </div>
         )}
       </div>
@@ -587,7 +621,7 @@ function SimBody({
             )}
           </span>
           <span className="flex items-center gap-2.5 text-xs tabular-nums">
-            {selSnap.secLive.map((v, k) => {
+            {selSnap.sec.map((v, k) => {
               const cls = v == null ? "text-muted-foreground/40" : v === bestSession[k] ? "text-fastest-lap" : v === selSnap.pb[k] ? "text-gain" : "text-foreground";
               return (
                 <span key={k} className="flex items-baseline gap-1">
@@ -604,7 +638,7 @@ function SimBody({
             </span>
             <span className="flex items-baseline gap-1">
               <span className="text-[9px] uppercase text-muted-foreground/60">Gap</span>
-              <span className="readout text-muted-foreground">{selSnap.pos === 1 ? "LEADER" : selSnap.lapsDown >= 1 ? `+${selSnap.lapsDown}L` : fmtGap(selSnap.gap)}</span>
+              <span className="readout text-muted-foreground">{selSnap.pos === 1 ? (isRace ? "LEADER" : "—") : isRace && selSnap.lapsDown >= 1 ? `+${selSnap.lapsDown}L` : fmtGap(selSnap.gap)}</span>
             </span>
           </span>
         </div>

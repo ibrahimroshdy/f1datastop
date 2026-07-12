@@ -52,18 +52,26 @@ export default function H2H() {
           <F1Skeleton variant="card" className="h-64" />
         ) : (
           <>
-            {/* Aggregate */}
+            {/* Aggregate — the duel */}
             <F1Card>
-              <F1CardContent className="grid grid-cols-3 items-center gap-2 py-5 text-center">
-                <div>
-                  <div className={cn("readout text-2xl", agg.a >= agg.b ? "text-primary" : "text-muted-foreground")}>{agg.a}</div>
-                  <div className="text-2xs text-muted-foreground">{meName} · {agg.aWins} rounds won</div>
+              <F1CardContent className="flex flex-col gap-3 py-5">
+                <div className="grid grid-cols-3 items-center gap-2 text-center">
+                  <div>
+                    <div className={cn("readout text-2xl", agg.a >= agg.b ? "text-primary" : "text-muted-foreground")}>{agg.a}</div>
+                    <div className="text-2xs text-muted-foreground">{agg.aWins} rounds won</div>
+                  </div>
+                  <div className="instrument-label text-muted-foreground">total pts</div>
+                  <div>
+                    <div className={cn("readout text-2xl", agg.b >= agg.a ? "text-primary" : "text-muted-foreground")}>{agg.b}</div>
+                    <div className="text-2xs text-muted-foreground">{agg.bWins} rounds won</div>
+                  </div>
                 </div>
-                <div className="instrument-label text-muted-foreground">total pts</div>
-                <div>
-                  <div className={cn("readout text-2xl", agg.b >= agg.a ? "text-primary" : "text-muted-foreground")}>{agg.b}</div>
-                  <div className="text-2xs text-muted-foreground">{themName} · {agg.bWins} rounds won</div>
-                </div>
+                {agg.aWins + agg.bWins > 0 && (
+                  <div className="flex h-2 overflow-hidden rounded-full bg-muted">
+                    <div className="bg-primary transition-all" style={{ width: `${(agg.aWins / (agg.aWins + agg.bWins)) * 100}%` }} />
+                    <div className="bg-muted-foreground/40 transition-all" style={{ width: `${(agg.bWins / (agg.aWins + agg.bWins)) * 100}%` }} />
+                  </div>
+                )}
               </F1CardContent>
             </F1Card>
 
@@ -72,10 +80,10 @@ export default function H2H() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border text-xs text-muted-foreground">
-                      <th className="px-4 py-2 text-left">Round</th>
-                      <th className="px-3 py-2 text-right">{meName}</th>
-                      <th className="px-3 py-2 text-right">{themName}</th>
+                    <tr className="border-b border-border">
+                      <th className="instrument-label px-4 py-2 text-left text-[10px]">Round</th>
+                      <th className="instrument-label px-3 py-2 text-right text-[10px]">{meName}</th>
+                      <th className="instrument-label px-3 py-2 text-right text-[10px]">{themName}</th>
                     </tr>
                   </thead>
                   <tbody>

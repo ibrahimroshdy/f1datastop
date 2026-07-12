@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Medal, Lock } from "lucide-react";
+import { Medal, Lock, Trophy } from "lucide-react";
+import { getTeamColorById } from "@/constants/f1Colors";
 import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -44,6 +45,11 @@ export default function Champions() {
 
   const loading = drivers.isLoading || constructors.isLoading || pick.isLoading || editable.isLoading || !entryId;
 
+  const wdcDriver = drivers.data?.find((d) => d.driver_id === wdc);
+  const wccTeam = constructors.data?.find((c) => c.constructor_id === wcc);
+  const wdcColor = wdcDriver?.constructor_id ? getTeamColorById(wdcDriver.constructor_id) : "hsl(var(--position-gold))";
+  const wccColor = wcc ? getTeamColorById(wcc) : "hsl(var(--position-gold))";
+
   return (
     <div className={pageShell}>
       <div className={cn("mx-auto w-full max-w-xl", pageStack, "animate-fade-in")}>
@@ -57,6 +63,35 @@ export default function Champions() {
             {canEdit ? "Editable until the mid-season lock." : "Champion picks are locked for the season."}
           </p>
         </div>
+
+        {/* Prestige showcase — current champions picks */}
+        {!loading && (wdcDriver || wccTeam) && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="relative overflow-hidden rounded-xl border border-position-gold/30 bg-gradient-to-br from-position-gold/[0.1] to-transparent p-3">
+              <div className="instrument-label flex items-center gap-1 text-[10px] text-position-gold">
+                <Trophy className="h-3 w-3" /> Drivers' Champ
+              </div>
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="h-7 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: wdcColor }} />
+                <div className="min-w-0">
+                  <div className="font-heading text-lg font-bold leading-none">{wdcDriver?.code ?? "—"}</div>
+                  <div className="mt-0.5 truncate text-2xs text-muted-foreground">{wdcDriver?.name ?? "Not picked"}</div>
+                </div>
+              </div>
+            </div>
+            <div className="relative overflow-hidden rounded-xl border border-position-gold/30 bg-gradient-to-br from-position-gold/[0.1] to-transparent p-3">
+              <div className="instrument-label flex items-center gap-1 text-[10px] text-position-gold">
+                <Trophy className="h-3 w-3" /> Constructors' Champ
+              </div>
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="h-7 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: wccColor }} />
+                <div className="min-w-0">
+                  <div className="truncate font-heading text-base font-bold leading-tight">{wccTeam?.constructor_name ?? "—"}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <F1Skeleton variant="card" className="h-48" />

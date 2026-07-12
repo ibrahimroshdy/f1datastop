@@ -9,6 +9,7 @@ import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { getMyLeagues, createLeague, joinLeagueByCode } from "../api/leaguesClient";
+import { medalBadge } from "../utils/medal";
 
 export default function Leagues() {
   const qc = useQueryClient();
@@ -61,10 +62,14 @@ export default function Leagues() {
                           : <Lock className="h-3 w-3 text-muted-foreground" />}
                       </div>
                       <div className="text-2xs text-muted-foreground">
-                        {l.member_count} member{l.member_count === 1 ? "" : "s"}
-                        {l.my_rank ? ` · you're P${l.my_rank}` : ""} · {Number(l.my_points)} pts
+                        {l.member_count} member{l.member_count === 1 ? "" : "s"} · {Number(l.my_points)} pts
                       </div>
                     </div>
+                    {l.my_rank ? (
+                      <span className={cn("inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border px-1.5 text-xs font-bold tabular-nums", medalBadge(l.my_rank))}>
+                        P{l.my_rank}
+                      </span>
+                    ) : null}
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                   </Link>
                 </li>

@@ -69,6 +69,10 @@ export type ReplayOvertake = { t: number; by: string | null; on: string | null }
 export type RaceReplayBlob = {
   season: number;
   round: number;
+  /** Session: R (race), Q (qualifying), S (sprint), FP1/2/3. */
+  session?: string;
+  /** True for race/sprint (progress-ordered); false for quali/practice (best-lap-ordered). */
+  is_race?: boolean;
   circuit_id: string;
   circuit_name: string | null;
   rotation: number;
@@ -101,9 +105,9 @@ async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   return (data ?? []) as T;
 }
 
-/** Replay index for a race (season, round), or null if not exported yet. */
-export async function getRaceReplay(season: number, round: number): Promise<RaceReplayIndexRow | null> {
-  const rows = await rpc<RaceReplayIndexRow[]>("get_race_replay", { p_season: season, p_round: round });
+/** Replay index for a session (season, round, session), or null if not exported yet. */
+export async function getRaceReplay(season: number, round: number, session = "R"): Promise<RaceReplayIndexRow | null> {
+  const rows = await rpc<RaceReplayIndexRow[]>("get_race_replay", { p_season: season, p_round: round, p_session: session });
   return rows[0] ?? null;
 }
 

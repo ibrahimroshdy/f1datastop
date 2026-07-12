@@ -65,26 +65,26 @@ export default function GameHistory() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="px-4 py-2">Round</th>
+                  <tr className="border-b border-border">
+                    <th className="instrument-label px-4 py-2 text-left text-[10px]">Round</th>
                     {SESSION_ORDER.map((s) => (
-                      <th key={s} className="px-3 py-2 text-right">{SESSION_LABEL[s]}</th>
+                      <th key={s} className="instrument-label px-3 py-2 text-right text-[10px]">{SESSION_LABEL[s]}</th>
                     ))}
-                    <th className="px-4 py-2 text-right">Total</th>
+                    <th className="instrument-label px-4 py-2 text-right text-[10px]">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {byRound.map(([round, sess]) => {
                     const rowTotal = SESSION_ORDER.reduce((a, s) => a + (sess[s] ?? 0), 0);
                     return (
-                      <tr key={round} className="border-b border-border/60">
+                      <tr key={round} className="border-b border-border/60 transition-colors hover:bg-muted/30">
                         <td className="whitespace-nowrap px-4 py-2 font-medium">{nameFor(round)}</td>
                         {SESSION_ORDER.map((s) => (
                           <td key={s} className="px-3 py-2 text-right tabular-nums text-muted-foreground">
                             {sess[s] != null ? sess[s] : "–"}
                           </td>
                         ))}
-                        <td className="px-4 py-2 text-right font-semibold tabular-nums">{rowTotal}</td>
+                        <td className="readout px-4 py-2 text-right font-bold tabular-nums text-primary">{rowTotal}</td>
                       </tr>
                     );
                   })}

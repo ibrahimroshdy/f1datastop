@@ -84,14 +84,14 @@ def _lookup_circuit(season, rnd):
     return None, None
 
 
-def _already_exported(season, circuit_id):
+def _already_exported(season, circuit_id, session="R"):
     try:
         url, key = _env()
         r = requests.get(
             f"{url}/rest/v1/f1_race_replay",
             headers={"apikey": key, "Authorization": f"Bearer {key}"},
             params={"season": f"eq.{season}", "circuit_id": f"eq.{circuit_id}",
-                    "select": "id", "limit": "1"},
+                    "session": f"eq.{session}", "select": "id", "limit": "1"},
             timeout=30,
         )
         return r.ok and len(r.json()) >= 1
@@ -308,6 +308,38 @@ def _pos_gap(prog_list, med_lap):
     return pos, gap
 
 
+def _pos_gap_bylap(kept, lap_recs, t_grid):
+    """Qualifying/practice leaderboard: position = rank by best lap achieved so far;
+    gap = delta (s) to the session's fastest lap at that moment. (Race/Sprint use the
+    progress-based _pos_gap instead.)"""
+    F = len(t_grid)
+    D = len(kept)
+    best = np.full((D, F), np.inf)
+    for i, k in enumerate(kept):
+        laps = sorted(
+            [(r["te"], r["last"]) for r in lap_recs.get(k["num"], [])
+             if r.get("te") is not None and r.get("last")],
+            key=lambda x: x[0],
+        )
+        cur, li = np.inf, 0
+        for f in range(F):
+            while li < len(laps) and laps[li][0] <= t_grid[f]:
+                cur = min(cur, laps[li][1])
+                li += 1
+            best[i, f] = cur
+    pos = np.full((D, F), np.nan)
+    gap = np.full((D, F), np.nan)
+    for f in range(F):
+        col = best[:, f]
+        valid = np.where(np.isfinite(col))[0]
+        if valid.size == 0:
+            continue
+        order = valid[np.argsort(col[valid], kind="stable")]  # fastest first
+        pos[order, f] = np.arange(1, valid.size + 1)
+        gap[valid, f] = col[valid] - col[order[0]]
+    return pos, gap
+
+
 def _drs_intervals(session, num, race_start, duration):
     """DRS-open time windows [t0, t1] (seconds from green) for one driver."""
     try:
@@ -409,24 +441,24 @@ def _overtakes_feed(season, rnd, lapstart):
     return out
 
 
-def export_replay(season, rnd, upload=True, force=False):
+def export_replay(season, rnd, upload=True, force=False, session="R"):
     circuit_id, circuit_name = (None, None)
     if upload:
         circuit_id, circuit_name = _lookup_circuit(season, rnd)
 
     try:
-        s = fastf1.get_session(season, rnd, "R")
+        s = fastf1.get_session(season, rnd, session)
         s.load(telemetry=True, weather=False, messages=True)
     except Exception as e:  # noqa: BLE001
-        print(f"  {season} R{rnd}: unavailable ({e}); skip")
+        print(f"  {season} R{rnd} {session}: unavailable ({e}); skip")
         return None
 
     if not circuit_id:
         circuit_id = _slug(s.event.get("Location") or s.event.get("EventName") or f"r{rnd}")
         circuit_name = circuit_name or s.event.get("EventName")
 
-    if upload and not force and _already_exported(season, circuit_id):
-        print(f"  {season} {circuit_id}: already exported, skip (--force to redo)")
+    if upload and not force and _already_exported(season, circuit_id, session):
+        print(f"  {season} {circuit_id} {session}: already exported, skip (--force to redo)")
         return None
 
     # Future / dataless races have no telemetry — get_circuit_info() then raises
@@ -497,7 +529,12 @@ def export_replay(season, rnd, upload=True, force=False):
         return None
 
     # Per-frame live position + gap-to-leader from progress.
-    pos_mat, gap_mat = _pos_gap([k["prog"] for k in kept], med_lap)
+    is_race = session in ("R", "S")
+    # Race/Sprint order by track progress; Qualifying/practice by best lap so far.
+    if is_race:
+        pos_mat, gap_mat = _pos_gap([k["prog"] for k in kept], med_lap)
+    else:
+        pos_mat, gap_mat = _pos_gap_bylap(kept, lap_recs, t_grid)
 
     drivers_out = []
     for i, k in enumerate(kept):
@@ -516,10 +553,10 @@ def export_replay(season, rnd, upload=True, force=False):
     t0 = _t0_date(pos)
     safety = safety_periods_time(s, t0, race_start, duration)
     rc_feed = _race_control_feed(s, t0, race_start, duration)
-    ot_feed = _overtakes_feed(season, rnd, lapstart)
+    ot_feed = _overtakes_feed(season, rnd, lapstart) if session == "R" else []
 
     blob = {
-        "season": season, "round": rnd,
+        "season": season, "round": rnd, "session": session, "is_race": is_race,
         "circuit_id": circuit_id, "circuit_name": circuit_name,
         "rotation": round(float(rot), 2),
         "frames": frames, "duration_s": round(duration, 1), "total_laps": len(lapstart),
@@ -532,10 +569,11 @@ def export_replay(season, rnd, upload=True, force=False):
         "drivers": drivers_out,
         "source": "fastf1",
     }
-    path = f"{season}/{_ascii_key(circuit_id)}.json"
+    suffix = "" if session == "R" else f"_{session}"
+    path = f"{season}/{_ascii_key(circuit_id)}{suffix}.json"
     _emit(blob, path, upload)
-    print(f"  {season} R{rnd} {circuit_id}: {len(drivers_out)} drivers, {frames} frames, "
-          f"{blob['duration_s']}s, {len(safety)} safety period(s) -> {path}")
+    print(f"  {season} R{rnd} {session} {circuit_id}: {len(drivers_out)} drivers, {frames} frames, "
+          f"{blob['duration_s']}s -> {path}")
     return blob
 
 
@@ -558,14 +596,14 @@ def _emit(blob, path, upload):
         raise RuntimeError(f"upload {path} failed {r.status_code}: {r.text[:300]}")
     public_url = f"{url}/storage/v1/object/public/{BUCKET}/{path}"
     idx = {
-        "season": blob["season"], "round": blob["round"],
+        "season": blob["season"], "round": blob["round"], "session": blob["session"],
         "circuit_id": blob["circuit_id"], "circuit_name": blob["circuit_name"],
         "storage_path": path, "public_url": public_url,
         "driver_count": len(blob["drivers"]), "frames": blob["frames"],
         "duration_s": blob["duration_s"], "rotation": blob["rotation"], "source": "fastf1",
     }
     ir = requests.post(
-        f"{url}/rest/v1/f1_race_replay?on_conflict=season,circuit_id",
+        f"{url}/rest/v1/f1_race_replay?on_conflict=season,circuit_id,session",
         headers={"Authorization": f"Bearer {key}", "apikey": key,
                  "Content-Type": "application/json",
                  "Prefer": "resolution=merge-duplicates,return=minimal"},
@@ -580,6 +618,7 @@ def main():
     ap.add_argument("--season", type=int, required=True)
     ap.add_argument("--round", type=int)
     ap.add_argument("--event")
+    ap.add_argument("--session", default="R", help="R (race), Q (qualifying), S (sprint), FP1/2/3")
     ap.add_argument("--no-upload", action="store_true")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
@@ -594,8 +633,8 @@ def main():
     if rnd is None:
         sys.exit("Provide --round or --event")
 
-    print(f"Race replay export {args.season} R{rnd}")
-    export_replay(args.season, rnd, upload=not args.no_upload, force=args.force)
+    print(f"Race replay export {args.season} R{rnd} {args.session}")
+    export_replay(args.season, rnd, upload=not args.no_upload, force=args.force, session=args.session)
 
 
 if __name__ == "__main__":

@@ -245,18 +245,18 @@ def backfill_circuits(from_season: int = 2018, to_season: int = 2026, force: boo
 # Track Replay component. Loops rounds; rounds that haven't run / lack position
 # data fail-and-skip. Post-race historical (FastF1), NOT live.
 @app.function(**COMMON)
-def export_race_replays(season: int, rounds: int = 24, force: bool = False) -> None:
+def export_race_replays(season: int, rounds: int = 24, force: bool = False, session: str = "R") -> None:
     done = 0
     for r in range(1, rounds + 1):
         try:
-            args = ["race_replay_export.py", "--season", str(season), "--round", str(r)]
+            args = ["race_replay_export.py", "--season", str(season), "--round", str(r), "--session", session]
             if force:
                 args.append("--force")  # re-export stale blobs (schema/window changes)
             _run(*args)
             done += 1
         except Exception as e:  # noqa: BLE001
-            print(f"  R{r}: skipped ({e})")
-    print(f"Done. race replays exported for {done} rounds of {season}.")
+            print(f"  R{r} {session}: skipped ({e})")
+    print(f"Done. {session} replays exported for {done} rounds of {season}.")
 
 
 # ── Scheduled: keep the CURRENT season's replays filled (every 6h, offset 50m) ─
@@ -277,10 +277,10 @@ def export_race_replays_current() -> None:
 # ── Manual: backfill replays across a season range (per-season fan-out) ───────
 # e.g.  modal run modal_app.py::backfill_replays --from-season 2024 --to-season 2026
 @app.function(**COMMON)
-def backfill_replays(from_season: int = 2018, to_season: int = 2026, force: bool = False) -> None:
+def backfill_replays(from_season: int = 2018, to_season: int = 2026, force: bool = False, session: str = "R") -> None:
     seasons = list(range(from_season, to_season + 1))
-    # starmap so `force` reaches each per-season container
-    list(export_race_replays.starmap([(s, 24, force) for s in seasons]))
+    # starmap so `force`/`session` reach each per-season container
+    list(export_race_replays.starmap([(s, 24, force, session) for s in seasons]))
 
 
 @app.local_entrypoint()
