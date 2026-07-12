@@ -95,9 +95,11 @@ def _already_exported(season, circuit_id):
 
 
 def _rotate(x, y, deg):
-    """Rotate X/Y by FastF1's circuit rotation so the map is oriented as broadcast."""
+    """Rotate X/Y by FastF1's circuit rotation so the map is oriented as broadcast.
+    Uses FastF1's canonical rotation matrix (xy @ [[cos,sin],[-sin,cos]]); the
+    negated-angle form mirrors the layout (Spa etc. came out reversed)."""
     a = float(deg) / 180.0 * np.pi
-    return x * np.cos(a) + y * np.sin(a), -x * np.sin(a) + y * np.cos(a)
+    return x * np.cos(a) - y * np.sin(a), x * np.sin(a) + y * np.cos(a)
 
 
 def _outline(tel, rot):

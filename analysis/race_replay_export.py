@@ -100,8 +100,10 @@ def _already_exported(season, circuit_id):
 
 
 def _rotate(x, y, deg):
+    # FastF1 canonical rotation (matches broadcast orientation); the negated-angle
+    # form we had before mirrored the layout.
     a = float(deg) / 180.0 * np.pi
-    return x * np.cos(a) + y * np.sin(a), -x * np.sin(a) + y * np.cos(a)
+    return x * np.cos(a) - y * np.sin(a), x * np.sin(a) + y * np.cos(a)
 
 
 def _race_window(session):
@@ -200,6 +202,204 @@ def safety_periods_time(session, t0_date, race_start, duration):
     return out
 
 
+def _secs(td):
+    try:
+        return None if pd.isna(td) else float(td.total_seconds())
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _ms(td):
+    s = _secs(td)
+    return None if s is None else int(round(s * 1000))
+
+
+_COMPOUND = {"SOFT": "S", "MEDIUM": "M", "HARD": "H", "INTERMEDIATE": "I", "WET": "W"}
+
+
+def _compound(c):
+    if c is None or (isinstance(c, float) and pd.isna(c)):
+        return None
+    return _COMPOUND.get(str(c).upper().strip(), str(c)[:1].upper() or None)
+
+
+def _lap_timing(session, race_start):
+    """Per-driver per-lap timing records (seconds from green) + progress metadata
+    for live ordering, and the earliest start time of each lap (overtake timing)."""
+    laps = getattr(session, "laps", None)
+    recs, meta, lapstart = {}, {}, {}
+    if laps is None or len(laps) == 0:
+        return recs, meta, 90.0, lapstart
+    for num, dl in laps.groupby("DriverNumber"):
+        dl = dl.sort_values("LapNumber")
+        rows, starts, durs, nums = [], [], [], []
+        for _, lp in dl.iterrows():
+            st = _secs(lp.get("LapStartTime"))
+            if st is None:
+                continue
+            st -= race_start
+            lt = _secs(lp.get("LapTime"))
+            n = int(lp["LapNumber"])
+            te = st + lt if lt else None
+            tyl = lp.get("TyreLife")
+            rows.append({
+                "n": n, "ts": round(st, 1),
+                "te": round(te, 1) if te is not None else None,
+                "last": round(lt, 3) if lt else None,
+                "s1": _ms(lp.get("Sector1Time")), "s2": _ms(lp.get("Sector2Time")),
+                "s3": _ms(lp.get("Sector3Time")),
+                "tyre": _compound(lp.get("Compound")),
+                "tyl": int(tyl) if tyl is not None and not pd.isna(tyl) else None,
+                "pit": bool(not pd.isna(lp.get("PitInTime")) or not pd.isna(lp.get("PitOutTime"))),
+            })
+            starts.append(st)
+            durs.append(lt if lt else 0.0)
+            nums.append(n)
+            if n not in lapstart or st < lapstart[n]:
+                lapstart[n] = st
+        recs[str(num)] = rows
+        meta[str(num)] = (np.array(starts), np.array(durs), np.array(nums))
+    durs_flat = [d for (_s, dr, _n) in meta.values() for d in dr if d > 0]
+    med_lap = float(np.median(durs_flat)) if durs_flat else 90.0
+    return recs, meta, med_lap, lapstart
+
+
+def _progress(t_grid, meta_entry):
+    """Progress (completed laps + fraction of current lap) per grid time."""
+    starts, durs, nums = meta_entry
+    prog = np.full(len(t_grid), np.nan)
+    if len(starts) == 0:
+        return prog
+    idx = np.searchsorted(starts, t_grid, side="right") - 1
+    for k in range(len(t_grid)):
+        i = idx[k]
+        if i < 0 or i >= len(starts):
+            continue
+        d = durs[i]
+        frac = 0.0 if d <= 0 else (t_grid[k] - starts[i]) / d
+        frac = 0.0 if frac < 0 else (1.0 if frac > 1 else frac)
+        prog[k] = (nums[i] - 1) + frac
+    return prog
+
+
+def _pos_gap(prog_list, med_lap):
+    """Per-frame live position (rank of progress) + gap-to-leader (s)."""
+    P = np.vstack(prog_list)  # (D, F)
+    D, F = P.shape
+    leader = np.nanmax(P, axis=0)
+    gap = (leader[None, :] - P) * med_lap
+    pos = np.full((D, F), np.nan)
+    for f in range(F):
+        col = P[:, f]
+        valid = np.where(~np.isnan(col))[0]
+        if valid.size == 0:
+            continue
+        order = valid[np.argsort(-col[valid], kind="stable")]
+        pos[order, f] = np.arange(1, valid.size + 1)
+    return pos, gap
+
+
+def _drs_intervals(session, num, race_start, duration):
+    """DRS-open time windows [t0, t1] (seconds from green) for one driver."""
+    try:
+        cd = session.car_data[num]
+    except Exception:  # noqa: BLE001
+        return []
+    if cd is None or "DRS" not in cd or "SessionTime" not in cd:
+        return []
+    t = cd["SessionTime"].dt.total_seconds().to_numpy(dtype=float) - race_start
+    openf = np.isin(cd["DRS"].to_numpy(), (10, 12, 14))  # FastF1: 10/12/14 = DRS active
+    ivals, i, n = [], 0, len(t)
+    while i < n:
+        if openf[i]:
+            j = i
+            while j + 1 < n and openf[j + 1]:
+                j += 1
+            a, b = max(0.0, t[i]), min(duration, t[j])
+            if b > a:
+                ivals.append([round(a, 1), round(b, 1)])
+            i = j + 1
+        else:
+            i += 1
+    return ivals
+
+
+def _race_control_feed(session, t0_date, race_start, duration):
+    """Race-control messages as {t, kind, msg} (seconds from green)."""
+    try:
+        rc = getattr(session, "race_control_messages", None)
+        if rc is None or len(rc) == 0 or t0_date is None:
+            return []
+    except Exception:  # noqa: BLE001
+        return []
+    out = []
+    for _, m in rc.iterrows():
+        tt = m.get("Time")
+        if tt is None or pd.isna(tt):
+            continue
+        t = (tt - t0_date).total_seconds() - race_start
+        if t < -5 or t > duration + 5:
+            continue
+        msg = str(m.get("Message") or "").strip()
+        up = msg.upper()
+        flag = str(m.get("Flag") or "").upper()
+        if "VIRTUAL SAFETY CAR" in up or "VSC" in up:
+            kind = "vsc"
+        elif "SAFETY CAR" in up:
+            kind = "sc"
+        elif flag == "RED" or re.search(r"\bRED FLAG\b", up):
+            kind = "red"
+        elif "DRS" in up:
+            kind = "drs"
+        elif "YELLOW" in up or flag in ("YELLOW", "DOUBLE YELLOW"):
+            kind = "yellow"
+        elif flag == "GREEN" or "GREEN" in up or "TRACK CLEAR" in up:
+            kind = "green"
+        else:
+            kind = "info"
+        out.append({"t": round(max(0.0, t), 1), "kind": kind, "msg": msg[:120]})
+    return out
+
+
+def _overtakes_feed(season, rnd, lapstart):
+    """Time-stamped passes from the get_overtakes RPC (lap -> lap-start time)."""
+    try:
+        url, key = _env()
+    except SystemExit:
+        return []
+    try:
+        r = requests.post(
+            f"{url}/rest/v1/rpc/get_overtakes",
+            headers={"apikey": key, "Authorization": f"Bearer {key}",
+                     "Content-Type": "application/json"},
+            json={"p_season": season, "p_round": rnd, "p_session": "R"},
+            timeout=30,
+        )
+        rows = r.json() if r.ok else []
+        # PostgREST returns the array directly; guard the wrapped {get_overtakes:[…]} shape too.
+        if isinstance(rows, dict):
+            rows = rows.get("get_overtakes") or []
+        if isinstance(rows, list) and len(rows) == 1 and isinstance(rows[0], dict) and "get_overtakes" in rows[0]:
+            rows = rows[0]["get_overtakes"] or []
+        if not isinstance(rows, list):
+            rows = []
+    except Exception:  # noqa: BLE001
+        return []
+    out = []
+    for o in rows:
+        lap = o.get("lap_number")
+        if lap is None:
+            continue
+        t = lapstart.get(int(lap))
+        if t is None:
+            continue
+        out.append({"t": round(max(0.0, t), 1),
+                    "by": o.get("overtaking_driver_id"),
+                    "on": o.get("overtaken_driver_id")})
+    out.sort(key=lambda x: x["t"])
+    return out
+
+
 def export_replay(season, rnd, upload=True, force=False):
     circuit_id, circuit_name = (None, None)
     if upload:
@@ -247,8 +447,11 @@ def export_replay(season, rnd, upload=True, force=False):
     duration = race_end - race_start
     frames = min(MAX_FRAMES, max(2, int(duration / STEP_S) + 1))
     grid = np.linspace(race_start, race_end, frames)  # SessionTime seconds
+    t_grid = grid - race_start                          # seconds from green
 
-    drivers_out, xs_all, ys_all = [], [], []
+    lap_recs, prog_meta, med_lap, lapstart = _lap_timing(s, race_start)
+
+    kept, xs_all, ys_all = [], [], []
     for num, df in pos.items():
         did = num2id.get(str(num))
         if did is None or df is None or len(df) < 2 or "X" not in df or "SessionTime" not in df:
@@ -266,34 +469,57 @@ def export_replay(season, rnd, upload=True, force=False):
         ]
         if not any(p is not None for p in xy):
             continue
+        empty = (np.array([]), np.array([]), np.array([]))
+        prog = _progress(t_grid, prog_meta.get(str(num), empty))
         color = num2color.get(str(num))
-        drivers_out.append({
-            "driver_id": did,
-            "code": num2code.get(str(num)),
+        kept.append({
+            "num": str(num), "did": did, "code": num2code.get(str(num)),
             "number": int(num) if str(num).isdigit() else None,
             "team_color": f"#{color}" if color and not str(color).startswith("#") else color,
-            "xy": xy,
+            "xy": xy, "prog": prog,
         })
         for p in xy:
             if p is not None:
                 xs_all.append(p[0])
                 ys_all.append(p[1])
 
-    if not drivers_out or not xs_all:
+    if not kept or not xs_all:
         print(f"  {season} R{rnd}: no usable driver traces; skip")
         return None
 
-    safety = safety_periods_time(s, _t0_date(pos), race_start, duration)
+    # Per-frame live position + gap-to-leader from progress.
+    pos_mat, gap_mat = _pos_gap([k["prog"] for k in kept], med_lap)
+
+    drivers_out = []
+    for i, k in enumerate(kept):
+        prow = [None if np.isnan(v) else int(v) for v in pos_mat[i]]
+        grow = [None if prow[j] is None else round(float(gap_mat[i][j]), 1) for j in range(frames)]
+        drivers_out.append({
+            "driver_id": k["did"], "code": k["code"], "number": k["number"],
+            "team_color": k["team_color"], "xy": k["xy"],
+            "pos": prow, "gap": grow,
+            "laps": lap_recs.get(k["num"], []),
+            # 2026 regs dropped DRS (active aero + battery override); FastF1's DRS
+            # channel is all-zero for 2026, so skip it rather than emit empties.
+            "drs": _drs_intervals(s, k["num"], race_start, duration) if season < 2026 else [],
+        })
+
+    t0 = _t0_date(pos)
+    safety = safety_periods_time(s, t0, race_start, duration)
+    rc_feed = _race_control_feed(s, t0, race_start, duration)
+    ot_feed = _overtakes_feed(season, rnd, lapstart)
 
     blob = {
         "season": season, "round": rnd,
         "circuit_id": circuit_id, "circuit_name": circuit_name,
         "rotation": round(float(rot), 2),
-        "frames": frames, "duration_s": round(duration, 1),
+        "frames": frames, "duration_s": round(duration, 1), "total_laps": len(lapstart),
         "bounds": {"min_x": min(xs_all), "max_x": max(xs_all),
                    "min_y": min(ys_all), "max_y": max(ys_all)},
-        "times": [round(float(g - race_start), 1) for g in grid],
+        "times": [round(float(g), 1) for g in t_grid],
         "safety": safety,
+        "rc": rc_feed,
+        "overtakes": ot_feed,
         "drivers": drivers_out,
         "source": "fastf1",
     }

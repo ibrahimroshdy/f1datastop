@@ -199,11 +199,14 @@ def export_telemetry_current() -> None:
 # Loops every round; rounds that haven't run yet fail-and-skip. NOTE: 2026 has no
 # DRS zones (regs dropped DRS) — straights are computed from full-throttle stretches.
 @app.function(**COMMON)
-def export_circuits(season: int, rounds: int = 24) -> None:
+def export_circuits(season: int, rounds: int = 24, force: bool = False) -> None:
     done = 0
     for r in range(1, rounds + 1):
         try:
-            _run("circuit_geometry_export.py", "--season", str(season), "--round", str(r))
+            args = ["circuit_geometry_export.py", "--season", str(season), "--round", str(r)]
+            if force:
+                args.append("--force")  # re-export (e.g. after the rotation-orientation fix)
+            _run(*args)
             done += 1
         except Exception as e:  # noqa: BLE001
             print(f"  R{r}: skipped ({e})")
@@ -232,9 +235,9 @@ def export_circuits_current() -> None:
 # backfill_range. circuit_geometry_export.py skips circuits already indexed, so
 # re-running only fills gaps. FastF1 telemetry/position data starts in 2018.
 @app.function(**COMMON)
-def backfill_circuits(from_season: int = 2018, to_season: int = 2026) -> None:
+def backfill_circuits(from_season: int = 2018, to_season: int = 2026, force: bool = False) -> None:
     seasons = list(range(from_season, to_season + 1))
-    list(export_circuits.map(seasons))  # per-season fan-out; wait for all
+    list(export_circuits.starmap([(s, 24, force) for s in seasons]))  # per-season fan-out
 
 
 # ── Manual: export GPS car-dot race replays (full-race position → Storage) ────

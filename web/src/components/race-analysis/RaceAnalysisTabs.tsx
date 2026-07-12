@@ -44,8 +44,7 @@ const TrackMapChart = lazy(() => import("@/components/race/TrackMapChart"));
 const CircuitGeometryMap = lazy(() => import("@/components/race/CircuitGeometryMap"));
 const SessionResults = lazy(() => import("@/components/analytics/SessionResults"));
 const OvertakesAnalysis = lazy(() => import("@/components/analytics/OvertakesAnalysis"));
-const RaceReplay = lazy(() => import("@/components/analytics/RaceReplay"));
-const TrackReplay = lazy(() => import("@/components/race/TrackReplay"));
+const RaceSimulator = lazy(() => import("@/components/race/RaceSimulator"));
 
 const TabLoadingFallback = () => {
   const { cardVariant, glassVariant } = useThemeVariant();
@@ -388,8 +387,7 @@ export function RaceAnalysisTabs({
             </TabsContent>
 
             <TabsContent value="overtakes" className="mt-4 space-y-4">
-              <TrackReplay year={selectedYear} round={selectedRace} session={selectedSession} />
-              <RaceReplay year={selectedYear} round={selectedRace} session={selectedSession} />
+              <RaceSimulator year={selectedYear} round={selectedRace} session={selectedSession} />
               <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
                 <F1CardHeader className="px-4 pb-2 pt-3">
                   <div className="flex items-center gap-2">

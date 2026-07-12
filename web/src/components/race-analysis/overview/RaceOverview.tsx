@@ -1,14 +1,5 @@
 import { useMemo } from "react";
-import {
-  Trophy,
-  Flag,
-  Timer,
-  TrendingUp,
-  TrendingDown,
-  OctagonX,
-  Gauge,
-  ArrowRight,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 import { useRaceResults, useRaceQualifying } from "@/hooks/useF1Data";
 import {
   computeRaceSummary,
@@ -16,15 +7,7 @@ import {
   computeTeammateH2H,
 } from "@/lib/f1/raceInsights";
 import { TEAM_COLORS } from "@/constants/f1Colors";
-import {
-  F1Card,
-  F1CardContent,
-  F1CardHeader,
-  F1CardTitle,
-  F1ChartContainer,
-  F1EmptyState,
-} from "@/components/f1";
-import { useThemeVariant } from "@/hooks/useThemeVariant";
+import { F1ChartContainer, F1EmptyState } from "@/components/f1";
 import { cn } from "@/lib/utils";
 
 interface RaceOverviewProps {
@@ -33,58 +16,87 @@ interface RaceOverviewProps {
 }
 
 const teamColor = (team: string) => TEAM_COLORS[team] || TEAM_COLORS.default;
+const eyebrow = "instrument-label text-[11px]";
 
-const eyebrow =
-  "text-xs font-semibold uppercase tracking-widest text-muted-foreground";
-
-function StatTile({
-  icon,
+/** One cell of the race-summary instrument cluster — micro label + big readout. */
+function Stat({
   label,
   value,
   sub,
   accent,
 }: {
-  icon: React.ReactNode;
   label: string;
   value: React.ReactNode;
   sub?: React.ReactNode;
   accent?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/40 p-3">
-      <div className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground">
-        {icon}
-        {label}
-      </div>
-      <div
-        className="font-heading text-lg font-bold leading-tight tabular-nums tracking-tight"
+    <div className="px-3 py-2.5">
+      <p className="instrument-label text-[10px]">{label}</p>
+      <p
+        className="readout mt-1.5 text-lg leading-none text-foreground"
         style={accent ? { color: accent } : undefined}
       >
         {value}
-      </div>
-      {sub ? (
-        <div className="text-xs text-muted-foreground">{sub}</div>
-      ) : null}
+      </p>
+      {sub != null && <p className="mt-1 truncate text-2xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }
 
-function DriverChip({ code, team }: { code: string; team: string }) {
+function DriverBar({ code, team }: { code: string; team: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 font-mono font-bold tabular-nums">
-      <span
-        className="h-3 w-1 rounded-full"
-        style={{ backgroundColor: teamColor(team) }}
-      />
+      <span className="h-3.5 w-1 rounded-full" style={{ backgroundColor: teamColor(team) }} />
       {code}
     </span>
+  );
+}
+
+/** A compact gainers/losers list — hairline rows, no chunky card. */
+function MoverList({
+  title,
+  icon,
+  rows,
+  positive,
+  empty,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  rows: { driverId: string; code: string; team: string; grid: number; finish: number; delta: number }[];
+  positive: boolean;
+  empty: string;
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-card/40">
+      <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
+        {icon}
+        <h3 className="instrument-label text-[11px]">{title}</h3>
+      </div>
+      <div className="divide-y divide-border/50">
+        {rows.length ? (
+          rows.map((d) => (
+            <div key={d.driverId} className="flex items-center gap-2 px-3 py-1.5 text-sm">
+              <DriverBar code={d.code} team={d.team} />
+              <span className="ml-auto font-mono text-2xs tabular-nums text-muted-foreground">
+                P{d.grid} <ArrowRight className="inline h-2.5 w-2.5" /> P{d.finish}
+              </span>
+              <span className={cn("w-9 text-right font-mono text-sm font-bold tabular-nums", positive ? "text-gain" : "text-loss")}>
+                {positive ? `+${d.delta}` : d.delta}
+              </span>
+            </div>
+          ))
+        ) : (
+          <p className="px-3 py-2 text-xs text-muted-foreground">{empty}</p>
+        )}
+      </div>
+    </div>
   );
 }
 
 export default function RaceOverview({ year, round }: RaceOverviewProps) {
   const { data: resultsData, isLoading: resultsLoading } = useRaceResults(year, round);
   const { data: qualiData, isLoading: qualiLoading } = useRaceQualifying(year, round);
-  const { cardVariant, glassVariant } = useThemeVariant();
 
   const results = resultsData?.data?.Results;
   const qualifying = qualiData?.data?.QualifyingResults;
@@ -113,47 +125,36 @@ export default function RaceOverview({ year, round }: RaceOverviewProps) {
   const losers = deltas.filter((d) => !d.isDNF && d.delta < 0).slice(-5).reverse();
 
   return (
-    <div className="flex flex-col gap-6 px-4 pb-4">
-      {/* Key takeaways */}
+    <div className="flex flex-col gap-5 px-4 pb-4">
+      {/* Race summary — one hairline-divided instrument cluster */}
       <section className="flex flex-col gap-2">
         <h3 className={eyebrow}>Race Summary</h3>
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
-          <StatTile
-            icon={<Trophy className="h-3 w-3" />}
+        <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-xl border border-border bg-card/40 sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-6">
+          <Stat
             label="Winner"
             value={summary.winner ? summary.winner.code : "—"}
-            sub={summary.winner ? <DriverChip code="" team={summary.winner.team} /> : undefined}
             accent={summary.winner ? teamColor(summary.winner.team) : undefined}
           />
-          <StatTile
-            icon={<Flag className="h-3 w-3" />}
+          <Stat
             label="Pole"
             value={summary.pole ? summary.pole.code : "—"}
-            sub={summary.poleToWin ? "Converted to win" : "Lost the lead"}
-            accent={summary.poleToWin ? "hsl(var(--status-completed))" : undefined}
+            sub={summary.poleToWin ? "Converted" : "Lost lead"}
+            accent={summary.poleToWin ? "hsl(var(--gain))" : undefined}
           />
-          <StatTile
-            icon={<Timer className="h-3 w-3" />}
-            label="Win margin"
-            value={summary.winMargin ?? "—"}
-            sub="gap to P2"
-          />
-          <StatTile
-            icon={<Gauge className="h-3 w-3" />}
-            label="Fastest lap"
+          <Stat label="Win Margin" value={summary.winMargin ?? "—"} sub="gap to P2" />
+          <Stat
+            label="Fastest Lap"
             value={summary.fastestLap ? summary.fastestLap.code : "—"}
             sub={summary.fastestLap?.time}
-            accent={summary.fastestLap ? teamColor(summary.fastestLap.team) : undefined}
+            accent={summary.fastestLap ? "hsl(var(--fastest-lap))" : undefined}
           />
-          <StatTile
-            icon={<TrendingUp className="h-3 w-3" />}
-            label="Biggest mover"
+          <Stat
+            label="Biggest Mover"
             value={summary.biggestGainer ? `+${summary.biggestGainer.delta}` : "—"}
             sub={summary.biggestGainer?.code}
-            accent="hsl(var(--status-completed))"
+            accent="hsl(var(--gain))"
           />
-          <StatTile
-            icon={<OctagonX className="h-3 w-3" />}
+          <Stat
             label="DNFs"
             value={summary.dnfCount}
             sub={`${summary.finishers}/${summary.totalDrivers} classified`}
@@ -162,56 +163,22 @@ export default function RaceOverview({ year, round }: RaceOverviewProps) {
         </div>
       </section>
 
-      {/* Qualifying to race delta */}
-      <section className="grid gap-4 lg:grid-cols-2">
-        <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm">
-          <F1CardHeader>
-            <F1CardTitle icon={<TrendingUp className="h-3.5 w-3.5" />}>
-              Gained most places
-            </F1CardTitle>
-          </F1CardHeader>
-          <F1CardContent className="flex flex-col gap-1">
-            {gainers.length ? (
-              gainers.map((d) => (
-                <div key={d.driverId} className="flex items-center justify-between text-sm">
-                  <DriverChip code={d.code} team={d.team} />
-                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                    P{d.grid} <ArrowRight className="inline h-3 w-3" /> P{d.finish}
-                  </span>
-                  <span className="font-mono font-bold tabular-nums text-status-completed">
-                    +{d.delta}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-muted-foreground">No net gainers.</p>
-            )}
-          </F1CardContent>
-        </F1Card>
-        <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm">
-          <F1CardHeader>
-            <F1CardTitle icon={<TrendingDown className="h-3.5 w-3.5" />}>
-              Lost most places
-            </F1CardTitle>
-          </F1CardHeader>
-          <F1CardContent className="flex flex-col gap-1">
-            {losers.length ? (
-              losers.map((d) => (
-                <div key={d.driverId} className="flex items-center justify-between text-sm">
-                  <DriverChip code={d.code} team={d.team} />
-                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                    P{d.grid} <ArrowRight className="inline h-3 w-3" /> P{d.finish}
-                  </span>
-                  <span className="font-mono font-bold tabular-nums text-destructive">
-                    {d.delta}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-muted-foreground">No net losers.</p>
-            )}
-          </F1CardContent>
-        </F1Card>
+      {/* Movers */}
+      <section className="grid gap-3 lg:grid-cols-2">
+        <MoverList
+          title="Gained most places"
+          icon={<TrendingUp className="h-3.5 w-3.5 text-gain" />}
+          rows={gainers}
+          positive
+          empty="No net gainers."
+        />
+        <MoverList
+          title="Lost most places"
+          icon={<TrendingDown className="h-3.5 w-3.5 text-loss" />}
+          rows={losers}
+          positive={false}
+          empty="No net losers."
+        />
       </section>
 
       {/* Teammate head-to-head */}
@@ -220,33 +187,16 @@ export default function RaceOverview({ year, round }: RaceOverviewProps) {
           <h3 className={eyebrow}>Teammate Head-to-Head</h3>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {h2h.map((row) => (
-              <div
-                key={row.team}
-                className="flex flex-col gap-1.5 rounded-lg border border-border border-l-2 bg-muted/40 p-2.5"
-                style={{ borderLeftColor: teamColor(row.team) }}
-              >
-                <div className="flex items-center justify-between text-sm font-bold">
-                  <span className="font-mono">{row.driverACode}</span>
-                  <span className="text-xs font-normal text-muted-foreground">vs</span>
-                  <span className="font-mono">{row.driverBCode}</span>
+              <div key={row.team} className="overflow-hidden rounded-lg border border-border bg-card/40">
+                <div className="flex items-center gap-2 border-b border-border px-2.5 py-1.5">
+                  <span className="h-3.5 w-1 shrink-0 rounded-full" style={{ backgroundColor: teamColor(row.team) }} />
+                  <span className="font-mono text-sm font-bold">{row.driverACode}</span>
+                  <span className="text-2xs text-muted-foreground">vs</span>
+                  <span className="font-mono text-sm font-bold">{row.driverBCode}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-1 text-xs">
-                  <H2HLine
-                    label="Quali"
-                    a={row.driverACode}
-                    b={row.driverBCode}
-                    winner={row.qualiWinner}
-                    aVal={`P${row.gridA}`}
-                    bVal={`P${row.gridB}`}
-                  />
-                  <H2HLine
-                    label="Race"
-                    a={row.driverACode}
-                    b={row.driverBCode}
-                    winner={row.raceWinner}
-                    aVal={row.dnfA ? "DNF" : `P${row.finishA}`}
-                    bVal={row.dnfB ? "DNF" : `P${row.finishB}`}
-                  />
+                <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-x-2 px-2.5 py-1.5 text-xs">
+                  <H2HLine label="Quali" a={row.driverACode} b={row.driverBCode} winner={row.qualiWinner} aVal={`P${row.gridA}`} bVal={`P${row.gridB}`} />
+                  <H2HLine label="Race" a={row.driverACode} b={row.driverBCode} winner={row.raceWinner} aVal={row.dnfA ? "DNF" : `P${row.finishA}`} bVal={row.dnfB ? "DNF" : `P${row.finishB}`} />
                 </div>
               </div>
             ))}
@@ -274,11 +224,9 @@ function H2HLine({
 }) {
   return (
     <>
-      <div className="text-xs uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className="flex items-center justify-between font-mono tabular-nums">
-        <span className={cn(winner === a && "font-bold text-primary")}>{aVal}</span>
-        <span className={cn(winner === b && "font-bold text-primary")}>{bVal}</span>
-      </div>
+      <div className="instrument-label text-[9px]">{label}</div>
+      <div className={cn("text-center font-mono tabular-nums", winner === a ? "font-bold text-primary" : "text-muted-foreground")}>{aVal}</div>
+      <div className={cn("text-center font-mono tabular-nums", winner === b ? "font-bold text-primary" : "text-muted-foreground")}>{bVal}</div>
     </>
   );
 }

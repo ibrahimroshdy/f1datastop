@@ -15,14 +15,37 @@ export type RaceReplayIndexRow = {
   source: string;
 };
 
-/** One driver's whole-race position track, aligned to the blob's shared `times`.
- *  `xy[i]` is [x, y] at `times[i]`, or null when the car isn't on track then. */
+/** One completed lap's timing for a driver (seconds from green for ts/te, ms sectors). */
+export type ReplayLap = {
+  n: number;
+  ts: number;
+  te: number | null;
+  last: number | null;
+  s1: number | null;
+  s2: number | null;
+  s3: number | null;
+  /** Tyre compound letter (S/M/H/I/W) and age in laps. */
+  tyre?: string | null;
+  tyl?: number | null;
+  pit: boolean;
+};
+
+/** One driver's whole-race track, aligned to the blob's shared `times`.
+ *  `xy[i]` is [x, y] at `times[i]` (null off-track); `pos`/`gap` are per-frame. */
 export type ReplayDriver = {
   driver_id: string;
   code: string | null;
   number: number | null;
   team_color: string | null;
   xy: ([number, number] | null)[];
+  /** Live position per frame (1 = leader), null when not classified. */
+  pos?: (number | null)[];
+  /** Gap to leader in seconds, per frame. */
+  gap?: (number | null)[];
+  /** Per-completed-lap timing (sectors, last lap, pit). */
+  laps?: ReplayLap[];
+  /** DRS-open windows [t0, t1] in seconds from green. */
+  drs?: [number, number][];
 };
 
 /** A safety-car / VSC / red-flag window, in seconds from the green flag. */
@@ -32,6 +55,12 @@ export type ReplaySafetyPeriod = {
   end_s: number;
 };
 
+/** A race-control message, stamped in seconds from green. */
+export type ReplayRaceControl = { t: number; kind: string; msg: string };
+
+/** A time-stamped overtake (driver ids). */
+export type ReplayOvertake = { t: number; by: string | null; on: string | null };
+
 export type RaceReplayBlob = {
   season: number;
   round: number;
@@ -40,11 +69,16 @@ export type RaceReplayBlob = {
   rotation: number;
   frames: number;
   duration_s: number;
+  total_laps?: number;
   bounds: { min_x: number; max_x: number; min_y: number; max_y: number };
   /** Seconds from the green flag, one per frame. */
   times: number[];
   /** SC/VSC/red-flag windows (seconds from green). Absent on pre-safety blobs. */
   safety?: ReplaySafetyPeriod[];
+  /** Race-control feed. */
+  rc?: ReplayRaceControl[];
+  /** Overtake feed. */
+  overtakes?: ReplayOvertake[];
   drivers: ReplayDriver[];
   source: string;
 };
