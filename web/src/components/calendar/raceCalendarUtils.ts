@@ -7,15 +7,15 @@ export const DOUBLE_HEADER = "double";
 export const TRIPLE_HEADER = "triple";
 
 export const raceTypeColors: Record<string, string> = {
-  [SINGLE_RACE]: "bg-blue-500",
-  [DOUBLE_HEADER]: "bg-green-500",
-  [TRIPLE_HEADER]: "bg-violet-500",
-  "summer-break": "bg-sky-400/50",
+  [SINGLE_RACE]: "bg-status-upcoming",
+  [DOUBLE_HEADER]: "bg-status-completed",
+  [TRIPLE_HEADER]: "bg-primary",
+  "summer-break": "bg-status-upcoming/50",
 };
 
 export const statusColors = {
   completed: "bg-muted text-muted-foreground",
-  next: "bg-f1-red text-white",
+  next: "bg-primary text-primary-foreground",
   upcoming: "bg-muted text-muted-foreground",
 };
 

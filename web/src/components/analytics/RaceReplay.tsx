@@ -248,9 +248,9 @@ export default function RaceReplay({ year, round }: Props) {
                   {/* delta vs previous lap */}
                   <span className="w-10 shrink-0 text-xs tabular-nums">
                     {d.delta > 0 ? (
-                      <span className="text-emerald-500">▲{d.delta}</span>
+                      <span className="text-status-completed">▲{d.delta}</span>
                     ) : d.delta < 0 ? (
-                      <span className="text-red-500">▼{-d.delta}</span>
+                      <span className="text-destructive">▼{-d.delta}</span>
                     ) : (
                       <span className="text-muted-foreground/40">–</span>
                     )}
@@ -258,7 +258,7 @@ export default function RaceReplay({ year, round }: Props) {
 
                   <div className="ml-auto flex items-center gap-1.5">
                     {pitting && (
-                      <span className="rounded bg-yellow-500/15 px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-yellow-500">
+                      <span className="rounded bg-position-gold/15 px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-position-gold">
                         Pit
                       </span>
                     )}

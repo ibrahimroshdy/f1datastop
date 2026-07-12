@@ -1,14 +1,14 @@
 /** Medal styling for top-3 ranks — gold / silver / bronze, tuned for the dark terminal theme. */
 export const MEDAL_BADGE: Record<number, string> = {
-  1: "bg-amber-400/15 text-amber-300 border-amber-400/40",
-  2: "bg-slate-300/15 text-slate-200 border-slate-300/45",
-  3: "bg-orange-500/15 text-orange-300 border-orange-500/40",
+  1: "bg-position-gold/15 text-position-gold border-position-gold/40",
+  2: "bg-position-silver/15 text-position-silver border-position-silver/45",
+  3: "bg-position-bronze/15 text-position-bronze border-position-bronze/40",
 };
 
 export const MEDAL_SOLID: Record<number, string> = {
-  1: "bg-amber-400 text-amber-950",
-  2: "bg-slate-300 text-slate-900",
-  3: "bg-orange-500 text-orange-950",
+  1: "bg-position-gold text-background",
+  2: "bg-position-silver text-background",
+  3: "bg-position-bronze text-background",
 };
 
 export function medalBadge(rank: number): string {

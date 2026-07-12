@@ -74,7 +74,7 @@ const Developers = () => {
           title="Developers PitStop"
           description="Advanced tools and settings for developers"
           actions={
-            <div className="px-3 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 rounded-full text-sm font-medium">
+            <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
               Developer Mode
             </div>
           }

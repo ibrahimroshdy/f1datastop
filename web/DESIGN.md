@@ -6,7 +6,7 @@ The single, prescriptive design language for the f1datastop frontend. Quality ba
 
 ## 0. The One System (TL;DR)
 
-A dark **"Pit Wall"** system: pure-black page, card surfaces one step lighter, a **single F1 brand-red accent** (`--primary` = `0 100% 44%`, the #E10600 family). Exo 2 headings, Inter body, JetBrains Mono for timing/numbers. **All** color flows through HSL CSS-variable tokens in `web/src/index.css`, consumed via semantic Tailwind classes. Every page is `pageShell > (pageStack + animate-fade-in) > PageHeader`, then F1Card sections, with loading/empty/error routed through `F1Skeleton`/`F1EmptyState`/`F1ErrorState` and charts through `F1ChartContainer`.
+A dark **"Pit Wall"** system: **deep-carbon** page (hue-shifted near-black ladder — bg `240 8% 3.5%` → card `6%` → muted `10%` → accent `14%` → border `15%`), a **single F1 brand-red accent** (`--primary` = `0 100% 44%`, the #E10600 family). **Clash Display** headings, **Geist** body, **Geist Mono** for timing/numbers. **All** color flows through HSL CSS-variable tokens in `web/src/index.css`, consumed via semantic Tailwind classes. Every page is `pageShell > (pageStack + animate-fade-in) > PageHeader`, then F1Card sections, with loading/empty/error routed through `F1Skeleton`/`F1EmptyState`/`F1ErrorState` and charts through `F1ChartContainer`.
 
 **Three hard rules that catch 80% of violations:**
 1. **Color = tokens only.** Never a Tailwind palette color (`bg-red-500`, `text-zinc-400`, `bg-yellow-500`, `text-purple-500`) and never raw hex/`#fff`. Inline hex is allowed **only** for dynamic per-team colors.
@@ -91,11 +91,11 @@ Where genuinely distinct hues are needed to encode categories (race-type stripes
 
 ## 2. Typography
 
-Two display fonts set in `index.css`, plus mono for numerics.
+Two display fonts set in `index.css`, plus mono for numerics. (Loaded in `index.html`: Geist + Geist Mono via Google Fonts, Clash Display via Fontshare.)
 
-- **Headings/display → Exo 2** via `.font-heading` (and all `h1`–`h6` get Exo 2 + `letter-spacing: -0.02em` globally).
-- **Body → Inter** (`body`, Tailwind `font-sans`).
-- **Mono → JetBrains Mono** via `font-mono`, for timing/lap-time/numeric data. Utility `.timing` = `font-mono tabular-nums tracking-wide`.
+- **Headings/display → Clash Display** via `.font-heading` (and all `h1`–`h6` get Clash Display + `letter-spacing: -0.015em` + `font-weight: 600` globally).
+- **Body → Geist** (`body`, Tailwind `font-sans`).
+- **Mono → Geist Mono** via `font-mono`, for timing/lap-time/numeric data. Utility `.timing` = `font-mono tabular-nums tracking-wide`.
 
 ### 2.1 Canonical scale
 

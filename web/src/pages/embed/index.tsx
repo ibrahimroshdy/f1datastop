@@ -64,7 +64,7 @@ const EmbedInfoPage: React.FC = () => {
                 >
                   View Demo
                 </a>
-                <F1Badge className="bg-green-500/20 text-green-500 border border-green-500/30">Popular</F1Badge>
+                <F1Badge className="bg-status-completed/20 text-status-completed border border-status-completed/30">Popular</F1Badge>
               </div>
               <div className="mt-4 relative">
                 <div className="bg-muted rounded p-3 text-sm font-mono overflow-x-auto">

@@ -63,9 +63,9 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
   
   const raceTypeColors: Record<string, { bg: string; text: string; border: string }> = {
     [SINGLE_RACE]: { bg: "bg-muted-foreground/50", text: "text-muted-foreground", border: "border-muted" },
-    [DOUBLE_HEADER]: { bg: "bg-green-500", text: "text-green-500", border: "border-green-500/30" },
+    [DOUBLE_HEADER]: { bg: "bg-status-completed", text: "text-status-completed", border: "border-status-completed/30" },
     [TRIPLE_HEADER]: { bg: "bg-primary", text: "text-primary", border: "border-primary/30" },
-    "summer-break": { bg: "bg-sky-400", text: "text-sky-400", border: "border-sky-400/30" },
+    "summer-break": { bg: "bg-status-upcoming", text: "text-status-upcoming", border: "border-status-upcoming/30" },
   };
 
   const areConsecutiveWeekends = (date1: Date, date2: Date): boolean => {
@@ -262,19 +262,19 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
 
           {/* Season Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-4 border-t border-border">
-            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-green-500/10 to-transparent border border-green-500/20">
+            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-status-completed/10 to-transparent border border-status-completed/20">
               <div className="text-lg font-mono font-bold text-foreground">{completedRaces.length}</div>
               <div className="text-[10px] text-muted-foreground">Done</div>
             </div>
-            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20">
+            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-status-upcoming/10 to-transparent border border-status-upcoming/20">
               <div className="text-lg font-mono font-bold text-foreground">{remainingRaces}</div>
               <div className="text-[10px] text-muted-foreground">Left</div>
             </div>
-            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-yellow-500/10 to-transparent border border-yellow-500/20">
+            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-position-gold/10 to-transparent border border-position-gold/20">
               <div className="text-lg font-mono font-bold text-foreground">{sprintCount}</div>
               <div className="text-[10px] text-muted-foreground">Sprints</div>
             </div>
-            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20">
+            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-position-bronze/10 to-transparent border border-position-bronze/20">
               <div className="text-lg font-mono font-bold text-foreground">{longestBreakDays}d</div>
               <div className="text-[10px] text-muted-foreground">Max Gap</div>
             </div>

@@ -133,6 +133,11 @@ const F1Card = React.forwardRef<HTMLDivElement, F1CardProps>(
     ref
   ) => {
     const effectiveHover = interactive ? true : hover;
+    const isClickable =
+      interactive ||
+      !!effectiveHover ||
+      !!props.onClick ||
+      props.role === "button";
     const effectiveAccent =
       accent !== "none"
         ? accent
@@ -169,6 +174,8 @@ const F1Card = React.forwardRef<HTMLDivElement, F1CardProps>(
       variantClasses,
       sizePadding,
       loading && "animate-pulse",
+      isClickable &&
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       className
     );
 

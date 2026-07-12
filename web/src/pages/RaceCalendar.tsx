@@ -105,19 +105,19 @@ const RaceCalendar = () => {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
             <span className="instrument-label hidden text-primary sm:inline">Legend</span>
             <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-1 rounded-full bg-blue-500" aria-hidden />
+              <span className="h-2.5 w-1 rounded-full bg-status-upcoming" aria-hidden />
               <span className="instrument-label">Single</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-1 rounded-full bg-green-500" aria-hidden />
+              <span className="h-2.5 w-1 rounded-full bg-status-completed" aria-hidden />
               <span className="instrument-label">Double</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-1 rounded-full bg-violet-500" aria-hidden />
+              <span className="h-2.5 w-1 rounded-full bg-primary" aria-hidden />
               <span className="instrument-label">Triple</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" aria-hidden />
+              <Star className="h-3 w-3 fill-position-gold text-position-gold" aria-hidden />
               <span className="instrument-label">Sprint</span>
             </div>
           </div>

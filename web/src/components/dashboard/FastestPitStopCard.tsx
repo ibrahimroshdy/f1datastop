@@ -212,8 +212,8 @@ const FastestPitStopCard = () => {
           {/* Record Stop Highlight */}
           {!isLoading && !error && fastestStop && (
             <div className="mt-2 flex items-center justify-center">
-              <div className="border border-dashed border-amber-500/50 dark:border-amber-400/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-xs">
-                <span className="text-amber-600 dark:text-amber-400 font-medium">Record:</span>
+              <div className="border border-dashed border-position-gold/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-xs">
+                <span className="text-position-gold font-medium">Record:</span>
                         <span 
                           className="font-mono font-bold" 
                   style={{ color: getTeamHexColor(fastestStop.driver.team) }}

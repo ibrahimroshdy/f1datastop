@@ -135,19 +135,19 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
                     if (data?.isDNF) {
                       return (
                         <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                          <span className="text-red-500 font-medium">DNF</span>
+                          <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
+                          <span className="text-destructive font-medium">DNF</span>
                         </div>
                       );
                     }
                     const pos = Number(value);
                     const color =
                       pos === 1
-                        ? "text-yellow-500"
+                        ? "text-position-gold"
                         : pos <= 3
-                          ? "text-amber-500"
+                          ? "text-position-bronze"
                           : pos <= 10
-                            ? "text-green-500"
+                            ? "text-status-completed"
                             : "";
                     return (
                       <div className="flex items-center gap-2">
@@ -156,11 +156,11 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
                           style={{
                             backgroundColor:
                               pos === 1
-                                ? "#eab308"
+                                ? "hsl(var(--position-gold))"
                                 : pos <= 3
-                                  ? "#f59e0b"
+                                  ? "hsl(var(--position-bronze))"
                                   : pos <= 10
-                                    ? "#22c55e"
+                                    ? "hsl(var(--status-completed))"
                                     : teamColor,
                           }}
                         />
@@ -190,8 +190,8 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
                       cx={cx}
                       cy={cy}
                       r={4}
-                      fill="#ef4444"
-                      stroke="#ef4444"
+                      fill="hsl(var(--destructive))"
+                      stroke="hsl(var(--destructive))"
                       strokeWidth={1}
                     />
                   );
@@ -199,11 +199,11 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
                 const pos = Number(payload.position);
                 const fillColor =
                   pos === 1
-                    ? "#eab308"
+                    ? "hsl(var(--position-gold))"
                     : pos <= 3
-                      ? "#f59e0b"
+                      ? "hsl(var(--position-bronze))"
                       : pos <= 10
-                        ? "#22c55e"
+                        ? "hsl(var(--status-completed))"
                         : teamColor;
                 return (
                   <circle
@@ -231,31 +231,31 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
       <F1CardFooter className="flex-col items-start gap-2 text-sm pt-0 border-t-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+            <div className="w-2.5 h-2.5 rounded-full bg-position-gold" />
             <span className="text-muted-foreground text-xs">Win</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            <div className="w-2.5 h-2.5 rounded-full bg-position-bronze" />
             <span className="text-muted-foreground text-xs">Podium</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+            <div className="w-2.5 h-2.5 rounded-full bg-status-completed" />
             <span className="text-muted-foreground text-xs">Points</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+            <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
             <span className="text-muted-foreground text-xs">DNF</span>
           </div>
         </div>
         <div className="flex gap-2 text-xs text-muted-foreground leading-none">
           {stats.wins > 0 && (
             <span className="flex items-center gap-1">
-              <Trophy className="h-3 w-3 text-yellow-500" />
+              <Trophy className="h-3 w-3 text-position-gold" />
               {stats.wins} win{stats.wins > 1 ? "s" : ""}
             </span>
           )}
           {stats.dnfs > 0 && (
-            <span className="text-red-500">
+            <span className="text-destructive">
               {stats.dnfs} DNF{stats.dnfs > 1 ? "s" : ""}
             </span>
           )}
