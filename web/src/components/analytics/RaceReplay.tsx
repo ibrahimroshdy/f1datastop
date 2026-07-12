@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Play, Pause, RotateCcw, SkipBack, SkipForward, Flag, ArrowRight } from "lucide-react";
-import { useDbLaps, useDbOvertakes, useDbPitLaps } from "@/hooks/useWarehouse";
+import { useDbLaps, useDbOvertakes, useDbPitLaps, useDbRaceControl } from "@/hooks/useWarehouse";
 import { useRaceResults } from "@/hooks/f1";
 import { getTeamColorById } from "@/constants/f1Colors";
 import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, F1EmptyState } from "@/components/f1";
+import { deriveSafetyPeriods, kindTag } from "@/lib/f1/safetyPeriods";
+import { BAND_COLOR } from "@/components/analytics/SafetyCarBands";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -23,7 +25,11 @@ export default function RaceReplay({ year, round }: Props) {
   const { data: laps, isLoading: lapsLoading } = useDbLaps(year, roundNum, "R");
   const { data: overtakes } = useDbOvertakes(year, roundNum, "R");
   const { data: pitRows } = useDbPitLaps(year, roundNum);
+  const { data: raceControl } = useDbRaceControl(year, roundNum, "R");
   const race = useRaceResults(year, round);
+
+  // SC / VSC / red-flag lap ranges for the scrubber + current-lap indicator.
+  const safety = useMemo(() => deriveSafetyPeriods(raceControl), [raceControl]);
 
   // driver_id -> { code, color }
   const meta = useMemo(() => {
@@ -131,6 +137,7 @@ export default function RaceReplay({ year, round }: Props) {
   const lapPits = pitsByLap.get(lap);
   const lapOts = otByLap.get(lap) ?? [];
   const otMovers = useMemo(() => new Set(lapOts.map((o) => o.overtaking_driver_id)), [lapOts]);
+  const activeSafety = safety.find((p) => lap >= p.startLap && lap <= p.endLap) ?? null;
 
   if (lapsLoading || race.isLoading) {
     return <F1Skeleton variant="card" className="h-[560px]" />;
@@ -164,9 +171,22 @@ export default function RaceReplay({ year, round }: Props) {
           <Flag className="h-4 w-4 text-primary" />
           <F1CardTitle className="text-base">Race Replay</F1CardTitle>
         </div>
-        <div className="instrument-label flex items-baseline gap-1 text-muted-foreground">
-          Lap <span className="readout text-lg text-primary">{lap}</span>
-          <span className="text-muted-foreground/60">/ {lastLap}</span>
+        <div className="flex items-center gap-2">
+          {activeSafety && (
+            <span
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide"
+              style={{
+                color: BAND_COLOR[activeSafety.kind],
+                backgroundColor: `color-mix(in srgb, ${BAND_COLOR[activeSafety.kind]} 18%, transparent)`,
+              }}
+            >
+              {kindTag(activeSafety.kind)}
+            </span>
+          )}
+          <div className="instrument-label flex items-baseline gap-1 text-muted-foreground">
+            Lap <span className="readout text-lg text-primary">{lap}</span>
+            <span className="text-muted-foreground/60">/ {lastLap}</span>
+          </div>
         </div>
       </F1CardHeader>
 
@@ -209,15 +229,33 @@ export default function RaceReplay({ year, round }: Props) {
           </div>
         </div>
 
-        {/* Scrubber with pit-lap ticks */}
+        {/* Scrubber with SC/VSC/red-flag ranges + pit-lap ticks */}
         <div className="relative pt-2.5">
+          {/* safety-car / VSC / red-flag lap ranges (behind the pit ticks) */}
+          {safety.length > 0 && (
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-2.5">
+              {safety.map((p, i) => {
+                const span = lastLap > firstLap ? lastLap - firstLap : 1;
+                const left = ((p.startLap - firstLap) / span) * 100;
+                const width = Math.max(0.8, ((p.endLap - p.startLap) / span) * 100);
+                return (
+                  <span
+                    key={`sf-${i}`}
+                    className="absolute top-[3px] h-1.5 rounded-sm"
+                    style={{ left: `${left}%`, width: `${width}%`, backgroundColor: BAND_COLOR[p.kind], opacity: 0.55 }}
+                  />
+                );
+              })}
+            </div>
+          )}
+          {/* pit-lap ticks */}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-2.5">
             {allPitLaps.map((l) => {
               const pct = lastLap > firstLap ? ((l - firstLap) / (lastLap - firstLap)) * 100 : 0;
               return (
                 <span
                   key={l}
-                  className="absolute top-0 h-2 w-px bg-position-gold/70"
+                  className="absolute top-0 h-2 w-px bg-foreground/50"
                   style={{ left: `${pct}%` }}
                 />
               );
@@ -232,9 +270,19 @@ export default function RaceReplay({ year, round }: Props) {
             className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
             aria-label="Lap scrubber"
           />
-          {allPitLaps.length > 0 && (
-            <div className="mt-1 flex items-center gap-1.5 text-2xs text-muted-foreground">
-              <span className="h-2 w-px bg-position-gold/70" /> pit stops
+          {(allPitLaps.length > 0 || safety.length > 0) && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted-foreground">
+              {allPitLaps.length > 0 && (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-px bg-foreground/50" /> pit stops
+                </span>
+              )}
+              {Array.from(new Set(safety.map((s) => s.kind))).map((k) => (
+                <span key={k} className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-3 rounded-sm" style={{ backgroundColor: BAND_COLOR[k], opacity: 0.55 }} />
+                  {k === "SC" ? "Safety Car" : k === "VSC" ? "Virtual SC" : "Red Flag"}
+                </span>
+              ))}
             </div>
           )}
         </div>

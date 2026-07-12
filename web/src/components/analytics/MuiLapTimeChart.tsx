@@ -19,6 +19,9 @@ import { getPitStops } from "@/services/f1Service";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
+import { useDbRaceControl } from "@/hooks/useWarehouse";
+import { deriveSafetyPeriods } from "@/lib/f1/safetyPeriods";
+import { safetyBands, SafetyLegend } from "@/components/analytics/SafetyCarBands";
 
 interface MuiLapTimeChartProps {
   year: number;
@@ -104,6 +107,10 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
   const toggleDisplayMode = () => {
     setDisplayMode(prev => prev === 'absolute' ? 'gap' : 'absolute');
   };
+
+  // Safety-car / VSC / red-flag lap-range bands from race-control messages.
+  const { data: raceControl } = useDbRaceControl(year, parseInt(round, 10), "R");
+  const safety = useMemo(() => deriveSafetyPeriods(raceControl), [raceControl]);
 
   // Map driver IDs to codes and team colors for matching
   const driverIdToInfo = useMemo(() => {
@@ -362,6 +369,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
                   stroke={chartTheme.grid}
                   strokeDasharray="3 3"
                 />
+                {safetyBands(safety)}
                 <XAxis
                   dataKey="lap"
                   type="number"
@@ -437,6 +445,9 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
                 ))}
               </LineChart>
             </ResponsiveContainer>
+          )}
+          {lines.length > 0 && (
+            <SafetyLegend periods={safety} className="mt-2 justify-center" />
           )}
         </F1ChartContainer>
       </div>

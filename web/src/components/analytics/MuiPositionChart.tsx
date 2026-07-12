@@ -17,6 +17,9 @@ import DriverSelectionGrid from "./charts/DriverSelectionGrid";
 import { F1ChartContainer } from "@/components/f1";
 import { getPitStops } from "@/services/f1Service";
 import { cn } from "@/lib/utils";
+import { useDbRaceControl } from "@/hooks/useWarehouse";
+import { deriveSafetyPeriods } from "@/lib/f1/safetyPeriods";
+import { safetyBands, SafetyLegend } from "@/components/analytics/SafetyCarBands";
 
 interface MuiPositionChartProps {
   year: number;
@@ -87,6 +90,10 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
     handleDriverHover,
     getPositionChangeSummary,
   } = usePositionChangeData(year, round);
+
+  // Safety-car / VSC / red-flag lap-range bands from race-control messages.
+  const { data: raceControl } = useDbRaceControl(year, parseInt(round, 10), "R");
+  const safety = useMemo(() => deriveSafetyPeriods(raceControl), [raceControl]);
 
   // Map driver IDs to codes and team colors for matching
   const driverIdToInfo = useMemo(() => {
@@ -293,6 +300,7 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
                 stroke={chartTheme.grid}
                 strokeDasharray="3 3"
               />
+              {safetyBands(safety)}
               <XAxis
                 dataKey="lap"
                 type="number"
@@ -352,6 +360,7 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
               ))}
             </LineChart>
           </ResponsiveContainer>
+          <SafetyLegend periods={safety} className="mt-2 justify-center" />
         </F1ChartContainer>
       </div>
     </div>

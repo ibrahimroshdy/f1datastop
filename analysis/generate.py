@@ -586,6 +586,62 @@ def top_drivers_by_pace(laps, n=5):
     return order[:n]
 
 
+# ── Safety car / VSC / red-flag shading ─────────────────────────────────────
+def safety_periods(session):
+    """SC/VSC/Red-flag lap ranges from race control messages.
+    Returns list of dicts: {"kind": "SC"|"VSC"|"RED", "start": int, "end": int}."""
+    try:
+        rc = getattr(session, "race_control_messages", None)
+        if rc is None or len(rc) == 0:
+            return []
+    except Exception:
+        return []
+    rows = []
+    for _, m in rc.iterrows():
+        lap = m.get("Lap")
+        if lap is None or (isinstance(lap, float) and pd.isna(lap)):
+            continue
+        rows.append((int(lap), str(m.get("Message") or "").upper(), str(m.get("Flag") or "").upper(),
+                     str(m.get("Time") or "")))
+    rows.sort(key=lambda r: (r[0], r[3]))
+    max_lap = max((r[0] for r in rows), default=1)
+    periods, sc, vsc, red = [], None, None, None
+    for lap, msg, flag, _ in rows:
+        virtual = "VIRTUAL SAFETY CAR" in msg or "VSC" in msg
+        deploy = "DEPLOY" in msg
+        end = "ENDING" in msg or "IN THIS LAP" in msg
+        if flag == "RED" or "RED FLAG" in msg:
+            red = red or {"kind": "RED", "start": lap, "end": lap}; continue
+        if (flag == "GREEN" or "GREEN" in msg or "TRACK CLEAR" in msg):
+            for p, nm in ((red, "red"), (vsc, "vsc"), (sc, "sc")):
+                if p: p["end"] = max(p["start"], lap); periods.append(p)
+            red = vsc = sc = None; continue
+        if virtual:
+            if deploy and not vsc: vsc = {"kind": "VSC", "start": lap, "end": lap}
+            elif end and vsc: vsc["end"] = max(vsc["start"], lap); periods.append(vsc); vsc = None
+            continue
+        if "SAFETY CAR" in msg:
+            if deploy and not sc: sc = {"kind": "SC", "start": lap, "end": lap}
+            elif end and sc: sc["end"] = max(sc["start"], lap); periods.append(sc); sc = None
+    for p in (sc, vsc, red):
+        if p: p["end"] = max(p["start"], max_lap); periods.append(p)
+    return sorted(periods, key=lambda p: p["start"])
+
+
+_SAFETY_COLOR = {"SC": "#F5B301", "VSC": "#F5B301", "RED": RED}
+
+
+def shade_safety(ax, session):
+    """axvspan SC/VSC/red-flag bands on a lap x-axis. Returns kinds seen (for a legend)."""
+    seen = set()
+    for p in safety_periods(session):
+        c = _SAFETY_COLOR[p["kind"]]
+        ax.axvspan(p["start"] - 0.5, p["end"] + 0.5, color=c, alpha=0.12, zorder=0,
+                   hatch="///" if p["kind"] == "VSC" else None, lw=0)
+        seen.add(p["kind"])
+    return seen
+
+
 # ── Charts ──────────────────────────────────────────────────────────────────
 def chart_speed_trace(session, meta):
     laps = session.laps
@@ -627,6 +683,7 @@ def chart_position_changes(session, meta):
     laps = session.laps
     fig, ax = editorial_fig()
     title_block(fig, "Race", "Position Changes", "Track position, lap by lap")
+    shade_safety(ax, session)
     plotted = 0
     seen = {}
     for drv in session.drivers:
@@ -659,6 +716,7 @@ def chart_tyre_strategy(session, meta):
     laps = session.laps
     fig, ax = editorial_fig()
     title_block(fig, "Strategy", "Tyre Stints", "Compound usage per driver")
+    shade_safety(ax, session)
     yt, yl = [], []
     row_i = 0
     for drv in session.drivers:
@@ -1112,6 +1170,7 @@ def chart_teammate_laps(session, meta):
         axy = by0 + bh - (r + 1) * ch - r * gy
         ax = fig.add_axes([axx, axy, cw, ch])
         ax.set_facecolor(PAPER)
+        shade_safety(ax, session)
         sub = quick[quick["Team"] == t]
         col = team_color(t)
         meds = sub.groupby("Driver")["s"].median().sort_values()
@@ -1289,6 +1348,7 @@ def chart_gap_to_leader(session, meta):
     look = driver_lookup(session)
     fig, ax = editorial_fig(right=LY("headshot_right"))
     title_block(fig, "Race", "Gap to Leader", "Time behind the lead, lap by lap")
+    shade_safety(ax, session)
     ends = []
     seen = {}
     for drv in order:
@@ -1317,6 +1377,7 @@ def chart_lap_evolution(session, meta):
     look = driver_lookup(session)
     fig, ax = editorial_fig(right=LY("headshot_right"))
     title_block(fig, "Pace", "Lap-Time Evolution", "Race pace through the stints · top five")
+    shade_safety(ax, session)
     ends = []
     seen = {}
     for drv in top_drivers_by_pace(session.laps, 5):

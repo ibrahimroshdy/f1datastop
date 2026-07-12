@@ -134,6 +134,32 @@ def generate_event(season: int, event: str = "", round: int = 0,
     _run(*args)
 
 
+# ── Manual: regenerate ALL charts for a season (loops rounds) ────────────────
+# generate.py overwrites existing charts, so this re-bakes every chart — used to
+# roll out new chart features (e.g. Safety Car / VSC / red-flag overlays) across a
+# whole season. Rounds that haven't run yet fail-and-skip. 2h timeout per season.
+@app.function(**SEASON)
+def generate_season(season: int, rounds: int = 24, session: str = "R", fmt: str = "all") -> None:
+    done = 0
+    for r in range(1, rounds + 1):
+        try:
+            _run("generate.py", "--season", str(season), "--round", str(r),
+                 "--session", session, "--format", fmt)
+            done += 1
+        except Exception as e:  # noqa: BLE001
+            print(f"  R{r}: skipped ({e})")
+    print(f"Done. charts generated for {done} rounds of {season}.")
+
+
+# ── Manual: regenerate charts across a season range (per-season fan-out) ─────
+# e.g.  modal run modal_app.py::generate_range --from-season 2025 --to-season 2026
+@app.function(**COMMON)
+def generate_range(from_season: int = 2025, to_season: int = 2026,
+                   session: str = "R", fmt: str = "all") -> None:
+    seasons = list(range(from_season, to_season + 1))
+    list(generate_season.map(seasons))  # one container per season; wait for all
+
+
 # ── Manual: export interactive telemetry (per-lap JSON → Storage) for a season ─
 # Populates f1_telemetry_index so the FastF1 telemetry + track-map charts have
 # data. Loops every round; rounds that haven't run yet just fail-and-skip.

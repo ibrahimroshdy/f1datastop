@@ -9,11 +9,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useDbOvertakes, useDbLaps } from "@/hooks/useWarehouse";
+import { useDbOvertakes, useDbLaps, useDbRaceControl } from "@/hooks/useWarehouse";
 import { useRaceResults } from "@/hooks/f1";
 import { getTeamColorById } from "@/constants/f1Colors";
 import { chartTheme } from "@/lib/chartTheme";
 import { F1Skeleton, F1EmptyState } from "@/components/f1";
+import { deriveSafetyPeriods } from "@/lib/f1/safetyPeriods";
+import { safetyBands, SafetyLegend } from "@/components/analytics/SafetyCarBands";
 
 interface OvertakesAnalysisProps {
   year: number;
@@ -25,7 +27,11 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
   const roundNum = parseInt(round, 10);
   const { data: overtakes, isLoading: isOtLoading } = useDbOvertakes(year, roundNum, "R");
   const { data: laps, isLoading: isLapsLoading } = useDbLaps(year, roundNum, "R");
+  const { data: raceControl } = useDbRaceControl(year, roundNum, "R");
   const race = useRaceResults(year, round);
+
+  // Safety-car / VSC / red-flag lap-range bands from race-control messages.
+  const safety = useMemo(() => deriveSafetyPeriods(raceControl), [raceControl]);
 
   // driver_id -> { code, color }
   const driverMeta = useMemo(() => {
@@ -171,6 +177,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
         <ResponsiveContainer width="100%" height={340}>
           <LineChart data={positionChart.rows} margin={{ left: 8, right: 12, top: 8, bottom: 20 }}>
             <CartesianGrid vertical={false} stroke={chartTheme.grid} strokeDasharray="3 3" />
+            {safetyBands(safety)}
             <XAxis
               dataKey="lap"
               type="number"
@@ -204,6 +211,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
             ))}
           </LineChart>
         </ResponsiveContainer>
+        <SafetyLegend periods={safety} className="mt-2 justify-center" />
       </div>
 
       {/* Overtake feed */}
