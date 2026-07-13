@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { ergastFetch, throttledErgastFetch } from "@/lib/api/f1ApiFetch";
+import { getDriverSeasonResultsFromDb } from "./f1Warehouse";
 
 const ERGAST = "/f1";
 
@@ -501,6 +502,15 @@ export const getSprintResults = async (year: number, round: string) => {
 
 // Fetch all race results for a driver in a given season (all races, including DNFs)
 export const getDriverResultsBySeason = async (year: number, driverId: string) => {
+  // Warehouse first (Modal/FastF1 — current). The Jolpica proxy lags recent
+  // rounds, so a live-season driver page would otherwise show stale results.
+  // Falls through to the proxy for pre-warehouse seasons (out-of-window → null).
+  try {
+    const db = await getDriverSeasonResultsFromDb(year, driverId);
+    if (db && db.length) return { data: db, error: null };
+  } catch {
+    /* ignore — fall through to the Jolpica proxy below */
+  }
   try {
     const path = `${ERGAST}/${year}/drivers/${encodeURIComponent(driverId)}/results.json?limit=1000`;
     const response = await throttledFetch(path, 4000, 8);

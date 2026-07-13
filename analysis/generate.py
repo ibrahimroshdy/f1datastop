@@ -1245,12 +1245,15 @@ def chart_teammate_laps(session, meta):
             awins = int((sa[common] < sb[common]).sum())
             bwins = len(common) - awins
             lead, ln = (a, awins) if awins >= bwins else (b, bwins)
-            ax.text(0.985, 0.04,
+            ax.text(0.985, 0.035,
                     f"FL {fastest} {fmt_laptime(min(besta, bestb))}   ·   {lead} faster {ln}/{len(common)} laps",
                     transform=ax.transAxes, ha="right", va="bottom", fontsize=6.6,
-                    color=SUBINK, fontproperties=FP_BODY, zorder=7)
-        ax.set_xlim(0, lmax + 7)
-        ax.set_ylim(ymax, ymin)
+                    color=SUBINK, fontproperties=FP_BODY, zorder=8,
+                    bbox=dict(boxstyle="round,pad=0.22", facecolor=PAPER, edgecolor=GRID, lw=0.6, alpha=0.92))
+        ax.set_xlim(0, lmax + 8)
+        # extra headroom at the slow (bottom) end so the FL / head-to-head footnote
+        # chip sits in clear space and never collides with a lap line
+        ax.set_ylim(ymax + (ymax - ymin) * 0.16, ymin)
         ax.set_title(note, fontproperties=FP_BODY_B, color=INK, fontsize=10, pad=4, loc="left")
         ax.grid(color=GRID, linewidth=0.7)
         ax.set_axisbelow(True)
@@ -1628,7 +1631,7 @@ def chart_dominance_stack(session, meta):
         return px + shear * py, -tilt * px + squash * py
 
     sx, sy = iso(nx, ny)
-    dz_step = LY("stack_dz") * (sy.max() - sy.min())
+    dz_step = LY("stack_dz") * (sy.max() - sy.min()) * 0.85
     idxs = list(range(len(drivers)))[::-1]
     n = len(idxs)
     fig, ax = editorial_fig()
@@ -1695,6 +1698,103 @@ def chart_dominance_stack(session, meta):
     ally = np.concatenate([bsy - shy * 2.4, sy + (n - 1) * dz_step])
     ax.set_xlim(lx - 0.25, allx.max() + 0.30)
     ax.set_ylim(ally.min() - 0.25, ally.max() + 0.25)
+    for artist in list(ax.collections) + list(ax.patches):
+        artist.set_clip_on(False)
+    footer(fig, meta)
+    return fig_png(fig)
+
+
+def chart_dominance_flat(session, meta):
+    """Flat 'who is fastest where' track map — every micro-segment of the lap
+    coloured by the driver with the highest median speed there, plus a per-driver
+    share legend. Wide, frame-filling composition (legend left, track centre-right)."""
+    laps = session.laps
+    grid = rx = ry = None
+    drivers = []        # (drv, color)
+    speed_rows = []     # median speed per track point across the driver's quick laps
+    for drv in top_drivers_by_pace(laps, 3):
+        dl = laps[laps["Driver"] == drv]
+        ql = dl.pick_quicklaps() if hasattr(dl, "pick_quicklaps") else dl
+        stack = []
+        for _, lap in ql.iterlaps():
+            try:
+                cd = lap.get_car_data().add_distance()
+            except Exception:
+                continue
+            if "Speed" not in cd or "Distance" not in cd or cd.empty:
+                continue
+            if grid is None:  # lock track geometry from the first usable lap
+                try:
+                    tel = lap.get_telemetry()
+                    if not all(k in tel for k in ("X", "Y", "Distance")):
+                        continue
+                    grid = np.linspace(0, float(tel["Distance"].max()), 700)
+                    rx = np.interp(grid, tel["Distance"], tel["X"])
+                    ry = np.interp(grid, tel["Distance"], tel["Y"])
+                except Exception:
+                    grid = None
+                    continue
+            stack.append(np.interp(grid, cd["Distance"], cd["Speed"]))
+        if not stack:
+            continue
+        drivers.append((drv, team_color(dl["Team"].iloc[0])))
+        speed_rows.append(np.median(np.vstack(stack), axis=0))
+    if len(drivers) < 2 or grid is None:
+        return None
+    speeds = np.vstack(speed_rows)
+    winner = np.argmax(speeds, axis=0)
+
+    # normalise the track to a unit box centred on the origin
+    cx0 = (rx.max() + rx.min()) / 2
+    cy0 = (ry.max() + ry.min()) / 2
+    half = max(rx.max() - rx.min(), ry.max() - ry.min()) / 2 or 1.0
+    nx = (rx - cx0) / half
+    ny = (ry - cy0) / half
+
+    fig, ax = editorial_fig()
+    title_block(fig, "Telemetry", "Track Dominance",
+                "Median race pace · who is quickest at each point of the lap")
+
+    P = np.column_stack([nx, ny]).reshape(-1, 1, 2)
+    segs = np.concatenate([P[:-1], P[1:]], axis=1)
+    seg_cols = [drivers[int(winner[i])][1] for i in range(len(segs))]
+    # base track shadow, then the winner-coloured neon ribbon on top
+    ax.add_collection(LineCollection(segs, colors=GRID, linewidths=15,
+                      capstyle="round", joinstyle="round", zorder=1))
+    neon_lines(ax, segs, colors=seg_cols, lw=9.0)
+    # start / finish tick
+    ax.scatter([nx[0]], [ny[0]], s=90, facecolor=PAPER, edgecolor=INK, lw=1.6, zorder=40)
+    ax.annotate("S/F", (nx[0], ny[0]), xytext=(0, 13), textcoords="offset points",
+                ha="center", va="bottom", fontsize=8.5, color=SUBINK,
+                fontproperties=FP_MONO_B, zorder=40)
+
+    ax.set_aspect("equal")
+    ax.axis("off")
+
+    # driver-share legend — headshot + code + % of lap fastest (most-dominant first)
+    look = driver_lookup(session)
+    lx = nx.min() - 1.5
+    order = sorted(range(len(drivers)), key=lambda i: -float((winner == i).mean()))
+    ytop = ny.max()
+    for row, di in enumerate(order):
+        drv, col = drivers[di]
+        pct = round(100 * float((winner == di).mean()))
+        ay = ytop - row * 0.5
+        disc = headshot_disc((look.get(str(drv)) or {}).get("headshot"), col)
+        if disc is not None:
+            ax.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.20), (lx, ay),
+                          xycoords="data", frameon=False, zorder=300))
+        else:
+            ax.add_patch(plt.Rectangle((lx - 0.05, ay - 0.05), 0.10, 0.10, color=col, zorder=300))
+        ax.annotate(drv, (lx, ay), xytext=(30, 7), textcoords="offset points",
+                    va="center", ha="left", fontsize=13, fontproperties=FP_BODY_B,
+                    color=INK, zorder=300)
+        ax.annotate(f"quickest on {pct}% of the lap", (lx, ay), xytext=(30, -9),
+                    textcoords="offset points", va="center", ha="left", fontsize=10,
+                    fontproperties=FP_BODY, color=SUBINK, zorder=300)
+
+    ax.set_xlim(lx - 0.35, nx.max() + 0.35)
+    ax.set_ylim(ny.min() - 0.35, ny.max() + 0.55)
     for artist in list(ax.collections) + list(ax.patches):
         artist.set_clip_on(False)
     footer(fig, meta)
@@ -1922,7 +2022,7 @@ def chart_parallax_stack(session, meta):
         return px + shear * py, -tilt * px + squash * py
 
     sx, sy = iso(nx, ny)
-    dz_step = LY("stack_dz") * (sy.max() - sy.min())
+    dz_step = LY("stack_dz") * (sy.max() - sy.min()) * 0.85
     idxs = list(range(len(drivers)))[::-1]  # slowest first (bottom)
     n = len(idxs)
     fig, ax = editorial_fig()
@@ -2014,6 +2114,7 @@ CHARTS = [
     ("top_speed", "Top Speed", "Highest speed per driver on the fastest lap", chart_top_speed),
     ("driver_radar", "Driver Radar", "Performance profile of the top drivers", chart_driver_radar),
     ("track_dominance", "Track Dominance", "Where each driver is fastest, layered per driver", chart_dominance_stack),
+    ("dominance_flat", "Track Dominance Map", "Fastest driver at each point of the lap", chart_dominance_flat),
     ("pace_tyre", "Race Pace by Tyre", "Lap-time distribution per team, coloured by compound", chart_pace_tyre),
     ("places_gained", "Places Gained & Lost", "Grid-to-finish position change per driver", chart_places_gained),
     ("speed_trace", "Speed Trace", "Fastest-lap speed vs distance for the top five", chart_speed_trace),
@@ -2152,6 +2253,7 @@ def main():
     ap.add_argument("--round", type=int)
     ap.add_argument("--event", help="Race name, e.g. 'Monaco' or 'Bahrain' (instead of --round)")
     ap.add_argument("--session", default="R")
+    ap.add_argument("--only", help="comma-separated chart keys to render (default: all)")
     ap.add_argument("--latest", action="store_true")
     ap.add_argument("--no-upload", action="store_true")
     ap.add_argument("--format", default="landscape",
@@ -2219,6 +2321,7 @@ def main():
     global FMT, TEAM_LABELS, DRIVERS
     TEAM_LABELS = args.team_labels
     DRIVERS = {d.strip().upper() for d in args.drivers.split(",")} if args.drivers else None
+    only_set = {c.strip() for c in args.only.split(",")} if args.only else None
     if DRIVERS:
         print(f"Featuring drivers: {', '.join(sorted(DRIVERS))}")
 
@@ -2227,14 +2330,20 @@ def main():
         FMT = fmt
         # out/<year>/<round>-<Grand Prix>/<session>/<format>/<chart>.png
         base = f"{args.season}/{rnd:02d}-{slug}/{args.session}/{fmt}"
+        # A custom driver selection gets a stable key suffix (sorted codes) so it
+        # never clobbers the default charts and can be de-duplicated downstream
+        # (same drivers -> same key -> same storage path + index row).
+        dk = ("__" + "-".join(sorted(DRIVERS))) if DRIVERS else ""
         print(f"== {fmt} ({ratios[fmt]}) ==")
         for ctype, title, desc, fn in CHARTS:
+            if only_set and ctype not in only_set:
+                continue
             try:
                 png = fn(session, meta)
                 if not png:
                     print(f"  - {fmt}/{ctype}: no data, skipped")
                     continue
-                path = f"{base}/{ctype}.png"
+                path = f"{base}/{ctype}{dk}.png"
                 if args.no_upload:
                     outdir = os.path.join("out", base)
                     os.makedirs(outdir, exist_ok=True)
@@ -2242,7 +2351,7 @@ def main():
                         f.write(png)
                     print(f"  - {fmt}/{ctype}: {len(png) // 1024} KB")
                 else:
-                    ct = ctype if fmt == "landscape" else f"{ctype}_{fmt}"
+                    ct = (ctype if fmt == "landscape" else f"{ctype}_{fmt}") + dk
                     public_url = upload_png(path, png)
                     upsert_index({"season": args.season, "round": rnd, "session": args.session,
                                   "chart_type": ct, "title": title, "description": desc,

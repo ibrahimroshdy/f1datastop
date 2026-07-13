@@ -159,6 +159,54 @@ export async function getRaceResultsFromDb(
   return race;
 }
 
+/** One row of a driver's season results (matches getDriverResultsBySeason().data). */
+export interface DbDriverResult {
+  round: string;
+  raceName: string;
+  date: string;
+  circuit?: string;
+  country?: string;
+  position?: string;
+  status?: string;
+  isDNF: boolean;
+  points: number;
+  constructor?: string;
+}
+
+/**
+ * A driver's whole-season race results, straight from the warehouse
+ * (Modal/FastF1-fed) so the driver page never lags the Jolpica proxy on recent
+ * rounds. Returns null for out-of-window (pre-warehouse) seasons so the caller
+ * keeps the historical proxy path.
+ *
+ * NOTE: gated on the coverage WINDOW only — NOT the global
+ * VITE_DB_SERVING_ENABLED flag. Driver results are a durable domain and this is a
+ * deliberate targeted cutover; the flag governs the broad, all-domain switch.
+ */
+export async function getDriverSeasonResultsFromDb(
+  year: number,
+  driverId: string,
+): Promise<DbDriverResult[] | null> {
+  if (!isServedFromDb(year) || !driverId || !import.meta.env.VITE_SUPABASE_URL) return null;
+  const rows = await rpc<Array<Record<string, unknown>>>("get_driver_season_results", {
+    p_season: year,
+    p_driver_id: driverId,
+  });
+  if (rows == null || isEmpty(rows)) return null;
+  return rows.map((r) => ({
+    round: String(r.round),
+    raceName: (r.race_name as string) ?? "",
+    date: (r.date as string) ?? "",
+    circuit: (r.circuit as string) ?? undefined,
+    country: (r.country as string) ?? undefined,
+    position: r.position != null ? String(r.position) : undefined,
+    status: (r.status as string) ?? "",
+    isDNF: !!r.is_dnf,
+    points: Number(r.points ?? 0),
+    constructor: (r["constructor"] as string) ?? undefined,
+  }));
+}
+
 /**
  * Qualifying for one round. Shape matches getRaceQualifying().data:
  *   RaceTable.Races[0]  (object with .QualifyingResults[]).
