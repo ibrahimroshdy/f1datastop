@@ -77,7 +77,7 @@ const Constructors = () => {
 
   return (
     <div className={pageShell}>
-      <div className={cn(pageStack, "animate-fade-in")}>
+      <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         <PageHeader
           eyebrow={`${selectedYear} Season`}
           title="Teams"
@@ -184,9 +184,12 @@ const Constructors = () => {
                         {teamDrivers.map((driver: DriverStandingForTeam) => (
                           <div
                             key={driver.Driver.driverId}
-                            className="flex min-w-[9.5rem] flex-1 items-center gap-2 rounded-md bg-muted/40 px-2.5 py-1.5 lg:flex-none"
+                            className="relative flex min-w-[9.5rem] flex-1 items-center gap-2 overflow-hidden rounded-md border border-border/60 py-1.5 pl-3 pr-2.5 lg:flex-none"
                           >
-                            <span className="h-6 w-1 shrink-0 rounded-full" style={{ backgroundColor: teamColor }} />
+                            <span
+                              className="pointer-events-none absolute inset-y-0 left-0 w-0.5"
+                              style={{ backgroundColor: teamColor }}
+                            />
                             <div className="min-w-0 flex-1">
                               <div className="truncate text-sm font-medium leading-tight">
                                 {driver.Driver.givenName} {driver.Driver.familyName}
@@ -195,7 +198,9 @@ const Constructors = () => {
                                 {driver.Driver.code} · #{driver.Driver.permanentNumber || "—"}
                               </div>
                             </div>
-                            <span className="position-pill shrink-0">{driver.position}</span>
+                            <span className="timing shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
+                              P{driver.position}
+                            </span>
                           </div>
                         ))}
                       </div>

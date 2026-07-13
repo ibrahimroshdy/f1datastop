@@ -42,12 +42,12 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
     <div className="flex flex-col gap-1">
       {/* Compact grid of driver chips */}
       <div className={cn(
-        "grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-0.5 p-1 rounded border",
-        "bg-muted/30 border-border"
+        "grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-0.5 p-1 rounded border border-border",
+        "bg-muted/30"
       )}>
         {availableDrivers.map(driver => {
           const summary = getPositionChangeSummary(driver.code);
-          const teamColor = TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "#666";
+          const teamColor = TEAM_COLORS[driver.team] || DRIVER_COLORS[driver.code] || "hsl(var(--muted-foreground))";
           const isSelected = selectedDrivers.includes(driver.code);
           
           // Track which teammate this is
@@ -65,7 +65,7 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
                 isSelected
                   ? "bg-accent text-accent-foreground shadow-sm"
                   : "bg-transparent text-muted-foreground hover:bg-muted/50",
-                isDNF && isSelected && "ring-1 ring-red-500/30"
+                isDNF && isSelected && "ring-1 ring-loss/30"
               )}
               onClick={() => onDriverToggle(driver.code)}
               style={{ 
@@ -83,7 +83,7 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
                   )}
                   style={{ backgroundColor: teamColor }}
                 />
-                <span className={cn("font-bold", isDNF && "text-red-400")}>
+                <span className={cn("font-bold", isDNF && "text-loss")}>
                   {driver.code}
                 </span>
               </div>

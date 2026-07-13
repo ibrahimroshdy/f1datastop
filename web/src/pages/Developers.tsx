@@ -74,7 +74,7 @@ const Developers = () => {
           title="Developers PitStop"
           description="Advanced tools and settings for developers"
           actions={
-            <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+            <div className="instrument-label px-3 py-1 bg-primary/10 text-primary rounded-md">
               Developer Mode
             </div>
           }
@@ -87,13 +87,13 @@ const Developers = () => {
               variant={cardVariant}
               glassVariant={glassVariant}
               className={cn(
-                "p-0 transition-shadow duration-200",
-                tool.available ? "hover:shadow-md" : "opacity-70"
+                "p-0 transition-colors duration-200",
+                tool.available ? "hover:border-primary/40" : "opacity-70"
               )}
             >
               <F1CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
-                  <div className="p-2 bg-muted rounded-md">
+                  <div className="p-2 border border-border rounded-md text-muted-foreground">
                     {tool.available ? (
                       <tool.icon className="h-5 w-5" />
                     ) : (
@@ -138,7 +138,7 @@ const Developers = () => {
           ))}
         </div>
 
-        <div className="mt-8 bg-muted p-4 rounded-md">
+        <div className="mt-8 border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground">
             <p>
               <strong>Note:</strong> The developer tools are intended for advanced users. 

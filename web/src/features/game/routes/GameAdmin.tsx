@@ -85,7 +85,7 @@ export default function GameAdmin() {
 
   return (
     <div className={pageShell}>
-      <div className={cn("mx-auto w-full max-w-3xl", pageStack, "animate-fade-in")}>
+      <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
         <BackLink to="/game">Predictions</BackLink>
         <div className="flex items-center justify-between gap-2">
           <div className="space-y-1.5">

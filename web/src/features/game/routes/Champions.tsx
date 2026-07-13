@@ -52,7 +52,7 @@ export default function Champions() {
 
   return (
     <div className={pageShell}>
-      <div className={cn("mx-auto w-full max-w-xl", pageStack, "animate-fade-in")}>
+      <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
         <BackLink to="/game">Predictions</BackLink>
         <div className="space-y-1.5">
           <div className="instrument-label flex items-center gap-1.5 text-primary">

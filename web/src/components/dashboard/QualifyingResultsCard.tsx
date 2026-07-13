@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { F1Card, F1CardContent, F1CardHeader } from "@/components/f1";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Flag, Clock } from "lucide-react";
+import { Flag } from "lucide-react";
+import { F1ErrorState } from "@/components/f1/F1ErrorState";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { useLastRaceResults, useRaceSchedule } from "@/hooks/useF1Data";
 import { getRaceQualifying } from "@/services/f1Service";
@@ -218,14 +218,14 @@ const QualifyingResultsCard = () => {
             <div className="mt-2 flex items-center justify-center">
               <div className="border border-position-gold/40 bg-position-gold/5 px-2 py-0.5 rounded-md inline-flex items-center gap-1.5 text-xs">
                 <span className="text-position-gold font-medium">Pole:</span>
-                        <span 
-                          className="font-mono font-bold" 
+                        <span
+                          className="timing font-bold"
                   style={{ color: getTeamHexColor(fastestDriver.team) }}
                         >
                           {fastestDriver.driver.code}
                         </span>
                         <span className="text-muted-foreground">·</span>
-                        <span className="font-mono">{fastestDriver.bestTime}</span>
+                        <span className="timing">{fastestDriver.bestTime}</span>
                       </div>
             </div>
           )}
@@ -238,15 +238,15 @@ const QualifyingResultsCard = () => {
                 <Skeleton key={i} className="h-11 w-full" />
               ))}
             </div>
+          ) : error && isPendingData ? (
+            <F1EmptyState
+              type="season-start"
+              title="Processing"
+              description={error}
+              size="sm"
+            />
           ) : error ? (
-            <Alert variant={isPendingData ? "default" : "destructive"}>
-              {isPendingData ? 
-                <Clock className="h-4 w-4 animate-pulse" /> : 
-                <AlertTriangle className="h-4 w-4" />
-              }
-              <AlertTitle>{isPendingData ? "Processing" : "Error"}</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <F1ErrorState type="custom" title="Error" message={error} variant="inline" size="sm" />
           ) : qualifyingResults.length === 0 && !error ? (
             <F1EmptyState 
               type="season-start"

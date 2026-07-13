@@ -40,31 +40,6 @@ const SectionLabel = ({
   </div>
 );
 
-// ── Stat readout tile (mono number + instrument caption) ───────────────────
-const StatTile = ({
-  label,
-  value,
-  count,
-  accent,
-}: {
-  label: string;
-  value: string | number | undefined;
-  count?: number;
-  accent?: boolean;
-}) => (
-  <div className="flex flex-col gap-1 rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
-    <span className="instrument-label text-muted-foreground">{label}</span>
-    <span
-      className={cn(
-        "readout text-xl md:text-2xl leading-none",
-        accent ? "text-primary" : "text-foreground",
-      )}
-    >
-      {count != null && Number.isFinite(count) ? <CountUp value={count} /> : value ?? "—"}
-    </span>
-  </div>
-);
-
 const DriverProfile = () => {
   const { slug } = useParams<{ slug: string }>();
   const { isGlass } = useTheme();
@@ -211,20 +186,38 @@ const DriverProfile = () => {
             </div>
           </F1Card>
 
-          {/* Stat readout tiles */}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:gap-3">
-            <StatTile
-              label="Points"
-              count={Number.isFinite(pointsNum) ? pointsNum : undefined}
-              value={standing?.points}
-              accent
-            />
-            <StatTile label="Wins" value={winCount} count={winCount} />
-            <StatTile
-              label="Position"
-              value={standing ? `P${standing.position}` : undefined}
-            />
-            <StatTile label="Podiums" value={podiumCount} count={podiumCount} />
+          {/* Stat readout cluster — hairline tiles, mono readouts */}
+          <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-lg border border-border sm:grid-cols-4">
+            {[
+              {
+                label: "Points",
+                node:
+                  Number.isFinite(pointsNum) ? <CountUp value={pointsNum} /> : standing?.points ?? "—",
+                accent: true,
+              },
+              { label: "Wins", node: <CountUp value={winCount} />, accent: false },
+              {
+                label: "Position",
+                node: standing ? `P${standing.position}` : "—",
+                accent: false,
+              },
+              { label: "Podiums", node: <CountUp value={podiumCount} />, accent: false },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="flex flex-col items-center justify-center gap-0.5 p-2.5 text-center"
+              >
+                <span
+                  className={cn(
+                    "readout text-lg font-semibold tabular-nums",
+                    s.accent ? "text-primary" : "text-foreground",
+                  )}
+                >
+                  {s.node}
+                </span>
+                <span className="instrument-label text-muted-foreground">{s.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 

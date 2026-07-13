@@ -232,7 +232,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     <div className="mb-2 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <span
-          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest"
+          className="instrument-label inline-flex items-center gap-1.5"
           style={{ color: PHASE_TOKEN[phase] }}
         >
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: PHASE_TOKEN[phase] }} />
@@ -269,7 +269,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
                 <Separator orientation="horizontal" className="lg:hidden" />
               </>
             )}
-            <div className="flex flex-1 flex-col rounded-lg border border-border bg-muted/40 p-3">
+            <div className="flex flex-1 flex-col rounded-lg border border-border bg-card/40 p-3">
               <PhaseHeader phase={phase} count={data.labels.length} pole={data.fastestSessionTime} />
               <div className="min-h-0 flex-1 overflow-auto">
                 {renderSessionChart(data, phase, true)}
@@ -318,7 +318,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
         {/* Pole time (only show for single session) */}
         {selectedSession !== 'ALL' && 'fastestSessionTime' in muiChartData && (muiChartData.fastestSessionTime ?? 0) > 0 && (
           <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="uppercase tracking-widest">Pole</span>
+            <span className="instrument-label">Pole</span>
             <span className="opacity-40">•</span>
             <span className="timing font-medium text-primary">
               {formatTime(muiChartData.fastestSessionTime!)}

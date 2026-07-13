@@ -16,8 +16,9 @@ import {
   F1CardTitle,
   PageHeader,
 } from '@/components/f1';
-import { pageShell, pageStack } from '@/lib/layout';
+import { pageShellNarrow, pageStack } from '@/lib/layout';
 import { cn } from '@/lib/utils';
+import { F1Skeleton } from '@/components/f1/F1Skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -167,14 +168,21 @@ const Profile = () => {
 
   if (initialLoad || loading) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className={pageShellNarrow}>
+        <div className={pageStack}>
+          <F1Skeleton variant="text" lines={2} width="12rem" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <F1Skeleton variant="card" className="md:col-span-1" height="16rem" />
+            <F1Skeleton variant="card" className="md:col-span-2" height="16rem" />
+          </div>
+          <F1Skeleton variant="card" height="8rem" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={cn(pageShell, "max-w-4xl")}>
+    <div className={pageShellNarrow}>
       <div className={cn(pageStack, "animate-fade-in")}>
         <PageHeader title="Your Profile" />
 
@@ -220,7 +228,7 @@ const Profile = () => {
                       name="username"
                       value={formData.username}
                       onChange={handleChange}
-                      className="bg-input"
+                      className="bg-background"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -231,7 +239,7 @@ const Profile = () => {
                         name="first_name"
                         value={formData.first_name}
                         onChange={handleChange}
-                        className="bg-input"
+                        className="bg-background"
                       />
                     </div>
                     <div className="space-y-2">
@@ -241,7 +249,7 @@ const Profile = () => {
                         name="last_name"
                         value={formData.last_name}
                         onChange={handleChange}
-                        className="bg-input"
+                        className="bg-background"
                       />
                     </div>
                   </div>

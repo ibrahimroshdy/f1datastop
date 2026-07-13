@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Timer } from "lucide-react";
+import { Timer } from "lucide-react";
 import { F1Card, F1CardContent, F1CardHeader } from "@/components/f1";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { F1ErrorState } from "@/components/f1/F1ErrorState";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { useLastRaceResults, useLastRacePitStops, useRaceSchedule } from "@/hooks/useF1Data";
 import ReactCountryFlag from "react-country-flag";
@@ -214,14 +214,14 @@ const FastestPitStopCard = () => {
             <div className="mt-2 flex items-center justify-center">
               <div className="border border-position-gold/40 bg-position-gold/5 px-2 py-0.5 rounded-md inline-flex items-center gap-1.5 text-xs">
                 <span className="text-position-gold font-medium">Record:</span>
-                        <span 
-                          className="font-mono font-bold" 
+                        <span
+                          className="timing font-bold"
                   style={{ color: getTeamHexColor(fastestStop.driver.team) }}
                         >
                           {fastestStop.driver.code}
                         </span>
                         <span className="text-muted-foreground">·</span>
-                        <span className="font-mono">{formatPitStopDuration(fastestStop.duration)}</span>
+                        <span className="timing">{formatPitStopDuration(fastestStop.duration)}</span>
                       </div>
             </div>
           )}
@@ -235,11 +235,7 @@ const FastestPitStopCard = () => {
               ))}
             </div>
           ) : error && error !== "pending" && fastestPitStops.length === 0 ? (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <F1ErrorState type="custom" title="Error" message={error} variant="inline" size="sm" />
           ) : error === "pending" && fastestPitStops.length === 0 ? (
             <F1EmptyState
               type="season-start"

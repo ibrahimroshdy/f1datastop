@@ -1,7 +1,8 @@
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
+import type { LucideIcon, LucideProps } from "lucide-react";
 import {
   Calendar,
-  Factory,
+  Car,
   GitCompare,
   Home,
   ListOrdered,
@@ -10,11 +11,15 @@ import {
   Trophy,
   User,
 } from "lucide-react";
+import { HelmetIcon } from "@/components/common/HelmetIcon";
+
+/** Nav icons are lucide icons OR our lucide-lab wrappers (e.g. the driver HelmetIcon). */
+export type NavIcon = LucideIcon | ComponentType<LucideProps>;
 
 export type NavItem = {
   label: string;
   href: string;
-  icon: LucideIcon;
+  icon: NavIcon;
   /** When true, item is only shown to authenticated users */
   requiresAuth?: boolean;
   /** When true, item is only shown to guests */
@@ -43,8 +48,8 @@ export const navGroups: NavGroup[] = [
       { label: "Standings", href: "/standings", icon: ListOrdered },
       { label: "Race Analysis", href: "/race-analysis", icon: GitCompare },
       { label: "Predictions", href: "/game", icon: Trophy, requiresAuth: true },
-      { label: "Drivers", href: "/drivers", icon: User },
-      { label: "Teams", href: "/constructors", icon: Factory },
+      { label: "Drivers", href: "/drivers", icon: HelmetIcon },
+      { label: "Teams", href: "/constructors", icon: Car },
     ],
   },
   {

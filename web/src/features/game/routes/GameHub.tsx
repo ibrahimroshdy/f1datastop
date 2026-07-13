@@ -122,7 +122,7 @@ function ActivatedHub({ entryId }: { entryId: string }) {
           </F1CardHeader>
           <F1CardContent className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-2xs uppercase tracking-widest text-muted-foreground">Last {form.length || 0} rounds</span>
+              <span className="instrument-label text-muted-foreground">Last {form.length || 0} rounds</span>
               {form.length >= 2 ? <FormSparkline points={form} /> : <span className="text-2xs text-muted-foreground">—</span>}
             </div>
             <BadgeRow badges={badges.data ?? []} />

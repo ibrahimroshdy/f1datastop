@@ -219,7 +219,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
               {circuitName}
             </F1Badge>
           )}
-          <F1Badge variant="time" className="text-status-completed">
+          <F1Badge variant="time" className="text-fastest-lap">
             <Zap className="mr-0.5 h-3 w-3" fill="currentColor" />
             {formatDuration(fastestStop)}
           </F1Badge>
@@ -227,8 +227,8 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
       </div>
 
       {/* Top 10 fastest stops — leaderboard */}
-      <div className="rounded-lg border border-border bg-muted/40 p-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+      <div className="rounded-lg border border-border bg-card/40 p-3">
+        <p className="instrument-label mb-2">
           Top 10 Fastest Pit Stops
         </p>
         <div className="flex flex-col">
@@ -337,19 +337,19 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <th className="instrument-label px-3 py-2 text-left">
                 <SortHeader field="driver">Driver</SortHeader>
               </th>
-              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <th className="instrument-label px-3 py-2 text-left">
                 Team
               </th>
-              <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <th className="instrument-label px-3 py-2 text-center">
                 <SortHeader field="lap" className="justify-center">Lap</SortHeader>
               </th>
-              <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <th className="instrument-label px-3 py-2 text-right">
                 <SortHeader field="duration" className="justify-end">Duration</SortHeader>
               </th>
-              <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <th className="instrument-label px-3 py-2 text-left">
                 Time
               </th>
               <th className="w-[28%] px-3 py-2" />

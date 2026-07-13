@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { F1EmptyState, F1Skeleton } from "@/components/f1";
 import {
   Table,
   TableBody,
@@ -85,18 +85,18 @@ export function RaceQualifyingPanel({
       results={results}
       mobileExtra={(r) => (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+          <div className="timing grid grid-cols-2 gap-1 tabular-nums sm:grid-cols-3">
             <span className="text-right">{r.Q1 || "-"}</span>
             <span className="text-right">{r.Q2 || "-"}</span>
             <span className="text-right">{r.Q3 || "-"}</span>
           </div>
-          <span className="text-muted-foreground" style={{ color: getTeamColor(r.Constructor.constructorId) }}>
+          <span style={{ color: getTeamColor(r.Constructor.constructorId) }}>
             {r.Constructor.name}
           </span>
         </>
       )}
       mobileHeaderExtra={
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 text-[10px] font-medium text-muted-foreground">
+        <div className="instrument-label grid grid-cols-2 gap-1 sm:grid-cols-3">
           <span className="text-right">Q1</span>
           <span className="text-right">Q2</span>
           <span className="text-right">Q3</span>
@@ -130,7 +130,7 @@ export function RaceSprintQualifyingPanel({
       results={results}
       mobileExtra={(r) => (
         <>
-          <span style={{ color: getTeamColor(r.Constructor.constructorId) }}>{r.Constructor.name}</span>
+          <span className="font-sans tracking-normal" style={{ color: getTeamColor(r.Constructor.constructorId) }}>{r.Constructor.name}</span>
           <span className="text-xs">Grid: {(r as ErgastResult & { gridPosition?: string }).gridPosition}</span>
         </>
       )}
@@ -158,7 +158,7 @@ export function RaceSprintPanel({
       results={results}
       mobileExtra={(r) => (
         <>
-          <span style={{ color: getTeamColor(r.Constructor.constructorId) }}>{r.Constructor.name}</span>
+          <span className="font-sans tracking-normal" style={{ color: getTeamColor(r.Constructor.constructorId) }}>{r.Constructor.name}</span>
           <span className="text-[10px]">{formatRaceTime(r)}</span>
           <span className="text-[10px] text-muted-foreground">Grid: {r.grid || "-"}</span>
           {r.FastestLap?.Time?.time && (
@@ -180,18 +180,22 @@ export function RaceSprintPanel({
 function ResultsSkeleton() {
   return (
     <div className="space-y-2">
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-8 w-full" />
+      <F1Skeleton className="h-8 w-full" />
+      <F1Skeleton className="h-8 w-full" />
+      <F1Skeleton className="h-8 w-full" />
     </div>
   );
 }
 
 function EmptyResults({ message }: { message: string }) {
   return (
-    <div className="py-8 text-center">
-      <p className="text-muted-foreground text-xs md:text-sm">{message}</p>
-    </div>
+    <F1EmptyState
+      type="no-results"
+      description={message}
+      size="sm"
+      showDecoration={false}
+      className="py-8"
+    />
   );
 }
 
@@ -214,35 +218,35 @@ function RaceResultsTable({
   return (
     <div className="space-y-1">
       <div className="sm:hidden">
-        <div className="flex items-center justify-between mb-1 border-b pb-1 pt-1 bg-muted/20">
-          <div className="flex space-x-2 items-center">
-            <span className="text-[10px] font-medium text-muted-foreground w-5">Pos</span>
-            <span className="text-[10px] font-medium text-muted-foreground">Driver</span>
+        <div className="mb-1 flex items-center justify-between border-b bg-muted/20 pb-1 pt-1">
+          <div className="flex items-center space-x-2">
+            <span className="instrument-label w-5">Pos</span>
+            <span className="instrument-label">Driver</span>
           </div>
           <div className="flex flex-col items-end">{mobileHeaderExtra}</div>
         </div>
         {results.map((result) => (
           <div key={result.position} className="flex items-center justify-between border-b py-1.5">
-            <div className="flex space-x-2 items-center">
-              <span className="text-xs font-medium w-5">{result.position}</span>
+            <div className="flex items-center space-x-2">
+              <span className="timing w-5 text-xs font-medium tabular-nums">{result.position}</span>
               <RaceDriverCell driver={result.Driver} constructorId={result.Constructor.constructorId} />
             </div>
-            <div className="flex flex-col items-end text-[10px]">{mobileExtra(result)}</div>
+            <div className="timing flex flex-col items-end text-[10px]">{mobileExtra(result)}</div>
           </div>
         ))}
       </div>
 
-      <div className="hidden sm:block overflow-x-auto">
+      <div className="hidden overflow-x-auto sm:block">
         <Table className="w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-10 whitespace-nowrap text-xs md:text-sm py-2">Pos</TableHead>
-              <TableHead className="whitespace-nowrap text-xs md:text-sm py-2">Driver</TableHead>
-              <TableHead className="whitespace-nowrap text-xs md:text-sm py-2">Team</TableHead>
+              <TableHead className="instrument-label w-10 whitespace-nowrap py-2">Pos</TableHead>
+              <TableHead className="instrument-label whitespace-nowrap py-2">Driver</TableHead>
+              <TableHead className="instrument-label whitespace-nowrap py-2">Team</TableHead>
               {desktopColumns.map((col) => (
                 <TableHead
                   key={col.header}
-                  className={`whitespace-nowrap text-xs md:text-sm py-2 ${col.align === "right" ? "text-right" : ""}`}
+                  className={`instrument-label whitespace-nowrap py-2 ${col.align === "right" ? "text-right" : ""}`}
                 >
                   {col.header}
                 </TableHead>
@@ -252,12 +256,14 @@ function RaceResultsTable({
           <TableBody>
             {results.map((result) => (
               <TableRow key={result.position}>
-                <TableCell className="font-medium whitespace-nowrap text-xs md:text-sm py-1 md:py-2">{result.position}</TableCell>
-                <TableCell className="whitespace-nowrap text-xs md:text-sm py-1 md:py-2">
+                <TableCell className="timing whitespace-nowrap py-1 text-xs font-medium tabular-nums md:py-2 md:text-sm">
+                  {result.position}
+                </TableCell>
+                <TableCell className="whitespace-nowrap py-1 text-xs md:py-2 md:text-sm">
                   <RaceDriverNameCell driver={result.Driver} constructorId={result.Constructor.constructorId} />
                 </TableCell>
                 <TableCell
-                  className="whitespace-nowrap text-xs md:text-sm py-1 md:py-2"
+                  className="whitespace-nowrap py-1 text-xs md:py-2 md:text-sm"
                   style={{ color: getTeamColor(result.Constructor.constructorId) }}
                 >
                   {result.Constructor.name}
@@ -265,7 +271,7 @@ function RaceResultsTable({
                 {desktopColumns.map((col) => (
                   <TableCell
                     key={col.header}
-                    className={`whitespace-nowrap text-xs md:text-sm py-1 md:py-2 ${col.align === "right" ? "text-right" : ""} ${col.italic ? "italic" : ""}`}
+                    className={`timing whitespace-nowrap py-1 text-xs tabular-nums md:py-2 md:text-sm ${col.align === "right" ? "text-right" : ""} ${col.italic ? "italic" : ""}`}
                   >
                     {col.render(result)}
                   </TableCell>

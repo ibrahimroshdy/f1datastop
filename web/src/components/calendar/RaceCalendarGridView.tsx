@@ -1,7 +1,5 @@
-import { F1Card, F1CardContent, F1EmptyState } from "@/components/f1";
-import { Skeleton } from "@/components/ui/skeleton";
+import { F1Card, F1CardContent, F1EmptyState, F1Skeleton } from "@/components/f1";
 import { format, parseISO } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { Star, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -49,10 +47,10 @@ export default function RaceCalendarGridView({
                 glassVariant={glassVariant}
                 className={cn("overflow-hidden p-0", isGlass && "border-white/10")}
               >
-                <Skeleton className="h-0.5 w-full" />
+                <F1Skeleton className="h-0.5 w-full" />
                 <F1CardContent className="p-1.5 sm:p-2.5">
-                  <Skeleton className="h-3.5 w-3/4 mb-1.5" />
-                  <Skeleton className="h-3 w-1/2" />
+                  <F1Skeleton className="mb-1.5 h-3.5 w-3/4" />
+                  <F1Skeleton className="h-3 w-1/2" />
                 </F1CardContent>
               </F1Card>
             ))}
@@ -76,13 +74,13 @@ export default function RaceCalendarGridView({
               return (
                 <div
                   key={`summer-break-${idx}`}
-                  className="col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-5 flex items-center gap-2 sm:gap-3 my-1.5 sm:my-2"
+                  className="col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-5 flex items-center gap-3 my-1.5 sm:my-2"
                 >
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="text-[10px] sm:text-xs text-muted-foreground px-2 sm:px-3 py-1 bg-muted rounded-full">
-                    Summer Break ({item.dates.start} - {item.dates.end})
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                  <span className="instrument-label shrink-0 whitespace-nowrap text-muted-foreground">
+                    Summer break · {item.dates.start} – {item.dates.end}
                   </span>
-                  <div className="h-px flex-1 bg-border" />
+                  <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border to-transparent" />
                 </div>
               );
             }
@@ -108,7 +106,7 @@ export default function RaceCalendarGridView({
                 glassVariant={glassVariant}
                 className={cn(
                   "cursor-pointer overflow-hidden p-0 transition-all hover:shadow-md",
-                  status === "next" && "ring-1 ring-f1-red",
+                  status === "next" && "ring-1 ring-primary",
                   isGlass && "border-white/10",
                 )}
                 onClick={() => openRaceDetails(race)}
@@ -148,7 +146,7 @@ export default function RaceCalendarGridView({
                         <span className="truncate">{raceName}</span>
                       </h3>
                       <div className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
-                        <span>R{race.round}</span>
+                        <span className="timing">R{race.round}</span>
                         {hasSprint && (
                           <>
                             <span>•</span>
@@ -156,15 +154,20 @@ export default function RaceCalendarGridView({
                           </>
                         )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-1">
+                      <p className="timing text-[11px] text-muted-foreground mt-1">
                         {format(raceDate, "dd MMM")}
                       </p>
                     </div>
-                    <Badge
-                      variant={status === "next" ? "default" : "secondary"}
+                    <span
                       className={cn(
-                        "text-[11px] h-5 px-1.5",
-                        status === "next" && "bg-f1-red hover:bg-f1-red",
+                        "inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide",
+                        status === "next" &&
+                          "border-primary/40 bg-primary/10 text-primary",
+                        status === "completed" &&
+                          "border-border bg-secondary/50 text-muted-foreground",
+                        status !== "next" &&
+                          status !== "completed" &&
+                          "border-border bg-secondary/50 text-secondary-foreground",
                       )}
                     >
                       {status === "completed"
@@ -172,7 +175,7 @@ export default function RaceCalendarGridView({
                         : status === "next"
                           ? "Next"
                           : "Upcoming"}
-                    </Badge>
+                    </span>
                   </div>
                 </F1CardContent>
               </F1Card>

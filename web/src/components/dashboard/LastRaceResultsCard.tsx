@@ -114,13 +114,13 @@ const LastRaceResultsCard = ({
               <div className="border border-fastest-lap/40 bg-fastest-lap/5 px-2 py-0.5 rounded-md inline-flex items-center gap-1.5 text-xs">
                 <span className="text-fastest-lap font-medium">Fastest:</span>
                           <span
-                            className="font-mono font-bold"
+                            className="timing font-bold"
                             style={{ color: getTeamHexColor(fastestLapDriver.Constructor.constructorId) }}
                           >
                             {fastestLapDriver.Driver.code}
                           </span>
                           <span className="text-muted-foreground">·</span>
-                          <span className="font-mono text-fastest-lap">{fastestLapDriver.FastestLap?.Time.time}</span>
+                          <span className="timing text-fastest-lap">{fastestLapDriver.FastestLap?.Time.time}</span>
                         </div>
                       </div>
           )}

@@ -31,27 +31,6 @@ type ScheduleRace = {
   Circuit: { circuitId?: string };
 };
 
-// ── Readout stat tile — instrument-label eyebrow + mono value ─────────────────
-const StatTile = ({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-}) => (
-  <div className="rounded-lg border border-border/60 bg-card/40 px-3 py-2.5">
-    <div className="instrument-label flex items-center gap-1.5">
-      {icon}
-      {label}
-    </div>
-    <div className="readout mt-1.5 text-base tabular-nums text-foreground md:text-lg">
-      {value}
-    </div>
-  </div>
-);
-
 const CircuitDetail = () => {
   const { circuitId } = useParams<{ circuitId: string }>();
   const currentYear = new Date().getFullYear();
@@ -128,32 +107,46 @@ const CircuitDetail = () => {
         {/* ── Telemetry-derived track map (numbered corners + straights) ─────── */}
         <CircuitGeometryMap circuitId={circuit.circuit_id} />
 
-        {/* ── Stat readout tiles ────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
-          <StatTile
-            icon={<Ruler className="h-3 w-3" />}
-            label="Length"
-            value={lengthKm ? `${lengthKm} km` : "—"}
-          />
-          <StatTile
-            icon={<Gauge className="h-3 w-3" />}
-            label="Races"
-            value={circuit.races_in_db != null ? <CountUp value={circuit.races_in_db} /> : "—"}
-          />
-          <StatTile
-            icon={<CalendarDays className="h-3 w-3" />}
-            label="Seasons"
-            value={seasons}
-          />
-          <StatTile
-            icon={<MapPin className="h-3 w-3" />}
-            label="Coords"
-            value={
-              circuit.lat != null && circuit.lng != null
-                ? `${Number(circuit.lat).toFixed(2)}, ${Number(circuit.lng).toFixed(2)}`
-                : "—"
-            }
-          />
+        {/* ── Stat readout cluster — hairline tiles, mono readouts ───────────── */}
+        <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-lg border border-border sm:grid-cols-4">
+          {[
+            {
+              icon: <Ruler className="h-3 w-3" />,
+              label: "Length",
+              value: lengthKm ? `${lengthKm} km` : "—",
+            },
+            {
+              icon: <Gauge className="h-3 w-3" />,
+              label: "Races",
+              value: circuit.races_in_db != null ? <CountUp value={circuit.races_in_db} /> : "—",
+            },
+            {
+              icon: <CalendarDays className="h-3 w-3" />,
+              label: "Seasons",
+              value: seasons,
+            },
+            {
+              icon: <MapPin className="h-3 w-3" />,
+              label: "Coords",
+              value:
+                circuit.lat != null && circuit.lng != null
+                  ? `${Number(circuit.lat).toFixed(2)}, ${Number(circuit.lng).toFixed(2)}`
+                  : "—",
+            },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="flex flex-col items-center justify-center gap-0.5 p-2.5 text-center"
+            >
+              <span className="readout text-lg font-semibold tabular-nums text-foreground">
+                {s.value}
+              </span>
+              <span className="instrument-label flex items-center gap-1.5 text-muted-foreground">
+                {s.icon}
+                {s.label}
+              </span>
+            </div>
+          ))}
         </div>
 
         {/* ── Lap record — the signature readout ────────────────────────────── */}

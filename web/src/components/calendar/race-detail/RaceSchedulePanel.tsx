@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import { Calendar, LineChart, Trophy, Zap, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { F1Skeleton } from "@/components/f1";
 import { cn } from "@/lib/utils";
 import { getSessionDate, isSessionPast } from "./raceDetailUtils";
 
@@ -142,22 +143,19 @@ export function RaceInfographicEmbed({
   return (
     <div
       className={cn(
-        "rounded-md overflow-hidden",
-        isGlass ? "bg-white/5 border border-white/10" : "bg-muted/50 border",
+        "overflow-hidden rounded-lg border",
+        isGlass ? "border-white/10 bg-white/5" : "border-border",
       )}
     >
-      <div className="p-2 border-b">
-        <h3 className="text-xs font-semibold">Position Progression</h3>
-        <p className="text-[10px] text-muted-foreground">Qualifying → Grid → Race Result</p>
+      <div className="border-b border-border px-3 py-2">
+        <h3 className="instrument-label">Position Progression</h3>
+        <p className="mt-0.5 text-[10px] text-muted-foreground">Qualifying → Grid → Race Result</p>
       </div>
       <div className="h-[500px] sm:h-[600px] w-full">
         <Suspense
           fallback={
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-primary mx-auto mb-2" />
-                <p className="text-[10px] text-muted-foreground">Loading chart...</p>
-              </div>
+            <div className="flex h-full items-center justify-center p-4">
+              <F1Skeleton className="h-full w-full" />
             </div>
           }
         >

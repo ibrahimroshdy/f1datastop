@@ -9,8 +9,7 @@ import {
   Settings,
   X,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { navGroups } from "@/config/navigation";
+import { navGroups, type NavIcon } from "@/config/navigation";
 import { useIsMediumOrSmaller } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
 import { useDeveloper } from "@/context/DeveloperContext";
@@ -52,7 +51,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
     onCollapseChange?.(isCollapsed);
   }, [isCollapsed, onCollapseChange]);
 
-  type SidebarNavItem = { name: string; href: string; icon: LucideIcon };
+  type SidebarNavItem = { name: string; href: string; icon: NavIcon };
 
   const sidebarGroups = navGroups.map((group) => ({
     label: group.label,

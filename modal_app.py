@@ -99,6 +99,12 @@ def generate_latest() -> None:
 # (mid-2022) and Modal's timeout (2024 R9). 2h/season is ample for 24 rounds.
 SEASON = {**COMMON, "timeout": 7200}
 
+# Orchestrators only fan out with .map()/.starmap() and then idle-wait for their
+# parallel children. Give them a long timeout so they outlive the slowest child
+# (a season can take SEASON's full 2h). COMMON's 1h was silently killing
+# multi-season runs mid-flight and cancelling the children with it.
+ORCH = {**COMMON, "timeout": 21600}  # 6h — pure wait, no compute
+
 
 @app.function(**SEASON)
 def ingest_season(season: int, force: bool = False) -> None:
@@ -114,7 +120,7 @@ def ingest_season(season: int, force: bool = False) -> None:
 # ── Manual: backfill a season range on demand (FastF1-only, 2018+) ───────────
 # Fans out one container per season (parallel). ingest.py skips rounds already
 # ingested, so re-running only fills gaps (e.g. 2022 R15+, 2024 R9+).
-@app.function(**COMMON)
+@app.function(**ORCH)
 def backfill_range(from_season: int = 2018, to_season: int = 2026) -> None:
     seasons = list(range(from_season, to_season + 1))
     list(ingest_season.map(seasons))  # per-season fan-out; wait for all
@@ -153,7 +159,7 @@ def generate_season(season: int, rounds: int = 24, session: str = "R", fmt: str 
 
 # ── Manual: regenerate charts across a season range (per-season fan-out) ─────
 # e.g.  modal run modal_app.py::generate_range --from-season 2025 --to-season 2026
-@app.function(**COMMON)
+@app.function(**ORCH)
 def generate_range(from_season: int = 2025, to_season: int = 2026,
                    session: str = "R", fmt: str = "all") -> None:
     seasons = list(range(from_season, to_season + 1))
@@ -163,7 +169,7 @@ def generate_range(from_season: int = 2025, to_season: int = 2026,
 # ── Manual: export interactive telemetry (per-lap JSON → Storage) for a season ─
 # Populates f1_telemetry_index so the FastF1 telemetry + track-map charts have
 # data. Loops every round; rounds that haven't run yet just fail-and-skip.
-@app.function(**COMMON)
+@app.function(**SEASON)
 def export_telemetry(season: int, rounds: int = 24, session: str = "R") -> None:
     done = 0
     for r in range(1, rounds + 1):
@@ -198,7 +204,7 @@ def export_telemetry_current() -> None:
 # One blob per circuit per season → Storage bucket `circuits` + f1_circuit_geometry.
 # Loops every round; rounds that haven't run yet fail-and-skip. NOTE: 2026 has no
 # DRS zones (regs dropped DRS) — straights are computed from full-throttle stretches.
-@app.function(**COMMON)
+@app.function(**SEASON)
 def export_circuits(season: int, rounds: int = 24, force: bool = False) -> None:
     done = 0
     for r in range(1, rounds + 1):
@@ -234,7 +240,7 @@ def export_circuits_current() -> None:
 # Fans out one container per season (own IP + own timeout), same rationale as
 # backfill_range. circuit_geometry_export.py skips circuits already indexed, so
 # re-running only fills gaps. FastF1 telemetry/position data starts in 2018.
-@app.function(**COMMON)
+@app.function(**ORCH)
 def backfill_circuits(from_season: int = 2018, to_season: int = 2026, force: bool = False) -> None:
     seasons = list(range(from_season, to_season + 1))
     list(export_circuits.starmap([(s, 24, force) for s in seasons]))  # per-season fan-out
@@ -244,7 +250,7 @@ def backfill_circuits(from_season: int = 2018, to_season: int = 2026, force: boo
 # One blob per circuit per season → bucket `replays` + f1_race_replay. Powers the
 # Track Replay component. Loops rounds; rounds that haven't run / lack position
 # data fail-and-skip. Post-race historical (FastF1), NOT live.
-@app.function(**COMMON)
+@app.function(**SEASON)
 def export_race_replays(season: int, rounds: int = 24, force: bool = False, session: str = "R") -> None:
     done = 0
     for r in range(1, rounds + 1):
@@ -276,7 +282,7 @@ def export_race_replays_current() -> None:
 
 # ── Manual: backfill replays across a season range (per-season fan-out) ───────
 # e.g.  modal run modal_app.py::backfill_replays --from-season 2024 --to-season 2026
-@app.function(**COMMON)
+@app.function(**ORCH)
 def backfill_replays(from_season: int = 2018, to_season: int = 2026, force: bool = False, session: str = "R") -> None:
     seasons = list(range(from_season, to_season + 1))
     # starmap so `force`/`session` reach each per-season container
@@ -287,7 +293,7 @@ def backfill_replays(from_season: int = 2018, to_season: int = 2026, force: bool
 # e.g.  modal run modal_app.py::backfill_all_sessions --from-season 2024 --to-season 2026 --force
 # Fans out one container per (season, session). Sprint/quali rounds without data
 # fail-and-skip; practice is not replayed by design.
-@app.function(**COMMON)
+@app.function(**ORCH)
 def backfill_all_sessions(from_season: int = 2024, to_season: int = 2026, force: bool = False) -> None:
     combos = [
         (s, 24, force, sess)

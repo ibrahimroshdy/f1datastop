@@ -9,7 +9,6 @@ import {
 import TeamHeritagePanel from "@/components/constructors/TeamHeritagePanel";
 import TeamLogo from "@/components/common/TeamLogo";
 import CountryFlag from "@/components/common/CountryFlag";
-import { Badge } from "@/components/ui/badge";
 import { useConstructorCareer } from "@/hooks/entity";
 import {
   useConstructorStandings,
@@ -116,9 +115,12 @@ const TeamProfile = () => {
             <div className="space-y-2">
               {standing && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">P{standing.position}</Badge>
+                  <span className="timing text-sm font-semibold tabular-nums text-foreground">
+                    P{standing.position}
+                  </span>
                   <span className="text-sm text-muted-foreground">
-                    {standing.points} pts · {standing.wins} wins
+                    <span className="timing tabular-nums text-foreground">{standing.points}</span> pts
+                    · <span className="timing tabular-nums text-foreground">{standing.wins}</span> wins
                   </span>
                 </div>
               )}
@@ -150,43 +152,59 @@ const TeamProfile = () => {
         {teamDrivers.length > 0 && (
           <F1Card variant={cardVariant} glassVariant={glassVariant}>
             <F1CardContent className="pt-6 space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <h2 className="instrument-label text-muted-foreground">
                 {currentYear} Drivers
               </h2>
-              <div className="space-y-2">
-                {teamDrivers.map(
-                  (driver: {
-                    position: string;
-                    Driver: {
-                      driverId: string;
-                      givenName: string;
-                      familyName: string;
-                      code: string;
-                    };
-                  }) => (
-                    <div
-                      key={driver.Driver.driverId}
-                      className={cn(
-                        "flex items-center gap-3 rounded-md p-3",
-                        isGlass ? "bg-white/5" : "bg-muted/50",
-                      )}
-                    >
+              <div className="overflow-hidden rounded-xl border border-border/70">
+                <div className="divide-y divide-border/50">
+                  {teamDrivers.map(
+                    (driver: {
+                      position: string;
+                      points?: string;
+                      wins?: string;
+                      Driver: {
+                        driverId: string;
+                        givenName: string;
+                        familyName: string;
+                        code: string;
+                      };
+                    }) => (
                       <div
-                        className="w-1 self-stretch rounded-full shrink-0"
-                        style={{ backgroundColor: teamColor }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium">
-                          {driver.Driver.givenName} {driver.Driver.familyName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {driver.Driver.code}
-                        </p>
+                        key={driver.Driver.driverId}
+                        className="relative overflow-hidden"
+                      >
+                        <div
+                          className="pointer-events-none absolute inset-y-0 left-0"
+                          style={{ width: "100%", backgroundColor: teamColor, opacity: 0.1 }}
+                        />
+                        <div className="relative flex items-center gap-2.5 px-3 py-2">
+                          <span className="timing w-7 shrink-0 text-center text-sm font-semibold tabular-nums text-muted-foreground">
+                            P{driver.position}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold leading-tight">
+                              {driver.Driver.givenName} {driver.Driver.familyName}
+                            </p>
+                            <p className="timing text-xs text-muted-foreground">
+                              {driver.Driver.code}
+                            </p>
+                          </div>
+                          {(driver.wins != null && Number(driver.wins) > 0) && (
+                            <span className="timing shrink-0 text-xs font-medium tabular-nums text-primary">
+                              {driver.wins}W
+                            </span>
+                          )}
+                          {driver.points != null && (
+                            <span className="readout shrink-0 text-sm font-bold leading-tight tabular-nums">
+                              {driver.points}
+                              <span className="ml-1 text-2xs font-normal text-muted-foreground">PTS</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <Badge variant="outline">P{driver.position}</Badge>
-                    </div>
-                  ),
-                )}
+                    ),
+                  )}
+                </div>
               </div>
             </F1CardContent>
           </F1Card>

@@ -193,16 +193,16 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
           <div className="space-y-2.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-foreground">{currentYear} Championship Progress</span>
-              <Badge variant="secondary" className="font-mono text-xs">
+              <Badge variant="secondary" className="timing text-xs">
                 {completedRaces.length}/{totalRaces}
               </Badge>
             </div>
             
             <div className="space-y-2">
               <Progress 
-                value={progressPercentage} 
+                value={progressPercentage}
                 className="h-2"
-                indicatorClassName="bg-gradient-to-r from-primary to-primary/80"
+                indicatorClassName="bg-primary"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{completedRaces.length} completed</span>
@@ -235,8 +235,8 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
                     onClick={() => openRaceDetails(item.race)}
                     className={cn(
                       "flex items-center justify-between p-2 rounded-lg border transition-all duration-200 cursor-pointer hover:bg-accent/30",
-                      isNext 
-                        ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/30" 
+                      isNext
+                        ? "bg-primary/5 border-primary/30"
                         : "border-border"
                     )}
                   >
@@ -248,9 +248,9 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-2">
-                      <div className="text-xs font-mono text-muted-foreground">in {timeUntil}</div>
+                      <div className="text-xs timing text-muted-foreground">in {timeUntil}</div>
                       {isNext && (
-                        <Badge variant="outline" className="text-[10px] mt-1 border-primary/50 text-primary">
+                        <Badge variant="outline" className="instrument-label mt-1 border-primary/50 text-primary">
                           Next
                         </Badge>
                       )}

@@ -263,7 +263,7 @@ export default function RaceCalendarListView({
                         {raceTypeLabel[raceType] && (
                           <>
                             <span className="text-border">·</span>
-                            <span className="shrink-0 uppercase tracking-wide">
+                            <span className="instrument-label shrink-0">
                               {raceTypeLabel[raceType]}
                             </span>
                           </>

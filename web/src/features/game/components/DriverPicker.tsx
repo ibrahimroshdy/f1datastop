@@ -54,7 +54,7 @@ export function DriverPicker({
               key={i}
               className={cn(
                 "flex items-center gap-2 rounded-lg border px-2 py-1.5 transition-colors",
-                d ? "border-border bg-card" : "border-dashed border-border/60 bg-muted/10",
+                d ? "border-border bg-card" : "border border-border/60 bg-muted/10",
               )}
             >
               <span

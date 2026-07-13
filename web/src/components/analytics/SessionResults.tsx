@@ -141,7 +141,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
     <div className="flex flex-col gap-3">
       {/* Eyebrow + fastest lap */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        <span className="instrument-label">
           Classification
         </span>
         {fastestLap?.best_lap_time != null && (
@@ -201,7 +201,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
       <div className="hidden md:block">
         <table className="w-full border-separate border-spacing-0">
           <thead>
-            <tr className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <tr className="instrument-label">
               <th className="border-b border-border py-2 pr-3 text-left font-semibold">Pos</th>
               <th className="border-b border-border py-2 pr-3 text-left font-semibold">Driver</th>
               <th className="border-b border-border py-2 pr-3 text-left font-semibold">Team</th>

@@ -35,7 +35,7 @@ const WEATHER_SERIES = {
 } as const;
 
 const underlineTabTrigger =
-  "rounded-none border-b-2 border-transparent bg-transparent px-3 pb-2 pt-1 text-xs uppercase tracking-wider shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
+  "rounded-none border-b-2 border-transparent bg-transparent px-3 pb-2 pt-1 text-xs uppercase tracking-widest shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
 
 const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   year,
@@ -105,7 +105,8 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     }
   }, []);
 
-  // Compact metric tile (label eyebrow + mono value/unit + icon)
+  // One instrument-cluster cell (readout value + unit + micro label). Rendered
+  // inside the shared hairline-divided cluster grid below.
   const MetricTile = ({
     label,
     value,
@@ -119,14 +120,14 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     icon: React.ElementType;
     color: string;
   }) => (
-    <div className="flex flex-col rounded-md border border-border bg-muted/40 p-2.5">
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
-        <Icon className="h-3.5 w-3.5" style={{ color }} />
-      </div>
-      <span className="font-mono text-lg font-semibold tabular-nums leading-none">
+    <div className="flex flex-col items-center justify-center gap-0.5 p-2.5 text-center">
+      <span className="readout text-lg font-semibold tabular-nums text-foreground">
         {value}
-        <span className="ml-0.5 text-xs text-muted-foreground">{unit}</span>
+        <span className="ml-0.5 text-xs font-normal text-muted-foreground">{unit}</span>
+      </span>
+      <span className="instrument-label flex items-center gap-1 text-muted-foreground">
+        <Icon className="h-3 w-3" style={{ color }} />
+        {label}
       </span>
     </div>
   );
@@ -180,7 +181,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   }) => (
     <div className="mb-1 flex items-center gap-2 px-2">
       <Icon className="h-3 w-3" style={{ color }} />
-      <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="instrument-label">{label}</span>
     </div>
   );
 
@@ -228,8 +229,8 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Current conditions — compact metric strip */}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+      {/* Current conditions — one hairline-divided instrument cluster */}
+      <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-lg border border-border md:grid-cols-4 md:divide-y-0">
         <MetricTile
           label="Air Temp"
           value={currentWeather?.air_temperature.toFixed(1) || '--'}
@@ -276,7 +277,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
             onMouseLeave={() => setHighlightedIndex(null)}
           >
             {/* Temperature Chart */}
-            <div className="rounded-md border border-border bg-muted/40 p-2">
+            <div className="rounded-md border border-border p-2">
               <ChartHeading icon={Thermometer} label="Temperature" color={WEATHER_SERIES.air} />
               <F1ChartContainer minHeight={180} isEmpty={chartData.length === 0}>
                 <ResponsiveContainer width="100%" height={180}>
@@ -326,7 +327,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
             </div>
 
             {/* Wind Chart */}
-            <div className="rounded-md border border-border bg-muted/40 p-2">
+            <div className="rounded-md border border-border p-2">
               <ChartHeading icon={Wind} label="Wind Speed" color={WEATHER_SERIES.wind} />
               <F1ChartContainer minHeight={180} isEmpty={chartData.length === 0}>
                 <ResponsiveContainer width="100%" height={180}>
@@ -365,7 +366,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
             </div>
 
             {/* Humidity Chart */}
-            <div className="rounded-md border border-border bg-muted/40 p-2">
+            <div className="rounded-md border border-border p-2">
               <ChartHeading icon={Droplets} label="Humidity" color={WEATHER_SERIES.humidity} />
               <F1ChartContainer minHeight={180} isEmpty={chartData.length === 0}>
                 <ResponsiveContainer width="100%" height={180}>
@@ -405,7 +406,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
             </div>
 
             {/* Pressure Chart */}
-            <div className="rounded-md border border-border bg-muted/40 p-2">
+            <div className="rounded-md border border-border p-2">
               <ChartHeading icon={Gauge} label="Pressure" color={WEATHER_SERIES.pressure} />
               <F1ChartContainer minHeight={180} isEmpty={chartData.length === 0}>
                 <ResponsiveContainer width="100%" height={180}>

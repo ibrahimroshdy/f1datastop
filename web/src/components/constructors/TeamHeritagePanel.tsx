@@ -122,12 +122,7 @@ const TeamHeritagePanel = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <PitIcon icon={Trophy} size="sm" className="text-primary shrink-0" />
-            <h4
-              className={cn(
-                "font-semibold uppercase tracking-wide text-muted-foreground truncate",
-                compact ? "text-[10px]" : "text-xs",
-              )}
-            >
+            <h4 className="instrument-label truncate text-muted-foreground">
               {compact ? "Heritage" : "Team Heritage"}
             </h4>
           </div>

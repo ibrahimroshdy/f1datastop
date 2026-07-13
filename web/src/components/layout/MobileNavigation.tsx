@@ -1,12 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LucideIcon, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import type { NavIcon } from "@/config/navigation";
 import { useTheme } from "@/context/ThemeContext";
 
 interface NavigationItem {
   name: string;
   href: string;
-  icon: LucideIcon;
+  icon: NavIcon;
 }
 
 interface MobileNavigationProps {
