@@ -166,20 +166,49 @@ def generate_range(from_season: int = 2025, to_season: int = 2026,
     list(generate_season.map(seasons))  # one container per season; wait for all
 
 
+# ── Manual: charts for Race + Qualifying + Sprint across a season range ───────
+# e.g.  modal run modal_app.py::generate_all_sessions --from-season 2025 --to-season 2026
+# Fans out one container per (season, session). Race-only charts fail-and-skip on
+# Q/SQ; the Q/S decks fill the Deep Dive tab for those sessions. Practice not charted.
+@app.function(**ORCH)
+def generate_all_sessions(from_season: int = 2025, to_season: int = 2026, fmt: str = "all") -> None:
+    combos = [
+        (s, 24, sess, fmt)
+        for s in range(from_season, to_season + 1)
+        for sess in ("R", "Q", "S")
+    ]
+    list(generate_season.starmap(combos))
+
+
 # ── Manual: export interactive telemetry (per-lap JSON → Storage) for a season ─
 # Populates f1_telemetry_index so the FastF1 telemetry + track-map charts have
 # data. Loops every round; rounds that haven't run yet just fail-and-skip.
 @app.function(**SEASON)
-def export_telemetry(season: int, rounds: int = 24, session: str = "R") -> None:
+def export_telemetry(season: int, rounds: int = 24, session: str = "R", force: bool = False) -> None:
     done = 0
     for r in range(1, rounds + 1):
         try:
-            _run("telemetry_export.py", "--season", str(season),
-                 "--round", str(r), "--session", session)
+            args = ["telemetry_export.py", "--season", str(season), "--round", str(r), "--session", session]
+            if force:
+                args.append("--force")  # re-export even if already in f1_telemetry_index
+            _run(*args)
             done += 1
         except Exception as e:  # noqa: BLE001
-            print(f"  R{r}: skipped ({e})")
-    print(f"Done. telemetry exported for {done} rounds of {season}.")
+            print(f"  R{r} {session}: skipped ({e})")
+    print(f"Done. telemetry exported for {done} rounds of {season} {session}.")
+
+
+# ── Manual: interactive telemetry for Race + Qualifying + Sprint across a range ─
+# e.g.  modal run modal_app.py::backfill_telemetry --from-season 2025 --to-season 2026 --force
+# One container per (season, session). --force re-exports rounds already indexed.
+@app.function(**ORCH)
+def backfill_telemetry(from_season: int = 2025, to_season: int = 2026, force: bool = False) -> None:
+    combos = [
+        (s, 24, sess, force)
+        for s in range(from_season, to_season + 1)
+        for sess in ("R", "Q", "S")
+    ]
+    list(export_telemetry.starmap(combos))
 
 
 # ── Scheduled: keep the CURRENT season's telemetry filled ────────────────────
