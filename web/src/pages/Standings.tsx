@@ -287,7 +287,7 @@ const Standings = () => {
 
   return (
     <div className={pageShell}>
-      <div className={cn("mx-auto w-full max-w-4xl", pageStack, "animate-fade-in")}>
+      <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         <PageHeader
           eyebrow={`${currentSeason} Season`}
           title="Championship Standings"

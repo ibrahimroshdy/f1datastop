@@ -53,7 +53,7 @@ const RaceCalendar = () => {
   return (
     <CalendarAnalyticsTracker selectedYear={selectedYear} viewType="list">
       <div className={pageShell}>
-        <div className={cn("mx-auto w-full max-w-6xl", pageStack, "animate-fade-in")}>
+        <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
           {/* ── Compact app header (eyebrow + title + round readout) ──────── */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 space-y-1.5">

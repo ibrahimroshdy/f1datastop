@@ -11,7 +11,7 @@ import {
 import { type SessionOption } from "@/components/f1";
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { useDbSessions } from "@/hooks/useWarehouse";
-import { pageShellWide, pageStack } from "@/lib/layout";
+import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 
 type RaceScheduleEntry = {
@@ -148,7 +148,7 @@ const RaceAnalysis = () => {
   };
 
   return (
-    <div className={pageShellWide}>
+    <div className={pageShell}>
       <div className={cn(pageStack, "animate-fade-in")}>
         <RaceAnalysisHeader selectedYear={selectedYear} currentRace={currentRace} />
 

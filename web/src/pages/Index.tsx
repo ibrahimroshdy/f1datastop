@@ -155,7 +155,7 @@ const Index = () => {
 
   return (
     <div className={pageShell}>
-      <div className={cn("mx-auto w-full max-w-6xl", pageStack, "animate-fade-in")}>
+      <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         {/* ── Greeting block (compact, app-style — NOT a big hero) ───────── */}
         <GreetingBlock
           seasonStats={seasonStats}

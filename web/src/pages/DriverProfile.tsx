@@ -152,7 +152,7 @@ const DriverProfile = () => {
 
   return (
     <div className={pageShell}>
-      <div className={cn("mx-auto w-full max-w-5xl", pageStack, "animate-fade-in")}>
+      <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         {/* ── Back link (← Drivers) ───────────────────────────────────────── */}
         <BackLink to="/drivers">Drivers</BackLink>
 

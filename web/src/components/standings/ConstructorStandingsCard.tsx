@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import TeamLogo from "@/components/common/TeamLogo";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
-import { Progress } from "@/components/ui/progress";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Trophy } from "lucide-react";
 import {
   DEFAULT_CONSTRUCTORS_VISIBLE,
   getGaps,
@@ -29,74 +28,14 @@ const ConstructorStandingsCard = ({
 
   return (
     <>
-      <div className="hidden lg:block overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border">
-              <TableHead className="w-10 lg:w-12 text-xs lg:text-sm">Pos</TableHead>
-              <TableHead className="text-xs lg:text-sm">Team</TableHead>
-              <TableHead className="text-right text-xs lg:text-sm">Pts</TableHead>
-              <TableHead className="text-right text-xs lg:text-sm">Gap</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visible.map((team: any, idx: number) => {
-              const teamId = normalizeTeamId(team.Constructor?.constructorId || "default");
-              const borderColor = getTeamHexColor(teamId);
-              const totalPts = Number(team.points || 0);
-              const { toLeader, toNext } = getGaps(idx, fullList);
-              const aheadPosition = idx > 0 ? (fullList[idx - 1]?.position || idx) : null;
-              const progressPct = constructorLeaderPoints > 0 ? (totalPts / constructorLeaderPoints) * 100 : 0;
-              const displayPosition = team.position || (idx + 1);
-
-              return (
-                <TableRow key={displayPosition} className="border-border">
-                  <TableCell className="font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
-                    {displayPosition}
-                  </TableCell>
-                  <TableCell className="py-2 px-1 lg:p-4">
-                    <div className="space-y-1">
-                      <div
-                        className="font-medium text-foreground text-xs lg:text-sm"
-                        style={{ borderLeft: `4px solid ${borderColor}`, paddingLeft: "8px" }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <TeamLogo constructorId={teamId} alt={team.Constructor?.name} size="sm" />
-                          <span className="hidden lg:inline">{team.Constructor?.name}</span>
-                          <span className="lg:hidden">{team.Constructor?.name?.split(" ")[0]}</span>
-                        </div>
-                      </div>
-                      <Progress
-                        value={progressPct}
-                        className="h-2"
-                        indicatorStyle={{ backgroundColor: borderColor, opacity: 0.8 }}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-xs lg:text-sm py-2 px-2 lg:p-4">
-                    <AnimatedNumber value={totalPts} />
-                  </TableCell>
-                  <TableCell className="text-right py-2 px-2 lg:p-4 text-[10px] lg:text-xs text-muted-foreground">
-                    {idx > 0 && (
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span>To Leader: <AnimatedNumber value={toLeader} /></span>
-                        <span>To P{aheadPosition ?? idx}: <AnimatedNumber value={toNext} /></span>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="lg:hidden overflow-hidden rounded-xl border border-border/70">
+      {/* One integrated-bar list — same pattern at every breakpoint. */}
+      <div className="overflow-hidden rounded-xl border border-border/70">
         <div className="divide-y divide-border/50">
           {visible.map((team: any, idx: number) => {
             const teamId = normalizeTeamId(team.Constructor?.constructorId || "default");
             const teamColor = getTeamHexColor(teamId);
             const totalPts = Number(team.points || 0);
+            const wins = Number(team.wins || 0);
             const { toLeader, toNext } = getGaps(idx, fullList);
             const aheadPosition = idx > 0 ? (fullList[idx - 1]?.position || idx) : null;
             const progressPct = constructorLeaderPoints > 0 ? (totalPts / constructorLeaderPoints) * 100 : 0;
@@ -108,13 +47,15 @@ const ConstructorStandingsCard = ({
                   className="pointer-events-none absolute inset-y-0 left-0"
                   style={{ width: `${progressPct}%`, backgroundColor: teamColor, opacity: 0.1 }}
                 />
-                <div className="relative flex items-center gap-2.5 px-3 py-2">
-                  <span className="w-5 shrink-0 text-center text-xs font-bold tabular-nums text-muted-foreground">
+                <div className="relative flex items-center gap-2.5 px-3 py-2 lg:px-4 lg:py-2.5">
+                  <span className="w-5 shrink-0 text-center text-xs font-bold tabular-nums text-muted-foreground lg:w-7 lg:text-sm">
                     {displayPosition}
                   </span>
                   <TeamLogo constructorId={teamId} alt={team.Constructor?.name} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold leading-tight">{team.Constructor?.name}</div>
+                    <div className="truncate text-sm font-semibold leading-tight lg:text-[0.95rem]">
+                      {team.Constructor?.name}
+                    </div>
                     {idx > 0 && (
                       <div className="text-2xs text-muted-foreground">
                         Leader <AnimatedNumber value={toLeader} /> · P{aheadPosition ?? idx}{" "}
@@ -122,7 +63,21 @@ const ConstructorStandingsCard = ({
                       </div>
                     )}
                   </div>
-                  <AnimatedNumber value={totalPts} mono className="readout shrink-0 text-sm font-bold leading-tight" />
+                  {/* Wins — revealed where there's room (lg+) */}
+                  <div className="hidden w-14 shrink-0 items-center justify-center lg:flex">
+                    {wins > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                        <Trophy className="h-3 w-3" /> <AnimatedNumber value={wins} />
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/50">—</span>
+                    )}
+                  </div>
+                  <AnimatedNumber
+                    value={totalPts}
+                    mono
+                    className="readout shrink-0 text-sm font-bold leading-tight lg:text-base"
+                  />
                 </div>
               </div>
             );
