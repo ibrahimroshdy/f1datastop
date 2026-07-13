@@ -1939,8 +1939,14 @@ def chart_race_strategy(session, meta):
     sax.tick_params(colors=SUBINK, length=0, labelsize=9)
     sax.set_xlabel("Lap", color=SUBINK, fontproperties=FP_BODY, fontsize=12)
 
-    # weather strip, aligned to the lap axis
-    wx = getattr(session, "weather_data", None)
+    # weather strip, aligned to the lap axis. weather_data is a FastF1 property
+    # that RAISES (DataNotLoadedError) when the weather load failed — getattr's
+    # default only swallows AttributeError, so guard explicitly and degrade to a
+    # strategy board without the temp/rain overlay rather than crashing the chart.
+    try:
+        wx = session.weather_data
+    except Exception:
+        wx = None
     if wx is not None and len(wx):
         lt = laps.groupby("LapNumber")["Time"].median()
         validlaps = [int(l) for l in sorted(lt.index) if pd.notna(lt[l])]
