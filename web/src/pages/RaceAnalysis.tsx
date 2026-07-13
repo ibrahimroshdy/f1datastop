@@ -79,20 +79,24 @@ const RaceAnalysis = () => {
     const rows = (dbSessions ?? []).filter(
       (s) => String(s.round) === String(selectedRace),
     );
-    if (rows.length === 0) {
-      setAvailableSessions([]);
-      return;
-    }
-    const opts: SessionOption[] = rows
-      .map((s) => ({
-        session_key: SESSION_KEY[s.session_type] ?? 99,
-        session_name: s.session_name,
-        session_type: s.session_type,
-        date_start: s.date_start ?? "",
-        date_end: s.date_end ?? "",
-        meeting_key: 0,
-      }))
-      .sort((a, b) => a.session_key - b.session_key);
+    const opts: SessionOption[] = rows.map((s) => ({
+      session_key: SESSION_KEY[s.session_type] ?? 99,
+      session_name: s.session_name,
+      session_type: s.session_type,
+      date_start: s.date_start ?? "",
+      date_end: s.date_end ?? "",
+      meeting_key: 0,
+    }));
+    // Guarantee the universal sessions (Quali + Race) so there is always ONE
+    // working session picker — warehouse session rows can be missing even when
+    // FastF1 has the telemetry/replay for that session.
+    const ensure = (type: string, name: string, key: number) => {
+      if (!opts.some((o) => o.session_type === type))
+        opts.push({ session_key: key, session_name: name, session_type: type, date_start: "", date_end: "", meeting_key: 0 });
+    };
+    ensure("Q", "Qualifying", 6);
+    ensure("R", "Race", 7);
+    opts.sort((a, b) => a.session_key - b.session_key);
     setAvailableSessions(opts);
     if (!selectedSessionKey) {
       const urlSession = searchParams.get("session");

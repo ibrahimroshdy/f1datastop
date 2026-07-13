@@ -1,4 +1,4 @@
-import { Flag, Timer, Trophy, Zap } from "lucide-react";
+import { Timer, Trophy } from "lucide-react";
 import { F1EmptyState, PitIcon } from "@/components/f1";
 import { Badge } from "@/components/ui/badge";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
@@ -72,71 +72,44 @@ const DriverCareerPanel = ({
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center gap-2">
         <PitIcon icon={Trophy} size="sm" className="text-primary" />
-        <h4
-          className={cn(
-            "font-semibold uppercase tracking-wide text-muted-foreground",
-            compact ? "text-[10px]" : "text-xs",
-          )}
-        >
-          Career Records
-        </h4>
+        <h4 className="instrument-label text-muted-foreground">Career Records</h4>
       </div>
 
+      {/* Instrument cluster — hairline tiles, mono readouts (no rainbow icons) */}
       <div
         className={cn(
-          "grid gap-1.5",
+          "grid divide-x divide-y divide-border overflow-hidden rounded-lg border border-border",
           compact ? "grid-cols-4" : "grid-cols-2 sm:grid-cols-4",
         )}
       >
-        <div className={cn("text-center rounded-md p-2", mutedSurface)}>
-          <PitIcon
-            icon={Trophy}
-            size="xs"
-            className="mx-auto mb-0.5 text-yellow-500"
-          />
-          <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
-            {formatStat(profile.championships)}
-          </p>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">WDC</p>
-        </div>
-        <div className={cn("text-center rounded-md p-2", mutedSurface)}>
-          <PitIcon
-            icon={Flag}
-            size="xs"
-            className="mx-auto mb-0.5 text-orange-500"
-          />
-          <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
-            {formatStat(profile.race_wins)}
-          </p>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Wins</p>
-        </div>
-        <div className={cn("text-center rounded-md p-2", mutedSurface)}>
-          <PitIcon
-            icon={Flag}
-            size="xs"
-            className="mx-auto mb-0.5 text-amber-600"
-          />
-          <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
-            {formatStat(profile.podiums)}
-          </p>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Podiums</p>
-        </div>
-        <div className={cn("text-center rounded-md p-2", mutedSurface)}>
-          <PitIcon icon={Zap} size="xs" className="mx-auto mb-0.5 text-blue-500" />
-          <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
-            {formatStat(profile.pole_positions)}
-          </p>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Poles</p>
-        </div>
+        {[
+          { label: "WDC", value: profile.championships, gold: (profile.championships ?? 0) > 0 },
+          { label: "Wins", value: profile.race_wins, gold: false },
+          { label: "Podiums", value: profile.podiums, gold: false },
+          { label: "Poles", value: profile.pole_positions, gold: false },
+        ].map((s) => (
+          <div key={s.label} className="flex flex-col items-center justify-center gap-0.5 p-2.5 text-center">
+            <span
+              className={cn(
+                "readout font-semibold tabular-nums",
+                compact ? "text-sm" : "text-lg",
+                s.gold ? "text-position-gold" : "text-foreground",
+              )}
+            >
+              {formatStat(s.value)}
+            </span>
+            <span className="instrument-label text-muted-foreground">{s.label}</span>
+          </div>
+        ))}
       </div>
 
       {!compact && profile.fastest_laps != null && (
-        <div className={cn("flex items-center justify-between rounded-md px-3 py-2 text-sm", mutedSurface)}>
+        <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
           <span className="flex items-center gap-1.5 text-muted-foreground">
             <PitIcon icon={Timer} size="xs" />
             Fastest laps
           </span>
-          <span className="font-semibold">{formatStat(profile.fastest_laps)}</span>
+          <span className="readout font-semibold tabular-nums">{formatStat(profile.fastest_laps)}</span>
         </div>
       )}
 

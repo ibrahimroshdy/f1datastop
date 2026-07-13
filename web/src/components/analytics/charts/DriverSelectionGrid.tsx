@@ -92,12 +92,12 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
               {summary && !isDNF ? (
                 <span className={cn(
                   "text-[8px] font-mono",
-                  summary.improved ? "text-emerald-500" : summary.change < 0 ? "text-red-500" : "text-muted-foreground"
+                  summary.improved ? "text-gain" : summary.change < 0 ? "text-loss" : "text-muted-foreground"
                 )}>
                   {summary.improved ? `+${summary.change}` : summary.change < 0 ? summary.change : "="}
                 </span>
               ) : isDNF ? (
-                <span className="text-[7px] text-red-500 font-bold">DNF</span>
+                <span className="text-[7px] text-loss font-bold">DNF</span>
               ) : null}
             </button>
           );
@@ -112,8 +112,8 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
         <span className="flex items-center gap-0.5">
           <div className={cn("w-1.5 h-1.5 rounded-full bg-muted-foreground ring-1", "ring-muted-foreground")} />2nd
         </span>
-        <span className="text-emerald-500">+Gain</span>
-        <span className="text-red-500">-Loss</span>
+        <span className="text-gain">+Gain</span>
+        <span className="text-loss">-Loss</span>
       </div>
     </div>
   );

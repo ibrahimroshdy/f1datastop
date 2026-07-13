@@ -219,7 +219,7 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
           </div>
           
           {/* Next Sessions */}
-          <div className={`space-y-2.5 pt-3 border-t border-dashed ${statusColors.border}`}>
+          <div className="space-y-2.5 border-t border-border pt-3">
             <div className="flex items-center gap-2">
               <Clock className={`h-4 w-4 ${statusColors.text}`} />
               <span className="text-sm font-medium text-foreground">Next Sessions</span>
@@ -261,23 +261,23 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
             </div>
           </div>
 
-          {/* Season Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-border">
-            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-status-completed/10 to-transparent border border-status-completed/20">
-              <AnimatedNumber value={completedRaces.length} mono className="block text-lg font-bold text-foreground" />
-              <div className="text-[10px] text-muted-foreground">Done</div>
+          {/* Season Stats — one cohesive instrument cluster */}
+          <div className="mt-3 grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-xl border border-border bg-card/40 sm:grid-cols-4 sm:divide-y-0">
+            <div className="px-3 py-2.5">
+              <p className="instrument-label text-[10px]">Done</p>
+              <AnimatedNumber value={completedRaces.length} mono className="readout mt-1 block text-lg leading-none text-gain" />
             </div>
-            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-status-upcoming/10 to-transparent border border-status-upcoming/20">
-              <AnimatedNumber value={remainingRaces} mono className="block text-lg font-bold text-foreground" />
-              <div className="text-[10px] text-muted-foreground">Left</div>
+            <div className="px-3 py-2.5">
+              <p className="instrument-label text-[10px]">Left</p>
+              <AnimatedNumber value={remainingRaces} mono className="readout mt-1 block text-lg leading-none text-foreground" />
             </div>
-            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-position-gold/10 to-transparent border border-position-gold/20">
-              <AnimatedNumber value={sprintCount} mono className="block text-lg font-bold text-foreground" />
-              <div className="text-[10px] text-muted-foreground">Sprints</div>
+            <div className="px-3 py-2.5">
+              <p className="instrument-label text-[10px]">Sprints</p>
+              <AnimatedNumber value={sprintCount} mono className="readout mt-1 block text-lg leading-none text-foreground" />
             </div>
-            <div className="text-center p-2 rounded-lg bg-gradient-to-r from-position-bronze/10 to-transparent border border-position-bronze/20">
-              <AnimatedNumber value={longestBreakDays} mono suffix="d" className="block text-lg font-bold text-foreground" />
-              <div className="text-[10px] text-muted-foreground">Max Gap</div>
+            <div className="px-3 py-2.5">
+              <p className="instrument-label text-[10px]">Max Gap</p>
+              <AnimatedNumber value={longestBreakDays} mono suffix="d" className="readout mt-1 block text-lg leading-none text-foreground" />
             </div>
           </div>
         </F1CardContent>

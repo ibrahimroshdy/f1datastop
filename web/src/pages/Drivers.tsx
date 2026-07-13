@@ -23,7 +23,8 @@ const headshotSrc = (driverId?: string): string | undefined => {
 };
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import { Search, Users, Trophy, ChevronRight } from "lucide-react";
+import { Search, Trophy, ChevronRight } from "lucide-react";
+import { HelmetIcon } from "@/components/common/HelmetIcon";
 import { Input } from "@/components/ui/input";
 import ReactCountryFlag from "react-country-flag";
 import {
@@ -215,7 +216,7 @@ const Drivers = () => {
         <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
             <div className="instrument-label flex items-center gap-1.5 text-primary">
-              <Users className="h-3 w-3" />
+              <HelmetIcon className="h-3 w-3" />
               {`Drivers ${selectedYear}`}
             </div>
             {filteredDrivers.length > 0 && (

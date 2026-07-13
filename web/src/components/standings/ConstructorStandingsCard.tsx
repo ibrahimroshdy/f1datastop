@@ -91,26 +91,30 @@ const ConstructorStandingsCard = ({
         </Table>
       </div>
 
-      <div className="lg:hidden space-y-1.5">
-        {visible.map((team: any, idx: number) => {
-          const teamId = normalizeTeamId(team.Constructor?.constructorId || "default");
-          const borderColor = getTeamHexColor(teamId);
-          const totalPts = Number(team.points || 0);
-          const { toLeader, toNext } = getGaps(idx, fullList);
-          const aheadPosition = idx > 0 ? (fullList[idx - 1]?.position || idx) : null;
-          const progressPct = constructorLeaderPoints > 0 ? (totalPts / constructorLeaderPoints) * 100 : 0;
-          const displayPosition = team.position || (idx + 1);
+      <div className="lg:hidden overflow-hidden rounded-xl border border-border/70">
+        <div className="divide-y divide-border/50">
+          {visible.map((team: any, idx: number) => {
+            const teamId = normalizeTeamId(team.Constructor?.constructorId || "default");
+            const teamColor = getTeamHexColor(teamId);
+            const totalPts = Number(team.points || 0);
+            const { toLeader, toNext } = getGaps(idx, fullList);
+            const aheadPosition = idx > 0 ? (fullList[idx - 1]?.position || idx) : null;
+            const progressPct = constructorLeaderPoints > 0 ? (totalPts / constructorLeaderPoints) * 100 : 0;
+            const displayPosition = team.position || (idx + 1);
 
-          return (
-            <div key={displayPosition} className="rounded-md border border-border px-2.5 py-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="w-5 shrink-0 text-center text-xs font-semibold tabular-nums text-muted-foreground">
+            return (
+              <div key={displayPosition} className="relative overflow-hidden">
+                <div
+                  className="pointer-events-none absolute inset-y-0 left-0"
+                  style={{ width: `${progressPct}%`, backgroundColor: teamColor, opacity: 0.1 }}
+                />
+                <div className="relative flex items-center gap-2.5 px-3 py-2">
+                  <span className="w-5 shrink-0 text-center text-xs font-bold tabular-nums text-muted-foreground">
                     {displayPosition}
                   </span>
                   <TeamLogo constructorId={teamId} alt={team.Constructor?.name} size="sm" />
-                  <div className="min-w-0" style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: "6px" }}>
-                    <div className="truncate text-sm font-medium leading-tight">{team.Constructor?.name}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold leading-tight">{team.Constructor?.name}</div>
                     {idx > 0 && (
                       <div className="text-2xs text-muted-foreground">
                         Leader <AnimatedNumber value={toLeader} /> · P{aheadPosition ?? idx}{" "}
@@ -118,25 +122,16 @@ const ConstructorStandingsCard = ({
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="shrink-0 text-right text-sm font-semibold leading-tight">
-                  <AnimatedNumber value={totalPts} />
+                  <AnimatedNumber value={totalPts} mono className="readout shrink-0 text-sm font-bold leading-tight" />
                 </div>
               </div>
-              <Progress
-                value={progressPct}
-                className="mt-1.5 h-1"
-                indicatorStyle={{ backgroundColor: borderColor, opacity: 0.8 }}
-              />
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      <div className="flex items-center justify-center gap-2 pt-3 border-t border-border">
-        <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
-        <span className="text-xs text-muted-foreground">Constructor Championship</span>
-        <div className="w-2 h-2 rounded-full bg-muted-foreground/40" />
+      <div className="instrument-label mt-3 border-t border-border pt-3 text-center text-muted-foreground">
+        Constructor Championship
       </div>
     </>
   );

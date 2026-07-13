@@ -216,7 +216,7 @@ const QualifyingResultsCard = () => {
           {/* Fastest Time Highlight */}
           {!isLoading && !error && fastestDriver && (
             <div className="mt-2 flex items-center justify-center">
-              <div className="border border-dashed border-position-gold/50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 text-xs">
+              <div className="border border-position-gold/40 bg-position-gold/5 px-2 py-0.5 rounded-md inline-flex items-center gap-1.5 text-xs">
                 <span className="text-position-gold font-medium">Pole:</span>
                         <span 
                           className="font-mono font-bold" 

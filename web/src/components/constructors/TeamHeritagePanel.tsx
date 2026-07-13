@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Flag, Trophy, Zap } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { F1EmptyState, PitIcon } from "@/components/f1";
 import TeamLogo from "@/components/common/TeamLogo";
 import { Badge } from "@/components/ui/badge";
@@ -145,47 +145,34 @@ const TeamHeritagePanel = ({
         )}
       </div>
 
+      {/* Instrument cluster — hairline tiles, mono readouts (no rainbow icons) */}
       <div
         className={cn(
-          "grid gap-1.5",
+          "grid divide-x divide-y divide-border overflow-hidden rounded-lg border border-border",
           compact ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4",
         )}
       >
-        <div className={cn("text-center rounded-md p-2", mutedSurface)}>
-          <PitIcon
-            icon={Trophy}
-            size="xs"
-            className="mx-auto mb-0.5 text-yellow-500"
-          />
-          <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
-            {formatStat(profile.championships)}
-          </p>
-          <p className="text-[8px] text-muted-foreground">Titles</p>
-        </div>
-        <div className={cn("text-center rounded-md p-2", mutedSurface)}>
-          <PitIcon
-            icon={Flag}
-            size="xs"
-            className="mx-auto mb-0.5 text-orange-500"
-          />
-          <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
-            {formatStat(profile.race_wins)}
-          </p>
-          <p className="text-[8px] text-muted-foreground">Wins</p>
-        </div>
-        <div className={cn("text-center rounded-md p-2", mutedSurface)}>
-          <PitIcon icon={Zap} size="xs" className="mx-auto mb-0.5 text-blue-500" />
-          <p className={cn("font-bold", compact ? "text-sm" : "text-lg")}>
-            {formatStat(profile.pole_positions)}
-          </p>
-          <p className="text-[8px] text-muted-foreground">Poles</p>
-        </div>
-        {!compact && profile.first_season != null && (
-          <div className={cn("text-center rounded-md p-2", mutedSurface)}>
-            <p className="text-lg font-bold">{profile.first_season}</p>
-            <p className="text-[8px] text-muted-foreground">Since</p>
+        {[
+          { label: "Titles", value: formatStat(profile.championships), gold: (profile.championships ?? 0) > 0 },
+          { label: "Wins", value: formatStat(profile.race_wins), gold: false },
+          { label: "Poles", value: formatStat(profile.pole_positions), gold: false },
+          ...(!compact && profile.first_season != null
+            ? [{ label: "Since", value: String(profile.first_season), gold: false }]
+            : []),
+        ].map((s) => (
+          <div key={s.label} className="flex flex-col items-center justify-center gap-0.5 p-2.5 text-center">
+            <span
+              className={cn(
+                "readout font-semibold tabular-nums",
+                compact ? "text-sm" : "text-lg",
+                s.gold ? "text-position-gold" : "text-foreground",
+              )}
+            >
+              {s.value}
+            </span>
+            <span className="instrument-label text-muted-foreground">{s.label}</span>
           </div>
-        )}
+        ))}
       </div>
 
       {championshipYears.length > 0 && !compact && (

@@ -13,7 +13,8 @@ import {
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { pageShell, pageStack } from "@/lib/layout";
-import { ChevronRight, Flag as FlagIcon, Trophy } from "lucide-react";
+import { ChevronRight, Flag as FlagIcon, Trophy, Car } from "lucide-react";
+import { HelmetIcon } from "@/components/common/HelmetIcon";
 import {
   F1Card,
   F1EmptyState,
@@ -296,11 +297,11 @@ const Standings = () => {
         <Tabs defaultValue="drivers" value={activeTab}
           onValueChange={(v) => setActiveTab(v as "drivers" | "constructors")} className="w-full">
           <TabsList className="inline-flex h-auto w-full justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
-            <TabsTrigger value="drivers" className={underlineTabTrigger}>
-              Drivers
+            <TabsTrigger value="drivers" className={cn(underlineTabTrigger, "inline-flex items-center gap-1.5")}>
+              <HelmetIcon className="h-4 w-4" /> Drivers
             </TabsTrigger>
-            <TabsTrigger value="constructors" className={underlineTabTrigger}>
-              Constructors
+            <TabsTrigger value="constructors" className={cn(underlineTabTrigger, "inline-flex items-center gap-1.5")}>
+              <Car className="h-4 w-4" /> Constructors
             </TabsTrigger>
           </TabsList>
 

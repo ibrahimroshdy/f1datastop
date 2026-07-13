@@ -131,7 +131,7 @@ const ResetPassword = () => {
             {!recoveryMode ? (
               isEmailSent ? (
                 <div className="text-center text-muted-foreground">
-                  <CheckCircle className="mx-auto h-6 w-6 text-green-500 mb-2" />
+                  <CheckCircle className="mx-auto h-6 w-6 text-gain mb-2" />
                   <p>Password reset link has been sent to your email.</p>
                 </div>
               ) : (
@@ -159,7 +159,7 @@ const ResetPassword = () => {
               )
             ) : resetSuccess ? (
               <div className="text-center text-muted-foreground">
-                <CheckCircle className="mx-auto h-6 w-6 text-green-500 mb-2" />
+                <CheckCircle className="mx-auto h-6 w-6 text-gain mb-2" />
                 <p>Your password has been updated.</p>
                 <Link to="/auth/login" className="text-primary hover:underline">
                   Return to login

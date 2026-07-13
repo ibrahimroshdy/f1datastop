@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
+    "@lucide/lab": "^0.1.2",
     "@microsoft/clarity": "^1.0.0",
     "@number-flow/react": "^0.6.1",
     "@radix-ui/react-accordion": "^1.2.0",

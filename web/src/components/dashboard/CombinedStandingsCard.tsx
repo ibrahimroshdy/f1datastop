@@ -6,7 +6,8 @@ import { StandingsSkeleton } from "@/components/f1/F1Skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
-import { Caravan, Calendar, Flag, Trophy, Users } from "lucide-react";
+import { Car, Calendar, Flag, Trophy } from "lucide-react";
+import { HelmetIcon } from "@/components/common/HelmetIcon";
 import CombinedStandingsTab from "@/components/standings/CombinedStandingsTab";
 import ConstructorStandingsCard from "@/components/standings/ConstructorStandingsCard";
 import DriverStandingsCard from "@/components/standings/DriverStandingsCard";
@@ -62,8 +63,10 @@ const CombinedStandingsCard = ({
   };
 
   const titleIcon = tab === "drivers"
-    ? <Users className="h-5 w-5 text-primary" />
-    : <Trophy className="h-5 w-5 text-primary" />;
+    ? <HelmetIcon className="h-5 w-5 text-primary" />
+    : tab === "constructors"
+      ? <Car className="h-5 w-5 text-primary" />
+      : <Trophy className="h-5 w-5 text-primary" />;
 
   const toggleText = (() => {
     if (tab === "drivers") {
@@ -102,13 +105,13 @@ const CombinedStandingsCard = ({
             <div className="w-full flex justify-center lg:justify-end">
               <TabsList className="inline-flex h-auto mx-auto lg:mx-0 gap-0 rounded-none border-b border-border bg-transparent p-0">
                 <TabsTrigger value="combined" className={cn(underlineTabTrigger, "gap-1")}>
-                  <Caravan className="h-4 w-4" /> Combined
+                  <Trophy className="h-4 w-4" /> Combined
                 </TabsTrigger>
                 <TabsTrigger value="drivers" className={cn(underlineTabTrigger, "gap-1")}>
-                  <Users className="h-4 w-4" /> Drivers
+                  <HelmetIcon className="h-4 w-4" /> Drivers
                 </TabsTrigger>
                 <TabsTrigger value="constructors" className={cn(underlineTabTrigger, "gap-1")}>
-                  <Caravan className="h-4 w-4" /> Constructors
+                  <Car className="h-4 w-4" /> Constructors
                 </TabsTrigger>
               </TabsList>
             </div>

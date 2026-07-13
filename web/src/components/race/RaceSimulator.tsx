@@ -34,12 +34,8 @@ const SESSION_NAME: Record<string, string> = {
   SQ: "Sprint Quali", FP1: "Practice 1", FP2: "Practice 2", FP3: "Practice 3",
 };
 
-// In-card session toggle (the sim fetches each session's own replay blob).
-const SIM_SESSIONS = [
-  { key: "R", label: "Race" },
-  { key: "Q", label: "Quali" },
-  { key: "S", label: "Sprint" },
-] as const;
+// Sessions we generate replays for (race/quali/sprint). Practice is not replayed.
+const SUPPORTED_SESSIONS = new Set(["R", "Q", "S"]);
 
 const TYRE_COLOR: Record<string, string> = {
   S: "hsl(0 85% 55%)",
@@ -406,11 +402,9 @@ export default function RaceSimulator({ year, round, session = "R" }: Props) {
   const roundNum = parseInt(round, 10);
   const [sel, setSel] = useState<string | null>(null);
   const [showSectors, setShowSectors] = useState(false);
-  const [sess, setSess] = useState(session);
-  useEffect(() => setSess(session), [session]); // follow the page's session dropdown
-  useEffect(() => setSel(null), [sess, roundNum]); // clear follow when switching session/round
+  useEffect(() => setSel(null), [session, roundNum]); // clear follow when switching session/round
 
-  const index = useQuery({ queryKey: ["race-replay", "index", year, roundNum, sess], queryFn: () => getRaceReplay(year, roundNum, sess) });
+  const index = useQuery({ queryKey: ["race-replay", "index", year, roundNum, session], queryFn: () => getRaceReplay(year, roundNum, session) });
   const blobQ = useQuery({
     queryKey: ["race-replay", "blob", index.data?.public_url],
     queryFn: () => fetchRaceReplayBlob(index.data!.public_url),
@@ -453,33 +447,30 @@ export default function RaceSimulator({ year, round, session = "R" }: Props) {
 
   return (
     <F1Card>
-      <F1CardHeader className="flex-row flex-wrap items-center gap-x-2 gap-y-1.5 pb-2">
+      <F1CardHeader className="flex-row items-center gap-2 pb-2">
         <Radio className="h-4 w-4 text-primary" />
         <F1CardTitle className="text-base">Race Control</F1CardTitle>
-        <div className="ml-auto flex items-center gap-1 rounded-lg border border-border/60 p-0.5">
-          {SIM_SESSIONS.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setSess(s.key)}
-              className={cn(
-                "min-h-7 rounded-md px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide transition-colors",
-                sess === s.key ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent",
-              )}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        <span className="instrument-label ml-auto text-muted-foreground">
+          {SESSION_NAME[session] ?? session}{index.data?.driver_count ? ` · ${index.data.driver_count} cars` : ""}
+        </span>
       </F1CardHeader>
       <F1CardContent>
         {index.isLoading || (index.data && blobQ.isLoading) ? (
           <F1Skeleton variant="card" className="h-[440px]" />
         ) : !index.data || !blob ? (
-          <div className="flex h-[360px] flex-col items-center justify-center gap-2 text-center">
+          <div className="flex h-[360px] flex-col items-center justify-center gap-2 px-6 text-center">
             <Radio className="h-6 w-6 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">{SESSION_NAME[sess] ?? sess} replay not available for this round yet.</p>
-            <p className="text-2xs text-muted-foreground">Generated from FastF1 once that session is exported.</p>
+            {SUPPORTED_SESSIONS.has(session) ? (
+              <>
+                <p className="text-sm text-muted-foreground">{SESSION_NAME[session] ?? session} replay not available for this round yet.</p>
+                <p className="text-2xs text-muted-foreground">Pick another session above, or it appears once FastF1 exports it.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">Live replay covers Race, Qualifying &amp; Sprint.</p>
+                <p className="text-2xs text-muted-foreground">Practice sessions aren’t replayed — pick Race, Quali or Sprint above.</p>
+              </>
+            )}
           </div>
         ) : (
           <SimBody blob={blob} geom={geom} sel={sel} setSel={setSel} showSectors={showSectors} setShowSectors={setShowSectors} />

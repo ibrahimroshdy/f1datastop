@@ -43,13 +43,13 @@ except Exception:
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # ── Palette (F1 DataStop — dark Pit Wall, red signature) ────────────────────
-PAPER = "#0E1014"
-PANEL = "#181B22"
-INK = "#F2F3F5"
-SUBINK = "#8C929B"
-GRID = "#23262E"
-RED = "#E10600"
-GOLD = "#A6912F"
+PAPER = "#0A0B0F"     # ≈ app --background (240 8% 3.5%)
+PANEL = "#14161C"     # ≈ app --card / raised surface
+INK = "#F2F3F5"       # ≈ app --foreground (220 15% 96%)
+SUBINK = "#9A9CA6"    # ≈ app --muted-foreground (240 6% 64%)
+GRID = "#23262E"      # ≈ app --border
+RED = "#E10600"       # app --primary (F1 red)
+GOLD = "#E7B008"      # app --position-gold (45 93% 47%)
 
 TEAM_COLORS = {
     "Red Bull Racing": "#3671C6", "Ferrari": "#E8002D", "Mercedes": "#00A19B",
@@ -103,11 +103,15 @@ def _load_font(name):
     return fm.FontProperties()
 
 
-FP_BODY = _load_font("Exo2-var.ttf")
-_exo2 = FP_BODY.get_file()
-FP_TITLE = fm.FontProperties(fname=_exo2, weight=800) if _exo2 else fm.FontProperties(weight="bold")
-FP_BODY_B = fm.FontProperties(fname=_exo2, weight=700) if _exo2 else fm.FontProperties(weight="bold")
-plt.rcParams["font.family"] = FP_BODY.get_name() if _exo2 else "sans-serif"
+# App type system: Clash Display (headings) + Geist (body) + Geist Mono (numerics)
+FP_TITLE = _load_font("ClashDisplay-Semibold.ttf")   # display headings
+FP_TITLE_M = _load_font("ClashDisplay-Medium.ttf")   # lighter display
+FP_BODY = _load_font("Geist-Regular.ttf")            # body copy
+FP_BODY_B = _load_font("Geist-Medium.ttf")           # emphasised body / textual labels
+FP_BODY_SB = _load_font("Geist-SemiBold.ttf")        # wordmark / strong labels
+FP_MONO = _load_font("GeistMono-Regular.ttf")        # numerics / readouts
+FP_MONO_B = _load_font("GeistMono-Medium.ttf")       # emphasised numerics
+plt.rcParams["font.family"] = FP_BODY.get_name()
 plt.rcParams["svg.fonttype"] = "none"
 
 _LOGO = None
@@ -176,7 +180,7 @@ def title_block(fig, eyebrow, title, subtitle=None):
     fig.add_artist(plt.Rectangle((0, 0), 0.009, 1, transform=fig.transFigure, color=RED, zorder=10))
     # red eyebrow
     fig.text(0.066, ey, "   ".join(eyebrow.upper()), color=RED, fontsize=12.5,
-             fontproperties=FP_BODY_B)
+             fontproperties=FP_MONO_B)
     fig.text(0.062, ty, title, color=INK, fontsize=LY("title_fs"), fontproperties=FP_TITLE)
     # red underline accent under the title
     fig.add_artist(plt.Line2D([0.066, 0.138], [uy, uy], transform=fig.transFigure,
@@ -185,7 +189,7 @@ def title_block(fig, eyebrow, title, subtitle=None):
         fig.text(0.066, sy, subtitle, color=SUBINK, fontsize=LY("subtitle_fs"), fontproperties=FP_BODY)
     # brand mark, top-right — logo + wordmark
     fig.text(0.928, by, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12.5,
-             fontproperties=FP_BODY_B)
+             fontproperties=FP_BODY_SB)
     if _LOGO is not None:
         ab = AnnotationBbox(OffsetImage(_LOGO, zoom=0.16), (0.952, by),
                             xycoords="figure fraction", frameon=False, zorder=11)
@@ -207,7 +211,7 @@ def clean_axes(ax, xlabel=None, ylabel=None):
     if ylabel:
         ax.set_ylabel(ylabel, color=SUBINK, fontsize=12, fontproperties=FP_BODY)
     for lbl in ax.get_xticklabels() + ax.get_yticklabels():
-        lbl.set_fontproperties(FP_BODY)
+        lbl.set_fontproperties(FP_MONO)
 
 
 def smooth_xy(x, y, n=320):
@@ -339,7 +343,7 @@ def headshot_legend_row(fig, items, y=None, x0=0.5, step=0.105):
         x += step
 
 
-PURPLE = "#B100E8"
+PURPLE = "#A855F7"   # app --fastest-lap (271 91% 68%)
 
 
 def compound_legend(fig, y=None, fastest=False):
@@ -807,7 +811,7 @@ def chart_team_pace(session, meta):
                 edgecolor=PAPER, linewidth=1.2)
         ax.text(delta + span * 0.015, i,
                 "BASE" if delta == 0 else f"+{delta:.2f}s",
-                va="center", ha="left", fontsize=11, fontproperties=FP_BODY_B, color=INK)
+                va="center", ha="left", fontsize=11, fontproperties=FP_MONO_B, color=INK)
     place_team_cars(ax, [(t, i) for i, t in enumerate(teams)], season)
     ax.set_xlim(-span * 0.02, span * 1.34)
     team_y_labels(ax, teams, range(len(teams)), season, 11)
@@ -893,7 +897,7 @@ def chart_places_gained(session, meta):
         ha = "left" if d >= 0 else "right"
         off = 0.35 if d >= 0 else -0.35
         ax.text(d + off, i, f"+{int(d)}" if d > 0 else str(int(d)), va="center", ha=ha,
-                fontsize=10.5, fontproperties=FP_BODY_B, color=INK)
+                fontsize=10.5, fontproperties=FP_MONO_B, color=INK)
     ax.set_yticks(range(len(codes)))
     ax.set_yticklabels(codes, fontproperties=FP_BODY_B, color=INK, fontsize=10)
     ax.grid(axis="y", linewidth=0)

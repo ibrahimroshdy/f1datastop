@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { format, parseISO } from "date-fns";
+import { isoToLocal, userTzLabel } from "@/lib/time";
 import { CalendarClock } from "lucide-react";
 import { BackLink } from "@/components/ui/back-link";
 import { F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
@@ -70,7 +70,7 @@ export default function PredictRound() {
               <CalendarClock className="h-4 w-4" />
               {editable.data ? (
                 <>
-                  Locks {format(parseISO(meta.deadline), "EEE dd MMM, HH:mm")} UTC ·{" "}
+                  Locks {isoToLocal(meta.deadline, "EEE dd MMM, HH:mm")} {userTzLabel()} ·{" "}
                   <Countdown to={meta.deadline} className="readout font-semibold" />
                 </>
               ) : (

@@ -152,7 +152,7 @@ export default function RaceCalendarGridView({
                         {hasSprint && (
                           <>
                             <span>•</span>
-                            <Star className="h-2.5 w-2.5 fill-yellow-500 text-yellow-500" />
+                            <Star className="h-2.5 w-2.5 fill-position-gold text-position-gold" />
                           </>
                         )}
                       </div>

@@ -128,56 +128,46 @@ const CombinedStandingsTab = ({
         </Table>
       </div>
 
-      <div className="lg:hidden space-y-2">
-        {visible.map((team: any, idx: number) => {
-          const row = renderRow(team, idx);
-          return (
-            <div key={row.displayPosition} className="rounded-md border border-border p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="text-xs text-muted-foreground w-6">{row.displayPosition}</div>
-                  <TeamLogo constructorId={row.teamId} alt={row.team.Constructor?.name} size="sm" />
-                  <div
-                    className="font-medium truncate"
-                    style={{ borderLeft: `3px solid ${row.borderColor}`, paddingLeft: "6px" }}
-                  >
-                    {row.team.Constructor?.name}
+      <div className="lg:hidden overflow-hidden rounded-xl border border-border/70">
+        <div className="divide-y divide-border/50">
+          {visible.map((team: any, idx: number) => {
+            const row = renderRow(team, idx);
+            return (
+              <div key={row.displayPosition} className="relative overflow-hidden">
+                <div
+                  className="pointer-events-none absolute inset-y-0 left-0"
+                  style={{ width: `${row.progressPct}%`, backgroundColor: row.borderColor, opacity: 0.1 }}
+                />
+                <div className="relative px-3 py-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-5 shrink-0 text-center text-xs font-bold tabular-nums text-muted-foreground">
+                      {row.displayPosition}
+                    </span>
+                    <TeamLogo constructorId={row.teamId} alt={row.team.Constructor?.name} size="sm" />
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold">{row.team.Constructor?.name}</span>
+                    <AnimatedNumber value={row.totalPts} mono className="readout shrink-0 text-sm font-bold" />
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 pl-[1.9rem] text-2xs text-muted-foreground">
+                    {row.drivers.map((dr) => {
+                      const pct = row.totalPts > 0 ? Math.round((dr.points / row.totalPts) * 100) : 0;
+                      return (
+                        <span key={dr.code} className="tabular-nums">
+                          <span className="font-mono font-semibold text-foreground/80">{dr.code}</span> {dr.points} · {pct}%
+                        </span>
+                      );
+                    })}
+                    {idx > 0 && (
+                      <span className="ml-auto tabular-nums">
+                        Leader <AnimatedNumber value={row.toLeader} /> · P{row.aheadPosition ?? idx}{" "}
+                        <AnimatedNumber value={row.toNext} />
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-semibold"><AnimatedNumber value={row.totalPts} /></div>
-                </div>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {row.drivers.map((dr) => {
-                  const pct = row.totalPts > 0 ? Math.round((dr.points / row.totalPts) * 100) : 0;
-                  return (
-                    <div
-                      key={dr.code}
-                      className="flex items-center justify-between text-[11px] bg-muted/40 rounded px-2 py-1"
-                    >
-                      <span className="font-mono text-muted-foreground">{dr.code}</span>
-                      <span className="text-foreground">{dr.points} pts • {pct}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-              {idx > 0 && (
-                <div className="mt-2 text-[10px] text-muted-foreground text-right">
-                  <div>To Leader: <AnimatedNumber value={row.toLeader} /></div>
-                  <div>To P{row.aheadPosition ?? idx}: <AnimatedNumber value={row.toNext} /></div>
-                </div>
-              )}
-              <div className="mt-2">
-                <Progress
-                  value={row.progressPct}
-                  className="h-1.5"
-                  indicatorStyle={{ backgroundColor: row.borderColor, opacity: 0.8 }}
-                />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </>
   );

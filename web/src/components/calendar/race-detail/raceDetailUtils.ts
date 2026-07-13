@@ -1,6 +1,7 @@
 import { format, parseISO } from "date-fns";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { resolveTeamColor } from "@/lib/f1/adapters";
+import { f1ToLocal } from "@/lib/time";
 
 /** Normalize legacy constructor aliases for TEAM_COLORS lookup. */
 export function getTeamColor(constructorId: string): string {
@@ -41,12 +42,8 @@ export function formatRaceTime(result: {
 
 export function getSessionDate(session: { date?: string; time?: string }) {
   if (!session?.date) return "-";
-  try {
-    const date = parseISO(`${session.date}T${session.time || "00:00:00Z"}`);
-    return format(date, "MMM d, yyyy - HH:mm");
-  } catch {
-    return session.date || "-";
-  }
+  // F1 times are UTC → render in the user's local timezone.
+  return f1ToLocal(session.date, session.time, "MMM d, yyyy · HH:mm");
 }
 
 export function isSessionPast(date: string, time?: string) {

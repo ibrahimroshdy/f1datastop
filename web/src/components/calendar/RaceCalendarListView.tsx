@@ -1,6 +1,7 @@
 import { F1Card, F1EmptyState } from "@/components/f1";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, parseISO } from "date-fns";
+import { f1ToLocal, userTzLabel } from "@/lib/time";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { Link } from "react-router-dom";
 import {
@@ -245,7 +246,7 @@ export default function RaceCalendarListView({
                         </h3>
                         {hasSprint && (
                           <Star
-                            className="h-3.5 w-3.5 shrink-0 fill-yellow-500 text-yellow-500"
+                            className="h-3.5 w-3.5 shrink-0 fill-position-gold text-position-gold"
                             aria-label="Sprint weekend"
                           />
                         )}
@@ -278,7 +279,7 @@ export default function RaceCalendarListView({
                         </span>
                         {race.time ? (
                           <span className="timing block text-2xs text-muted-foreground">
-                            {format(parseISO(`${race.date}T${race.time}`), "HH:mm")} UTC
+                            {f1ToLocal(race.date, race.time, "HH:mm")} {userTzLabel()}
                           </span>
                         ) : (
                           <span className="block text-2xs text-muted-foreground">

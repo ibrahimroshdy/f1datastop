@@ -283,6 +283,20 @@ def backfill_replays(from_season: int = 2018, to_season: int = 2026, force: bool
     list(export_race_replays.starmap([(s, 24, force, session) for s in seasons]))
 
 
+# ── Manual: backfill Race + Quali + Sprint replays across a season range (one shot) ─
+# e.g.  modal run modal_app.py::backfill_all_sessions --from-season 2024 --to-season 2026 --force
+# Fans out one container per (season, session). Sprint/quali rounds without data
+# fail-and-skip; practice is not replayed by design.
+@app.function(**COMMON)
+def backfill_all_sessions(from_season: int = 2024, to_season: int = 2026, force: bool = False) -> None:
+    combos = [
+        (s, 24, force, sess)
+        for s in range(from_season, to_season + 1)
+        for sess in ("R", "Q", "S")
+    ]
+    list(export_race_replays.starmap(combos))
+
+
 @app.local_entrypoint()
 def main() -> None:
     """`modal run modal_app.py` → backfill the current 4-season window once."""
