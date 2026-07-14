@@ -16,6 +16,7 @@ Geist / Geist Mono). Every image carries the race-country flag + `@F1DataStop`.
 | `season_scorecard` | 2 drivers across the season so far — stat cluster · race + quali H2H · finishing form · points progression | season-to-date | **yes (pick 2)** |
 | `championship` | the title fight — drivers' standings + points-progression curves for the leaders | season-to-date | no (whole field) |
 | `constructors` | the team battle — constructors' standings + driver-contribution split (who's scoring) | season-to-date | no (whole field) |
+| `circuit_history` | this track across the years — winner + pole per edition + a "most wins here" tally | multi-year | no (whole field) |
 
 The four season/championship boards (`season_scorecard`, `championship`, `constructors`)
 are **warehouse-backed** — they read the standings/results RPCs, not the FastF1
