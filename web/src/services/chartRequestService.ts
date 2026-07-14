@@ -39,13 +39,19 @@ export async function getCustomChart(
 ): Promise<AnalysisChart[]> {
   const key = driverKeyOf(codes);
   if (!key) return [];
+  // Exact match on every social-format variant. NOT `.like(...)` — `_` is a
+  // single-char wildcard in SQL LIKE, and both the chart key (e.g. "parallax_stack")
+  // and the "__" separator contain underscores, so a LIKE pattern over-matches and
+  // could return a DIFFERENT driver set. generate.py names these:
+  //   <chart>__<key> (landscape) · <chart>_twitter__<key> · _instagram · _story
+  const types = ["", "_twitter", "_instagram", "_story"].map((f) => `${chart}${f}__${key}`);
   const { data, error } = await db
     .from("analysis_charts")
     .select("*")
     .eq("season", season)
     .eq("round", round)
     .eq("session", session)
-    .like("chart_type", `${chart}%__${key}`)
+    .in("chart_type", types)
     .order("chart_type");
   if (error) {
     console.warn("[chartRequest] getCustomChart:", error.message);
