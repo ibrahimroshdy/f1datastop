@@ -215,18 +215,25 @@ def backfill_telemetry(from_season: int = 2025, to_season: int = 2026, force: bo
 # Every 6h (offset 30m from backfill_current). telemetry_export.py skips rounds
 # already in f1_telemetry_index and no-ops on rounds that haven't run yet, so a
 # whole-season pass is cheap and self-heals gaps (why 6/9 were missing before).
-@app.function(schedule=modal.Cron("30 */6 * * *"), **COMMON)
-def export_telemetry_current() -> None:
+@app.function(schedule=modal.Cron("30 */6 * * *"), **ORCH)
+def refresh_current_assets() -> None:
+    """ONE scheduled fn (Modal's free plan caps at 5 crons) that keeps the CURRENT
+    season's durable derived assets filled — telemetry, circuit geometry, race
+    replays. Each per-round exporter skips finished rounds, so it's cheap and
+    self-heals gaps. Consolidates three former 6-hourly crons into one; the child
+    exporters run in parallel containers (own IP + own timeout)."""
     from datetime import datetime, timezone
     year = datetime.now(timezone.utc).year
-    done = 0
-    for r in range(1, 25):
+    handles = [
+        export_telemetry.spawn(year),
+        export_circuits.spawn(year),
+        export_race_replays.spawn(year),
+    ]
+    for h in handles:
         try:
-            _run("telemetry_export.py", "--season", str(year), "--round", str(r), "--session", "R")
-            done += 1
+            h.get()
         except Exception as e:  # noqa: BLE001
-            print(f"  R{r}: skipped ({e})")
-    print(f"Done. telemetry pass for {year}: {done} rounds attempted.")
+            print(f"refresh_current_assets: a child pass failed: {e}")
 
 
 # ── Manual: export circuit geometry (track map + corners + straights) ────────
@@ -248,21 +255,7 @@ def export_circuits(season: int, rounds: int = 24, force: bool = False) -> None:
     print(f"Done. circuit geometry exported for {done} rounds of {season}.")
 
 
-# ── Scheduled: keep the CURRENT season's circuit geometry filled ─────────────
-# Every 6h (offset 45m). circuit_geometry_export.py skips circuits already indexed
-# and no-ops on rounds that haven't run yet, so a whole-season pass is cheap.
-@app.function(schedule=modal.Cron("45 */6 * * *"), **COMMON)
-def export_circuits_current() -> None:
-    from datetime import datetime, timezone
-    year = datetime.now(timezone.utc).year
-    done = 0
-    for r in range(1, 25):
-        try:
-            _run("circuit_geometry_export.py", "--season", str(year), "--round", str(r))
-            done += 1
-        except Exception as e:  # noqa: BLE001
-            print(f"  R{r}: skipped ({e})")
-    print(f"Done. circuit geometry pass for {year}: {done} rounds attempted.")
+# (current-season circuit geometry is now refreshed by refresh_current_assets)
 
 
 # ── Manual: backfill circuit geometry across a season range (2018+ = FastF1 floor) ─
@@ -294,19 +287,7 @@ def export_race_replays(season: int, rounds: int = 24, force: bool = False, sess
     print(f"Done. {session} replays exported for {done} rounds of {season}.")
 
 
-# ── Scheduled: keep the CURRENT season's replays filled (every 6h, offset 50m) ─
-@app.function(schedule=modal.Cron("50 */6 * * *"), **COMMON)
-def export_race_replays_current() -> None:
-    from datetime import datetime, timezone
-    year = datetime.now(timezone.utc).year
-    done = 0
-    for r in range(1, 25):
-        try:
-            _run("race_replay_export.py", "--season", str(year), "--round", str(r))
-            done += 1
-        except Exception as e:  # noqa: BLE001
-            print(f"  R{r}: skipped ({e})")
-    print(f"Done. race-replay pass for {year}: {done} rounds attempted.")
+# (current-season replays are now refreshed by refresh_current_assets)
 
 
 # ── Manual: backfill replays across a season range (per-season fan-out) ───────
