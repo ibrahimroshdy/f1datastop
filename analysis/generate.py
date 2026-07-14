@@ -3426,10 +3426,127 @@ def chart_constructors(session, meta):
     return fig_png(fig)
 
 
+# ── Circuit History — this track across the years (warehouse-backed) ──────────
+def _wh_circuit_history(season, rnd):
+    url = os.environ.get("SUPABASE_URL")
+    key = _sb_read_key()
+    if not (url and key):
+        return None
+    try:
+        r = requests.post(f"{url.rstrip('/')}/rest/v1/rpc/get_circuit_history",
+                          headers={"apikey": key, "Authorization": f"Bearer {key}",
+                                   "Content-Type": "application/json"},
+                          json={"p_season": int(season), "p_round": int(rnd)}, timeout=25)
+        if not r.ok:
+            return None
+        rows = r.json()
+        return rows if isinstance(rows, list) else None
+    except Exception:
+        return None
+
+
+def chart_circuit_history(session, meta):
+    """This circuit across the years: per-edition winner + pole, and a 'most wins
+    here' tally. Warehouse-backed (ignores the session). 16:9 + a 9:16 story."""
+    if FMT not in ("landscape", "twitter", "story"):
+        return None
+    from collections import Counter
+    season = int(meta.get("year"))
+    rnd = int(meta.get("round") or 99)
+    eds = _wh_circuit_history(season, rnd)
+    eds = [e for e in (eds or []) if e.get("winner")]
+    if len(eds) < 2:
+        return None
+    wins = Counter(e["winner"] for e in eds)
+    wteam = {}
+    for e in eds:
+        if e["winner"] not in wteam and e.get("winner_team"):
+            wteam[e["winner"]] = e["winner_team"]
+
+    tall = FMT == "story"
+    if tall:
+        fig = plt.figure(figsize=(10.8, 19.2), dpi=200)
+        R = {"eds": [0.06, 0.480, 0.88, 0.375], "tally": [0.13, 0.055, 0.82, 0.330]}
+        nrows = 14
+    else:
+        fig = plt.figure(figsize=(16, 9), dpi=200)
+        R = {"eds": [0.035, 0.075, 0.45, 0.745], "tally": [0.585, 0.09, 0.38, 0.72]}
+        nrows = 15
+    fig.patch.set_facecolor(PAPER)
+    title = meta.get("event") or meta.get("circuit") or "Circuit"
+    loc = meta.get("circuit") or meta.get("location") or ""
+    subtitle = f"{len(eds)} editions · winners & poles" + (f" · {loc}" if loc and loc != title else "")
+    if tall:
+        fig.add_artist(plt.Rectangle((0, 0), 0.011, 1, transform=fig.transFigure, color=RED, zorder=10))
+        fig.text(0.06, 0.980, "   ".join("CIRCUIT HISTORY"), color=RED, fontsize=13, fontproperties=FP_MONO_B, va="center")
+        fig.text(0.058, 0.962, title, color=INK, fontsize=27, fontproperties=FP_TITLE, va="center")
+        fig.text(0.06 + _poster_flag(fig, meta.get("country"), 0.06, 0.948, 0.5), 0.948, subtitle,
+                 color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
+        fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12, fontproperties=FP_BODY_SB)
+        fig.add_artist(plt.Line2D([0.055, 0.945], [0.900, 0.900], transform=fig.transFigure, color=GRID, lw=1.0))
+    else:
+        fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
+        fig.text(0.035, 0.958, "   ".join("CIRCUIT HISTORY"), color=RED, fontsize=11, fontproperties=FP_MONO_B, va="center")
+        fig.text(0.034, 0.926, title, color=INK, fontsize=24, fontproperties=FP_TITLE, va="center")
+        fig.text(0.035 + _poster_flag(fig, meta.get("country"), 0.035, 0.893, 0.42), 0.893, subtitle,
+                 color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
+        fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11, fontproperties=FP_BODY_SB)
+        fig.add_artist(plt.Line2D([0.033, 0.965], [0.872, 0.872], transform=fig.transFigure, color=GRID, lw=1.0))
+
+    # ── editions timeline ──
+    rc = R["eds"]
+    ax = fig.add_axes(rc)
+    ax.set_facecolor(PAPER)
+    ax.axis("off")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.012, "Every Edition · winner & pole")
+    N = min(nrows, len(eds))
+    h = 1.0 / N
+    for i in range(N):
+        e = eds[i]
+        y = 1 - (i + 0.5) * h
+        col = team_color(e.get("winner_team"))
+        ax.add_patch(plt.Rectangle((0.0, y - h / 2 + 0.004), 0.012, h - 0.008, color=col, zorder=3))
+        ax.text(0.045, y, str(e["season"]), ha="left", va="center", fontproperties=FP_MONO_B,
+                fontsize=10.5, color=SUBINK)
+        ax.text(0.135, y, e["winner"], ha="left", va="center", fontproperties=FP_BODY_SB,
+                fontsize=11, color=INK)
+        nm = e.get("winner_name") or ""
+        ax.text(0.235, y, nm, ha="left", va="center", fontproperties=FP_BODY, fontsize=9, color=SUBINK)
+        pole = e.get("pole")
+        if pole:
+            ax.text(0.995, y, f"pole {pole}", ha="right", va="center", fontproperties=FP_MONO,
+                    fontsize=8.5, color=SUBINK)
+        if i < N - 1:
+            ax.plot([0.0, 1.0], [y - h / 2, y - h / 2], color=GRID, lw=0.6, zorder=1)
+
+    # ── most wins here ──
+    rc = R["tally"]
+    ax = fig.add_axes(rc)
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.012, "Most Wins Here")
+    top = wins.most_common(8)[::-1]
+    for i, (code, n) in enumerate(top):
+        ax.barh(i, n, color=team_color(wteam.get(code)), height=0.64, edgecolor=PAPER, linewidth=1.0, zorder=3)
+        ax.text(n + 0.05, i, str(n), va="center", ha="left", fontsize=8.5, fontproperties=FP_MONO_B, color=INK)
+    ax.set_yticks(range(len(top)))
+    ax.set_yticklabels([c for c, _ in top], fontproperties=FP_BODY_B, color=INK, fontsize=9)
+    ax.set_ylim(-0.7, len(top) - 0.3)
+    ax.set_xlim(0, (max(n for _, n in top) if top else 1) * 1.16)
+    ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    ax.grid(axis="x", color=GRID, linewidth=0.9)
+    ax.grid(axis="y", linewidth=0)
+    _ra_axstyle(ax, "Wins", None)
+
+    return fig_png(fig)
+
+
 CHARTS = [
     ("race_analysis", "Race Analysis", "The whole race story — strategy, pits, passes and pace on one board", chart_race_analysis),
     ("championship", "Championship", "The title fight so far — standings and points progression", chart_championship),
     ("constructors", "Constructor Season", "The team battle — standings and which driver is scoring", chart_constructors),
+    ("circuit_history", "Circuit History", "This track across the years — winners, poles and most wins", chart_circuit_history),
     ("driver_compare", "Head to Head", "Two drivers' fastest laps — sector deltas, time gain/loss, speed, throttle and gears", chart_driver_compare),
     ("season_scorecard", "Season Scorecard", "Two drivers across the season so far — stats, race & quali H2H, form and points", chart_season_scorecard),
     ("position_changes", "Position Changes", "Track position through the race", chart_position_changes),
