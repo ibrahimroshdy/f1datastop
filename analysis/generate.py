@@ -2435,18 +2435,7 @@ def _ra_gap(ax, session, laps):
     _ra_axstyle(ax, "Lap", "Gap (s)")
 
 
-def _ra_header(fig, session, laps, meta):
-    fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
-    ev, yr = meta.get("event", ""), meta.get("year", "")
-    fig.text(0.035, 0.958, "   ".join("RACE ANALYSIS"), color=RED, fontsize=11,
-             fontproperties=FP_MONO_B, va="center")
-    fig.text(0.034, 0.928, f"{ev} {yr}", color=INK, fontsize=23, fontproperties=FP_TITLE, va="center")
-    loc = meta.get("circuit") or meta.get("location") or ""
-    fig.text(0.035, 0.898, f"{loc} · {meta.get('session_name', 'Race')}", color=SUBINK,
-             fontsize=10, fontproperties=FP_BODY, va="center")
-    fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
-             fontproperties=FP_BODY_SB)
-
+def _ra_result_cells(session, laps):
     total = int(laps["LapNumber"].max())
     cells = []
     try:
@@ -2476,7 +2465,21 @@ def _ra_header(fig, session, laps, meta):
     cells.append(("LAPS", str(total), INK, None))
     n_sc = len([p for p in safety_periods(session) if p["kind"] in ("SC", "VSC")])
     cells.append(("SAFETY CARS", str(n_sc), GOLD if n_sc else SUBINK, None))
+    return cells
 
+
+def _ra_header(fig, session, laps, meta):
+    fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
+    ev, yr = meta.get("event", ""), meta.get("year", "")
+    fig.text(0.035, 0.958, "   ".join("RACE ANALYSIS"), color=RED, fontsize=11,
+             fontproperties=FP_MONO_B, va="center")
+    fig.text(0.034, 0.928, f"{ev} {yr}", color=INK, fontsize=23, fontproperties=FP_TITLE, va="center")
+    loc = meta.get("circuit") or meta.get("location") or ""
+    fig.text(0.035, 0.898, f"{loc} · {meta.get('session_name', 'Race')}", color=SUBINK,
+             fontsize=10, fontproperties=FP_BODY, va="center")
+    fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
+             fontproperties=FP_BODY_SB)
+    cells = _ra_result_cells(session, laps)
     x0, x1 = 0.395, 0.955
     step = (x1 - x0) / max(len(cells), 1)
     for i, (lab, val, col, sub) in enumerate(cells):
@@ -2489,36 +2492,78 @@ def _ra_header(fig, session, laps, meta):
                               color=GRID, lw=1.0))
 
 
+def _ra_header_tall(fig, session, laps, meta):
+    """Portrait (9:16) header — bigger type, result cells centred in a row."""
+    fig.add_artist(plt.Rectangle((0, 0), 0.011, 1, transform=fig.transFigure, color=RED, zorder=10))
+    ev, yr = meta.get("event", ""), meta.get("year", "")
+    fig.text(0.06, 0.980, "   ".join("RACE ANALYSIS"), color=RED, fontsize=13,
+             fontproperties=FP_MONO_B, va="center")
+    fig.text(0.058, 0.962, f"{ev} {yr}", color=INK, fontsize=28, fontproperties=FP_TITLE, va="center")
+    loc = meta.get("circuit") or meta.get("location") or ""
+    fig.text(0.06, 0.949, f"{loc} · {meta.get('session_name', 'Race')}", color=SUBINK,
+             fontsize=12, fontproperties=FP_BODY, va="center")
+    fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12,
+             fontproperties=FP_BODY_SB)
+    cells = _ra_result_cells(session, laps)
+    x0, x1 = 0.06, 0.94
+    step = (x1 - x0) / max(len(cells), 1)
+    for i, (lab, val, col, sub) in enumerate(cells):
+        cx = x0 + step * (i + 0.5)
+        fig.text(cx, 0.933, lab, color=SUBINK, fontsize=8, fontproperties=FP_MONO_B, va="center", ha="center")
+        fig.text(cx, 0.921, val, color=col, fontsize=13.5, fontproperties=FP_BODY_SB, va="center", ha="center")
+        if sub:
+            fig.text(cx, 0.910, sub, color=SUBINK, fontsize=8, fontproperties=FP_MONO, va="center", ha="center")
+    fig.add_artist(plt.Line2D([0.055, 0.945], [0.900, 0.900], transform=fig.transFigure,
+                              color=GRID, lw=1.0))
+
+
 def chart_race_analysis(session, meta):
-    """The whole race story on one board. 16:9 only (dense poster); returns None for
-    the portrait formats so the render loop skips them."""
-    if FMT not in ("landscape", "twitter"):
-        return None
+    """The whole race story on one board — 16:9 landscape/twitter, plus a stacked
+    9:16 story variant for socials. 4:5 instagram returns None (use story)."""
     laps = session.laps
     if laps is None or len(laps) == 0:
         return None
-    fig = plt.figure(figsize=(16, 9), dpi=200)
-    fig.patch.set_facecolor(PAPER)
-    _ra_header(fig, session, laps, meta)
-    panels = [
-        ([0.035, 0.500, 0.470, 0.315], "Position Evolution", lambda ax: _ra_position(ax, session, laps)),
-        ([0.575, 0.500, 0.390, 0.315], "Tyre Strategy", lambda ax: _ra_tyres(ax, session, laps)),
-        ([0.035, 0.072, 0.170, 0.315], "Places Gained / Lost", lambda ax: _ra_places(ax, session)),
-        ([0.265, 0.072, 0.170, 0.315], "On-Track Passes", lambda ax: _ra_passes(ax, laps)),
-        ([0.500, 0.072, 0.185, 0.315], "Undercut Scorecard", lambda ax: _ra_undercut(ax, laps)),
-        ([0.745, 0.072, 0.220, 0.315], "Gap to Leader", lambda ax: _ra_gap(ax, session, laps)),
+    panel_defs = [
+        ("Position Evolution", lambda ax: _ra_position(ax, session, laps)),
+        ("Tyre Strategy", lambda ax: _ra_tyres(ax, session, laps)),
+        ("Places Gained / Lost", lambda ax: _ra_places(ax, session)),
+        ("On-Track Passes", lambda ax: _ra_passes(ax, laps)),
+        ("Undercut Scorecard", lambda ax: _ra_undercut(ax, laps)),
+        ("Gap to Leader", lambda ax: _ra_gap(ax, session, laps)),
     ]
-    for rect, ptitle, draw in panels:
+    if FMT in ("landscape", "twitter"):
+        fig = plt.figure(figsize=(16, 9), dpi=200)
+        fig.patch.set_facecolor(PAPER)
+        _ra_header(fig, session, laps, meta)
+        rects = [
+            [0.035, 0.500, 0.470, 0.315], [0.575, 0.500, 0.390, 0.315],
+            [0.035, 0.072, 0.170, 0.315], [0.265, 0.072, 0.170, 0.315],
+            [0.500, 0.072, 0.185, 0.315], [0.745, 0.072, 0.220, 0.315],
+        ]
+    elif FMT == "story":
+        fig = plt.figure(figsize=(10.8, 19.2), dpi=200)
+        fig.patch.set_facecolor(PAPER)
+        _ra_header_tall(fig, session, laps, meta)
+        rects = [
+            [0.10, 0.735, 0.84, 0.140], [0.10, 0.600, 0.84, 0.100],
+            [0.10, 0.452, 0.84, 0.112], [0.10, 0.310, 0.84, 0.100],
+            [0.10, 0.168, 0.84, 0.100], [0.10, 0.030, 0.84, 0.098],
+        ]
+    else:
+        return None
+    tall = FMT == "story"
+    for rect, (ptitle, draw) in zip(rects, panel_defs):
         ax = fig.add_axes(rect)
         ax.set_facecolor(PAPER)
-        _ra_ptitle(fig, rect[0], rect[1] + rect[3] + 0.014, ptitle)
+        _ra_ptitle(fig, rect[0], rect[1] + rect[3] + 0.010, ptitle)
         try:
             draw(ax)
+            if tall:
+                ax.set_xlabel("")   # drop redundant axis labels in the stack — titles name each panel
         except Exception as e:  # noqa: BLE001 — one bad panel shouldn't kill the poster
             _ra_empty(ax, "—")
             print(f"  ! race_analysis panel '{ptitle}' failed: {e}")
-    # No footer(): the header already carries event · circuit · session, and the
-    # freed strip lets the bottom band breathe. The tiled watermark still applies.
+    # No footer(): the header carries event · circuit · session; watermark still tiles.
     return fig_png(fig)
 
 
