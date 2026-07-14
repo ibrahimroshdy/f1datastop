@@ -186,15 +186,25 @@ def _straights(tel):
                 merged[-1][1] = b
                 continue
         merged.append([a, b])
-    runs = []
-    for a, b in merged:
-        length = float(dist[b] - dist[a])
-        if length >= MIN_STRAIGHT_M:
-            runs.append({"start_d": round(float(dist[a]), 1),
-                         "end_d": round(float(dist[b]), 1),
-                         "length": round(length, 1)})
-    runs.sort(key=lambda r: r["length"], reverse=True)
-    return runs
+    # merged index-spans → distance runs
+    runs = [{"start_d": float(dist[a]), "end_d": float(dist[b]),
+             "length": float(dist[b] - dist[a])} for a, b in merged]
+    # Lap-boundary wrap: the start/finish (pit) straight is split across the lap's
+    # start line into an end-of-lap piece + a start-of-lap piece — each often just
+    # under MIN, so BOTH get dropped and a real straight vanishes (this is what put
+    # Spa at 4 not 5). If the lap is flat-out at both ends they are the same physical
+    # straight, so join them into one before the length filter.
+    if (len(runs) >= 2 and runs[0]["start_d"] <= 5.0
+            and runs[-1]["end_d"] >= float(dist[-1]) - 5.0):
+        head, tail = runs[0], runs[-1]
+        runs = ([{"start_d": tail["start_d"], "end_d": head["end_d"],
+                  "length": tail["length"] + head["length"]}]
+                + runs[1:-1])
+    out = [{"start_d": round(r["start_d"], 1), "end_d": round(r["end_d"], 1),
+            "length": round(r["length"], 1)}
+           for r in runs if r["length"] >= MIN_STRAIGHT_M]
+    out.sort(key=lambda r: r["length"], reverse=True)
+    return out
 
 
 def export_circuit(season, rnd, upload=True, force=False):
