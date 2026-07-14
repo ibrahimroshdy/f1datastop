@@ -4,6 +4,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -33,16 +34,28 @@ import {
 } from "@/hooks/useFastF1Telemetry";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-type Metric = "speed" | "throttle" | "brake" | "gear" | "rpm" | "drs";
+type Metric = "speed" | "throttle" | "brake" | "gear" | "rpm" | "drs" | "delta";
 
 const METRICS: { key: Metric; label: string; unit: string; step?: boolean }[] = [
   { key: "speed", label: "Speed", unit: "km/h" },
+  { key: "delta", label: "Time Delta", unit: "s" },
   { key: "throttle", label: "Throttle", unit: "%" },
   { key: "brake", label: "Brake", unit: "", step: true },
   { key: "gear", label: "Gear", unit: "", step: true },
   { key: "rpm", label: "RPM", unit: "" },
   { key: "drs", label: "DRS", unit: "", step: true },
 ];
+
+/** Cumulative lap time (s) at each distance sample, from speed (km/h) + distance (m). */
+const cumulativeTime = (distance: number[], speed: number[]): number[] => {
+  const t: number[] = [0];
+  for (let i = 1; i < distance.length; i++) {
+    const dd = distance[i] - distance[i - 1];
+    const v = (speed[i] ?? 0) / 3.6; // m/s
+    t[i] = t[i - 1] + (v > 1 ? dd / v : 0);
+  }
+  return t;
+};
 
 const MAX_DRIVERS = 3;
 
@@ -69,10 +82,23 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
 
   const { laps, isLoading: lapsLoading } = useTelemetryLaps(index, codes);
   const metricMeta = METRICS.find((m) => m.key === metric)!;
+  const isDelta = metric === "delta";
+
+  // For delta mode: the two drivers being compared (positive delta ⇒ `a` ahead).
+  const pair = useMemo(
+    () => (isDelta && laps.length >= 2 ? { a: laps[0].driver, b: laps[1].driver } : null),
+    [isDelta, laps],
+  );
 
   const chartData = useMemo(() => {
     if (!laps.length) return [];
     const base = laps[0].channels.distance ?? [];
+    if (isDelta) {
+      if (laps.length < 2) return [];
+      const tA = cumulativeTime(base, laps[0].channels.speed ?? []);
+      const tB = cumulativeTime(base, laps[1].channels.speed ?? []);
+      return base.map((d, i) => ({ distance: Math.round(d), delta: +(tB[i] - tA[i]).toFixed(3) }));
+    }
     return base.map((d, i) => {
       const row: Record<string, number | null> = { distance: Math.round(d) };
       for (const lap of laps) {
@@ -80,7 +106,7 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
       }
       return row;
     });
-  }, [laps, metric]);
+  }, [laps, metric, isDelta]);
 
   const toggleDriver = (code: string) => {
     setCodes((prev) => {
@@ -108,7 +134,11 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
           <div>
             <F1CardTitle className="text-base">Telemetry · fastest laps</F1CardTitle>
             <F1CardDescription className="text-xs">
-              {metricMeta.label} by track distance — pick up to {MAX_DRIVERS} drivers to compare
+              {isDelta
+                ? pair
+                  ? `Cumulative time gap by distance — + = ${pair.a} ahead of ${pair.b}`
+                  : "Cumulative time gap — pick two drivers"
+                : `${metricMeta.label} by track distance — pick up to ${MAX_DRIVERS} drivers to compare`}
             </F1CardDescription>
           </div>
           <Select value={metric} onValueChange={(v) => setMetric(v as Metric)}>
@@ -171,6 +201,10 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
             <div className="flex h-full items-center justify-center text-muted-foreground">
               Select a driver to view telemetry.
             </div>
+          ) : isDelta && laps.length < 2 ? (
+            <div className="flex h-full items-center justify-center px-6 text-center text-muted-foreground">
+              Pick a second driver to see the cumulative time gap between them.
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
@@ -194,20 +228,36 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
                   cursor={chartTheme.cursor}
                   labelFormatter={(v) => `${v} m`}
                 />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                {laps.map((lap) => (
-                  <Line
-                    key={lap.driver}
-                    type={metricMeta.step ? "stepAfter" : "monotone"}
-                    dataKey={lap.driver}
-                    name={isMobile ? lap.driver : `${lap.driver}${lap.lap_time ? ` · ${lap.lap_time}` : ""}`}
-                    stroke={lap.team_color || TEAM_COLORS.default}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                    connectNulls
-                  />
-                ))}
+                {!isDelta && <Legend wrapperStyle={{ fontSize: 12 }} />}
+                {isDelta ? (
+                  <>
+                    <ReferenceLine y={0} stroke={chartTheme.grid} strokeDasharray="4 3" />
+                    <Line
+                      type="monotone"
+                      dataKey="delta"
+                      name="Δ (s)"
+                      stroke="hsl(var(--foreground))"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 3 }}
+                      connectNulls
+                    />
+                  </>
+                ) : (
+                  laps.map((lap) => (
+                    <Line
+                      key={lap.driver}
+                      type={metricMeta.step ? "stepAfter" : "monotone"}
+                      dataKey={lap.driver}
+                      name={isMobile ? lap.driver : `${lap.driver}${lap.lap_time ? ` · ${lap.lap_time}` : ""}`}
+                      stroke={lap.team_color || TEAM_COLORS.default}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 3 }}
+                      connectNulls
+                    />
+                  ))
+                )}
               </LineChart>
             </ResponsiveContainer>
           )}
