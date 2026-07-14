@@ -3,6 +3,7 @@ import type { AnalysisChart } from "./analysisService";
 
 /** Charts where "pick your drivers" makes sense (they honour generate.py --drivers). */
 export const CUSTOMIZABLE_CHARTS = [
+  { key: "driver_compare", label: "Head to Head (pick 2)" },
   { key: "dominance_flat", label: "Track Dominance Map" },
   { key: "track_dominance", label: "Dominance Stack (3D)" },
   { key: "parallax_stack", label: "Parallax Stack" },

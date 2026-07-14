@@ -2522,8 +2522,268 @@ def chart_race_analysis(session, meta):
     return fig_png(fig)
 
 
+# ── Driver vs Driver — pairwise fastest-lap telemetry board ──────────────────
+def _lighten(hexc, t=0.5):
+    r, g, b = _hex_to_rgb(hexc)
+    return "#%02X%02X%02X" % (int(r + (255 - r) * t), int(g + (255 - g) * t), int(b + (255 - b) * t))
+
+
+def _cmp_fastlap(laps, drv):
+    dl = laps[laps["Driver"] == drv]
+    if dl.empty:
+        return None
+    lap = dl.pick_fastest()
+    if lap is None or (hasattr(lap, "empty") and lap.empty):
+        return None
+    return lap
+
+
+def _cmp_map(ax, nx, ny, seg_cols, base=True):
+    """Draw a normalised track ribbon coloured per-segment (shadow + glow + crisp)."""
+    P = np.column_stack([nx, ny]).reshape(-1, 1, 2)
+    segs = np.concatenate([P[:-1], P[1:]], axis=1)
+    if base:
+        ax.add_collection(LineCollection(segs, colors=GRID, linewidths=9.0,
+                          capstyle="round", joinstyle="round", zorder=1))
+    ax.add_collection(LineCollection(segs, colors=seg_cols, linewidths=11,
+                      capstyle="round", joinstyle="round", alpha=0.16, zorder=2))
+    ax.add_collection(LineCollection(segs, colors=seg_cols, linewidths=4.6,
+                      capstyle="round", joinstyle="round", zorder=3))
+    ax.scatter([nx[0]], [ny[0]], s=70, facecolor=PAPER, edgecolor=INK, lw=1.4, zorder=40)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.margins(0.04)
+    for a in list(ax.collections):
+        a.set_clip_on(False)
+
+
+def chart_driver_compare(session, meta):
+    """Head-to-head fastest-lap telemetry for two drivers: lap-time + sector deltas,
+    a time gain/loss track map, speed dominance, speed trace, cumulative delta,
+    throttle/braking and gears. 16:9 only. Drivers = the two fastest of the picked
+    set (--drivers), else the two fastest in the session."""
+    if FMT not in ("landscape", "twitter"):
+        return None
+    laps = session.laps
+    picks = top_drivers_by_pace(laps, 2)
+    if len(picks) < 2:
+        return None
+    A, B = str(picks[0]), str(picks[1])
+    lapA, lapB = _cmp_fastlap(laps, A), _cmp_fastlap(laps, B)
+    if lapA is None or lapB is None:
+        return None
+    try:
+        telA = lapA.get_telemetry().add_distance()
+        telB = lapB.get_telemetry().add_distance()
+    except Exception:
+        return None
+    if telA is None or telB is None or telA.empty or telB.empty or "X" not in telA:
+        return None
+    colA = team_color(lapA["Team"])
+    colB = team_color(lapB["Team"])
+    if colA == colB:
+        colB = _lighten(colA, 0.55)
+
+    sA = float(lapA["LapTime"].total_seconds())
+    sB = float(lapB["LapTime"].total_seconds())
+
+    # cumulative delta (B relative to A): + => B is behind A at that point
+    refD = np.asarray(telA["Distance"], float)
+    try:
+        from fastf1.utils import delta_time
+        dseries, ref_tel, _ = delta_time(lapA, lapB)
+        refD = np.asarray(ref_tel["Distance"], float)
+        dvals = np.asarray(dseries, float)
+    except Exception:
+        tA = (telA["Time"] - telA["Time"].iloc[0]).dt.total_seconds().to_numpy()
+        tB = (telB["Time"] - telB["Time"].iloc[0]).dt.total_seconds().to_numpy()
+        dvals = np.interp(refD, telB["Distance"], tB) - np.interp(refD, telA["Distance"], tA)
+
+    # track geometry + fields on a common grid (from A, the reference lap)
+    grid = np.linspace(0, float(telA["Distance"].max()), 700)
+    gx = np.interp(grid, telA["Distance"], telA["X"].to_numpy())
+    gy = np.interp(grid, telA["Distance"], telA["Y"].to_numpy())
+    gdelta = np.interp(grid, refD, dvals)
+    spA = np.interp(grid, telA["Distance"], telA["Speed"].to_numpy())
+    spB = np.interp(grid, telB["Distance"], telB["Speed"].to_numpy())
+    cx0, cy0 = (gx.max() + gx.min()) / 2, (gy.max() + gy.min()) / 2
+    half = max(gx.max() - gx.min(), gy.max() - gy.min()) / 2 or 1.0
+    nx, ny = (gx - cx0) / half, (gy - cy0) / half
+
+    fig = plt.figure(figsize=(16, 9), dpi=200)
+    fig.patch.set_facecolor(PAPER)
+
+    # ── header: A vs B, headshots, brand ──
+    fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
+    fig.text(0.035, 0.958, "   ".join("HEAD TO HEAD"), color=RED, fontsize=11,
+             fontproperties=FP_MONO_B, va="center")
+    fig.text(0.034, 0.926, f"{A}  vs  {B}", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
+    fig.text(0.035, 0.893, f"{meta.get('event', '')} {meta.get('year', '')} · "
+             f"{meta.get('session_name', 'Race')} · fastest laps", color=SUBINK, fontsize=10,
+             fontproperties=FP_BODY, va="center")
+    fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
+             fontproperties=FP_BODY_SB)
+    look = driver_lookup(session)
+    for code, col, lap, xx in ((A, colA, lapA, 0.885), (B, colB, lapB, 0.945)):
+        disc = headshot_disc((look.get(str(code)) or {}).get("headshot"), col, size=120)
+        if disc is not None:
+            fig.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.19), (xx, 0.918),
+                           xycoords="figure fraction", frameon=False, zorder=12))
+        else:
+            fig.add_artist(plt.Rectangle((xx - 0.012, 0.905), 0.024, 0.026,
+                           transform=fig.transFigure, color=col, zorder=12))
+    fig.add_artist(plt.Line2D([0.033, 0.855], [0.872, 0.872], transform=fig.transFigure,
+                              color=GRID, lw=1.0))
+
+    def col_faster_at(better_a):
+        return np.where(better_a, np.array(colA), np.array(colB))
+
+    # ── lap-time comparison (top-left) ──
+    ax = fig.add_axes([0.035, 0.615, 0.205, 0.205])
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, 0.035, 0.615 + 0.205 + 0.012, "Lap Time")
+    ax.barh([1, 0], [sA, sB], color=[colA, colB], height=0.62, edgecolor=PAPER, linewidth=1.0, zorder=3)
+    lo, hi = min(sA, sB), max(sA, sB)
+    ax.set_xlim(lo - 0.55, hi + 0.18)
+    gap = abs(sA - sB)
+    for y, code, s in ((1, A, sA), (0, B, sB)):
+        tag = fmt_laptime(s) + ("" if s == lo else f"   +{gap:.3f}")
+        ax.text(ax.get_xlim()[0] + 0.03, y, code, va="center", ha="left", fontsize=10,
+                fontproperties=FP_BODY_B, color=INK, zorder=5)
+        ax.text(s - 0.02, y, tag, va="center", ha="right", fontsize=9,
+                fontproperties=FP_MONO_B, color="#FFFFFF", zorder=5)
+    ax.set_yticks([])
+    ax.grid(axis="x", color=GRID, linewidth=0.9)
+    _ra_axstyle(ax, "Lap time (s)", None)
+
+    # ── sector deltas (mid-left) ──
+    ax = fig.add_axes([0.035, 0.335, 0.205, 0.195])
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, 0.035, 0.335 + 0.195 + 0.012, "Sector Delta")
+    secs, cols, labs = [], [], []
+    for i, key in enumerate(("Sector1Time", "Sector2Time", "Sector3Time")):
+        try:
+            a = lapA[key].total_seconds()
+            b = lapB[key].total_seconds()
+        except Exception:
+            continue
+        if pd.isna(a) or pd.isna(b):
+            continue
+        d = b - a           # + => A faster in this sector
+        secs.append(d)
+        cols.append(colA if d > 0 else colB)
+        labs.append(f"S{i + 1}")
+    if secs:
+        ax.bar(range(len(secs)), [abs(d) for d in secs], color=cols, width=0.6,
+               edgecolor=PAPER, linewidth=1.0, zorder=3)
+        for i, d in enumerate(secs):
+            ax.text(i, abs(d), f"{A if d > 0 else B} +{abs(d):.3f}", ha="center", va="bottom",
+                    fontsize=7.5, fontproperties=FP_MONO_B, color=INK)
+        ax.set_xticks(range(len(labs)))
+        ax.set_xticklabels(labs, fontproperties=FP_BODY_B, color=INK, fontsize=9)
+        ax.set_ylim(0, max(abs(d) for d in secs) * 1.35 or 1)
+        ax.grid(axis="y", color=GRID, linewidth=0.9)
+        _ra_axstyle(ax, None, "Gap (s)")
+    else:
+        _ra_empty(ax, "No sector data")
+
+    # ── time gain / loss track map (centre) ──
+    ax = fig.add_axes([0.265, 0.335, 0.225, 0.485])
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, 0.265, 0.335 + 0.485 + 0.012, "Time Gain / Loss")
+    rate = np.gradient(gdelta)     # + => A pulling away (gaining) here
+    P = np.column_stack([nx, ny]).reshape(-1, 1, 2)
+    segs = np.concatenate([P[:-1], P[1:]], axis=1)
+    m = float(np.percentile(np.abs(rate), 96)) or float(np.abs(rate).max()) or 1e-6
+    ax.add_collection(LineCollection(segs, colors=GRID, linewidths=9.0,
+                      capstyle="round", joinstyle="round", zorder=1))
+    for lw, alpha, z in ((11, 0.16, 2), (4.6, 1.0, 3)):
+        lc = LineCollection(segs, cmap="coolwarm", linewidths=lw, alpha=alpha,
+                            capstyle="round", joinstyle="round", zorder=z)
+        lc.set_array(rate[:-1])
+        lc.set_clim(-m, m)
+        ax.add_collection(lc)
+    ax.scatter([nx[0]], [ny[0]], s=70, facecolor=PAPER, edgecolor=INK, lw=1.4, zorder=40)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.margins(0.04)
+    for a in list(ax.collections):
+        a.set_clip_on(False)
+    lead = A if gdelta[-1] > 0 else B
+    ax.text(0.5, -0.015, f"{lead} faster by {abs(gdelta[-1]):.3f}s", transform=ax.transAxes,
+            ha="center", va="top", fontsize=9.5, fontproperties=FP_BODY_B, color=INK)
+    ax.text(0.5, -0.072, f"red = {A} gaining · blue = {B} gaining", transform=ax.transAxes,
+            ha="center", va="top", fontsize=7.5, fontproperties=FP_BODY, color=SUBINK)
+
+    # ── speed dominance track map (centre-right) ──
+    ax = fig.add_axes([0.515, 0.335, 0.225, 0.485])
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, 0.515, 0.335 + 0.485 + 0.012, "Speed Dominance")
+    dom = spA >= spB
+    seg_cols = [colA if dom[i] else colB for i in range(len(nx) - 1)]
+    _cmp_map(ax, nx, ny, seg_cols)
+    pctA = round(100 * float(dom.mean()))
+    ax.text(0.5, -0.02, f"{A} {pctA}%   ·   {B} {100 - pctA}%", transform=ax.transAxes,
+            ha="center", va="top", fontsize=9.5, fontproperties=FP_BODY_B, color=SUBINK)
+
+    # ── speed trace (right-top) ──
+    ax = fig.add_axes([0.775, 0.615, 0.19, 0.205])
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, 0.775, 0.615 + 0.205 + 0.012, "Speed")
+    ax.plot(grid, spA, color=colA, lw=1.4)
+    ax.plot(grid, spB, color=colB, lw=1.4, ls=(0, (5, 2)))
+    ax.grid(axis="y", color=GRID, linewidth=0.9)
+    _ra_axstyle(ax, "Distance (m)", "km/h")
+
+    # ── cumulative delta (right-mid) ──
+    ax = fig.add_axes([0.775, 0.335, 0.19, 0.195])
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, 0.775, 0.335 + 0.195 + 0.012, "Cumulative Gap")
+    ax.axhline(0, color=GRID, lw=1.0)
+    ax.plot(grid, gdelta, color=INK, lw=1.4, zorder=4)
+    ax.fill_between(grid, 0, gdelta, where=gdelta >= 0, color=colA, alpha=0.30, zorder=2)
+    ax.fill_between(grid, 0, gdelta, where=gdelta < 0, color=colB, alpha=0.30, zorder=2)
+    ax.grid(axis="y", color=GRID, linewidth=0.9)
+    _ra_axstyle(ax, "Distance (m)", f"+ = {A} ahead (s)")
+
+    # ── throttle + braking zones (bottom-left) ──
+    ax = fig.add_axes([0.035, 0.072, 0.45, 0.175])
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, 0.035, 0.072 + 0.175 + 0.012, "Throttle · braking zones shaded")
+    ax.plot(telA["Distance"], telA["Throttle"], color=colA, lw=1.3)
+    ax.plot(telB["Distance"], telB["Throttle"], color=colB, lw=1.3, ls=(0, (5, 2)))
+    brA = telA["Brake"].astype(float)
+    if brA.max() <= 1:
+        brA = brA * 100
+    ax.fill_between(telA["Distance"], 0, 100, where=brA > 0, color=RED, alpha=0.10, lw=0, zorder=0)
+    ax.set_ylim(0, 105)
+    ax.grid(axis="y", color=GRID, linewidth=0.9)
+    _ra_axstyle(ax, "Distance (m)", "Throttle %")
+
+    # ── gear (bottom-right) ──
+    ax = fig.add_axes([0.515, 0.072, 0.45, 0.175])
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, 0.515, 0.072 + 0.175 + 0.012, "Gear")
+    ax.step(telA["Distance"], telA["nGear"], where="post", color=colA, lw=1.3)
+    ax.step(telB["Distance"], telB["nGear"], where="post", color=colB, lw=1.3, ls=(0, (5, 2)))
+    ax.set_yticks(range(1, 9))
+    ax.grid(axis="y", color=GRID, linewidth=0.9)
+    _ra_axstyle(ax, "Distance (m)", "Gear")
+
+    # driver colour key (solid = A, dashed = B) in the header's open middle
+    for i, (code, col, dash) in enumerate(((A, colA, "solid"), (B, colB, "dashed"))):
+        yk = 0.930 - i * 0.026
+        fig.add_artist(plt.Line2D([0.605, 0.635], [yk, yk], transform=fig.transFigure, color=col,
+                       lw=2.4, ls="-" if i == 0 else (0, (5, 2)), solid_capstyle="round", zorder=11))
+        fig.text(0.645, yk, f"{code} · {dash}", va="center", color=INK, fontsize=9,
+                 fontproperties=FP_BODY_B)
+
+    return fig_png(fig)
+
+
 CHARTS = [
     ("race_analysis", "Race Analysis", "The whole race story — strategy, pits, passes and pace on one board", chart_race_analysis),
+    ("driver_compare", "Head to Head", "Two drivers' fastest laps — sector deltas, time gain/loss, speed, throttle and gears", chart_driver_compare),
     ("position_changes", "Position Changes", "Track position through the race", chart_position_changes),
     ("parallax_stack", "Parallax Stack", "Top-three fastest laps stacked by pace", chart_parallax_stack),
     ("grid_flow", "Qualifying → Grid → Finish", "Driver flow from qualifying to the chequered flag", chart_grid_flow),
