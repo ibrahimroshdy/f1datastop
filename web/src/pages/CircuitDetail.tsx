@@ -16,6 +16,7 @@ import { useTheme } from "@/context/ThemeContext";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
 import CircuitGeometryMap from "@/components/race/CircuitGeometryMap";
+import CircuitHistoryCard from "@/components/circuits/CircuitHistoryCard";
 import { pageShell, pageStack } from "@/lib/layout";
 import { CountUp } from "@/components/CountUp";
 import {
@@ -191,6 +192,9 @@ const CircuitDetail = () => {
             </p>
           )}
         </F1Card>
+
+        {/* ── Circuit history — winners + poles across the years ─────────────── */}
+        <CircuitHistoryCard circuitId={circuit.circuit_id} />
 
         {/* ── Race analysis CTA ─────────────────────────────────────────────── */}
         {thisYear && (
