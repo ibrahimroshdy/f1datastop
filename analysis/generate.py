@@ -2318,6 +2318,15 @@ def _ra_tyres(ax, session, laps):
     ax.set_ylim(-0.7, len(yt) - 0.3)
     ax.invert_yaxis()
     ax.set_xlim(0, lmax + 1)
+    # safety-car / VSC laps shaded across every stint — shows the field pitting
+    # under caution, on top of the compound bars.
+    xtr = ax.get_xaxis_transform()
+    for p in safety_periods(session):
+        c = _SAFETY_COLOR[p["kind"]]
+        ax.axvspan(p["start"] - 0.5, p["end"] + 0.5, facecolor=c, alpha=0.18, zorder=5,
+                   hatch="///" if p["kind"] == "VSC" else None, lw=0)
+        ax.text((p["start"] + p["end"]) / 2.0, 0.99, p["kind"], transform=xtr, ha="center",
+                va="top", color=c, fontsize=6.5, fontproperties=FP_BODY_B, zorder=6)
     ax.grid(axis="x", color=GRID, linewidth=0.9)
     ax.grid(axis="y", linewidth=0)
     _ra_axstyle(ax, "Lap", None)
