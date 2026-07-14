@@ -82,6 +82,15 @@ const countryToCode: { [key: string]: string } = {
   "Suzuka": "JP",
   "Losail": "QA",
   "Shanghai": "CN",
+  // Driver nationalities (demonyms) — driver cards pass a nationality, not a country
+  "Argentine": "AR", "Argentinian": "AR", "Australian": "AU", "Austrian": "AT",
+  "Belgian": "BE", "Brazilian": "BR", "British": "GB", "Canadian": "CA",
+  "Chinese": "CN", "Danish": "DK", "Dutch": "NL", "English": "GB", "Egyptian": "EG",
+  "Finnish": "FI", "French": "FR", "German": "DE", "Italian": "IT", "Japanese": "JP",
+  "Mexican": "MX", "Monegasque": "MC", "Portuguese": "PT", "Polish": "PL",
+  "Russian": "RU", "Spanish": "ES", "Swedish": "SE", "Swiss": "CH", "Thai": "TH",
+  "American": "US", "Venezuelan": "VE", "Singaporean": "SG", "Saudi Arabian": "SA",
+  "Saudi": "SA", "Emirati": "AE", "Qatari": "QA", "South African": "ZA",
 };
 
 interface CountryFlagProps {

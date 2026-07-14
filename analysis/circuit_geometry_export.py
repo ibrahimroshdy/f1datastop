@@ -42,7 +42,10 @@ import requests
 
 OUTLINE_POINTS = 360   # track-outline samples after distance-resampling
 MIN_STRAIGHT_M = 250   # a full-throttle stretch shorter than this isn't a "straight"
-FULL_THROTTLE = 99     # Throttle >= this (and not braking) counts as flat-out
+FULL_THROTTLE = 97     # Throttle >= this (and not braking) = flat-out. A touch below
+                       # 100 because 2026 active-aero cars don't always sit at max.
+BRIDGE_GAP_M = 45      # merge two flat runs split only by a momentary lift (< this,
+                       # no braking) so one real straight isn't fragmented + dropped
 BUCKET = "circuits"
 
 
@@ -158,22 +161,38 @@ def _straights(tel):
     brk = (tel["Brake"].to_numpy() if "Brake" in tel.columns
            else np.zeros(len(dist))).astype(float)
     flat = (thr >= FULL_THROTTLE) & (brk < 0.5)
-    runs = []
-    i = 0
-    n = len(flat)
+    # raw contiguous flat-out runs (index spans)
+    raw = []
+    i, n = 0, len(flat)
     while i < n:
         if flat[i]:
             j = i
             while j + 1 < n and flat[j + 1]:
                 j += 1
-            length = float(dist[j] - dist[i])
-            if length >= MIN_STRAIGHT_M:
-                runs.append({"start_d": round(float(dist[i]), 1),
-                             "end_d": round(float(dist[j]), 1),
-                             "length": round(length, 1)})
+            raw.append([i, j])
             i = j + 1
         else:
             i += 1
+    # bridge runs separated only by a momentary lift — a short, brake-free gap — so a
+    # single flat-out straight isn't fragmented into sub-MIN pieces and lost. A real
+    # corner is longer than BRIDGE_GAP_M and/or involves braking, so it won't merge.
+    merged = []
+    for a, b in raw:
+        if merged:
+            pa, pb = merged[-1]
+            gap = float(dist[a] - dist[pb])
+            gap_brake = float(brk[pb:a + 1].max()) if a > pb else 0.0
+            if 0 <= gap <= BRIDGE_GAP_M and gap_brake < 0.5:
+                merged[-1][1] = b
+                continue
+        merged.append([a, b])
+    runs = []
+    for a, b in merged:
+        length = float(dist[b] - dist[a])
+        if length >= MIN_STRAIGHT_M:
+            runs.append({"start_d": round(float(dist[a]), 1),
+                         "end_d": round(float(dist[b]), 1),
+                         "length": round(length, 1)})
     runs.sort(key=lambda r: r["length"], reverse=True)
     return runs
 

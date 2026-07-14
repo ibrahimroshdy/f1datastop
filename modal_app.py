@@ -332,6 +332,63 @@ def backfill_all_sessions(from_season: int = 2024, to_season: int = 2026, force:
     list(export_race_replays.starmap(combos))
 
 
+# ── Scheduled: drain on-demand custom-chart requests (Deep Dive picker) ───────
+# Every minute: claim a few pending f1_chart_requests, generate that ONE chart with
+# the requested drivers (generate.py honours --drivers + --only), then write the
+# result URL back on the row. Frontend inserts a request + polls. Deduped upstream
+# by the row's unique key, so the same driver set is never generated twice.
+@app.function(schedule=modal.Cron("* * * * *"), **COMMON)
+def process_chart_requests() -> None:
+    import requests as rq
+    from datetime import datetime, timezone
+    base = os.environ["SUPABASE_URL"].rstrip("/")
+    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    H = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+    def now():
+        return datetime.now(timezone.utc).isoformat()
+
+    def patch(rid, body):
+        rq.patch(f"{base}/rest/v1/f1_chart_requests", params={"id": f"eq.{rid}"},
+                 headers={**H, "Prefer": "return=minimal"}, json={**body, "updated_at": now()}, timeout=30)
+
+    r = rq.get(f"{base}/rest/v1/f1_chart_requests",
+               params={"status": "eq.pending", "order": "created_at.asc", "limit": "4"},
+               headers=H, timeout=30)
+    if not r.ok:
+        print(f"chart_requests fetch failed {r.status_code}: {r.text}")
+        return
+    pending = r.json()
+    if not pending:
+        return
+    print(f"process_chart_requests: {len(pending)} pending")
+    for req in pending:
+        rid = req["id"]
+        codes = [str(d).strip().upper() for d in (req.get("drivers") or []) if str(d).strip()]
+        if len(codes) < 2:
+            patch(rid, {"status": "error", "error": "need at least 2 drivers"})
+            continue
+        patch(rid, {"status": "processing"})
+        try:
+            _run("generate.py", "--season", str(req["season"]), "--round", str(req["round"]),
+                 "--session", req.get("session", "R"), "--only", req["chart"],
+                 "--drivers", ",".join(codes), "--format", "all")
+            dk = "__" + "-".join(sorted(codes))
+            cr = rq.get(f"{base}/rest/v1/analysis_charts",
+                        params={"season": f"eq.{req['season']}", "round": f"eq.{req['round']}",
+                                "session": f"eq.{req.get('session', 'R')}",
+                                "chart_type": f"eq.{req['chart']}{dk}",
+                                "select": "public_url", "limit": "1"}, headers=H, timeout=30)
+            rows = cr.json() if cr.ok else []
+            purl = rows[0]["public_url"] if rows else None
+            patch(rid, {"status": "done" if purl else "error", "public_url": purl,
+                        "error": None if purl else "no chart produced (driver data unavailable)"})
+            print(f"  {rid}: {'done' if purl else 'no output'}")
+        except Exception as e:  # noqa: BLE001
+            patch(rid, {"status": "error", "error": str(e)[:400]})
+            print(f"  {rid}: error {e}")
+
+
 @app.local_entrypoint()
 def main() -> None:
     """`modal run modal_app.py` → backfill the current 4-season window once."""

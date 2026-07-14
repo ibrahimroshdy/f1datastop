@@ -11,6 +11,7 @@ import {
 } from "@/components/f1";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
+import CustomChartBuilder from "./CustomChartBuilder";
 import {
   LIVE_TABS,
   CORE_TABS,
@@ -206,6 +207,13 @@ export function RaceAnalysisTabs({
               </F1CardDescription>
             </F1CardHeader>
             <F1CardContent className="min-h-[400px] px-0 pb-2 pt-2">
+              <div className="px-4 pb-3">
+                <CustomChartBuilder
+                  year={selectedYear}
+                  round={Number(selectedRace)}
+                  session={selectedSession}
+                />
+              </div>
               <AnalysisCharts year={selectedYear} round={selectedRace} session={selectedSession} />
             </F1CardContent>
           </F1Card>
