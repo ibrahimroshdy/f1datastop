@@ -3261,8 +3261,12 @@ def chart_championship(session, meta):
                 fontsize=11.5, color=INK)
         ax.text(0.235, y, r["name"], ha="left", va="center", fontproperties=FP_BODY,
                 fontsize=9.5, color=SUBINK)
+        tlogo = fetch_team_logo(season, r["team"])
+        if tlogo is not None:
+            ax.add_artist(AnnotationBbox(OffsetImage(tlogo, zoom=0.2 if tall else 0.16),
+                          (0.74, y), frameon=False, box_alignment=(1, 0.5), zorder=6))
         ax.text(0.86, y, _sc_num(r["pts"]), ha="right", va="center", fontproperties=FP_MONO_B,
-                fontsize=12, color=INK if lead else INK)
+                fontsize=12, color=INK)
         gap = "" if lead else f"−{_sc_num(leader - r['pts'])}"
         ax.text(0.995, y, gap or f"{r['wins']}W", ha="right", va="center", fontproperties=FP_MONO,
                 fontsize=8.5, color=SUBINK)
@@ -3381,8 +3385,13 @@ def chart_constructors(session, meta):
         lead = i == 0
         ax.text(0.055, y, str(i + 1), ha="right", va="center", fontproperties=FP_MONO_B,
                 fontsize=11, color=GOLD if lead else SUBINK)
-        ax.text(0.085, y, c["name"], ha="left", va="center", fontproperties=FP_BODY_SB,
-                fontsize=11, color=INK)
+        logo = fetch_team_logo(season, c["name"])
+        if logo is not None:
+            ax.add_artist(AnnotationBbox(OffsetImage(logo, zoom=0.42 if tall else 0.34),
+                          (0.085, y), frameon=False, box_alignment=(0, 0.5), zorder=6))
+        else:
+            ax.text(0.085, y, c["name"], ha="left", va="center", fontproperties=FP_BODY_SB,
+                    fontsize=11, color=INK)
         ax.text(0.86, y, _sc_num(c["pts"]), ha="right", va="center", fontproperties=FP_MONO_B,
                 fontsize=12, color=INK)
         gap = f"{c['wins']}W" if lead else f"−{_sc_num(leader - c['pts'])}"
@@ -3407,8 +3416,7 @@ def chart_constructors(session, meta):
                 ax.text(left + pts / 2, i, f"{code} {int(pts)}", ha="center", va="center",
                         fontsize=7.5, fontproperties=FP_MONO_B, color="#FFFFFF", zorder=5)
             left += pts
-    ax.set_yticks(range(len(teams)))
-    ax.set_yticklabels(teams, fontproperties=FP_BODY_B, color=INK, fontsize=8.5)
+    team_y_labels(ax, teams, range(len(teams)), season, 8.5)
     ax.set_ylim(-0.7, len(teams) - 0.3)
     ax.invert_yaxis()
     ax.grid(axis="x", color=GRID, linewidth=0.9)
