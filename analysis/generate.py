@@ -2114,7 +2114,416 @@ def chart_parallax_stack(session, meta):
     return fig_png(fig)
 
 
+# ── Race Analysis poster — the whole race story in one board ─────────────────
+# A dense 16:9 composite (the old f1datastop-bot "storyline", rebuilt in the app
+# type system + Deep Carbon palette): result cluster · position evolution ·
+# tyre strategy · places gained/lost · on-track passes · undercut scorecard ·
+# gap to leader. Whole-field, per-race (not driver-picked).
+_GAIN = "#2BD46A"
+_LOSS = "#FF4136"
+
+
+def _fmt_gap(td):
+    """Timedelta gap -> '+S.sss' / '+M:SS.mmm'. Blank for NaT or absurd (absolute) values."""
+    try:
+        s = float(td.total_seconds())
+    except Exception:
+        return ""
+    if np.isnan(s) or s <= 0 or s > 3600:   # >1h => an absolute time, not a gap
+        return ""
+    m = int(s // 60)
+    sec = s - m * 60
+    return f"+{m}:{sec:06.3f}" if m else f"+{sec:.3f}"
+
+
+def _stint_starts(dl):
+    """Out-lap (start lap) of every stint after the first — i.e. real pit stops."""
+    try:
+        starts = sorted(int(st["LapNumber"].min()) for _, st in dl.groupby("Stint"))
+    except Exception:
+        return []
+    return starts[1:]
+
+
+def _on_track_passes(laps):
+    """Per-driver on-track pass count, keyed by driver abbreviation.
+    Counts lap-over-lap position gains but EXCLUDES lap 1 (the start-line shuffle)
+    and each driver's pit out-lap + settle lap (the pit cycle, not a pass) — the two
+    biggest false positives in the naive lap-delta method the old bot shipped. Same
+    method the warehouse `get_overtakes` RPC uses, computed here for correct keying."""
+    counts = {}
+    for drv, dl in laps.groupby("Driver"):
+        dl = dl.dropna(subset=["Position"]).sort_values("LapNumber")
+        if len(dl) < 2:
+            continue
+        skip = set()
+        for L in _stint_starts(dl):
+            skip.add(L)
+            skip.add(L + 1)
+        prev = None
+        c = 0
+        for _, row in dl.iterrows():
+            ln = int(row["LapNumber"])
+            pos = row["Position"]
+            if prev is not None and pd.notna(pos) and ln > 1 and ln not in skip:
+                gain = int(prev) - int(pos)
+                if gain > 0:
+                    c += gain
+            prev = pos
+        counts[str(drv)] = c
+    return counts
+
+
+def _pit_swings(laps):
+    """Net track positions won/lost through each pit stop (the undercut signal).
+    For a stop with out-lap L: pre = position two laps before the box, post = position
+    two laps after rejoining (once the rival's stop has cycled). net>0 = gained places
+    through the stop. Returns [(driver, stop_lap, net), ...] sorted by |net| desc."""
+    out = []
+    for drv, dl in laps.groupby("Driver"):
+        dl = dl.dropna(subset=["Position"]).sort_values("LapNumber")
+        pos_by_lap = {int(r["LapNumber"]): int(r["Position"]) for _, r in dl.iterrows()}
+        if not pos_by_lap:
+            continue
+        last = max(pos_by_lap)
+        for L in _stint_starts(dl):
+            pre = pos_by_lap.get(L - 2, pos_by_lap.get(L - 1))
+            post = pos_by_lap.get(min(L + 2, last), pos_by_lap.get(min(L + 1, last)))
+            if pre is None or post is None:
+                continue
+            out.append((str(drv), L, pre - post))
+    out.sort(key=lambda x: abs(x[2]), reverse=True)
+    return out
+
+
+def _ra_axstyle(ax, xlabel=None, ylabel=None):
+    for s in ("top", "right", "left"):
+        ax.spines[s].set_visible(False)
+    ax.spines["bottom"].set_color(GRID)
+    ax.tick_params(colors=SUBINK, labelsize=7.5, length=0)
+    ax.set_axisbelow(True)
+    for lbl in ax.get_xticklabels() + ax.get_yticklabels():
+        lbl.set_fontproperties(FP_MONO)
+    if xlabel:
+        ax.set_xlabel(xlabel, color=SUBINK, fontsize=8.5, fontproperties=FP_BODY)
+    if ylabel:
+        ax.set_ylabel(ylabel, color=SUBINK, fontsize=8.5, fontproperties=FP_BODY)
+
+
+def _ra_ptitle(fig, x, y, text):
+    fig.text(x, y, text.upper(), color=RED, fontsize=10.5, fontproperties=FP_MONO_B, va="bottom")
+
+
+def _ra_shade(ax, session):
+    for p in safety_periods(session):
+        c = _SAFETY_COLOR[p["kind"]]
+        ax.axvspan(p["start"] - 0.5, p["end"] + 0.5, facecolor=c, alpha=0.11, zorder=0,
+                   hatch="///" if p["kind"] == "VSC" else None, lw=0)
+
+
+def _ra_empty(ax, msg):
+    ax.axis("off")
+    ax.text(0.5, 0.5, msg, ha="center", va="center", transform=ax.transAxes,
+            color=SUBINK, fontsize=8, fontproperties=FP_BODY)
+
+
+def _ra_position(ax, session, laps):
+    """Hero: every driver's track position lap-by-lap, with SC/VSC bands, pit ticks,
+    the fastest-lap star, DNF crosses and line-end codes."""
+    _ra_shade(ax, session)
+    total = int(laps["LapNumber"].max())
+    fl_drv = fl_lap = None
+    try:
+        fl = laps.pick_fastest()
+        if fl is not None and not (hasattr(fl, "empty") and fl.empty):
+            fl_drv, fl_lap = str(fl["Driver"]), int(fl["LapNumber"])
+    except Exception:
+        pass
+    # actual retirements from the classification (a heavily-lapped FINISHER also has
+    # last_lap < total, so lap count alone would wrongly cross them out).
+    dnf = set()
+    try:
+        for _, r in session.results.iterrows():
+            st = str(r.get("Status", ""))
+            ab = str(r.get("Abbreviation", ""))
+            if ab and st and st != "Finished" and not st.startswith("+"):
+                dnf.add(ab)
+    except Exception:
+        pass
+    npos = max(int(laps["Position"].dropna().max() or 0), len(session.drivers))
+    seen = {}
+    for drv in session.drivers:
+        dl = laps[laps["DriverNumber"] == drv].dropna(subset=["Position"]).sort_values("LapNumber")
+        if dl.empty:
+            continue
+        abbr = str(dl["Driver"].iloc[0])
+        team = dl["Team"].iloc[0]
+        c = team_color(team)
+        xs, ys = smooth_xy(dl["LapNumber"].values, dl["Position"].values)
+        ax.plot(xs, ys, color=c, lw=1.7, ls=style_for(team, seen), solid_capstyle="round",
+                alpha=0.95, zorder=3)
+        for L in _stint_starts(dl):
+            row = dl[dl["LapNumber"] == L]
+            if not row.empty:
+                ax.scatter([L], [int(row["Position"].iloc[0])], marker="|", s=44, color=c,
+                           linewidth=1.4, zorder=4)
+        last = dl.iloc[-1]
+        ll, lp = int(last["LapNumber"]), int(last["Position"])
+        if abbr in dnf:   # retired (per the official classification)
+            ax.scatter([ll], [lp], marker="x", s=34, color=INK, linewidth=1.6, zorder=6)
+        if fl_drv == abbr and fl_lap is not None:
+            frow = dl[dl["LapNumber"] == fl_lap]
+            if not frow.empty:
+                ax.scatter([fl_lap], [int(frow["Position"].iloc[0])], marker="*", s=110,
+                           color=PURPLE, edgecolor=PAPER, linewidth=0.6, zorder=7)
+        ax.scatter([ll], [lp], s=15, facecolor=PANEL, edgecolor=c, linewidth=1.3, zorder=6)
+        ax.annotate(abbr, (ll, lp), xytext=(6, 0), textcoords="offset points", va="center",
+                    ha="left", fontsize=7, fontproperties=FP_BODY_B, color=c, zorder=6)
+    ax.set_xlim(0, total * 1.07)
+    ax.set_ylim(npos + 0.6, 0.4)
+    ax.set_yticks(pos_yticks(npos))
+    ax.grid(axis="y", color=GRID, linewidth=0.9)
+    _ra_axstyle(ax, "Lap", "Position")
+
+
+def _ra_tyres(ax, session, laps):
+    try:
+        order = [a for a in session.results["Abbreviation"].values if a]
+    except Exception:
+        order = list(laps["Driver"].dropna().unique())
+    order = order[:18]
+    lmax = int(laps["LapNumber"].max())
+    yt, yl = [], []
+    for i, drv in enumerate(order):
+        dl = laps[laps["Driver"] == drv].sort_values("LapNumber")
+        if dl.empty:
+            continue
+        for si, (_, st) in enumerate(dl.groupby("Stint")):
+            comp = str(st["Compound"].iloc[0]).upper()
+            start = int(st["LapNumber"].min())
+            length = int(st["LapNumber"].max() - start + 1)
+            ax.barh(i, length, left=start - 1, height=0.64,
+                    color=COMPOUND_COLORS.get(comp, "#9A9486"),
+                    edgecolor=PAPER, linewidth=1.0, zorder=3)
+            if si > 0:
+                ax.scatter([start - 1], [i], marker="v", s=26, color=INK, edgecolor=PAPER,
+                           linewidth=0.6, zorder=6)
+        yt.append(i)
+        yl.append(drv)
+    if not yt:
+        _ra_empty(ax, "No stint data")
+        return
+    ax.set_yticks(yt)
+    ax.set_yticklabels(yl, fontproperties=FP_BODY_B, color=INK, fontsize=7.5)
+    ax.set_ylim(-0.7, len(yt) - 0.3)
+    ax.invert_yaxis()
+    ax.set_xlim(0, lmax + 1)
+    ax.grid(axis="x", color=GRID, linewidth=0.9)
+    ax.grid(axis="y", linewidth=0)
+    _ra_axstyle(ax, "Lap", None)
+
+
+def _ra_places(ax, session):
+    try:
+        res = session.results.copy()
+    except Exception:
+        _ra_empty(ax, "No result data")
+        return
+    if "GridPosition" not in res or "Position" not in res:
+        _ra_empty(ax, "No grid data")
+        return
+    res = res.dropna(subset=["GridPosition", "Position"])
+    res = res[res["GridPosition"] > 0]
+    if res.empty:
+        _ra_empty(ax, "No grid data")
+        return
+    res["delta"] = res["GridPosition"] - res["Position"]
+    res = res.sort_values("delta")
+    codes = list(res["Abbreviation"].values)
+    deltas = res["delta"].values
+    cols = [_GAIN if d > 0 else (_LOSS if d < 0 else SUBINK) for d in deltas]
+    ax.barh(range(len(codes)), deltas, color=cols, height=0.66, zorder=3,
+            edgecolor=PAPER, linewidth=0.6)
+    ax.axvline(0, color="#3A3D45", lw=1.1)
+    ax.set_yticks(range(len(codes)))
+    ax.set_yticklabels(codes, fontproperties=FP_BODY_B, color=INK, fontsize=6.8)
+    ax.set_ylim(-0.7, len(codes) - 0.3)
+    ax.invert_yaxis()
+    ax.grid(axis="x", color=GRID, linewidth=0.9)
+    ax.grid(axis="y", linewidth=0)
+    _ra_axstyle(ax, "Gained (+) / lost (−)", None)
+
+
+def _ra_passes(ax, laps):
+    counts = _on_track_passes(laps)
+    rows = sorted(((d, n) for d, n in counts.items() if n > 0), key=lambda x: x[1])[-12:]
+    if not rows:
+        _ra_empty(ax, "No on-track passes")
+        return
+    tmap = {}
+    for d, _ in rows:
+        sub = laps[laps["Driver"] == d]
+        tmap[d] = sub["Team"].iloc[0] if not sub.empty else None
+    for i, (d, n) in enumerate(rows):
+        ax.barh(i, n, color=team_color(tmap.get(d)), height=0.66, zorder=3,
+                edgecolor=PAPER, linewidth=0.6)
+        ax.text(n + 0.12, i, str(n), va="center", ha="left", fontsize=7.5,
+                fontproperties=FP_MONO_B, color=INK)
+    ax.set_yticks(range(len(rows)))
+    ax.set_yticklabels([d for d, _ in rows], fontproperties=FP_BODY_B, color=INK, fontsize=6.8)
+    ax.set_ylim(-0.7, len(rows) - 0.3)
+    ax.set_xlim(0, max(n for _, n in rows) * 1.20)
+    ax.grid(axis="x", color=GRID, linewidth=0.9)
+    ax.grid(axis="y", linewidth=0)
+    _ra_axstyle(ax, "Passes", None)
+
+
+def _ra_undercut(ax, laps):
+    swings = [s for s in _pit_swings(laps) if s[2] != 0][:9]
+    if not swings:
+        _ra_empty(ax, "No decisive stops")
+        return
+    labels = [f"{d} · L{L}" for d, L, _ in swings]
+    nets = [net for _, _, net in swings]
+    cols = [_GAIN if n > 0 else _LOSS for n in nets]
+    ax.barh(range(len(nets)), nets, color=cols, height=0.66, zorder=3,
+            edgecolor=PAPER, linewidth=0.6)
+    ax.axvline(0, color="#3A3D45", lw=1.1)
+    for i, n in enumerate(nets):
+        ha = "left" if n > 0 else "right"
+        off = 0.08 if n > 0 else -0.08
+        ax.text(n + off, i, f"+{n}" if n > 0 else str(n), va="center", ha=ha, fontsize=7,
+                fontproperties=FP_MONO_B, color=INK)
+    ax.set_yticks(range(len(labels)))
+    ax.set_yticklabels(labels, fontproperties=FP_BODY_B, color=INK, fontsize=6.6)
+    ax.set_ylim(-0.7, len(labels) - 0.3)
+    ax.invert_yaxis()
+    m = max(abs(n) for n in nets) or 1
+    ax.set_xlim(-m * 1.35, m * 1.35)
+    ax.grid(axis="x", color=GRID, linewidth=0.9)
+    ax.grid(axis="y", linewidth=0)
+    _ra_axstyle(ax, "Places through stop", None)
+
+
+def _ra_gap(ax, session, laps):
+    df = laps[["Driver", "LapNumber", "Time", "Team"]].dropna(subset=["Time", "LapNumber"]).copy()
+    if df.empty:
+        _ra_empty(ax, "No timing data")
+        return
+    df["t"] = df["Time"].dt.total_seconds()
+    leader = df.groupby("LapNumber")["t"].min()
+    df["gap"] = df["t"] - df["LapNumber"].map(leader)
+    try:
+        order = [a for a in session.results["Abbreviation"].values][:5]
+    except Exception:
+        order = list(df["Driver"].unique())[:5]
+    seen = {}
+    for drv in order:
+        sub = df[df["Driver"] == drv].sort_values("LapNumber")
+        if sub.empty:
+            continue
+        team = sub["Team"].iloc[0]
+        c = team_color(team)
+        ax.plot(sub["LapNumber"], sub["gap"], color=c, lw=1.6, ls=style_for(team, seen),
+                solid_capstyle="round")
+        last = sub.iloc[-1]
+        ax.annotate(str(drv), (last["LapNumber"], last["gap"]), xytext=(4, 0),
+                    textcoords="offset points", va="center", ha="left", fontsize=6.6,
+                    fontproperties=FP_BODY_B, color=c)
+    ax.invert_yaxis()
+    ax.grid(axis="y", color=GRID, linewidth=0.9)
+    _ra_axstyle(ax, "Lap", "Gap (s)")
+
+
+def _ra_header(fig, session, laps, meta):
+    fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
+    ev, yr = meta.get("event", ""), meta.get("year", "")
+    fig.text(0.035, 0.958, "   ".join("RACE ANALYSIS"), color=RED, fontsize=11,
+             fontproperties=FP_MONO_B, va="center")
+    fig.text(0.034, 0.928, f"{ev} {yr}", color=INK, fontsize=23, fontproperties=FP_TITLE, va="center")
+    loc = meta.get("circuit") or meta.get("location") or ""
+    fig.text(0.035, 0.898, f"{loc} · {meta.get('session_name', 'Race')}", color=SUBINK,
+             fontsize=10, fontproperties=FP_BODY, va="center")
+    fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
+             fontproperties=FP_BODY_SB)
+
+    total = int(laps["LapNumber"].max())
+    cells = []
+    try:
+        res = session.results
+    except Exception:
+        res = None
+    if res is not None and len(res):
+        try:
+            win = res.iloc[0]
+            cells.append(("WINNER", str(win.get("Abbreviation", "")), team_color(win.get("TeamName")), None))
+        except Exception:
+            pass
+        for pi in (1, 2):
+            try:
+                r = res.iloc[pi]
+                cells.append((f"P{pi + 1}", str(r.get("Abbreviation", "")),
+                              team_color(r.get("TeamName")), _fmt_gap(r.get("Time"))))
+            except Exception:
+                pass
+    try:
+        fl = laps.pick_fastest()
+        if fl is not None and not (hasattr(fl, "empty") and fl.empty):
+            flt = fl["LapTime"].total_seconds() if pd.notna(fl["LapTime"]) else None
+            cells.append(("FASTEST LAP", str(fl["Driver"]), PURPLE, fmt_laptime(flt) if flt else None))
+    except Exception:
+        pass
+    cells.append(("LAPS", str(total), INK, None))
+    n_sc = len([p for p in safety_periods(session) if p["kind"] in ("SC", "VSC")])
+    cells.append(("SAFETY CARS", str(n_sc), GOLD if n_sc else SUBINK, None))
+
+    x0, x1 = 0.395, 0.955
+    step = (x1 - x0) / max(len(cells), 1)
+    for i, (lab, val, col, sub) in enumerate(cells):
+        cx = x0 + step * i
+        fig.text(cx, 0.945, lab, color=SUBINK, fontsize=7.5, fontproperties=FP_MONO_B, va="center")
+        fig.text(cx, 0.912, val, color=col, fontsize=13, fontproperties=FP_BODY_SB, va="center")
+        if sub:
+            fig.text(cx, 0.889, sub, color=SUBINK, fontsize=8.5, fontproperties=FP_MONO, va="center")
+    fig.add_artist(plt.Line2D([0.033, 0.965], [0.872, 0.872], transform=fig.transFigure,
+                              color=GRID, lw=1.0))
+
+
+def chart_race_analysis(session, meta):
+    """The whole race story on one board. 16:9 only (dense poster); returns None for
+    the portrait formats so the render loop skips them."""
+    if FMT not in ("landscape", "twitter"):
+        return None
+    laps = session.laps
+    if laps is None or len(laps) == 0:
+        return None
+    fig = plt.figure(figsize=(16, 9), dpi=200)
+    fig.patch.set_facecolor(PAPER)
+    _ra_header(fig, session, laps, meta)
+    panels = [
+        ([0.035, 0.500, 0.470, 0.315], "Position Evolution", lambda ax: _ra_position(ax, session, laps)),
+        ([0.575, 0.500, 0.390, 0.315], "Tyre Strategy", lambda ax: _ra_tyres(ax, session, laps)),
+        ([0.035, 0.072, 0.170, 0.315], "Places Gained / Lost", lambda ax: _ra_places(ax, session)),
+        ([0.265, 0.072, 0.170, 0.315], "On-Track Passes", lambda ax: _ra_passes(ax, laps)),
+        ([0.500, 0.072, 0.185, 0.315], "Undercut Scorecard", lambda ax: _ra_undercut(ax, laps)),
+        ([0.745, 0.072, 0.220, 0.315], "Gap to Leader", lambda ax: _ra_gap(ax, session, laps)),
+    ]
+    for rect, ptitle, draw in panels:
+        ax = fig.add_axes(rect)
+        ax.set_facecolor(PAPER)
+        _ra_ptitle(fig, rect[0], rect[1] + rect[3] + 0.014, ptitle)
+        try:
+            draw(ax)
+        except Exception as e:  # noqa: BLE001 — one bad panel shouldn't kill the poster
+            _ra_empty(ax, "—")
+            print(f"  ! race_analysis panel '{ptitle}' failed: {e}")
+    # No footer(): the header already carries event · circuit · session, and the
+    # freed strip lets the bottom band breathe. The tiled watermark still applies.
+    return fig_png(fig)
+
+
 CHARTS = [
+    ("race_analysis", "Race Analysis", "The whole race story — strategy, pits, passes and pace on one board", chart_race_analysis),
     ("position_changes", "Position Changes", "Track position through the race", chart_position_changes),
     ("parallax_stack", "Parallax Stack", "Top-three fastest laps stacked by pace", chart_parallax_stack),
     ("grid_flow", "Qualifying → Grid → Finish", "Driver flow from qualifying to the chequered flag", chart_grid_flow),
