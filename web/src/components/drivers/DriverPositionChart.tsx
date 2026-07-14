@@ -18,9 +18,18 @@ import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
 import type { DriverRaceResult } from "./driverCardTypes";
 
+interface ComparePart {
+  history: DriverRaceResult[];
+  teamColor: string;
+  code: string;
+}
+
 interface DriverPositionChartProps {
   history: DriverRaceResult[];
   teamColor: string;
+  code?: string;
+  /** Optional 2nd driver — plotted as a dashed line for head-to-head compare. */
+  compare?: ComparePart;
 }
 
 /** Short GP tag under the flag (e.g. "British Grand Prix" → "BRI", "Monaco" → "MON"). */
@@ -39,48 +48,53 @@ const dotColor = (pos: number, teamColor: string) =>
         ? "hsl(var(--status-completed))"
         : teamColor;
 
-/** DNF marker — an ×-in-ring on the retirement lane (clearly not a finish dot). */
-const DnfMark = (props: { cx?: number; cy?: number }) => {
+/** DNF marker — an ×-in-ring on the retirement lane, tinted so each driver reads. */
+const dnfMark = (stroke: string, fill: string) => (props: { cx?: number; cy?: number }) => {
   const { cx, cy } = props;
-  if (cx == null || cy == null) return null;
+  if (cx == null || cy == null) return <g />;
   return (
     <g pointerEvents="none">
-      <circle cx={cx} cy={cy} r={6.5} fill="hsl(var(--loss) / 0.14)" stroke="hsl(var(--loss))" strokeWidth={1.2} />
-      <line x1={cx - 3} y1={cy - 3} x2={cx + 3} y2={cy + 3} stroke="hsl(var(--loss))" strokeWidth={1.6} strokeLinecap="round" />
-      <line x1={cx - 3} y1={cy + 3} x2={cx + 3} y2={cy - 3} stroke="hsl(var(--loss))" strokeWidth={1.6} strokeLinecap="round" />
+      <circle cx={cx} cy={cy} r={6.5} fill={fill} stroke={stroke} strokeWidth={1.2} />
+      <line x1={cx - 3} y1={cy - 3} x2={cx + 3} y2={cy + 3} stroke={stroke} strokeWidth={1.6} strokeLinecap="round" />
+      <line x1={cx - 3} y1={cy + 3} x2={cx + 3} y2={cy - 3} stroke={stroke} strokeWidth={1.6} strokeLinecap="round" />
     </g>
   );
 };
 
-const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) => {
+const DriverPositionChart = ({ history, teamColor, code, compare }: DriverPositionChartProps) => {
   const { isGlass, cardVariant, glassVariant } = useThemeVariant();
+  const isCompare = !!compare && compare.history.length > 0;
 
-  const chartData = useMemo(
-    () =>
-      history.map((race) => {
-        const name = getRaceNameWithoutEmoji(race.raceName);
-        return {
-          round: race.round,
-          raceName: name,
-          gpShort: gpShort(name),
-          country: race.country ?? "",
-          position: race.isDNF ? null : Number(race.position),
-          isDNF: !!race.isDNF,
-          points: race.points,
-        };
-      }),
-    [history],
-  );
+  const chartData = useMemo(() => {
+    const bByRound = new Map((compare?.history ?? []).map((r) => [String(r.round), r]));
+    return history.map((race) => {
+      const name = getRaceNameWithoutEmoji(race.raceName);
+      const b = bByRound.get(String(race.round));
+      return {
+        round: race.round,
+        raceName: name,
+        gpShort: gpShort(name),
+        country: race.country ?? "",
+        position: race.isDNF ? null : Number(race.position),
+        isDNF: !!race.isDNF,
+        points: race.points,
+        position2: b ? (b.isDNF ? null : Number(b.position)) : null,
+        isDNF2: b ? !!b.isDNF : false,
+      };
+    });
+  }, [history, compare]);
 
   const stats = useMemo(() => {
     const positions = history.filter((r) => r.position && !r.isDNF).map((r) => Number(r.position));
     return { wins: positions.filter((p) => p === 1).length, dnfs: history.filter((r) => r.isDNF).length };
   }, [history]);
 
-  // Y scale + a dedicated DNF lane at the bottom (below the worst finish).
+  // Y scale + a dedicated DNF lane at the bottom (spans BOTH drivers when comparing).
   const { yDomain, yTicks, dnfLane, hasDNF } = useMemo(() => {
-    const finishes = chartData.filter((d) => d.position != null).map((d) => d.position as number);
-    const dnf = chartData.some((d) => d.isDNF);
+    const finishes = chartData
+      .flatMap((d) => [d.position, d.position2])
+      .filter((p): p is number => p != null);
+    const dnf = chartData.some((d) => d.isDNF || d.isDNF2);
     const best = finishes.length ? Math.min(...finishes) : 1;
     const worst = finishes.length ? Math.max(...finishes) : 20;
     const top = Math.max(1, best - 1);
@@ -124,11 +138,18 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
     );
   }
 
+  const aDnfStroke = isCompare ? teamColor : "hsl(var(--loss))";
+  const aDnfFill = isCompare ? `${teamColor}22` : "hsl(var(--loss) / 0.14)";
+
   return (
     <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("p-0", isGlass && "border-white/10")}>
       <F1CardHeader className="pb-2">
         <div className="instrument-label text-muted-foreground">Season Position Trend</div>
-        <p className="text-xs text-muted-foreground">Race finishing positions throughout the season</p>
+        <p className="text-xs text-muted-foreground">
+          {isCompare
+            ? `Race finishing positions · ${code ?? "Driver"} vs ${compare!.code}`
+            : "Race finishing positions throughout the season"}
+        </p>
       </F1CardHeader>
       <F1CardContent className="pb-2">
         <ChartContainer config={chartConfig} className="h-[200px] w-full">
@@ -159,7 +180,6 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
               width={34}
             />
 
-            {/* DNF retirement lane */}
             {hasDNF && (
               <ReferenceLine
                 y={dnfLane}
@@ -188,35 +208,14 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
                     }
                     return value;
                   }}
-                  formatter={(value, _name, item) => {
-                    const data =
-                      typeof item === "object" && item !== null && "payload" in item
-                        ? (item as { payload: { isDNF?: boolean; points?: number } }).payload
-                        : undefined;
-                    if (data?.isDNF) {
-                      return (
-                        <div className="flex items-center gap-2">
-                          <span className="text-base leading-none text-loss">✕</span>
-                          <span className="font-medium text-loss">DNF · Retired</span>
-                        </div>
-                      );
-                    }
-                    const pos = Number(value);
-                    const color =
-                      pos === 1
-                        ? "text-position-gold"
-                        : pos <= 3
-                          ? "text-position-bronze"
-                          : pos <= 10
-                            ? "text-status-completed"
-                            : "";
+                  formatter={(value, name) => {
+                    const who = name === "position2" ? compare?.code : code;
+                    const col = name === "position2" ? compare?.teamColor : teamColor;
                     return (
                       <div className="flex items-center gap-2">
-                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: dotColor(pos, teamColor) }} />
-                        <span className={cn("font-medium tabular-nums", color)}>P{value}</span>
-                        {data && (data.points ?? 0) > 0 && (
-                          <span className="text-xs tabular-nums text-muted-foreground">+{data.points} pts</span>
-                        )}
+                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: col }} />
+                        {who && <span className="font-medium text-foreground">{who}</span>}
+                        <span className="tabular-nums text-muted-foreground">P{value}</span>
                       </div>
                     );
                   }}
@@ -224,25 +223,26 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
               }
             />
 
+            {/* Driver A */}
             <Line
               dataKey="position"
               type="monotone"
-              stroke="var(--color-position)"
-              strokeWidth={2}
+              stroke={teamColor}
+              strokeWidth={2.2}
               filter={SCOPE_GLOW}
               connectNulls={false}
               dot={({ cx, cy, payload }) => {
                 if (payload.isDNF || payload.position === null || cx == null || cy == null) {
-                  return <g key={`dot-${payload.round}`} />;
+                  return <g key={`a-${payload.round}`} />;
                 }
                 const pos = Number(payload.position);
                 return (
                   <circle
-                    key={`dot-${payload.round}`}
+                    key={`a-${payload.round}`}
                     cx={cx}
                     cy={cy}
                     r={pos === 1 ? 5 : 4}
-                    fill={dotColor(pos, teamColor)}
+                    fill={isCompare ? teamColor : dotColor(pos, teamColor)}
                     stroke="hsl(var(--card))"
                     strokeWidth={1.5}
                   />
@@ -251,47 +251,120 @@ const DriverPositionChart = ({ history, teamColor }: DriverPositionChartProps) =
               activeDot={{ r: 6, fill: teamColor, stroke: "hsl(var(--card))", strokeWidth: 2 }}
             />
 
-            {/* DNF markers on the retirement lane */}
+            {/* Driver B (compare) — dashed */}
+            {isCompare && (
+              <Line
+                dataKey="position2"
+                type="monotone"
+                stroke={compare!.teamColor}
+                strokeWidth={2.2}
+                strokeDasharray="5 3"
+                connectNulls={false}
+                dot={({ cx, cy, payload }) => {
+                  if (payload.isDNF2 || payload.position2 === null || cx == null || cy == null) {
+                    return <g key={`b-${payload.round}`} />;
+                  }
+                  return (
+                    <circle
+                      key={`b-${payload.round}`}
+                      cx={cx}
+                      cy={cy}
+                      r={4}
+                      fill={compare!.teamColor}
+                      stroke="hsl(var(--card))"
+                      strokeWidth={1.5}
+                    />
+                  );
+                }}
+                activeDot={{ r: 6, fill: compare!.teamColor, stroke: "hsl(var(--card))", strokeWidth: 2 }}
+              />
+            )}
+
+            {/* DNF markers on the retirement lane (per driver) */}
             {hasDNF &&
               chartData.map((d) =>
-                d.isDNF ? <ReferenceDot key={`dnf-${d.round}`} x={d.round} y={dnfLane} r={0} isFront shape={<DnfMark />} /> : null,
+                d.isDNF ? (
+                  <ReferenceDot
+                    key={`dnfA-${d.round}`}
+                    x={d.round}
+                    y={dnfLane}
+                    r={0}
+                    isFront
+                    shape={dnfMark(aDnfStroke, aDnfFill)}
+                  />
+                ) : null,
+              )}
+            {isCompare &&
+              chartData.map((d) =>
+                d.isDNF2 ? (
+                  <ReferenceDot
+                    key={`dnfB-${d.round}`}
+                    x={d.round}
+                    y={dnfLane}
+                    r={0}
+                    isFront
+                    shape={dnfMark(compare!.teamColor, `${compare!.teamColor}22`)}
+                  />
+                ) : null,
               )}
           </LineChart>
         </ChartContainer>
       </F1CardContent>
       <F1CardFooter className="flex-col items-start gap-2 border-t-0 pt-0 text-sm">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-position-gold" />
-            <span className="text-xs text-muted-foreground">Win</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-position-bronze" />
-            <span className="text-xs text-muted-foreground">Podium</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-status-completed" />
-            <span className="text-xs text-muted-foreground">Points</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="text-xs font-bold leading-none text-loss">✕</span>
-            <span className="text-xs text-muted-foreground">DNF</span>
-          </span>
-        </div>
-        <div className="flex gap-3 text-xs leading-none text-muted-foreground">
-          {stats.wins > 0 && (
-            <span className="flex items-center gap-1">
-              <Trophy className="h-3 w-3 text-position-gold" />
-              <span className="tabular-nums">{stats.wins}</span> win{stats.wins > 1 ? "s" : ""}
+        {isCompare ? (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <span className="flex items-center gap-1.5">
+              <span className="h-0.5 w-4 rounded-full" style={{ backgroundColor: teamColor }} />
+              <span className="text-xs font-semibold">{code}</span>
             </span>
-          )}
-          {stats.dnfs > 0 && (
-            <span className="flex items-center gap-1 text-loss">
-              <span className="font-bold">✕</span>
-              <span className="tabular-nums">{stats.dnfs}</span> DNF{stats.dnfs > 1 ? "s" : ""}
+            <span className="flex items-center gap-1.5">
+              <span
+                className="h-0.5 w-4 rounded-full"
+                style={{ backgroundImage: `repeating-linear-gradient(90deg, ${compare!.teamColor} 0 4px, transparent 4px 7px)` }}
+              />
+              <span className="text-xs font-semibold">{compare!.code}</span>
             </span>
-          )}
-        </div>
+            <span className="flex items-center gap-1.5">
+              <span className="text-xs font-bold leading-none text-loss">✕</span>
+              <span className="text-xs text-muted-foreground">DNF</span>
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-position-gold" />
+                <span className="text-xs text-muted-foreground">Win</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-position-bronze" />
+                <span className="text-xs text-muted-foreground">Podium</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-status-completed" />
+                <span className="text-xs text-muted-foreground">Points</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-xs font-bold leading-none text-loss">✕</span>
+                <span className="text-xs text-muted-foreground">DNF</span>
+              </span>
+            </div>
+            <div className="flex gap-3 text-xs leading-none text-muted-foreground">
+              {stats.wins > 0 && (
+                <span className="flex items-center gap-1">
+                  <Trophy className="h-3 w-3 text-position-gold" />
+                  <span className="tabular-nums">{stats.wins}</span> win{stats.wins > 1 ? "s" : ""}
+                </span>
+              )}
+              {stats.dnfs > 0 && (
+                <span className="flex items-center gap-1 text-loss">
+                  <span className="font-bold">✕</span>
+                  <span className="tabular-nums">{stats.dnfs}</span> DNF{stats.dnfs > 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+          </>
+        )}
       </F1CardFooter>
     </F1Card>
   );

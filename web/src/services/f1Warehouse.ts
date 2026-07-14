@@ -167,6 +167,8 @@ export interface DbDriverResult {
   circuit?: string;
   country?: string;
   position?: string;
+  grid?: number;
+  qualiPosition?: number;
   status?: string;
   isDNF: boolean;
   points: number;
@@ -200,6 +202,8 @@ export async function getDriverSeasonResultsFromDb(
     circuit: (r.circuit as string) ?? undefined,
     country: (r.country as string) ?? undefined,
     position: r.position != null ? String(r.position) : undefined,
+    grid: r.grid != null ? Number(r.grid) : undefined,
+    qualiPosition: r.quali_position != null ? Number(r.quali_position) : undefined,
     status: (r.status as string) ?? "",
     isDNF: !!r.is_dnf,
     points: Number(r.points ?? 0),

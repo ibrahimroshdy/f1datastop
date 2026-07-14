@@ -10,6 +10,7 @@ import {
 import CountryFlag from "@/components/common/CountryFlag";
 import DriverCareerPanel from "@/components/drivers/DriverCareerPanel";
 import DriverPositionChart from "@/components/drivers/DriverPositionChart";
+import DriverComparePanel from "@/components/drivers/DriverComparePanel";
 import { useDriverCareer } from "@/hooks/entity";
 import { useDriverStandings, useDriverResultsBySeason } from "@/hooks/useF1Data";
 import { useTheme } from "@/context/ThemeContext";
@@ -21,7 +22,7 @@ import {
 import { pageShell, pageStack } from "@/lib/layout";
 import { CountUp } from "@/components/CountUp";
 import { isEntityDbConfigured } from "@/services/entityService";
-import { Activity, Flag as FlagIcon } from "lucide-react";
+import { Activity, Flag as FlagIcon, GitCompare } from "lucide-react";
 import { BackLink } from "@/components/ui/back-link";
 import NotFound from "./NotFound";
 import { cn } from "@/lib/utils";
@@ -114,6 +115,8 @@ const DriverProfile = () => {
       country: race.country,
       isDNF: race.isDNF,
       constructor: race.constructor,
+      grid: race.grid,
+      qualiPosition: race.qualiPosition,
     })) ?? [];
 
   const podiumCount = pointsHistory.filter(
@@ -235,9 +238,32 @@ const DriverProfile = () => {
           </F1CardContent>
         </F1Card>
 
-        {/* ── Recent results — dense hairline list ────────────────────────── */}
+        {/* ── Head to head — compare this driver vs any rival ─────────────── */}
+        {(driverStandings?.data?.length ?? 0) > 0 && resolvedDriverId && (
+          <>
+            <SectionLabel icon={<GitCompare className="h-3 w-3" />}>
+              Head to Head
+            </SectionLabel>
+            <DriverComparePanel
+              seasonYear={currentYear}
+              standings={driverStandings?.data ?? []}
+              driverAId={resolvedDriverId}
+              driverAName={displayName}
+              driverAColor={teamColor}
+              historyA={pointsHistory}
+            />
+          </>
+        )}
+
         {pointsHistory.length > 0 && (
           <>
+            {/* ── Race progression scope — shown first (the season at a glance) ── */}
+            <SectionLabel icon={<Activity className="h-3 w-3" />}>
+              Race Progression Scope
+            </SectionLabel>
+            <DriverPositionChart history={pointsHistory} teamColor={teamColor} />
+
+            {/* ── Results — compact single-line hairline list w/ quali + grid ── */}
             <SectionLabel icon={<FlagIcon className="h-3 w-3" />}>
               {currentYear} Results
             </SectionLabel>
@@ -253,52 +279,50 @@ const DriverProfile = () => {
                   return (
                     <li
                       key={race.round}
-                      className="flex items-center gap-3 px-4 py-2"
+                      className="flex items-center gap-2.5 px-3 py-1.5"
                     >
-                      <span className="timing w-7 shrink-0 text-center text-xs text-muted-foreground">
+                      <span className="timing w-6 shrink-0 text-center text-2xs text-muted-foreground">
                         R{race.round}
                       </span>
                       {race.country && (
-                        <span className="shrink-0 rounded-md bg-muted p-1">
-                          <CountryFlag country={race.country} size={16} />
-                        </span>
+                        <CountryFlag country={race.country} size={15} className="shrink-0 rounded-[2px]" />
                       )}
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold leading-tight">
-                          {race.raceName}
-                        </div>
-                        <div className="truncate text-2xs text-muted-foreground">
-                          {race.constructor ?? teamName ?? ""}
-                        </div>
-                      </div>
+                      <span className="min-w-0 flex-1 truncate text-xs font-semibold leading-tight">
+                        {race.raceName}
+                      </span>
+                      {/* Qualifying + grid — revealed where there's room */}
+                      <span className="hidden shrink-0 items-center gap-2.5 sm:flex">
+                        {race.qualiPosition != null && (
+                          <span className="timing tabular-nums text-2xs text-muted-foreground">
+                            Q{race.qualiPosition}
+                          </span>
+                        )}
+                        {race.grid != null && (
+                          <span className="timing tabular-nums text-2xs text-muted-foreground">
+                            Grid {race.grid}
+                          </span>
+                        )}
+                      </span>
                       {race.isDNF ? (
-                        <span className="timing shrink-0 rounded px-1.5 py-0.5 text-2xs font-semibold uppercase text-status-cancelled">
+                        <span className="timing shrink-0 text-2xs font-semibold uppercase text-status-cancelled">
                           DNF
                         </span>
                       ) : isPodium && Number.isFinite(pos) ? (
-                        <PositionBadge position={pos} className="shrink-0" />
+                        <PositionBadge position={pos} showIcon={false} className="shrink-0" />
                       ) : (
-                        <span className="timing w-7 shrink-0 text-center text-sm font-semibold tabular-nums">
+                        <span className="timing w-7 shrink-0 text-center text-xs font-semibold tabular-nums">
                           P{race.position}
                         </span>
                       )}
-                      <span className="timing w-11 shrink-0 text-right text-sm font-semibold tabular-nums">
+                      <span className="timing w-9 shrink-0 text-right text-xs font-semibold tabular-nums">
                         {race.points}
-                        <span className="ml-1 text-2xs text-muted-foreground">
-                          PTS
-                        </span>
+                        <span className="ml-0.5 text-2xs text-muted-foreground">PTS</span>
                       </span>
                     </li>
                   );
                 })}
               </ul>
             </F1Card>
-
-            {/* ── Season position scope (self-themed chart) ───────────────── */}
-            <SectionLabel icon={<Activity className="h-3 w-3" />}>
-              Race Progression Scope
-            </SectionLabel>
-            <DriverPositionChart history={pointsHistory} teamColor={teamColor} />
           </>
         )}
 

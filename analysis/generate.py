@@ -1759,9 +1759,15 @@ def chart_dominance_flat(session, meta):
     segs = np.concatenate([P[:-1], P[1:]], axis=1)
     seg_cols = [drivers[int(winner[i])][1] for i in range(len(segs))]
     # base track shadow, then the winner-coloured neon ribbon on top
-    ax.add_collection(LineCollection(segs, colors=GRID, linewidths=15,
+    ax.add_collection(LineCollection(segs, colors=GRID, linewidths=8.5,
                       capstyle="round", joinstyle="round", zorder=1))
-    neon_lines(ax, segs, colors=seg_cols, lw=9.0)
+    # a soft colour glow for depth, then a CRISP thin winner-coloured ribbon on
+    # top — the old neon blur (lw 9 + 3 halos to 32px) hid the dominance
+    # boundaries; this keeps each driver's segments readable on the track.
+    ax.add_collection(LineCollection(segs, colors=seg_cols, linewidths=11,
+                      capstyle="round", joinstyle="round", alpha=0.15, zorder=2))
+    ax.add_collection(LineCollection(segs, colors=seg_cols, linewidths=4.6,
+                      capstyle="round", joinstyle="round", zorder=3))
     # start / finish tick
     ax.scatter([nx[0]], [ny[0]], s=90, facecolor=PAPER, edgecolor=INK, lw=1.6, zorder=40)
     ax.annotate("S/F", (nx[0], ny[0]), xytext=(0, 13), textcoords="offset points",

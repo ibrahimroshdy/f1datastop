@@ -540,6 +540,8 @@ export const getDriverResultsBySeason = async (year: number, driverId: string) =
         circuit: race.Circuit?.circuitName,
         country: race.Circuit?.Location?.country,
         position: result.position,
+        grid: result.grid ? Number(result.grid) : undefined,
+        qualiPosition: undefined as number | undefined,
         status: status,
         isDNF: isDNF,
         points: Number(result.points || 0),
