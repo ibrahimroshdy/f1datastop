@@ -3288,9 +3288,140 @@ def chart_championship(session, meta):
     return fig_png(fig)
 
 
+# ── Constructor Season — the team battle + who is carrying each team ──────────
+def _wh_constructor_standings(season, upto):
+    url = os.environ.get("SUPABASE_URL")
+    key = _sb_read_key()
+    if not (url and key):
+        return None
+    try:
+        r = requests.post(f"{url.rstrip('/')}/rest/v1/rpc/get_constructor_standings",
+                          headers={"apikey": key, "Authorization": f"Bearer {key}",
+                                   "Content-Type": "application/json"},
+                          json={"p_season": int(season), "p_round": int(upto)}, timeout=25)
+        if not r.ok:
+            return None
+        rows = r.json()
+        return rows if isinstance(rows, list) else None
+    except Exception:
+        return None
+
+
+def chart_constructors(session, meta):
+    """The constructors' championship after this round: standings table + each
+    team's driver-contribution split (who is scoring the points). Warehouse-backed
+    (ignores the session). Whole field, not driver-picked. 16:9 + a 9:16 story."""
+    if FMT not in ("landscape", "twitter", "story"):
+        return None
+    season = int(meta.get("year"))
+    upto = int(meta.get("round") or 99)
+    cons = _wh_constructor_standings(season, upto)
+    if not cons:
+        return None
+    crows = []
+    for c in cons:
+        cc = c.get("Constructor") or {}
+        if cc.get("name"):
+            crows.append({"name": cc["name"], "pts": float(c.get("points") or 0),
+                          "wins": int(float(c.get("wins") or 0))})
+    if not crows:
+        return None
+    leader = crows[0]["pts"]
+    # group each team's drivers (code + points) for the contribution split
+    by_team = {}
+    for d in (_wh_driver_standings(season, upto) or []):
+        cn = ((d.get("Constructors") or [{}])[0] or {}).get("name")
+        drv = d.get("Driver") or {}
+        code = drv.get("code") or (drv.get("familyName") or "")[:3].upper()
+        if cn:
+            by_team.setdefault(cn, []).append((code, float(d.get("points") or 0)))
+
+    tall = FMT == "story"
+    if tall:
+        fig = plt.figure(figsize=(10.8, 19.2), dpi=200)
+        R = {"table": [0.06, 0.500, 0.88, 0.355], "contrib": [0.15, 0.055, 0.80, 0.335]}
+    else:
+        fig = plt.figure(figsize=(16, 9), dpi=200)
+        R = {"table": [0.035, 0.075, 0.415, 0.745], "contrib": [0.575, 0.09, 0.39, 0.72]}
+    fig.patch.set_facecolor(PAPER)
+    ex = meta.get("event", "")
+    subtitle = f"through round {upto}" + (f" · {ex}" if ex else "")
+    if tall:
+        fig.add_artist(plt.Rectangle((0, 0), 0.011, 1, transform=fig.transFigure, color=RED, zorder=10))
+        fig.text(0.06, 0.980, "   ".join("CONSTRUCTORS"), color=RED, fontsize=13, fontproperties=FP_MONO_B, va="center")
+        fig.text(0.058, 0.962, f"{season} Constructors", color=INK, fontsize=30, fontproperties=FP_TITLE, va="center")
+        fig.text(0.06 + _poster_flag(fig, meta.get("country"), 0.06, 0.948, 0.5), 0.948, subtitle,
+                 color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
+        fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12, fontproperties=FP_BODY_SB)
+        fig.add_artist(plt.Line2D([0.055, 0.945], [0.900, 0.900], transform=fig.transFigure, color=GRID, lw=1.0))
+    else:
+        fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
+        fig.text(0.035, 0.958, "   ".join("CONSTRUCTORS"), color=RED, fontsize=11, fontproperties=FP_MONO_B, va="center")
+        fig.text(0.034, 0.926, f"{season} Constructors", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
+        fig.text(0.035 + _poster_flag(fig, meta.get("country"), 0.035, 0.893, 0.42), 0.893, subtitle,
+                 color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
+        fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11, fontproperties=FP_BODY_SB)
+        fig.add_artist(plt.Line2D([0.033, 0.965], [0.872, 0.872], transform=fig.transFigure, color=GRID, lw=1.0))
+
+    # ── constructor standings table ──
+    rc = R["table"]
+    ax = fig.add_axes(rc)
+    ax.set_facecolor(PAPER)
+    ax.axis("off")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.012, "Constructors' Standings")
+    N = min(10, len(crows))
+    h = 1.0 / N
+    for i in range(N):
+        c = crows[i]
+        y = 1 - (i + 0.5) * h
+        col = team_color(c["name"])
+        ax.add_patch(plt.Rectangle((0.0, y - h / 2 + 0.004), 0.014, h - 0.008, color=col, zorder=3))
+        lead = i == 0
+        ax.text(0.055, y, str(i + 1), ha="right", va="center", fontproperties=FP_MONO_B,
+                fontsize=11, color=GOLD if lead else SUBINK)
+        ax.text(0.085, y, c["name"], ha="left", va="center", fontproperties=FP_BODY_SB,
+                fontsize=11, color=INK)
+        ax.text(0.86, y, _sc_num(c["pts"]), ha="right", va="center", fontproperties=FP_MONO_B,
+                fontsize=12, color=INK)
+        gap = f"{c['wins']}W" if lead else f"−{_sc_num(leader - c['pts'])}"
+        ax.text(0.995, y, gap, ha="right", va="center", fontproperties=FP_MONO, fontsize=8.5, color=SUBINK)
+        if i < N - 1:
+            ax.plot([0.0, 1.0], [y - h / 2, y - h / 2], color=GRID, lw=0.6, zorder=1)
+
+    # ── driver contribution split ──
+    rc = R["contrib"]
+    ax = fig.add_axes(rc)
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.012, "Who's Scoring · driver split")
+    teams = [c["name"] for c in crows[:N]]
+    for i, name in enumerate(teams):
+        ds = sorted(by_team.get(name, []), key=lambda x: -x[1])
+        base = team_color(name)
+        left = 0.0
+        for j, (code, pts) in enumerate(ds[:2]):
+            colr = base if j == 0 else _lighten(base, 0.5)
+            ax.barh(i, pts, left=left, color=colr, height=0.64, edgecolor=PAPER, linewidth=1.0, zorder=3)
+            if pts >= max(leader * 0.05, 6):
+                ax.text(left + pts / 2, i, f"{code} {int(pts)}", ha="center", va="center",
+                        fontsize=7.5, fontproperties=FP_MONO_B, color="#FFFFFF", zorder=5)
+            left += pts
+    ax.set_yticks(range(len(teams)))
+    ax.set_yticklabels(teams, fontproperties=FP_BODY_B, color=INK, fontsize=8.5)
+    ax.set_ylim(-0.7, len(teams) - 0.3)
+    ax.invert_yaxis()
+    ax.grid(axis="x", color=GRID, linewidth=0.9)
+    ax.grid(axis="y", linewidth=0)
+    _ra_axstyle(ax, "Points", None)
+
+    return fig_png(fig)
+
+
 CHARTS = [
     ("race_analysis", "Race Analysis", "The whole race story — strategy, pits, passes and pace on one board", chart_race_analysis),
     ("championship", "Championship", "The title fight so far — standings and points progression", chart_championship),
+    ("constructors", "Constructor Season", "The team battle — standings and which driver is scoring", chart_constructors),
     ("driver_compare", "Head to Head", "Two drivers' fastest laps — sector deltas, time gain/loss, speed, throttle and gears", chart_driver_compare),
     ("season_scorecard", "Season Scorecard", "Two drivers across the season so far — stats, race & quali H2H, form and points", chart_season_scorecard),
     ("position_changes", "Position Changes", "Track position through the race", chart_position_changes),

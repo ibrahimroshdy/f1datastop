@@ -14,6 +14,12 @@ Geist / Geist Mono). Every image carries the race-country flag + `@F1DataStop`.
 | `race_analysis` | whole race on one board — result cluster · position evolution (pit ticks, SC/VSC, fastest-lap star, DNF) · tyre strategy · places gained/lost · **real** on-track passes · **undercut scorecard** · gap to leader | per race | no (whole field) |
 | `driver_compare` | 2 drivers' fastest laps — lap + sector deltas · time gain/loss track map · speed dominance · speed · cumulative gap · throttle/brake · gears | per race | **yes (pick 2)** |
 | `season_scorecard` | 2 drivers across the season so far — stat cluster · race + quali H2H · finishing form · points progression | season-to-date | **yes (pick 2)** |
+| `championship` | the title fight — drivers' standings + points-progression curves for the leaders | season-to-date | no (whole field) |
+| `constructors` | the team battle — constructors' standings + driver-contribution split (who's scoring) | season-to-date | no (whole field) |
+
+The four season/championship boards (`season_scorecard`, `championship`, `constructors`)
+are **warehouse-backed** — they read the standings/results RPCs, not the FastF1
+session, so they need `SUPABASE_URL` + a read key even with `--no-upload` (see below).
 
 Plus **18 single-topic charts** (position_changes, tyre_strategy, gap_to_leader,
 lap_evolution, race_strategy, teammate_pace, teammate_laps, top_speed, driver_radar,
