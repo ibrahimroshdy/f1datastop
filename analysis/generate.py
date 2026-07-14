@@ -2781,9 +2781,269 @@ def chart_driver_compare(session, meta):
     return fig_png(fig)
 
 
+# ── Season Scorecard — two drivers across the season so far (warehouse-backed) ─
+def _sb_read_key():
+    return (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
+            or os.environ.get("SUPABASE_PUBLISHABLE_KEY"))
+
+
+def _wh_driver_by_code(code):
+    url = os.environ.get("SUPABASE_URL")
+    key = _sb_read_key()
+    if not (url and key):
+        return None
+    try:
+        r = requests.get(f"{url.rstrip('/')}/rest/v1/f1_driver",
+                         headers={"apikey": key, "Authorization": f"Bearer {key}"},
+                         params={"code": f"eq.{code.upper()}", "limit": "1",
+                                 "select": "ergast_id,given_name,family_name,code,nationality,headshot_url"},
+                         timeout=20)
+        if not r.ok:
+            return None
+        rows = r.json()
+        return rows[0] if rows else None
+    except Exception:
+        return None
+
+
+def _wh_season_results(season, ergast_id):
+    url = os.environ.get("SUPABASE_URL")
+    key = _sb_read_key()
+    if not (url and key):
+        return None
+    try:
+        r = requests.post(f"{url.rstrip('/')}/rest/v1/rpc/get_driver_season_results",
+                          headers={"apikey": key, "Authorization": f"Bearer {key}",
+                                   "Content-Type": "application/json"},
+                          json={"p_season": int(season), "p_driver_id": ergast_id}, timeout=25)
+        if not r.ok:
+            return None
+        rows = r.json()
+        return rows if isinstance(rows, list) else None
+    except Exception:
+        return None
+
+
+def _sc_pos(v):
+    try:
+        return int(str(v))
+    except (TypeError, ValueError):
+        return None
+
+
+def _sc_num(x):
+    f = float(x)
+    return str(int(f)) if f == int(f) else f"{f:.1f}"
+
+
+def _sc_summary(rows, upto):
+    """Reduce a driver's season rows (<= upto round) into scorecard stats + series."""
+    rows = sorted((r for r in rows if (r.get("round") or 0) <= upto), key=lambda r: r["round"])
+    pts = wins = podiums = dnfs = 0
+    finishes, grids, cum, by_round, series = [], [], 0.0, {}, []
+    for r in rows:
+        rnd = int(r["round"])
+        pos = _sc_pos(r.get("position"))
+        dnf = bool(r.get("is_dnf"))
+        p = float(r.get("points") or 0)
+        pts += p
+        cum += p
+        series.append((rnd, cum))
+        if dnf:
+            dnfs += 1
+        if pos and not dnf:
+            finishes.append(pos)
+            if pos == 1:
+                wins += 1
+            if pos <= 3:
+                podiums += 1
+        g = r.get("grid")
+        if g and int(g) > 0:
+            grids.append(int(g))
+        by_round[rnd] = {"pos": pos, "dnf": dnf, "quali": r.get("quali_position"), "grid": g}
+    team = rows[-1].get("constructor") if rows else None
+    return {
+        "points": pts, "wins": wins, "podiums": podiums, "dnfs": dnfs,
+        "avg_finish": (sum(finishes) / len(finishes)) if finishes else None,
+        "avg_grid": (sum(grids) / len(grids)) if grids else None,
+        "best": min(finishes) if finishes else None,
+        "by_round": by_round, "series": series,
+        "finishes": [(r, by_round[r]["pos"]) for r in sorted(by_round) if by_round[r]["pos"] and not by_round[r]["dnf"]],
+        "team": team,
+    }
+
+
+def chart_season_scorecard(session, meta):
+    """Two drivers head-to-head across the season so far (up to this round): season
+    stats, race + qualifying H2H, finishing-position form and points progression.
+    Warehouse-backed (ignores the loaded session). 16:9 only; driver-picked."""
+    if FMT not in ("landscape", "twitter"):
+        return None
+    if not DRIVERS or len(DRIVERS) < 2:
+        return None
+    season = int(meta.get("year"))
+    upto = int(meta.get("round") or 99)
+    codes = sorted(DRIVERS)[:2]
+    infos = [_wh_driver_by_code(c) for c in codes]
+    if not all(infos):
+        return None
+    results = [_wh_season_results(season, d["ergast_id"]) for d in infos]
+    if not all(results) or any(len(r) == 0 for r in results):
+        return None
+    SA, SB = _sc_summary(results[0], upto), _sc_summary(results[1], upto)
+    # lead driver (more points) first, so the primary colour carries the story
+    if (SB["points"] or 0) > (SA["points"] or 0):
+        SA, SB, infos = SB, SA, [infos[1], infos[0]]
+    A = infos[0].get("code") or codes[0]
+    B = infos[1].get("code") or codes[1]
+    colA, colB = team_color(SA["team"]), team_color(SB["team"])
+    if colA == colB:
+        colB = _lighten(colA, 0.55)
+
+    # head-to-head tallies over the rounds both contested
+    common = sorted(set(SA["by_round"]) & set(SB["by_round"]))
+    ra, rb, qa, qb, race_win = 0, 0, 0, 0, []
+    for rnd in common:
+        a, b = SA["by_round"][rnd], SB["by_round"][rnd]
+        ap = a["pos"] if (a["pos"] and not a["dnf"]) else 99
+        bp = b["pos"] if (b["pos"] and not b["dnf"]) else 99
+        if ap < bp:
+            ra += 1; race_win.append(True)
+        elif bp < ap:
+            rb += 1; race_win.append(False)
+        else:
+            race_win.append(None)
+        aq = a["quali"] or a["grid"] or 99
+        bq = b["quali"] or b["grid"] or 99
+        if aq < bq:
+            qa += 1
+        elif bq < aq:
+            qb += 1
+
+    fig = plt.figure(figsize=(16, 9), dpi=200)
+    fig.patch.set_facecolor(PAPER)
+    fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
+    fig.text(0.035, 0.958, "   ".join("SEASON SCORECARD"), color=RED, fontsize=11,
+             fontproperties=FP_MONO_B, va="center")
+    fig.text(0.034, 0.926, f"{A}  vs  {B}", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
+    thru = meta.get("event", "")
+    fig.text(0.035, 0.893, f"{season} · through round {upto}"
+             + (f" · {thru}" if thru else ""), color=SUBINK, fontsize=10,
+             fontproperties=FP_BODY, va="center")
+    fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
+             fontproperties=FP_BODY_SB)
+    for d, col, xx in ((infos[0], colA, 0.885), (infos[1], colB, 0.945)):
+        disc = headshot_disc(d.get("headshot_url"), col, size=120)
+        if disc is not None:
+            fig.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.19), (xx, 0.918),
+                           xycoords="figure fraction", frameon=False, zorder=12))
+        else:
+            fig.add_artist(plt.Rectangle((xx - 0.012, 0.905), 0.024, 0.026,
+                           transform=fig.transFigure, color=col, zorder=12))
+    fig.add_artist(plt.Line2D([0.033, 0.855], [0.872, 0.872], transform=fig.transFigure,
+                              color=GRID, lw=1.0))
+
+    # ── season stat cluster (left) ──
+    ax = fig.add_axes([0.035, 0.09, 0.265, 0.72])
+    ax.set_facecolor(PAPER)
+    ax.axis("off")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    _ra_ptitle(fig, 0.035, 0.09 + 0.72 + 0.014, "Season So Far")
+    metrics = [
+        ("Points", SA["points"], SB["points"], "hi"),
+        ("Wins", SA["wins"], SB["wins"], "hi"),
+        ("Podiums", SA["podiums"], SB["podiums"], "hi"),
+        ("Best finish", SA["best"], SB["best"], "lo"),
+        ("Avg finish", SA["avg_finish"], SB["avg_finish"], "lo"),
+        ("Avg grid", SA["avg_grid"], SB["avg_grid"], "lo"),
+        ("DNFs", SA["dnfs"], SB["dnfs"], "lo"),
+    ]
+    n = len(metrics)
+    for i, (lab, av, bv, better) in enumerate(metrics):
+        y = 1 - (i + 0.5) / n
+        awin = bwin = False
+        if av is not None and bv is not None and av != bv:
+            awin = (av > bv) if better == "hi" else (av < bv)
+            bwin = not awin
+        astr = "—" if av is None else (_sc_num(av) if lab in ("Points",) or isinstance(av, float) else str(av))
+        bstr = "—" if bv is None else (_sc_num(bv) if lab in ("Points",) or isinstance(bv, float) else str(bv))
+        ax.text(0.02, y, astr, ha="left", va="center", fontproperties=FP_MONO_B,
+                fontsize=13.5 if awin else 12, color=colA if awin else SUBINK)
+        ax.text(0.5, y, lab, ha="center", va="center", fontproperties=FP_BODY, fontsize=9.5, color=SUBINK)
+        ax.text(0.98, y, bstr, ha="right", va="center", fontproperties=FP_MONO_B,
+                fontsize=13.5 if bwin else 12, color=colB if bwin else SUBINK)
+        if i < n - 1:
+            ax.plot([0.03, 0.97], [1 - (i + 1) / n, 1 - (i + 1) / n], color=GRID, lw=0.8)
+
+    # ── race / qualifying H2H strips (centre) ──
+    def h2h_panel(rect, title, aAhead, bAhead, wins_seq):
+        ax = fig.add_axes(rect)
+        ax.set_facecolor(PAPER)
+        ax.axis("off")
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        _ra_ptitle(fig, rect[0], rect[1] + rect[3] + 0.014, title)
+        ax.text(0.34, 0.78, str(aAhead), ha="center", va="center", color=colA, fontsize=34,
+                fontproperties=FP_TITLE)
+        ax.text(0.5, 0.78, "–", ha="center", va="center", color=SUBINK, fontsize=22, fontproperties=FP_TITLE_M)
+        ax.text(0.66, 0.78, str(bAhead), ha="center", va="center", color=colB, fontsize=34,
+                fontproperties=FP_TITLE)
+        ax.text(0.5, 0.55, "rounds ahead", ha="center", va="center", color=SUBINK, fontsize=8.5,
+                fontproperties=FP_MONO_B)
+        if wins_seq:
+            m = len(wins_seq)
+            w = 0.86 / m
+            for i, won in enumerate(wins_seq):
+                x = 0.07 + 0.86 * i / m
+                col = GRID if won is None else (colA if won else colB)
+                ax.add_patch(plt.Rectangle((x, 0.18), w * 0.82, 0.20, color=col, zorder=3))
+        return ax
+
+    h2h_panel([0.34, 0.52, 0.30, 0.29], "Race · Head to Head", ra, rb, race_win)
+    h2h_panel([0.34, 0.09, 0.30, 0.29], "Qualifying · Head to Head", qa, qb, None)
+
+    # ── finishing position by round (right-top) ──
+    ax = fig.add_axes([0.68, 0.52, 0.285, 0.29])
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, 0.68, 0.52 + 0.29 + 0.014, "Finishing Position")
+    maxpos = 1
+    for S, col, ls in ((SA, colA, "-"), (SB, colB, (0, (5, 2)))):
+        if S["finishes"]:
+            xs = [r for r, _ in S["finishes"]]
+            ys = [p for _, p in S["finishes"]]
+            maxpos = max(maxpos, max(ys))
+            ax.plot(xs, ys, color=col, lw=1.5, ls=ls, marker="o", ms=3.5, solid_capstyle="round")
+    ax.set_ylim(maxpos + 0.6, 0.4)
+    ax.grid(axis="y", color=GRID, linewidth=0.9)
+    _ra_axstyle(ax, "Round", "Finish")
+
+    # ── points progression (right-bottom) ──
+    ax = fig.add_axes([0.68, 0.09, 0.285, 0.29])
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, 0.68, 0.09 + 0.29 + 0.014, "Points Progression")
+    for S, col, ls in ((SA, colA, "-"), (SB, colB, (0, (5, 2)))):
+        if S["series"]:
+            xs = [r for r, _ in S["series"]]
+            ys = [c for _, c in S["series"]]
+            ax.plot(xs, ys, color=col, lw=1.6, ls=ls, solid_capstyle="round")
+    ax.grid(axis="y", color=GRID, linewidth=0.9)
+    _ra_axstyle(ax, "Round", "Points")
+
+    for i, (code, col, dash) in enumerate(((A, colA, "solid"), (B, colB, "dashed"))):
+        yk = 0.930 - i * 0.026
+        fig.add_artist(plt.Line2D([0.605, 0.635], [yk, yk], transform=fig.transFigure, color=col,
+                       lw=2.4, ls="-" if i == 0 else (0, (5, 2)), solid_capstyle="round", zorder=11))
+        fig.text(0.645, yk, f"{code} · {dash}", va="center", color=INK, fontsize=9,
+                 fontproperties=FP_BODY_B)
+
+    return fig_png(fig)
+
+
 CHARTS = [
     ("race_analysis", "Race Analysis", "The whole race story — strategy, pits, passes and pace on one board", chart_race_analysis),
     ("driver_compare", "Head to Head", "Two drivers' fastest laps — sector deltas, time gain/loss, speed, throttle and gears", chart_driver_compare),
+    ("season_scorecard", "Season Scorecard", "Two drivers across the season so far — stats, race & quali H2H, form and points", chart_season_scorecard),
     ("position_changes", "Position Changes", "Track position through the race", chart_position_changes),
     ("parallax_stack", "Parallax Stack", "Top-three fastest laps stacked by pace", chart_parallax_stack),
     ("grid_flow", "Qualifying → Grid → Finish", "Driver flow from qualifying to the chequered flag", chart_grid_flow),
