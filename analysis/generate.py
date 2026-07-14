@@ -2605,9 +2605,9 @@ def _cmp_map(ax, nx, ny, seg_cols, base=True):
 def chart_driver_compare(session, meta):
     """Head-to-head fastest-lap telemetry for two drivers: lap-time + sector deltas,
     a time gain/loss track map, speed dominance, speed trace, cumulative delta,
-    throttle/braking and gears. 16:9 only. Drivers = the two fastest of the picked
-    set (--drivers), else the two fastest in the session."""
-    if FMT not in ("landscape", "twitter"):
+    throttle/braking and gears. 16:9 landscape/twitter + a stacked 9:16 story.
+    Drivers = the two fastest of the picked set (--drivers), else the two fastest."""
+    if FMT not in ("landscape", "twitter", "story"):
         return None
     laps = session.laps
     picks = top_drivers_by_pace(laps, 2)
@@ -2655,38 +2655,70 @@ def chart_driver_compare(session, meta):
     half = max(gx.max() - gx.min(), gy.max() - gy.min()) / 2 or 1.0
     nx, ny = (gx - cx0) / half, (gy - cy0) / half
 
-    fig = plt.figure(figsize=(16, 9), dpi=200)
-    fig.patch.set_facecolor(PAPER)
-
-    # ── header: A vs B, headshots, brand ──
-    fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
-    fig.text(0.035, 0.958, "   ".join("HEAD TO HEAD"), color=RED, fontsize=11,
-             fontproperties=FP_MONO_B, va="center")
-    fig.text(0.034, 0.926, f"{A}  vs  {B}", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
-    fig.text(0.035, 0.893, f"{meta.get('event', '')} {meta.get('year', '')} · "
-             f"{meta.get('session_name', 'Race')} · fastest laps", color=SUBINK, fontsize=10,
-             fontproperties=FP_BODY, va="center")
-    fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
-             fontproperties=FP_BODY_SB)
+    tall = FMT == "story"
     look = driver_lookup(session)
-    for code, col, lap, xx in ((A, colA, lapA, 0.885), (B, colB, lapB, 0.945)):
-        disc = headshot_disc((look.get(str(code)) or {}).get("headshot"), col, size=120)
-        if disc is not None:
-            fig.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.19), (xx, 0.918),
-                           xycoords="figure fraction", frameon=False, zorder=12))
-        else:
-            fig.add_artist(plt.Rectangle((xx - 0.012, 0.905), 0.024, 0.026,
-                           transform=fig.transFigure, color=col, zorder=12))
-    fig.add_artist(plt.Line2D([0.033, 0.855], [0.872, 0.872], transform=fig.transFigure,
-                              color=GRID, lw=1.0))
+    subtitle = (f"{meta.get('event', '')} {meta.get('year', '')} · "
+                f"{meta.get('session_name', 'Race')} · fastest laps")
+    if tall:
+        fig = plt.figure(figsize=(10.8, 19.2), dpi=200)
+        fig.patch.set_facecolor(PAPER)
+        R = {
+            "lap": [0.09, 0.800, 0.40, 0.070], "sec": [0.57, 0.792, 0.38, 0.082],
+            "delta": [0.055, 0.545, 0.41, 0.205], "dom": [0.535, 0.545, 0.41, 0.205],
+            "speed": [0.10, 0.410, 0.85, 0.078], "cum": [0.10, 0.285, 0.85, 0.078],
+            "thr": [0.10, 0.160, 0.85, 0.078], "gear": [0.10, 0.035, 0.85, 0.078],
+        }
+        key_xy = (0.55, 0.960)
+        fig.add_artist(plt.Rectangle((0, 0), 0.011, 1, transform=fig.transFigure, color=RED, zorder=10))
+        fig.text(0.06, 0.980, "   ".join("HEAD TO HEAD"), color=RED, fontsize=13,
+                 fontproperties=FP_MONO_B, va="center")
+        fig.text(0.058, 0.962, f"{A}  vs  {B}", color=INK, fontsize=30, fontproperties=FP_TITLE, va="center")
+        fig.text(0.06, 0.948, subtitle, color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
+        fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12,
+                 fontproperties=FP_BODY_SB)
+        for code, col, xx in ((A, colA, 0.79), (B, colB, 0.87)):
+            disc = headshot_disc((look.get(str(code)) or {}).get("headshot"), col, size=120)
+            if disc is not None:
+                fig.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.16), (xx, 0.958),
+                               xycoords="figure fraction", frameon=False, zorder=12))
+        fig.add_artist(plt.Line2D([0.055, 0.945], [0.900, 0.900], transform=fig.transFigure,
+                                  color=GRID, lw=1.0))
+    else:
+        fig = plt.figure(figsize=(16, 9), dpi=200)
+        fig.patch.set_facecolor(PAPER)
+        R = {
+            "lap": [0.035, 0.615, 0.205, 0.205], "sec": [0.035, 0.335, 0.205, 0.195],
+            "delta": [0.265, 0.335, 0.225, 0.485], "dom": [0.515, 0.335, 0.225, 0.485],
+            "speed": [0.775, 0.615, 0.19, 0.205], "cum": [0.775, 0.335, 0.19, 0.195],
+            "thr": [0.035, 0.072, 0.45, 0.175], "gear": [0.515, 0.072, 0.45, 0.175],
+        }
+        key_xy = (0.605, 0.930)
+        fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
+        fig.text(0.035, 0.958, "   ".join("HEAD TO HEAD"), color=RED, fontsize=11,
+                 fontproperties=FP_MONO_B, va="center")
+        fig.text(0.034, 0.926, f"{A}  vs  {B}", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
+        fig.text(0.035, 0.893, subtitle, color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
+        fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
+                 fontproperties=FP_BODY_SB)
+        for code, col, xx in ((A, colA, 0.885), (B, colB, 0.945)):
+            disc = headshot_disc((look.get(str(code)) or {}).get("headshot"), col, size=120)
+            if disc is not None:
+                fig.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.19), (xx, 0.918),
+                               xycoords="figure fraction", frameon=False, zorder=12))
+            else:
+                fig.add_artist(plt.Rectangle((xx - 0.012, 0.905), 0.024, 0.026,
+                               transform=fig.transFigure, color=col, zorder=12))
+        fig.add_artist(plt.Line2D([0.033, 0.855], [0.872, 0.872], transform=fig.transFigure,
+                                  color=GRID, lw=1.0))
 
-    def col_faster_at(better_a):
-        return np.where(better_a, np.array(colA), np.array(colB))
+    def add_panel(rect, title):
+        ax = fig.add_axes(rect)
+        ax.set_facecolor(PAPER)
+        _ra_ptitle(fig, rect[0], rect[1] + rect[3] + 0.012, title)
+        return ax
 
-    # ── lap-time comparison (top-left) ──
-    ax = fig.add_axes([0.035, 0.615, 0.205, 0.205])
-    ax.set_facecolor(PAPER)
-    _ra_ptitle(fig, 0.035, 0.615 + 0.205 + 0.012, "Lap Time")
+    # ── lap-time comparison ──
+    ax = add_panel(R["lap"], "Lap Time")
     ax.barh([1, 0], [sA, sB], color=[colA, colB], height=0.62, edgecolor=PAPER, linewidth=1.0, zorder=3)
     lo, hi = min(sA, sB), max(sA, sB)
     ax.set_xlim(lo - 0.55, hi + 0.18)
@@ -2701,10 +2733,8 @@ def chart_driver_compare(session, meta):
     ax.grid(axis="x", color=GRID, linewidth=0.9)
     _ra_axstyle(ax, "Lap time (s)", None)
 
-    # ── sector deltas (mid-left) ──
-    ax = fig.add_axes([0.035, 0.335, 0.205, 0.195])
-    ax.set_facecolor(PAPER)
-    _ra_ptitle(fig, 0.035, 0.335 + 0.195 + 0.012, "Sector Delta")
+    # ── sector deltas ──
+    ax = add_panel(R["sec"], "Sector Delta")
     secs, cols, labs = [], [], []
     for i, key in enumerate(("Sector1Time", "Sector2Time", "Sector3Time")):
         try:
@@ -2732,10 +2762,8 @@ def chart_driver_compare(session, meta):
     else:
         _ra_empty(ax, "No sector data")
 
-    # ── time gain / loss track map (centre) ──
-    ax = fig.add_axes([0.265, 0.335, 0.225, 0.485])
-    ax.set_facecolor(PAPER)
-    _ra_ptitle(fig, 0.265, 0.335 + 0.485 + 0.012, "Time Gain / Loss")
+    # ── time gain / loss track map ──
+    ax = add_panel(R["delta"], "Time Gain / Loss")
     rate = np.gradient(gdelta)     # + => A pulling away (gaining) here
     P = np.column_stack([nx, ny]).reshape(-1, 1, 2)
     segs = np.concatenate([P[:-1], P[1:]], axis=1)
@@ -2760,10 +2788,8 @@ def chart_driver_compare(session, meta):
     ax.text(0.5, -0.072, f"red = {A} gaining · blue = {B} gaining", transform=ax.transAxes,
             ha="center", va="top", fontsize=7.5, fontproperties=FP_BODY, color=SUBINK)
 
-    # ── speed dominance track map (centre-right) ──
-    ax = fig.add_axes([0.515, 0.335, 0.225, 0.485])
-    ax.set_facecolor(PAPER)
-    _ra_ptitle(fig, 0.515, 0.335 + 0.485 + 0.012, "Speed Dominance")
+    # ── speed dominance track map ──
+    ax = add_panel(R["dom"], "Speed Dominance")
     dom = spA >= spB
     seg_cols = [colA if dom[i] else colB for i in range(len(nx) - 1)]
     _cmp_map(ax, nx, ny, seg_cols)
@@ -2771,19 +2797,15 @@ def chart_driver_compare(session, meta):
     ax.text(0.5, -0.02, f"{A} {pctA}%   ·   {B} {100 - pctA}%", transform=ax.transAxes,
             ha="center", va="top", fontsize=9.5, fontproperties=FP_BODY_B, color=SUBINK)
 
-    # ── speed trace (right-top) ──
-    ax = fig.add_axes([0.775, 0.615, 0.19, 0.205])
-    ax.set_facecolor(PAPER)
-    _ra_ptitle(fig, 0.775, 0.615 + 0.205 + 0.012, "Speed")
+    # ── speed trace ──
+    ax = add_panel(R["speed"], "Speed")
     ax.plot(grid, spA, color=colA, lw=1.4)
     ax.plot(grid, spB, color=colB, lw=1.4, ls=(0, (5, 2)))
     ax.grid(axis="y", color=GRID, linewidth=0.9)
     _ra_axstyle(ax, "Distance (m)", "km/h")
 
-    # ── cumulative delta (right-mid) ──
-    ax = fig.add_axes([0.775, 0.335, 0.19, 0.195])
-    ax.set_facecolor(PAPER)
-    _ra_ptitle(fig, 0.775, 0.335 + 0.195 + 0.012, "Cumulative Gap")
+    # ── cumulative delta ──
+    ax = add_panel(R["cum"], "Cumulative Gap")
     ax.axhline(0, color=GRID, lw=1.0)
     ax.plot(grid, gdelta, color=INK, lw=1.4, zorder=4)
     ax.fill_between(grid, 0, gdelta, where=gdelta >= 0, color=colA, alpha=0.30, zorder=2)
@@ -2791,10 +2813,8 @@ def chart_driver_compare(session, meta):
     ax.grid(axis="y", color=GRID, linewidth=0.9)
     _ra_axstyle(ax, "Distance (m)", f"+ = {A} ahead (s)")
 
-    # ── throttle + braking zones (bottom-left) ──
-    ax = fig.add_axes([0.035, 0.072, 0.45, 0.175])
-    ax.set_facecolor(PAPER)
-    _ra_ptitle(fig, 0.035, 0.072 + 0.175 + 0.012, "Throttle · braking zones shaded")
+    # ── throttle + braking zones ──
+    ax = add_panel(R["thr"], "Throttle · braking zones shaded")
     ax.plot(telA["Distance"], telA["Throttle"], color=colA, lw=1.3)
     ax.plot(telB["Distance"], telB["Throttle"], color=colB, lw=1.3, ls=(0, (5, 2)))
     brA = telA["Brake"].astype(float)
@@ -2805,22 +2825,21 @@ def chart_driver_compare(session, meta):
     ax.grid(axis="y", color=GRID, linewidth=0.9)
     _ra_axstyle(ax, "Distance (m)", "Throttle %")
 
-    # ── gear (bottom-right) ──
-    ax = fig.add_axes([0.515, 0.072, 0.45, 0.175])
-    ax.set_facecolor(PAPER)
-    _ra_ptitle(fig, 0.515, 0.072 + 0.175 + 0.012, "Gear")
+    # ── gear ──
+    ax = add_panel(R["gear"], "Gear")
     ax.step(telA["Distance"], telA["nGear"], where="post", color=colA, lw=1.3)
     ax.step(telB["Distance"], telB["nGear"], where="post", color=colB, lw=1.3, ls=(0, (5, 2)))
     ax.set_yticks(range(1, 9))
     ax.grid(axis="y", color=GRID, linewidth=0.9)
     _ra_axstyle(ax, "Distance (m)", "Gear")
 
-    # driver colour key (solid = A, dashed = B) in the header's open middle
+    # driver colour key (solid = A, dashed = B)
+    kx, ky0 = key_xy
     for i, (code, col, dash) in enumerate(((A, colA, "solid"), (B, colB, "dashed"))):
-        yk = 0.930 - i * 0.026
-        fig.add_artist(plt.Line2D([0.605, 0.635], [yk, yk], transform=fig.transFigure, color=col,
+        yk = ky0 - i * 0.026
+        fig.add_artist(plt.Line2D([kx, kx + 0.03], [yk, yk], transform=fig.transFigure, color=col,
                        lw=2.4, ls="-" if i == 0 else (0, (5, 2)), solid_capstyle="round", zorder=11))
-        fig.text(0.645, yk, f"{code} · {dash}", va="center", color=INK, fontsize=9,
+        fig.text(kx + 0.04, yk, f"{code} · {dash}", va="center", color=INK, fontsize=9,
                  fontproperties=FP_BODY_B)
 
     return fig_png(fig)
@@ -2921,8 +2940,8 @@ def _sc_summary(rows, upto):
 def chart_season_scorecard(session, meta):
     """Two drivers head-to-head across the season so far (up to this round): season
     stats, race + qualifying H2H, finishing-position form and points progression.
-    Warehouse-backed (ignores the loaded session). 16:9 only; driver-picked."""
-    if FMT not in ("landscape", "twitter"):
+    Warehouse-backed (ignores the loaded session). 16:9 + a 9:16 story; driver-picked."""
+    if FMT not in ("landscape", "twitter", "story"):
         return None
     if not DRIVERS or len(DRIVERS) < 2:
         return None
@@ -2965,36 +2984,64 @@ def chart_season_scorecard(session, meta):
         elif bq < aq:
             qb += 1
 
-    fig = plt.figure(figsize=(16, 9), dpi=200)
-    fig.patch.set_facecolor(PAPER)
-    fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
-    fig.text(0.035, 0.958, "   ".join("SEASON SCORECARD"), color=RED, fontsize=11,
-             fontproperties=FP_MONO_B, va="center")
-    fig.text(0.034, 0.926, f"{A}  vs  {B}", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
+    tall = FMT == "story"
     thru = meta.get("event", "")
-    fig.text(0.035, 0.893, f"{season} · through round {upto}"
-             + (f" · {thru}" if thru else ""), color=SUBINK, fontsize=10,
-             fontproperties=FP_BODY, va="center")
-    fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
-             fontproperties=FP_BODY_SB)
-    for d, col, xx in ((infos[0], colA, 0.885), (infos[1], colB, 0.945)):
-        disc = headshot_disc(d.get("headshot_url"), col, size=120)
-        if disc is not None:
-            fig.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.19), (xx, 0.918),
-                           xycoords="figure fraction", frameon=False, zorder=12))
-        else:
-            fig.add_artist(plt.Rectangle((xx - 0.012, 0.905), 0.024, 0.026,
-                           transform=fig.transFigure, color=col, zorder=12))
-    fig.add_artist(plt.Line2D([0.033, 0.855], [0.872, 0.872], transform=fig.transFigure,
-                              color=GRID, lw=1.0))
+    subtitle = f"{season} · through round {upto}" + (f" · {thru}" if thru else "")
+    if tall:
+        fig = plt.figure(figsize=(10.8, 19.2), dpi=200)
+        R = {"stats": [0.09, 0.645, 0.84, 0.225], "race": [0.09, 0.490, 0.84, 0.115],
+             "quali": [0.09, 0.340, 0.84, 0.115], "finish": [0.09, 0.190, 0.84, 0.110],
+             "points": [0.09, 0.040, 0.84, 0.110]}
+        key_xy = (0.55, 0.960)
+    else:
+        fig = plt.figure(figsize=(16, 9), dpi=200)
+        R = {"stats": [0.035, 0.09, 0.265, 0.72], "race": [0.34, 0.52, 0.30, 0.29],
+             "quali": [0.34, 0.09, 0.30, 0.29], "finish": [0.68, 0.52, 0.285, 0.29],
+             "points": [0.68, 0.09, 0.285, 0.29]}
+        key_xy = (0.605, 0.930)
+    fig.patch.set_facecolor(PAPER)
+    if tall:
+        fig.add_artist(plt.Rectangle((0, 0), 0.011, 1, transform=fig.transFigure, color=RED, zorder=10))
+        fig.text(0.06, 0.980, "   ".join("SEASON SCORECARD"), color=RED, fontsize=13,
+                 fontproperties=FP_MONO_B, va="center")
+        fig.text(0.058, 0.962, f"{A}  vs  {B}", color=INK, fontsize=30, fontproperties=FP_TITLE, va="center")
+        fig.text(0.06, 0.948, subtitle, color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
+        fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12,
+                 fontproperties=FP_BODY_SB)
+        for d, col, xx in ((infos[0], colA, 0.79), (infos[1], colB, 0.87)):
+            disc = headshot_disc(d.get("headshot_url"), col, size=120)
+            if disc is not None:
+                fig.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.16), (xx, 0.958),
+                               xycoords="figure fraction", frameon=False, zorder=12))
+        fig.add_artist(plt.Line2D([0.055, 0.945], [0.900, 0.900], transform=fig.transFigure,
+                                  color=GRID, lw=1.0))
+    else:
+        fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
+        fig.text(0.035, 0.958, "   ".join("SEASON SCORECARD"), color=RED, fontsize=11,
+                 fontproperties=FP_MONO_B, va="center")
+        fig.text(0.034, 0.926, f"{A}  vs  {B}", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
+        fig.text(0.035, 0.893, subtitle, color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
+        fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
+                 fontproperties=FP_BODY_SB)
+        for d, col, xx in ((infos[0], colA, 0.885), (infos[1], colB, 0.945)):
+            disc = headshot_disc(d.get("headshot_url"), col, size=120)
+            if disc is not None:
+                fig.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.19), (xx, 0.918),
+                               xycoords="figure fraction", frameon=False, zorder=12))
+            else:
+                fig.add_artist(plt.Rectangle((xx - 0.012, 0.905), 0.024, 0.026,
+                               transform=fig.transFigure, color=col, zorder=12))
+        fig.add_artist(plt.Line2D([0.033, 0.855], [0.872, 0.872], transform=fig.transFigure,
+                                  color=GRID, lw=1.0))
 
-    # ── season stat cluster (left) ──
-    ax = fig.add_axes([0.035, 0.09, 0.265, 0.72])
+    # ── season stat cluster ──
+    rc = R["stats"]
+    ax = fig.add_axes(rc)
     ax.set_facecolor(PAPER)
     ax.axis("off")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    _ra_ptitle(fig, 0.035, 0.09 + 0.72 + 0.014, "Season So Far")
+    _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.014, "Season So Far")
     metrics = [
         ("Points", SA["points"], SB["points"], "hi"),
         ("Wins", SA["wins"], SB["wins"], "hi"),
@@ -3045,13 +3092,14 @@ def chart_season_scorecard(session, meta):
                 ax.add_patch(plt.Rectangle((x, 0.18), w * 0.82, 0.20, color=col, zorder=3))
         return ax
 
-    h2h_panel([0.34, 0.52, 0.30, 0.29], "Race · Head to Head", ra, rb, race_win)
-    h2h_panel([0.34, 0.09, 0.30, 0.29], "Qualifying · Head to Head", qa, qb, None)
+    h2h_panel(R["race"], "Race · Head to Head", ra, rb, race_win)
+    h2h_panel(R["quali"], "Qualifying · Head to Head", qa, qb, None)
 
-    # ── finishing position by round (right-top) ──
-    ax = fig.add_axes([0.68, 0.52, 0.285, 0.29])
+    # ── finishing position by round ──
+    rc = R["finish"]
+    ax = fig.add_axes(rc)
     ax.set_facecolor(PAPER)
-    _ra_ptitle(fig, 0.68, 0.52 + 0.29 + 0.014, "Finishing Position")
+    _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.014, "Finishing Position")
     maxpos = 1
     for S, col, ls in ((SA, colA, "-"), (SB, colB, (0, (5, 2)))):
         if S["finishes"]:
@@ -3062,11 +3110,14 @@ def chart_season_scorecard(session, meta):
     ax.set_ylim(maxpos + 0.6, 0.4)
     ax.grid(axis="y", color=GRID, linewidth=0.9)
     _ra_axstyle(ax, "Round", "Finish")
+    if tall:
+        ax.set_xlabel("")   # points panel below repeats the Round axis
 
-    # ── points progression (right-bottom) ──
-    ax = fig.add_axes([0.68, 0.09, 0.285, 0.29])
+    # ── points progression ──
+    rc = R["points"]
+    ax = fig.add_axes(rc)
     ax.set_facecolor(PAPER)
-    _ra_ptitle(fig, 0.68, 0.09 + 0.29 + 0.014, "Points Progression")
+    _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.014, "Points Progression")
     for S, col, ls in ((SA, colA, "-"), (SB, colB, (0, (5, 2)))):
         if S["series"]:
             xs = [r for r, _ in S["series"]]
@@ -3075,11 +3126,12 @@ def chart_season_scorecard(session, meta):
     ax.grid(axis="y", color=GRID, linewidth=0.9)
     _ra_axstyle(ax, "Round", "Points")
 
+    kx, ky0 = key_xy
     for i, (code, col, dash) in enumerate(((A, colA, "solid"), (B, colB, "dashed"))):
-        yk = 0.930 - i * 0.026
-        fig.add_artist(plt.Line2D([0.605, 0.635], [yk, yk], transform=fig.transFigure, color=col,
+        yk = ky0 - i * 0.026
+        fig.add_artist(plt.Line2D([kx, kx + 0.03], [yk, yk], transform=fig.transFigure, color=col,
                        lw=2.4, ls="-" if i == 0 else (0, (5, 2)), solid_capstyle="round", zorder=11))
-        fig.text(0.645, yk, f"{code} · {dash}", va="center", color=INK, fontsize=9,
+        fig.text(kx + 0.04, yk, f"{code} · {dash}", va="center", color=INK, fontsize=9,
                  fontproperties=FP_BODY_B)
 
     return fig_png(fig)
