@@ -2446,8 +2446,33 @@ def _poster_flag(fig, country, x, y, zoom=0.5):
     return 0.026
 
 
+def _compare_team_badge(fig, season, team_a, team_b, x, y, zoom=0.16, gap=0.058):
+    """Team logo(s) for a two-driver header: one logo when both share a team, else
+    both side by side. Falls back to the team name if a logo can't be fetched."""
+    teams = [team_a] if (not team_b or str(team_a) == str(team_b)) else [team_a, team_b]
+    cx = x
+    for t in teams:
+        if not t:
+            continue
+        logo = fetch_team_logo(season, t)
+        if logo is not None:
+            fig.add_artist(AnnotationBbox(OffsetImage(logo, zoom=zoom), (cx, y),
+                           xycoords="figure fraction", frameon=False, box_alignment=(0, 0.5), zorder=12))
+        else:
+            fig.text(cx, y, str(t), va="center", ha="left", color=INK, fontsize=9,
+                     fontproperties=FP_BODY_SB)
+        cx += gap
+
+
 def _ra_result_cells(session, laps):
+    """Result-cluster cells as (label, value, colour, sub, headshot_url|None).
+    Podium + fastest-lap cells carry a driver headshot; LAPS/SC don't."""
     total = int(laps["LapNumber"].max())
+    look = driver_lookup(session)
+
+    def hs(abbr):
+        return (look.get(str(abbr)) or {}).get("headshot")
+
     cells = []
     try:
         res = session.results
@@ -2456,26 +2481,28 @@ def _ra_result_cells(session, laps):
     if res is not None and len(res):
         try:
             win = res.iloc[0]
-            cells.append(("WINNER", str(win.get("Abbreviation", "")), team_color(win.get("TeamName")), None))
+            wa = str(win.get("Abbreviation", ""))
+            cells.append(("WINNER", wa, team_color(win.get("TeamName")), None, hs(wa)))
         except Exception:
             pass
         for pi in (1, 2):
             try:
                 r = res.iloc[pi]
-                cells.append((f"P{pi + 1}", str(r.get("Abbreviation", "")),
-                              team_color(r.get("TeamName")), _fmt_gap(r.get("Time"))))
+                ra = str(r.get("Abbreviation", ""))
+                cells.append((f"P{pi + 1}", ra, team_color(r.get("TeamName")), _fmt_gap(r.get("Time")), hs(ra)))
             except Exception:
                 pass
     try:
         fl = laps.pick_fastest()
         if fl is not None and not (hasattr(fl, "empty") and fl.empty):
             flt = fl["LapTime"].total_seconds() if pd.notna(fl["LapTime"]) else None
-            cells.append(("FASTEST LAP", str(fl["Driver"]), PURPLE, fmt_laptime(flt) if flt else None))
+            fld = str(fl["Driver"])
+            cells.append(("FASTEST LAP", fld, PURPLE, fmt_laptime(flt) if flt else None, hs(fld)))
     except Exception:
         pass
-    cells.append(("LAPS", str(total), INK, None))
+    cells.append(("LAPS", str(total), INK, None, None))
     n_sc = len([p for p in safety_periods(session) if p["kind"] in ("SC", "VSC")])
-    cells.append(("SAFETY CARS", str(n_sc), GOLD if n_sc else SUBINK, None))
+    cells.append(("SAFETY CARS", str(n_sc), GOLD if n_sc else SUBINK, None, None))
     return cells
 
 
@@ -2494,8 +2521,13 @@ def _ra_header(fig, session, laps, meta):
     cells = _ra_result_cells(session, laps)
     x0, x1 = 0.395, 0.955
     step = (x1 - x0) / max(len(cells), 1)
-    for i, (lab, val, col, sub) in enumerate(cells):
+    for i, (lab, val, col, sub, hsu) in enumerate(cells):
         cx = x0 + step * i
+        if hsu:
+            disc = headshot_disc(hsu, col, size=120)
+            if disc is not None:
+                fig.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.09), (cx + 0.013, 0.972),
+                               xycoords="figure fraction", frameon=False, box_alignment=(0.5, 0.5), zorder=12))
         fig.text(cx, 0.945, lab, color=SUBINK, fontsize=7.5, fontproperties=FP_MONO_B, va="center")
         fig.text(cx, 0.912, val, color=col, fontsize=13, fontproperties=FP_BODY_SB, va="center")
         if sub:
@@ -2520,7 +2552,7 @@ def _ra_header_tall(fig, session, laps, meta):
     cells = _ra_result_cells(session, laps)
     x0, x1 = 0.06, 0.94
     step = (x1 - x0) / max(len(cells), 1)
-    for i, (lab, val, col, sub) in enumerate(cells):
+    for i, (lab, val, col, sub, _hs) in enumerate(cells):
         cx = x0 + step * (i + 0.5)
         fig.text(cx, 0.933, lab, color=SUBINK, fontsize=8, fontproperties=FP_MONO_B, va="center", ha="center")
         fig.text(cx, 0.921, val, color=col, fontsize=13.5, fontproperties=FP_BODY_SB, va="center", ha="center")
@@ -2725,6 +2757,9 @@ def chart_driver_compare(session, meta):
                                transform=fig.transFigure, color=col, zorder=12))
         fig.add_artist(plt.Line2D([0.033, 0.855], [0.872, 0.872], transform=fig.transFigure,
                                   color=GRID, lw=1.0))
+
+    _compare_team_badge(fig, meta.get("year"), lapA["Team"], lapB["Team"],
+                        0.06 if tall else 0.30, 0.925 if tall else 0.918, 0.17 if tall else 0.14)
 
     def add_panel(rect, title):
         ax = fig.add_axes(rect)
@@ -3050,6 +3085,9 @@ def chart_season_scorecard(session, meta):
                                transform=fig.transFigure, color=col, zorder=12))
         fig.add_artist(plt.Line2D([0.033, 0.855], [0.872, 0.872], transform=fig.transFigure,
                                   color=GRID, lw=1.0))
+
+    _compare_team_badge(fig, season, SA["team"], SB["team"],
+                        0.06 if tall else 0.30, 0.925 if tall else 0.918, 0.17 if tall else 0.14)
 
     # ── season stat cluster ──
     rc = R["stats"]
