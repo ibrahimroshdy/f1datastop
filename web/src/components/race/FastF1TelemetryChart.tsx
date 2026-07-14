@@ -20,13 +20,6 @@ import {
 } from "@/components/f1";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { chartTheme } from "@/lib/chartTheme";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   useTelemetryIndex,
@@ -130,29 +123,36 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
   return (
     <F1Card variant="default" className="border-0 bg-transparent p-0 shadow-none">
       <F1CardHeader className="px-0 pt-0">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <F1CardTitle className="text-base">Telemetry · fastest laps</F1CardTitle>
-            <F1CardDescription className="text-xs">
-              {isDelta
-                ? pair
-                  ? `Cumulative time gap by distance — + = ${pair.a} ahead of ${pair.b}`
-                  : "Cumulative time gap — pick two drivers"
-                : `${metricMeta.label} by track distance — pick up to ${MAX_DRIVERS} drivers to compare`}
-            </F1CardDescription>
-          </div>
-          <Select value={metric} onValueChange={(v) => setMetric(v as Metric)}>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {METRICS.map((m) => (
-                <SelectItem key={m.key} value={m.key}>
-                  {m.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div>
+          <F1CardTitle className="text-base">Telemetry · fastest laps</F1CardTitle>
+          <F1CardDescription className="text-xs">
+            {isDelta
+              ? pair
+                ? `Cumulative time gap by distance — + = ${pair.a} ahead of ${pair.b}`
+                : "Cumulative time gap — pick two drivers"
+              : `${metricMeta.label} by track distance — pick up to ${MAX_DRIVERS} drivers to compare`}
+          </F1CardDescription>
+        </div>
+
+        {/* metric picker — segmented buttons: one tap, all options visible,
+            touch-friendly. Same grammar as the driver toggles below. */}
+        <div className="mt-3 flex flex-wrap gap-1" role="group" aria-label="Telemetry metric">
+          {METRICS.map((m) => (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => setMetric(m.key)}
+              aria-pressed={metric === m.key}
+              className={cn(
+                "min-h-9 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                metric === m.key
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {m.label}
+            </button>
+          ))}
         </div>
 
         {/* driver toggles — same grammar as the shared DriverSelector */}
