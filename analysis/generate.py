@@ -2435,6 +2435,17 @@ def _ra_gap(ax, session, laps):
     _ra_axstyle(ax, "Lap", "Gap (s)")
 
 
+def _poster_flag(fig, country, x, y, zoom=0.5):
+    """Race-country flag at (x, y) figure-fraction, left-aligned. Returns the x-indent
+    to offset the following text by (0 if no flag was resolved)."""
+    arr = fetch_flag(country)
+    if arr is None:
+        return 0.0
+    fig.add_artist(AnnotationBbox(OffsetImage(arr, zoom=zoom), (x, y), xycoords="figure fraction",
+                   frameon=False, box_alignment=(0, 0.5), zorder=12))
+    return 0.026
+
+
 def _ra_result_cells(session, laps):
     total = int(laps["LapNumber"].max())
     cells = []
@@ -2475,7 +2486,8 @@ def _ra_header(fig, session, laps, meta):
              fontproperties=FP_MONO_B, va="center")
     fig.text(0.034, 0.928, f"{ev} {yr}", color=INK, fontsize=23, fontproperties=FP_TITLE, va="center")
     loc = meta.get("circuit") or meta.get("location") or ""
-    fig.text(0.035, 0.898, f"{loc} · {meta.get('session_name', 'Race')}", color=SUBINK,
+    fdx = _poster_flag(fig, meta.get("country"), 0.035, 0.898, 0.42)
+    fig.text(0.035 + fdx, 0.898, f"{loc} · {meta.get('session_name', 'Race')}", color=SUBINK,
              fontsize=10, fontproperties=FP_BODY, va="center")
     fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
              fontproperties=FP_BODY_SB)
@@ -2500,7 +2512,8 @@ def _ra_header_tall(fig, session, laps, meta):
              fontproperties=FP_MONO_B, va="center")
     fig.text(0.058, 0.962, f"{ev} {yr}", color=INK, fontsize=28, fontproperties=FP_TITLE, va="center")
     loc = meta.get("circuit") or meta.get("location") or ""
-    fig.text(0.06, 0.949, f"{loc} · {meta.get('session_name', 'Race')}", color=SUBINK,
+    fdx = _poster_flag(fig, meta.get("country"), 0.06, 0.949, 0.5)
+    fig.text(0.06 + fdx, 0.949, f"{loc} · {meta.get('session_name', 'Race')}", color=SUBINK,
              fontsize=12, fontproperties=FP_BODY, va="center")
     fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12,
              fontproperties=FP_BODY_SB)
@@ -2673,7 +2686,8 @@ def chart_driver_compare(session, meta):
         fig.text(0.06, 0.980, "   ".join("HEAD TO HEAD"), color=RED, fontsize=13,
                  fontproperties=FP_MONO_B, va="center")
         fig.text(0.058, 0.962, f"{A}  vs  {B}", color=INK, fontsize=30, fontproperties=FP_TITLE, va="center")
-        fig.text(0.06, 0.948, subtitle, color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
+        fig.text(0.06 + _poster_flag(fig, meta.get("country"), 0.06, 0.948, 0.5), 0.948, subtitle,
+                 color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
         fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12,
                  fontproperties=FP_BODY_SB)
         for code, col, xx in ((A, colA, 0.79), (B, colB, 0.87)):
@@ -2697,7 +2711,8 @@ def chart_driver_compare(session, meta):
         fig.text(0.035, 0.958, "   ".join("HEAD TO HEAD"), color=RED, fontsize=11,
                  fontproperties=FP_MONO_B, va="center")
         fig.text(0.034, 0.926, f"{A}  vs  {B}", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
-        fig.text(0.035, 0.893, subtitle, color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
+        fig.text(0.035 + _poster_flag(fig, meta.get("country"), 0.035, 0.893, 0.42), 0.893, subtitle,
+                 color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
         fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
                  fontproperties=FP_BODY_SB)
         for code, col, xx in ((A, colA, 0.885), (B, colB, 0.945)):
@@ -3005,7 +3020,8 @@ def chart_season_scorecard(session, meta):
         fig.text(0.06, 0.980, "   ".join("SEASON SCORECARD"), color=RED, fontsize=13,
                  fontproperties=FP_MONO_B, va="center")
         fig.text(0.058, 0.962, f"{A}  vs  {B}", color=INK, fontsize=30, fontproperties=FP_TITLE, va="center")
-        fig.text(0.06, 0.948, subtitle, color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
+        fig.text(0.06 + _poster_flag(fig, meta.get("country"), 0.06, 0.948, 0.5), 0.948, subtitle,
+                 color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
         fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12,
                  fontproperties=FP_BODY_SB)
         for d, col, xx in ((infos[0], colA, 0.79), (infos[1], colB, 0.87)):
@@ -3020,7 +3036,8 @@ def chart_season_scorecard(session, meta):
         fig.text(0.035, 0.958, "   ".join("SEASON SCORECARD"), color=RED, fontsize=11,
                  fontproperties=FP_MONO_B, va="center")
         fig.text(0.034, 0.926, f"{A}  vs  {B}", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
-        fig.text(0.035, 0.893, subtitle, color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
+        fig.text(0.035 + _poster_flag(fig, meta.get("country"), 0.035, 0.893, 0.42), 0.893, subtitle,
+                 color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
         fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
                  fontproperties=FP_BODY_SB)
         for d, col, xx in ((infos[0], colA, 0.885), (infos[1], colB, 0.945)):
