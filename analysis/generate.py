@@ -2464,6 +2464,22 @@ def _compare_team_badge(fig, season, team_a, team_b, x, y, zoom=0.16, gap=0.058)
         cx += gap
 
 
+def _brand_mark(fig, tall=False):
+    """F1 DataStop wordmark + logo, top-right of a poster header (matches the
+    single-topic charts' title_block branding)."""
+    x = 0.94 if tall else 0.965
+    y = 0.980 if tall else 0.958
+    fs = 12 if tall else 11
+    if _LOGO is not None:
+        fig.add_artist(AnnotationBbox(OffsetImage(_LOGO, zoom=0.15 if tall else 0.13), (x, y),
+                       xycoords="figure fraction", frameon=False, box_alignment=(1, 0.5), zorder=12))
+        fig.text(x - (0.052 if tall else 0.045), y, "F1 DATASTOP", ha="right", va="center",
+                 color=INK, fontsize=fs, fontproperties=FP_BODY_SB)
+    else:
+        fig.text(x, y, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=fs,
+                 fontproperties=FP_BODY_SB)
+
+
 def _ra_result_cells(session, laps):
     """Result-cluster cells as (label, value, colour, sub, headshot_url|None).
     Podium + fastest-lap cells carry a driver headshot; LAPS/SC don't."""
@@ -2516,8 +2532,7 @@ def _ra_header(fig, session, laps, meta):
     fdx = _poster_flag(fig, meta.get("country"), 0.035, 0.898, 0.42)
     fig.text(0.035 + fdx, 0.898, f"{loc} · {meta.get('session_name', 'Race')}", color=SUBINK,
              fontsize=10, fontproperties=FP_BODY, va="center")
-    fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
-             fontproperties=FP_BODY_SB)
+    _brand_mark(fig, False)
     cells = _ra_result_cells(session, laps)
     x0, x1 = 0.395, 0.955
     step = (x1 - x0) / max(len(cells), 1)
@@ -2547,8 +2562,7 @@ def _ra_header_tall(fig, session, laps, meta):
     fdx = _poster_flag(fig, meta.get("country"), 0.06, 0.949, 0.5)
     fig.text(0.06 + fdx, 0.949, f"{loc} · {meta.get('session_name', 'Race')}", color=SUBINK,
              fontsize=12, fontproperties=FP_BODY, va="center")
-    fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12,
-             fontproperties=FP_BODY_SB)
+    _brand_mark(fig, True)
     cells = _ra_result_cells(session, laps)
     x0, x1 = 0.06, 0.94
     step = (x1 - x0) / max(len(cells), 1)
@@ -2720,8 +2734,7 @@ def chart_driver_compare(session, meta):
         fig.text(0.058, 0.962, f"{A}  vs  {B}", color=INK, fontsize=30, fontproperties=FP_TITLE, va="center")
         fig.text(0.06 + _poster_flag(fig, meta.get("country"), 0.06, 0.948, 0.5), 0.948, subtitle,
                  color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
-        fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12,
-                 fontproperties=FP_BODY_SB)
+        _brand_mark(fig, True)
         for code, col, xx in ((A, colA, 0.79), (B, colB, 0.87)):
             disc = headshot_disc((look.get(str(code)) or {}).get("headshot"), col, size=120)
             if disc is not None:
@@ -2745,8 +2758,7 @@ def chart_driver_compare(session, meta):
         fig.text(0.034, 0.926, f"{A}  vs  {B}", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
         fig.text(0.035 + _poster_flag(fig, meta.get("country"), 0.035, 0.893, 0.42), 0.893, subtitle,
                  color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
-        fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
-                 fontproperties=FP_BODY_SB)
+        _brand_mark(fig, False)
         for code, col, xx in ((A, colA, 0.885), (B, colB, 0.945)):
             disc = headshot_disc((look.get(str(code)) or {}).get("headshot"), col, size=120)
             if disc is not None:
@@ -3057,8 +3069,7 @@ def chart_season_scorecard(session, meta):
         fig.text(0.058, 0.962, f"{A}  vs  {B}", color=INK, fontsize=30, fontproperties=FP_TITLE, va="center")
         fig.text(0.06 + _poster_flag(fig, meta.get("country"), 0.06, 0.948, 0.5), 0.948, subtitle,
                  color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
-        fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12,
-                 fontproperties=FP_BODY_SB)
+        _brand_mark(fig, True)
         for d, col, xx in ((infos[0], colA, 0.79), (infos[1], colB, 0.87)):
             disc = headshot_disc(d.get("headshot_url"), col, size=120)
             if disc is not None:
@@ -3073,8 +3084,7 @@ def chart_season_scorecard(session, meta):
         fig.text(0.034, 0.926, f"{A}  vs  {B}", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
         fig.text(0.035 + _poster_flag(fig, meta.get("country"), 0.035, 0.893, 0.42), 0.893, subtitle,
                  color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
-        fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11,
-                 fontproperties=FP_BODY_SB)
+        _brand_mark(fig, False)
         for d, col, xx in ((infos[0], colA, 0.885), (infos[1], colB, 0.945)):
             disc = headshot_disc(d.get("headshot_url"), col, size=120)
             if disc is not None:
@@ -3292,7 +3302,7 @@ def chart_championship(session, meta):
         fig.text(0.058, 0.962, f"{season} Championship", color=INK, fontsize=30, fontproperties=FP_TITLE, va="center")
         fig.text(0.06 + _poster_flag(fig, meta.get("country"), 0.06, 0.948, 0.5), 0.948, subtitle,
                  color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
-        fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12, fontproperties=FP_BODY_SB)
+        _brand_mark(fig, True)
         fig.add_artist(plt.Line2D([0.055, 0.945], [0.900, 0.900], transform=fig.transFigure, color=GRID, lw=1.0))
     else:
         fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
@@ -3300,7 +3310,7 @@ def chart_championship(session, meta):
         fig.text(0.034, 0.926, f"{season} Championship", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
         fig.text(0.035 + _poster_flag(fig, meta.get("country"), 0.035, 0.893, 0.42), 0.893, subtitle,
                  color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
-        fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11, fontproperties=FP_BODY_SB)
+        _brand_mark(fig, False)
         fig.add_artist(plt.Line2D([0.033, 0.965], [0.872, 0.872], transform=fig.transFigure, color=GRID, lw=1.0))
 
     # ── standings table ──
@@ -3425,7 +3435,7 @@ def chart_constructors(session, meta):
         fig.text(0.058, 0.962, f"{season} Constructors", color=INK, fontsize=30, fontproperties=FP_TITLE, va="center")
         fig.text(0.06 + _poster_flag(fig, meta.get("country"), 0.06, 0.948, 0.5), 0.948, subtitle,
                  color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
-        fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12, fontproperties=FP_BODY_SB)
+        _brand_mark(fig, True)
         fig.add_artist(plt.Line2D([0.055, 0.945], [0.900, 0.900], transform=fig.transFigure, color=GRID, lw=1.0))
     else:
         fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
@@ -3433,7 +3443,7 @@ def chart_constructors(session, meta):
         fig.text(0.034, 0.926, f"{season} Constructors", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
         fig.text(0.035 + _poster_flag(fig, meta.get("country"), 0.035, 0.893, 0.42), 0.893, subtitle,
                  color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
-        fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11, fontproperties=FP_BODY_SB)
+        _brand_mark(fig, False)
         fig.add_artist(plt.Line2D([0.033, 0.965], [0.872, 0.872], transform=fig.transFigure, color=GRID, lw=1.0))
 
     # ── constructor standings table ──
@@ -3551,7 +3561,7 @@ def chart_circuit_history(session, meta):
         fig.text(0.058, 0.962, title, color=INK, fontsize=27, fontproperties=FP_TITLE, va="center")
         fig.text(0.06 + _poster_flag(fig, meta.get("country"), 0.06, 0.948, 0.5), 0.948, subtitle,
                  color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
-        fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12, fontproperties=FP_BODY_SB)
+        _brand_mark(fig, True)
         fig.add_artist(plt.Line2D([0.055, 0.945], [0.900, 0.900], transform=fig.transFigure, color=GRID, lw=1.0))
     else:
         fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
@@ -3559,7 +3569,7 @@ def chart_circuit_history(session, meta):
         fig.text(0.034, 0.926, title, color=INK, fontsize=24, fontproperties=FP_TITLE, va="center")
         fig.text(0.035 + _poster_flag(fig, meta.get("country"), 0.035, 0.893, 0.42), 0.893, subtitle,
                  color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
-        fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11, fontproperties=FP_BODY_SB)
+        _brand_mark(fig, False)
         fig.add_artist(plt.Line2D([0.033, 0.965], [0.872, 0.872], transform=fig.transFigure, color=GRID, lw=1.0))
 
     # ── editions timeline ──
