@@ -28,6 +28,7 @@ import {
   getF1PortraitPathForErgastDriverId,
 } from "@/constants/f1DriverPortraitMedia";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
+import PointsProgressionChart from "@/components/standings/PointsProgressionChart";
 
 /** F1-media headshot for a current-grid driver; undefined falls back to initials. */
 const headshotSrc = (driverId?: string): string | undefined => {
@@ -162,6 +163,22 @@ const Standings = () => {
 
   const leaderDriverPts = Number(drivers[0]?.points ?? 0);
   const leaderTeamPts = Number(constructors[0]?.points ?? 0);
+
+  // ── Cumulative points-progression series (top 6) for the interactive charts ──
+  const teamDriverIds: Record<string, string[]> = {};
+  for (const d of drivers) {
+    const tid = normalizeTeamId(d.Constructors[0]?.constructorId || "default");
+    (teamDriverIds[tid] ??= []).push(d.Driver.driverId || d.Driver.code);
+  }
+  const driverSeries = drivers.slice(0, 6).map((d) => ({
+    driverIds: [d.Driver.driverId || d.Driver.code],
+    code: d.Driver.code,
+    color: getTeamHexColor(normalizeTeamId(d.Constructors[0]?.constructorId || "default")),
+  }));
+  const constructorSeries = constructors.slice(0, 6).map((c) => {
+    const tid = normalizeTeamId(c.Constructor?.constructorId || "default");
+    return { driverIds: teamDriverIds[tid] ?? [], code: c.Constructor.name, color: getTeamHexColor(tid) };
+  });
 
   // ── Driver rows — one plate, divide-y, links to /drivers/:id ───────────────
   const driverRows = (
@@ -305,7 +322,15 @@ const Standings = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="drivers" className="mt-4 md:mt-6">
+          <TabsContent value="drivers" className="mt-4 space-y-4 md:mt-6 md:space-y-6">
+            {drivers.length > 0 && (
+              <PointsProgressionChart
+                year={currentSeason}
+                series={driverSeries}
+                title="Championship Progression"
+                subtitle="Cumulative points · top 6 drivers"
+              />
+            )}
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
               <ListHeader
                 icon={<FlagIcon className="h-3 w-3" />}
@@ -324,7 +349,15 @@ const Standings = () => {
             </F1Card>
           </TabsContent>
 
-          <TabsContent value="constructors" className="mt-4 md:mt-6">
+          <TabsContent value="constructors" className="mt-4 space-y-4 md:mt-6 md:space-y-6">
+            {constructors.length > 0 && (
+              <PointsProgressionChart
+                year={currentSeason}
+                series={constructorSeries}
+                title="Constructor Progression"
+                subtitle="Cumulative team points · top 6"
+              />
+            )}
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
               <ListHeader
                 icon={<FlagIcon className="h-3 w-3" />}
