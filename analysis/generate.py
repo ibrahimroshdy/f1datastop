@@ -3173,6 +3173,32 @@ def _wh_driver_standings(season, upto):
         return None
 
 
+def _wh_portraits(codes):
+    """{CODE: F1-media portrait URL} for driver codes, from f1_driver.portrait_path
+    (the 2026 full-body render, cropped to a head by fetch_headshot), else the
+    legacy headshot_url. One batched request."""
+    url = os.environ.get("SUPABASE_URL")
+    key = _sb_read_key()
+    ucodes = sorted({str(c).upper() for c in codes if c})
+    if not (url and key and ucodes):
+        return {}
+    try:
+        r = requests.get(f"{url.rstrip('/')}/rest/v1/f1_driver",
+                         headers={"apikey": key, "Authorization": f"Bearer {key}"},
+                         params={"code": f"in.({','.join(ucodes)})",
+                                 "select": "code,portrait_path,headshot_url"}, timeout=20)
+        if not r.ok:
+            return {}
+        out = {}
+        for row in r.json():
+            pp = row.get("portrait_path")
+            out[row["code"]] = (f"{_MEDIA}/c_fill,w_720/q_auto/common/f1/{pp}"
+                                if pp else row.get("headshot_url"))
+        return out
+    except Exception:
+        return {}
+
+
 def chart_championship(session, meta):
     """The championship after this round: driver standings table + points
     progression for the leaders. Warehouse-backed (ignores the session). Whole
@@ -3248,6 +3274,7 @@ def chart_championship(session, meta):
     ax.set_ylim(0, 1)
     _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.012, "Drivers' Standings")
     N = min(nrows, len(rows))
+    portraits = _wh_portraits([rows[i]["code"] for i in range(N)])
     h = 1.0 / N
     for i in range(N):
         r = rows[i]
@@ -3255,11 +3282,15 @@ def chart_championship(session, meta):
         col = team_color(r["team"])
         ax.add_patch(plt.Rectangle((0.0, y - h / 2 + 0.004), 0.014, h - 0.008, color=col, zorder=3))
         lead = i == 0
-        ax.text(0.055, y, str(i + 1), ha="right", va="center", fontproperties=FP_MONO_B,
+        ax.text(0.05, y, str(i + 1), ha="right", va="center", fontproperties=FP_MONO_B,
                 fontsize=11, color=GOLD if lead else SUBINK)
-        ax.text(0.085, y, r["code"], ha="left", va="center", fontproperties=FP_BODY_SB,
+        disc = headshot_disc(portraits.get(r["code"]), col, size=150)
+        if disc is not None:
+            ax.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.18 if tall else 0.135),
+                          (0.105, y), frameon=False, box_alignment=(0.5, 0.5), zorder=6))
+        ax.text(0.175, y, r["code"], ha="left", va="center", fontproperties=FP_BODY_SB,
                 fontsize=11.5, color=INK)
-        ax.text(0.235, y, r["name"], ha="left", va="center", fontproperties=FP_BODY,
+        ax.text(0.30, y, r["name"], ha="left", va="center", fontproperties=FP_BODY,
                 fontsize=9.5, color=SUBINK)
         tlogo = fetch_team_logo(season, r["team"])
         if tlogo is not None:
@@ -3502,18 +3533,23 @@ def chart_circuit_history(session, meta):
     ax.set_ylim(0, 1)
     _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.012, "Every Edition · winner & pole")
     N = min(nrows, len(eds))
+    portraits = _wh_portraits([eds[i]["winner"] for i in range(N)])
     h = 1.0 / N
     for i in range(N):
         e = eds[i]
         y = 1 - (i + 0.5) * h
         col = team_color(e.get("winner_team"))
         ax.add_patch(plt.Rectangle((0.0, y - h / 2 + 0.004), 0.012, h - 0.008, color=col, zorder=3))
-        ax.text(0.045, y, str(e["season"]), ha="left", va="center", fontproperties=FP_MONO_B,
+        ax.text(0.04, y, str(e["season"]), ha="left", va="center", fontproperties=FP_MONO_B,
                 fontsize=10.5, color=SUBINK)
-        ax.text(0.135, y, e["winner"], ha="left", va="center", fontproperties=FP_BODY_SB,
+        disc = headshot_disc(portraits.get(e["winner"]), col, size=150)
+        if disc is not None:
+            ax.add_artist(AnnotationBbox(OffsetImage(disc, zoom=0.19 if tall else 0.14),
+                          (0.135, y), frameon=False, box_alignment=(0.5, 0.5), zorder=6))
+        ax.text(0.20, y, e["winner"], ha="left", va="center", fontproperties=FP_BODY_SB,
                 fontsize=11, color=INK)
         nm = e.get("winner_name") or ""
-        ax.text(0.235, y, nm, ha="left", va="center", fontproperties=FP_BODY, fontsize=9, color=SUBINK)
+        ax.text(0.305, y, nm, ha="left", va="center", fontproperties=FP_BODY, fontsize=9, color=SUBINK)
         pole = e.get("pole")
         if pole:
             ax.text(0.995, y, f"pole {pole}", ha="right", va="center", fontproperties=FP_MONO,
@@ -3793,9 +3829,11 @@ def main():
                 if args.no_upload:
                     outdir = os.path.join("out", base)
                     os.makedirs(outdir, exist_ok=True)
-                    with open(os.path.join(outdir, f"{ctype}.png"), "wb") as f:
+                    # keep the driver-key suffix locally too, so different --drivers
+                    # sets don't overwrite each other (matches the upload path).
+                    with open(os.path.join(outdir, f"{ctype}{dk}.png"), "wb") as f:
                         f.write(png)
-                    print(f"  - {fmt}/{ctype}: {len(png) // 1024} KB")
+                    print(f"  - {fmt}/{ctype}{dk}: {len(png) // 1024} KB")
                 else:
                     ct = (ctype if fmt == "landscape" else f"{ctype}_{fmt}") + dk
                     public_url = upload_png(path, png)
