@@ -3154,8 +3154,143 @@ def chart_season_scorecard(session, meta):
     return fig_png(fig)
 
 
+# ── Championship Story — the title fight so far (warehouse-backed) ────────────
+def _wh_driver_standings(season, upto):
+    url = os.environ.get("SUPABASE_URL")
+    key = _sb_read_key()
+    if not (url and key):
+        return None
+    try:
+        r = requests.post(f"{url.rstrip('/')}/rest/v1/rpc/get_driver_standings",
+                          headers={"apikey": key, "Authorization": f"Bearer {key}",
+                                   "Content-Type": "application/json"},
+                          json={"p_season": int(season), "p_round": int(upto)}, timeout=25)
+        if not r.ok:
+            return None
+        rows = r.json()
+        return rows if isinstance(rows, list) else None
+    except Exception:
+        return None
+
+
+def chart_championship(session, meta):
+    """The championship after this round: driver standings table + points
+    progression for the leaders. Warehouse-backed (ignores the session). Whole
+    field, not driver-picked. 16:9 + a 9:16 story."""
+    if FMT not in ("landscape", "twitter", "story"):
+        return None
+    season = int(meta.get("year"))
+    upto = int(meta.get("round") or 99)
+    standings = _wh_driver_standings(season, upto)
+    if not standings:
+        return None
+    rows = []
+    for s in standings:
+        drv = s.get("Driver") or {}
+        cons = (s.get("Constructors") or [{}])[0] or {}
+        fam = drv.get("familyName") or ""
+        giv = drv.get("givenName") or ""
+        rows.append({
+            "pts": float(s.get("points") or 0), "wins": int(float(s.get("wins") or 0)),
+            "id": drv.get("driverId"), "code": drv.get("code") or fam[:3].upper(),
+            "name": (f"{giv[:1]}. {fam}").strip(". ") or fam, "team": cons.get("name"),
+        })
+    if not rows:
+        return None
+    leader = rows[0]["pts"]
+
+    # points progression (cumulative race points) for the top drivers
+    prog = []
+    for r in rows[:6]:
+        if not r["id"]:
+            continue
+        res = _wh_season_results(season, r["id"])
+        if res:
+            ser = _sc_summary(res, upto)["series"]
+            if ser:
+                prog.append((r, ser))
+
+    tall = FMT == "story"
+    if tall:
+        fig = plt.figure(figsize=(10.8, 19.2), dpi=200)
+        R = {"table": [0.06, 0.470, 0.88, 0.385], "prog": [0.11, 0.050, 0.83, 0.330]}
+        nrows = 12
+    else:
+        fig = plt.figure(figsize=(16, 9), dpi=200)
+        R = {"table": [0.035, 0.075, 0.415, 0.745], "prog": [0.515, 0.095, 0.455, 0.720]}
+        nrows = 14
+    fig.patch.set_facecolor(PAPER)
+    ex = meta.get("event", "")
+    subtitle = f"through round {upto}" + (f" · {ex}" if ex else "")
+    if tall:
+        fig.add_artist(plt.Rectangle((0, 0), 0.011, 1, transform=fig.transFigure, color=RED, zorder=10))
+        fig.text(0.06, 0.980, "   ".join("CHAMPIONSHIP"), color=RED, fontsize=13, fontproperties=FP_MONO_B, va="center")
+        fig.text(0.058, 0.962, f"{season} Championship", color=INK, fontsize=30, fontproperties=FP_TITLE, va="center")
+        fig.text(0.06 + _poster_flag(fig, meta.get("country"), 0.06, 0.948, 0.5), 0.948, subtitle,
+                 color=SUBINK, fontsize=11, fontproperties=FP_BODY, va="center")
+        fig.text(0.94, 0.980, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=12, fontproperties=FP_BODY_SB)
+        fig.add_artist(plt.Line2D([0.055, 0.945], [0.900, 0.900], transform=fig.transFigure, color=GRID, lw=1.0))
+    else:
+        fig.add_artist(plt.Rectangle((0, 0), 0.007, 1, transform=fig.transFigure, color=RED, zorder=10))
+        fig.text(0.035, 0.958, "   ".join("CHAMPIONSHIP"), color=RED, fontsize=11, fontproperties=FP_MONO_B, va="center")
+        fig.text(0.034, 0.926, f"{season} Championship", color=INK, fontsize=25, fontproperties=FP_TITLE, va="center")
+        fig.text(0.035 + _poster_flag(fig, meta.get("country"), 0.035, 0.893, 0.42), 0.893, subtitle,
+                 color=SUBINK, fontsize=10, fontproperties=FP_BODY, va="center")
+        fig.text(0.965, 0.958, "F1 DATASTOP", ha="right", va="center", color=INK, fontsize=11, fontproperties=FP_BODY_SB)
+        fig.add_artist(plt.Line2D([0.033, 0.965], [0.872, 0.872], transform=fig.transFigure, color=GRID, lw=1.0))
+
+    # ── standings table ──
+    rc = R["table"]
+    ax = fig.add_axes(rc)
+    ax.set_facecolor(PAPER)
+    ax.axis("off")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.012, "Drivers' Standings")
+    N = min(nrows, len(rows))
+    h = 1.0 / N
+    for i in range(N):
+        r = rows[i]
+        y = 1 - (i + 0.5) * h
+        col = team_color(r["team"])
+        ax.add_patch(plt.Rectangle((0.0, y - h / 2 + 0.004), 0.014, h - 0.008, color=col, zorder=3))
+        lead = i == 0
+        ax.text(0.055, y, str(i + 1), ha="right", va="center", fontproperties=FP_MONO_B,
+                fontsize=11, color=GOLD if lead else SUBINK)
+        ax.text(0.085, y, r["code"], ha="left", va="center", fontproperties=FP_BODY_SB,
+                fontsize=11.5, color=INK)
+        ax.text(0.235, y, r["name"], ha="left", va="center", fontproperties=FP_BODY,
+                fontsize=9.5, color=SUBINK)
+        ax.text(0.86, y, _sc_num(r["pts"]), ha="right", va="center", fontproperties=FP_MONO_B,
+                fontsize=12, color=INK if lead else INK)
+        gap = "" if lead else f"−{_sc_num(leader - r['pts'])}"
+        ax.text(0.995, y, gap or f"{r['wins']}W", ha="right", va="center", fontproperties=FP_MONO,
+                fontsize=8.5, color=SUBINK)
+        if i < N - 1:
+            ax.plot([0.0, 1.0], [y - h / 2, y - h / 2], color=GRID, lw=0.6, zorder=1)
+
+    # ── points progression ──
+    rc = R["prog"]
+    ax = fig.add_axes(rc)
+    ax.set_facecolor(PAPER)
+    _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.012, "Points Progression · leaders")
+    for r, ser in prog:
+        xs = [rr for rr, _ in ser]
+        ys = [cc for _, cc in ser]
+        c = team_color(r["team"])
+        ax.plot(xs, ys, color=c, lw=1.8, solid_capstyle="round")
+        if xs:
+            ax.annotate(r["code"], (xs[-1], ys[-1]), xytext=(5, 0), textcoords="offset points",
+                        va="center", ha="left", fontsize=8, fontproperties=FP_BODY_B, color=c)
+    ax.grid(axis="y", color=GRID, linewidth=0.9)
+    _ra_axstyle(ax, "Round", "Points")
+
+    return fig_png(fig)
+
+
 CHARTS = [
     ("race_analysis", "Race Analysis", "The whole race story — strategy, pits, passes and pace on one board", chart_race_analysis),
+    ("championship", "Championship", "The title fight so far — standings and points progression", chart_championship),
     ("driver_compare", "Head to Head", "Two drivers' fastest laps — sector deltas, time gain/loss, speed, throttle and gears", chart_driver_compare),
     ("season_scorecard", "Season Scorecard", "Two drivers across the season so far — stats, race & quali H2H, form and points", chart_season_scorecard),
     ("position_changes", "Position Changes", "Track position through the race", chart_position_changes),
