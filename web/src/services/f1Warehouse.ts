@@ -185,6 +185,14 @@ export interface DbDriverResult {
  * VITE_DB_SERVING_ENABLED flag. Driver results are a durable domain and this is a
  * deliberate targeted cutover; the flag governs the broad, all-domain switch.
  */
+/** A classified finish (Finished / Lapped / "+N Lap(s)") is never a DNF, whatever
+ *  the stored is_dnf flag says — guards against stale/legacy warehouse rows.
+ *  Mirrors the same rule in f1Service + the ingest pipeline. */
+const isClassifiedFinish = (status: string): boolean => {
+  const s = (status ?? "").trim();
+  return s === "Finished" || s === "Lapped" || /^\+\d+\s+Lap/i.test(s);
+};
+
 export async function getDriverSeasonResultsFromDb(
   year: number,
   driverId: string,
@@ -205,7 +213,7 @@ export async function getDriverSeasonResultsFromDb(
     grid: r.grid != null ? Number(r.grid) : undefined,
     qualiPosition: r.quali_position != null ? Number(r.quali_position) : undefined,
     status: (r.status as string) ?? "",
-    isDNF: !!r.is_dnf,
+    isDNF: !!r.is_dnf && !isClassifiedFinish(String(r.status ?? "")),
     points: Number(r.points ?? 0),
     constructor: (r["constructor"] as string) ?? undefined,
   }));
