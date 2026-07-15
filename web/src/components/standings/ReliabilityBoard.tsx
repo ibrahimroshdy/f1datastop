@@ -20,6 +20,7 @@ interface RaceRes {
   isDNF?: boolean;
   status?: string;
   position?: string;
+  points?: number;
 }
 
 const posTone = (p: number) =>
@@ -46,6 +47,7 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
   const { data: seasonRows, isLoading: whLoading } = useSeasonResults(year);
   const { data: fallback, isLoading: falLoading } = useAllDriverResultsBySeason(year);
   const [sortByDnf, setSortByDnf] = useState(false);
+  const [metric, setMetric] = useState<"position" | "points">("position");
   const isLoading = whLoading && falLoading;
 
   // Warehouse first (complete + correct is_dnf); fall back to the Jolpica
@@ -61,6 +63,7 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
           isDNF: r.isDNF,
           status: r.status ?? undefined,
           position: r.position ?? undefined,
+          points: r.points,
         });
       });
       return m;
@@ -93,6 +96,7 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
           teamColor: getTeamHexColor(normalizeTeamId(d.Constructors?.[0]?.constructorId || "default")),
           byRound: new Map(races.map((r) => [Number(r.round), r])),
           dnfs: races.filter((r) => r.isDNF).length,
+          points: races.reduce((s, r) => s + (r.points ?? 0), 0),
           total: races.length,
         };
       })
@@ -106,17 +110,37 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="instrument-label text-muted-foreground">
           {year} · {totalDnfs} DNFs across {rounds.length} rounds
         </span>
-        <button
-          type="button"
-          onClick={() => setSortByDnf((v) => !v)}
-          className="instrument-label text-primary transition-colors hover:text-foreground"
-        >
-          {sortByDnf ? "Championship order" : "Sort by DNFs ↓"}
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1" role="group" aria-label="Cell metric">
+            {(["position", "points"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMetric(m)}
+                aria-pressed={metric === m}
+                className={cn(
+                  "min-h-8 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                  metric === m
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/40 text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {m === "position" ? "Positions" : "Points"}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSortByDnf((v) => !v)}
+            className="instrument-label text-primary transition-colors hover:text-foreground"
+          >
+            {sortByDnf ? "Championship" : "Sort DNFs ↓"}
+          </button>
+        </div>
       </div>
 
       <F1Card className="overflow-hidden p-0">
@@ -136,7 +160,7 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
                   </th>
                 ))}
                 <th className="sticky right-0 z-10 bg-card px-2.5 py-2 text-center">
-                  <span className="instrument-label text-primary">DNF</span>
+                  <span className="instrument-label text-primary">{metric === "points" ? "PTS" : "DNF"}</span>
                 </th>
               </tr>
             </thead>
@@ -178,13 +202,25 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
                         </td>
                       );
                     const pos = Number(res.position);
+                    const pts = Number(res.points ?? 0);
                     return (
                       <td
                         key={r.round}
                         className="px-1.5 py-1.5 text-center"
-                        title={`R${r.round} ${res.raceName ?? ""} — P${res.position}`}
+                        title={`R${r.round} ${res.raceName ?? ""} — P${res.position} · ${pts} pts`}
                       >
-                        <span className={cn("timing text-xs tabular-nums", posTone(pos))}>{res.position}</span>
+                        {metric === "points" ? (
+                          <span
+                            className={cn(
+                              "timing text-xs tabular-nums",
+                              pts >= 15 ? "text-position-gold font-bold" : pts > 0 ? "text-gain" : "text-muted-foreground/50",
+                            )}
+                          >
+                            {pts}
+                          </span>
+                        ) : (
+                          <span className={cn("timing text-xs tabular-nums", posTone(pos))}>{res.position}</span>
+                        )}
                       </td>
                     );
                   })}
@@ -192,10 +228,10 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
                     <span
                       className={cn(
                         "readout text-sm font-bold tabular-nums",
-                        row.dnfs ? "text-primary" : "text-muted-foreground",
+                        metric === "points" || row.dnfs ? "text-primary" : "text-muted-foreground",
                       )}
                     >
-                      {row.dnfs}
+                      {metric === "points" ? row.points : row.dnfs}
                     </span>
                   </td>
                 </tr>
