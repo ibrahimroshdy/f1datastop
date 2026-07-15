@@ -582,7 +582,8 @@ export const getAllDriverResultsBySeason = async (year: number) => {
         const driverId = result.Driver?.driverId;
         if (!driverId) return;
         const status = result.status || '';
-        const isFinished = status === 'Finished' || status.startsWith('+');
+        // "Lapped" + "+N Lap(s)" are classified finishes, not DNFs (see getDriverResultsBySeason).
+        const isFinished = status === 'Finished' || status === 'Lapped' || status.startsWith('+');
         const isDNF = !isFinished && status !== '';
         if (!byDriver[driverId]) byDriver[driverId] = [];
         byDriver[driverId].push({

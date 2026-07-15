@@ -13,7 +13,7 @@ import {
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { pageShell, pageStack } from "@/lib/layout";
-import { ChevronRight, Flag as FlagIcon, Trophy, Car } from "lucide-react";
+import { ChevronRight, Flag as FlagIcon, Trophy, Car, Wrench } from "lucide-react";
 import { HelmetIcon } from "@/components/common/HelmetIcon";
 import {
   F1Card,
@@ -29,6 +29,7 @@ import {
 } from "@/constants/f1DriverPortraitMedia";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import PointsProgressionChart from "@/components/standings/PointsProgressionChart";
+import ReliabilityBoard from "@/components/standings/ReliabilityBoard";
 
 /** F1-media headshot for a current-grid driver; undefined falls back to initials. */
 const headshotSrc = (driverId?: string): string | undefined => {
@@ -140,7 +141,7 @@ const skeletonPlate = (
 );
 
 const Standings = () => {
-  const [activeTab, setActiveTab] = useUrlTab("tab", ["drivers", "constructors"] as const, "drivers");
+  const [activeTab, setActiveTab] = useUrlTab("tab", ["drivers", "constructors", "reliability"] as const, "drivers");
   const { isGlass } = useTheme();
   const {
     data: driverStandings,
@@ -312,13 +313,16 @@ const Standings = () => {
         />
 
         <Tabs defaultValue="drivers" value={activeTab}
-          onValueChange={(v) => setActiveTab(v as "drivers" | "constructors")} className="w-full">
+          onValueChange={(v) => setActiveTab(v as "drivers" | "constructors" | "reliability")} className="w-full">
           <TabsList className="inline-flex h-auto w-full justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
             <TabsTrigger value="drivers" className={cn(underlineTabTrigger, "inline-flex items-center gap-1.5")}>
               <HelmetIcon className="h-4 w-4" /> Drivers
             </TabsTrigger>
             <TabsTrigger value="constructors" className={cn(underlineTabTrigger, "inline-flex items-center gap-1.5")}>
               <Car className="h-4 w-4" /> Constructors
+            </TabsTrigger>
+            <TabsTrigger value="reliability" className={cn(underlineTabTrigger, "inline-flex items-center gap-1.5")}>
+              <Wrench className="h-4 w-4" /> Reliability
             </TabsTrigger>
           </TabsList>
 
@@ -374,6 +378,10 @@ const Standings = () => {
                 constructorRows
               )}
             </F1Card>
+          </TabsContent>
+
+          <TabsContent value="reliability" className="mt-4 space-y-4 md:mt-6 md:space-y-6">
+            <ReliabilityBoard year={new Date().getFullYear()} drivers={drivers} />
           </TabsContent>
         </Tabs>
       </div>
