@@ -9,8 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
-import { Flag, Loader2 } from "lucide-react";
+import { Flag, Loader2, Star } from "lucide-react";
 import type { RaceContext } from "./RaceAnalysisHeader";
+
+/** Sprint weekends carry a Sprint / SprintQualifying entry in the schedule. */
+const isSprintRace = (r: { Sprint?: unknown; SprintQualifying?: unknown }) =>
+  !!(r.Sprint || r.SprintQualifying);
 
 type RaceScheduleEntry = RaceContext & {
   date: string;
@@ -76,6 +80,13 @@ export function RacePicker({
             <span className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight">
               {raceLabel}
             </span>
+            {isSprintRace(currentRace) && (
+              <Star
+                className="h-3.5 w-3.5 shrink-0 text-position-gold"
+                fill="currentColor"
+                aria-label="Sprint weekend"
+              />
+            )}
             <span className="timing shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
               R{currentRace.round}
             </span>
@@ -124,6 +135,13 @@ export function RacePicker({
                         R{race.round}
                       </span>
                       {race.Circuit?.circuitName || race.raceName}
+                      {isSprintRace(race) && (
+                        <Star
+                          className="h-3 w-3 shrink-0 text-position-gold"
+                          fill="currentColor"
+                          aria-label="Sprint weekend"
+                        />
+                      )}
                     </span>
                   </SelectItem>
                 ))}

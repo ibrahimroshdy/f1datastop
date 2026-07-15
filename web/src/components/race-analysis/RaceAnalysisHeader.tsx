@@ -4,6 +4,9 @@ export type RaceContext = {
   round: string;
   raceName: string;
   Circuit?: { circuitName?: string; Location?: { country?: string } };
+  /** Present on sprint weekends (Ergast/Jolpica). Either key may appear. */
+  Sprint?: unknown;
+  SprintQualifying?: unknown;
 };
 
 interface RaceAnalysisHeaderProps {
