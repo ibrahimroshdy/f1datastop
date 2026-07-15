@@ -290,10 +290,13 @@ export default function DriverComparePanel({
                   return (
                     <div
                       key={a.round}
-                      className="flex min-w-[3.1rem] flex-col items-center rounded-md border border-border/60 px-1.5 py-1"
-                      title={`Round ${a.round}: P${a.isDNF ? "DNF" : a.position} vs P${b.isDNF ? "DNF" : b.position}`}
+                      className="flex min-w-[3.1rem] flex-col items-center gap-0.5 rounded-md border border-border/60 px-1.5 py-1"
+                      title={`Round ${a.round}${a.country ? ` · ${a.country}` : ""}: P${a.isDNF ? "DNF" : a.position} vs P${b.isDNF ? "DNF" : b.position}`}
                     >
-                      <span className="timing text-2xs text-muted-foreground">R{a.round}</span>
+                      {a.country ? (
+                        <CountryFlag country={a.country} size={16} className="shrink-0 rounded-[2px]" />
+                      ) : null}
+                      <span className="timing text-[9px] leading-none text-muted-foreground">R{a.round}</span>
                       <span
                         className="timing text-xs font-semibold tabular-nums"
                         style={{ color: aWon ? driverAColor : bColor }}

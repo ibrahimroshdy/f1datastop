@@ -102,6 +102,20 @@ function resolveDriverFilter(lookup: DriverLookup): {
   return null;
 }
 
+/** Choose the best row when a slug/ergast_id lookup returns duplicates. Prefers
+ *  an exact ergast_id match, then any row with a real ergast_id — this guards
+ *  against dirty warehouse duplicates like `ergast_id="nan"` (which otherwise
+ *  make .maybeSingle() throw on >1 row and 404 the whole page). */
+function pickProfileRow<T extends Record<string, unknown>>(
+  rows: T[] | null | undefined,
+  value: string,
+): T | null {
+  if (!rows || rows.length === 0) return null;
+  const isReal = (r: T) =>
+    typeof r.ergast_id === "string" && r.ergast_id !== "" && r.ergast_id !== "nan";
+  return rows.find((r) => r.ergast_id === value) ?? rows.find(isReal) ?? rows[0];
+}
+
 /** Fetch a driver profile by slug or Ergast id. Returns null when DB is unavailable or not found. */
 export async function getDriverProfile(
   lookup: DriverLookup,
@@ -111,19 +125,23 @@ export async function getDriverProfile(
   const filter = resolveDriverFilter(lookup);
   if (!filter) return null;
 
+  // Match slug OR ergast_id. The warehouse can hold >1 row for a slug (a dirty
+  // `ergast_id="nan"` duplicate exists for Carlos Sainz), so do NOT use
+  // .maybeSingle() — it throws on multiple rows and the page 404s. Fetch the
+  // candidates and pick the best real one.
   const { data, error } = await supabase
     .from("f1_driver_profile")
     .select("*")
     .or(`slug.eq.${filter.value},ergast_id.eq.${filter.value}`)
-    .maybeSingle();
+    .limit(20);
 
   if (error) {
     console.warn("[entityService] getDriverProfile failed:", error.message);
     return null;
   }
 
-  if (!data) return null;
-  return mapDriverProfile(data as Record<string, unknown>);
+  const row = pickProfileRow(data as Record<string, unknown>[] | null, filter.value);
+  return row ? mapDriverProfile(row) : null;
 }
 
 /** Fetch a constructor profile by slug or Ergast id. Returns null when DB is unavailable or not found. */
@@ -139,7 +157,7 @@ export async function getConstructorProfile(
     .from("f1_constructor_profile")
     .select("*")
     .or(`slug.eq.${filter.value},ergast_id.eq.${filter.value}`)
-    .maybeSingle();
+    .limit(20);
 
   if (error) {
     console.warn(
@@ -149,6 +167,6 @@ export async function getConstructorProfile(
     return null;
   }
 
-  if (!data) return null;
-  return mapConstructorProfile(data as Record<string, unknown>);
+  const row = pickProfileRow(data as Record<string, unknown>[] | null, filter.value);
+  return row ? mapConstructorProfile(row) : null;
 }

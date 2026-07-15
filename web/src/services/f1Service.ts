@@ -527,10 +527,13 @@ export const getDriverResultsBySeason = async (year: number, driverId: string) =
       const result = (race.Results || [])[0] || {};
       const status = result.status || '';
       
-      // Determine if this is a DNF (Did Not Finish)
-      // "Finished" means completed, "+X Lap(s)" means finished but lapped
-      // Anything else (Retired, Accident, Collision, Engine, Gearbox, etc.) is a DNF
-      const isFinished = status === 'Finished' || status.startsWith('+');
+      // Determine if this is a DNF (Did Not Finish).
+      // "Finished" = completed; "+X Lap(s)" and "Lapped" = classified finish
+      // (running/classified at the flag, just down laps — e.g. a lapped P11).
+      // Anything else (Retired, Accident, Collision, Did not start, Disqualified,
+      // Withdrawn, Engine, Gearbox, …) is a DNF.
+      const isFinished =
+        status === 'Finished' || status === 'Lapped' || status.startsWith('+');
       const isDNF = !isFinished && status !== '';
       
       return {
