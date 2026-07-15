@@ -48,6 +48,7 @@ docs/superpowers/*
 # FastF1 analysis runtime artifacts
 analysis/out/*
 analysis/.fastf1cache/
+analysis/.fastf1cache venv/
 analysis/.venv/
 analysis/telemetry_out/
 analysis/circuits_out/
