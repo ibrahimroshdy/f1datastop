@@ -1,5 +1,18 @@
 import { useState, useEffect } from 'react';
 import { getSupporterCount, getNextMilestone } from '@/config/supporters';
+import { supabase } from '@/integrations/supabase/client';
+
+// site_supporters isn't in the curated types — an untyped read for the live
+// BuyMeACoffee count (kept current by the bmc-webhook edge function).
+const supportersDb = supabase as unknown as {
+  from: (t: string) => {
+    select: (c: string) => {
+      eq: (k: string, v: number) => {
+        maybeSingle: () => Promise<{ data: { count?: number } | null }>;
+      };
+    };
+  };
+};
 
 interface BuyMeCoffeeWidgetProps {
   size?: 'small' | 'large';
@@ -20,9 +33,21 @@ const BuyMeCoffeeWidget = ({
   const [nextMilestone, setNextMilestone] = useState(getNextMilestone());
 
   useEffect(() => {
-    // Update counts from config
+    // Config is the fallback; the live count (updated by the BMC webhook) wins.
     setSupporterCount(getSupporterCount());
     setNextMilestone(getNextMilestone());
+    let alive = true;
+    supportersDb
+      .from('site_supporters')
+      .select('count')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (alive && typeof data?.count === 'number') setSupporterCount(data.count);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const dimensions = size === 'small' 
