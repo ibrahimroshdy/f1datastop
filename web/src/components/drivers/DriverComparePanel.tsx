@@ -1,17 +1,6 @@
 import { useMemo, useState } from "react";
 import { DriverAvatar } from "@/components/f1";
-import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import CountryFlag from "@/components/common/CountryFlag";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { useDriverResultsBySeason } from "@/hooks/f1";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import {
@@ -98,7 +87,6 @@ export default function DriverComparePanel({
   historyA,
 }: DriverComparePanelProps) {
   const [bId, setBId] = useState<string>("");
-  const [open, setOpen] = useState(false);
 
   const aStanding = useMemo(
     () => standings.find((s) => s.Driver.driverId === driverAId),
@@ -137,55 +125,35 @@ export default function DriverComparePanel({
 
   return (
     <div className="space-y-3">
-      {/* rival picker — searchable, flag + code + team colour */}
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" role="combobox" className="h-10 w-full justify-between sm:max-w-xs">
-            {bStanding ? (
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: bColor }} />
-                <CountryFlag country={bStanding.Driver.nationality ?? ""} size={14} className="shrink-0" />
-                <span className="truncate">{bStanding.Driver.givenName} {bStanding.Driver.familyName}</span>
-                <span className="timing shrink-0 text-2xs text-muted-foreground">{bStanding.Driver.code}</span>
-              </span>
-            ) : (
-              <span className="text-muted-foreground">Compare with a driver…</span>
-            )}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[16rem] p-0" align="start">
-          <Command>
-            <CommandInput placeholder="Search driver…" />
-            <CommandList>
-              <CommandEmpty>No driver found.</CommandEmpty>
-              <CommandGroup>
-                {others.map((s) => {
-                  const col = teamColorOf(s);
-                  const selected = s.Driver.driverId === bId;
-                  return (
-                    <CommandItem
-                      key={s.Driver.driverId}
-                      value={`${s.Driver.givenName} ${s.Driver.familyName} ${s.Driver.code} ${s.Driver.nationality ?? ""}`}
-                      onSelect={() => {
-                        setBId(s.Driver.driverId);
-                        setOpen(false);
-                      }}
-                      className="gap-2"
-                    >
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: col }} />
-                      <CountryFlag country={s.Driver.nationality ?? ""} size={15} className="shrink-0" />
-                      <span className="flex-1 truncate">{s.Driver.givenName} {s.Driver.familyName}</span>
-                      <span className="timing text-2xs text-muted-foreground">{s.Driver.code}</span>
-                      {selected && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+      {/* rival picker — tactile driver chips (flag + code + team colour), no dropdown */}
+      <div>
+        <div className="instrument-label mb-1.5 text-muted-foreground">Compare with</div>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Compare with a driver">
+          {others.map((s) => {
+            const col = teamColorOf(s);
+            const selected = s.Driver.driverId === bId;
+            return (
+              <button
+                key={s.Driver.driverId}
+                type="button"
+                onClick={() => setBId(s.Driver.driverId)}
+                aria-pressed={selected}
+                title={`${s.Driver.givenName} ${s.Driver.familyName}`}
+                className={cn(
+                  "flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 transition-colors",
+                  selected
+                    ? "border-primary bg-primary/10 text-foreground shadow-[0_0_0_1px_hsl(var(--primary)/0.4)]"
+                    : "border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                )}
+                style={{ borderLeft: `3px solid ${col}` }}
+              >
+                <CountryFlag country={s.Driver.nationality ?? ""} size={14} className="shrink-0 rounded-[1px]" />
+                <span className="timing text-xs font-bold tabular-nums">{s.Driver.code}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {bId && bStanding && (
         <>
