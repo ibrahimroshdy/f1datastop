@@ -223,6 +223,44 @@ export async function getDriverSeasonResultsFromDb(
  * Qualifying for one round. Shape matches getRaceQualifying().data:
  *   RaceTable.Races[0]  (object with .QualifyingResults[]).
  */
+export interface SeasonResultRow {
+  round: number;
+  raceName: string;
+  driverId: string;
+  code: string | null;
+  driverName: string;
+  constructorId: string | null;
+  constructor: string | null;
+  country: string | null;
+  position: string | null;
+  isDNF: boolean;
+  status: string | null;
+  points: number;
+}
+
+/** Whole-season results (all drivers × all rounds) from the warehouse — complete
+ *  + correct is_dnf, unlike the lagging Jolpica aggregate. Not gated by the
+ *  serving flag: the Reliability board always wants the full warehouse grid. */
+export async function getSeasonResultsFromDb(year: number): Promise<SeasonResultRow[] | null> {
+  if (!year || !import.meta.env.VITE_SUPABASE_URL) return null;
+  const rows = await rpc<Array<Record<string, unknown>>>("get_season_results", { p_season: year });
+  if (rows == null) return null;
+  return rows.map((r) => ({
+    round: Number(r.round),
+    raceName: (r.race_name as string) ?? "",
+    driverId: String(r.driver_id ?? ""),
+    code: (r.code as string) ?? null,
+    driverName: (r.driver_name as string) ?? "",
+    constructorId: (r.constructor_id as string) ?? null,
+    constructor: (r["constructor"] as string) ?? null,
+    country: (r.country as string) ?? null,
+    position: r.position != null ? String(r.position) : null,
+    isDNF: !!r.is_dnf,
+    status: (r.status as string) ?? null,
+    points: Number(r.points ?? 0),
+  }));
+}
+
 export async function getQualifyingFromDb(
   year: number,
   round: number | string,

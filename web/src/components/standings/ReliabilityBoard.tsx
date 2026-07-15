@@ -1,12 +1,8 @@
 import { useMemo, useState } from "react";
-import { useAllDriverResultsBySeason } from "@/hooks/f1";
+import { useSeasonResults } from "@/hooks/f1";
 import { getTeamHexColor, normalizeTeamId } from "@/components/standings/standingsUtils";
-import {
-  buildF1DriverHeadshotUrl,
-  getF1PortraitPathForErgastDriverId,
-} from "@/constants/f1DriverPortraitMedia";
 import CountryFlag from "@/components/common/CountryFlag";
-import { DriverAvatar, F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
+import { F1Card, F1Skeleton } from "@/components/f1";
 import { cn } from "@/lib/utils";
 
 interface DriverRow {
@@ -22,181 +18,171 @@ interface RaceRes {
   position?: string;
 }
 
-const headshot = (id?: string) => {
-  const p = id ? getF1PortraitPathForErgastDriverId(id) : undefined;
-  return p ? buildF1DriverHeadshotUrl(p) : undefined;
-};
+const posTone = (p: number) =>
+  p === 1
+    ? "text-position-gold font-bold"
+    : p === 2
+      ? "text-position-silver font-bold"
+      : p === 3
+        ? "text-position-bronze font-bold"
+        : "text-foreground";
 
 /**
- * Reliability board — every driver's DNFs for the season, ranked (most first),
- * with the exact races they retired in and a finish rate. Tap driver chips to
- * focus specific drivers. Lapped finishers count as finishes (not DNFs).
+ * Season results matrix — every driver (rows) × every round (columns). Each cell
+ * is the finishing position; DNFs are flagged red so retirements read across the
+ * whole grid at a glance. A DNF total pins to the right. Same grammar as a
+ * standings table, not a chart. Sort by championship order or by DNFs.
  */
 export default function ReliabilityBoard({ year, drivers }: { year: number; drivers: DriverRow[] }) {
-  const { data: allResp, isLoading } = useAllDriverResultsBySeason(year);
-  const byDriver = (allResp?.data ?? {}) as Record<string, RaceRes[]>;
-  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const { data: seasonRows, isLoading } = useSeasonResults(year);
+  const [sortByDnf, setSortByDnf] = useState(false);
 
+  // Group the flat warehouse rows into per-driver race lists.
+  const byDriver = useMemo(() => {
+    const m: Record<string, RaceRes[]> = {};
+    (seasonRows ?? []).forEach((r) => {
+      (m[r.driverId] ??= []).push({
+        round: String(r.round),
+        country: r.country ?? undefined,
+        raceName: r.raceName || undefined,
+        isDNF: r.isDNF,
+        status: r.status ?? undefined,
+        position: r.position ?? undefined,
+      });
+    });
+    return m;
+  }, [seasonRows]);
+
+  // Columns = every round any driver raced, with its country flag.
+  const rounds = useMemo(() => {
+    const map = new Map<number, { country?: string; name?: string }>();
+    Object.values(byDriver).forEach((races) =>
+      races.forEach((r) => {
+        const n = Number(r.round);
+        if (!map.has(n)) map.set(n, { country: r.country, name: r.raceName });
+      }),
+    );
+    return [...map.entries()].sort((a, b) => a[0] - b[0]).map(([round, m]) => ({ round, ...m }));
+  }, [byDriver]);
+
+  // Rows = drivers (championship order by default), each with per-round result.
   const rows = useMemo(() => {
-    return drivers
+    const list = drivers
       .map((d) => {
         const id = d.Driver.driverId || d.Driver.code;
         const races = byDriver[id] ?? [];
-        const dnfRaces = races.filter((r) => r.isDNF);
-        const total = races.length;
-        const dnfs = dnfRaces.length;
         return {
           id,
           code: d.Driver.code,
           name: `${d.Driver.givenName} ${d.Driver.familyName}`,
-          nationality: d.Driver.nationality,
           teamColor: getTeamHexColor(normalizeTeamId(d.Constructors?.[0]?.constructorId || "default")),
-          team: d.Constructors?.[0]?.name ?? "",
-          total,
-          dnfs,
-          finishRate: total ? Math.round(((total - dnfs) / total) * 100) : 0,
-          dnfRaces,
+          byRound: new Map(races.map((r) => [Number(r.round), r])),
+          dnfs: races.filter((r) => r.isDNF).length,
+          total: races.length,
         };
       })
-      .filter((r) => r.total > 0)
-      .filter((r) => picked.size === 0 || picked.has(r.id))
-      .sort((a, b) => b.dnfs - a.dnfs || a.finishRate - b.finishRate);
-  }, [drivers, byDriver, picked]);
+      .filter((r) => r.total > 0);
+    return sortByDnf ? [...list].sort((a, b) => b.dnfs - a.dnfs) : list;
+  }, [drivers, byDriver, sortByDnf]);
 
-  const toggle = (id: string) =>
-    setPicked((p) => {
-      const n = new Set(p);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
+  const totalDnfs = rows.reduce((s, r) => s + r.dnfs, 0);
 
-  const seasonDNFs = rows.reduce((s, r) => s + r.dnfs, 0);
-
-  if (isLoading) return <F1Skeleton variant="card" className="h-64" />;
+  if (isLoading) return <F1Skeleton variant="card" className="h-96" />;
 
   return (
-    <div className="space-y-4">
-      {/* driver filter — pick specific drivers, or leave empty for all */}
-      <div>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <span className="instrument-label text-muted-foreground">
-            {picked.size ? `Focused · ${picked.size}` : `All drivers · ${seasonDNFs} DNFs`}
-          </span>
-          {picked.size ? (
-            <button
-              type="button"
-              onClick={() => setPicked(new Set())}
-              className="instrument-label text-primary transition-colors hover:text-foreground"
-            >
-              Clear ✕
-            </button>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter drivers">
-          {drivers.map((d) => {
-            const id = d.Driver.driverId || d.Driver.code;
-            const active = picked.has(id);
-            const col = getTeamHexColor(normalizeTeamId(d.Constructors?.[0]?.constructorId || "default"));
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => toggle(id)}
-                aria-pressed={active}
-                className={cn(
-                  "min-h-8 shrink-0 rounded-md border px-2 py-1 text-xs font-bold transition-colors",
-                  active
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                )}
-                style={{ borderLeft: `3px solid ${col}` }}
-              >
-                {d.Driver.code}
-              </button>
-            );
-          })}
-        </div>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="instrument-label text-muted-foreground">
+          {year} · {totalDnfs} DNFs across {rounds.length} rounds
+        </span>
+        <button
+          type="button"
+          onClick={() => setSortByDnf((v) => !v)}
+          className="instrument-label text-primary transition-colors hover:text-foreground"
+        >
+          {sortByDnf ? "Championship order" : "Sort by DNFs ↓"}
+        </button>
       </div>
 
-      {/* reliability table */}
       <F1Card className="overflow-hidden p-0">
-        <div className="grid grid-cols-[2rem_1fr_auto] items-center gap-3 border-b border-border px-3 py-2 sm:grid-cols-[2rem_1fr_5rem_4rem_1fr]">
-          <span className="instrument-label text-muted-foreground">#</span>
-          <span className="instrument-label text-muted-foreground">Driver</span>
-          <span className="instrument-label hidden text-right text-muted-foreground sm:block">Finish %</span>
-          <span className="instrument-label text-right text-muted-foreground">DNFs</span>
-          <span className="instrument-label hidden text-muted-foreground sm:block">Retired at</span>
-        </div>
-        <ul className="divide-y divide-border">
-          {rows.map((r, i) => (
-            <li
-              key={r.id}
-              className="grid grid-cols-[2rem_1fr_auto] items-center gap-3 px-3 py-2.5 sm:grid-cols-[2rem_1fr_5rem_4rem_1fr]"
-            >
-              <span className="timing text-sm font-bold tabular-nums text-muted-foreground">{i + 1}</span>
-              <div className="flex min-w-0 items-center gap-2">
-                <DriverAvatar
-                  driverCode={r.code}
-                  driverName={r.name}
-                  teamColor={r.teamColor}
-                  size="sm"
-                  src={headshot(r.id)}
-                  className="shrink-0"
-                />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 truncate text-sm font-semibold">
-                    {r.nationality ? <CountryFlag country={r.nationality} size={13} className="shrink-0 rounded-[1px]" /> : null}
-                    <span className="truncate">{r.name}</span>
-                  </div>
-                  <div className="truncate text-2xs text-muted-foreground">{r.team}</div>
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "readout hidden text-right font-mono text-sm tabular-nums sm:block",
-                  r.finishRate >= 90 ? "text-gain" : r.finishRate < 70 ? "text-loss" : "text-foreground",
-                )}
-              >
-                {r.finishRate}%
-              </span>
-              <span
-                className={cn(
-                  "readout text-right font-mono text-lg font-bold tabular-nums",
-                  r.dnfs === 0 ? "text-muted-foreground" : "text-primary",
-                )}
-              >
-                {r.dnfs}
-              </span>
-              {/* which races they retired in — flags */}
-              <div className="col-span-3 flex flex-wrap gap-1 sm:col-span-1">
-                {r.dnfRaces.length === 0 ? (
-                  <span className="text-2xs text-muted-foreground">—</span>
-                ) : (
-                  r.dnfRaces.map((d) => (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left">
+                  <span className="instrument-label text-muted-foreground">Driver</span>
+                </th>
+                {rounds.map((r) => (
+                  <th key={r.round} className="px-1.5 py-2 text-center align-bottom" title={r.name}>
+                    <div className="flex flex-col items-center gap-0.5">
+                      {r.country ? <CountryFlag country={r.country} size={14} className="rounded-[1px]" /> : null}
+                      <span className="timing text-[9px] text-muted-foreground">R{r.round}</span>
+                    </div>
+                  </th>
+                ))}
+                <th className="sticky right-0 z-10 bg-card px-2.5 py-2 text-center">
+                  <span className="instrument-label text-primary">DNF</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className="border-b border-border/60 hover:bg-muted/30">
+                  <td
+                    className="sticky left-0 z-10 bg-card px-3 py-1.5"
+                    style={{ borderLeft: `3px solid ${row.teamColor}` }}
+                  >
+                    <span className="timing text-xs font-bold">{row.code}</span>
+                  </td>
+                  {rounds.map((r) => {
+                    const res = row.byRound.get(r.round);
+                    if (!res)
+                      return (
+                        <td key={r.round} className="px-1.5 py-1.5 text-center text-2xs text-muted-foreground/40">
+                          ·
+                        </td>
+                      );
+                    if (res.isDNF)
+                      return (
+                        <td
+                          key={r.round}
+                          className="bg-loss/10 px-1.5 py-1.5 text-center"
+                          title={`R${r.round} ${res.raceName ?? ""} — ${res.status ?? "DNF"}`}
+                        >
+                          <span className="timing text-2xs font-bold text-loss">DNF</span>
+                        </td>
+                      );
+                    const pos = Number(res.position);
+                    return (
+                      <td
+                        key={r.round}
+                        className="px-1.5 py-1.5 text-center"
+                        title={`R${r.round} ${res.raceName ?? ""} — P${res.position}`}
+                      >
+                        <span className={cn("timing text-xs tabular-nums", posTone(pos))}>{res.position}</span>
+                      </td>
+                    );
+                  })}
+                  <td className="sticky right-0 z-10 bg-card px-2.5 py-1.5 text-center">
                     <span
-                      key={d.round}
-                      title={`R${d.round} ${d.raceName ?? ""} — ${d.status ?? "DNF"}`}
-                      className="inline-flex items-center gap-0.5 rounded bg-loss/10 px-1 py-0.5"
+                      className={cn(
+                        "readout text-sm font-bold tabular-nums",
+                        row.dnfs ? "text-primary" : "text-muted-foreground",
+                      )}
                     >
-                      {d.country ? <CountryFlag country={d.country} size={12} className="rounded-[1px]" /> : null}
-                      <span className="timing text-[9px] text-muted-foreground">R{d.round}</span>
+                      {row.dnfs}
                     </span>
-                  ))
-                )}
-              </div>
-            </li>
-          ))}
-          {rows.length === 0 && (
-            <li className="px-3 py-8 text-center text-sm text-muted-foreground">No data for this filter.</li>
-          )}
-        </ul>
-        <F1CardContent className="border-t border-border py-2.5">
-          <p className="text-2xs text-muted-foreground">
-            DNF = retirement / did-not-start / disqualified. Lapped finishers count as finishes.
-          </p>
-        </F1CardContent>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </F1Card>
+      <p className="text-2xs text-muted-foreground">
+        Every driver × every round. <span className="font-semibold text-loss">DNF</span> = retirement / did-not-start /
+        disqualified; lapped finishers show their position. Scroll for all races.
+      </p>
     </div>
   );
 }

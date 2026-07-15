@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
+import { getSeasonResultsFromDb } from "@/services/f1Warehouse";
 import { f1Keys } from "@/lib/f1/queryKeys";
 import { defaultRetryConfig } from "./retryConfig";
 
@@ -31,6 +32,18 @@ export const useAllDriverResultsBySeason = (year: number) => {
     queryKey: f1Keys.allDriverResultsBySeason(year),
     queryFn: () => f1Service.getAllDriverResultsBySeason(year),
     staleTime: 1000 * 60 * 60, // 1h
+    enabled: !!year,
+    ...defaultRetryConfig,
+  });
+};
+
+// Whole-season results matrix (all drivers × all rounds) from the warehouse —
+// complete + correct is_dnf (the Jolpica aggregate lags). Powers the Reliability board.
+export const useSeasonResults = (year: number) => {
+  return useQuery({
+    queryKey: ["seasonResults", year],
+    queryFn: () => getSeasonResultsFromDb(year),
+    staleTime: 1000 * 60 * 5, // 5m
     enabled: !!year,
     ...defaultRetryConfig,
   });
