@@ -99,6 +99,20 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
     [series],
   );
 
+  // Teammates share a team colour, so the 2nd (and 3rd) driver of each team gets
+  // a dashed line — keeps the 11 colour-pairs distinguishable with all drivers shown.
+  const dashByCode = useMemo(() => {
+    const seen = new Map<string, number>();
+    const m: Record<string, string | undefined> = {};
+    for (const s of series) {
+      const key = s.constructorId ?? s.code;
+      const idx = seen.get(key) ?? 0;
+      seen.set(key, idx + 1);
+      m[s.code] = idx === 0 ? undefined : idx === 1 ? "5 4" : "2 3";
+    }
+    return m;
+  }, [series]);
+
   const RaceTick = (props: { x?: number; y?: number; payload?: { value?: string | number } }) => {
     const { x, y, payload } = props;
     const d = chartData.find((r) => String(r.round) === String(payload?.value));
@@ -181,10 +195,11 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
                   dataKey={s.code}
                   type="monotone"
                   stroke={s.color}
-                  strokeWidth={2.2}
+                  strokeWidth={1.8}
+                  strokeDasharray={dashByCode[s.code]}
                   filter={SCOPE_GLOW}
                   dot={false}
-                  activeDot={{ r: 5, fill: s.color, stroke: "hsl(var(--card))", strokeWidth: 2 }}
+                  activeDot={{ r: 4, fill: s.color, stroke: "hsl(var(--card))", strokeWidth: 2 }}
                   connectNulls
                 />
               ))}
@@ -192,14 +207,25 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
           </ChartContainer>
         )}
       </F1CardContent>
-      <F1CardFooter className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t-0 pt-0 text-sm">
+      <F1CardFooter className="grid grid-cols-3 gap-x-2 gap-y-1.5 border-t-0 pt-0 sm:grid-cols-4 lg:grid-cols-6">
         {series.map((s) => (
-          <span key={s.code} className="flex items-center gap-1.5">
-            <span className="h-0.5 w-4 rounded-full" style={{ backgroundColor: s.color }} />
+          <span key={s.code} className="flex items-center gap-1.5" title={s.code}>
+            <svg width="14" height="4" className="shrink-0" aria-hidden>
+              <line
+                x1="0"
+                y1="2"
+                x2="14"
+                y2="2"
+                stroke={s.color}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={dashByCode[s.code] ? "3 2" : undefined}
+              />
+            </svg>
             {s.constructorId ? (
-              <TeamLogo constructorId={s.constructorId} size="sm" className="h-4 w-4 shrink-0" />
+              <TeamLogo constructorId={s.constructorId} size="sm" noBackground className="!h-3.5 w-auto shrink-0" />
             ) : null}
-            <span className="timing text-xs font-semibold">{s.code}</span>
+            <span className="timing text-2xs font-semibold">{s.code}</span>
           </span>
         ))}
       </F1CardFooter>

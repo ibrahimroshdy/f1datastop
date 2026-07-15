@@ -171,13 +171,13 @@ const Standings = () => {
     const tid = normalizeTeamId(d.Constructors[0]?.constructorId || "default");
     (teamDriverIds[tid] ??= []).push(d.Driver.driverId || d.Driver.code);
   }
-  const driverSeries = drivers.slice(0, 6).map((d) => ({
+  const driverSeries = drivers.map((d) => ({
     driverIds: [d.Driver.driverId || d.Driver.code],
     code: d.Driver.code,
     color: getTeamHexColor(normalizeTeamId(d.Constructors[0]?.constructorId || "default")),
     constructorId: d.Constructors[0]?.constructorId,
   }));
-  const constructorSeries = constructors.slice(0, 6).map((c) => {
+  const constructorSeries = constructors.map((c) => {
     const tid = normalizeTeamId(c.Constructor?.constructorId || "default");
     return {
       driverIds: teamDriverIds[tid] ?? [],
@@ -338,7 +338,7 @@ const Standings = () => {
                 year={currentSeason}
                 series={driverSeries}
                 title="Championship Progression"
-                subtitle="Cumulative points · top 6 drivers"
+                subtitle="Cumulative points · every driver"
               />
             )}
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
@@ -365,7 +365,7 @@ const Standings = () => {
                 year={currentSeason}
                 series={constructorSeries}
                 title="Constructor Progression"
-                subtitle="Cumulative team points · top 6"
+                subtitle="Cumulative team points · every team"
               />
             )}
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
