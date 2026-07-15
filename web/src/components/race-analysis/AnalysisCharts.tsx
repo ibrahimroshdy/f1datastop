@@ -9,13 +9,7 @@ import {
   type ChartFormat,
 } from "@/services/analysisService";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import {
   F1Card,
   F1CardContent,
@@ -165,19 +159,26 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
         <span className="instrument-label text-muted-foreground">
           {charts.length} chart{charts.length === 1 ? "" : "s"}
         </span>
-        <div className="flex items-center gap-2">
-          <Select value={format} onValueChange={(v) => setFormat(v as ChartFormat)}>
-            <SelectTrigger className="h-10 w-[168px]" aria-label="Export format">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FORMAT_ORDER.filter((f) => formatsAvailable.has(f)).map((f) => (
-                <SelectItem key={f} value={f}>
-                  {FORMATS[f].label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* format picker — segmented buttons (one tap, all formats visible) */}
+          <div className="flex flex-wrap gap-1" role="group" aria-label="Export format">
+            {FORMAT_ORDER.filter((f) => formatsAvailable.has(f)).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFormat(f)}
+                aria-pressed={format === f}
+                className={cn(
+                  "min-h-9 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                  format === f
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {FORMATS[f].label.split("·")[0].trim()}
+              </button>
+            ))}
+          </div>
           <Button
             variant="outline"
             className="min-h-11 gap-1.5"
