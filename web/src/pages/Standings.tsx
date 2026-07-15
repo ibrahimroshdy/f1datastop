@@ -175,10 +175,16 @@ const Standings = () => {
     driverIds: [d.Driver.driverId || d.Driver.code],
     code: d.Driver.code,
     color: getTeamHexColor(normalizeTeamId(d.Constructors[0]?.constructorId || "default")),
+    constructorId: d.Constructors[0]?.constructorId,
   }));
   const constructorSeries = constructors.slice(0, 6).map((c) => {
     const tid = normalizeTeamId(c.Constructor?.constructorId || "default");
-    return { driverIds: teamDriverIds[tid] ?? [], code: c.Constructor.name, color: getTeamHexColor(tid) };
+    return {
+      driverIds: teamDriverIds[tid] ?? [],
+      code: c.Constructor.name,
+      color: getTeamHexColor(tid),
+      constructorId: c.Constructor?.constructorId,
+    };
   });
 
   // ── Driver rows — one plate, divide-y, links to /drivers/:id ───────────────

@@ -4,6 +4,7 @@ import { F1Card, F1CardContent, F1CardFooter, F1CardHeader } from "@/components/
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
 import CountryFlag from "@/components/common/CountryFlag";
+import TeamLogo from "@/components/common/TeamLogo";
 import { useAllDriverResultsBySeason } from "@/hooks/f1";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
@@ -17,6 +18,8 @@ export interface ProgressionSeries {
   /** Short label shown in the legend + tooltip (driver code or team short name). */
   code: string;
   color: string;
+  /** Constructor for the legend's team logo. */
+  constructorId?: string;
 }
 
 interface Props {
@@ -193,6 +196,9 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
         {series.map((s) => (
           <span key={s.code} className="flex items-center gap-1.5">
             <span className="h-0.5 w-4 rounded-full" style={{ backgroundColor: s.color }} />
+            {s.constructorId ? (
+              <TeamLogo constructorId={s.constructorId} size="sm" className="h-4 w-4 shrink-0" />
+            ) : null}
             <span className="timing text-xs font-semibold">{s.code}</span>
           </span>
         ))}

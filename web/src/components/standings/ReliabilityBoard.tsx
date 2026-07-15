@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
-import { useSeasonResults } from "@/hooks/f1";
+import { useSeasonResults, useAllDriverResultsBySeason } from "@/hooks/f1";
 import { getTeamHexColor, normalizeTeamId } from "@/components/standings/standingsUtils";
 import CountryFlag from "@/components/common/CountryFlag";
-import { F1Card, F1Skeleton } from "@/components/f1";
+import { DriverAvatar, F1Card, F1Skeleton } from "@/components/f1";
+import {
+  buildF1DriverHeadshotUrl,
+  getF1PortraitPathForErgastDriverId,
+} from "@/constants/f1DriverPortraitMedia";
 import { cn } from "@/lib/utils";
 
 interface DriverRow {
@@ -27,6 +31,11 @@ const posTone = (p: number) =>
         ? "text-position-bronze font-bold"
         : "text-foreground";
 
+const headshot = (id: string) => {
+  const p = getF1PortraitPathForErgastDriverId(id);
+  return p ? buildF1DriverHeadshotUrl(p) : undefined;
+};
+
 /**
  * Season results matrix — every driver (rows) × every round (columns). Each cell
  * is the finishing position; DNFs are flagged red so retirements read across the
@@ -34,24 +43,30 @@ const posTone = (p: number) =>
  * standings table, not a chart. Sort by championship order or by DNFs.
  */
 export default function ReliabilityBoard({ year, drivers }: { year: number; drivers: DriverRow[] }) {
-  const { data: seasonRows, isLoading } = useSeasonResults(year);
+  const { data: seasonRows, isLoading: whLoading } = useSeasonResults(year);
+  const { data: fallback, isLoading: falLoading } = useAllDriverResultsBySeason(year);
   const [sortByDnf, setSortByDnf] = useState(false);
+  const isLoading = whLoading && falLoading;
 
-  // Group the flat warehouse rows into per-driver race lists.
+  // Warehouse first (complete + correct is_dnf); fall back to the Jolpica
+  // aggregate where the warehouse isn't served (e.g. local dev).
   const byDriver = useMemo(() => {
-    const m: Record<string, RaceRes[]> = {};
-    (seasonRows ?? []).forEach((r) => {
-      (m[r.driverId] ??= []).push({
-        round: String(r.round),
-        country: r.country ?? undefined,
-        raceName: r.raceName || undefined,
-        isDNF: r.isDNF,
-        status: r.status ?? undefined,
-        position: r.position ?? undefined,
+    if (seasonRows && seasonRows.length) {
+      const m: Record<string, RaceRes[]> = {};
+      seasonRows.forEach((r) => {
+        (m[r.driverId] ??= []).push({
+          round: String(r.round),
+          country: r.country ?? undefined,
+          raceName: r.raceName || undefined,
+          isDNF: r.isDNF,
+          status: r.status ?? undefined,
+          position: r.position ?? undefined,
+        });
       });
-    });
-    return m;
-  }, [seasonRows]);
+      return m;
+    }
+    return (fallback?.data ?? {}) as Record<string, RaceRes[]>;
+  }, [seasonRows, fallback]);
 
   // Columns = every round any driver raced, with its country flag.
   const rounds = useMemo(() => {
@@ -129,10 +144,20 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
               {rows.map((row) => (
                 <tr key={row.id} className="border-b border-border/60 hover:bg-muted/30">
                   <td
-                    className="sticky left-0 z-10 bg-card px-3 py-1.5"
+                    className="sticky left-0 z-10 bg-card px-2 py-1"
                     style={{ borderLeft: `3px solid ${row.teamColor}` }}
                   >
-                    <span className="timing text-xs font-bold">{row.code}</span>
+                    <div className="flex items-center gap-1.5">
+                      <DriverAvatar
+                        driverCode={row.code}
+                        driverName={row.name}
+                        teamColor={row.teamColor}
+                        size="xs"
+                        src={headshot(row.id)}
+                        className="shrink-0"
+                      />
+                      <span className="timing text-xs font-bold">{row.code}</span>
+                    </div>
                   </td>
                   {rounds.map((r) => {
                     const res = row.byRound.get(r.round);
