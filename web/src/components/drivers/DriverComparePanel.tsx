@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DriverAvatar } from "@/components/f1";
 import CountryFlag from "@/components/common/CountryFlag";
 import { useDriverResultsBySeason } from "@/hooks/f1";
@@ -86,7 +87,21 @@ export default function DriverComparePanel({
   driverAColor,
   historyA,
 }: DriverComparePanelProps) {
-  const [bId, setBId] = useState<string>("");
+  // Rival selection lives in the URL (?vs=<driverId>) so a comparison is
+  // shareable and survives reload; selecting a chip toggles, Clear removes it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const bId = searchParams.get("vs") ?? "";
+  const setBId = (driverId: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (driverId) next.set("vs", driverId);
+        else next.delete("vs");
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   const aStanding = useMemo(
     () => standings.find((s) => s.Driver.driverId === driverAId),
@@ -125,9 +140,22 @@ export default function DriverComparePanel({
 
   return (
     <div className="space-y-3">
-      {/* rival picker — tactile driver chips (flag + code + team colour), no dropdown */}
+      {/* rival picker — tactile chips; selection is URL-shareable (?vs=) and toggles off */}
       <div>
-        <div className="instrument-label mb-1.5 text-muted-foreground">Compare with</div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <div className="instrument-label text-muted-foreground">
+            {bStanding ? `Comparing vs ${bStanding.Driver.code}` : "Compare with"}
+          </div>
+          {bId ? (
+            <button
+              type="button"
+              onClick={() => setBId("")}
+              className="instrument-label text-primary transition-colors hover:text-foreground"
+            >
+              Clear ✕
+            </button>
+          ) : null}
+        </div>
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Compare with a driver">
           {others.map((s) => {
             const col = teamColorOf(s);
@@ -136,7 +164,7 @@ export default function DriverComparePanel({
               <button
                 key={s.Driver.driverId}
                 type="button"
-                onClick={() => setBId(s.Driver.driverId)}
+                onClick={() => setBId(selected ? "" : s.Driver.driverId)}
                 aria-pressed={selected}
                 title={`${s.Driver.givenName} ${s.Driver.familyName}`}
                 className={cn(
