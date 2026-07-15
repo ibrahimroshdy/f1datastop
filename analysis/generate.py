@@ -3903,9 +3903,13 @@ def main():
                     print(f"  - {fmt}/{ctype}{dk}: {len(png) // 1024} KB")
                 else:
                     ct = (ctype if fmt == "landscape" else f"{ctype}_{fmt}") + dk
+                    # Label a driver/teammate compare by its pair so multiple
+                    # driver_compare cards are distinguishable in Deep Dive.
+                    row_title = (f"{title} · {' vs '.join(sorted(DRIVERS))}"
+                                 if DRIVERS and ctype == "driver_compare" else title)
                     public_url = upload_png(path, png)
                     upsert_index({"season": args.season, "round": rnd, "session": args.session,
-                                  "chart_type": ct, "title": title, "description": desc,
+                                  "chart_type": ct, "title": row_title, "description": desc,
                                   "storage_path": path, "public_url": public_url,
                                   "updated_at": pd.Timestamp.utcnow().isoformat()})
                     print(f"  - {fmt}/{ctype}: uploaded")

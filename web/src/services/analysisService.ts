@@ -43,13 +43,15 @@ export async function getAnalysisCharts(
 export const CHART_FORMATS = ["landscape", "twitter", "instagram", "story"] as const;
 export type ChartFormat = (typeof CHART_FORMATS)[number];
 
-/** Strip a format suffix to get the base chart type (e.g. `top_speed_story` → `top_speed`). */
+/** Strip the format suffix to get the base chart type. Handles a trailing
+ *  driver-pair key (e.g. `driver_compare_story__HAM-LEC` → `driver_compare__HAM-LEC`)
+ *  so teammate compares stay distinct cards with a working format toggle. */
 export function baseChartType(chartType: string): string {
-  return chartType.replace(/_(twitter|instagram|story)$/, "");
+  return chartType.replace(/_(twitter|instagram|story)(?=__|$)/, "");
 }
 
-/** Which format a row belongs to. */
+/** Which format a row belongs to (the format suffix may precede a `__pair` key). */
 export function chartFormatOf(chartType: string): ChartFormat {
-  const m = chartType.match(/_(twitter|instagram|story)$/);
+  const m = chartType.match(/_(twitter|instagram|story)(?=__|$)/);
   return m ? (m[1] as ChartFormat) : "landscape";
 }
