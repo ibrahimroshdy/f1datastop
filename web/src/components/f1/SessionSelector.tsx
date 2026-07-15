@@ -1,4 +1,3 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
@@ -59,23 +58,31 @@ export function SessionSelector({
       {label ? (
         <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
       ) : null}
-      <Select value={selectedSessionKey?.toString() || ""} onValueChange={onSessionChange}>
-        <SelectTrigger
-          className={cn(
-            triggerClassName ?? "w-[180px]",
-            isGlass && "bg-white/5 border-white/10",
-          )}
-        >
-          <SelectValue placeholder="Select session" />
-        </SelectTrigger>
-        <SelectContent>
-          {sessions.map((session) => (
-            <SelectItem key={session.session_key} value={session.session_key.toString()}>
-              {session.session_type}: {session.session_name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* segmented buttons — a race weekend has a small fixed set (R/Q/S),
+          so one-tap pills beat a dropdown. */}
+      <div className="flex flex-wrap gap-1" role="group" aria-label={label || "Session"}>
+        {sessions.map((session) => {
+          const active = selectedSessionKey?.toString() === session.session_key.toString();
+          return (
+            <button
+              key={session.session_key}
+              type="button"
+              onClick={() => onSessionChange(session.session_key.toString())}
+              aria-pressed={active}
+              className={cn(
+                "min-h-9 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                active
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : isGlass
+                    ? "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                    : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {session.session_name}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
