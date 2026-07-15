@@ -121,18 +121,23 @@ def export_session(season, rnd, session_code, drivers=None, upload=True, force=F
     if upload and not force and _already_exported(season, rnd, session_code):
         print(f"  {season} R{rnd} {session_code}: already exported, skip (--force to redo)")
         return []
-    s = fastf1.get_session(season, rnd, session_code)
     try:
+        s = fastf1.get_session(season, rnd, session_code)
         s.load(telemetry=True, weather=False, messages=False)
-    except Exception as e:  # noqa: BLE001 — future/unpublished round: skip, don't crash
-        print(f"  {season} R{rnd} {session_code}: load failed ({e}); skip")
+    except Exception as e:  # noqa: BLE001 — missing session (Sprint on a non-sprint
+        # round), or a future/unpublished/invalid round: skip cleanly, don't crash.
+        print(f"  {season} R{rnd} {session_code}: not available ({e}); skip")
         return []
     res = s.results
     abbr2id = {r.get("Abbreviation"): r.get("DriverId") for _, r in res.iterrows()}
     abbr2team = {r.get("Abbreviation"): r.get("TeamName") for _, r in res.iterrows()}
     abbr2color = {r.get("Abbreviation"): r.get("TeamColor") for _, r in res.iterrows()}
 
-    picks = drivers or list(s.laps["Driver"].dropna().unique())
+    try:
+        picks = drivers or list(s.laps["Driver"].dropna().unique())
+    except Exception:  # noqa: BLE001 — loaded but no lap data (recent/future round)
+        print(f"  {season} R{rnd} {session_code}: no lap data; skip")
+        return []
     written = []
     for drv in picks:
         dl = s.laps.pick_drivers(drv) if hasattr(s.laps, "pick_drivers") else s.laps[s.laps["Driver"] == drv]

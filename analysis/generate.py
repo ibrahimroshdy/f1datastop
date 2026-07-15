@@ -2591,6 +2591,11 @@ def chart_race_analysis(session, meta):
     laps = session.laps
     if laps is None or len(laps) == 0:
         return None
+    # Race board only — qualifying/practice have no race positions, stints, pits
+    # or overtakes, so most panels are meaningless (and the position panel NaNs).
+    sname = str(meta.get("session_name", "")).lower()
+    if "qualif" in sname or "practice" in sname:
+        return None
     panel_defs = [
         ("Position Evolution", lambda ax: _ra_position(ax, session, laps)),
         ("Tyre Strategy", lambda ax: _ra_tyres(ax, session, laps)),
@@ -3831,8 +3836,13 @@ def main():
             return 0
 
     print(f"Loading {args.season} R{rnd} {args.session} ...")
-    session = fastf1.get_session(args.season, rnd, args.session)
-    session.load()
+    try:
+        session = fastf1.get_session(args.season, rnd, args.session)
+        session.load()
+    except Exception as e:
+        # e.g. Sprint on a non-sprint round, or a round that hasn't run yet.
+        print(f"  session {args.session} not available for {args.season} R{rnd} — skipped ({e})")
+        return 0
     init_dynamic_styles(session)
     ev = session.event
     circuit = None

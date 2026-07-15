@@ -84,7 +84,9 @@ def _dnf(status):
     if not status:
         return True
     s = str(status)
-    return not (s == "Finished" or ("Lap" in s and s.startswith("+")))
+    # Classified finishes: "Finished", "Lapped" (classified but ≥1 lap down),
+    # and "+N Lap(s)". Everything else (Retired/Accident/DNS/DSQ/…) is a DNF.
+    return not (s == "Finished" or s == "Lapped" or ("Lap" in s and s.startswith("+")))
 
 
 # ── schedule / sessions / circuits ────────────────────────────────────────────
@@ -148,26 +150,29 @@ def ingest_schedule(season):
 def upsert_entities(session, season):
     drivers, constructors = {}, {}
     for _, r in session.results.iterrows():
-        did = r.get("DriverId")
+        # _s() returns None for pandas NaN / None / "" — critical because a bare
+        # `if did:` passes NaN (float('nan') is truthy) and str(nan) == "nan",
+        # which created a junk ergast_id="nan" driver row (the Sainz 404 bug).
+        did = _s(r.get("DriverId"))
         if did:
             fam = _s(r.get("LastName"))
-            drivers[str(did)] = {
-                "ergast_id": str(did),
+            drivers[did] = {
+                "ergast_id": did,
                 "given_name": _s(r.get("FirstName")), "family_name": fam,
                 "code": _s(r.get("Abbreviation")), "permanent_number": _s(r.get("DriverNumber")),
                 "nationality": _s(r.get("CountryCode")),
                 "headshot_url": _s(r.get("HeadshotUrl")),
-                "slug": _slug(fam or str(did)),
+                "slug": _slug(fam or did),
                 "active_season": season,
             }
-        tid = r.get("TeamId")
+        tid = _s(r.get("TeamId"))
         if tid:
             tc = _s(r.get("TeamColor"))
             nm = _s(r.get("TeamName"))
-            constructors[str(tid)] = {
-                "ergast_id": str(tid), "name": nm,
+            constructors[tid] = {
+                "ergast_id": tid, "name": nm,
                 "team_color_hex": ("#" + tc) if tc and not tc.startswith("#") else tc,
-                "slug": _slug(nm or str(tid)),
+                "slug": _slug(nm or tid),
                 "active_season": season,
             }
     bf.supa_upsert("f1_driver", list(drivers.values()), "ergast_id")

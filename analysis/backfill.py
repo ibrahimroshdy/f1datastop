@@ -212,11 +212,13 @@ _LAP_STATUS = re.compile(r"^\+\d+\s+Lap")
 
 
 def derive_dnf(status):
-    """Same rule as f1Service: classified if 'Finished' or '+N Lap(s)'; else DNF."""
+    """Same rule as f1Service: classified if 'Finished', 'Lapped', or '+N Lap(s)';
+    else DNF. 'Lapped' is a classified finisher ≥1 lap down (a real result), not
+    a retirement."""
     if not status:
         return None
     s = str(status).strip()
-    return not (s == "Finished" or _LAP_STATUS.match(s))
+    return not (s == "Finished" or s == "Lapped" or _LAP_STATUS.match(s))
 
 
 def slugify(*parts):
