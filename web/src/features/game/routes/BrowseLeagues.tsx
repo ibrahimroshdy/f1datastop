@@ -7,6 +7,7 @@ import { F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { listPublicLeagues, joinPublicLeague } from "../api/leaguesClient";
+import { LeagueCrest } from "../components/pitwall/LeagueCrest";
 
 export default function BrowseLeagues() {
   const qc = useQueryClient();
@@ -19,7 +20,7 @@ export default function BrowseLeagues() {
 
   return (
     <div className={pageShell}>
-      <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
+      <div className={cn(pageStack, "animate-fade-in")}>
         <BackLink to="/game/leagues">Leagues</BackLink>
         <div className="space-y-1.5">
           <div className="instrument-label flex items-center gap-1.5 text-primary">
@@ -39,6 +40,7 @@ export default function BrowseLeagues() {
             <ul className="divide-y divide-border">
               {leagues.data?.map((l) => (
                 <li key={l.id} className="flex items-center gap-3 px-4 py-3">
+                  <LeagueCrest league={{ id: l.id, name: l.name }} size="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold">{l.name}</div>
                     <div className="text-2xs text-muted-foreground">

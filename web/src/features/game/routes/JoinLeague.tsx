@@ -26,7 +26,7 @@ export default function JoinLeague() {
 
   return (
     <div className={pageShell}>
-      <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
+      <div className={cn("mx-auto w-full max-w-xl", pageStack, "animate-fade-in")}>
         <div className="space-y-1.5">
           <div className="instrument-label flex items-center gap-1.5 text-primary">
             <Users className="h-3 w-3" /> League invite

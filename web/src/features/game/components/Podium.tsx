@@ -1,7 +1,11 @@
 import { Crown } from "lucide-react";
+import { F1Avatar } from "@/components/f1";
 import { cn } from "@/lib/utils";
 import { MEDAL_SOLID } from "../utils/medal";
 import type { StandingRow } from "../api/leaguesClient";
+
+/** First two letters of a player's name for the avatar fallback (undefined → generic icon). */
+const initials = (n?: string | null) => (n ?? "").trim().slice(0, 2).toUpperCase() || undefined;
 
 /** Why `a` ranks above `b` when they tie on points — the tiebreak cascade made transparent. */
 function tiebreakReason(a: StandingRow, b: StandingRow | undefined): string | null {
@@ -30,6 +34,14 @@ export function Podium({ rows, meId }: { rows: StandingRow[]; meId?: string }) {
         return (
           <div key={e.user_id} className="flex w-full max-w-[9rem] flex-col items-center gap-1">
             {e.rank === 1 && <Crown className="h-5 w-5 text-position-gold" />}
+            <F1Avatar
+              src={e.avatar_url ?? undefined}
+              fallback={initials(e.username)}
+              alt={e.username ?? "Player"}
+              size={e.rank === 1 ? "lg" : "md"}
+              showRing={mine}
+              teamColor={mine ? "hsl(var(--primary))" : undefined}
+            />
             <div className="w-full truncate text-center">
               <div className={cn("truncate text-sm font-semibold", mine && "text-primary")}>
                 {e.username ?? "—"}

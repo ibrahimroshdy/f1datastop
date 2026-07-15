@@ -47,7 +47,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Standings", href: "/standings", icon: ListOrdered },
       { label: "Race Analysis", href: "/race-analysis", icon: GitCompare },
-      { label: "Predictions", href: "/game", icon: Trophy, requiresAuth: true },
+      { label: "League", href: "/game", icon: Trophy },
       { label: "Drivers", href: "/drivers", icon: HelmetIcon },
       { label: "Teams", href: "/constructors", icon: Car },
     ],

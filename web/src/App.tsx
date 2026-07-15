@@ -30,7 +30,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import Profile from "./pages/auth/Profile";
-import GameHub from "@/features/game/routes/GameHub";
+import GameIndex from "@/features/game/routes/GameIndex";
 import PredictRound from "@/features/game/routes/PredictRound";
 import GameHistory from "@/features/game/routes/GameHistory";
 import GameRules from "@/features/game/routes/GameRules";
@@ -165,8 +165,9 @@ const App = () => (
                           <Route path="/constructors/:slug" element={<ConstructorSlugRedirect />} />
                           <Route path="/constructors" element={<Constructors />} />
                           <Route path="/privacy" element={<Privacy />} />
+                          {/* /game is public: guests get the League landing, members the hub */}
+                          <Route path="/game" element={<GameIndex />} />
                           <Route element={<ProtectedRoute />}>
-                            <Route path="/game" element={<GameHub />} />
                             <Route path="/game/predict/:round" element={<PredictRound />} />
                             <Route path="/game/history" element={<GameHistory />} />
                             <Route path="/game/rules" element={<GameRules />} />

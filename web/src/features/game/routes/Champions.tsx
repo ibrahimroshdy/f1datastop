@@ -3,9 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Medal, Lock, Trophy } from "lucide-react";
 import { getTeamColorById } from "@/constants/f1Colors";
 import { Button } from "@/components/ui/button";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { BackLink } from "@/components/ui/back-link";
 import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
@@ -104,30 +101,54 @@ export default function Champions() {
             <F1CardContent className="flex flex-col gap-4">
               <div className="space-y-1.5">
                 <label className="instrument-label text-muted-foreground">World Drivers' Champion</label>
-                <Select value={wdc} onValueChange={(v) => { setWdc(v); setSaved(false); }} disabled={!canEdit}>
-                  <SelectTrigger className="h-11"><SelectValue placeholder="Pick a driver" /></SelectTrigger>
-                  <SelectContent>
-                    {drivers.data?.map((d) => (
-                      <SelectItem key={d.driver_id} value={d.driver_id}>
-                        <span className="font-mono text-xs font-semibold">{d.code}</span>
-                        <span className="ml-2 text-muted-foreground">{d.name}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3" role="group" aria-label="Drivers' Champion">
+                  {drivers.data?.map((d) => {
+                    const active = wdc === d.driver_id;
+                    const color = d.constructor_id ? getTeamColorById(d.constructor_id) : "hsl(var(--muted-foreground))";
+                    return (
+                      <button
+                        key={d.driver_id}
+                        type="button"
+                        disabled={!canEdit}
+                        aria-pressed={active}
+                        onClick={() => { setWdc(d.driver_id); setSaved(false); }}
+                        className={cn(
+                          "flex min-h-11 items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors disabled:opacity-60",
+                          active ? "border-primary bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.4)]" : "border-border bg-card/40 hover:border-primary/40",
+                        )}
+                        style={{ borderLeft: `3px solid ${color}` }}
+                      >
+                        <span className="font-mono text-sm font-bold">{d.code}</span>
+                        <span className="min-w-0 flex-1 truncate text-2xs text-muted-foreground">{d.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label className="instrument-label text-muted-foreground">Constructors' Champion</label>
-                <Select value={wcc} onValueChange={(v) => { setWcc(v); setSaved(false); }} disabled={!canEdit}>
-                  <SelectTrigger className="h-11"><SelectValue placeholder="Pick a team" /></SelectTrigger>
-                  <SelectContent>
-                    {constructors.data?.map((c) => (
-                      <SelectItem key={c.constructor_id} value={c.constructor_id}>
-                        {c.constructor_name ?? c.constructor_id}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Constructors' Champion">
+                  {constructors.data?.map((c) => {
+                    const active = wcc === c.constructor_id;
+                    const color = getTeamColorById(c.constructor_id);
+                    return (
+                      <button
+                        key={c.constructor_id}
+                        type="button"
+                        disabled={!canEdit}
+                        aria-pressed={active}
+                        onClick={() => { setWcc(c.constructor_id); setSaved(false); }}
+                        className={cn(
+                          "flex min-h-11 items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors disabled:opacity-60",
+                          active ? "border-primary bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.4)]" : "border-border bg-card/40 hover:border-primary/40",
+                        )}
+                        style={{ borderLeft: `3px solid ${color}` }}
+                      >
+                        <span className="min-w-0 flex-1 truncate text-xs font-semibold">{c.constructor_name ?? c.constructor_id}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               {canEdit && (
                 <div className="flex items-center gap-3">

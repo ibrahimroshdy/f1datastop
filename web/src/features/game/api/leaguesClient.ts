@@ -29,6 +29,12 @@ export type RevealRow = { user_id: string; username: string | null; session_type
 export type LeagueRow = {
   id: string; name: string; slug: string; is_public: boolean; invite_code: string | null;
   pick_reveal_policy: string; created_by: string | null;
+  crest: string | null; accent: string | null; banner_url: string | null; description: string | null;
+};
+export type ActivityRow = {
+  id: string; kind: string; actor_user: string | null; subject_user: string | null;
+  actor_name: string | null; subject_name: string | null; round: number | null;
+  detail: { points?: number } | null; created_at: string;
 };
 
 export async function getMyLeagues(season = ACTIVE_GAME_SEASON): Promise<MyLeague[]> {
@@ -70,7 +76,7 @@ export async function rotateInvite(leagueId: string): Promise<string> {
 }
 export async function getLeague(id: string): Promise<LeagueRow | null> {
   const { data, error } = await db.from("game_league")
-    .select("id, name, slug, is_public, invite_code, pick_reveal_policy, created_by")
+    .select("id, name, slug, is_public, invite_code, pick_reveal_policy, created_by, crest, accent, banner_url, description")
     .eq("id", id).maybeSingle();
   throwIf(error); return (data as LeagueRow) ?? null;
 }
@@ -109,4 +115,25 @@ export type AllTimeRow = { user_id: string; username: string | null; total_point
 export async function getLeagueAlltime(leagueId: string): Promise<AllTimeRow[]> {
   const { data, error } = await db.rpc("get_league_alltime", { p_league_id: leagueId });
   throwIf(error); return (data as AllTimeRow[]) ?? [];
+}
+
+/** Captain/admin: set a league's crest (emoji), accent (hex), banner, description. */
+export async function updateLeagueIdentity(
+  leagueId: string,
+  patch: { crest?: string | null; accent?: string | null; banner_url?: string | null; description?: string | null },
+): Promise<void> {
+  const { error } = await db.rpc("update_league_identity", {
+    p_league: leagueId,
+    p_crest: patch.crest ?? null,
+    p_accent: patch.accent ?? null,
+    p_banner_url: patch.banner_url ?? null,
+    p_description: patch.description ?? null,
+  });
+  throwIf(error);
+}
+
+/** League activity feed (joins, GOAT/flop of the round, …). Members only. */
+export async function getLeagueActivity(leagueId: string, limit = 20): Promise<ActivityRow[]> {
+  const { data, error } = await db.rpc("get_league_activity", { p_league: leagueId, p_limit: limit });
+  throwIf(error); return (data as ActivityRow[]) ?? [];
 }

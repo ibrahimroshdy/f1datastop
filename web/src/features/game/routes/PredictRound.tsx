@@ -18,6 +18,7 @@ import {
 } from "../api/gameClient";
 import { SessionPredict } from "../components/SessionPredict";
 import { Countdown } from "../components/Countdown";
+import { StartLights } from "../components/pitwall/StartLights";
 
 export default function PredictRound() {
   const { round: roundParam } = useParams<{ round: string }>();
@@ -79,6 +80,12 @@ export default function PredictRound() {
             </div>
           )}
         </div>
+
+        {meta?.deadline && editable.data ? (
+          <div className="flex justify-center py-1">
+            <StartLights to={meta.deadline} />
+          </div>
+        ) : null}
 
         {loading ? (
           <>

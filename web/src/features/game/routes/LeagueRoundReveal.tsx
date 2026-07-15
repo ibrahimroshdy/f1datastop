@@ -2,13 +2,15 @@ import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { BackLink } from "@/components/ui/back-link";
-import { F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1Skeleton, F1Avatar } from "@/components/f1";
 import { getTeamColorById } from "@/constants/f1Colors";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { getSeasonDrivers, getGameSchedule, ACTIVE_GAME_SEASON } from "../api/gameClient";
 import { getRoundReveal } from "../api/leaguesClient";
+
+const initials = (n?: string | null) => (n ?? "").trim().slice(0, 2).toUpperCase() || undefined;
 
 const SESSION_LABEL: Record<string, string> = { Q: "Quali", S: "Sprint", R: "Race" };
 const POS_RING: Record<number, string> = {
@@ -60,7 +62,7 @@ export default function LeagueRoundReveal() {
 
   return (
     <div className={pageShell}>
-      <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
+      <div className={cn(pageStack, "animate-fade-in")}>
         <BackLink to={`/game/leagues/${leagueId}`}>League</BackLink>
         <div className="space-y-1.5">
           <div className="instrument-label text-primary">Round {round} · Picks reveal</div>
@@ -79,6 +81,7 @@ export default function LeagueRoundReveal() {
             return (
               <div key={u.userId} className={cn("overflow-hidden rounded-xl border bg-card/40", isMe ? "border-primary/40" : "border-border")}>
                 <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+                  <F1Avatar fallback={initials(u.username)} alt={u.username} size="sm" />
                   <span className="font-heading text-sm font-bold">{u.username}</span>
                   {isMe && <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary">You</span>}
                 </div>

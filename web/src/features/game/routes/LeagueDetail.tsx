@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, F1Avatar } from "@/components/f1";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
@@ -19,9 +19,13 @@ import {
 } from "../api/leaguesClient";
 import { Podium } from "../components/Podium";
 import { RankChart } from "../components/RankChart";
+import { LeagueCrest } from "../components/pitwall/LeagueCrest";
+import { LeagueActivity } from "../components/LeagueActivity";
 import { medalBadge } from "../utils/medal";
+import { leagueAccent } from "../utils/leagueIdentity";
 
 const RANK_PILL = "inline-flex h-7 min-w-7 items-center justify-center rounded-full border px-1.5 text-xs font-semibold tabular-nums";
+const initials = (n?: string | null) => (n ?? "").trim().slice(0, 2).toUpperCase() || undefined;
 
 function Movement({ n }: { n: number }) {
   if (!n) return <Minus className="h-3 w-3 text-muted-foreground/40" aria-label="no change" />;
@@ -63,20 +67,28 @@ export default function LeagueDetail() {
 
   const iAmCaptain = members.data?.some((m) => m.user_id === user?.id && m.role === "captain");
   const gradedRounds = schedule.data?.filter((r) => r.has_results) ?? [];
+  const l = league.data;
+  const accent = leagueAccent(l ?? { id: leagueId });
 
   return (
     <div className={pageShell}>
-      <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
+      <div className={cn(pageStack, "animate-fade-in")}>
         <BackLink to="/game/leagues">Leagues</BackLink>
 
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 space-y-1.5">
-            <div className="instrument-label text-primary">League</div>
-            <h1 className="truncate font-heading text-2xl font-bold tracking-tight md:text-3xl">
-              {league.data?.name ?? "League"}
-            </h1>
-            <div className="text-2xs text-muted-foreground">
-              {members.data?.length ?? "…"} members · {league.data?.is_public ? "Public" : "Private"}
+        <div className="flex items-start justify-between gap-3 border-l-2 pl-3" style={{ borderLeftColor: accent }}>
+          <div className="flex min-w-0 items-start gap-3">
+            <LeagueCrest league={l ?? { id: leagueId }} size="lg" />
+            <div className="min-w-0 space-y-1.5">
+              <div className="instrument-label text-primary">League</div>
+              <h1 className="truncate font-heading text-2xl font-bold tracking-tight md:text-3xl">
+                {l?.name ?? "League"}
+              </h1>
+              {l?.description && (
+                <p className="max-w-prose text-sm text-muted-foreground">{l.description}</p>
+              )}
+              <div className="text-2xs text-muted-foreground">
+                {members.data?.length ?? "…"} members · {l?.is_public ? "Public" : "Private"}
+              </div>
             </div>
           </div>
           {iAmCaptain && (
@@ -172,16 +184,21 @@ export default function LeagueDetail() {
                           </div>
                         </td>
                         <td className="px-3 py-2">
-                          <span className="font-medium">{row.username ?? "—"}</span>
-                          {isMe && <span className="ml-1.5 rounded bg-primary/15 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary">You</span>}
-                          {row.champions_correct > 0 && <Crown className="ml-1 inline h-3 w-3 text-position-gold" />}
-                          {!isMe && (
-                            <Link to={`/game/leagues/${leagueId}/h2h/${row.user_id}`}
-                              className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-primary"
-                              aria-label={`Head to head vs ${row.username ?? "player"}`}>
-                              <Swords className="h-3.5 w-3.5" />
-                            </Link>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <F1Avatar src={row.avatar_url ?? undefined} fallback={initials(row.username)} alt={row.username ?? "Player"} size="xs" />
+                            <div className="min-w-0">
+                              <span className="font-medium">{row.username ?? "—"}</span>
+                              {isMe && <span className="ml-1.5 rounded bg-primary/15 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary">You</span>}
+                              {row.champions_correct > 0 && <Crown className="ml-1 inline h-3 w-3 text-position-gold" />}
+                              {!isMe && (
+                                <Link to={`/game/leagues/${leagueId}/h2h/${row.user_id}`}
+                                  className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted hover:text-primary"
+                                  aria-label={`Head to head vs ${row.username ?? "player"}`}>
+                                  <Swords className="h-3.5 w-3.5" />
+                                </Link>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{row.exact_hits}</td>
                         <td className="px-4 py-2 text-right">
@@ -195,6 +212,9 @@ export default function LeagueDetail() {
             </div>
           </F1Card>
         )}
+
+        {/* Live league activity — self-hides when empty */}
+        <LeagueActivity leagueId={leagueId} />
 
         {/* Rank movement chart */}
         {view === "season" && (history.data?.length ?? 0) > 0 && (

@@ -17,6 +17,8 @@ import { Countdown } from "../components/Countdown";
 import { BadgeRow } from "../components/BadgeRow";
 import { FormSparkline } from "../components/FormSparkline";
 import { JokerPicker } from "../components/JokerPicker";
+import { RaceControlFeed } from "../components/pitwall/TeamRadio";
+import { ShareCard } from "../components/pitwall/ShareCard";
 
 const QUICK_NAV = [
   { to: "/game/leagues", icon: Users, label: "Leagues" },
@@ -64,6 +66,9 @@ function ActivatedHub({ entryId }: { entryId: string }) {
 
   return (
     <div className={cn(pageShell, pageStack, "animate-fade-in")}>
+      {/* Race Control — announcements pinned to the top of the paddock */}
+      <RaceControlFeed limit={3} />
+
       {/* Identity + live scoreboard */}
       <div className="space-y-3">
         <div className="space-y-1">
@@ -78,6 +83,12 @@ function ActivatedHub({ entryId }: { entryId: string }) {
           <StatCell label="Exact Hits" value={<AnimatedNumber value={hits} mono />} accent="hsl(var(--fastest-lap))" />
           <StatCell label="Best Round" value={<AnimatedNumber value={bestRound} mono />} />
         </div>
+        <ShareCard
+          seasonYear={ACTIVE_GAME_SEASON}
+          points={points}
+          exactHits={hits}
+          percentile={percentile.data != null ? Math.round(Number(percentile.data)) : null}
+        />
       </div>
 
       {/* Next race — the hero call to action */}

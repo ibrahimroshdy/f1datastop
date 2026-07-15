@@ -15,9 +15,15 @@ import {
   adminStats, adminListPlayers, adminListLeagues, adminRegrade, adminUpdateSeason,
   openSeason, getAuditLog, getSeasonConfig, adminBroadcast,
 } from "../api/adminClient";
+import { getAnnouncements, postAnnouncement, deleteAnnouncement } from "../api/announcementsClient";
+import { Radio, Pin, Trash2 } from "lucide-react";
 
-type Tab = "overview" | "players" | "leagues" | "settings" | "logs";
-const TABS: Tab[] = ["overview", "players", "leagues", "settings", "logs"];
+type Tab = "overview" | "players" | "leagues" | "radio" | "settings" | "logs";
+const TABS: Tab[] = ["overview", "players", "leagues", "radio", "settings", "logs"];
+const TAB_LABEL: Record<Tab, string> = {
+  overview: "Overview", players: "Players", leagues: "Leagues",
+  radio: "Race Control", settings: "Settings", logs: "Logs",
+};
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -62,6 +68,37 @@ export default function GameAdmin() {
     mutationFn: () => adminBroadcast(bcTitle.trim(), bcBody.trim()),
     onSuccess: () => { setBcTitle(""); setBcBody(""); },
   });
+
+  // Race Control — in-app announcements (with optional push).
+  const announcements = useQuery({
+    queryKey: ["admin", "announcements"],
+    queryFn: () => getAnnouncements(30),
+    enabled: isGameAdmin(user) && tab === "radio",
+  });
+  const [anTitle, setAnTitle] = useState("");
+  const [anBody, setAnBody] = useState("");
+  const [anKind, setAnKind] = useState<"control" | "radio" | "news">("control");
+  const [anPinned, setAnPinned] = useState(false);
+  const [anPush, setAnPush] = useState(false);
+  const postAn = useMutation({
+    mutationFn: async () => {
+      await postAnnouncement({ title: anTitle.trim(), body: anBody.trim(), kind: anKind, pinned: anPinned, season });
+      if (anPush) await adminBroadcast(anTitle.trim(), anBody.trim());
+    },
+    onSuccess: () => {
+      setAnTitle(""); setAnBody(""); setAnPinned(false); setAnPush(false);
+      qc.invalidateQueries({ queryKey: ["admin", "announcements"] });
+      qc.invalidateQueries({ queryKey: ["game", "announcements"] });
+    },
+  });
+  const delAn = useMutation({
+    mutationFn: (id: string) => deleteAnnouncement(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "announcements"] });
+      qc.invalidateQueries({ queryKey: ["game", "announcements"] });
+    },
+  });
+
   useEffect(() => { if (config.data) setRulesText(JSON.stringify(config.data.scoring_rules, null, 2)); }, [config.data]);
 
   if (!isGameAdmin(user)) {
@@ -103,9 +140,9 @@ export default function GameAdmin() {
         <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-card/40 p-1">
           {TABS.map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              className={cn("min-h-9 flex-1 rounded-md px-2 py-1.5 text-xs font-medium capitalize transition-colors",
+              className={cn("min-h-9 flex-1 whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
                 tab === t ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-              {t}
+              {TAB_LABEL[t]}
             </button>
           ))}
         </div>
@@ -170,6 +207,87 @@ export default function GameAdmin() {
               </div>
             </F1Card>
           )
+        )}
+
+        {tab === "radio" && (
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+            <F1Card>
+              <F1CardHeader className="flex-row items-center gap-1.5 pb-2">
+                <Radio className="h-4 w-4 text-primary" />
+                <F1CardTitle className="text-base">Post to Race Control</F1CardTitle>
+              </F1CardHeader>
+              <F1CardContent className="flex flex-col gap-3">
+                <Input placeholder="Title" value={anTitle} onChange={(e) => setAnTitle(e.target.value)} />
+                <textarea
+                  placeholder="Message to all players…"
+                  value={anBody}
+                  onChange={(e) => setAnBody(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                />
+                <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Announcement kind">
+                  {(["control", "radio", "news"] as const).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setAnKind(k)}
+                      aria-pressed={anKind === k}
+                      className={cn(
+                        "min-h-9 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                        anKind === k ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      {k === "control" ? "Race Control" : k === "radio" ? "Team Radio" : "News"}
+                    </button>
+                  ))}
+                </div>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input type="checkbox" checked={anPinned} onChange={(e) => setAnPinned(e.target.checked)} /> Pin to top
+                </label>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input type="checkbox" checked={anPush} onChange={(e) => setAnPush(e.target.checked)} /> Also send a push notification
+                </label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    className="min-h-11"
+                    disabled={anTitle.trim().length === 0 || anBody.trim().length === 0 || postAn.isPending}
+                    onClick={() => postAn.mutate()}
+                  >
+                    {postAn.isPending ? "Posting…" : postAn.isSuccess ? "Posted ✓" : "Post announcement"}
+                  </Button>
+                  {postAn.error ? <span className="text-xs text-destructive">{(postAn.error as Error).message}</span> : null}
+                </div>
+              </F1CardContent>
+            </F1Card>
+
+            <F1Card className="p-0">
+              <div className="instrument-label border-b border-border px-4 py-2.5 text-muted-foreground">Live announcements</div>
+              <ul className="divide-y divide-border">
+                {(announcements.data ?? []).map((a) => (
+                  <li key={a.id} className="flex items-start gap-2 px-4 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 text-sm font-semibold">
+                        {a.pinned ? <Pin className="h-3 w-3 shrink-0 text-muted-foreground" /> : null}
+                        <span className="truncate">{a.title}</span>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">{a.body}</p>
+                    </div>
+                    <button
+                      onClick={() => delAn.mutate(a.id)}
+                      disabled={delAn.isPending}
+                      className="shrink-0 rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+                      aria-label={`Delete ${a.title}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+                {(announcements.data?.length ?? 0) === 0 && (
+                  <li className="px-4 py-6 text-sm text-muted-foreground">No announcements yet.</li>
+                )}
+              </ul>
+            </F1Card>
+          </div>
         )}
 
         {tab === "settings" && (

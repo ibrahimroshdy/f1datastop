@@ -37,7 +37,7 @@ export default function H2H() {
 
   return (
     <div className={pageShell}>
-      <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
+      <div className={cn(pageStack, "animate-fade-in")}>
         <BackLink to={`/game/leagues/${leagueId}`}>League</BackLink>
         <div className="space-y-1.5">
           <div className="instrument-label flex items-center gap-1.5 text-primary">

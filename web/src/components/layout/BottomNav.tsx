@@ -1,10 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
-import { Calendar, GitCompare, Home, ListOrdered } from "lucide-react";
-import { HelmetIcon } from "@/components/common/HelmetIcon";
+import { Calendar, GitCompare, Home, ListOrdered, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Five direct destinations — the most-used pages. (The old "More" sheet was a
-// duplicate of the sidebar, so its slot now goes to Drivers.)
+// Five direct destinations — the most-used pages. The League is a headline
+// destination now, so it gets a thumb-reachable slot (Drivers stays in the
+// sidebar). Shown to everyone — guests land on the public League page.
 const tabs = [
   { label: "Home", href: "/", icon: Home, match: (p: string) => p === "/" },
   {
@@ -26,10 +26,10 @@ const tabs = [
     match: (p: string) => p.startsWith("/race-analysis"),
   },
   {
-    label: "Drivers",
-    href: "/drivers",
-    icon: HelmetIcon,
-    match: (p: string) => p.startsWith("/drivers"),
+    label: "League",
+    href: "/game",
+    icon: Trophy,
+    match: (p: string) => p.startsWith("/game"),
   },
 ];
 

@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { getGameSchedule, getMyJoker, setJoker, ACTIVE_GAME_SEASON } from "../api/gameClient";
 
@@ -39,21 +37,29 @@ export function JokerPicker() {
           </div>
         )}
         {openRounds.length > 0 ? (
-          <Select
-            value={jokerRound && !jokerLocked ? String(jokerRound) : ""}
-            onValueChange={(v) => save.mutate(parseInt(v, 10))}
-          >
-            <SelectTrigger className="h-11" aria-label="Joker round">
-              <SelectValue placeholder={jokerLocked ? "Joker is locked" : "Pick a race to double"} />
-            </SelectTrigger>
-            <SelectContent>
-              {openRounds.map((r) => (
-                <SelectItem key={r.round} value={String(r.round)}>
-                  R{r.round} · {r.race_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="group" aria-label="Joker round">
+            {openRounds.map((r) => {
+              const active = jokerRound === r.round && !jokerLocked;
+              return (
+                <button
+                  key={r.round}
+                  type="button"
+                  onClick={() => save.mutate(r.round)}
+                  aria-pressed={active}
+                  disabled={save.isPending}
+                  className={cn(
+                    "flex min-h-11 shrink-0 flex-col items-center justify-center rounded-lg border px-3 py-1.5 text-center transition-colors disabled:opacity-60",
+                    active
+                      ? "border-primary bg-primary/10 text-primary shadow-[0_0_0_1px_hsl(var(--primary)/0.4)]"
+                      : "border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                  )}
+                >
+                  <span className="timing text-sm font-bold tabular-nums">R{r.round}</span>
+                  <span className="max-w-[7rem] truncate text-2xs">{r.race_name}</span>
+                </button>
+              );
+            })}
+          </div>
         ) : (
           <p className="text-xs text-muted-foreground">No open rounds left to joker this season.</p>
         )}
