@@ -389,6 +389,16 @@
     background: hsl(var(--primary) / 0.3);
     color: hsl(0 0% 100%);
   }
+
+  /* Charts are for reading, not selecting. Dragging or tapping over a chart used to
+     text-select its axis labels + tooltip (a big red ::selection wash that looked
+     like the whole chart was highlighted). */
+  .recharts-wrapper,
+  .recharts-wrapper svg,
+  .recharts-surface {
+    user-select: none;
+    -webkit-user-select: none;
+  }
 }
 
 /* ============================================
