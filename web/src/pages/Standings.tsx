@@ -176,6 +176,7 @@ const Standings = () => {
     code: d.Driver.code,
     color: getTeamHexColor(normalizeTeamId(d.Constructors[0]?.constructorId || "default")),
     constructorId: d.Constructors[0]?.constructorId,
+    driverId: d.Driver.driverId,
   }));
   const constructorSeries = constructors.map((c) => {
     const tid = normalizeTeamId(c.Constructor?.constructorId || "default");

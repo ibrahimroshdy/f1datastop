@@ -5,6 +5,11 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "
 import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
 import CountryFlag from "@/components/common/CountryFlag";
 import TeamLogo from "@/components/common/TeamLogo";
+import { getF1TeamLogoUrl } from "@/constants/f1TeamLogoMedia";
+import {
+  buildF1DriverHeadshotUrl,
+  getF1PortraitPathForErgastDriverId,
+} from "@/constants/f1DriverPortraitMedia";
 import { useAllDriverResultsBySeason } from "@/hooks/f1";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
@@ -20,6 +25,8 @@ export interface ProgressionSeries {
   color: string;
   /** Constructor for the legend's team logo. */
   constructorId?: string;
+  /** Ergast id — resolves the driver photo shown at the end of the line. */
+  driverId?: string;
 }
 
 interface Props {
@@ -113,6 +120,21 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
     return m;
   }, [series]);
 
+  const lastIdx = chartData.length - 1;
+  // End-of-line image: driver photo (drivers chart) or team logo (constructors).
+  const endImageByCode = useMemo(() => {
+    const m: Record<string, string | undefined> = {};
+    for (const s of series) {
+      if (s.driverId) {
+        const p = getF1PortraitPathForErgastDriverId(s.driverId);
+        m[s.code] = p ? buildF1DriverHeadshotUrl(p) : undefined;
+      } else if (s.constructorId) {
+        m[s.code] = getF1TeamLogoUrl(s.constructorId) ?? undefined;
+      }
+    }
+    return m;
+  }, [series]);
+
   const RaceTick = (props: { x?: number; y?: number; payload?: { value?: string | number } }) => {
     const { x, y, payload } = props;
     const d = chartData.find((r) => String(r.round) === String(payload?.value));
@@ -146,7 +168,7 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
           <ChartSkeleton height={220} />
         ) : (
           <ChartContainer config={chartConfig} className="h-[240px] w-full">
-            <LineChart data={chartData} margin={{ top: 16, left: 8, right: 16, bottom: 8 }}>
+            <LineChart data={chartData} margin={{ top: 16, left: 8, right: 26, bottom: 8 }}>
               <defs>
                 <ScopeDefs id="pointsprog" color={chartTheme.primary} />
               </defs>
@@ -198,7 +220,32 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
                   strokeWidth={1.8}
                   strokeDasharray={dashByCode[s.code]}
                   filter={SCOPE_GLOW}
-                  dot={false}
+                  dot={(dp: { cx?: number; cy?: number; index?: number; key?: string }) => {
+                    const { cx, cy, index, key } = dp;
+                    if (index !== lastIdx || cx == null || cy == null) return <g key={key} />;
+                    const url = endImageByCode[s.code];
+                    const R = 11;
+                    const clip = `end-${s.code}`;
+                    return (
+                      <g key={key}>
+                        <clipPath id={clip}>
+                          <circle cx={cx} cy={cy} r={R} />
+                        </clipPath>
+                        {url ? (
+                          <image
+                            href={url}
+                            x={cx - R}
+                            y={cy - R}
+                            width={2 * R}
+                            height={2 * R}
+                            clipPath={`url(#${clip})`}
+                            preserveAspectRatio="xMidYMid slice"
+                          />
+                        ) : null}
+                        <circle cx={cx} cy={cy} r={R} fill={url ? "none" : s.color} stroke={s.color} strokeWidth={2} />
+                      </g>
+                    );
+                  }}
                   activeDot={{ r: 4, fill: s.color, stroke: "hsl(var(--card))", strokeWidth: 2 }}
                   connectNulls
                 />
