@@ -87,9 +87,20 @@ def backfill_current() -> None:
 
 
 # ── Scheduled: regenerate + upload charts for the latest race ────────────────
+# Fixed teammate head-to-heads baked in so the Deep Dive always has the Mercedes /
+# McLaren / Ferrari compares without a manual --drivers run. Each pair uploads
+# under its own __PAIR chart_type, so they coexist (see generate.py dk suffix).
+TEAMMATE_PAIRS = ["RUS,ANT", "NOR,PIA", "LEC,HAM"]  # 2026 lineups
+
+
 @app.function(schedule=modal.Cron("30 */3 * * 5,6,0"), **COMMON)
 def generate_latest() -> None:
+    # Whole-field boards (race_analysis, championship, constructors, …) for the latest race.
     _run("generate.py", "--latest", "--session", "R", "--format", "all")
+    # Then the fixed teammate head-to-heads.
+    for pair in TEAMMATE_PAIRS:
+        _run("generate.py", "--latest", "--session", "R",
+             "--only", "driver_compare", "--drivers", pair, "--format", "all")
 
 
 # ── One season, its own container ────────────────────────────────────────────
