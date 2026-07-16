@@ -1,16 +1,20 @@
 import type { CircuitGeometryBlob } from "@/services/circuitGeometryService";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
 import { TEAM_COLORS } from "@/constants/f1Colors";
+import { getF1TeamLogoUrl } from "@/constants/f1TeamLogoMedia";
 
 // Replay blobs carry only team_color (FastF1's palette, which differs slightly from
 // ours), not a constructor id. Match to the NEAREST app team colour so we can show
-// team logos next to drivers — exact-hex reverse-mapping missed most teams.
+// team logos next to drivers — exact-hex reverse-mapping missed most teams. Only
+// consider constructor ids that actually have a logo (else we'd map e.g. Racing Bulls
+// onto the logo-less "toro_rosso" and render its raw id as text).
 const hexToRgb = (h: string): [number, number, number] | null => {
   const s = h.replace("#", "").trim();
   if (s.length < 6) return null;
   return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
 };
 const PALETTE = Object.entries(TEAM_COLORS)
+  .filter(([id]) => !!getF1TeamLogoUrl(id))
   .map(([id, hex]) => ({ id, rgb: hexToRgb(hex) }))
   .filter((p): p is { id: string; rgb: [number, number, number] } => !!p.rgb);
 

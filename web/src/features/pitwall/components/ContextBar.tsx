@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link2, Radio, Users } from "lucide-react";
+import { Link2, Radio, Star, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CountryFlag from "@/components/common/CountryFlag";
@@ -17,6 +17,7 @@ interface Props {
 type ScheduleRace = RaceContext & { date?: string };
 
 const cleanName = (n: string) => n.replace(/grand prix/i, "GP").replace(/[\u{1F1E0}-\u{1F1FF}]{2}/gu, "").trim();
+const isSprint = (r: { Sprint?: unknown; SprintQualifying?: unknown }) => !!(r.Sprint || r.SprintQualifying);
 
 export function ContextBar({ state, patch }: Props) {
   const schedule = useRaceSchedule(state.year);
@@ -65,6 +66,7 @@ export function ContextBar({ state, patch }: Props) {
                   <CountryFlag country={r.Circuit?.Location?.country ?? ""} size={14} />
                   <span className="truncate">{cleanName(r.raceName)}</span>
                   <span className="timing text-2xs text-muted-foreground">R{r.round}</span>
+                  {isSprint(r) && <Star className="h-3 w-3 shrink-0 fill-current text-position-gold" aria-label="Sprint weekend" />}
                 </span>
               </SelectItem>
             ))}

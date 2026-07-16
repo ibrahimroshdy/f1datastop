@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Layers, Pause, Play, Radio, RotateCcw, ShieldAlert } from "lucide-react";
+import { Layers, Pause, Play, Radio, RotateCcw, ShieldAlert, Star } from "lucide-react";
 import {
   fetchCircuitGeometryBlob,
   getCircuitGeometry,
@@ -9,6 +9,12 @@ import {
 } from "@/services/circuitGeometryService";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
 import TeamLogo from "@/components/common/TeamLogo";
+import { DriverAvatar } from "@/components/f1";
+import { colorWithAlpha } from "@/constants/f1Colors";
+import {
+  buildF1DriverHeadshotUrl,
+  getF1PortraitPathForErgastDriverId,
+} from "@/constants/f1DriverPortraitMedia";
 import { cn } from "@/lib/utils";
 import type { ReplayPlayhead } from "../hooks/useReplayPlayhead";
 import {
@@ -42,10 +48,13 @@ interface Props {
   round: number | null;
   blob?: RaceReplayBlob;
   selected: string[];
+  refCode: string | null;
   playhead: ReplayPlayhead;
+  onToggle: (code: string) => void;
+  onSetRef: (code: string) => void;
 }
 
-export function ReplayStage({ year, round, blob, selected, playhead }: Props) {
+export function ReplayStage({ year, round, blob, selected, refCode, playhead, onToggle, onSetRef }: Props) {
   const [sel, setSel] = useState<string | null>(null);
   const [showSectors, setShowSectors] = useState(true);
 
@@ -79,7 +88,11 @@ export function ReplayStage({ year, round, blob, selected, playhead }: Props) {
       showSectors={showSectors}
       setShowSectors={setShowSectors}
       selected={selected}
+      refCode={refCode}
       playhead={playhead}
+      year={year}
+      onToggle={onToggle}
+      onSetRef={onSetRef}
     />
   );
 }
@@ -92,7 +105,11 @@ function ReplayBody({
   showSectors,
   setShowSectors,
   selected,
+  refCode,
   playhead,
+  year,
+  onToggle,
+  onSetRef,
 }: {
   blob: RaceReplayBlob;
   geom?: CircuitGeometryBlob;
@@ -101,7 +118,11 @@ function ReplayBody({
   showSectors: boolean;
   setShowSectors: (v: boolean) => void;
   selected: string[];
+  refCode: string | null;
   playhead: ReplayPlayhead;
+  year: number;
+  onToggle: (code: string) => void;
+  onSetRef: (code: string) => void;
 }) {
   const { frame, setFrame, playing, setPlaying, speed, setSpeed, lastFrame } = playhead;
   const fi = Math.round(frame);
@@ -114,6 +135,7 @@ function ReplayBody({
 
   const dur = blob.duration_s || 1;
   const safety = blob.safety ?? [];
+  const overtakes = blob.overtakes ?? [];
   const active = safety.find((p) => t >= p.start_s && t <= p.end_s) ?? null;
   const sToFrame = (s: number) => {
     for (let i = 0; i < blob.times.length; i++) if (blob.times[i] >= s) return i;
@@ -200,18 +222,28 @@ function ReplayBody({
         </div>
       </div>
 
-      {/* Scrubber + safety-car / red-flag markers (click a band to jump to it) */}
+      {/* Play bar — safety periods (SC solid · VSC hatched · red), overtake ticks. */}
       <div className="space-y-1">
-        {safety.length > 0 && (
-          <div className="relative h-2 w-full">
+        {(safety.length > 0 || overtakes.length > 0) && (
+          <div className="relative h-2.5 w-full overflow-hidden rounded-sm bg-muted/40">
             {safety.map((p, i) => {
               const a = sToFrame(p.start_s);
               const b = sToFrame(p.end_s);
               const left = (a / (lastFrame || 1)) * 100;
-              const width = Math.max(1, ((b - a) / (lastFrame || 1)) * 100);
+              const width = Math.max(1.2, ((b - a) / (lastFrame || 1)) * 100);
+              const c = SAFETY_STYLE[p.kind].color;
+              const style =
+                p.kind === "RED"
+                  ? { backgroundColor: c }
+                  : p.kind === "VSC"
+                    ? {
+                        backgroundColor: colorWithAlpha(c, 0.28),
+                        backgroundImage: `repeating-linear-gradient(45deg, ${c} 0, ${c} 2.5px, transparent 2.5px, transparent 6px)`,
+                      }
+                    : { backgroundColor: c };
               return (
                 <button
-                  key={i}
+                  key={`s${i}`}
                   type="button"
                   onClick={() => {
                     setPlaying(false);
@@ -219,8 +251,18 @@ function ReplayBody({
                   }}
                   title={`${SAFETY_STYLE[p.kind].label} — jump here`}
                   aria-label={`Jump to ${SAFETY_STYLE[p.kind].label}`}
-                  className="absolute top-0 h-2 rounded-sm opacity-80 ring-1 ring-background transition-opacity hover:opacity-100"
-                  style={{ left: `${left}%`, width: `${width}%`, backgroundColor: SAFETY_STYLE[p.kind].color }}
+                  className="absolute top-0 h-2.5 opacity-90 transition-opacity hover:opacity-100"
+                  style={{ left: `${left}%`, width: `${width}%`, ...style }}
+                />
+              );
+            })}
+            {overtakes.map((o, i) => {
+              const left = (sToFrame(o.t) / (lastFrame || 1)) * 100;
+              return (
+                <span
+                  key={`o${i}`}
+                  className="pointer-events-none absolute bottom-0 h-1.5 w-px bg-gain"
+                  style={{ left: `${left}%` }}
                 />
               );
             })}
@@ -238,6 +280,22 @@ function ReplayBody({
           }}
           className="h-1 w-full accent-primary"
         />
+        {(safety.length > 0 || overtakes.length > 0) && (
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[9px] text-muted-foreground">
+            {safety.some((p) => p.kind === "SC") && (
+              <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm" style={{ backgroundColor: SAFETY_STYLE.SC.color }} /> SC</span>
+            )}
+            {safety.some((p) => p.kind === "VSC") && (
+              <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm" style={{ backgroundColor: colorWithAlpha(SAFETY_STYLE.VSC.color, 0.28), backgroundImage: `repeating-linear-gradient(45deg, ${SAFETY_STYLE.VSC.color} 0, ${SAFETY_STYLE.VSC.color} 2px, transparent 2px, transparent 4px)` }} /> VSC</span>
+            )}
+            {safety.some((p) => p.kind === "RED") && (
+              <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm" style={{ backgroundColor: SAFETY_STYLE.RED.color }} /> Red flag</span>
+            )}
+            {overtakes.length > 0 && (
+              <span className="flex items-center gap-1"><span className="h-2 w-px bg-gain" /> Overtake</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Safety banner */}
@@ -252,8 +310,18 @@ function ReplayBody({
 
       {/* Stage: timing board | track | RC feed */}
       <div className="grid gap-3 lg:grid-cols-[minmax(210px,250px)_minmax(0,1fr)_minmax(190px,230px)]">
-        {/* Timing board */}
-        <TimingBoard snaps={snaps} bestHolder={bestHolder} isRace={isRace} sel={sel} setSel={setSel} selIds={selIds} aidLabel={aidLabel} />
+        {/* Drivers — position order, click to select, star = reference */}
+        <TimingBoard
+          snaps={snaps}
+          bestHolder={bestHolder}
+          isRace={isRace}
+          aidLabel={aidLabel}
+          selected={selected}
+          refCode={refCode}
+          year={year}
+          onToggle={onToggle}
+          onSetRef={onSetRef}
+        />
 
         {/* Track */}
         <div
@@ -312,68 +380,82 @@ function TimingBoard({
   snaps,
   bestHolder,
   isRace,
-  sel,
-  setSel,
-  selIds,
   aidLabel,
+  selected,
+  refCode,
+  year,
+  onToggle,
+  onSetRef,
 }: {
   snaps: Snap[];
   bestHolder: (string | null)[];
   isRace: boolean;
-  sel: string | null;
-  setSel: (v: string | null) => void;
-  selIds: Set<string>;
   aidLabel: string;
+  selected: string[];
+  refCode: string | null;
+  year: number;
+  onToggle: (code: string) => void;
+  onSetRef: (code: string) => void;
 }) {
   return (
-    <div className="flex max-h-[420px] flex-col overflow-hidden rounded-xl border border-border">
+    <div className="flex max-h-[460px] flex-col overflow-hidden rounded-xl border border-border">
       <div className="flex items-center gap-1 border-b border-border bg-muted/30 px-2 py-1.5 text-2xs uppercase tracking-wide text-muted-foreground">
         <span className="w-4 text-right">P</span>
-        <span className="w-12 pl-1.5">Driver</span>
+        <span className="w-16 pl-1.5">Driver</span>
         <span className="ml-auto w-14 text-right">Gap</span>
         <span className="w-[3.6rem] text-right">Last</span>
       </div>
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence initial={false}>
           {snaps.map((s) => {
-            const isSel = s.id === sel;
-            const isPicked = selIds.has(s.id);
+            const isPicked = selected.includes(s.code);
+            const isRef = refCode === s.code;
+            const cid = constructorIdFromColor(s.color);
+            const path = getF1PortraitPathForErgastDriverId(s.id, year);
+            const src = path ? buildF1DriverHeadshotUrl(path) : undefined;
             const gapText = s.pos === 1 ? (isRace ? "LEADER" : "—") : isRace && s.lapsDown >= 1 ? `+${s.lapsDown}L` : fmtGap(s.gap);
             return (
-              <motion.button
+              <motion.div
                 key={s.id}
                 layout
-                type="button"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ layout: { type: "spring", stiffness: 650, damping: 46 }, opacity: { duration: 0.15 } }}
-                onClick={() => setSel(isSel ? null : s.id)}
                 className={cn(
-                  "flex w-full items-center gap-1 border-b border-border/40 px-2 py-1 text-left tabular-nums transition-colors",
-                  isSel ? "bg-primary/15" : isPicked ? "bg-primary/[0.05]" : "hover:bg-accent/50",
+                  "flex w-full items-center gap-1 border-b border-border/40 px-2 py-1 tabular-nums transition-colors",
+                  isPicked ? "bg-primary/[0.08]" : "hover:bg-accent/50",
                   s.pit && "opacity-55",
                 )}
                 style={isPicked ? { boxShadow: `inset 2px 0 0 ${s.color}` } : undefined}
               >
-                <span className="w-4 shrink-0 text-right text-xs font-bold text-muted-foreground">{s.pos ?? "—"}</span>
-                <span className="ml-0.5 h-3.5 w-1 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                <span className="w-8 shrink-0 text-sm font-bold" style={{ color: s.color }}>
-                  {s.code}
-                </span>
-                {(() => {
-                  const cid = constructorIdFromColor(s.color);
-                  return cid ? <TeamLogo constructorId={cid} size="sm" noBackground className="!h-3 w-auto shrink-0" /> : null;
-                })()}
-                {s.tyre && (
-                  <span className="inline-flex shrink-0 items-baseline gap-px text-[9px] font-bold" style={{ color: TYRE_HSL[s.tyre] ?? "hsl(var(--muted-foreground))" }}>
-                    {s.tyre}
-                    {s.tyl != null && <span className="text-[8px] text-muted-foreground">{s.tyl}</span>}
+                <button
+                  type="button"
+                  onClick={() => onToggle(s.code)}
+                  aria-pressed={isPicked}
+                  className="flex min-w-0 flex-1 items-center gap-1 text-left"
+                >
+                  <span className="w-4 shrink-0 text-right text-xs font-bold text-muted-foreground">{s.pos ?? "—"}</span>
+                  <DriverAvatar driverCode={s.code} src={src} teamColor={s.color} size="xs" />
+                  <span className="w-8 shrink-0 text-sm font-bold" style={{ color: s.color }}>
+                    {s.code}
                   </span>
+                  {cid && <TeamLogo constructorId={cid} size="sm" noBackground className="!h-2.5 w-auto shrink-0" />}
+                  {s.tyre && (
+                    <span className="inline-flex shrink-0 items-baseline gap-px text-[9px] font-bold" style={{ color: TYRE_HSL[s.tyre] ?? "hsl(var(--muted-foreground))" }}>
+                      {s.tyre}
+                      {s.tyl != null && <span className="text-[8px] text-muted-foreground">{s.tyl}</span>}
+                    </span>
+                  )}
+                  {s.drs && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gain" title={aidLabel} />}
+                  {s.pit && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-position-gold" title="In pit" />}
+                  {s.isFL && <span className="shrink-0 text-[8px] leading-none text-fastest-lap">◆</span>}
+                </button>
+                {isPicked && (
+                  <button type="button" onClick={() => onSetRef(s.code)} title={isRef ? "Reference driver" : "Set as reference"} className="shrink-0">
+                    <Star className={cn("h-3 w-3", isRef ? "fill-primary text-primary" : "text-muted-foreground/40 hover:text-muted-foreground")} />
+                  </button>
                 )}
-                {s.drs && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gain" title={aidLabel} />}
-                {s.pit && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-position-gold" title="In pit" />}
-                {s.isFL && <span className="shrink-0 text-[8px] leading-none text-fastest-lap">◆</span>}
                 <span className="ml-auto flex w-14 shrink-0 flex-col items-end leading-tight">
                   <span className="text-2xs text-muted-foreground">{gapText}</span>
                   {s.pos !== 1 && s.int != null && <span className="text-[9px] text-muted-foreground/60">{fmtGap(s.int)}</span>}
@@ -382,7 +464,7 @@ function TimingBoard({
                   <span className={cn("readout text-[11px]", s.isFLLap ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(s.lastTime)}</span>
                   <SectorBars snap={s} bestHolder={bestHolder} />
                 </span>
-              </motion.button>
+              </motion.div>
             );
           })}
         </AnimatePresence>

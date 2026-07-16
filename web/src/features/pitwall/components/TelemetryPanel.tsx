@@ -304,14 +304,14 @@ function Trace({
   onUp,
 }: TraceProps) {
   return (
-    <div className="relative">
-      <span className="pointer-events-none absolute left-1 top-0.5 z-10 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div>
+      <div className="px-1 pb-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
-      </span>
+      </div>
       <ResponsiveContainer width="100%" height={height}>
         <LineChart
           data={rows}
-          margin={{ top: 10, right: 6, left: 2, bottom: 0 }}
+          margin={{ top: 4, right: 6, left: 2, bottom: 0 }}
           onMouseDown={(e: { activeLabel?: string | number }) => {
             if (e?.activeLabel != null) onDown(Number(e.activeLabel));
           }}

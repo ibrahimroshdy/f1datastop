@@ -104,14 +104,17 @@ export default function PitWall() {
               round={state.round}
               blob={data.blob}
               selected={state.drivers}
+              refCode={state.ref}
               playhead={replay}
+              onToggle={toggleDriver}
+              onSetRef={(c) => patch({ ref: c })}
             />
           </PanelShell>
 
-          <div className="lg:grid lg:grid-cols-[minmax(190px,230px)_minmax(0,1fr)] lg:gap-3">
-          {/* Driver rail */}
-          <aside className="mb-3 lg:mb-0">
-            <div className="lg:sticky lg:top-16">
+          {/* Drivers picker fallback — only when there's no replay; otherwise the
+              Race Control timing board above is the selectable drivers list. */}
+          {!data.blob && (
+            <aside className="mb-3">
               <div className="mb-2 flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5 text-primary" />
                 <span className="instrument-label text-muted-foreground">
@@ -128,8 +131,8 @@ export default function PitWall() {
                 onSetRef={(c) => patch({ ref: c })}
                 isLoading={data.isLoading}
               />
-            </div>
-          </aside>
+            </aside>
+          )}
 
           {/* Panels */}
           <div className="min-w-0 space-y-3">
@@ -207,7 +210,6 @@ export default function PitWall() {
               })
             )}
           </div>
-        </div>
         </>
       )}
     </div>

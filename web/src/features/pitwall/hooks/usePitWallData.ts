@@ -12,7 +12,15 @@ export interface PitWallDriver {
   driver_id: string | null;
   number: number | null;
   team_color: string | null;
+  /** Final classified position (from the replay), for ordering the driver list. */
+  position: number | null;
 }
+
+const lastNonNull = (arr?: (number | null)[]): number | null => {
+  if (!arr) return null;
+  for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return arr[i];
+  return null;
+};
 
 /**
  * Core Pit Wall data for a season/round/session: the whole-session replay blob
@@ -59,8 +67,10 @@ export function usePitWallData(
           driver_id: d.driver_id ?? null,
           number: d.number ?? null,
           team_color: d.team_color ?? null,
+          position: lastNonNull(d.pos),
         }))
-        .filter((d) => d.code);
+        .filter((d) => d.code)
+        .sort((a, b) => (a.position ?? 99) - (b.position ?? 99));
     }
     // Fallback: derive roster from the telemetry index when no replay exists.
     const rows = (telemetryIndex.data ?? []) as TelemetryIndexRow[];
@@ -72,6 +82,7 @@ export function usePitWallData(
           driver_id: r.driver_id,
           number: null,
           team_color: null,
+          position: null,
         });
       }
     }
