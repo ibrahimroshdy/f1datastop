@@ -9,7 +9,6 @@ import { DriverRail } from "../components/DriverRail";
 import { PanelShell } from "../components/PanelShell";
 import { LapTimePanel } from "../components/LapTimePanel";
 import { TelemetryPanel } from "../components/TelemetryPanel";
-import { TrackStagePanel } from "../components/TrackStagePanel";
 import { TimingPanel } from "../components/TimingPanel";
 import { WeatherStrip } from "../components/WeatherStrip";
 import { StintStrip } from "../components/StintStrip";
@@ -18,7 +17,8 @@ import { ReplayStage } from "../components/ReplayStage";
 import { usePitWallState } from "../hooks/usePitWallState";
 import { usePitWallData } from "../hooks/usePitWallData";
 import { usePitWallTelemetry } from "../hooks/usePitWallTelemetry";
-import { useLapPlayhead } from "../hooks/useLapPlayhead";
+import { useReplayPlayhead } from "../hooks/useReplayPlayhead";
+import { refLapFrac } from "../replayEngine";
 import { PANELS, sessionsForRace, type PanelId } from "../pitwall.config";
 
 function Placeholder({ hint }: { hint: string }) {
@@ -61,13 +61,17 @@ export default function PitWall() {
   );
   const hasDrivers = state.drivers.length > 0;
 
-  // One shared lap playhead: play sweeps the track dot AND the telemetry crosshair
-  // together; hovering a chart scrubs the track. Reset when the lap/driver set changes.
-  const lapPlayhead = useLapPlayhead();
-  const driversKey = state.drivers.join(",");
+  // ONE playhead for the whole console — the Race Control replay. Its frame drives the
+  // track dots + timing board AND, via the reference car's position on its lap, the
+  // crosshair that sweeps every telemetry chart. Reset when the session/round changes.
+  const replay = useReplayPlayhead(data.blob?.frames ?? 1);
   useEffect(() => {
-    lapPlayhead.setT(0);
-  }, [state.lap, session, driversKey, lapPlayhead.setT]);
+    replay.setFrame(0);
+    replay.setPlaying(false);
+  }, [session, state.round, replay.setFrame, replay.setPlaying]);
+  const crosshairFrac = data.blob
+    ? refLapFrac(data.blob, state.ref ?? viewDrivers[0] ?? null, replay.frame)
+    : 0;
 
   return (
     <div className={cn("mx-auto w-full max-w-[1800px] px-3 sm:px-4 xl:px-6", pageStack, "animate-fade-in")}>
@@ -100,6 +104,7 @@ export default function PitWall() {
               round={state.round}
               blob={data.blob}
               selected={state.drivers}
+              playhead={replay}
             />
           </PanelShell>
 
@@ -186,15 +191,7 @@ export default function PitWall() {
                         drivers={data.drivers}
                         refCode={state.ref}
                         mode={state.mode}
-                        playhead={lapPlayhead}
-                      />
-                    ) : id === "track" ? (
-                      <TrackStagePanel
-                        year={state.year}
-                        round={state.round}
-                        telemetry={telemetry}
-                        drivers={data.drivers}
-                        playhead={lapPlayhead}
+                        crosshairFrac={crosshairFrac}
                       />
                     ) : id === "tower" ? (
                       <TimingPanel blob={data.blob} selected={viewDrivers} />

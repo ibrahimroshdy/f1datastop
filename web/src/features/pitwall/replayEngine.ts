@@ -1,5 +1,35 @@
 import type { CircuitGeometryBlob } from "@/services/circuitGeometryService";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
+import { TEAM_COLORS } from "@/constants/f1Colors";
+
+// Replay blobs carry only team_color (FastF1's palette, which differs slightly from
+// ours), not a constructor id. Match to the NEAREST app team colour so we can show
+// team logos next to drivers — exact-hex reverse-mapping missed most teams.
+const hexToRgb = (h: string): [number, number, number] | null => {
+  const s = h.replace("#", "").trim();
+  if (s.length < 6) return null;
+  return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+};
+const PALETTE = Object.entries(TEAM_COLORS)
+  .map(([id, hex]) => ({ id, rgb: hexToRgb(hex) }))
+  .filter((p): p is { id: string; rgb: [number, number, number] } => !!p.rgb);
+
+export function constructorIdFromColor(hex?: string | null): string | undefined {
+  if (!hex) return undefined;
+  const rgb = hexToRgb(hex);
+  if (!rgb) return undefined;
+  let best: string | undefined;
+  let bestD = Infinity;
+  for (const p of PALETTE) {
+    const d = (p.rgb[0] - rgb[0]) ** 2 + (p.rgb[1] - rgb[1]) ** 2 + (p.rgb[2] - rgb[2]) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = p.id;
+    }
+  }
+  // Guard against mapping an odd/greyish colour onto a random team.
+  return bestD < 9000 ? best : undefined;
+}
 
 /** Per-driver timing snapshot at one frame (mirrors RaceSimulator's useTiming). */
 export interface Snap {
@@ -114,6 +144,23 @@ export function computeTiming(blob: RaceReplayBlob, fi: number): TimingResult {
   return { snaps, bestHolder, leaderLap, t, flId };
 }
 
+/**
+ * Fraction (0–1) through its current lap for one driver at a frame — used to sweep
+ * the telemetry crosshair in sync with the single race-replay playhead.
+ */
+export function refLapFrac(blob: RaceReplayBlob, code: string | null, frame: number): number {
+  if (!code) return 0;
+  const d = blob.drivers.find((x) => x.code === code);
+  if (!d) return 0;
+  const t = blob.times[Math.round(frame)] ?? 0;
+  let live: { ts: number; te?: number | null; last?: number | null; n: number } | null = null;
+  for (const l of d.laps ?? []) if (l.ts <= t && (!live || l.n > live.n)) live = l;
+  if (!live) return 0;
+  const te = live.te ?? (live.last != null ? live.ts + live.last : live.ts + 90);
+  const span = te - live.ts || 1;
+  return Math.max(0, Math.min(1, (t - live.ts) / span));
+}
+
 export interface Car {
   id: string;
   code: string;
@@ -150,6 +197,26 @@ export function interpCars(blob: RaceReplayBlob, frame: number): Car[] {
     });
   }
   return out;
+}
+
+/**
+ * Approx live speed (km/h) per driver from the replay positions — Δposition / Δtime.
+ * FastF1 X/Y are in 1/10 m, times[] in real seconds. Works for every car on track.
+ */
+export function carSpeeds(blob: RaceReplayBlob, frame: number): Record<string, number> {
+  const i = Math.max(1, Math.round(frame));
+  const dt = (blob.times[i] ?? 0) - (blob.times[i - 1] ?? 0);
+  const m: Record<string, number> = {};
+  if (dt <= 0) return m;
+  for (const d of blob.drivers) {
+    const a = d.xy[i - 1];
+    const b = d.xy[i];
+    if (a && b && d.code) {
+      const dist = Math.hypot(b[0] - a[0], b[1] - a[1]) / 10; // 1/10 m → m
+      m[d.code] = (dist / dt) * 3.6;
+    }
+  }
+  return m;
 }
 
 export interface GeomPaths {

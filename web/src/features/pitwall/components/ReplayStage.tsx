@@ -8,14 +8,17 @@ import {
   type CircuitGeometryBlob,
 } from "@/services/circuitGeometryService";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
+import TeamLogo from "@/components/common/TeamLogo";
 import { cn } from "@/lib/utils";
-import { useReplayPlayhead } from "../hooks/useReplayPlayhead";
+import type { ReplayPlayhead } from "../hooks/useReplayPlayhead";
 import {
   SAFETY_STYLE,
   SECTOR_COLOR,
   TYRE_HSL,
   buildGeom,
+  carSpeeds,
   computeTiming,
+  constructorIdFromColor,
   fmtClock,
   fmtGap,
   fmtLap,
@@ -39,9 +42,10 @@ interface Props {
   round: number | null;
   blob?: RaceReplayBlob;
   selected: string[];
+  playhead: ReplayPlayhead;
 }
 
-export function ReplayStage({ year, round, blob, selected }: Props) {
+export function ReplayStage({ year, round, blob, selected, playhead }: Props) {
   const [sel, setSel] = useState<string | null>(null);
   const [showSectors, setShowSectors] = useState(true);
 
@@ -75,6 +79,7 @@ export function ReplayStage({ year, round, blob, selected }: Props) {
       showSectors={showSectors}
       setShowSectors={setShowSectors}
       selected={selected}
+      playhead={playhead}
     />
   );
 }
@@ -87,6 +92,7 @@ function ReplayBody({
   showSectors,
   setShowSectors,
   selected,
+  playhead,
 }: {
   blob: RaceReplayBlob;
   geom?: CircuitGeometryBlob;
@@ -95,15 +101,24 @@ function ReplayBody({
   showSectors: boolean;
   setShowSectors: (v: boolean) => void;
   selected: string[];
+  playhead: ReplayPlayhead;
 }) {
-  const { frame, setFrame, playing, setPlaying, speed, setSpeed, lastFrame } = useReplayPlayhead(blob.frames);
+  const { frame, setFrame, playing, setPlaying, speed, setSpeed, lastFrame } = playhead;
   const fi = Math.round(frame);
   const { snaps, bestHolder, leaderLap, t } = useMemo(() => computeTiming(blob, fi), [blob, fi]);
   const cars = useMemo(() => interpCars(blob, frame), [blob, frame]);
+
+  // Live speed on the track for every car — derived from Δposition/Δtime.
+  const speedByCode = useMemo(() => carSpeeds(blob, frame), [blob, frame]);
   const geomPaths = useMemo(() => buildGeom(geom, blob), [geom, blob]);
 
   const dur = blob.duration_s || 1;
-  const active = (blob.safety ?? []).find((p) => t >= p.start_s && t <= p.end_s) ?? null;
+  const safety = blob.safety ?? [];
+  const active = safety.find((p) => t >= p.start_s && t <= p.end_s) ?? null;
+  const sToFrame = (s: number) => {
+    for (let i = 0; i < blob.times.length; i++) if (blob.times[i] >= s) return i;
+    return blob.times.length - 1;
+  };
   const isRace = blob.is_race !== false;
   const aidLabel = blob.season >= 2026 ? "OVR" : "DRS";
   const atEnd = frame >= lastFrame;
@@ -185,19 +200,45 @@ function ReplayBody({
         </div>
       </div>
 
-      {/* Scrubber */}
-      <input
-        type="range"
-        min={0}
-        max={lastFrame}
-        step={0.5}
-        value={frame}
-        onChange={(e) => {
-          setPlaying(false);
-          setFrame(Number(e.target.value));
-        }}
-        className="h-1 w-full accent-primary"
-      />
+      {/* Scrubber + safety-car / red-flag markers (click a band to jump to it) */}
+      <div className="space-y-1">
+        {safety.length > 0 && (
+          <div className="relative h-2 w-full">
+            {safety.map((p, i) => {
+              const a = sToFrame(p.start_s);
+              const b = sToFrame(p.end_s);
+              const left = (a / (lastFrame || 1)) * 100;
+              const width = Math.max(1, ((b - a) / (lastFrame || 1)) * 100);
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setPlaying(false);
+                    setFrame(a);
+                  }}
+                  title={`${SAFETY_STYLE[p.kind].label} — jump here`}
+                  aria-label={`Jump to ${SAFETY_STYLE[p.kind].label}`}
+                  className="absolute top-0 h-2 rounded-sm opacity-80 ring-1 ring-background transition-opacity hover:opacity-100"
+                  style={{ left: `${left}%`, width: `${width}%`, backgroundColor: SAFETY_STYLE[p.kind].color }}
+                />
+              );
+            })}
+          </div>
+        )}
+        <input
+          type="range"
+          min={0}
+          max={lastFrame}
+          step={0.5}
+          value={frame}
+          onChange={(e) => {
+            setPlaying(false);
+            setFrame(Number(e.target.value));
+          }}
+          className="h-1 w-full accent-primary"
+        />
+      </div>
 
       {/* Safety banner */}
       {active && (
@@ -219,7 +260,7 @@ function ReplayBody({
           className="relative overflow-hidden rounded-xl border border-border bg-card/30"
           style={active ? { boxShadow: `inset 0 0 0 2px color-mix(in srgb, ${SAFETY_STYLE[active.kind].color} 55%, transparent)` } : undefined}
         >
-          <TrackSVG blob={blob} geom={geomPaths} cars={cars} showSectors={showSectors} sel={sel} setSel={setSel} selIds={selIds} />
+          <TrackSVG blob={blob} geom={geomPaths} cars={cars} showSectors={showSectors} sel={sel} setSel={setSel} selIds={selIds} speedByCode={speedByCode} />
         </div>
 
         {/* RC feed */}
@@ -320,6 +361,10 @@ function TimingBoard({
                 <span className="w-8 shrink-0 text-sm font-bold" style={{ color: s.color }}>
                   {s.code}
                 </span>
+                {(() => {
+                  const cid = constructorIdFromColor(s.color);
+                  return cid ? <TeamLogo constructorId={cid} size="sm" noBackground className="!h-3 w-auto shrink-0" /> : null;
+                })()}
                 {s.tyre && (
                   <span className="inline-flex shrink-0 items-baseline gap-px text-[9px] font-bold" style={{ color: TYRE_HSL[s.tyre] ?? "hsl(var(--muted-foreground))" }}>
                     {s.tyre}
@@ -354,6 +399,7 @@ function TrackSVG({
   sel,
   setSel,
   selIds,
+  speedByCode,
 }: {
   blob: RaceReplayBlob;
   geom: ReturnType<typeof buildGeom>;
@@ -362,6 +408,7 @@ function TrackSVG({
   sel: string | null;
   setSel: (v: string | null) => void;
   selIds: Set<string>;
+  speedByCode: Record<string, number>;
 }) {
   const { min_x, max_x, min_y, max_y } = blob.bounds;
   const w = max_x - min_x || 1;
@@ -417,6 +464,18 @@ function TrackSVG({
             >
               {c.code}
             </text>
+            {up && speedByCode[c.code] != null && (
+              <text
+                x={c.x}
+                y={c.y + rr * 2.7}
+                fontSize={lblFs * 0.82}
+                textAnchor="middle"
+                className="fill-muted-foreground font-mono"
+                style={{ paintOrder: "stroke", stroke: "hsl(var(--background))", strokeWidth: lblFs * 0.26, strokeLinejoin: "round" }}
+              >
+                {Math.round(speedByCode[c.code])}
+              </text>
+            )}
           </g>
         );
       })}

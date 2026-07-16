@@ -2,8 +2,18 @@ import { useEffect, useRef, useState } from "react";
 
 const PLAY_FPS = 12; // frames advanced per wall-second at 1× (~18× real-time)
 
+export interface ReplayPlayhead {
+  frame: number;
+  setFrame: (n: number) => void;
+  playing: boolean;
+  setPlaying: (b: boolean) => void;
+  speed: number;
+  setSpeed: (s: number) => void;
+  lastFrame: number;
+}
+
 /** Frame-based playhead over a race-replay blob (whole session). */
-export function useReplayPlayhead(frames: number) {
+export function useReplayPlayhead(frames: number): ReplayPlayhead {
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);

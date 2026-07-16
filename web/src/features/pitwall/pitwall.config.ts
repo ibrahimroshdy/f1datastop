@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { CircleDot, CloudSun, Gauge, LineChart, ListOrdered, Map as MapIcon } from "lucide-react";
+import { CircleDot, CloudSun, Gauge, LineChart, ListOrdered } from "lucide-react";
 
 /** Session codes our data pipeline keys on (telemetry/replay/warehouse). */
 export type SessionCode = "R" | "Q" | "S";
@@ -38,7 +38,7 @@ export const MAX_DRIVERS = 6;
 
 export type CompareMode = "focus" | "overlay";
 
-export type PanelId = "lap" | "telemetry" | "track" | "tower" | "stint" | "weather";
+export type PanelId = "lap" | "telemetry" | "tower" | "stint" | "weather";
 
 export interface PanelDef {
   id: PanelId;
@@ -49,7 +49,6 @@ export interface PanelDef {
 export const PANELS: PanelDef[] = [
   { id: "lap", label: "Lap Times", icon: LineChart },
   { id: "telemetry", label: "Telemetry", icon: Gauge },
-  { id: "track", label: "Track", icon: MapIcon },
   { id: "tower", label: "Timing", icon: ListOrdered },
   { id: "stint", label: "Stints & Pits", icon: CircleDot },
   { id: "weather", label: "Weather", icon: CloudSun },

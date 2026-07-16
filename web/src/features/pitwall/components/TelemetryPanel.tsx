@@ -1,26 +1,28 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
+  XAxis,
   YAxis,
 } from "recharts";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, RotateCcw, ZoomIn } from "lucide-react";
 import { chartTheme } from "@/lib/chartTheme";
 import { cn } from "@/lib/utils";
 import type { TelemetryBlob } from "@/services/telemetryService";
 import type { DriverTelemetry } from "../hooks/usePitWallTelemetry";
 import type { PitWallDriver } from "../hooks/usePitWallData";
-import type { LapPlayhead } from "../hooks/useLapPlayhead";
 
 interface Props {
   telemetry: DriverTelemetry[];
   drivers: PitWallDriver[];
   refCode: string | null;
   mode: "focus" | "overlay";
-  playhead: LapPlayhead;
+  /** 0–1 position of the reference car on its lap — drives the crosshair. */
+  crosshairFrac: number;
 }
 
 interface Ready {
@@ -49,12 +51,17 @@ function cumulativeTime(dist: number[], speed: number[]): number[] {
   return t;
 }
 
-export function TelemetryPanel({ telemetry, drivers, refCode, mode, playhead }: Props) {
+export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFrac }: Props) {
   const colorOf = useMemo(() => {
     const m: Record<string, string> = {};
     for (const d of drivers) m[d.code] = d.team_color || "#9ca3af";
     return m;
   }, [drivers]);
+
+  // Shared drag-to-zoom across every trace (by sample index).
+  const [zoom, setZoom] = useState<[number, number] | null>(null);
+  const [dragL, setDragL] = useState<number | null>(null);
+  const [dragR, setDragR] = useState<number | null>(null);
 
   const ready: Ready[] = telemetry
     .filter((t) => t.state?.status === "done")
@@ -120,14 +127,15 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, playhead }: 
     );
   }
 
-  // Crosshair index follows the shared playhead (play) or a hover scrub, via the ref
-  // lap's cumulative-time trace. Plain compute (cheap) — after the early return above.
+  // Crosshair index = where the reference car sits on its current lap (frac from the
+  // single race-replay playhead), mapped through the ref lap's cumulative-time trace.
   let cursorIdx: number | null = null;
   if (refTime.length) {
+    const target = crosshairFrac * (refTime[refTime.length - 1] ?? 0);
     let bi = 0;
     let bd = Infinity;
     for (let i = 0; i < refTime.length; i++) {
-      const d = Math.abs(refTime[i] - playhead.t);
+      const d = Math.abs(refTime[i] - target);
       if (d < bd) {
         bd = d;
         bi = i;
@@ -135,8 +143,15 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, playhead }: 
     }
     cursorIdx = bi;
   }
-  const scrubTo = (i: number) => playhead.setT(refTime[i] ?? 0);
   const activeDist = cursorIdx != null && rows[cursorIdx] ? (rows[cursorIdx].d as number) : null;
+
+  const onUp = () => {
+    if (dragL != null && dragR != null && dragL !== dragR) setZoom([Math.min(dragL, dragR), Math.max(dragL, dragR)]);
+    setDragL(null);
+    setDragR(null);
+  };
+  const dragBand: [number, number] | null =
+    dragL != null && dragR != null ? [Math.min(dragL, dragR), Math.max(dragL, dragR)] : null;
 
   return (
     <div className="space-y-2">
@@ -149,8 +164,55 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, playhead }: 
 
       {ready.length > 0 && (
         <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-2xs text-muted-foreground">
+              <ZoomIn className="h-3 w-3" /> Drag to zoom
+            </span>
+            {zoom && (
+              <button
+                type="button"
+                onClick={() => setZoom(null)}
+                className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-2xs text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw className="h-3 w-3" /> Reset
+              </button>
+            )}
+          </div>
+          {/* Live readout at the crosshair — the "watch the track" values */}
+          {cursorIdx != null && (
+            <div className="flex flex-wrap gap-1.5">
+              {ready.map((r) => (
+                <span
+                  key={r.code}
+                  className="flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-2xs"
+                  style={{ borderColor: `${r.color}55`, backgroundColor: `${r.color}14` }}
+                >
+                  <span className="timing font-bold" style={{ color: r.color }}>{r.code}</span>
+                  <span className="readout">
+                    {Math.round(r.blob.channels.speed?.[cursorIdx] ?? 0)}
+                    <span className="text-[9px] text-muted-foreground"> km/h</span>
+                  </span>
+                  <span className="text-muted-foreground">G{r.blob.channels.gear?.[cursorIdx] ?? "—"}</span>
+                </span>
+              ))}
+            </div>
+          )}
           {hasDelta && (
-            <Trace rows={rows} ready={ready} suffix="delta" label="Δ vs ref (s)" height={64} zeroLine activeIdx={cursorIdx} onHover={scrubTo} />
+            <Trace
+              rows={rows}
+              ready={ready}
+              suffix="delta"
+              label="Δ vs ref (s)"
+              height={64}
+              zeroLine
+              activeIdx={cursorIdx}
+              domainX={zoom}
+              dragBand={dragBand}
+              dragging={dragL != null}
+              onDown={setDragL}
+              onMove={setDragR}
+              onUp={onUp}
+            />
           )}
           {CHANNELS.filter((c) => present.includes(c.key)).map((ch, idx) => (
             <Trace
@@ -162,7 +224,12 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, playhead }: 
               height={idx === 0 ? 120 : 64}
               domain={ch.domain}
               activeIdx={cursorIdx}
-              onHover={scrubTo}
+              domainX={zoom}
+              dragBand={dragBand}
+              dragging={dragL != null}
+              onDown={setDragL}
+              onMove={setDragR}
+              onUp={onUp}
             />
           ))}
           {activeDist != null && (
@@ -212,10 +279,30 @@ interface TraceProps {
   domain?: [number, number];
   zeroLine?: boolean;
   activeIdx: number | null;
-  onHover: (i: number) => void;
+  domainX: [number, number] | null;
+  dragBand: [number, number] | null;
+  dragging: boolean;
+  onDown: (i: number) => void;
+  onMove: (i: number) => void;
+  onUp: () => void;
 }
 
-function Trace({ rows, ready, suffix, label, height, domain, zeroLine, activeIdx, onHover }: TraceProps) {
+function Trace({
+  rows,
+  ready,
+  suffix,
+  label,
+  height,
+  domain,
+  zeroLine,
+  activeIdx,
+  domainX,
+  dragBand,
+  dragging,
+  onDown,
+  onMove,
+  onUp,
+}: TraceProps) {
   return (
     <div className="relative">
       <span className="pointer-events-none absolute left-1 top-0.5 z-10 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -225,13 +312,17 @@ function Trace({ rows, ready, suffix, label, height, domain, zeroLine, activeIdx
         <LineChart
           data={rows}
           margin={{ top: 10, right: 6, left: 2, bottom: 0 }}
-          onMouseMove={(e: { activeTooltipIndex?: number }) => {
-            if (e?.activeTooltipIndex != null) onHover(e.activeTooltipIndex);
+          onMouseDown={(e: { activeLabel?: string | number }) => {
+            if (e?.activeLabel != null) onDown(Number(e.activeLabel));
           }}
+          onMouseMove={(e: { activeLabel?: string | number }) => {
+            if (dragging && e?.activeLabel != null) onMove(Number(e.activeLabel));
+          }}
+          onMouseUp={onUp}
         >
           <CartesianGrid stroke={chartTheme.grid} vertical={false} strokeDasharray="2 4" />
+          <XAxis dataKey="i" type="number" domain={domainX ?? ["dataMin", "dataMax"]} allowDataOverflow hide />
           <YAxis
-            hide={false}
             width={34}
             domain={domain ?? ["auto", "auto"]}
             stroke={chartTheme.axis}
@@ -255,6 +346,9 @@ function Trace({ rows, ready, suffix, label, height, domain, zeroLine, activeIdx
               type={suffix === "gear" || suffix === "drs" || suffix === "brake" ? "stepAfter" : "monotone"}
             />
           ))}
+          {dragBand && (
+            <ReferenceArea x1={dragBand[0]} x2={dragBand[1]} strokeOpacity={0.2} fill={chartTheme.primary} fillOpacity={0.08} />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>
