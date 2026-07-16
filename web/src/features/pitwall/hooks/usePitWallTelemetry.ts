@@ -26,15 +26,24 @@ export function usePitWallTelemetry(
   lap: number | null,
   index: TelemetryIndexRow[],
 ): DriverTelemetry[] {
-  const fastestByCode = useMemo(() => {
-    const m = new Map<string, number>();
+  const { fastestByCode, available } = useMemo(() => {
+    const fastestByCode = new Map<string, number>();
+    const available = new Set<string>();
     for (const r of index) {
-      if (r.lap_type === "fastest" && !m.has(r.driver_code)) m.set(r.driver_code, r.lap_number);
+      available.add(`${r.driver_code}:${r.lap_number}`);
+      if (r.lap_type === "fastest" && !fastestByCode.has(r.driver_code)) {
+        fastestByCode.set(r.driver_code, r.lap_number);
+      }
     }
-    return m;
+    return { fastestByCode, available };
   }, [index]);
 
-  const targets = drivers.map((code) => lap ?? fastestByCode.get(code) ?? null);
+  // A specific lap only loads if it's already exported for that driver; otherwise fall
+  // back to the driver's fastest lap so the chart always renders (never freezes on an
+  // ungenerated lap). True any-lap needs the Modal export queue (auth-gated).
+  const targets = drivers.map((code) =>
+    lap != null && available.has(`${code}:${lap}`) ? lap : fastestByCode.get(code) ?? null,
+  );
 
   const results = useQueries({
     queries: drivers.map((code, i) => {

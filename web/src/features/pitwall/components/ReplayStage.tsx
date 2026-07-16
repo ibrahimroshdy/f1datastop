@@ -1,35 +1,22 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
-import { Layers, Pause, Play, Radio, RotateCcw, ShieldAlert, Star } from "lucide-react";
+import { Layers, Pause, Play, Radio, RotateCcw, ShieldAlert } from "lucide-react";
 import {
   fetchCircuitGeometryBlob,
   getCircuitGeometry,
   type CircuitGeometryBlob,
 } from "@/services/circuitGeometryService";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
-import TeamLogo from "@/components/common/TeamLogo";
-import { DriverAvatar } from "@/components/f1";
 import { colorWithAlpha } from "@/constants/f1Colors";
-import {
-  buildF1DriverHeadshotUrl,
-  getF1PortraitPathForErgastDriverId,
-} from "@/constants/f1DriverPortraitMedia";
 import { cn } from "@/lib/utils";
 import type { ReplayPlayhead } from "../hooks/useReplayPlayhead";
 import {
   SAFETY_STYLE,
   SECTOR_COLOR,
-  TYRE_HSL,
   buildGeom,
-  carSpeeds,
   computeTiming,
-  constructorIdFromColor,
   fmtClock,
-  fmtGap,
-  fmtLap,
   interpCars,
-  type Snap,
 } from "../replayEngine";
 
 const SPEEDS = [1, 2, 4, 8];
@@ -48,13 +35,10 @@ interface Props {
   round: number | null;
   blob?: RaceReplayBlob;
   selected: string[];
-  refCode: string | null;
   playhead: ReplayPlayhead;
-  onToggle: (code: string) => void;
-  onSetRef: (code: string) => void;
 }
 
-export function ReplayStage({ year, round, blob, selected, refCode, playhead, onToggle, onSetRef }: Props) {
+export function ReplayStage({ year, round, blob, selected, playhead }: Props) {
   const [sel, setSel] = useState<string | null>(null);
   const [showSectors, setShowSectors] = useState(true);
 
@@ -88,11 +72,7 @@ export function ReplayStage({ year, round, blob, selected, refCode, playhead, on
       showSectors={showSectors}
       setShowSectors={setShowSectors}
       selected={selected}
-      refCode={refCode}
       playhead={playhead}
-      year={year}
-      onToggle={onToggle}
-      onSetRef={onSetRef}
     />
   );
 }
@@ -105,11 +85,7 @@ function ReplayBody({
   showSectors,
   setShowSectors,
   selected,
-  refCode,
   playhead,
-  year,
-  onToggle,
-  onSetRef,
 }: {
   blob: RaceReplayBlob;
   geom?: CircuitGeometryBlob;
@@ -118,19 +94,14 @@ function ReplayBody({
   showSectors: boolean;
   setShowSectors: (v: boolean) => void;
   selected: string[];
-  refCode: string | null;
   playhead: ReplayPlayhead;
-  year: number;
-  onToggle: (code: string) => void;
-  onSetRef: (code: string) => void;
 }) {
   const { frame, setFrame, playing, setPlaying, speed, setSpeed, lastFrame } = playhead;
   const fi = Math.round(frame);
-  const { snaps, bestHolder, leaderLap, t } = useMemo(() => computeTiming(blob, fi), [blob, fi]);
+  const { leaderLap, t } = useMemo(() => computeTiming(blob, fi), [blob, fi]);
   const cars = useMemo(() => interpCars(blob, frame), [blob, frame]);
 
   // Live speed on the track for every car — derived from Δposition/Δtime.
-  const speedByCode = useMemo(() => carSpeeds(blob, frame), [blob, frame]);
   const geomPaths = useMemo(() => buildGeom(geom, blob), [geom, blob]);
 
   const dur = blob.duration_s || 1;
@@ -142,7 +113,6 @@ function ReplayBody({
     return blob.times.length - 1;
   };
   const isRace = blob.is_race !== false;
-  const aidLabel = blob.season >= 2026 ? "OVR" : "DRS";
   const atEnd = frame >= lastFrame;
 
   const selCodes = useMemo(() => new Set(selected), [selected]);
@@ -308,31 +278,18 @@ function ReplayBody({
         </div>
       )}
 
-      {/* Stage: timing board | track | RC feed */}
-      <div className="grid gap-3 lg:grid-cols-[minmax(210px,250px)_minmax(0,1fr)_minmax(190px,230px)]">
-        {/* Drivers — position order, click to select, star = reference */}
-        <TimingBoard
-          snaps={snaps}
-          bestHolder={bestHolder}
-          isRace={isRace}
-          aidLabel={aidLabel}
-          selected={selected}
-          refCode={refCode}
-          year={year}
-          onToggle={onToggle}
-          onSetRef={onSetRef}
-        />
-
-        {/* Track */}
+      {/* Stage: small track | RC feed */}
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(180px,220px)]">
+        {/* Track — kept small so the charts below stay in view */}
         <div
-          className="relative overflow-hidden rounded-xl border border-border bg-card/30"
+          className="relative mx-auto max-h-[300px] w-full max-w-[440px] overflow-hidden rounded-xl border border-border bg-card/30"
           style={active ? { boxShadow: `inset 0 0 0 2px color-mix(in srgb, ${SAFETY_STYLE[active.kind].color} 55%, transparent)` } : undefined}
         >
-          <TrackSVG blob={blob} geom={geomPaths} cars={cars} showSectors={showSectors} sel={sel} setSel={setSel} selIds={selIds} speedByCode={speedByCode} />
+          <TrackSVG blob={blob} geom={geomPaths} cars={cars} showSectors={showSectors} sel={sel} setSel={setSel} selIds={selIds} />
         </div>
 
         {/* RC feed */}
-        <div className="flex max-h-[420px] flex-col gap-2 overflow-hidden rounded-xl border border-border bg-card/30 p-2">
+        <div className="flex max-h-[300px] flex-col gap-2 overflow-hidden rounded-xl border border-border bg-card/30 p-2">
           <div className="instrument-label flex items-center gap-1.5 text-primary">
             <Radio className="h-3 w-3" /> Race Control
           </div>
@@ -362,117 +319,6 @@ function ReplayBody({
   );
 }
 
-function SectorBars({ snap, bestHolder }: { snap: Snap; bestHolder: (string | null)[] }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {snap.sec.map((s, k) => {
-        let cls = "bg-muted-foreground/25";
-        if (snap.id === bestHolder[k]) cls = "bg-fastest-lap";
-        else if (s != null && s === snap.pb[k]) cls = "bg-gain";
-        else if (s != null) cls = "bg-muted-foreground/50";
-        return <span key={k} className={cn("h-1 w-2.5 rounded-sm", cls)} />;
-      })}
-    </div>
-  );
-}
-
-function TimingBoard({
-  snaps,
-  bestHolder,
-  isRace,
-  aidLabel,
-  selected,
-  refCode,
-  year,
-  onToggle,
-  onSetRef,
-}: {
-  snaps: Snap[];
-  bestHolder: (string | null)[];
-  isRace: boolean;
-  aidLabel: string;
-  selected: string[];
-  refCode: string | null;
-  year: number;
-  onToggle: (code: string) => void;
-  onSetRef: (code: string) => void;
-}) {
-  return (
-    <div className="flex max-h-[460px] flex-col overflow-hidden rounded-xl border border-border">
-      <div className="flex items-center gap-1 border-b border-border bg-muted/30 px-2 py-1.5 text-2xs uppercase tracking-wide text-muted-foreground">
-        <span className="w-4 text-right">P</span>
-        <span className="w-16 pl-1.5">Driver</span>
-        <span className="ml-auto w-14 text-right">Gap</span>
-        <span className="w-[3.6rem] text-right">Last</span>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <AnimatePresence initial={false}>
-          {snaps.map((s) => {
-            const isPicked = selected.includes(s.code);
-            const isRef = refCode === s.code;
-            const cid = constructorIdFromColor(s.color);
-            const path = getF1PortraitPathForErgastDriverId(s.id, year);
-            const src = path ? buildF1DriverHeadshotUrl(path) : undefined;
-            const gapText = s.pos === 1 ? (isRace ? "LEADER" : "—") : isRace && s.lapsDown >= 1 ? `+${s.lapsDown}L` : fmtGap(s.gap);
-            return (
-              <motion.div
-                key={s.id}
-                layout
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ layout: { type: "spring", stiffness: 650, damping: 46 }, opacity: { duration: 0.15 } }}
-                className={cn(
-                  "flex w-full items-center gap-1 border-b border-border/40 px-2 py-1 tabular-nums transition-colors",
-                  isPicked ? "bg-primary/[0.08]" : "hover:bg-accent/50",
-                  s.pit && "opacity-55",
-                )}
-                style={isPicked ? { boxShadow: `inset 2px 0 0 ${s.color}` } : undefined}
-              >
-                <button
-                  type="button"
-                  onClick={() => onToggle(s.code)}
-                  aria-pressed={isPicked}
-                  className="flex min-w-0 flex-1 items-center gap-1 text-left"
-                >
-                  <span className="w-4 shrink-0 text-right text-xs font-bold text-muted-foreground">{s.pos ?? "—"}</span>
-                  <DriverAvatar driverCode={s.code} src={src} teamColor={s.color} size="xs" />
-                  <span className="w-8 shrink-0 text-sm font-bold" style={{ color: s.color }}>
-                    {s.code}
-                  </span>
-                  {cid && <TeamLogo constructorId={cid} size="sm" noBackground className="!h-2.5 w-auto shrink-0" />}
-                  {s.tyre && (
-                    <span className="inline-flex shrink-0 items-baseline gap-px text-[9px] font-bold" style={{ color: TYRE_HSL[s.tyre] ?? "hsl(var(--muted-foreground))" }}>
-                      {s.tyre}
-                      {s.tyl != null && <span className="text-[8px] text-muted-foreground">{s.tyl}</span>}
-                    </span>
-                  )}
-                  {s.drs && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gain" title={aidLabel} />}
-                  {s.pit && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-position-gold" title="In pit" />}
-                  {s.isFL && <span className="shrink-0 text-[8px] leading-none text-fastest-lap">◆</span>}
-                </button>
-                {isPicked && (
-                  <button type="button" onClick={() => onSetRef(s.code)} title={isRef ? "Reference driver" : "Set as reference"} className="shrink-0">
-                    <Star className={cn("h-3 w-3", isRef ? "fill-primary text-primary" : "text-muted-foreground/40 hover:text-muted-foreground")} />
-                  </button>
-                )}
-                <span className="ml-auto flex w-14 shrink-0 flex-col items-end leading-tight">
-                  <span className="text-2xs text-muted-foreground">{gapText}</span>
-                  {s.pos !== 1 && s.int != null && <span className="text-[9px] text-muted-foreground/60">{fmtGap(s.int)}</span>}
-                </span>
-                <span className="flex w-[3.6rem] shrink-0 flex-col items-end gap-0.5">
-                  <span className={cn("readout text-[11px]", s.isFLLap ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(s.lastTime)}</span>
-                  <SectorBars snap={s} bestHolder={bestHolder} />
-                </span>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
-
 function TrackSVG({
   blob,
   geom,
@@ -481,7 +327,6 @@ function TrackSVG({
   sel,
   setSel,
   selIds,
-  speedByCode,
 }: {
   blob: RaceReplayBlob;
   geom: ReturnType<typeof buildGeom>;
@@ -490,7 +335,6 @@ function TrackSVG({
   sel: string | null;
   setSel: (v: string | null) => void;
   selIds: Set<string>;
-  speedByCode: Record<string, number>;
 }) {
   const { min_x, max_x, min_y, max_y } = blob.bounds;
   const w = max_x - min_x || 1;
@@ -546,18 +390,6 @@ function TrackSVG({
             >
               {c.code}
             </text>
-            {up && speedByCode[c.code] != null && (
-              <text
-                x={c.x}
-                y={c.y + rr * 2.7}
-                fontSize={lblFs * 0.82}
-                textAnchor="middle"
-                className="fill-muted-foreground font-mono"
-                style={{ paintOrder: "stroke", stroke: "hsl(var(--background))", strokeWidth: lblFs * 0.26, strokeLinejoin: "round" }}
-              >
-                {Math.round(speedByCode[c.code])}
-              </text>
-            )}
           </g>
         );
       })}

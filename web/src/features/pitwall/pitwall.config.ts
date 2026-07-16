@@ -38,7 +38,7 @@ export const MAX_DRIVERS = 6;
 
 export type CompareMode = "focus" | "overlay";
 
-export type PanelId = "lap" | "telemetry" | "tower" | "stint" | "weather";
+export type PanelId = "lap" | "position" | "telemetry" | "stint" | "weather";
 
 export interface PanelDef {
   id: PanelId;
@@ -48,8 +48,8 @@ export interface PanelDef {
 
 export const PANELS: PanelDef[] = [
   { id: "lap", label: "Lap Times", icon: LineChart },
+  { id: "position", label: "Positions", icon: ListOrdered },
   { id: "telemetry", label: "Telemetry", icon: Gauge },
-  { id: "tower", label: "Timing", icon: ListOrdered },
   { id: "stint", label: "Stints & Pits", icon: CircleDot },
   { id: "weather", label: "Weather", icon: CloudSun },
 ];
