@@ -19,6 +19,7 @@ import { FormSparkline } from "../components/FormSparkline";
 import { JokerPicker } from "../components/JokerPicker";
 import { RaceControlFeed } from "../components/pitwall/TeamRadio";
 import { ShareCard } from "../components/pitwall/ShareCard";
+import { RoundFlag } from "../components/RoundFlag";
 
 const QUICK_NAV = [
   { to: "/game/leagues", icon: Users, label: "Leagues" },
@@ -183,9 +184,7 @@ function ActivatedHub({ entryId }: { entryId: string }) {
                         !r.is_locked && "bg-primary/[0.04]",
                       )}
                     >
-                      <span className="timing w-8 shrink-0 text-xs font-semibold text-muted-foreground">
-                        R{String(r.round).padStart(2, "0")}
-                      </span>
+                      <RoundFlag round={r.round} country={r.country} className="w-8 shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">
                           {r.race_name}

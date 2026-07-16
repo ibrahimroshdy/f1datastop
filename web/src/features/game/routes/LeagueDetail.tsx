@@ -23,6 +23,8 @@ import { LeagueCrest } from "../components/pitwall/LeagueCrest";
 import { LeagueActivity } from "../components/LeagueActivity";
 import { medalBadge } from "../utils/medal";
 import { leagueAccent } from "../utils/leagueIdentity";
+import { RoundFlag } from "../components/RoundFlag";
+import { useRoundCountries } from "../hooks/useRoundCountries";
 
 const RANK_PILL = "inline-flex h-7 min-w-7 items-center justify-center rounded-full border px-1.5 text-xs font-semibold tabular-nums";
 const initials = (n?: string | null) => (n ?? "").trim().slice(0, 2).toUpperCase() || undefined;
@@ -44,6 +46,7 @@ export default function LeagueDetail() {
   const { user } = useAuth();
   const [season, setSeason] = useState(ACTIVE_GAME_SEASON);
   const [view, setView] = useState<"season" | "alltime">("season");
+  const roundCountries = useRoundCountries(season);
 
   const seasons = useQuery({ queryKey: ["game", "seasons"], queryFn: () => getGameSeasons() });
   const league = useQuery({ queryKey: ["game", "league", leagueId], queryFn: () => getLeague(leagueId) });
@@ -269,7 +272,7 @@ export default function LeagueDetail() {
                 }, {}),
               ).map(([round, v]) => (
                 <div key={round} className="flex items-center gap-2 text-xs">
-                  <span className="timing w-8 text-muted-foreground">R{round}</span>
+                  <RoundFlag round={round} country={roundCountries.get(Number(round))} className="w-8" />
                   {v.goat && <span className="text-gain">🐐 {v.goat}</span>}
                   {v.flop && <span className="text-muted-foreground">🥶 {v.flop}</span>}
                 </div>
@@ -287,7 +290,7 @@ export default function LeagueDetail() {
                 <li key={r.round}>
                   <Link to={`/game/leagues/${leagueId}/round/${r.round}`}
                     className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40">
-                    <span className="timing w-8 text-xs font-semibold text-muted-foreground">R{r.round}</span>
+                    <RoundFlag round={r.round} country={roundCountries.get(Number(r.round))} className="w-8 shrink-0" />
                     <span className="min-w-0 flex-1 truncate text-sm">{r.race_name}</span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </Link>

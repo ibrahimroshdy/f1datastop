@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RoundFlag } from "./RoundFlag";
 import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
 import { getGameSchedule, getMyJoker, setJoker, ACTIVE_GAME_SEASON } from "../api/gameClient";
 
@@ -54,7 +55,7 @@ export function JokerPicker() {
                       : "border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground",
                   )}
                 >
-                  <span className="timing text-sm font-bold tabular-nums">R{r.round}</span>
+                  <RoundFlag round={r.round} country={r.country} />
                   <span className="max-w-[7rem] truncate text-2xs">{r.race_name}</span>
                 </button>
               );

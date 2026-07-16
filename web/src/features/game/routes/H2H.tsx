@@ -8,12 +8,15 @@ import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { getH2H, getLeagueStandings } from "../api/leaguesClient";
+import { RoundFlag } from "../components/RoundFlag";
+import { useRoundCountries } from "../hooks/useRoundCountries";
 
 export default function H2H() {
   const { id, userId } = useParams<{ id: string; userId: string }>();
   const leagueId = id as string;
   const { user } = useAuth();
   const meId = user?.id as string;
+  const roundCountries = useRoundCountries();
 
   const standings = useQuery({ queryKey: ["game", "standings", leagueId], queryFn: () => getLeagueStandings(leagueId) });
   const h2h = useQuery({
@@ -92,7 +95,9 @@ export default function H2H() {
                       const bw = Number(r.b_points) > Number(r.a_points);
                       return (
                         <tr key={r.round} className="border-b border-border/60">
-                          <td className="px-4 py-2 text-muted-foreground">R{r.round}</td>
+                          <td className="px-4 py-2 text-muted-foreground">
+                            <RoundFlag round={r.round} country={roundCountries.get(r.round)} className="items-start" />
+                          </td>
                           <td className={cn("px-3 py-2 text-right tabular-nums", aw && "font-semibold text-primary")}>{Number(r.a_points)}</td>
                           <td className={cn("px-3 py-2 text-right tabular-nums", bw && "font-semibold text-primary")}>{Number(r.b_points)}</td>
                         </tr>
