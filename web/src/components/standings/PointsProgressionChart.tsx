@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { F1Card, F1CardContent, F1CardFooter, F1CardHeader } from "@/components/f1";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -48,6 +48,7 @@ const gpShort = (name: string) => {
  */
 export default function PointsProgressionChart({ year, series, title, subtitle }: Props) {
   const { isGlass, cardVariant, glassVariant } = useThemeVariant();
+  const [showImages, setShowImages] = useState(true);
   const { data: allRes, isLoading } = useAllDriverResultsBySeason(year);
   const byDriver = (allRes?.data ?? {}) as Record<
     string,
@@ -160,8 +161,21 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
   return (
     <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("p-0", isGlass && "border-white/10")}>
       <F1CardHeader className="pb-2">
-        <div className="instrument-label text-muted-foreground">{title ?? "Points Progression"}</div>
-        <p className="text-xs text-muted-foreground">{subtitle ?? "Cumulative points through the season"}</p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="instrument-label text-muted-foreground">{title ?? "Points Progression"}</div>
+            <p className="text-xs text-muted-foreground">{subtitle ?? "Cumulative points through the season"}</p>
+          </div>
+          <label className="flex shrink-0 cursor-pointer select-none items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={showImages}
+              onChange={(e) => setShowImages(e.target.checked)}
+              className="h-3.5 w-3.5 accent-primary"
+            />
+            Images
+          </label>
+        </div>
       </F1CardHeader>
       <F1CardContent className="pb-2">
         {isLoading ? (
@@ -220,7 +234,7 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
                   strokeWidth={1.8}
                   strokeDasharray={dashByCode[s.code]}
                   filter={SCOPE_GLOW}
-                  dot={(dp: { cx?: number; cy?: number; index?: number; key?: string }) => {
+                  dot={showImages ? (dp: { cx?: number; cy?: number; index?: number; key?: string }) => {
                     const { cx, cy, index, key } = dp;
                     if (index !== lastIdx || cx == null || cy == null) return <g key={key} />;
                     const url = endImageByCode[s.code];
@@ -245,7 +259,7 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
                         <circle cx={cx} cy={cy} r={R} fill={url ? "none" : s.color} stroke={s.color} strokeWidth={2} />
                       </g>
                     );
-                  }}
+                  } : false}
                   activeDot={{ r: 4, fill: s.color, stroke: "hsl(var(--card))", strokeWidth: 2 }}
                   connectNulls
                 />

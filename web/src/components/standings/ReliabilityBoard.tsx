@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useSeasonResults, useAllDriverResultsBySeason } from "@/hooks/f1";
 import { getTeamHexColor, normalizeTeamId } from "@/components/standings/standingsUtils";
 import CountryFlag from "@/components/common/CountryFlag";
@@ -47,7 +48,19 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
   const { data: seasonRows, isLoading: whLoading } = useSeasonResults(year);
   const { data: fallback, isLoading: falLoading } = useAllDriverResultsBySeason(year);
   const [sortByDnf, setSortByDnf] = useState(false);
-  const [metric, setMetric] = useState<"position" | "points">("position");
+  // Metric lives in the URL (?metric=position); Points is the default (no param).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const metric: "position" | "points" = searchParams.get("metric") === "position" ? "position" : "points";
+  const setMetric = (m: "position" | "points") =>
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (m === "position") next.set("metric", "position");
+        else next.delete("metric");
+        return next;
+      },
+      { replace: true },
+    );
   const isLoading = whLoading && falLoading;
 
   // Warehouse first (complete + correct is_dnf); fall back to the Jolpica
