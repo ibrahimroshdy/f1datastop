@@ -21,7 +21,7 @@ import {
   fmtLap,
   interpCars,
   type Snap,
-} from "../lib/replayEngine";
+} from "../replayEngine";
 
 const SPEEDS = [1, 2, 4, 8];
 const RC_KIND_COLOR: Record<string, string> = {

@@ -76,8 +76,10 @@ dist/
 downloads/
 eggs/
 eggs/
-lib/
-lib64/
+# Anchored to repo root — the unanchored form silently swallowed nested source
+# dirs like web/src/features/pitwall/lib (broke the Vercel build).
+/lib/
+/lib64/
 parts/
 sdist/
 var/
