@@ -381,6 +381,63 @@ def process_chart_requests() -> None:
             print(f"  {rid}: error {e}")
 
 
+# ── Scheduled: drain on-demand any-lap telemetry requests (Pit Wall) ──────────
+# Every minute: claim a few pending f1_telemetry_requests, export that ONE driver+lap
+# telemetry blob (telemetry_export.py --lap), then write the blob's public_url back on
+# the row from f1_telemetry_index. Frontend inserts a request + polls. Deduped by the
+# row's unique (season,round,session,driver,lap) key. This is the 5th (final) cron —
+# Modal's free plan caps at 5, so do NOT add more scheduled functions.
+@app.function(schedule=modal.Cron("* * * * *"), **COMMON)
+def process_telemetry_requests() -> None:
+    import requests as rq
+    from datetime import datetime, timezone
+    base = os.environ["SUPABASE_URL"].rstrip("/")
+    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    H = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+
+    def now():
+        return datetime.now(timezone.utc).isoformat()
+
+    def patch(rid, body):
+        rq.patch(f"{base}/rest/v1/f1_telemetry_requests", params={"id": f"eq.{rid}"},
+                 headers={**H, "Prefer": "return=minimal"}, json={**body, "updated_at": now()}, timeout=30)
+
+    r = rq.get(f"{base}/rest/v1/f1_telemetry_requests",
+               params={"status": "eq.pending", "order": "created_at.asc", "limit": "4"},
+               headers=H, timeout=30)
+    if not r.ok:
+        print(f"telemetry_requests fetch failed {r.status_code}: {r.text}")
+        return
+    pending = r.json()
+    if not pending:
+        return
+    print(f"process_telemetry_requests: {len(pending)} pending")
+    for req in pending:
+        rid = req["id"]
+        drv = str(req.get("driver", "")).strip().upper()
+        lap = req.get("lap_number")
+        if not drv or lap is None:
+            patch(rid, {"status": "error", "error": "missing driver or lap"})
+            continue
+        patch(rid, {"status": "processing"})
+        try:
+            _run("telemetry_export.py", "--season", str(req["season"]), "--round", str(req["round"]),
+                 "--session", req.get("session", "R"), "--drivers", drv, "--lap", str(lap))
+            ir = rq.get(f"{base}/rest/v1/f1_telemetry_index",
+                        params={"season": f"eq.{req['season']}", "round": f"eq.{req['round']}",
+                                "session": f"eq.{req.get('session', 'R')}",
+                                "driver_code": f"eq.{drv}", "lap_number": f"eq.{lap}",
+                                "select": "public_url", "limit": "1"}, headers=H, timeout=30)
+            rows = ir.json() if ir.ok else []
+            purl = rows[0]["public_url"] if rows else None
+            patch(rid, {"status": "done" if purl else "error", "public_url": purl,
+                        "error": None if purl else "no telemetry produced (lap/data unavailable)"})
+            print(f"  {rid}: {'done' if purl else 'no output'}")
+        except Exception as e:  # noqa: BLE001
+            patch(rid, {"status": "error", "error": str(e)[:400]})
+            print(f"  {rid}: error {e}")
+
+
 @app.local_entrypoint()
 def main() -> None:
     """`modal run modal_app.py` → backfill the current 4-season window once."""

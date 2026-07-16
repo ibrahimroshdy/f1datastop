@@ -26,7 +26,7 @@ const tabs = [
     match: (p: string) => p.startsWith("/race-analysis"),
   },
   {
-    label: "League",
+    label: "Podium",
     href: "/game",
     icon: Trophy,
     match: (p: string) => p.startsWith("/game"),

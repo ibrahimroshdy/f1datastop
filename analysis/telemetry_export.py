@@ -117,22 +117,77 @@ def _metrics(channels):
     }
 
 
+def _lap_already_exported(season, rnd, session_code, driver, lap_number):
+    """True if this exact driver+lap blob is already in f1_telemetry_index — lets the
+    on-demand any-lap path no-op when a lap has been generated before."""
+    try:
+        url, key = _env()
+        r = requests.get(
+            f"{url}/rest/v1/f1_telemetry_index",
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+            params={"season": f"eq.{season}", "round": f"eq.{rnd}",
+                    "session": f"eq.{session_code}", "driver_code": f"eq.{driver}",
+                    "lap_number": f"eq.{lap_number}", "select": "public_url", "limit": "1"},
+            timeout=30,
+        )
+        return r.ok and len(r.json()) >= 1
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _load_session(season, rnd, session_code):
+    s = fastf1.get_session(season, rnd, session_code)
+    s.load(telemetry=True, weather=False, messages=False)
+    return s
+
+
+def _driver_maps(res):
+    return (
+        {r.get("Abbreviation"): r.get("DriverId") for _, r in res.iterrows()},
+        {r.get("Abbreviation"): r.get("TeamName") for _, r in res.iterrows()},
+        {r.get("Abbreviation"): r.get("TeamColor") for _, r in res.iterrows()},
+    )
+
+
+def _build_blob(season, rnd, session_code, lap, drv, maps, lap_type="fastest"):
+    """Resample one lap's telemetry into a compact blob (or None if unusable).
+    Channels are whatever FastF1 exposes that season — DRS is absent in 2026, so we
+    never assume it; the frontend renders only channels present."""
+    abbr2id, abbr2team, abbr2color = maps
+    try:
+        tel = lap.get_telemetry().add_distance()
+    except Exception as e:  # noqa: BLE001
+        print(f"  {drv}: telemetry failed ({e})")
+        return None
+    channels = _resample(tel)
+    if not channels:
+        return None
+    color = abbr2color.get(drv)
+    return {
+        "season": season, "round": rnd, "session": session_code,
+        "driver": drv, "driver_id": abbr2id.get(drv),
+        "team": abbr2team.get(drv),
+        "team_color": f"#{color}" if color and not str(color).startswith("#") else color,
+        "lap_number": int(lap["LapNumber"]),
+        "lap_time": _fmt_laptime(lap.get("LapTime")),
+        "compound": str(lap.get("Compound")) if lap.get("Compound") else None,
+        "lap_type": lap_type,
+        "samples": SAMPLES, "channels": channels,
+        "metrics": _metrics(channels),
+    }
+
+
 def export_session(season, rnd, session_code, drivers=None, upload=True, force=False):
     if upload and not force and _already_exported(season, rnd, session_code):
         print(f"  {season} R{rnd} {session_code}: already exported, skip (--force to redo)")
         return []
     try:
-        s = fastf1.get_session(season, rnd, session_code)
-        s.load(telemetry=True, weather=False, messages=False)
+        s = _load_session(season, rnd, session_code)
     except Exception as e:  # noqa: BLE001 — missing session (Sprint on a non-sprint
         # round), or a future/unpublished/invalid round: skip cleanly, don't crash.
         print(f"  {season} R{rnd} {session_code}: not available ({e}); skip")
         return []
-    res = s.results
-    abbr2id = {r.get("Abbreviation"): r.get("DriverId") for _, r in res.iterrows()}
-    abbr2team = {r.get("Abbreviation"): r.get("TeamName") for _, r in res.iterrows()}
-    abbr2color = {r.get("Abbreviation"): r.get("TeamColor") for _, r in res.iterrows()}
-
+    maps = _driver_maps(s.results)
     try:
         picks = drivers or list(s.laps["Driver"].dropna().unique())
     except Exception:  # noqa: BLE001 — loaded but no lap data (recent/future round)
@@ -146,26 +201,9 @@ def export_session(season, rnd, session_code, drivers=None, upload=True, force=F
         lap = dl.pick_fastest()
         if lap is None or pd.isna(lap.get("LapNumber")):
             continue
-        try:
-            tel = lap.get_telemetry().add_distance()
-        except Exception as e:  # noqa: BLE001
-            print(f"  {drv}: telemetry failed ({e})")
+        blob = _build_blob(season, rnd, session_code, lap, drv, maps, "fastest")
+        if not blob:
             continue
-        channels = _resample(tel)
-        if not channels:
-            continue
-        color = abbr2color.get(drv)
-        blob = {
-            "season": season, "round": rnd, "session": session_code,
-            "driver": drv, "driver_id": abbr2id.get(drv),
-            "team": abbr2team.get(drv),
-            "team_color": f"#{color}" if color and not str(color).startswith("#") else color,
-            "lap_number": int(lap["LapNumber"]),
-            "lap_time": _fmt_laptime(lap.get("LapTime")),
-            "compound": str(lap.get("Compound")) if lap.get("Compound") else None,
-            "samples": SAMPLES, "channels": channels,
-            "metrics": _metrics(channels),
-        }
         path = f"{season}/{rnd:02d}/{session_code}/{drv}_{blob['lap_number']}.json"
         _emit(blob, path, upload)
         written.append((drv, blob["lap_number"], blob["metrics"].get("top_speed")))
@@ -174,6 +212,39 @@ def export_session(season, rnd, session_code, drivers=None, upload=True, force=F
     print(f"Done. {len(written)} driver laps exported "
           f"({'uploaded' if upload else 'local only'}).")
     return written
+
+
+def export_lap(season, rnd, session_code, driver, lap_number, upload=True, force=False):
+    """Export ONE specific driver+lap — the on-demand any-lap path Pit Wall enqueues.
+    No-ops if that lap is already indexed (unless force). Returns the storage path."""
+    if upload and not force and _lap_already_exported(season, rnd, session_code, driver, lap_number):
+        print(f"  {season} R{rnd} {session_code} {driver} L{lap_number}: already exported, skip")
+        return None
+    try:
+        s = _load_session(season, rnd, session_code)
+    except Exception as e:  # noqa: BLE001
+        print(f"  {season} R{rnd} {session_code}: not available ({e}); skip")
+        return None
+    maps = _driver_maps(s.results)
+    try:
+        dl = s.laps.pick_drivers(driver) if hasattr(s.laps, "pick_drivers") else s.laps[s.laps["Driver"] == driver]
+    except Exception:  # noqa: BLE001
+        dl = None
+    if dl is None or len(dl) == 0:
+        print(f"  {driver}: no laps in session")
+        return None
+    sel = dl[dl["LapNumber"] == lap_number]
+    if sel is None or len(sel) == 0:
+        print(f"  {driver}: lap {lap_number} not found")
+        return None
+    lap = sel.iloc[0]
+    blob = _build_blob(season, rnd, session_code, lap, driver, maps, "requested")
+    if not blob:
+        return None
+    path = f"{season}/{rnd:02d}/{session_code}/{driver}_{blob['lap_number']}.json"
+    _emit(blob, path, upload)
+    print(f"  {driver}: lap {blob['lap_number']} {blob['lap_time']} -> {path}")
+    return path
 
 
 def _emit(blob, path, upload):
@@ -197,7 +268,7 @@ def _emit(blob, path, upload):
     idx = {
         "season": blob["season"], "round": blob["round"], "session": blob["session"],
         "driver_id": blob["driver_id"], "driver_code": blob["driver"],
-        "lap_number": blob["lap_number"], "lap_type": "fastest",
+        "lap_number": blob["lap_number"], "lap_type": blob.get("lap_type", "fastest"),
         "storage_path": path, "public_url": public_url,
         "top_speed": blob["metrics"].get("top_speed"), "source": "fastf1",
     }
@@ -219,6 +290,9 @@ def main():
     ap.add_argument("--event")
     ap.add_argument("--session", default="R")
     ap.add_argument("--drivers", help="comma-separated codes, e.g. NOR,LEC,VER")
+    ap.add_argument("--lap", type=int,
+                    help="export ONE specific lap for a single --drivers code "
+                         "(on-demand any-lap path for Pit Wall)")
     ap.add_argument("--no-upload", action="store_true")
     ap.add_argument("--force", action="store_true",
                     help="re-export even if already in f1_telemetry_index")
@@ -235,6 +309,13 @@ def main():
         sys.exit("Provide --round or --event")
 
     drivers = [d.strip().upper() for d in args.drivers.split(",")] if args.drivers else None
+    if args.lap is not None:
+        if not drivers or len(drivers) != 1:
+            sys.exit("--lap requires exactly one --drivers CODE")
+        print(f"Telemetry export {args.season} R{rnd} {args.session} {drivers[0]} lap {args.lap}")
+        export_lap(args.season, rnd, args.session, drivers[0], args.lap,
+                   upload=not args.no_upload, force=args.force)
+        return
     print(f"Telemetry export {args.season} R{rnd} {args.session} "
           f"({'all drivers' if not drivers else ','.join(drivers)})")
     export_session(args.season, rnd, args.session, drivers,

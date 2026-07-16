@@ -55,7 +55,7 @@ export default function GameAdmin() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "config", season] }),
   });
   const newSeason = useMutation({
-    mutationFn: (yr: number) => openSeason(yr, `${yr} F1 League`),
+    mutationFn: (yr: number) => openSeason(yr, `${yr} Podium`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin"] }),
   });
 

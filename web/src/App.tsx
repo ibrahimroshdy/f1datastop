@@ -23,6 +23,7 @@ import DriverProfile from "./pages/DriverProfile";
 import TeamProfile from "./pages/TeamProfile";
 import Standings from "./pages/Standings";
 import CircuitDetail from "./pages/CircuitDetail";
+import PitWall from "./features/pitwall/routes/PitWall";
 import Developers from "./pages/Developers";
 import NotFound from "./pages/NotFound";
 import MainLayout from "@/components/layout/MainLayout";
@@ -159,6 +160,7 @@ const App = () => (
                           <Route path="/circuits/:circuitId" element={<CircuitDetail />} />
                           <Route path="/race-analysis" element={<RaceAnalysis />} />
                           <Route path="/race-analysis/:year/:round" element={<RaceAnalysis />} />
+                          <Route path="/pit-wall" element={<PitWall />} />
                           <Route path="/drivers" element={<Drivers />} />
                           <Route path="/drivers/:slug" element={<DriverProfile />} />
                           <Route path="/teams/:slug" element={<TeamProfile />} />

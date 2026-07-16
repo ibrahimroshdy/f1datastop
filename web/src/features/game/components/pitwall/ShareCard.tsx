@@ -23,12 +23,12 @@ export function ShareCard({
   const [copied, setCopied] = useState(false);
   const rankText = percentile != null ? `top ${percentile}%` : "unranked";
   const url = `${location.origin}/game`;
-  const summary = `My ${seasonYear} F1 DataStop League run: ${points} pts · ${exactHits} exact calls · ${rankText}. Predict the grid 👉 ${url}`;
+  const summary = `My ${seasonYear} Podium run: ${points} pts · ${exactHits} exact calls · ${rankText}. Predict the grid 👉 ${url}`;
 
   const share = async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ title: "F1 DataStop League", text: summary, url });
+        await navigator.share({ title: "Podium", text: summary, url });
       } else {
         await navigator.clipboard.writeText(summary);
         setCopied(true);

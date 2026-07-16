@@ -109,7 +109,7 @@ export default function LeagueLanding() {
             <div className="space-y-4">
               <div className="instrument-label flex items-center gap-1.5 text-primary">
                 <Trophy className="h-3 w-3" />
-                F1 DataStop League · Season {year}
+                Podium · Season {year}
               </div>
               <h1 className="font-heading text-3xl font-bold leading-[1.05] tracking-tight sm:text-4xl md:text-5xl">
                 Predict the grid.
@@ -126,7 +126,7 @@ export default function LeagueLanding() {
                   to="/auth/login"
                   className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                 >
-                  Join the League
+                  Join Podium
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a
@@ -209,7 +209,7 @@ export default function LeagueLanding() {
             to="/auth/login"
             className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
           >
-            Join the League
+            Join Podium
             <ArrowRight className="h-4 w-4" />
           </Link>
         </section>

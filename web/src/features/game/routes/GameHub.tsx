@@ -74,9 +74,9 @@ function ActivatedHub({ entryId }: { entryId: string }) {
       <div className="space-y-3">
         <div className="space-y-1">
           <div className="instrument-label flex items-center gap-1.5 text-primary">
-            <Trophy className="h-3 w-3" /> {ACTIVE_GAME_SEASON} F1 League
+            <Trophy className="h-3 w-3" /> {ACTIVE_GAME_SEASON} Podium
           </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Your F1 League</h1>
+          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Your Podium</h1>
         </div>
         <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card/40 sm:grid-cols-4 sm:divide-y-0">
           <StatCell label="Points" value={<AnimatedNumber value={points} mono />} accent="hsl(var(--primary))" />
@@ -235,7 +235,7 @@ export default function GameHub() {
           <div className="instrument-label flex items-center gap-1.5 text-primary">
             <Trophy className="h-3 w-3" /> Prediction Game
           </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Join the F1 League</h1>
+          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Join Podium</h1>
           <p className="max-w-prose text-sm text-muted-foreground">
             Predict qualifying &amp; race top-10s every weekend, pick your champions, and climb your
             league. Activate to start playing the {ACTIVE_GAME_SEASON} season.
@@ -245,7 +245,7 @@ export default function GameHub() {
           <F1CardContent className="flex flex-col items-start gap-3 py-6">
             <Button size="lg" className="min-h-11 gap-2" onClick={() => activate()} disabled={activating}>
               <Flag className="h-4 w-4" />
-              {activating ? "Joining…" : "Join the F1 League"}
+              {activating ? "Joining…" : "Join Podium"}
             </Button>
             {error ? <p className="text-xs text-destructive">{error.message}</p> : null}
           </F1CardContent>

@@ -49,9 +49,9 @@ export default function JoinLeague() {
               </div>
               {!isActivated ? (
                 <>
-                  <p className="text-sm text-muted-foreground">Join the F1 League first, then hop into this league.</p>
+                  <p className="text-sm text-muted-foreground">Join Podium first, then hop into this league.</p>
                   <Button className="min-h-11" onClick={() => activate()} disabled={activating}>
-                    {activating ? "Joining…" : "Join the F1 League"}
+                    {activating ? "Joining…" : "Join Podium"}
                   </Button>
                 </>
               ) : (
