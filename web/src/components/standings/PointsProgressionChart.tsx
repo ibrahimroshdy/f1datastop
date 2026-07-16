@@ -12,6 +12,7 @@ import {
 } from "@/constants/f1DriverPortraitMedia";
 import { useAllDriverResultsBySeason } from "@/hooks/f1";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
+import { useTheme } from "@/context/ThemeContext";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { ChartSkeleton } from "@/components/f1";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,8 @@ const gpShort = (name: string) => {
  */
 export default function PointsProgressionChart({ year, series, title, subtitle }: Props) {
   const { isGlass, cardVariant, glassVariant } = useThemeVariant();
+  const { baseTheme } = useTheme();
+  const isLight = baseTheme === "light";
   const [showImages, setShowImages] = useState(true);
   const { data: allRes, isLoading } = useAllDriverResultsBySeason(year);
   const byDriver = (allRes?.data ?? {}) as Record<
@@ -238,6 +241,9 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
                     const { cx, cy, index, key } = dp;
                     if (index !== lastIdx || cx == null || cy == null) return <g key={key} />;
                     const url = endImageByCode[s.code];
+                    // Team wordmarks are white — invert on light so they're visible.
+                    // Driver headshots (driverId set) must never be inverted.
+                    const isTeamLogo = !s.driverId && !!s.constructorId;
                     const R = 11;
                     const clip = `end-${s.code}`;
                     return (
@@ -254,6 +260,7 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
                             height={2 * R}
                             clipPath={`url(#${clip})`}
                             preserveAspectRatio="xMidYMid slice"
+                            style={isLight && isTeamLogo ? { filter: "invert(1)" } : undefined}
                           />
                         ) : null}
                         <circle cx={cx} cy={cy} r={R} fill={url ? "none" : s.color} stroke={s.color} strokeWidth={2} />

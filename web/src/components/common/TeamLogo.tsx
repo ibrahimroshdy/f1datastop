@@ -47,16 +47,16 @@ const TeamLogo = ({
     <div
       className={cn(
         "flex items-center justify-center",
-        !noBackground &&
-          (isDark
-            ? "rounded-md bg-white/20 p-1 ring-1 ring-white/10"
-            : "rounded-md bg-neutral-900 p-1 ring-1 ring-black/10")
+        // Subtle, theme-token backing (was a heavy near-black box in light mode).
+        !noBackground && "rounded-md bg-muted p-1 ring-1 ring-border",
       )}
     >
       <img
         src={logoUrl}
         alt={alt || constructorId}
-        className={`object-contain ${sizeClasses[size]} ${className}`}
+        // The wordmarks are white; invert to near-black in light mode so they're
+        // visible on light surfaces whether or not there's a backing.
+        className={cn("object-contain", sizeClasses[size], !isDark && "invert", className)}
         loading="lazy"
         decoding="async"
       />
