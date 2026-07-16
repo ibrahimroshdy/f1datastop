@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   CartesianGrid,
   Line,
@@ -13,12 +13,14 @@ import { cn } from "@/lib/utils";
 import type { TelemetryBlob } from "@/services/telemetryService";
 import type { DriverTelemetry } from "../hooks/usePitWallTelemetry";
 import type { PitWallDriver } from "../hooks/usePitWallData";
+import type { LapPlayhead } from "../hooks/useLapPlayhead";
 
 interface Props {
   telemetry: DriverTelemetry[];
   drivers: PitWallDriver[];
   refCode: string | null;
   mode: "focus" | "overlay";
+  playhead: LapPlayhead;
 }
 
 interface Ready {
@@ -47,8 +49,7 @@ function cumulativeTime(dist: number[], speed: number[]): number[] {
   return t;
 }
 
-export function TelemetryPanel({ telemetry, drivers, refCode, mode }: Props) {
-  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+export function TelemetryPanel({ telemetry, drivers, refCode, mode, playhead }: Props) {
   const colorOf = useMemo(() => {
     const m: Record<string, string> = {};
     for (const d of drivers) m[d.code] = d.team_color || "#9ca3af";
@@ -65,8 +66,9 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode }: Props) {
 
   const pending = telemetry.filter((t) => t.state && t.state.status !== "done");
 
-  const { rows, present, hasDelta } = useMemo(() => {
-    if (!ready.length) return { rows: [] as Record<string, number | null>[], present: [] as string[], hasDelta: false };
+  const { rows, present, hasDelta, refTime } = useMemo(() => {
+    if (!ready.length)
+      return { rows: [] as Record<string, number | null>[], present: [] as string[], hasDelta: false, refTime: [] as number[] };
     const base = ready[0].blob.channels.distance ?? [];
     const n = base.length;
     // Reference driver for delta (falls back to the first ready driver).
@@ -106,7 +108,7 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode }: Props) {
       return ready.some((r) => (r.blob.channels[ch.key]?.length ?? 0) > 0);
     }).map((c) => c.key);
     const hasDelta = mode === "overlay" && ready.length >= 2 && !!refT;
-    return { rows, present, hasDelta };
+    return { rows, present, hasDelta, refTime: refT ?? [] };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(ready.map((r) => `${r.code}:${r.blob.lap_number}`)), refCode, mode]);
 
@@ -118,7 +120,23 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode }: Props) {
     );
   }
 
-  const activeDist = activeIdx != null && rows[activeIdx] ? (rows[activeIdx].d as number) : null;
+  // Crosshair index follows the shared playhead (play) or a hover scrub, via the ref
+  // lap's cumulative-time trace. Plain compute (cheap) — after the early return above.
+  let cursorIdx: number | null = null;
+  if (refTime.length) {
+    let bi = 0;
+    let bd = Infinity;
+    for (let i = 0; i < refTime.length; i++) {
+      const d = Math.abs(refTime[i] - playhead.t);
+      if (d < bd) {
+        bd = d;
+        bi = i;
+      }
+    }
+    cursorIdx = bi;
+  }
+  const scrubTo = (i: number) => playhead.setT(refTime[i] ?? 0);
+  const activeDist = cursorIdx != null && rows[cursorIdx] ? (rows[cursorIdx].d as number) : null;
 
   return (
     <div className="space-y-2">
@@ -130,21 +148,9 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode }: Props) {
       </div>
 
       {ready.length > 0 && (
-        <div
-          className="space-y-1"
-          onMouseLeave={() => setActiveIdx(null)}
-        >
+        <div className="space-y-1">
           {hasDelta && (
-            <Trace
-              rows={rows}
-              ready={ready}
-              suffix="delta"
-              label="Δ vs ref (s)"
-              height={64}
-              zeroLine
-              activeIdx={activeIdx}
-              onHover={setActiveIdx}
-            />
+            <Trace rows={rows} ready={ready} suffix="delta" label="Δ vs ref (s)" height={64} zeroLine activeIdx={cursorIdx} onHover={scrubTo} />
           )}
           {CHANNELS.filter((c) => present.includes(c.key)).map((ch, idx) => (
             <Trace
@@ -155,14 +161,12 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode }: Props) {
               label={ch.unit ? `${ch.label} (${ch.unit})` : ch.label}
               height={idx === 0 ? 120 : 64}
               domain={ch.domain}
-              activeIdx={activeIdx}
-              onHover={setActiveIdx}
+              activeIdx={cursorIdx}
+              onHover={scrubTo}
             />
           ))}
           {activeDist != null && (
-            <div className="text-right text-2xs text-muted-foreground">
-              {Math.round(activeDist)} m
-            </div>
+            <div className="text-right text-2xs text-muted-foreground">{Math.round(activeDist)} m</div>
           )}
         </div>
       )}
@@ -208,7 +212,7 @@ interface TraceProps {
   domain?: [number, number];
   zeroLine?: boolean;
   activeIdx: number | null;
-  onHover: (i: number | null) => void;
+  onHover: (i: number) => void;
 }
 
 function Trace({ rows, ready, suffix, label, height, domain, zeroLine, activeIdx, onHover }: TraceProps) {

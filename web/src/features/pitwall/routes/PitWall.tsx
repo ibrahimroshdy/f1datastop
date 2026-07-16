@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Flag, Radio, Users } from "lucide-react";
-import { pageShellWide, pageStack } from "@/lib/layout";
+import { pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useRaceSchedule } from "@/hooks/f1/useSchedule";
 import type { RaceContext } from "@/components/race-analysis/RaceAnalysisHeader";
@@ -14,9 +14,11 @@ import { TimingPanel } from "../components/TimingPanel";
 import { WeatherStrip } from "../components/WeatherStrip";
 import { StintStrip } from "../components/StintStrip";
 import { DriverDossier } from "../components/DriverDossier";
+import { ReplayStage } from "../components/ReplayStage";
 import { usePitWallState } from "../hooks/usePitWallState";
 import { usePitWallData } from "../hooks/usePitWallData";
 import { usePitWallTelemetry } from "../hooks/usePitWallTelemetry";
+import { useLapPlayhead } from "../hooks/useLapPlayhead";
 import { PANELS, sessionsForRace, type PanelId } from "../pitwall.config";
 
 function Placeholder({ hint }: { hint: string }) {
@@ -59,8 +61,16 @@ export default function PitWall() {
   );
   const hasDrivers = state.drivers.length > 0;
 
+  // One shared lap playhead: play sweeps the track dot AND the telemetry crosshair
+  // together; hovering a chart scrubs the track. Reset when the lap/driver set changes.
+  const lapPlayhead = useLapPlayhead();
+  const driversKey = state.drivers.join(",");
+  useEffect(() => {
+    lapPlayhead.setT(0);
+  }, [state.lap, session, driversKey, lapPlayhead.setT]);
+
   return (
-    <div className={cn(pageShellWide, pageStack, "animate-fade-in")}>
+    <div className={cn("mx-auto w-full max-w-[1800px] px-3 sm:px-4 xl:px-6", pageStack, "animate-fade-in")}>
       <div className="space-y-1">
         <div className="instrument-label flex items-center gap-1.5 text-primary">
           <Radio className="h-3 w-3" /> Pit Wall
@@ -82,7 +92,18 @@ export default function PitWall() {
           <p className="text-sm text-muted-foreground">Select a Grand Prix above to load the session.</p>
         </div>
       ) : (
-        <div className="lg:grid lg:grid-cols-[minmax(190px,230px)_minmax(0,1fr)] lg:gap-3">
+        <>
+          {/* Race Control — whole-race replay: track + live timing board + RC feed */}
+          <PanelShell title="Race Control" icon={Radio}>
+            <ReplayStage
+              year={state.year}
+              round={state.round}
+              blob={data.blob}
+              selected={state.drivers}
+            />
+          </PanelShell>
+
+          <div className="lg:grid lg:grid-cols-[minmax(190px,230px)_minmax(0,1fr)] lg:gap-3">
           {/* Driver rail */}
           <aside className="mb-3 lg:mb-0">
             <div className="lg:sticky lg:top-16">
@@ -165,6 +186,7 @@ export default function PitWall() {
                         drivers={data.drivers}
                         refCode={state.ref}
                         mode={state.mode}
+                        playhead={lapPlayhead}
                       />
                     ) : id === "track" ? (
                       <TrackStagePanel
@@ -172,6 +194,7 @@ export default function PitWall() {
                         round={state.round}
                         telemetry={telemetry}
                         drivers={data.drivers}
+                        playhead={lapPlayhead}
                       />
                     ) : id === "tower" ? (
                       <TimingPanel blob={data.blob} selected={viewDrivers} />
@@ -188,6 +211,7 @@ export default function PitWall() {
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );

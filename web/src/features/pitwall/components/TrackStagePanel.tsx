@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Pause, Play, RotateCcw } from "lucide-react";
 import {
@@ -10,12 +10,14 @@ import { cn } from "@/lib/utils";
 import type { TelemetryBlob } from "@/services/telemetryService";
 import type { DriverTelemetry } from "../hooks/usePitWallTelemetry";
 import type { PitWallDriver } from "../hooks/usePitWallData";
+import type { LapPlayhead } from "../hooks/useLapPlayhead";
 
 interface Props {
   year: number;
   round: number | null;
   telemetry: DriverTelemetry[];
   drivers: PitWallDriver[];
+  playhead: LapPlayhead;
 }
 
 const W = 620;
@@ -40,15 +42,24 @@ interface DriverLine {
   ys: number[];
   dist: number[];
   time: number[];
+  speed: number[];
+  gear: number[];
   duration: number;
 }
 
-export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
-  const [t, setT] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const raf = useRef<number>();
-  const last = useRef<number | null>(null);
+/** Nearest sample index to a playhead time. */
+function idxAtTime(time: number[], t: number): number {
+  if (!time.length) return 0;
+  if (t <= time[0]) return 0;
+  const last = time.length - 1;
+  if (t >= time[last]) return last;
+  let i = 1;
+  while (i < last && time[i] < t) i++;
+  return time[i] - t < t - time[i - 1] ? i : i - 1;
+}
+
+export function TrackStagePanel({ year, round, telemetry, drivers, playhead }: Props) {
+  const t = playhead.t;
 
   const colorOf = useMemo(() => {
     const m: Record<string, string> = {};
@@ -80,6 +91,7 @@ export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
         const ys = blob.channels.y ?? [];
         const dist = blob.channels.distance ?? [];
         const sp = blob.channels.speed ?? [];
+        const gear = blob.channels.gear ?? [];
         const time = dist.length && sp.length ? cumulativeTime(dist, sp) : [];
         return {
           code: d.code,
@@ -87,6 +99,8 @@ export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
           xs,
           ys,
           dist,
+          speed: sp,
+          gear,
           time,
           duration: time.length ? time[time.length - 1] : 0,
         };
@@ -95,9 +109,10 @@ export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
   }, [telemetry, colorOf]);
 
   const duration = useMemo(() => Math.max(0, ...lines.map((l) => l.duration)), [lines]);
+  useEffect(() => {
+    playhead.setDuration(duration);
+  }, [duration, playhead]);
 
-  // Bounds from the telemetry x/y — so the track path, the corner markers (matched by
-  // distance-along-lap) and the moving dots all share ONE coordinate space and align.
   const bounds = useMemo(() => {
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const l of lines) {
@@ -120,28 +135,6 @@ export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
     return { px, py };
   }, [bounds]);
 
-  // Playback loop (time-based → dots slow in corners, separate through the lap).
-  useEffect(() => {
-    if (!playing || duration <= 0) return;
-    const loop = (ts: number) => {
-      if (last.current == null) last.current = ts;
-      const dt = (ts - last.current) / 1000;
-      last.current = ts;
-      setT((prev) => Math.min(duration, prev + dt * speed));
-      raf.current = requestAnimationFrame(loop);
-    };
-    raf.current = requestAnimationFrame(loop);
-    return () => {
-      if (raf.current) cancelAnimationFrame(raf.current);
-      last.current = null;
-    };
-  }, [playing, speed, duration]);
-
-  useEffect(() => {
-    if (duration > 0 && t >= duration) setPlaying(false);
-  }, [t, duration]);
-
-  // Track path = the reference driver's racing line (telemetry x/y).
   const trackPath = useMemo(() => {
     if (!scale) return "";
     const l = lines[0];
@@ -149,31 +142,24 @@ export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
     return l.xs.map((x, i) => `${i ? "L" : "M"}${scale.px(x).toFixed(1)},${scale.py(l.ys[i]).toFixed(1)}`).join("");
   }, [lines, scale]);
 
-  // Corner numbers matched onto the racing line by distance-along-lap (geometry corner
-  // `d` ↔ telemetry `distance`) — keeps them exactly on the track in telemetry space.
   const cornerPts = useMemo(() => {
     const ref = lines[0];
     if (!scale || !ref || !geom?.corners?.length) return [];
     return geom.corners
       .filter((c) => c.d != null)
       .map((c) => {
-      const cd = c.d as number;
-      let bi = 0;
-      let bd = Infinity;
-      for (let i = 0; i < ref.dist.length; i++) {
-        const dd = Math.abs(ref.dist[i] - cd);
-        if (dd < bd) {
-          bd = dd;
-          bi = i;
+        const cd = c.d as number;
+        let bi = 0;
+        let bd = Infinity;
+        for (let i = 0; i < ref.dist.length; i++) {
+          const dd = Math.abs(ref.dist[i] - cd);
+          if (dd < bd) {
+            bd = dd;
+            bi = i;
+          }
         }
-      }
-      return {
-        key: `${c.n}${c.letter ?? ""}`,
-        label: `${c.n}${c.letter ?? ""}`,
-        x: scale.px(ref.xs[bi]),
-        y: scale.py(ref.ys[bi]),
-      };
-    });
+        return { key: `${c.n}${c.letter ?? ""}`, label: `${c.n}${c.letter ?? ""}`, x: scale.px(ref.xs[bi]), y: scale.py(ref.ys[bi]) };
+      });
   }, [geom, lines, scale]);
 
   if (!lines.length) {
@@ -193,13 +179,43 @@ export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
     let i = 1;
     while (i < lastI && time[i] < t) i++;
     const f = (t - time[i - 1]) / (time[i] - time[i - 1] || 1);
-    const x = l.xs[i - 1] + (l.xs[i] - l.xs[i - 1]) * f;
-    const y = l.ys[i - 1] + (l.ys[i] - l.ys[i - 1]) * f;
-    return { x: scale.px(x), y: scale.py(y) };
+    return {
+      x: scale.px(l.xs[i - 1] + (l.xs[i] - l.xs[i - 1]) * f),
+      y: scale.py(l.ys[i - 1] + (l.ys[i] - l.ys[i - 1]) * f),
+    };
   };
+
+  const refLine = lines[0];
+  const maxDist = refLine.dist[refLine.dist.length - 1] || 1;
+  const sectorAt = (l: DriverLine) => {
+    const d = l.dist[idxAtTime(l.time, t)] ?? 0;
+    return d < maxDist / 3 ? 1 : d < (2 * maxDist) / 3 ? 2 : 3;
+  };
+
+  const atEnd = t >= duration - 0.01;
 
   return (
     <div className="space-y-2">
+      {/* Live HUD — updates as the dot moves */}
+      <div className="flex flex-wrap items-center gap-2">
+        {lines.map((l) => {
+          const i = idxAtTime(l.time, t);
+          return (
+            <div
+              key={l.code}
+              className="flex items-center gap-2 rounded-lg border px-2.5 py-1"
+              style={{ borderColor: `${l.color}66`, backgroundColor: `${l.color}14` }}
+            >
+              <span className="timing text-xs font-bold" style={{ color: l.color }}>{l.code}</span>
+              <span className="readout text-sm">{Math.round(l.speed[i] ?? 0)}<span className="text-[9px] text-muted-foreground"> km/h</span></span>
+              <span className="text-2xs text-muted-foreground">G{l.gear[i] ?? "—"}</span>
+              <span className="text-2xs text-muted-foreground">S{sectorAt(l)}</span>
+            </div>
+          );
+        })}
+        <span className="timing ml-auto text-2xs text-muted-foreground">{t.toFixed(1)} / {duration.toFixed(1)}s</span>
+      </div>
+
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 420 }}>
         {scale && trackPath && (
           <path d={trackPath} fill="none" stroke="hsl(var(--border))" strokeWidth={9} strokeLinejoin="round" strokeLinecap="round" />
@@ -207,7 +223,6 @@ export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
         {scale && trackPath && (
           <path d={trackPath} fill="none" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.25} strokeWidth={1} />
         )}
-        {/* Corner numbers — placed on the racing line by distance match */}
         {cornerPts.map((c) => (
           <g key={c.key} transform={`translate(${c.x},${c.y})`}>
             <circle r={7} fill="hsl(var(--card))" stroke="hsl(var(--border))" strokeWidth={1} />
@@ -216,7 +231,6 @@ export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
             </text>
           </g>
         ))}
-        {/* Driver dots */}
         {lines.map((l) => {
           const p = dotAt(l);
           if (!p) return null;
@@ -231,25 +245,19 @@ export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
         })}
       </svg>
 
-      {/* Transport */}
+      {/* Transport (shared playhead — drives the telemetry crosshair too) */}
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => {
-            if (t >= duration) setT(0);
-            setPlaying((p) => !p);
-          }}
+          onClick={() => (atEnd ? playhead.restart() : playhead.toggle())}
           className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground"
-          aria-label={playing ? "Pause" : "Play"}
+          aria-label={playhead.playing ? "Pause" : "Play"}
         >
-          {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          {playhead.playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
         </button>
         <button
           type="button"
-          onClick={() => {
-            setT(0);
-            setPlaying(false);
-          }}
+          onClick={() => playhead.setT(0)}
           className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-foreground"
           aria-label="Restart"
         >
@@ -261,24 +269,18 @@ export function TrackStagePanel({ year, round, telemetry, drivers }: Props) {
           max={Math.max(0.1, duration)}
           step={0.05}
           value={t}
-          onChange={(e) => {
-            setT(Number(e.target.value));
-            setPlaying(false);
-          }}
+          onChange={(e) => playhead.setT(Number(e.target.value))}
           className="h-1 flex-1 accent-primary"
         />
-        <span className="timing w-16 shrink-0 text-right text-2xs text-muted-foreground">
-          {t.toFixed(1)} / {duration.toFixed(1)}s
-        </span>
         <div className="flex overflow-hidden rounded-md border border-border">
           {SPEEDS.map((s) => (
             <button
               key={s}
               type="button"
-              onClick={() => setSpeed(s)}
+              onClick={() => playhead.setSpeed(s)}
               className={cn(
                 "px-1.5 py-0.5 text-2xs font-semibold",
-                speed === s ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                playhead.speed === s ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {s}x
