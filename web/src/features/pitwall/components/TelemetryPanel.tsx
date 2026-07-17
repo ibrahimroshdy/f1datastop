@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -63,26 +63,38 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
   const [dragL, setDragL] = useState<number | null>(null);
   const [dragR, setDragR] = useState<number | null>(null);
 
-  const ready: Ready[] = telemetry
-    .filter((t) => t.state?.status === "done")
-    .map((t) => ({
-      code: t.code,
-      color: colorOf[t.code] || "#9ca3af",
-      blob: (t.state as { status: "done"; blob: TelemetryBlob }).blob,
-    }));
+  // Memoise on a stable per-lap key so the traces keep a stable reference across replay
+  // frames — otherwise every frame re-creates these arrays and re-renders the charts.
+  const readyKey = telemetry
+    .map((t) => (t.state?.status === "done" ? `${t.code}:${t.lap}` : `${t.code}:x`))
+    .join("|");
+  const ready: Ready[] = useMemo(
+    () =>
+      telemetry
+        .filter((t) => t.state?.status === "done")
+        .map((t) => ({
+          code: t.code,
+          color: colorOf[t.code] || "#9ca3af",
+          blob: (t.state as { status: "done"; blob: TelemetryBlob }).blob,
+        })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [readyKey, colorOf],
+  );
 
   const pending = telemetry.filter((t) => t.state && t.state.status !== "done");
-  const lapTimeByCode: Record<string, string | null> = {};
-  for (const r of ready) lapTimeByCode[r.code] = r.blob.lap_time;
-  // Teammates share a colour — dash the 2nd (and 3rd) car of a colour so they're
-  // distinguishable. First = solid, second = "5 4", third = "2 3".
-  const dashByCode: Record<string, string | undefined> = {};
-  const seenColor = new Map<string, number>();
-  for (const r of ready) {
-    const i = seenColor.get(r.color) ?? 0;
-    seenColor.set(r.color, i + 1);
-    dashByCode[r.code] = i === 0 ? undefined : i === 1 ? "5 4" : "2 3";
-  }
+  // Teammates share a colour — dash the 2nd (and 3rd) car so they're distinguishable.
+  const { lapTimeByCode, dashByCode } = useMemo(() => {
+    const lapTimeByCode: Record<string, string | null> = {};
+    const dashByCode: Record<string, string | undefined> = {};
+    const seenColor = new Map<string, number>();
+    for (const r of ready) {
+      lapTimeByCode[r.code] = r.blob.lap_time;
+      const i = seenColor.get(r.color) ?? 0;
+      seenColor.set(r.color, i + 1);
+      dashByCode[r.code] = i === 0 ? undefined : i === 1 ? "5 4" : "2 3";
+    }
+    return { lapTimeByCode, dashByCode };
+  }, [ready]);
 
   const { rows, present, hasDelta, refTime } = useMemo(() => {
     if (!ready.length)
@@ -127,8 +139,15 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
     }).map((c) => c.key);
     const hasDelta = mode === "overlay" && ready.length >= 2 && !!refT;
     return { rows, present, hasDelta, refTime: refT ?? [] };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(ready.map((r) => `${r.code}:${r.blob.lap_number}`)), refCode, mode]);
+  }, [ready, refCode, mode]);
+
+  // Stable so the memoised charts don't re-render each frame. Must sit above the early
+  // return below — all hooks run before any conditional return.
+  const onUp = useCallback(() => {
+    if (dragL != null && dragR != null && dragL !== dragR) setZoom([Math.min(dragL, dragR), Math.max(dragL, dragR)]);
+    setDragL(null);
+    setDragR(null);
+  }, [dragL, dragR]);
 
   if (!ready.length && !pending.length) {
     return (
@@ -155,12 +174,14 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
     cursorIdx = bi;
   }
   const activeDist = cursorIdx != null && rows[cursorIdx] ? (rows[cursorIdx].d as number) : null;
+  // Crosshair as a fraction of the current x-domain — drawn as a cheap CSS overlay that
+  // moves each frame WITHOUT re-rendering the (memoised) charts.
+  const domStart = zoom ? zoom[0] : 0;
+  const domEnd = zoom ? zoom[1] : Math.max(1, rows.length - 1);
+  const chFrac =
+    cursorIdx != null && domEnd > domStart ? (cursorIdx - domStart) / (domEnd - domStart) : null;
+  const chShow = chFrac != null && chFrac >= 0 && chFrac <= 1 ? chFrac : null;
 
-  const onUp = () => {
-    if (dragL != null && dragR != null && dragL !== dragR) setZoom([Math.min(dragL, dragR), Math.max(dragL, dragR)]);
-    setDragL(null);
-    setDragR(null);
-  };
   const dragBand: [number, number] | null =
     dragL != null && dragR != null ? [Math.min(dragL, dragR), Math.max(dragL, dragR)] : null;
 
@@ -217,7 +238,7 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
               label="Δ vs ref (s)"
               height={64}
               zeroLine
-              activeIdx={cursorIdx}
+              chFrac={chShow}
               domainX={zoom}
               dragBand={dragBand}
               dragging={dragL != null}
@@ -236,7 +257,7 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
               label={ch.unit ? `${ch.label} (${ch.unit})` : ch.label}
               height={idx === 0 ? 120 : 64}
               domain={ch.domain}
-              activeIdx={cursorIdx}
+              chFrac={chShow}
               domainX={zoom}
               dragBand={dragBand}
               dragging={dragL != null}
@@ -288,16 +309,14 @@ function StatusChip({ t, color, time, dash }: { t: DriverTelemetry; color: strin
   );
 }
 
-interface TraceProps {
+interface ChartBodyProps {
   rows: Record<string, number | null>[];
   ready: Ready[];
   dashByCode: Record<string, string | undefined>;
   suffix: string;
-  label: string;
   height: number;
   domain?: [number, number];
   zeroLine?: boolean;
-  activeIdx: number | null;
   domainX: [number, number] | null;
   dragBand: [number, number] | null;
   dragging: boolean;
@@ -306,72 +325,89 @@ interface TraceProps {
   onUp: () => void;
 }
 
-function Trace({
+// Memoised: the crosshair (a CSS overlay in Trace) moves every replay frame, but this
+// chart only re-renders when data / zoom / drag actually change — not per frame.
+const ChartBody = memo(function ChartBody({
   rows,
   ready,
   dashByCode,
   suffix,
-  label,
   height,
   domain,
   zeroLine,
-  activeIdx,
   domainX,
   dragBand,
   dragging,
   onDown,
   onMove,
   onUp,
-}: TraceProps) {
+}: ChartBodyProps) {
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <LineChart
+        data={rows}
+        margin={{ top: 4, right: 6, left: 2, bottom: 0 }}
+        onMouseDown={(e: { activeLabel?: string | number }) => {
+          if (e?.activeLabel != null) onDown(Number(e.activeLabel));
+        }}
+        onMouseMove={(e: { activeLabel?: string | number }) => {
+          if (dragging && e?.activeLabel != null) onMove(Number(e.activeLabel));
+        }}
+        onMouseUp={onUp}
+      >
+        <CartesianGrid stroke={chartTheme.grid} vertical={false} strokeDasharray="2 4" />
+        <XAxis dataKey="i" type="number" domain={domainX ?? ["dataMin", "dataMax"]} allowDataOverflow hide />
+        <YAxis
+          width={34}
+          domain={domain ?? ["auto", "auto"]}
+          stroke={chartTheme.axis}
+          tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+          tickLine={false}
+          axisLine={false}
+        />
+        {zeroLine && <ReferenceLine y={0} stroke={chartTheme.axis} strokeDasharray="2 2" />}
+        {ready.map((r) => (
+          <Line
+            key={r.code}
+            dataKey={`${r.code}_${suffix}`}
+            stroke={r.color}
+            strokeWidth={1.4}
+            strokeDasharray={dashByCode[r.code]}
+            dot={false}
+            isAnimationActive={false}
+            connectNulls
+            type={suffix === "gear" || suffix === "drs" || suffix === "brake" ? "stepAfter" : "monotone"}
+          />
+        ))}
+        {dragBand && (
+          <ReferenceArea x1={dragBand[0]} x2={dragBand[1]} strokeOpacity={0.2} fill={chartTheme.primary} fillOpacity={0.08} />
+        )}
+      </LineChart>
+    </ResponsiveContainer>
+  );
+});
+
+interface TraceProps extends ChartBodyProps {
+  label: string;
+  /** 0–1 crosshair position across the x-domain (CSS overlay, not a chart re-render). */
+  chFrac: number | null;
+}
+
+function Trace({ label, chFrac, ...body }: TraceProps) {
   return (
     <div>
       <div className="px-1 pb-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
-      <ResponsiveContainer width="100%" height={height}>
-        <LineChart
-          data={rows}
-          margin={{ top: 4, right: 6, left: 2, bottom: 0 }}
-          onMouseDown={(e: { activeLabel?: string | number }) => {
-            if (e?.activeLabel != null) onDown(Number(e.activeLabel));
-          }}
-          onMouseMove={(e: { activeLabel?: string | number }) => {
-            if (dragging && e?.activeLabel != null) onMove(Number(e.activeLabel));
-          }}
-          onMouseUp={onUp}
-        >
-          <CartesianGrid stroke={chartTheme.grid} vertical={false} strokeDasharray="2 4" />
-          <XAxis dataKey="i" type="number" domain={domainX ?? ["dataMin", "dataMax"]} allowDataOverflow hide />
-          <YAxis
-            width={34}
-            domain={domain ?? ["auto", "auto"]}
-            stroke={chartTheme.axis}
-            tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
-            tickLine={false}
-            axisLine={false}
+      <div className="relative" style={{ height: body.height }}>
+        <ChartBody {...body} />
+        {chFrac != null && (
+          <div
+            className="pointer-events-none absolute inset-y-0 w-px bg-primary/50"
+            style={{ left: `calc(36px + ${chFrac} * (100% - 42px))` }}
           />
-          {zeroLine && <ReferenceLine y={0} stroke={chartTheme.axis} strokeDasharray="2 2" />}
-          {activeIdx != null && rows[activeIdx] && (
-            <ReferenceLine x={activeIdx} stroke={chartTheme.primary} strokeOpacity={0.5} />
-          )}
-          {ready.map((r) => (
-            <Line
-              key={r.code}
-              dataKey={`${r.code}_${suffix}`}
-              stroke={r.color}
-              strokeWidth={1.4}
-              strokeDasharray={dashByCode[r.code]}
-              dot={false}
-              isAnimationActive={false}
-              connectNulls
-              type={suffix === "gear" || suffix === "drs" || suffix === "brake" ? "stepAfter" : "monotone"}
-            />
-          ))}
-          {dragBand && (
-            <ReferenceArea x1={dragBand[0]} x2={dragBand[1]} strokeOpacity={0.2} fill={chartTheme.primary} fillOpacity={0.08} />
-          )}
-        </LineChart>
-      </ResponsiveContainer>
+        )}
+      </div>
     </div>
   );
 }

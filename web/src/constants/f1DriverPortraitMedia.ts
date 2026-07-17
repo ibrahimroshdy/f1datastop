@@ -49,6 +49,9 @@ export const ERGAST_DRIVER_ID_TO_F1_PORTRAIT_PATH: Record<string, string> = {
   bottas: "2026/cadillac/valbot01/2026cadillacvalbot01right.webp",
   alonso: "2026/astonmartin/feralo01/2026astonmartinferalo01right.webp",
   stroll: "2026/astonmartin/lanstr01/2026astonmartinlanstr01right.webp",
+  // Reserve / FP1 drivers (Ergast driverId + slug alias)
+  crawford: "2026/astonmartin/jakcra01/2026astonmartinjakcra01right.webp",
+  jak_crawford: "2026/astonmartin/jakcra01/2026astonmartinjakcra01right.webp",
 };
 
 /** Driver code → Ergast driverId. Recent/live sessions store an empty driver_id
@@ -59,13 +62,19 @@ export const DRIVER_CODE_TO_ERGAST_ID: Record<string, string> = {
   GAS: "gasly", COL: "colapinto", VER: "max_verstappen", HAD: "hadjar",
   LAW: "lawson", LIN: "lindblad", HUL: "hulkenberg", BOR: "bortoleto",
   SAI: "sainz", ALB: "albon", PER: "perez", BOT: "bottas",
-  ALO: "alonso", STR: "stroll",
+  ALO: "alonso", STR: "stroll", CRA: "crawford",
 };
 
 /** Canonical Ergast driverId for a row — prefers the stored id, falls back to the code. */
 export function ergastIdForDriver(driverId: string | null | undefined, code: string | null | undefined): string {
   return (driverId && driverId.trim()) || DRIVER_CODE_TO_ERGAST_ID[(code || "").toUpperCase()] || "";
 }
+
+/** Reserve / FP1 drivers who aren't in the championship standings → their team
+ *  constructorId, so the board can still show a team logo. */
+export const DRIVER_CODE_TO_CONSTRUCTOR: Record<string, string> = {
+  CRA: "aston_martin",
+};
 
 export function buildF1DriverHeadshotUrl(portraitPathUnderCommonF1: string): string {
   const path = portraitPathUnderCommonF1.replace(/^\/+/, "");
