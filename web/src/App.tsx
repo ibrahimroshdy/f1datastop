@@ -9,7 +9,6 @@ import { DeveloperProvider } from "@/context/DeveloperContext";
 import { ProtectedRoute, PublicOnlyRoute } from "@/components/auth/ProtectedRoute";
 import { useState, useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
-import { notifySlackAboutTwitterSignin } from "./context/auth/authActions";
 import AnalyticsProvider from "./integrations/google-analytics/AnalyticsProvider";
 import { ClarityProvider } from './integrations/clarity/ClarityProvider';
 import ClarityStatus from "./components/dev/ClarityStatus";
@@ -70,16 +69,8 @@ const AuthCallback = () => {
           setTimeout(() => window.location.href = '/auth/login', 2000);
         } else if (data.session) {
           setMessage("Authentication successful! Redirecting...");
-          const { data: userData } = await supabase.auth.getUser();
-          
-          if (userData?.user?.app_metadata?.provider === 'twitter') {
-            try {
-              await notifySlackAboutTwitterSignin(userData.user);
-            } catch {
-              /* non-blocking */
-            }
-          }
-          
+          // Signup → Slack notifications now fire server-side (DB trigger on auth.users →
+          // pg_net → Slack), covering every provider + email signups. No client call needed.
           setTimeout(() => window.location.href = '/', 1000);
         } else {
           setMessage("Authentication in progress...");

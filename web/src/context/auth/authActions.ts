@@ -109,35 +109,9 @@ export const signUp = async (
     // Track successful signup with email method
     trackSignup('email');
 
-    // Notify Slack about the new signup (requires active session for JWT)
-    if (data.session) {
-      try {
-        const { data: notifyResult, error: notifyError } = await supabase.functions.invoke(
-          'notify-slack',
-          {
-            body: {
-              type: "signup",
-              userData: {
-                email,
-                username,
-                firstName,
-                lastName,
-                provider: "email"
-              },
-            },
-          }
-        );
-        if (notifyError) {
-          console.error("Error in Slack notification:", notifyError);
-        } else if (notifyResult && typeof notifyResult === 'object' && 'error' in notifyResult) {
-          console.error("Error in Slack notification response:", notifyResult);
-        }
-      } catch (slackError) {
-        // Don't fail the signup if the slack notification fails, just log it
-        console.error("Failed to send Slack notification:", slackError);
-        console.error("Error details:", slackError);
-      }
-    }
+    // Signup → Slack notifications fire server-side (DB trigger on auth.users → pg_net →
+    // Slack). The old client invoke only ran when data.session existed, so with email
+    // confirmation ON it never fired for email signups — the trigger fixes that.
 
     toast.success("Registration successful! Please check your email to confirm your account.");
   } catch (error: any) {
@@ -301,51 +275,6 @@ export const updateProfile = async (
   } catch (error: any) {
     console.error("Error updating profile:", error);
     throw error;
-  }
-};
-
-// New function to notify Slack about Twitter sign-ins
-export const notifySlackAboutTwitterSignin = async (user: any): Promise<void> => {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      return;
-    }
-
-    // Extract necessary data from the user object
-    const twitterUsername = user.user_metadata?.preferred_username || 
-                          user.user_metadata?.user_name || 
-                          user.user_metadata?.name || 
-                          'twitter_user';
-    
-    const fullName = user.user_metadata?.full_name || 
-                    user.user_metadata?.name || 
-                    twitterUsername;
-    
-    const firstName = fullName.split(' ')[0] || '';
-    const lastName = fullName.split(' ').slice(1).join(' ') || '';
-    
-    // Format the data according to what the Edge Function expects
-    const payload = {
-      type: "signup",
-      userData: {
-        firstName,
-        lastName,
-        username: twitterUsername,
-        email: user.email || `${twitterUsername}@twitter.com`,
-        provider: "twitter"
-      }
-    };
-    
-    const { data, error } = await supabase.functions.invoke('notify-slack', { body: payload });
-    if (error) {
-      console.error("Slack notification failed:", error);
-    } else if (data && typeof data === 'object' && 'error' in data) {
-      console.error("Slack notification response error:", data);
-    }
-  } catch (slackError) {
-    // Don't fail the signup if the slack notification fails
-    console.error("Twitter notification error:", slackError);
   }
 };
 
