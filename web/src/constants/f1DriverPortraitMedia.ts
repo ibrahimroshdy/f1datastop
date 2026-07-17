@@ -51,6 +51,22 @@ export const ERGAST_DRIVER_ID_TO_F1_PORTRAIT_PATH: Record<string, string> = {
   stroll: "2026/astonmartin/lanstr01/2026astonmartinlanstr01right.webp",
 };
 
+/** Driver code → Ergast driverId. Recent/live sessions store an empty driver_id
+ *  (FastF1 can't reach Ergast yet), so the photo + team logo resolve off the code instead. */
+export const DRIVER_CODE_TO_ERGAST_ID: Record<string, string> = {
+  RUS: "russell", ANT: "antonelli", LEC: "leclerc", HAM: "hamilton",
+  NOR: "norris", PIA: "piastri", OCO: "ocon", BEA: "bearman",
+  GAS: "gasly", COL: "colapinto", VER: "max_verstappen", HAD: "hadjar",
+  LAW: "lawson", LIN: "lindblad", HUL: "hulkenberg", BOR: "bortoleto",
+  SAI: "sainz", ALB: "albon", PER: "perez", BOT: "bottas",
+  ALO: "alonso", STR: "stroll",
+};
+
+/** Canonical Ergast driverId for a row — prefers the stored id, falls back to the code. */
+export function ergastIdForDriver(driverId: string | null | undefined, code: string | null | undefined): string {
+  return (driverId && driverId.trim()) || DRIVER_CODE_TO_ERGAST_ID[(code || "").toUpperCase()] || "";
+}
+
 export function buildF1DriverHeadshotUrl(portraitPathUnderCommonF1: string): string {
   const path = portraitPathUnderCommonF1.replace(/^\/+/, "");
   return `${F1_MEDIA_UPLOAD_BASE}/${F1_DRIVER_HEADSHOT_TRANSFORMS}/${F1_DRIVER_PORTRAIT_VERSION}/common/f1/${path}`;

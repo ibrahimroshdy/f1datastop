@@ -5,6 +5,7 @@ import TeamLogo from "@/components/common/TeamLogo";
 import { cn } from "@/lib/utils";
 import {
   buildF1DriverHeadshotUrl,
+  ergastIdForDriver,
   getF1PortraitPathForErgastDriverId,
 } from "@/constants/f1DriverPortraitMedia";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
@@ -134,8 +135,9 @@ export function DriverBoard({
           {rows.map((r) => {
             const isSel = selected.includes(r.code);
             const isRef = refCode === r.code;
-            const cid = constructorByDriver.get(r.id);
-            const path = getF1PortraitPathForErgastDriverId(r.id, year);
+            const ergId = ergastIdForDriver(r.id, r.code);
+            const cid = constructorByDriver.get(ergId) ?? constructorByDriver.get(r.id);
+            const path = getF1PortraitPathForErgastDriverId(ergId, year);
             const src = path ? buildF1DriverHeadshotUrl(path) : undefined;
             const gapText = r.pos === 1 ? (isRace ? "LEADER" : "") : isRace && r.lapsDown >= 1 ? `+${r.lapsDown}L` : fmtGap(r.gap);
             return (
