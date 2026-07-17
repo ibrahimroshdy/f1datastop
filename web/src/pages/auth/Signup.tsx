@@ -12,13 +12,13 @@ import {
   F1CardHeader,
   F1CardTitle,
 } from '@/components/f1';
-import { Eye, EyeOff, ArrowLeft, Twitter, LifeBuoy } from 'lucide-react';
+import { Eye, EyeOff, Twitter } from 'lucide-react';
 import ReCaptcha from '@/components/auth/ReCaptcha';
 import { isRecaptchaEnabled } from '@/config/integrations';
 import f1Logo from '@/assets/f1-logo.svg';
-import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
-import { pageShellNarrow } from '@/lib/layout';
+import AuthShell from '@/components/auth/AuthShell';
+import { PasswordChecklist, isPasswordValid } from '@/components/auth/PasswordChecklist';
 
 const Signup = () => {
   const [firstName, setFirstName] = useState('');
@@ -31,10 +31,10 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [pwFocused, setPwFocused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const { signUp, signInWithX } = useAuth();
-  const { theme } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,35 +74,7 @@ const Signup = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className={cn(pageShellNarrow, "w-full")}>
-        <div className="mb-6">
-          <Link 
-            to="/" 
-            className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Return to Dashboard
-          </Link>
-        </div>
-        
-        {/* Product Hunt badge - moved to top */}
-        <div className="mb-6 flex justify-center">
-          <a 
-            href="https://www.producthunt.com/posts/f1-datastop?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-f1&#0045;datastop" 
-            target="_blank" 
-            rel="noopener noreferrer"
-          >
-            <img 
-              src={`https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=950747&theme=${theme}&t=1744238501973`}
-              alt="F1 DataStop - Live formula 1 news and race data | Product Hunt" 
-              style={{ width: "200px", height: "43px" }} 
-              width="200" 
-              height="43" 
-            />
-          </a>
-        </div>
-        
+    <AuthShell>
         <F1Card variant="default" className="w-full p-0">
           <F1CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
@@ -171,6 +143,7 @@ const Signup = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setPwFocused(true)}
                     required
                     className="pr-10 bg-background"
                   />
@@ -182,6 +155,9 @@ const Signup = () => {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {(pwFocused || password.length > 0) && (
+                  <PasswordChecklist password={password} className="pt-1" />
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -221,10 +197,10 @@ const Signup = () => {
                 </div>
               )}
               
-              <Button 
-                type="submit" 
-                className="w-full bg-primary hover:bg-primary/90" 
-                disabled={isLoading}
+              <Button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary/90"
+                disabled={isLoading || !isPasswordValid(password)}
               >
                 {isLoading ? "Creating account..." : "Sign up"}
               </Button>
@@ -283,20 +259,7 @@ const Signup = () => {
             </p>
           </F1CardFooter>
         </F1Card>
-
-        {/* Support + community footer */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-          <a href="mailto:admin@f1datastop.com" className="inline-flex items-center gap-1 transition-colors hover:text-foreground">
-            <LifeBuoy className="h-3.5 w-3.5" /> Support
-          </a>
-          <span aria-hidden>·</span>
-          <a href="https://www.producthunt.com/posts/f1-datastop" target="_blank" rel="noopener noreferrer"
-            className="transition-colors hover:text-foreground">
-            Product Hunt
-          </a>
-        </div>
-      </div>
-    </div>
+    </AuthShell>
   );
 };
 

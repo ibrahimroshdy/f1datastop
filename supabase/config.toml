@@ -1,8 +1,5 @@
 project_id = "envqfquhkcbnitwlzepx"
 
-[functions.notify-slack]
-verify_jwt = true
-
 [functions.captcha-verify]
 verify_jwt = true
 

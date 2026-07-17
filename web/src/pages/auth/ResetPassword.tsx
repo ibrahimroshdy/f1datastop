@@ -12,12 +12,12 @@ import {
   F1CardHeader,
   F1CardTitle,
 } from '@/components/f1';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import f1Logo from '@/assets/f1-logo.svg';
-import { cn } from '@/lib/utils';
-import { pageShellNarrow } from '@/lib/layout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import AuthShell from '@/components/auth/AuthShell';
+import { PasswordChecklist, isPasswordValid } from '@/components/auth/PasswordChecklist';
 
 const hashHasRecoveryType = () => {
   const raw = window.location.hash?.replace(/^#/, '') ?? '';
@@ -98,18 +98,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className={cn(pageShellNarrow, "w-full")}>
-        <div className="mb-6">
-          <Link
-            to="/"
-            className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Return to Dashboard
-          </Link>
-        </div>
-
+    <AuthShell>
         <div className="mb-6 flex justify-center">
           <img src={f1Logo} alt="F1 DataStop" className="w-20 h-20" />
         </div>
@@ -177,10 +166,13 @@ const ResetPassword = () => {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
-                      minLength={6}
+                      minLength={8}
                       className="bg-background pr-10"
                     />
                   </div>
+                  {newPassword.length > 0 && (
+                    <PasswordChecklist password={newPassword} className="pt-1" />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmNewPassword">Confirm new password</Label>
@@ -201,7 +193,7 @@ const ResetPassword = () => {
                 <Button
                   type="submit"
                   className="w-full bg-primary hover:bg-primary/90"
-                  disabled={isLoading}
+                  disabled={isLoading || !isPasswordValid(newPassword)}
                 >
                   {isLoading ? 'Updating...' : 'Update password'}
                 </Button>
@@ -217,8 +209,7 @@ const ResetPassword = () => {
             </Link>
           </F1CardFooter>
         </F1Card>
-      </div>
-    </div>
+    </AuthShell>
   );
 };
 
