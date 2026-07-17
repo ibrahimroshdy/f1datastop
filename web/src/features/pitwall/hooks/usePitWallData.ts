@@ -6,6 +6,11 @@ import {
   type RaceReplayBlob,
 } from "@/services/raceReplayService";
 import { getTelemetryIndex, type TelemetryIndexRow } from "@/services/telemetryService";
+import {
+  fetchCircuitGeometryBlob,
+  getCircuitGeometry,
+  type CircuitGeometryBlob,
+} from "@/services/circuitGeometryService";
 
 export interface PitWallDriver {
   code: string;
@@ -57,7 +62,23 @@ export function usePitWallData(
     staleTime: 60 * 60 * 1000,
   });
 
+  // Circuit geometry — track outline, sectors, numbered corners (shared with Race Control).
+  const geomIndex = useQuery({
+    queryKey: ["circuit-geometry", "index", year, round],
+    queryFn: () => getCircuitGeometry(year, round as number),
+    enabled,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const geomUrl = geomIndex.data?.public_url;
+  const geomQuery = useQuery({
+    queryKey: ["circuit-geometry", "blob", geomUrl],
+    queryFn: () => fetchCircuitGeometryBlob(geomUrl as string),
+    enabled: !!geomUrl,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
   const blob: RaceReplayBlob | undefined = replay.data;
+  const geom: CircuitGeometryBlob | undefined = geomQuery.data;
 
   const drivers: PitWallDriver[] = useMemo(() => {
     if (blob?.drivers?.length) {
@@ -91,6 +112,7 @@ export function usePitWallData(
 
   return {
     blob,
+    geom,
     drivers,
     telemetryIndex: (telemetryIndex.data ?? []) as TelemetryIndexRow[],
     hasReplay: !!index.data,

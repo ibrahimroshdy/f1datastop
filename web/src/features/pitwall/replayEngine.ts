@@ -227,12 +227,14 @@ export interface GeomPaths {
   outlinePath: string | null;
   sectorPaths: string[] | null;
   startFinish: { ax: number; ay: number; bx: number; by: number } | null;
+  corners: { n: number; label: string; x: number; y: number }[];
 }
 
-/** Build the track outline, 3-sector split, and start/finish line in blob.bounds space. */
+/** Build the track outline, 3-sector split, numbered corners, and start/finish in blob.bounds space. */
 export function buildGeom(geom: CircuitGeometryBlob | undefined, blob: RaceReplayBlob): GeomPaths {
-  if (!geom) return { outlinePath: null, sectorPaths: null, startFinish: null };
+  if (!geom) return { outlinePath: null, sectorPaths: null, startFinish: null, corners: [] };
   const flipY = (y: number) => blob.bounds.min_y + blob.bounds.max_y - y;
+  const corners = (geom.corners ?? []).map((c) => ({ n: c.n, label: c.letter || String(c.n), x: c.x, y: flipY(c.y) }));
   const outlinePath = geom.outline.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0]} ${flipY(p[1])}`).join(" ");
   const maxD = geom.outline[geom.outline.length - 1]?.[2] ?? 0;
   const seg = (lo: number, hi: number) =>
@@ -254,7 +256,7 @@ export function buildGeom(geom: CircuitGeometryBlob | undefined, blob: RaceRepla
     const half = span * 0.024;
     startFinish = { ax: x0 - dy * half, ay: flipY(y0 + dx * half), bx: x0 + dy * half, by: flipY(y0 - dx * half) };
   }
-  return { outlinePath, sectorPaths, startFinish };
+  return { outlinePath, sectorPaths, startFinish, corners };
 }
 
 export const SECTOR_COLOR = ["hsl(330 85% 60%)", "hsl(210 90% 58%)", "hsl(150 70% 48%)"];

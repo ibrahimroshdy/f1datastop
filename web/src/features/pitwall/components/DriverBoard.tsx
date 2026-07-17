@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Star } from "lucide-react";
-import { DriverAvatar } from "@/components/f1";
 import TeamLogo from "@/components/common/TeamLogo";
 import { cn } from "@/lib/utils";
 import {
@@ -9,8 +8,9 @@ import {
   getF1PortraitPathForErgastDriverId,
 } from "@/constants/f1DriverPortraitMedia";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
-import { TYRE_HSL, carSpeeds, computeTiming, fmtGap, fmtLap } from "../replayEngine";
+import { carSpeeds, computeTiming, fmtGap, fmtLap } from "../replayEngine";
 import type { PitWallDriver } from "../hooks/usePitWallData";
+import { TyreBadge } from "./TyreBadge";
 
 interface Row {
   id: string;
@@ -42,22 +42,38 @@ interface Props {
   onSetRef: (code: string) => void;
 }
 
-function SectorBars({ sec, pb, id, bestHolder }: { sec?: (number | null)[]; pb?: [number, number, number]; id: string; bestHolder: (string | null)[] }) {
-  if (!sec) return null;
+/** Sectors as an LED dot + time each — purple = session best, green = personal best. (ms → s) */
+function SectorLeds({ sec, pb, id, bestHolder }: { sec?: (number | null)[]; pb?: [number, number, number]; id: string; bestHolder: (string | null)[] }) {
+  if (!sec || sec.every((s) => s == null)) return null;
   return (
-    <span className="flex items-center gap-0.5">
+    <span className="flex items-center gap-1.5" title="Sectors 1·2·3">
       {sec.map((s, k) => {
-        let cls = "bg-muted-foreground/25";
-        if (id === bestHolder[k]) cls = "bg-fastest-lap";
-        else if (s != null && pb && s === pb[k]) cls = "bg-gain";
-        else if (s != null) cls = "bg-muted-foreground/50";
-        return <span key={k} className={cn("h-1 w-3 rounded-sm", cls)} />;
+        let dot = "bg-muted-foreground/25"; // no time set yet
+        let txt = "text-muted-foreground/45";
+        if (id === bestHolder[k]) {
+          dot = "bg-fastest-lap shadow-[0_0_5px] shadow-fastest-lap/70"; // session best (purple)
+          txt = "text-fastest-lap";
+        } else if (s != null && pb && s === pb[k]) {
+          dot = "bg-gain shadow-[0_0_5px] shadow-gain/70"; // personal best (green)
+          txt = "text-gain";
+        } else if (s != null) {
+          dot = "bg-yellow-500 dark:bg-yellow-400"; // standard sector (yellow)
+          txt = "text-yellow-600 dark:text-yellow-400";
+        }
+        return (
+          <span key={k} className="flex items-center gap-0.5">
+            <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
+            <span className={cn("readout text-[9px] leading-none tabular-nums", txt)}>
+              {s != null ? (s / 1000).toFixed(1) : "—"}
+            </span>
+          </span>
+        );
       })}
     </span>
   );
 }
 
-/** The one drivers panel — live position, photo, correct logo, lap time, sector colours, speed, delta. */
+/** The one drivers panel — live position, photo, correct logo, lap time, tyre, speed, sectors, delta. */
 export function DriverBoard({
   blob,
   frame,
@@ -131,15 +147,11 @@ export function DriverBoard({
                 exit={{ opacity: 0 }}
                 transition={{ layout: { type: "spring", stiffness: 600, damping: 44 }, opacity: { duration: 0.15 } }}
                 className={cn(
-                  "mb-1 rounded-xl border px-2 py-1.5 transition-colors",
-                  isSel ? "border-transparent" : "border-border/60 hover:border-primary/40",
+                  "mb-0.5 rounded-lg border px-2 py-[3px] transition-colors",
+                  isSel ? "border-white/12" : "border-border/60 hover:border-primary/40",
                   r.pit && "opacity-60",
                 )}
-                style={
-                  isSel
-                    ? { backgroundColor: `${r.color}22`, boxShadow: `inset 3px 0 0 ${r.color}` }
-                    : { boxShadow: `inset 3px 0 0 ${r.color}88` }
-                }
+                style={isSel ? { backgroundColor: `${r.color}1a` } : undefined}
               >
                 <div className="flex items-center gap-2">
                   <button
@@ -148,8 +160,17 @@ export function DriverBoard({
                     aria-pressed={isSel}
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
-                    <span className="w-5 shrink-0 text-center text-sm font-bold text-muted-foreground">{r.pos ?? "—"}</span>
-                    <DriverAvatar driverCode={r.code} src={src} teamColor={r.color} size="sm" />
+                    <span className="w-4 shrink-0 text-center text-xs font-bold text-muted-foreground">{r.pos ?? "—"}</span>
+                    <span
+                      className="grid h-[18px] w-[18px] shrink-0 place-items-center overflow-hidden rounded-full bg-muted"
+                      style={{ boxShadow: `0 0 0 1.5px ${r.color}` }}
+                    >
+                      {src ? (
+                        <img src={src} alt={r.code} className="h-full w-full object-cover object-top" loading="lazy" />
+                      ) : (
+                        <span className="text-[7px] font-bold text-muted-foreground">{r.code}</span>
+                      )}
+                    </span>
                     <span className="flex min-w-0 items-center gap-1.5">
                       <span className={cn("timing text-sm font-bold leading-none", isSel ? "text-foreground" : "text-foreground/90")}>
                         {r.code}
@@ -167,18 +188,13 @@ export function DriverBoard({
                     </button>
                   )}
                 </div>
-                {blob && (
-                  <div className="mt-1 flex items-center gap-2 pl-7 text-[10px] text-muted-foreground">
-                    {r.tyre && (
-                      <span className="font-bold" style={{ color: TYRE_HSL[r.tyre] ?? "hsl(var(--muted-foreground))" }}>
-                        {r.tyre}
-                        {r.tyl != null ? r.tyl : ""}
-                      </span>
-                    )}
+                {blob && (r.tyre || r.speed != null || r.sec) && (
+                  <div className="mt-0 flex items-center gap-2 pl-6 text-[10px] text-muted-foreground">
+                    {r.tyre && <TyreBadge compound={r.tyre} age={r.tyl} />}
                     {r.speed != null && (
                       <span className="readout text-foreground/80">{Math.round(r.speed)}<span className="text-[8px] text-muted-foreground"> km/h</span></span>
                     )}
-                    <SectorBars sec={r.sec} pb={r.pb} id={r.id} bestHolder={bestHolder} />
+                    <span className="ml-auto"><SectorLeds sec={r.sec} pb={r.pb} id={r.id} bestHolder={bestHolder} /></span>
                   </div>
                 )}
               </motion.div>

@@ -20,6 +20,8 @@ interface Props {
   blob?: RaceReplayBlob;
   selected: string[];
   activeLap: number | null;
+  /** The race player's current lap — drawn as a moving marker. */
+  currentLap?: number;
   onSelectLap: (lap: number) => void;
 }
 
@@ -47,7 +49,7 @@ const median = (xs: number[]) => {
 
 const OUTLIER_FACTOR = 1.07; // laps slower than median × this are hidden by default
 
-export function LapTimePanel({ blob, selected, activeLap, onSelectLap }: Props) {
+export function LapTimePanel({ blob, selected, activeLap, currentLap, onSelectLap }: Props) {
   const [showOutliers, setShowOutliers] = useState(false);
   const [zoom, setZoom] = useState<[number, number] | null>(null);
   const [dragL, setDragL] = useState<number | null>(null);
@@ -151,7 +153,7 @@ export function LapTimePanel({ blob, selected, activeLap, onSelectLap }: Props) 
       <ResponsiveContainer width="100%" height={260}>
         <LineChart
           data={rows}
-          margin={{ top: 8, right: 10, left: 4, bottom: 4 }}
+          margin={{ top: 18, right: 10, left: 4, bottom: 4 }}
           onMouseDown={(e: { activeLabel?: string | number }) => {
             if (e?.activeLabel != null) setDragL(Number(e.activeLabel));
           }}
@@ -191,8 +193,16 @@ export function LapTimePanel({ blob, selected, activeLap, onSelectLap }: Props) 
             labelFormatter={(l) => `Lap ${l}`}
             formatter={(v: number, name: string) => [fmtTime(v), name]}
           />
+          {currentLap != null && currentLap >= 1 && (
+            <ReferenceLine
+              x={currentLap}
+              stroke={chartTheme.primary}
+              strokeWidth={1.6}
+              label={{ value: `L${Math.round(currentLap)}`, position: "top", fill: chartTheme.primary, fontSize: 9 }}
+            />
+          )}
           {activeLap != null && (
-            <ReferenceLine x={activeLap} stroke={chartTheme.primary} strokeDasharray="2 2" />
+            <ReferenceLine x={activeLap} stroke={chartTheme.primary} strokeDasharray="2 2" label={{ value: "pinned", position: "top", fill: chartTheme.primary, fontSize: 9 }} />
           )}
           {fastest != null && (
             <ReferenceLine

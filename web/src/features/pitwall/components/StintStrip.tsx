@@ -63,17 +63,19 @@ export function StintStrip({ blob, drivers, selected }: Props) {
             <span className="timing w-9 shrink-0 text-xs font-bold" style={{ color: colorOf[code] }}>
               {code}
             </span>
-            <div className="flex h-5 flex-1 overflow-hidden rounded border border-border">
+            <div className="flex h-7 flex-1 overflow-hidden rounded border border-border">
               {stints.map((s, i) => {
-                const w = ((s.to - s.from + 1) / totalLaps) * 100;
+                const laps = s.to - s.from + 1;
+                const w = (laps / totalLaps) * 100;
                 return (
                   <div
                     key={i}
-                    className="flex items-center justify-center text-[9px] font-bold text-black/70"
+                    className="flex flex-col items-center justify-center leading-none text-black/75"
                     style={{ width: `${w}%`, backgroundColor: tyreColor(s.compound) }}
-                    title={`${s.compound ?? "?"} · laps ${s.from}–${s.to}`}
+                    title={`${s.compound ?? "?"} · ${laps} lap${laps === 1 ? "" : "s"} (${s.from}–${s.to})`}
                   >
-                    {s.to - s.from + 1 > 2 ? s.compound ?? "" : ""}
+                    {w > 6 && <span className="text-[9px] font-bold">{s.compound ?? ""}</span>}
+                    {w > 9 && <span className="text-[7px] font-semibold opacity-75">{laps}</span>}
                   </div>
                 );
               })}

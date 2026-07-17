@@ -134,9 +134,11 @@ export function ContextBar({ state, patch }: Props) {
           <button
             type="button"
             onClick={onShare}
-            className="flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            title="Copy Pit Wall link"
+            aria-label="Share — copy link"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
           >
-            <Link2 className="h-3.5 w-3.5" /> Share
+            <Link2 className="h-4 w-4" />
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Flag, Gauge, Radio, Route, Users } from "lucide-react";
+import { Flag, Gauge, Pin, Radio, Route, Users, X } from "lucide-react";
 import { pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useRaceSchedule } from "@/hooks/f1/useSchedule";
@@ -12,16 +12,16 @@ import { PositionChart } from "../components/PositionChart";
 import { WeatherStrip } from "../components/WeatherStrip";
 import { StintStrip } from "../components/StintStrip";
 import { DriverBoard } from "../components/DriverBoard";
-import { LapCards } from "../components/LapCards";
-import { LapTrack } from "../components/LapTrack";
+import { CockpitTrack } from "../components/CockpitTrack";
 import { LiveInputs } from "../components/LiveInputs";
-import { LapPlayBar } from "../components/LapPlayBar";
+import { RaceProgressBar } from "../components/RaceProgressBar";
 import { usePitWallState } from "../hooks/usePitWallState";
 import { usePitWallData } from "../hooks/usePitWallData";
 import { usePitWallTelemetry } from "../hooks/usePitWallTelemetry";
-import { useLapPlayhead } from "../hooks/useLapPlayhead";
+import { useReplayPlayhead } from "../hooks/useReplayPlayhead";
 import { useConstructorByDriver } from "../hooks/useConstructorByDriver";
 import { buildLapModel, idxAtTime } from "../lapModel";
+import { computeTiming, refLapFrac } from "../replayEngine";
 import { PANELS, sessionsForRace, type PanelId } from "../pitwall.config";
 
 export default function PitWall() {
@@ -46,14 +46,38 @@ export default function PitWall() {
         ? [state.ref]
         : state.drivers.slice(0, 1)
       : state.drivers;
+
+  // ONE transport — the whole-race player. Its frame drives the live driver order, the
+  // telemetry crosshair (via the reference car's within-lap fraction) and the cockpit.
+  const replay = useReplayPlayhead(data.blob?.frames ?? 1);
+  const { setFrame, setPlaying } = replay;
+  useEffect(() => {
+    setFrame(0);
+    setPlaying(false);
+  }, [session, state.round, setFrame, setPlaying]);
+
+  // Leader's current lap at this frame — the auto-follow lap for telemetry + chart markers.
+  const leaderLap = useMemo(
+    () => (data.blob ? computeTiming(data.blob, Math.round(replay.frame)).leaderLap : 0),
+    [data.blob, replay.frame],
+  );
+  // Telemetry lap: a pinned lap (clicked on the Lap Times chart) wins; otherwise it
+  // auto-follows the leader's current lap so the traces track the race as it plays.
+  const pinned = state.lap != null;
+  const effectiveLap = state.lap ?? (leaderLap > 0 ? leaderLap : null);
+
   const telemetry = usePitWallTelemetry(
     state.year,
     state.round,
     session,
     viewDrivers,
-    state.lap,
+    effectiveLap,
     data.telemetryIndex,
   );
+  // Honesty flag: the requested lap wasn't exported, so a driver's trace fell back to its
+  // fastest lap (per-lap telemetry isn't seeded yet).
+  const shownLap = telemetry.find((t) => t.state?.status === "done")?.lap ?? null;
+  const usingFastest = !pinned && shownLap != null && leaderLap > 0 && shownLap !== leaderLap;
   const hasDrivers = state.drivers.length > 0;
   const constructorByDriver = useConstructorByDriver(state.year);
 
@@ -69,27 +93,14 @@ export default function PitWall() {
     ],
   );
 
-  // ONE playhead (single lap, seconds). Drives the track dot, live inputs and every
-  // chart crosshair. Reset on session/round change; retune when the lap set changes.
-  const playhead = useLapPlayhead();
-  const { setT, pause, setDuration } = playhead;
-  useEffect(() => {
-    setT(0);
-    pause();
-  }, [session, state.round, setT, pause]);
-  useEffect(() => {
-    setDuration(model.maxDur);
-  }, [model.maxDur, setDuration]);
-
-  // Sample index for each lap at the current playhead time (time-aligned dots/inputs).
-  const indices = model.laps.map((l) => idxAtTime(l.time, playhead.t));
-  // Crosshair fraction relative to the reference lap so it lands on the same sample the
-  // TelemetryPanel plots (it maps frac·refLapTime back to an index).
-  const refLap = model.laps.find((l) => l.code === state.ref) ?? model.laps[0];
-  const crosshairFrac = refLap && refLap.dur > 0 ? Math.min(1, playhead.t / refLap.dur) : 0;
-
-  // Static classification frame for the selector board (final order — no 2nd playhead).
-  const boardFrame = Math.max(0, (data.blob?.frames ?? 1) - 1);
+  // Where the reference car sits on its current lap → 0–1 crosshair fraction.
+  const crosshairFrac = data.blob
+    ? refLapFrac(data.blob, state.ref ?? viewDrivers[0] ?? null, replay.frame)
+    : 0;
+  // Each lap's sample at that same within-lap fraction (time-aligned dots + inputs).
+  const indices = model.laps.map((l) => idxAtTime(l.time, crosshairFrac * l.dur));
+  // Fractional current lap → the chart markers glide smoothly instead of jumping per lap.
+  const currentLapF = leaderLap > 0 ? leaderLap + Math.min(0.999, crosshairFrac) : crosshairFrac;
   const isRace = data.blob?.is_race !== false;
   const setRef = (c: string) => patch({ ref: c, drivers: state.drivers.includes(c) ? state.drivers : [...state.drivers, c] });
 
@@ -115,15 +126,15 @@ export default function PitWall() {
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Header — one lap-card per selected driver */}
-          <LapCards laps={model.laps} refCode={state.ref} constructorByDriver={constructorByDriver} onSetRef={setRef} />
+          {/* The race player — lap counter, VSC/SC/overtake timeline, scrub + speed */}
+          {data.blob && <RaceProgressBar blob={data.blob} playhead={replay} />}
 
           <div className="lg:grid lg:grid-cols-[260px_minmax(320px,360px)_minmax(0,1fr)] lg:items-start lg:gap-3">
-            {/* LEFT — driver selector (final classification) */}
+            {/* LEFT — live driver selector */}
             <aside className="mb-3 lg:sticky lg:top-16 lg:mb-0 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto">
               <DriverBoard
                 blob={data.blob}
-                frame={boardFrame}
+                frame={replay.frame}
                 isRace={isRace}
                 drivers={data.drivers}
                 selected={state.drivers}
@@ -142,10 +153,11 @@ export default function PitWall() {
                   <Route className="h-3 w-3" /> Track position
                 </div>
                 <div className="aspect-[4/3] w-full">
-                  <LapTrack laps={model.laps} indices={indices} bounds={model.bounds} refCode={state.ref} />
-                </div>
-                <div className="mt-2">
-                  <LapPlayBar playhead={playhead} />
+                  {data.blob ? (
+                    <CockpitTrack blob={data.blob} geom={data.geom} frame={replay.frame} selected={state.drivers} />
+                  ) : (
+                    <div className="grid h-full place-items-center text-2xs text-muted-foreground">Track loads with the session</div>
+                  )}
                 </div>
               </div>
               <div className="rounded-2xl border border-border bg-card/40 p-2.5">
@@ -173,6 +185,25 @@ export default function PitWall() {
               ) : (
                 <>
                   <PanelShell title="Telemetry" icon={PANELS.find((p) => p.id === "telemetry")!.icon}>
+                    {/* Auto-follow the leader's lap, or pin a lap from the Lap Times chart */}
+                    <div className="mb-2">
+                      {pinned ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-2xs font-semibold text-primary">
+                          <Pin className="h-3 w-3" /> Lap {state.lap} pinned
+                          <button type="button" onClick={() => patch({ lap: null })} className="ml-0.5 hover:text-foreground" aria-label="Unpin — auto-follow">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-2xs text-muted-foreground"
+                          title={usingFastest ? "Per-lap telemetry isn't in the database yet, so each trace shows that driver's fastest lap." : undefined}
+                        >
+                          <Radio className="h-3 w-3 text-primary" /> Auto · lap {leaderLap || "—"}
+                          {usingFastest && <span className="text-amber-500">· fastest-lap shown (per-lap not synced)</span>}
+                        </span>
+                      )}
+                    </div>
                     <TelemetryPanel
                       telemetry={telemetry}
                       drivers={data.drivers}
@@ -215,10 +246,11 @@ export default function PitWall() {
                               blob={data.blob}
                               selected={viewDrivers}
                               activeLap={state.lap}
-                              onSelectLap={(lap) => patch({ lap })}
+                              currentLap={currentLapF}
+                              onSelectLap={(lap) => patch({ lap: state.lap === lap ? null : lap })}
                             />
                           ) : id === "position" ? (
-                            <PositionChart blob={data.blob} selected={viewDrivers} />
+                            <PositionChart blob={data.blob} selected={viewDrivers} currentLap={currentLapF} />
                           ) : id === "weather" ? (
                             <WeatherStrip year={state.year} round={state.round} session={session} />
                           ) : null}

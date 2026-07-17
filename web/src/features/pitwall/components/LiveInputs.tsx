@@ -12,11 +12,20 @@ function val(arr: number[] | undefined, i: number): number | null {
   return arr && i < arr.length ? arr[i] : null;
 }
 
-/** Mini horizontal bar for throttle (green) / brake (red). */
-function Bar({ pct, color }: { pct: number; color: string }) {
+const DOTS = 12;
+
+/** LED-style dot meter for throttle / brake — lit dots grow with pedal application. */
+function DotMeter({ pct, color }: { pct: number; color: string }) {
+  const on = Math.round(Math.min(1, Math.max(0, pct)) * DOTS);
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-      <div className="h-full rounded-full transition-[width] duration-75" style={{ width: `${Math.round(pct * 100)}%`, backgroundColor: color }} />
+    <div className="flex flex-1 items-center justify-between">
+      {Array.from({ length: DOTS }).map((_, i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 rounded-full transition-colors duration-75"
+          style={{ backgroundColor: i < on ? color : "hsl(var(--muted-foreground) / 0.2)" }}
+        />
+      ))}
     </div>
   );
 }
@@ -28,6 +37,11 @@ export function LiveInputs({ laps, indices, refCode, onSetRef }: Props) {
   }
   return (
     <div className="space-y-1.5">
+      <p className="text-[9px] leading-snug text-muted-foreground">
+        Each driver's readout where the play-head sits on the lap — speed, gear, engine rpm, plus{" "}
+        <span className="font-semibold" style={{ color: "hsl(140 68% 46%)" }}>throttle&nbsp;(T)</span> and{" "}
+        <span className="font-semibold" style={{ color: "hsl(0 85% 55%)" }}>brake&nbsp;(B)</span> as dot meters (more dots = harder on the pedal).
+      </p>
       {laps.map((l, li) => {
         const i = Math.min(indices[li] ?? 0, l.time.length - 1);
         const ch = l.blob.channels;
@@ -65,8 +79,14 @@ export function LiveInputs({ laps, indices, refCode, onSetRef }: Props) {
                 <div className="text-[8px] uppercase tracking-wide text-muted-foreground">rpm</div>
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <Bar pct={thr} color="hsl(140 68% 46%)" />
-                <Bar pct={brkOn ? Math.max(brk, 0.15) : 0} color="hsl(0 85% 55%)" />
+                <div className="flex items-center gap-1.5" title="Throttle">
+                  <span className="w-2 shrink-0 text-[7px] font-bold leading-none" style={{ color: "hsl(140 68% 46%)" }}>T</span>
+                  <DotMeter pct={thr} color="hsl(140 68% 46%)" />
+                </div>
+                <div className="flex items-center gap-1.5" title="Brake">
+                  <span className="w-2 shrink-0 text-[7px] font-bold leading-none" style={{ color: "hsl(0 85% 55%)" }}>B</span>
+                  <DotMeter pct={brkOn ? Math.max(brk, 0.15) : 0} color="hsl(0 85% 55%)" />
+                </div>
               </div>
             </div>
           </button>
