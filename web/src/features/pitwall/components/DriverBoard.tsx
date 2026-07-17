@@ -157,33 +157,35 @@ export function DriverBoard({
                         <span className="text-[8px] font-bold text-muted-foreground">{r.code}</span>
                       )}
                     </span>
-                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="flex items-center gap-1.5">
-                        <span className={cn("timing text-sm font-bold leading-none", isSel ? "text-foreground" : "text-foreground/90")}>
-                          {r.code}
-                        </span>
-                        {cid && <TeamLogo constructorId={cid} size="sm" noBackground className="!h-3 w-auto shrink-0" />}
-                        <span className="ml-auto flex items-baseline gap-1.5 leading-none">
-                          {r.lastTime != null && (
-                            <span className={cn("readout text-[11px]", r.isFL ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(r.lastTime)}</span>
-                          )}
-                          {gapText && <span className="timing text-[10px] text-muted-foreground">{gapText}</span>}
-                        </span>
-                      </span>
-                      {blob && (r.tyre || r.speed != null || r.sec || r.pit) && (
-                        <span className="flex items-center gap-2 text-[10px] leading-none text-muted-foreground">
-                          {r.tyre && <TyreBadge compound={r.tyre} age={r.tyl} />}
-                          {r.speed != null && (
-                            <span className="readout text-foreground/80">{Math.round(r.speed)}<span className="text-[8px] text-muted-foreground"> km/h</span></span>
-                          )}
-                          {r.pit && (
-                            <span className="grid h-3 w-3 shrink-0 place-items-center rounded-[3px] border border-foreground/40 text-[7px] font-bold leading-none text-foreground" title="In the pit lane">P</span>
-                          )}
-                          <span className="ml-auto">
-                            <SectorLeds sec={r.sec} pb={r.pb} id={r.id} bestHolder={bestHolder} />
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
+                      {/* Left — identity + inputs */}
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="flex items-center gap-1.5">
+                          <span className={cn("timing text-sm font-bold leading-none", isSel ? "text-foreground" : "text-foreground/90")}>
+                            {r.code}
                           </span>
+                          {cid && <TeamLogo constructorId={cid} size="sm" noBackground className="!h-3 w-auto shrink-0" />}
                         </span>
-                      )}
+                        {blob && (r.tyre || r.speed != null || r.pit) && (
+                          <span className="flex items-center gap-2 text-[10px] leading-none text-muted-foreground">
+                            {r.tyre && <TyreBadge compound={r.tyre} age={r.tyl} />}
+                            {r.speed != null && (
+                              <span className="readout text-foreground/80">{Math.round(r.speed)}<span className="text-[8px] text-muted-foreground"> km/h</span></span>
+                            )}
+                            {r.pit && (
+                              <span className="grid h-3 w-3 shrink-0 place-items-center rounded-[3px] border border-foreground/40 text-[7px] font-bold leading-none text-foreground" title="In the pit lane">P</span>
+                            )}
+                          </span>
+                        )}
+                      </span>
+                      {/* Right — lap time · delta · sectors, stacked */}
+                      <span className="flex shrink-0 flex-col items-end gap-[3px] leading-none">
+                        {r.lastTime != null && (
+                          <span className={cn("readout text-[11px]", r.isFL ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(r.lastTime)}</span>
+                        )}
+                        {gapText && <span className="timing text-[9px] text-muted-foreground">{gapText}</span>}
+                        {blob && r.sec && <SectorLeds sec={r.sec} pb={r.pb} id={r.id} bestHolder={bestHolder} />}
+                      </span>
                     </span>
                   </button>
                 </div>
