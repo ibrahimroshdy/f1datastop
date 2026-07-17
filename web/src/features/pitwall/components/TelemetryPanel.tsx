@@ -72,6 +72,8 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
     }));
 
   const pending = telemetry.filter((t) => t.state && t.state.status !== "done");
+  const lapTimeByCode: Record<string, string | null> = {};
+  for (const r of ready) lapTimeByCode[r.code] = r.blob.lap_time;
 
   const { rows, present, hasDelta, refTime } = useMemo(() => {
     if (!ready.length)
@@ -158,7 +160,7 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
       {/* Per-driver status */}
       <div className="flex flex-wrap gap-2">
         {telemetry.map((t) => (
-          <StatusChip key={t.code} t={t} color={colorOf[t.code] || "#9ca3af"} />
+          <StatusChip key={t.code} t={t} color={colorOf[t.code] || "#9ca3af"} time={lapTimeByCode[t.code]} />
         ))}
       </div>
 
@@ -241,7 +243,7 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
   );
 }
 
-function StatusChip({ t, color }: { t: DriverTelemetry; color: string }) {
+function StatusChip({ t, color, time }: { t: DriverTelemetry; color: string; time?: string | null }) {
   const s = t.state?.status;
   const base = "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-2xs font-semibold";
   if (s === "done") {
@@ -249,6 +251,7 @@ function StatusChip({ t, color }: { t: DriverTelemetry; color: string }) {
       <span className={cn(base, "border-transparent text-foreground")} style={{ backgroundColor: `${color}22` }}>
         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
         {t.code} · L{t.lap}
+        {time && <span className="readout font-normal text-muted-foreground">{time.replace(/^0:/, "")}</span>}
       </span>
     );
   }

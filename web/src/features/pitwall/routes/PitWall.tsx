@@ -61,10 +61,10 @@ export default function PitWall() {
     () => (data.blob ? computeTiming(data.blob, Math.round(replay.frame)).leaderLap : 0),
     [data.blob, replay.frame],
   );
-  // Telemetry lap: a pinned lap (clicked on the Lap Times chart) wins; otherwise it
-  // auto-follows the leader's current lap so the traces track the race as it plays.
-  const pinned = state.lap != null;
-  const effectiveLap = state.lap ?? (leaderLap > 0 ? leaderLap : null);
+  // Telemetry lap: Fastest mode = each driver's fastest lap (lap=null resolves to it);
+  // else a pinned lap (clicked on the Lap Times chart) wins; else auto-follow the leader.
+  const pinned = state.lap != null && !state.fastest;
+  const effectiveLap = state.fastest ? null : state.lap ?? (leaderLap > 0 ? leaderLap : null);
 
   const telemetry = usePitWallTelemetry(
     state.year,
@@ -77,7 +77,7 @@ export default function PitWall() {
   // Honesty flag: the requested lap wasn't exported, so a driver's trace fell back to its
   // fastest lap (per-lap telemetry isn't seeded yet).
   const shownLap = telemetry.find((t) => t.state?.status === "done")?.lap ?? null;
-  const usingFastest = !pinned && shownLap != null && leaderLap > 0 && shownLap !== leaderLap;
+  const usingFastest = !pinned && !state.fastest && shownLap != null && leaderLap > 0 && shownLap !== leaderLap;
   const hasDrivers = state.drivers.length > 0;
   const constructorByDriver = useConstructorByDriver(state.year);
 
@@ -185,9 +185,27 @@ export default function PitWall() {
               ) : (
                 <>
                   <PanelShell title="Telemetry" icon={PANELS.find((p) => p.id === "telemetry")!.icon}>
-                    {/* Auto-follow the leader's lap, or pin a lap from the Lap Times chart */}
-                    <div className="mb-2">
-                      {pinned ? (
+                    {/* Lap mode: Auto-follow · each driver's Fastest lap · or a pinned lap */}
+                    <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                      <div className="flex overflow-hidden rounded-full border border-border text-2xs font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => patch({ fastest: false, lap: null })}
+                          className={cn("px-2.5 py-0.5 transition-colors", !state.fastest && !pinned ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}
+                        >
+                          Auto
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => patch({ fastest: true, lap: null })}
+                          className={cn("flex items-center gap-1 px-2.5 py-0.5 transition-colors", state.fastest ? "bg-fastest-lap text-black" : "text-muted-foreground hover:text-foreground")}
+                        >
+                          <Gauge className="h-3 w-3" /> Fastest lap
+                        </button>
+                      </div>
+                      {state.fastest ? (
+                        <span className="text-2xs text-muted-foreground">each driver's fastest lap · compare</span>
+                      ) : pinned ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-2xs font-semibold text-primary">
                           <Pin className="h-3 w-3" /> Lap {state.lap} pinned
                           <button type="button" onClick={() => patch({ lap: null })} className="ml-0.5 hover:text-foreground" aria-label="Unpin — auto-follow">
@@ -196,10 +214,10 @@ export default function PitWall() {
                         </span>
                       ) : (
                         <span
-                          className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-2xs text-muted-foreground"
+                          className="inline-flex items-center gap-1.5 text-2xs text-muted-foreground"
                           title={usingFastest ? "Per-lap telemetry isn't in the database yet, so each trace shows that driver's fastest lap." : undefined}
                         >
-                          <Radio className="h-3 w-3 text-primary" /> Auto · lap {leaderLap || "—"}
+                          following lap {leaderLap || "—"}
                           {usingFastest && <span className="text-amber-500">· fastest-lap shown (per-lap not synced)</span>}
                         </span>
                       )}

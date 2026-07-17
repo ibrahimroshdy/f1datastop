@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Star } from "lucide-react";
 import TeamLogo from "@/components/common/TeamLogo";
 import { cn } from "@/lib/utils";
 import {
@@ -43,32 +42,18 @@ interface Props {
   onSetRef: (code: string) => void;
 }
 
-/** Sectors as an LED dot + time each — purple = session best, green = personal best. (ms → s) */
+/** Sectors 1·2·3 as an LED gauge — purple = session best, green = personal best, yellow =
+ *  a completed sector, dim = not set yet. Fills left→right in order as the lap runs. */
 function SectorLeds({ sec, pb, id, bestHolder }: { sec?: (number | null)[]; pb?: [number, number, number]; id: string; bestHolder: (string | null)[] }) {
-  if (!sec || sec.every((s) => s == null)) return null;
+  if (!sec) return null;
   return (
-    <span className="flex items-center gap-1.5" title="Sectors 1·2·3">
+    <span className="flex items-center gap-1" title="Sectors 1·2·3">
       {sec.map((s, k) => {
-        let dot = "bg-muted-foreground/25"; // no time set yet
-        let txt = "text-muted-foreground/45";
-        if (id === bestHolder[k]) {
-          dot = "bg-fastest-lap shadow-[0_0_5px] shadow-fastest-lap/70"; // session best (purple)
-          txt = "text-fastest-lap";
-        } else if (s != null && pb && s === pb[k]) {
-          dot = "bg-gain shadow-[0_0_5px] shadow-gain/70"; // personal best (green)
-          txt = "text-gain";
-        } else if (s != null) {
-          dot = "bg-yellow-500 dark:bg-yellow-400"; // standard sector (yellow)
-          txt = "text-yellow-600 dark:text-yellow-400";
-        }
-        return (
-          <span key={k} className="flex items-center gap-0.5">
-            <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />
-            <span className={cn("readout text-[9px] leading-none tabular-nums", txt)}>
-              {s != null ? (s / 1000).toFixed(1) : "—"}
-            </span>
-          </span>
-        );
+        let dot = "bg-muted-foreground/25";
+        if (id === bestHolder[k]) dot = "bg-fastest-lap shadow-[0_0_5px] shadow-fastest-lap/70";
+        else if (s != null && pb && s === pb[k]) dot = "bg-gain shadow-[0_0_5px] shadow-gain/70";
+        else if (s != null) dot = "bg-yellow-500 dark:bg-yellow-400";
+        return <span key={k} className={cn("h-2 w-2 rounded-full transition-colors", dot)} />;
       })}
     </span>
   );
@@ -85,7 +70,6 @@ export function DriverBoard({
   year,
   constructorByDriver,
   onToggle,
-  onSetRef,
 }: Props) {
   const { rows, bestHolder } = useMemo(() => {
     if (blob) {
@@ -150,7 +134,7 @@ export function DriverBoard({
                 transition={{ layout: { type: "spring", stiffness: 600, damping: 44 }, opacity: { duration: 0.15 } }}
                 className={cn(
                   "mb-0.5 rounded-lg border px-2 py-[3px] transition-colors",
-                  isSel ? "border-white/12" : "border-border/60 hover:border-primary/40",
+                  isRef ? "border-primary" : isSel ? "border-white/12" : "border-border/60 hover:border-primary/40",
                   r.pit && "opacity-60",
                 )}
                 style={isSel ? { backgroundColor: `${r.color}1a` } : undefined}
@@ -164,41 +148,45 @@ export function DriverBoard({
                   >
                     <span className="w-4 shrink-0 text-center text-xs font-bold text-muted-foreground">{r.pos ?? "—"}</span>
                     <span
-                      className="grid h-[18px] w-[18px] shrink-0 place-items-center overflow-hidden rounded-full bg-muted"
+                      className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full bg-muted"
                       style={{ boxShadow: `0 0 0 1.5px ${r.color}` }}
                     >
                       {src ? (
                         <img src={src} alt={r.code} className="h-full w-full object-cover object-top" loading="lazy" />
                       ) : (
-                        <span className="text-[7px] font-bold text-muted-foreground">{r.code}</span>
+                        <span className="text-[8px] font-bold text-muted-foreground">{r.code}</span>
                       )}
                     </span>
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <span className={cn("timing text-sm font-bold leading-none", isSel ? "text-foreground" : "text-foreground/90")}>
-                        {r.code}
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="flex items-center gap-1.5">
+                        <span className={cn("timing text-sm font-bold leading-none", isSel ? "text-foreground" : "text-foreground/90")}>
+                          {r.code}
+                        </span>
+                        {cid && <TeamLogo constructorId={cid} size="sm" noBackground className="!h-3 w-auto shrink-0" />}
+                        <span className="ml-auto flex items-baseline gap-1.5 leading-none">
+                          {r.lastTime != null && (
+                            <span className={cn("readout text-[11px]", r.isFL ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(r.lastTime)}</span>
+                          )}
+                          {gapText && <span className="timing text-[10px] text-muted-foreground">{gapText}</span>}
+                        </span>
                       </span>
-                      {cid && <TeamLogo constructorId={cid} size="sm" noBackground className="!h-3 w-auto shrink-0" />}
-                    </span>
-                    <span className="ml-auto flex flex-col items-end leading-none">
-                      {r.lastTime != null && <span className={cn("readout text-[11px]", r.isFL ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(r.lastTime)}</span>}
-                      {gapText && <span className="timing text-[10px] text-muted-foreground">{gapText}</span>}
+                      {blob && (r.tyre || r.speed != null || r.sec || r.pit) && (
+                        <span className="flex items-center gap-2 text-[10px] leading-none text-muted-foreground">
+                          {r.tyre && <TyreBadge compound={r.tyre} age={r.tyl} />}
+                          {r.speed != null && (
+                            <span className="readout text-foreground/80">{Math.round(r.speed)}<span className="text-[8px] text-muted-foreground"> km/h</span></span>
+                          )}
+                          {r.pit && (
+                            <span className="grid h-3 w-3 shrink-0 place-items-center rounded-[3px] border border-foreground/40 text-[7px] font-bold leading-none text-foreground" title="In the pit lane">P</span>
+                          )}
+                          <span className="ml-auto">
+                            <SectorLeds sec={r.sec} pb={r.pb} id={r.id} bestHolder={bestHolder} />
+                          </span>
+                        </span>
+                      )}
                     </span>
                   </button>
-                  {isSel && (
-                    <button type="button" onClick={() => onSetRef(r.code)} title={isRef ? "Reference driver" : "Set as reference"} className="shrink-0">
-                      <Star className={cn("h-4 w-4", isRef ? "fill-primary text-primary" : "text-muted-foreground/40 hover:text-muted-foreground")} />
-                    </button>
-                  )}
                 </div>
-                {blob && (r.tyre || r.speed != null || r.sec) && (
-                  <div className="mt-0 flex items-center gap-2 pl-6 text-[10px] text-muted-foreground">
-                    {r.tyre && <TyreBadge compound={r.tyre} age={r.tyl} />}
-                    {r.speed != null && (
-                      <span className="readout text-foreground/80">{Math.round(r.speed)}<span className="text-[8px] text-muted-foreground"> km/h</span></span>
-                    )}
-                    <span className="ml-auto"><SectorLeds sec={r.sec} pb={r.pb} id={r.id} bestHolder={bestHolder} /></span>
-                  </div>
-                )}
               </motion.div>
             );
           })}

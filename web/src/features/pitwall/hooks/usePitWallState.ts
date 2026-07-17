@@ -20,6 +20,8 @@ export interface PitWallState {
   ref: string | null;
   /** Active lap under telemetry review. */
   lap: number | null;
+  /** Show each driver's fastest lap (comparison mode) instead of auto-following. */
+  fastest: boolean;
   panels: PanelId[];
 }
 
@@ -41,11 +43,12 @@ function parseParams(sp: URLSearchParams): PitWallState {
   const ref = sp.get("ref")?.trim().toUpperCase() || null;
   const lapRaw = Number(sp.get("lap"));
   const lap = lapRaw > 0 ? lapRaw : null;
+  const fastest = sp.get("fastest") === "1";
   const panelsRaw = sp.get("panels");
   const panels = panelsRaw
     ? (panelsRaw.split(",").filter((p) => VALID_PANELS.has(p as PanelId)) as PanelId[])
     : DEFAULT_PANELS;
-  return { year, round, session, drivers, mode, ref, lap, panels };
+  return { year, round, session, drivers, mode, ref, lap, fastest, panels };
 }
 
 function serialize(p: URLSearchParams, s: PitWallState): void {
@@ -60,6 +63,8 @@ function serialize(p: URLSearchParams, s: PitWallState): void {
   else p.delete("ref");
   if (s.lap != null) p.set("lap", String(s.lap));
   else p.delete("lap");
+  if (s.fastest) p.set("fastest", "1");
+  else p.delete("fastest");
   const isDefaultPanels =
     s.panels.length === DEFAULT_PANELS.length && DEFAULT_PANELS.every((d) => s.panels.includes(d));
   if (isDefaultPanels) p.delete("panels");
@@ -99,8 +104,11 @@ export function usePitWallState() {
           const drivers = has
             ? cur.drivers.filter((d) => d !== c)
             : [...cur.drivers, c].slice(0, MAX_DRIVERS);
-          // Keep the reference driver valid; default it to the first selected.
+          // Selecting a driver makes it the reference (no separate star); deselecting the
+          // reference hands it to another selected driver.
           let ref = cur.ref;
+          if (!has && drivers.includes(c)) ref = c;
+          else if (ref === c) ref = drivers[0] ?? null;
           if (ref && !drivers.includes(ref)) ref = drivers[0] ?? null;
           if (!ref && drivers.length) ref = drivers[0];
           serialize(p, { ...cur, drivers, ref });
