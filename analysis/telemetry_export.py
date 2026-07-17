@@ -174,7 +174,9 @@ def _round_has_happened(season, rnd):
             _LATEST_ROUND_CACHE[season] = latest_completed_round(season) or 0
         except Exception:  # noqa: BLE001
             _LATEST_ROUND_CACHE[season] = 99
-    return rnd <= _LATEST_ROUND_CACHE[season]
+    # Allow the current weekend (latest + 1): its practice/quali/sprint sessions can have
+    # run before the race date the "latest completed" check gates on.
+    return rnd <= _LATEST_ROUND_CACHE[season] + 1
 
 
 def _load_session(season, rnd, session_code):

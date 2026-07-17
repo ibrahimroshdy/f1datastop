@@ -212,14 +212,25 @@ def export_circuit(season, rnd, upload=True, force=False):
     if upload:
         circuit_id, circuit_name = _lookup_circuit(season, rnd)
 
-    try:
-        # get_session raises ValueError for a round that doesn't exist (seasons
-        # before 2021 have <24 rounds), and load() fails on sessions FastF1 has no
-        # telemetry for (some 2018-2020 races) — both are clean skips, not crashes.
-        s = fastf1.get_session(season, rnd, "R")
-        s.load(telemetry=True, weather=False, messages=False)
-    except Exception as e:  # noqa: BLE001
-        print(f"  {season} R{rnd}: unavailable ({e}); skip")
+    # The track outline is the same circuit regardless of session, so build it from
+    # whichever session has data — Race first (canonical), then Q / practice / sprint.
+    # This lets geometry export mid-weekend (e.g. after FP1, before the race) instead of
+    # being stuck on "R", which doesn't exist yet. get_session raises for a round that
+    # doesn't exist; load() fails on sessions FastF1 has no telemetry for — both skip.
+    s = None
+    for sess in ("R", "Q", "FP1", "FP2", "FP3", "S", "SQ", "SS"):
+        try:
+            cand = fastf1.get_session(season, rnd, sess)
+            cand.load(telemetry=True, weather=False, messages=False)
+            if cand.laps is not None and len(cand.laps) > 0:
+                s = cand
+                if sess != "R":
+                    print(f"  {season} R{rnd}: building geometry from {sess} (R unavailable)")
+                break
+        except Exception:  # noqa: BLE001
+            continue
+    if s is None:
+        print(f"  {season} R{rnd}: no session with lap data; skip")
         return None
 
     # Fall back to the event's own naming when the warehouse lookup is unavailable
