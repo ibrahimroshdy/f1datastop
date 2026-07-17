@@ -74,6 +74,15 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
   const pending = telemetry.filter((t) => t.state && t.state.status !== "done");
   const lapTimeByCode: Record<string, string | null> = {};
   for (const r of ready) lapTimeByCode[r.code] = r.blob.lap_time;
+  // Teammates share a colour — dash the 2nd (and 3rd) car of a colour so they're
+  // distinguishable. First = solid, second = "5 4", third = "2 3".
+  const dashByCode: Record<string, string | undefined> = {};
+  const seenColor = new Map<string, number>();
+  for (const r of ready) {
+    const i = seenColor.get(r.color) ?? 0;
+    seenColor.set(r.color, i + 1);
+    dashByCode[r.code] = i === 0 ? undefined : i === 1 ? "5 4" : "2 3";
+  }
 
   const { rows, present, hasDelta, refTime } = useMemo(() => {
     if (!ready.length)
@@ -160,7 +169,7 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
       {/* Per-driver status */}
       <div className="flex flex-wrap gap-2">
         {telemetry.map((t) => (
-          <StatusChip key={t.code} t={t} color={colorOf[t.code] || "#9ca3af"} time={lapTimeByCode[t.code]} />
+          <StatusChip key={t.code} t={t} color={colorOf[t.code] || "#9ca3af"} time={lapTimeByCode[t.code]} dash={dashByCode[t.code]} />
         ))}
       </div>
 
@@ -203,6 +212,7 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
             <Trace
               rows={rows}
               ready={ready}
+              dashByCode={dashByCode}
               suffix="delta"
               label="Δ vs ref (s)"
               height={64}
@@ -221,6 +231,7 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
               key={ch.key}
               rows={rows}
               ready={ready}
+              dashByCode={dashByCode}
               suffix={ch.key}
               label={ch.unit ? `${ch.label} (${ch.unit})` : ch.label}
               height={idx === 0 ? 120 : 64}
@@ -243,13 +254,17 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
   );
 }
 
-function StatusChip({ t, color, time }: { t: DriverTelemetry; color: string; time?: string | null }) {
+function StatusChip({ t, color, time, dash }: { t: DriverTelemetry; color: string; time?: string | null; dash?: string }) {
   const s = t.state?.status;
   const base = "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-2xs font-semibold";
   if (s === "done") {
     return (
       <span className={cn(base, "border-transparent text-foreground")} style={{ backgroundColor: `${color}22` }}>
-        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+        {/* swatch matches the trace: solid line, or dashed for a teammate */}
+        <span
+          className="h-[3px] w-3.5 shrink-0 rounded-full"
+          style={dash ? { backgroundImage: `repeating-linear-gradient(90deg, ${color} 0 3px, transparent 3px 6px)` } : { backgroundColor: color }}
+        />
         {t.code} · L{t.lap}
         {time && <span className="readout font-normal text-muted-foreground">{time.replace(/^0:/, "")}</span>}
       </span>
@@ -276,6 +291,7 @@ function StatusChip({ t, color, time }: { t: DriverTelemetry; color: string; tim
 interface TraceProps {
   rows: Record<string, number | null>[];
   ready: Ready[];
+  dashByCode: Record<string, string | undefined>;
   suffix: string;
   label: string;
   height: number;
@@ -293,6 +309,7 @@ interface TraceProps {
 function Trace({
   rows,
   ready,
+  dashByCode,
   suffix,
   label,
   height,
@@ -343,6 +360,7 @@ function Trace({
               dataKey={`${r.code}_${suffix}`}
               stroke={r.color}
               strokeWidth={1.4}
+              strokeDasharray={dashByCode[r.code]}
               dot={false}
               isAnimationActive={false}
               connectNulls
