@@ -29,6 +29,7 @@ import argparse
 import json
 import os
 import sys
+import time
 
 import fastf1
 import numpy as np
@@ -133,6 +134,28 @@ def _lap_already_exported(season, rnd, session_code, driver, lap_number):
         return r.ok and len(r.json()) >= 1
     except Exception:  # noqa: BLE001
         return False
+
+
+def _existing_laps(season, rnd, session_code):
+    """Set of (driver_code, lap_number) already in the index — one fetch, so an
+    --all-laps backfill can skip finished laps in-memory instead of a REST call each."""
+    out = set()
+    try:
+        url, key = _env()
+        r = requests.get(
+            f"{url}/rest/v1/f1_telemetry_index",
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+            params={"season": f"eq.{season}", "round": f"eq.{rnd}",
+                    "session": f"eq.{session_code}",
+                    "select": "driver_code,lap_number", "limit": "5000"},
+            timeout=30,
+        )
+        if r.ok:
+            for row in r.json():
+                out.add((row.get("driver_code"), row.get("lap_number")))
+    except Exception:  # noqa: BLE001
+        pass
+    return out
 
 
 def _load_session(season, rnd, session_code):
@@ -247,6 +270,70 @@ def export_lap(season, rnd, session_code, driver, lap_number, upload=True, force
     return path
 
 
+def export_all_laps(season, rnd, session_code, drivers=None, upload=True, force=False):
+    """Export EVERY lap of EVERY driver (or --drivers subset) — the bulk per-lap
+    backfill. Loads the session ONCE, then loops laps; the driver's fastest lap keeps
+    lap_type='fastest' (so the default view still resolves), the rest are 'all'.
+    Skips laps already indexed (unless --force)."""
+    try:
+        s = _load_session(season, rnd, session_code)
+    except Exception as e:  # noqa: BLE001
+        print(f"  {season} R{rnd} {session_code}: not available ({e}); skip")
+        return 0
+    maps = _driver_maps(s.results)
+    try:
+        picks = drivers or list(s.laps["Driver"].dropna().unique())
+    except Exception:  # noqa: BLE001
+        print(f"  {season} R{rnd} {session_code}: no lap data; skip")
+        return 0
+    existing = _existing_laps(season, rnd, session_code) if (upload and not force) else set()
+    written = 0
+    for drv in picks:
+        dl = s.laps.pick_drivers(drv) if hasattr(s.laps, "pick_drivers") else s.laps[s.laps["Driver"] == drv]
+        if dl is None or len(dl) == 0:
+            continue
+        fastest = dl.pick_fastest()
+        fastest_n = int(fastest["LapNumber"]) if fastest is not None and not pd.isna(fastest.get("LapNumber")) else None
+        n = 0
+        for _, lap in dl.iterlaps():
+            ln = lap.get("LapNumber")
+            if pd.isna(ln):
+                continue
+            ln = int(ln)
+            if (drv, ln) in existing:
+                continue
+            lap_type = "fastest" if ln == fastest_n else "all"
+            blob = _build_blob(season, rnd, session_code, lap, drv, maps, lap_type)
+            if not blob:
+                continue
+            path = f"{season}/{rnd:02d}/{session_code}/{drv}_{ln}.json"
+            try:
+                _emit(blob, path, upload)
+            except Exception as e:  # noqa: BLE001 — one lap failing shouldn't kill the round
+                print(f"    {drv} L{ln}: emit failed after retries ({e}); skipping (resumable)")
+                continue
+            written += 1
+            n += 1
+        print(f"  {drv}: {n} laps exported")
+    print(f"Done. {written} laps exported ({'uploaded' if upload else 'local only'}).")
+    return written
+
+
+def _post_retry(url, *, tries=4, timeout=120, **kw):
+    """POST with retry + backoff — Supabase storage occasionally read-times-out under a
+    bulk backfill; one slow upload shouldn't kill the run."""
+    last = None
+    for i in range(tries):
+        try:
+            return requests.post(url, timeout=timeout, **kw)
+        except requests.exceptions.RequestException as e:
+            last = e
+            wait = min(2 ** i, 15)
+            print(f"    post retry {i + 1}/{tries} after {type(e).__name__}; sleep {wait}s")
+            time.sleep(wait)
+    raise last
+
+
 def _emit(blob, path, upload):
     data = json.dumps(blob, separators=(",", ":")).encode()
     if not upload:
@@ -256,11 +343,11 @@ def _emit(blob, path, upload):
             f.write(data)
         return
     url, key = _env()
-    r = requests.post(
+    r = _post_retry(
         f"{url}/storage/v1/object/{BUCKET}/{path}",
         headers={"Authorization": f"Bearer {key}", "apikey": key,
                  "Content-Type": "application/json", "x-upsert": "true"},
-        data=data, timeout=60,
+        data=data,
     )
     if not r.ok:
         raise RuntimeError(f"upload {path} failed {r.status_code}: {r.text[:300]}")
@@ -272,15 +359,25 @@ def _emit(blob, path, upload):
         "storage_path": path, "public_url": public_url,
         "top_speed": blob["metrics"].get("top_speed"), "source": "fastf1",
     }
-    ir = requests.post(
+    ir = _post_retry(
         f"{url}/rest/v1/f1_telemetry_index?on_conflict=season,round,session,driver_code,lap_number",
         headers={"Authorization": f"Bearer {key}", "apikey": key,
                  "Content-Type": "application/json",
                  "Prefer": "resolution=merge-duplicates,return=minimal"},
-        json=[idx], timeout=30,
+        json=[idx], timeout=60,
     )
     if not ir.ok:
         raise RuntimeError(f"index upsert failed {ir.status_code}: {ir.text[:300]}")
+
+
+def latest_completed_round(year):
+    """Round number of the most recent race that has already happened (mirrors
+    generate.py) — lets the assets cron export the latest round without a hard-coded R."""
+    sched = fastf1.get_event_schedule(year, include_testing=False)
+    now = pd.Timestamp.utcnow().tz_localize(None)
+    col = "Session5DateUtc" if "Session5DateUtc" in sched.columns else "EventDate"
+    past = sched[pd.to_datetime(sched[col]).dt.tz_localize(None) < now]
+    return None if past.empty else int(past.iloc[-1]["RoundNumber"])
 
 
 def main():
@@ -293,6 +390,10 @@ def main():
     ap.add_argument("--lap", type=int,
                     help="export ONE specific lap for a single --drivers code "
                          "(on-demand any-lap path for Pit Wall)")
+    ap.add_argument("--all-laps", action="store_true",
+                    help="export EVERY lap of every driver (bulk per-lap backfill)")
+    ap.add_argument("--latest", action="store_true",
+                    help="resolve --round to the latest completed race (for the assets cron)")
     ap.add_argument("--no-upload", action="store_true")
     ap.add_argument("--force", action="store_true",
                     help="re-export even if already in f1_telemetry_index")
@@ -305,8 +406,13 @@ def main():
     rnd = args.round
     if args.event:
         rnd = int(fastf1.get_event(args.season, args.event)["RoundNumber"])
+    if rnd is None and args.latest:
+        rnd = latest_completed_round(args.season)
+        if rnd is None:
+            print(f"No completed round yet for {args.season}; nothing to export.")
+            return
     if rnd is None:
-        sys.exit("Provide --round or --event")
+        sys.exit("Provide --round, --event, or --latest")
 
     drivers = [d.strip().upper() for d in args.drivers.split(",")] if args.drivers else None
     if args.lap is not None:
@@ -315,6 +421,12 @@ def main():
         print(f"Telemetry export {args.season} R{rnd} {args.session} {drivers[0]} lap {args.lap}")
         export_lap(args.season, rnd, args.session, drivers[0], args.lap,
                    upload=not args.no_upload, force=args.force)
+        return
+    if args.all_laps:
+        print(f"Telemetry export ALL LAPS {args.season} R{rnd} {args.session} "
+              f"({'all drivers' if not drivers else ','.join(drivers)})")
+        export_all_laps(args.season, rnd, args.session, drivers,
+                        upload=not args.no_upload, force=args.force)
         return
     print(f"Telemetry export {args.season} R{rnd} {args.session} "
           f"({'all drivers' if not drivers else ','.join(drivers)})")
