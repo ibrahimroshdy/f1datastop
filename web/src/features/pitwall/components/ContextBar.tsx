@@ -18,7 +18,10 @@ interface Props {
 
 type ScheduleRace = RaceContext & { date?: string };
 
-const SESSION_NAME: Record<string, string> = { R: "Race", Q: "Qualifying", S: "Sprint" };
+const SESSION_NAME: Record<string, string> = {
+  R: "Race", Q: "Qualifying", S: "Sprint", SQ: "Sprint Qualifying", SS: "Sprint Shootout",
+  FP1: "Practice 1", FP2: "Practice 2", FP3: "Practice 3",
+};
 const cleanName = (n: string) => n.replace(/grand prix/i, "GP").replace(/[\u{1F1E0}-\u{1F1FF}]{2}/gu, "").trim();
 const isSprint = (r: { Sprint?: unknown; SprintQualifying?: unknown }) => !!(r.Sprint || r.SprintQualifying);
 
@@ -93,16 +96,17 @@ export function ContextBar({ state, patch }: Props) {
           </Select>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <label className="instrument-label mb-1 block">Session</label>
-          <div className="flex overflow-hidden rounded-lg border border-border">
+          <div className="flex max-w-full overflow-x-auto rounded-lg border border-border">
             {sessions.map((s) => (
               <button
                 key={s.code}
                 type="button"
+                title={s.label}
                 onClick={() => patch({ session: s.code, lap: null })}
                 className={cn(
-                  "min-h-9 px-3 text-xs font-semibold transition-colors",
+                  "min-h-9 shrink-0 border-r border-border/60 px-2.5 text-xs font-semibold transition-colors last:border-r-0",
                   state.session === s.code ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >

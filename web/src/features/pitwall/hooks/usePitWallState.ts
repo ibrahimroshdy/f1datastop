@@ -23,7 +23,7 @@ export interface PitWallState {
   panels: PanelId[];
 }
 
-const VALID_SESSIONS: SessionCode[] = ["R", "Q", "S"];
+const VALID_SESSIONS: SessionCode[] = ["FP1", "FP2", "FP3", "Q", "SQ", "SS", "S", "R"];
 const VALID_PANELS = new Set<PanelId>(PANELS.map((p) => p.id));
 
 function parseParams(sp: URLSearchParams): PitWallState {

@@ -1,0 +1,32 @@
+name: F1 latest-race charts
+
+# Race weekends (Fri/Sat/Sun, every 3h): regenerate the analysis charts/posters for the
+# latest race, plus the fixed teammate head-to-heads. Replaces Modal's generate_latest.
+on:
+  schedule:
+    - cron: "30 */3 * * 5,6,0"
+  workflow_dispatch: {}
+
+concurrency:
+  group: f1-charts
+  cancel-in-progress: true
+
+jobs:
+  charts:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      FASTF1_CACHE: ${{ github.workspace }}/analysis/.fastf1cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/f1-setup
+      - name: Latest-race boards + teammate compares
+        working-directory: analysis
+        # TEAMMATE_PAIRS are the current-season lineups (mirror modal_app.py); update per season.
+        run: |
+          set -u
+          python generate.py --latest --session R --format all
+          for pair in "RUS,ANT" "NOR,PIA" "LEC,HAM"; do
+            python generate.py --latest --session R --only driver_compare --drivers "$pair" --format all || true
+          done

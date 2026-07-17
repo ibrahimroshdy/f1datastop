@@ -1,0 +1,47 @@
+name: F1 refresh current-season assets
+
+# Every 6h: keep the current season's durable derived assets filled — fastest-lap
+# telemetry (all rounds), circuit geometry, race replays, PLUS per-lap telemetry for the
+# LATEST round only (all-laps over every round would blow the minute budget; the latest
+# round is the only new one, and it self-skips already-exported laps). Older seasons'
+# per-lap backfill is run locally. Replaces Modal's refresh_current_assets.
+on:
+  schedule:
+    - cron: "30 */6 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: f1-assets
+  cancel-in-progress: true
+
+jobs:
+  assets:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      FASTF1_CACHE: ${{ github.workspace }}/analysis/.fastf1cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/f1-setup
+      - name: Telemetry (fastest laps) · geometry · replays — current season
+        working-directory: analysis
+        run: |
+          set -u
+          Y="$(date -u +%Y)"
+          # All session types. FP1/2/3=practice, Q=quali, SQ=sprint-quali (2024+),
+          # SS=sprint-shootout (2023), S=sprint, R=race. Each exporter self-skips finished
+          # sessions and no-ops on ones a weekend doesn't have — cheap either way.
+          SESSIONS="FP1 FP2 FP3 Q SQ SS S R"
+          for sess in $SESSIONS; do
+            echo "== fastest-lap telemetry $sess =="
+            for r in $(seq 1 24); do python telemetry_export.py --season "$Y" --round "$r" --session "$sess" || true; done
+          done
+          echo "== circuit geometry (session-agnostic) =="
+          for r in $(seq 1 24); do python circuit_geometry_export.py --season "$Y" --round "$r" || true; done
+          for sess in $SESSIONS; do
+            echo "== race replays $sess =="
+            for r in $(seq 1 24); do python race_replay_export.py --season "$Y" --round "$r" --session "$sess" || true; done
+          done
+          echo "== per-lap telemetry (latest round, all sessions; self-skips done laps) =="
+          for sess in $SESSIONS; do python telemetry_export.py --season "$Y" --all-laps --latest --session "$sess" || true; done

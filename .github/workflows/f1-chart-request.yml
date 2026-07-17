@@ -1,0 +1,27 @@
+name: Deep Dive chart request
+
+# Fired by a Supabase DB webhook (repository_dispatch) when a row is inserted into
+# f1_chart_requests, so a custom chart is generated per request. workflow_dispatch lets
+# you drain the queue manually. Replaces Modal's process_chart_requests minute-cron.
+on:
+  repository_dispatch:
+    types: [chart_request]
+  workflow_dispatch: {}
+
+concurrency:
+  group: f1-chart-requests
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      FASTF1_CACHE: ${{ github.workspace }}/analysis/.fastf1cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/f1-setup
+      - name: Drain pending chart requests
+        working-directory: analysis
+        run: python process_chart_requests.py

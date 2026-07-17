@@ -1,0 +1,27 @@
+name: F1 reconcile current season
+
+# Every 2h: ingest.py reconciles the current season into the warehouse. It skips rounds
+# already ingested, so this whole-season pass only loads FastF1 for new rounds — cheap and
+# self-healing. Replaces Modal's backfill_current (6h) cron.
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: f1-reconcile
+  cancel-in-progress: true
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      FASTF1_CACHE: ${{ github.workspace }}/analysis/.fastf1cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/f1-setup
+      - name: Ingest current season (skips finished rounds)
+        working-directory: analysis
+        run: python ingest.py --season "$(date -u +%Y)"

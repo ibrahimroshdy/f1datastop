@@ -158,6 +158,25 @@ def _existing_laps(season, rnd, session_code):
     return out
 
 
+_LATEST_ROUND_CACHE = {}
+
+
+def _round_has_happened(season, rnd):
+    """Cheap future-round guard — skip races that haven't run yet BEFORE the costly
+    FastF1 load (a bulk 24→1 backfill otherwise wastes 8 failed fetches per future round).
+    Past seasons are fully complete; only the current/future season is gated, once per
+    season (cached)."""
+    from datetime import datetime, timezone
+    if season < datetime.now(timezone.utc).year:
+        return True
+    if season not in _LATEST_ROUND_CACHE:
+        try:
+            _LATEST_ROUND_CACHE[season] = latest_completed_round(season) or 0
+        except Exception:  # noqa: BLE001
+            _LATEST_ROUND_CACHE[season] = 99
+    return rnd <= _LATEST_ROUND_CACHE[season]
+
+
 def _load_session(season, rnd, session_code):
     s = fastf1.get_session(season, rnd, session_code)
     s.load(telemetry=True, weather=False, messages=False)
@@ -201,6 +220,9 @@ def _build_blob(season, rnd, session_code, lap, drv, maps, lap_type="fastest"):
 
 
 def export_session(season, rnd, session_code, drivers=None, upload=True, force=False):
+    if not force and not _round_has_happened(season, rnd):
+        print(f"  {season} R{rnd} {session_code}: round hasn't run yet; skip")
+        return []
     if upload and not force and _already_exported(season, rnd, session_code):
         print(f"  {season} R{rnd} {session_code}: already exported, skip (--force to redo)")
         return []
@@ -275,6 +297,9 @@ def export_all_laps(season, rnd, session_code, drivers=None, upload=True, force=
     backfill. Loads the session ONCE, then loops laps; the driver's fastest lap keeps
     lap_type='fastest' (so the default view still resolves), the rest are 'all'.
     Skips laps already indexed (unless --force)."""
+    if not force and not _round_has_happened(season, rnd):
+        print(f"  {season} R{rnd} {session_code}: round hasn't run yet; skip")
+        return 0
     try:
         s = _load_session(season, rnd, session_code)
     except Exception as e:  # noqa: BLE001

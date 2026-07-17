@@ -1,0 +1,27 @@
+name: Pit Wall telemetry request
+
+# Fired by a Supabase DB webhook (repository_dispatch) when a row is inserted into
+# f1_telemetry_requests, so one driver+lap telemetry blob is exported per request.
+# workflow_dispatch drains the queue manually. Replaces Modal's process_telemetry_requests.
+on:
+  repository_dispatch:
+    types: [telemetry_request]
+  workflow_dispatch: {}
+
+concurrency:
+  group: f1-telemetry-requests
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      FASTF1_CACHE: ${{ github.workspace }}/analysis/.fastf1cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/f1-setup
+      - name: Drain pending telemetry requests
+        working-directory: analysis
+        run: python process_telemetry_requests.py
