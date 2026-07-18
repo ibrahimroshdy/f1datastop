@@ -17,6 +17,8 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Livetiming CDN 403s Azure ranges (all GitHub runners); route via allow-listed proxy.
+      F1_LIVETIMING_PROXY: ${{ secrets.F1_LIVETIMING_PROXY }}
       FASTF1_CACHE: ${{ github.workspace }}/analysis/.fastf1cache
     steps:
       - uses: actions/checkout@v4

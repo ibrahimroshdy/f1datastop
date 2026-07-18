@@ -20,6 +20,7 @@ import argparse
 import os
 
 import backfill as bf   # supa_upsert, supa_select, _env, to_int, _fmt_laptime, race_id_for
+import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import ff1_ingest as enrich
 
 # FastF1 schedule session-name -> canonical code (fixes the dup/naming bug)

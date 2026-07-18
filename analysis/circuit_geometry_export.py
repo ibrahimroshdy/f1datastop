@@ -38,6 +38,8 @@ import sys
 import fastf1
 import numpy as np
 import pandas as pd
+
+import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import requests
 
 OUTLINE_POINTS = 360   # track-outline samples after distance-resampling

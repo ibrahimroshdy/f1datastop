@@ -25,6 +25,8 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Livetiming CDN 403s Azure ranges (all GitHub runners); route via allow-listed proxy.
+      F1_LIVETIMING_PROXY: ${{ secrets.F1_LIVETIMING_PROXY }}
       FASTF1_CACHE: ${{ github.workspace }}/analysis/.fastf1cache
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +54,20 @@ jobs:
             fi
           }
 
+          # Only NEW sessions. Everything before this window is already in the warehouse
+          # (historical backfill is run locally), so looping every round 1..24 just burned
+          # ~400 subprocesses re-checking races that finished months ago.
+          #
+          # latest_completed_round() returns the last round whose RACE is done, so during a
+          # live weekend it still points at the previous round — hence R and R+1:
+          #   R   = the round that just finished (catches late-published data)
+          #   R+1 = the weekend currently running (its FP/Q land before the race completes)
+          R="$(python -c "import backfill as bf; print(bf.latest_completed_round($Y) or 0)")"
+          ROUNDS=""
+          [ "$R" -ge 1 ] && ROUNDS="$R"
+          ROUNDS="$ROUNDS $((R + 1))"
+          echo "latest completed round: $R  ->  processing rounds:$ROUNDS"
+
           # All session types. FP1/2/3=practice, Q=quali, SQ=sprint-quali (2024+),
           # SS=sprint-shootout (2023), S=sprint, R=race. Each exporter self-skips finished
           # sessions and no-ops on ones a weekend doesn't have — cheap either way.
@@ -59,15 +75,15 @@ jobs:
 
           for sess in $SESSIONS; do
             echo "== fastest-lap telemetry $sess =="
-            for r in $(seq 1 24); do try python telemetry_export.py --season "$Y" --round "$r" --session "$sess"; done
+            for r in $ROUNDS; do try python telemetry_export.py --season "$Y" --round "$r" --session "$sess"; done
           done
 
           echo "== circuit geometry (session-agnostic) =="
-          for r in $(seq 1 24); do try python circuit_geometry_export.py --season "$Y" --round "$r"; done
+          for r in $ROUNDS; do try python circuit_geometry_export.py --season "$Y" --round "$r"; done
 
           for sess in $SESSIONS; do
             echo "== race replays $sess =="
-            for r in $(seq 1 24); do try python race_replay_export.py --season "$Y" --round "$r" --session "$sess"; done
+            for r in $ROUNDS; do try python race_replay_export.py --season "$Y" --round "$r" --session "$sess"; done
           done
 
           echo "== per-lap telemetry (latest round, all sessions; self-skips done laps) =="

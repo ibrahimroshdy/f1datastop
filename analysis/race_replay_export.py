@@ -37,6 +37,8 @@ import unicodedata
 import fastf1
 import numpy as np
 import pandas as pd
+
+import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import requests
 
 STEP_S = 1.5       # target seconds between shared time-grid samples

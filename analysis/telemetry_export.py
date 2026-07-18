@@ -34,6 +34,8 @@ import time
 import fastf1
 import numpy as np
 import pandas as pd
+
+import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import requests
 
 SAMPLES = 400  # points per lap after distance-resampling (~60-120KB JSON/lap)

@@ -20,6 +20,8 @@ import traceback
 import fastf1
 import matplotlib
 import numpy as np
+
+import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import pandas as pd
 import requests
 
