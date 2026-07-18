@@ -55,9 +55,12 @@ export function usePitWallData(
     staleTime: 60 * 60 * 1000,
   });
 
+  // Pit Wall is the one consumer that wants EVERY exported lap — any-lap scrubbing
+  // depends on it. The scope is part of the query key so it can't share a cache entry
+  // with the fastest-only views.
   const telemetryIndex = useQuery({
-    queryKey: ["telemetryIndex", year, round, session],
-    queryFn: () => getTelemetryIndex(year, round as number, session),
+    queryKey: ["telemetryIndex", year, round, session, "all"],
+    queryFn: () => getTelemetryIndex(year, round as number, session, "all"),
     enabled,
     staleTime: 60 * 60 * 1000,
   });

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import * as f1Service from "@/services/f1Service";
+import { getQualifyingLapsFromDb } from "@/services/f1Warehouse";
 import { f1Keys } from "@/lib/f1/queryKeys";
 import { defaultRetryConfig } from "./retryConfig";
 
@@ -17,6 +18,17 @@ export const useRaceQualifying = (year: number, round: string) => {
   return useQuery({
     queryKey: f1Keys.qualifying(year, round),
     queryFn: () => f1Service.getRaceQualifying(year, round),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    enabled: !!year && !!round,
+    ...defaultRetryConfig,
+  });
+};
+
+/** Laps completed per driver in qualifying, keyed by driverId. DB-only, no proxy fallback. */
+export const useQualifyingLaps = (year: number, round: string) => {
+  return useQuery({
+    queryKey: f1Keys.qualifyingLaps(year, round),
+    queryFn: () => getQualifyingLapsFromDb(year, round),
     staleTime: 1000 * 60 * 60, // 1 hour
     enabled: !!year && !!round,
     ...defaultRetryConfig,

@@ -37,6 +37,9 @@ const AnalysisCharts = lazy(() => import("@/components/race-analysis/AnalysisCha
 const MuiLapTimeChart = lazy(() => import("@/components/analytics/MuiLapTimeChart"));
 const MuiPositionChart = lazy(() => import("@/components/analytics/MuiPositionChart"));
 const MuiQualifyingChart = lazy(() => import("@/components/analytics/MuiQualifyingChart"));
+const QualifyingClassification = lazy(
+  () => import("@/components/race-analysis/QualifyingClassification"),
+);
 const MuiSankeyChart = lazy(() => import("@/components/analytics/MuiSankeyChart"));
 const MuiPitStopTable = lazy(() => import("@/components/analytics/MuiPitStopTable"));
 const WeatherAnalysis = lazy(() => import("@/components/analytics/WeatherAnalysis"));
@@ -253,7 +256,22 @@ export function RaceAnalysisTabs({
           </F1Card>
         </TabsContent>
 
-        <TabsContent value="qualifying" className="mt-4">
+        <TabsContent value="qualifying" className="mt-4 space-y-4">
+          <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
+            <F1CardHeader className="px-4 pb-2 pt-3">
+              <div className="flex items-center gap-2">
+                <Flag className="h-4 w-4 text-primary" />
+                <F1CardTitle className="text-base">Qualifying Classification</F1CardTitle>
+              </div>
+              <F1CardDescription className="text-xs">
+                Full session result — Q1, Q2 and Q3 times with laps completed
+              </F1CardDescription>
+            </F1CardHeader>
+            <F1CardContent className="px-4 pb-4">
+              <QualifyingClassification year={selectedYear} round={selectedRace} />
+            </F1CardContent>
+          </F1Card>
+
           <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
             <F1CardHeader className="px-4 pb-2 pt-3">
               <div className="flex items-center gap-2">

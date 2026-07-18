@@ -277,6 +277,25 @@ export async function getQualifyingFromDb(
 }
 
 /**
+ * Laps completed per driver in qualifying, keyed by driverId.
+ *
+ * Ergast's qualifying payload has no lap count, so this is a DB-only extra — there's no
+ * proxy fallback to degrade to. Returns {} (not null) on a miss so the caller can tell
+ * "no lap data" apart from "still loading" and render the column as "—".
+ */
+export async function getQualifyingLapsFromDb(
+  year: number,
+  round: number | string,
+): Promise<Record<string, number>> {
+  if (!canServe(year)) return {};
+  const laps = await rpc<Record<string, number>>("get_qualifying_laps", {
+    p_season: year,
+    p_round: toRound(round),
+  });
+  return laps ?? {};
+}
+
+/**
  * Sprint results for one round. Shape matches getSprintResults().data:
  *   RaceTable.Races[0]  (object with .SprintResults[]).
  */

@@ -32,6 +32,8 @@ export const f1Keys = {
   schedule: (year?: number) => [...f1Root, "schedule", year] as const,
   raceResults: (year: number, round: string) => [...f1Root, "race", year, round, "results"] as const,
   qualifying: (year: number, round: string) => [...f1Root, "race", year, round, "qualifying"] as const,
+  qualifyingLaps: (year: number, round: string) =>
+    [...f1Root, "race", year, round, "qualifyingLaps"] as const,
   lapTimes: (year: number, round: string, scope: "firstDriverOnly" | "allDrivers") =>
     [...f1Root, "race", year, round, "lapTimes", scope] as const,
   pitStops: (year: number, round: string) => [...f1Root, "race", year, round, "pitStops"] as const,

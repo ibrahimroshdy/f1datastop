@@ -6,11 +6,18 @@ import {
   type TelemetryIndexRow,
 } from "@/services/telemetryService";
 
-/** Discover which driver laps have telemetry for a session. */
-export function useTelemetryIndex(year?: number, round?: number, session = "R") {
+/** Discover which driver laps have telemetry for a session.
+ *  Defaults to one row per driver (their fastest lap) — the Race Analysis telemetry
+ *  dashboard compares fastest laps, and an all-laps index renders a column set per lap. */
+export function useTelemetryIndex(
+  year?: number,
+  round?: number,
+  session = "R",
+  scope: "fastest" | "all" = "fastest",
+) {
   return useQuery({
-    queryKey: ["telemetryIndex", year, round, session],
-    queryFn: () => getTelemetryIndex(year as number, round as number, session),
+    queryKey: ["telemetryIndex", year, round, session, scope],
+    queryFn: () => getTelemetryIndex(year as number, round as number, session, scope),
     enabled: !!year && !!round,
     staleTime: 60 * 60 * 1000,
   });

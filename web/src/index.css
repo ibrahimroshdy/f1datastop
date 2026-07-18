@@ -914,6 +914,12 @@
     @apply font-mono tabular-nums tracking-wide;
   }
 
+  /* Session-best time. Purple is the F1 timing-screen convention for "fastest of anyone",
+     so it reads instantly to anyone who has watched a session. */
+  .timing-best {
+    color: hsl(280 78% 62%);
+  }
+
   .body-sm {
     @apply text-sm leading-relaxed text-muted-foreground;
   }

@@ -50,17 +50,41 @@ async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   return (data ?? []) as T;
 }
 
-/** Available telemetry laps for a session (drivers + Storage URLs). */
+/** Available telemetry laps for a session (drivers + Storage URLs).
+ *
+ *  `scope` decides how much of the index you get:
+ *    "fastest" (default) — one row per driver, their fastest lap. What every
+ *      fastest-lap comparison view wants.
+ *    "all" — every exported lap. Only Pit Wall needs this, for any-lap scrubbing.
+ *
+ *  This used to be unfiltered, which was fine while the index only ever held fastest
+ *  laps. Once telemetry_export.py --all-laps ran, a single practice session went from
+ *  22 rows to 486, and every consumer that assumed one-lap-per-driver started rendering
+ *  a column set per lap. Defaulting to "fastest" restores that assumption; Pit Wall
+ *  opts out explicitly.
+ */
 export async function getTelemetryIndex(
   year: number,
   round: number,
   session = "R",
+  scope: "fastest" | "all" = "fastest",
 ): Promise<TelemetryIndexRow[]> {
-  return rpc<TelemetryIndexRow[]>("get_telemetry_index", {
+  const rows = await rpc<TelemetryIndexRow[]>("get_telemetry_index", {
     p_season: year,
     p_round: round,
     p_session: session,
   });
+  if (scope === "all") return rows;
+  // Keep one row per driver. Prefer the row explicitly marked fastest; fall back to the
+  // first seen so a driver never vanishes if lap_type is missing on older exports.
+  const byDriver = new Map<string, TelemetryIndexRow>();
+  for (const r of rows) {
+    const cur = byDriver.get(r.driver_code);
+    if (!cur || (r.lap_type === "fastest" && cur.lap_type !== "fastest")) {
+      byDriver.set(r.driver_code, r);
+    }
+  }
+  return [...byDriver.values()];
 }
 
 /** Fetch one telemetry blob from public Storage. */
