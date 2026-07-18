@@ -1343,25 +1343,37 @@ def place_headshot_column(ax, ends):
         headshot_label(ax, xmax, y, drv, c, url)
 
 
+# FastF1's four speed measurements. Only SpeedST is an actual speed trap — the other
+# three are speeds recorded as the car crosses a timing line, so what they represent
+# depends entirely on where that circuit's lines sit. Spa is the clearest example: the
+# S1 line is at the end of the Kemmel straight (~318 km/h, near-duplicating the speed
+# trap on the same straight) while the S2 and finish lines read ~215 km/h because they
+# sit in slow parts of the lap. Labelling those "Inter 1 / Inter 2 / Finish" under a
+# "Speed Trap Matrix" heading implied four comparable top speeds, which they are not.
 SPEED_TRAPS = (
-    ("SpeedI1", "Inter 1"),
-    ("SpeedI2", "Inter 2"),
-    ("SpeedFL", "Finish"),
+    ("SpeedI1", "S1 Line"),
+    ("SpeedI2", "S2 Line"),
+    ("SpeedFL", "Finish Line"),
     ("SpeedST", "Speed Trap"),
 )
 
 
 def chart_top_speed(session, meta):
-    """Speed-trap matrix — every driver's best at each measurement point, all laps.
+    """Every driver's best speed at each of the session's four timing lines, all laps.
 
     The old version read one number: the max speed on each driver's single fastest lap.
     That threw away the rest of the session and answered the wrong question — a driver's
     true top speed usually comes on a tow or a different stint, not their best lap. This
-    takes the maximum across ALL laps at each of FastF1's four trap points, which is what
-    timing screens actually show.
+    takes the maximum across ALL laps at each measurement point, which is what timing
+    screens actually show.
 
-    Cell shading is scaled within each column (slowest → fastest), so columns stay
-    comparable even though inter-1 and the speed trap live in different speed ranges.
+    Only the speed-trap column is a top speed by construction; the other three are
+    "how fast were you crossing this line", and the lines move from circuit to circuit
+    (see SPEED_TRAPS). Hence the column labels name the lines rather than implying four
+    equivalent traps, and the ordering keys off the real speed trap.
+
+    Cell shading is scaled within each column (slowest → fastest), so a column sitting in
+    a slow part of the lap still shows who was quickest through it.
     """
     laps = session.laps
     rows = []
@@ -1401,8 +1413,14 @@ def chart_top_speed(session, meta):
         col_min.append(min(vv) if vv else float("nan"))
 
     fig, ax = editorial_fig(left=0.10, right=0.90)
-    title_block(fig, "Telemetry", "Speed Trap Matrix",
-                "Best speed at each measurement point — across every lap of the session")
+    # This is the only chart that mounts its tick labels on TOP of the axes, so they land
+    # in the title block's airspace and crowd the subtitle. Drop the axes ceiling to open
+    # a gap. Fraction of the axes height, not an absolute figure offset, so it holds for
+    # the taller instagram/story canvases too.
+    _p = ax.get_position()
+    ax.set_position([_p.x0, _p.y0, _p.width, _p.height * 0.955])
+    title_block(fig, "Telemetry", "Timing Line Speeds",
+                "Best across every lap at each timing line — line placement varies by circuit")
 
     for i, r in enumerate(rows):
         y = len(rows) - 1 - i
@@ -1429,6 +1447,7 @@ def chart_top_speed(session, meta):
     ax.set_xticklabels([lbl for _, lbl in SPEED_TRAPS],
                        fontproperties=FP_BODY_B, color=INK, fontsize=10)
     ax.xaxis.set_ticks_position("top")
+    ax.tick_params(axis="x", pad=8)
     ax.set_yticks(range(len(rows)))
     ax.set_yticklabels([r["code"] for r in reversed(rows)],
                        fontproperties=FP_BODY_B, color=INK, fontsize=10)
@@ -3807,7 +3826,7 @@ CHARTS = [
     ("race_strategy", "Race Strategy Board", "Tyre stints, pit windows and track weather", chart_race_strategy),
     ("teammate_pace", "Teammate Distribution", "Teammate lap-time spread, side by side", chart_teammate_pace),
     ("teammate_laps", "Teammate Duel · Lap by Lap", "Each teammate's lap times through the race", chart_teammate_laps),
-    ("top_speed", "Speed Trap Matrix", "Best speed at each trap point, across every lap", chart_top_speed),
+    ("top_speed", "Timing Line Speeds", "Best speed at each timing line, across every lap", chart_top_speed),
     ("driver_radar", "Driver Radar", "Performance profile of the top drivers", chart_driver_radar),
     ("track_dominance", "Track Dominance", "Where each driver is fastest, layered per driver", chart_dominance_stack),
     ("dominance_flat", "Track Dominance Map", "Fastest driver at each point of the lap", chart_dominance_flat),
