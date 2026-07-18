@@ -4103,8 +4103,16 @@ def main():
                     print(f"  - {fmt}/{ctype}: uploaded")
                 ok += 1
             except Exception as e:  # noqa: BLE001
-                print(f"  ! {fmt}/{ctype} failed: {e}")
-                traceback.print_exc()
+                # A session that hasn't run yet (or has no published timing) still loads,
+                # it just has no laps — so every lap-dependent chart raises
+                # DataNotLoadedError. That's an expected "nothing to draw", not a defect.
+                # Report it in one line; a traceback per chart per format buries the real
+                # errors under a hundred identical stacks.
+                if type(e).__name__ == "DataNotLoadedError":
+                    print(f"  - {fmt}/{ctype}: no lap data, skipped")
+                else:
+                    print(f"  ! {fmt}/{ctype} failed: {e}")
+                    traceback.print_exc()
 
     print(f"Done. {ok} charts generated into out/{args.season}/{rnd:02d}-{slug}/{args.session}/")
     return 0
