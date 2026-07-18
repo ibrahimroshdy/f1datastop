@@ -37,7 +37,10 @@ export async function findLapIndexRow(
   driver: string,
   lap: number,
 ): Promise<TelemetryIndexRow | null> {
-  const rows = await getTelemetryIndex(season, round, session);
+  // Must be the full index: this answers "does lap N already exist", and the caller
+  // queues an export when the answer is no. A fastest-only index reports every other
+  // lap as missing and re-queues work that is already on disk.
+  const rows = await getTelemetryIndex(season, round, session, "all");
   const code = codeOf(driver);
   return rows.find((r) => r.driver_code === code && r.lap_number === lap) ?? null;
 }
