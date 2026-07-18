@@ -3642,7 +3642,94 @@ def chart_circuit_history(session, meta):
     return fig_png(fig)
 
 
+SECTOR_COLORS = ("#38BDF8", "#FBBF24", "#F472B6")  # S1 sky · S2 amber · S3 pink
+
+
+def chart_sector_pace(session, meta):
+    """Where the lap is won and lost — each driver's fastest lap split into sectors.
+
+    The bar stacks *time lost* against the session's best in each sector, so its length
+    is the gap to a theoretical perfect lap and each segment shows which sector cost it.
+    Plotting raw sector times instead would make every bar near-identical (a ~90 s lap
+    with ~0.3 s spreads), which is why deltas are used. Actual lap times are annotated so
+    the absolute numbers are still there.
+    """
+    laps = session.laps
+    rows = []
+    for drv in session.drivers:
+        dl = laps[laps["DriverNumber"] == drv]
+        if dl.empty:
+            continue
+        code = dl["Driver"].iloc[0]
+        if DRIVERS and code not in DRIVERS:
+            continue
+        lap = dl.pick_fastest()
+        if lap is None or (hasattr(lap, "empty") and lap.empty):
+            continue
+        try:
+            total = float(lap["LapTime"].total_seconds())
+            secs = [float(lap[k].total_seconds()) for k in ("Sector1Time", "Sector2Time", "Sector3Time")]
+        except Exception:
+            continue
+        if any(pd.isna(v) for v in [total, *secs]):
+            continue
+        rows.append({"code": code, "total": total, "secs": secs})
+
+    if len(rows) < 2:
+        return None
+
+    rows.sort(key=lambda r: r["total"])
+    best_sec = [min(r["secs"][i] for r in rows) for i in range(3)]
+    best_total = rows[0]["total"]
+
+    fig, ax = editorial_fig(left=0.10, right=0.88)
+    title_block(
+        fig, "Session pace", "Sector Pace",
+        "Time lost per sector vs the session's best — bar length is the gap to a perfect lap",
+    )
+
+    for i, r in enumerate(rows):
+        y = len(rows) - 1 - i  # fastest at the top
+        left = 0.0
+        for s in range(3):
+            d = max(0.0, r["secs"][s] - best_sec[s])
+            if d > 0:
+                ax.barh(y, d, left=left, color=SECTOR_COLORS[s], height=0.62,
+                        zorder=3, edgecolor=PAPER, linewidth=0.8)
+            else:
+                # Holds the session best here — mark it rather than drawing a zero bar.
+                ax.plot(0.004, y, marker="o", markersize=4, color=PURPLE, zorder=4)
+            left += d
+        gap = r["total"] - best_total
+        label = fmt_laptime(r["total"]) + ("" if i == 0 else f"   +{gap:.3f}")
+        ax.text(left + 0.012, y, label, va="center", ha="left", fontsize=9,
+                fontproperties=FP_BODY_B, color=PURPLE if i == 0 else INK)
+
+    ax.set_yticks(range(len(rows)))
+    ax.set_yticklabels([r["code"] for r in reversed(rows)],
+                       fontproperties=FP_BODY_B, color=INK, fontsize=10)
+    ax.set_ylim(-0.8, len(rows) - 0.2)
+    widest = max(sum(max(0.0, r["secs"][s] - best_sec[s]) for s in range(3)) for r in rows)
+    ax.set_xlim(0, max(widest, 0.05) * 1.42)  # headroom for the lap-time labels
+    ax.grid(axis="y", linewidth=0)
+    ax.grid(axis="x", color=GRID, linewidth=1.0)
+    clean_axes(ax, "Time lost vs best sector (s)", None)
+
+    handles = [plt.Rectangle((0, 0), 1, 1, color=SECTOR_COLORS[s]) for s in range(3)]
+    # Upper right: bars are sorted fastest-first so the top rows are shortest, leaving
+    # that corner clear. "lower right" collides with the slowest drivers' labels.
+    leg = ax.legend(handles, ["Sector 1", "Sector 2", "Sector 3"],
+                    loc="upper right", frameon=False, fontsize=9, ncol=3)
+    for t in leg.get_texts():
+        t.set_color(INK)
+        t.set_fontproperties(FP_BODY_B)
+
+    footer(fig, meta)
+    return fig_png(fig)
+
+
 CHARTS = [
+    ("sector_pace", "Sector Pace", "Each driver's fastest lap split by sector — where the time goes", chart_sector_pace),
     ("race_analysis", "Race Analysis", "The whole race story — strategy, pits, passes and pace on one board", chart_race_analysis),
     ("championship", "Championship", "The title fight so far — standings and points progression", chart_championship),
     ("constructors", "Constructor Season", "The team battle — standings and which driver is scoring", chart_constructors),
@@ -3668,6 +3755,37 @@ CHARTS = [
     ("tyre_strategy", "Tyre Stints", "Compound usage per driver", chart_tyre_strategy),
     ("team_pace", "Gap to Fastest Team", "Median race-pace delta per team", chart_team_pace),
 ]
+
+
+# ── which charts belong to which session ────────────────────────────────────
+# Practice and qualifying have no race results, no grid flow and no pit strategy, so
+# generating the full board there produced mostly empty or meaningless charts. Each
+# session type gets the set that's actually worth looking at.
+#
+# Only applied to BULK generation. An explicit `--only` (how Deep Dive requests arrive)
+# always wins, so a user can still ask for any chart on any session.
+_PACE_CHARTS = {
+    "sector_pace", "driver_compare", "speed_trace", "parallax_stack", "top_speed",
+    "track_dominance", "dominance_flat", "speed_distribution", "driver_radar",
+    "teammate_pace",
+}
+# Race/sprint add everything that needs results, stints, pit stops or grid positions,
+# plus the season-level boards that are tied to a completed round.
+_RACE_CHARTS = _PACE_CHARTS | {
+    "race_analysis", "position_changes", "grid_flow", "gap_to_leader", "lap_evolution",
+    "race_strategy", "teammate_laps", "pace_tyre", "places_gained", "tyre_strategy",
+    "team_pace", "championship", "constructors", "circuit_history", "season_scorecard",
+}
+SESSION_CHARTS = {
+    "FP1": _PACE_CHARTS, "FP2": _PACE_CHARTS, "FP3": _PACE_CHARTS,
+    "Q": _PACE_CHARTS, "SQ": _PACE_CHARTS, "SS": _PACE_CHARTS,
+    "S": _RACE_CHARTS, "R": _RACE_CHARTS,
+}
+
+
+def charts_for_session(session_code):
+    """Chart keys worth generating for a session type (unknown codes get the full set)."""
+    return SESSION_CHARTS.get((session_code or "R").upper(), _RACE_CHARTS)
 
 
 # ── Supabase upload ─────────────────────────────────────────────────────────
@@ -3886,8 +4004,13 @@ def main():
         # (same drivers -> same key -> same storage path + index row).
         dk = ("__" + "-".join(sorted(DRIVERS))) if DRIVERS else ""
         print(f"== {fmt} ({ratios[fmt]}) ==")
+        allowed = charts_for_session(args.session)
         for ctype, title, desc, fn in CHARTS:
             if only_set and ctype not in only_set:
+                continue
+            # Bulk run: skip charts that don't apply to this session type. An explicit
+            # --only bypasses this so on-demand requests still work anywhere.
+            if not only_set and ctype not in allowed:
                 continue
             try:
                 png = fn(session, meta)

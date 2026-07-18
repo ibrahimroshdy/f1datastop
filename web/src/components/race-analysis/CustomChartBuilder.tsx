@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import {
   CUSTOMIZABLE_CHARTS,
   getRequestState,
+  maxDriversFor,
   submitChartRequest,
   type ChartRequestState,
 } from "@/services/chartRequestService";
@@ -32,7 +33,10 @@ interface CustomChartBuilderProps {
   session: string;
 }
 
-const MAX_DRIVERS = 5;
+/** Typical end-to-end time for one chart (queue → GitHub run → upload), measured from
+ *  real runs. Only used to pace the progress bar — the true duration is unknowable, so
+ *  the bar eases toward 95% and only completes when the chart actually lands. */
+const EXPECTED_MS = 75_000;
 
 export default function CustomChartBuilder({ year, round, session }: CustomChartBuilderProps) {
   const { user } = useAuth();
@@ -50,7 +54,12 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
   const [picked, setPicked] = useState<string[]>([]);
   const [state, setState] = useState<ChartRequestState>({ status: "idle" });
   const [fmt, setFmt] = useState<ChartFormat>("landscape");
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const pollRef = useRef<number | null>(null);
+
+  /** Drivers this particular chart is designed for — head-to-head layouts only fit two. */
+  const maxDrivers = maxDriversFor(chart);
 
   const stopPoll = () => {
     if (pollRef.current) {
@@ -62,18 +71,33 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
 
   const reset = () => {
     stopPoll();
+    setStartedAt(null);
+    setElapsed(0);
     setState({ status: "idle" });
   };
 
   const toggle = (code: string) => {
     reset();
-    setPicked((p) => (p.includes(code) ? p.filter((c) => c !== code) : p.length >= MAX_DRIVERS ? p : [...p, code]));
+    setPicked((p) => (p.includes(code) ? p.filter((c) => c !== code) : p.length >= maxDrivers ? p : [...p, code]));
   };
 
   const busy = state.status === "checking" || state.status === "queued" || state.status === "processing";
 
+  // Tick while a build is in flight so the bar advances.
+  useEffect(() => {
+    if (startedAt == null) return;
+    const id = window.setInterval(() => setElapsed(Date.now() - startedAt), 250);
+    return () => window.clearInterval(id);
+  }, [startedAt]);
+
+  const progress = state.status === "done" ? 100 : busy ? Math.min(95, (elapsed / EXPECTED_MS) * 100) : 0;
+  const stage =
+    state.status === "checking" ? "Checking" : state.status === "processing" ? "Rendering" : "Queued";
+
   const generate = async () => {
     if (picked.length < 2) return;
+    setStartedAt(Date.now());
+    setElapsed(0);
     setState({ status: "checking" });
     const res = await submitChartRequest(year, round, session, chart, picked);
     setState(res);
@@ -102,7 +126,9 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
           <span className="instrument-label text-foreground">Build a custom chart</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Pick a chart and 2–{MAX_DRIVERS} drivers — we generate it on demand (about a minute).
+          {maxDrivers === 2
+            ? "Pick a chart and 2 drivers — we generate it on demand (about a minute)."
+            : `Pick a chart and 2–${maxDrivers} drivers — we generate it on demand (about a minute).`}
         </p>
       </F1CardHeader>
       <F1CardContent className="space-y-3 px-4 pb-4">
@@ -111,6 +137,8 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
             value={chart}
             onValueChange={(v) => {
               setChart(v);
+              // Head-to-head only fits two — drop extras rather than silently sending them.
+              setPicked((p) => p.slice(0, maxDriversFor(v)));
               reset();
             }}
           >
@@ -126,14 +154,15 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
             </SelectContent>
           </Select>
           <span className="instrument-label text-muted-foreground">
-            {picked.length}/{MAX_DRIVERS} selected
+            {picked.length}/{maxDrivers} selected
+            {picked.length >= maxDrivers && <span className="ml-1 text-primary">· full</span>}
           </span>
         </div>
 
         <div className="flex flex-wrap gap-1.5">
           {drivers.map((d) => {
             const on = picked.includes(d.code);
-            const dim = !on && picked.length >= MAX_DRIVERS;
+            const dim = !on && picked.length >= maxDrivers;
             return (
               <button
                 key={d.code}
@@ -175,10 +204,31 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
           </Button>
         )}
 
-        {(state.status === "queued" || state.status === "processing") && (
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
-            Building your chart — usually under a minute. It appears here automatically.
+        {busy && (
+          <div className="space-y-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+            <div className="flex items-center gap-2 text-xs">
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+              <span className="font-medium text-foreground">{stage}</span>
+              <span className="timing ml-auto tabular-nums text-muted-foreground">
+                {Math.round(elapsed / 1000)}s
+              </span>
+            </div>
+            <div
+              className="h-1.5 w-full overflow-hidden rounded-full bg-border"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress)}
+              aria-label="Chart generation progress"
+            >
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-2xs text-muted-foreground">
+              Usually under a minute — it appears here automatically.
+            </p>
           </div>
         )}
 

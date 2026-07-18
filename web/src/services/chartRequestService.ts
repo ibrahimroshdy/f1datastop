@@ -1,16 +1,22 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AnalysisChart } from "./analysisService";
 
-/** Charts where "pick your drivers" makes sense (they honour generate.py --drivers). */
+/** Charts where "pick your drivers" makes sense (they honour generate.py --drivers).
+ *  `max` is the driver cap the chart is actually designed around — head-to-head layouts
+ *  only have room for two, the rest read fine up to five. */
 export const CUSTOMIZABLE_CHARTS = [
-  { key: "driver_compare", label: "Head to Head (pick 2)" },
-  { key: "season_scorecard", label: "Season Scorecard (pick 2)" },
-  { key: "dominance_flat", label: "Track Dominance Map" },
-  { key: "track_dominance", label: "Dominance Stack (3D)" },
-  { key: "parallax_stack", label: "Parallax Stack" },
-  { key: "speed_trace", label: "Speed Trace" },
-  { key: "driver_radar", label: "Driver Radar" },
+  { key: "driver_compare", label: "Head to Head", max: 2 },
+  { key: "season_scorecard", label: "Season Scorecard", max: 2 },
+  { key: "dominance_flat", label: "Track Dominance Map", max: 5 },
+  { key: "track_dominance", label: "Dominance Stack (3D)", max: 5 },
+  { key: "parallax_stack", label: "Parallax Stack", max: 5 },
+  { key: "speed_trace", label: "Speed Trace", max: 5 },
+  { key: "driver_radar", label: "Driver Radar", max: 5 },
 ] as const;
+
+/** Driver cap for a chart key (defaults to 5 for anything unknown). */
+export const maxDriversFor = (chart: string): number =>
+  CUSTOMIZABLE_CHARTS.find((c) => c.key === chart)?.max ?? 5;
 
 export type ChartRequestState =
   | { status: "idle" }
