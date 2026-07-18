@@ -90,8 +90,23 @@ export async function submitChartRequest(
     status: "pending",
   });
   if (error) {
-    // 23505 = a request for this exact set already exists → just poll it.
-    if ((error as { code?: string }).code === "23505") return { status: "queued" };
+    // 23505 = a request for this exact set already exists. It may be a stale FAILED one
+    // (the unique key has no status in it), and since we got here the chart itself is
+    // still missing — so flip it back to pending to retry rather than leaving the user
+    // staring at an old error they can never clear. The dispatch trigger fires on this
+    // transition too, so the retry actually re-runs.
+    if ((error as { code?: string }).code === "23505") {
+      await db
+        .from("f1_chart_requests")
+        .update({ status: "pending", error: null, updated_at: new Date().toISOString() })
+        .eq("season", season)
+        .eq("round", round)
+        .eq("session", session)
+        .eq("chart", chart)
+        .eq("driver_key", key)
+        .neq("status", "processing"); // don't yank one mid-flight
+      return { status: "queued" };
+    }
     return { status: "error", error: error.message };
   }
   return { status: "queued" };
@@ -121,5 +136,11 @@ export async function getRequestState(
     .maybeSingle();
   if (!data) return { status: "idle" };
   if (data.status === "error") return { status: "error", error: data.error || "generation failed" };
+  // A row marked done whose chart we couldn't find above means the artifact never landed
+  // (or was named differently). Reporting "queued" here would spin the UI forever, so say
+  // so plainly instead.
+  if (data.status === "done") {
+    return { status: "error", error: "chart finished but no image was found — try again" };
+  }
   return { status: data.status === "processing" ? "processing" : "queued" };
 }
