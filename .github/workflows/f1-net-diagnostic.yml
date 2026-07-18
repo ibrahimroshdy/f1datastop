@@ -1,0 +1,48 @@
+name: F1 network diagnostic
+
+# TEMPORARY. Answers one question: can a GitHub-hosted runner reach the F1 livetiming
+# CDN at all? FastF1 logs only "Failed to load ..." and swallows the HTTP status, so we
+# hit the endpoints directly and print the real status codes.
+#
+# Expected if F1 blocks cloud/Azure IPs: jolpica 200, livetiming 403 (or timeout).
+# Delete this workflow once the question is settled.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Who are we (egress IP)
+        run: |
+          echo "egress IP: $(curl -s --max-time 15 https://api.ipify.org || echo unknown)"
+
+      - name: Probe F1 livetiming CDN + Ergast
+        run: |
+          probe() {
+            name="$1"; url="$2"
+            code=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 30 \
+                     -H "User-Agent: FastF1/3.8.3" "$url" || echo "curl-failed")
+            size=$(wc -c < /tmp/body 2>/dev/null || echo 0)
+            echo "$name -> HTTP $code  ${size} bytes"
+            if [ "$size" -gt 0 ] && [ "$size" -lt 400 ]; then
+              echo "   body: $(head -c 300 /tmp/body | tr '\n' ' ')"
+            fi
+          }
+          probe "livetiming Index.json " "https://livetiming.formula1.com/static/2026/Index.json"
+          probe "livetiming root       " "https://livetiming.formula1.com/static/"
+          probe "jolpica (ergast)      " "https://api.jolpi.ca/ergast/f1/2026/9/results.json?limit=1"
+          probe "f1 api (control)      " "https://api.formula1.com/v1/event-tracker"
+
+      - name: Same fetch through FastF1 itself
+        run: |
+          python -m pip install --quiet fastf1
+          python - <<'PY'
+          import fastf1, traceback
+          try:
+              s = fastf1.get_session(2026, 9, "R")
+              s.load(telemetry=False, weather=False, messages=False)
+              print("FastF1 laps rows:", len(s.laps))
+          except Exception:
+              traceback.print_exc()
+          PY
