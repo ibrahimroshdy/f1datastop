@@ -1343,38 +1343,101 @@ def place_headshot_column(ax, ends):
         headshot_label(ax, xmax, y, drv, c, url)
 
 
+SPEED_TRAPS = (
+    ("SpeedI1", "Inter 1"),
+    ("SpeedI2", "Inter 2"),
+    ("SpeedFL", "Finish"),
+    ("SpeedST", "Speed Trap"),
+)
+
+
 def chart_top_speed(session, meta):
+    """Speed-trap matrix — every driver's best at each measurement point, all laps.
+
+    The old version read one number: the max speed on each driver's single fastest lap.
+    That threw away the rest of the session and answered the wrong question — a driver's
+    true top speed usually comes on a tow or a different stint, not their best lap. This
+    takes the maximum across ALL laps at each of FastF1's four trap points, which is what
+    timing screens actually show.
+
+    Cell shading is scaled within each column (slowest → fastest), so columns stay
+    comparable even though inter-1 and the speed trap live in different speed ranges.
+    """
     laps = session.laps
     rows = []
     for drv in session.drivers:
         dl = laps[laps["DriverNumber"] == drv]
         if dl.empty:
             continue
-        if DRIVERS and dl["Driver"].iloc[0] not in DRIVERS:
+        code = dl["Driver"].iloc[0]
+        if DRIVERS and code not in DRIVERS:
             continue
-        lap = dl.pick_fastest()
-        if lap is None or (hasattr(lap, "empty") and lap.empty):
+        vals = []
+        for col, _ in SPEED_TRAPS:
+            try:
+                v = float(dl[col].max())
+            except Exception:
+                v = float("nan")
+            vals.append(v)
+        if all(pd.isna(v) for v in vals):
             continue
-        try:
-            spd = float(lap.get_car_data()["Speed"].max())
-        except Exception:
-            continue
-        rows.append((dl["Driver"].iloc[0], team_color(dl["Team"].iloc[0]), spd))
-    if not rows:
+        rows.append({"code": code, "vals": vals})
+
+    if len(rows) < 2:
         return None
-    rows.sort(key=lambda r: r[2])
-    fig, ax = editorial_fig(left=0.10)
-    title_block(fig, "Telemetry", "Top Speed", "Highest speed reached · fastest lap")
-    for i, (code, c, spd) in enumerate(rows):
-        ax.barh(i, spd, color=c, height=0.62, zorder=3, edgecolor=PAPER, linewidth=1.0)
-        ax.text(spd - 2, i, f"{spd:.0f}", va="center", ha="right", fontsize=10,
-                fontproperties=FP_BODY_B, color="#FFFFFF")
+
+    # Headline ordering is the speed trap itself, falling back to whatever we have.
+    def _key(r):
+        v = r["vals"][3]
+        return v if not pd.isna(v) else max([x for x in r["vals"] if not pd.isna(x)] or [0])
+
+    rows.sort(key=_key, reverse=True)
+
+    ncol = len(SPEED_TRAPS)
+    col_max, col_min = [], []
+    for c in range(ncol):
+        vv = [r["vals"][c] for r in rows if not pd.isna(r["vals"][c])]
+        col_max.append(max(vv) if vv else float("nan"))
+        col_min.append(min(vv) if vv else float("nan"))
+
+    fig, ax = editorial_fig(left=0.10, right=0.90)
+    title_block(fig, "Telemetry", "Speed Trap Matrix",
+                "Best speed at each measurement point — across every lap of the session")
+
+    for i, r in enumerate(rows):
+        y = len(rows) - 1 - i
+        for c in range(ncol):
+            v = r["vals"][c]
+            if pd.isna(v):
+                continue
+            lo, hi = col_min[c], col_max[c]
+            norm = 0.0 if hi <= lo else (v - lo) / (hi - lo)
+            is_best = v >= hi
+            ax.add_patch(plt.Rectangle(
+                (c + 0.04, y - 0.42), 0.92, 0.84,
+                facecolor=PURPLE if is_best else RED,
+                alpha=1.0 if is_best else 0.10 + 0.55 * norm,
+                edgecolor=PAPER, linewidth=1.2, zorder=3,
+            ))
+            ax.text(c + 0.5, y, f"{v:.0f}", va="center", ha="center", fontsize=10,
+                    fontproperties=FP_BODY_B,
+                    color="#FFFFFF" if (is_best or norm > 0.55) else INK, zorder=4)
+
+    ax.set_xlim(0, ncol)
+    ax.set_ylim(-0.6, len(rows) - 0.4)
+    ax.set_xticks([c + 0.5 for c in range(ncol)])
+    ax.set_xticklabels([lbl for _, lbl in SPEED_TRAPS],
+                       fontproperties=FP_BODY_B, color=INK, fontsize=10)
+    ax.xaxis.set_ticks_position("top")
     ax.set_yticks(range(len(rows)))
-    ax.set_yticklabels([r[0] for r in rows], fontproperties=FP_BODY_B, color=INK, fontsize=10)
-    ax.set_xlim(left=min(r[2] for r in rows) - 18)
-    ax.grid(axis="y", linewidth=0)
-    ax.grid(axis="x", color=GRID, linewidth=1.0)
-    clean_axes(ax, "Speed (km/h)", None)
+    ax.set_yticklabels([r["code"] for r in reversed(rows)],
+                       fontproperties=FP_BODY_B, color=INK, fontsize=10)
+    ax.grid(False)
+    for side in ("top", "right", "bottom", "left"):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(length=0)
+    clean_axes(ax, None, None)
+    ax.set_xlabel("")
     footer(fig, meta)
     return fig_png(fig)
 
@@ -3744,7 +3807,7 @@ CHARTS = [
     ("race_strategy", "Race Strategy Board", "Tyre stints, pit windows and track weather", chart_race_strategy),
     ("teammate_pace", "Teammate Distribution", "Teammate lap-time spread, side by side", chart_teammate_pace),
     ("teammate_laps", "Teammate Duel · Lap by Lap", "Each teammate's lap times through the race", chart_teammate_laps),
-    ("top_speed", "Top Speed", "Highest speed per driver on the fastest lap", chart_top_speed),
+    ("top_speed", "Speed Trap Matrix", "Best speed at each trap point, across every lap", chart_top_speed),
     ("driver_radar", "Driver Radar", "Performance profile of the top drivers", chart_driver_radar),
     ("track_dominance", "Track Dominance", "Where each driver is fastest, layered per driver", chart_dominance_stack),
     ("dominance_flat", "Track Dominance Map", "Fastest driver at each point of the lap", chart_dominance_flat),
