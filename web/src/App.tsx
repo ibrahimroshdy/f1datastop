@@ -2,6 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HelmetProvider } from "react-helmet-async";
+import Seo from "@/components/common/Seo";
+import { organizationSchema, websiteSchema } from "@/lib/structuredData";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
@@ -127,7 +130,10 @@ const ConstructorSlugRedirect = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      {/* Sitewide identity + sitelinks search box. Individual routes add their own. */}
+      <Seo jsonLd={[websiteSchema(), organizationSchema()]} />
       <BrowserRouter>
         <AuthProvider>
           <ThemeProvider>
@@ -223,7 +229,8 @@ const App = () => (
           </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>
-  </QueryClientProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

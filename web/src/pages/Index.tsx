@@ -29,6 +29,7 @@ import { F1EmptyState } from "@/components/f1/F1EmptyState";
 
 import useAnalytics from '@/hooks/useAnalytics';
 import useClarity from '@/hooks/useClarity';
+import Seo from "@/components/common/Seo";
 
 type IndexScheduleRace = {
   date: string;
@@ -155,6 +156,10 @@ const Index = () => {
 
   return (
     <div className={pageShell}>
+      <Seo
+        path="/"
+        description="Formula 1 telemetry, race analysis and strategy breakdowns — lap time deltas, stint strategy, tyre life and driver head-to-heads, updated every race weekend."
+      />
       <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         {/* ── Greeting block (compact, app-style — NOT a big hero) ───────── */}
         <GreetingBlock

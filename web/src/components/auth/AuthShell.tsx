@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { pageShellNarrow } from '@/lib/layout';
 import { useTheme } from '@/context/ThemeContext';
 import BuyMeCoffeeWidget from '@/components/common/BuyMeCoffeeWidget';
+import Seo from "@/components/common/Seo";
 
 /**
  * Shared chrome for the auth screens (login · signup · reset). Provides the
@@ -15,6 +16,9 @@ import BuyMeCoffeeWidget from '@/components/common/BuyMeCoffeeWidget';
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4">
+      {/* Auth screens carry no search value and shouldn't compete with real pages.
+          Covers login, signup and reset in one place since they all use this shell. */}
+      <Seo noIndex title="Sign in" />
       {/* Atmospheric backdrop — red ember glow + faint telemetry grid, masked to fade at the edges. */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(60rem_40rem_at_50%_-10%,hsl(var(--primary)/0.10),transparent_70%)]" />

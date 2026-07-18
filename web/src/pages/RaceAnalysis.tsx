@@ -13,6 +13,9 @@ import { useRaceSchedule } from "@/hooks/useF1Data";
 import { useDbSessions } from "@/hooks/useWarehouse";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
+import Seo from "@/components/common/Seo";
+import { breadcrumbSchema, raceSchema } from "@/lib/structuredData";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 
 type RaceScheduleEntry = {
   round: string;
@@ -147,8 +150,38 @@ const RaceAnalysis = () => {
     }
   };
 
+  // Race pages are the deepest, most numerous and most search-visible routes — each one
+  // gets its own title, canonical and SportsEvent card rather than inheriting the
+  // homepage's metadata.
+  const raceLabel = currentRace?.raceName
+    ? getRaceNameWithoutEmoji(currentRace.raceName)
+    : `Round ${selectedRace}`;
+  const racePath = `/race-analysis/${selectedYear}/${selectedRace}`;
+
   return (
     <div className={pageShell}>
+      <Seo
+        title={`${raceLabel} ${selectedYear} — Race Analysis`}
+        path={racePath}
+        description={`Telemetry and strategy analysis for the ${selectedYear} ${raceLabel}${
+          currentRace?.Circuit?.circuitName ? ` at ${currentRace.Circuit.circuitName}` : ""
+        } — lap times, tyre stints, pit strategy, sector pace and driver head-to-heads.`}
+        jsonLd={[
+          raceSchema({
+            name: `${raceLabel} ${selectedYear}`,
+            season: selectedYear,
+            round: Number(selectedRace),
+            circuit: currentRace?.Circuit?.circuitName,
+            country: currentRace?.Circuit?.Location?.country,
+            startDate: currentRace?.date,
+          }),
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Race Analysis", path: "/race-analysis" },
+            { name: `${raceLabel} ${selectedYear}`, path: racePath },
+          ]),
+        ]}
+      />
       <div className={cn(pageStack, "animate-fade-in")}>
         <RaceAnalysisHeader selectedYear={selectedYear} currentRace={currentRace} />
 

@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { F1Card, F1CardContent, PageHeader } from "@/components/f1";

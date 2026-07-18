@@ -18,6 +18,8 @@ import YearSelector from "@/components/common/YearSelector";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { cn } from "@/lib/utils";
 import TeamHeritagePanel from "@/components/constructors/TeamHeritagePanel";
+import Seo from "@/components/common/Seo";
+import { breadcrumbSchema } from "@/lib/structuredData";
 
 type ConstructorListEntry = {
   position: string;
@@ -77,6 +79,12 @@ const Constructors = () => {
 
   return (
     <div className={pageShell}>
+      <Seo
+        title="F1 Constructors"
+        path="/constructors"
+        description="Formula 1 teams — championship standings, driver line-ups and constructor performance across the season."
+        jsonLd={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Constructors", path: "/constructors" }])}
+      />
       <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         <PageHeader
           eyebrow={`${selectedYear} Season`}

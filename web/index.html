@@ -63,33 +63,55 @@
       })();
     </script>
 
+    <!--
+      canonical and og:url are deliberately NOT hardcoded here. They used to point at the
+      homepage on every route, telling crawlers that every deep page was a duplicate of
+      "/" — effectively an instruction to drop them from the index. Only a per-route
+      canonical is correct, and a missing one beats a wrong one.
+    -->
+    <!--
+      Only the title and tags that NEVER vary per route live here. Per-route
+      title/description/canonical/og/twitter are owned by the Seo component
+      (src/components/common/Seo.tsx, react-helmet-async).
+
+      They used to be duplicated here. Helmet can only replace tags it created, so a
+      static copy meant every page shipped two description metas and two og:title values
+      with different content — conflicting signals for crawlers. The title below stays as
+      the pre-hydration default; a document may only have one, so Helmet replaces it
+      cleanly rather than appending.
+    -->
     <title>F1 DataStop — Formula 1 Data Analysis and Insights</title>
-    <meta name="description" content="F1 DataStop turns raw Formula 1 telemetry and race stats into clear insights—lap time deltas, stint strategy breakdowns, and driver vs. teammate comparisons. Your data pit stop." />
     <meta name="author" content="F1DataStop" />
 
-    <!-- Canonical -->
-    <link rel="canonical" href="https://f1datastop.com" />
-
-    <!-- Open Graph -->
+    <!--
+      Site-wide fallbacks. These are what a crawler sees before JS runs, and they are the
+      ONLY metadata until the per-route <Seo> component is confirmed working — without
+      them the site ships with no description and no social card at all.
+      Once Seo/react-helmet-async is verified injecting, delete the description/og:title/
+      og:description/twitter:title/twitter:description lines below: Helmet cannot replace
+      tags it did not create, so keeping them then produces duplicates.
+      canonical and og:url stay OUT regardless — a homepage canonical on every route is
+      what was deindexing the deep pages.
+    -->
+    <meta name="description" content="F1 DataStop turns raw Formula 1 telemetry and race stats into clear insights—lap time deltas, stint strategy breakdowns, and driver vs. teammate comparisons. Your data pit stop." />
     <meta property="og:title" content="F1 DataStop — Formula 1 Data Analysis and Insights" />
     <meta property="og:description" content="Analysis over hype: strategy breakdowns, pace trends, and driver head-to-heads. Make F1 data your advantage." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://f1datastop.com/" />
-    <meta property="og:image" content="https://f1datastop.com/f1-cover.png" />
-    <meta property="og:image:secure_url" content="https://f1datastop.com/f1-cover.png" />
+    <meta property="og:site_name" content="F1 DataStop" />
+    <meta property="og:image" content="https://www.f1datastop.com/f1-cover.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="F1 DataStop — Formula 1 Data Analysis and Insights" />
+    <meta name="twitter:description" content="From lap time deltas to stint strategy—F1 DataStop is your data pit stop." />
+    <meta name="twitter:image" content="https://www.f1datastop.com/f1-cover.png" />
+
+    <!-- Image dimensions + locale/handles: constant across every route, so no duplication. -->
+    <meta property="og:image:secure_url" content="https://www.f1datastop.com/f1-cover.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="F1 DataStop — your data pit stop for Formula 1 insights" />
-    <meta property="og:site_name" content="F1 DataStop" />
     <meta property="og:locale" content="en_US" />
-
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@f1datastop" />
-    <meta name="twitter:title" content="F1 DataStop — Formula 1 Data Analysis and Insights" />
-    <meta name="twitter:description" content="From lap time deltas to stint strategy—F1 DataStop is your data pit stop." />
-    <meta name="twitter:image" content="https://f1datastop.com/f1-cover.png" />
     <meta name="twitter:image:alt" content="F1 DataStop — your data pit stop for Formula 1 insights" />
     <meta name="twitter:creator" content="@f1datastop" />
 

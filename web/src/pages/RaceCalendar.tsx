@@ -12,6 +12,8 @@ import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { cn } from "@/lib/utils";
 import { Grid3x3, List, Star, CalendarDays } from "lucide-react";
+import Seo from "@/components/common/Seo";
+import { breadcrumbSchema } from "@/lib/structuredData";
 
 const RaceCalendar = () => {
   const { isGlass, cardVariant, glassVariant } = useThemeVariant();
@@ -52,6 +54,15 @@ const RaceCalendar = () => {
 
   return (
     <CalendarAnalyticsTracker selectedYear={selectedYear} viewType="list">
+      <Seo
+        title={`${selectedYear} F1 Race Calendar`}
+        path="/calendar"
+        description={`Every round of the ${selectedYear} Formula 1 season — dates, circuits, session times and results as the season unfolds.`}
+        jsonLd={breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Calendar", path: "/calendar" },
+        ])}
+      />
       <div className={pageShell}>
         <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
           {/* ── Compact app header (eyebrow + title + round readout) ──────── */}

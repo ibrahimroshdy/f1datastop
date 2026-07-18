@@ -33,6 +33,8 @@ import {
   getNationalityCode,
 } from "@/components/standings/standingsUtils";
 import YearSelector from "@/components/common/YearSelector";
+import Seo from "@/components/common/Seo";
+import { breadcrumbSchema } from "@/lib/structuredData";
 
 type DriverStandingEntry = {
   position: string;
@@ -185,6 +187,12 @@ const Drivers = () => {
 
   return (
     <div className={pageShell}>
+      <Seo
+        title={`${selectedYear} F1 Drivers`}
+        path="/drivers"
+        description={`Every driver on the ${selectedYear} Formula 1 grid — championship position, points, wins and team, with per-driver telemetry and race analysis.`}
+        jsonLd={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Drivers", path: "/drivers" }])}
+      />
       <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         <PageHeader
           eyebrow={`${selectedYear} Season`}

@@ -30,6 +30,8 @@ import {
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import PointsProgressionChart from "@/components/standings/PointsProgressionChart";
 import ReliabilityBoard from "@/components/standings/ReliabilityBoard";
+import Seo from "@/components/common/Seo";
+import { breadcrumbSchema } from "@/lib/structuredData";
 
 /** F1-media headshot for a current-grid driver; undefined falls back to initials. */
 const headshotSrc = (driverId?: string): string | undefined => {
@@ -312,6 +314,12 @@ const Standings = () => {
 
   return (
     <div className={pageShell}>
+      <Seo
+        title={`${currentSeason} F1 Championship Standings`}
+        path="/standings"
+        description={`Driver and constructor championship standings for the ${currentSeason} Formula 1 season — points, wins, podiums and the gap to the leader.`}
+        jsonLd={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Standings", path: "/standings" }])}
+      />
       <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         <PageHeader
           eyebrow={`${currentSeason} Season`}
