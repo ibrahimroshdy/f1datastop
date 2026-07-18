@@ -374,10 +374,33 @@ def _round_done(season, rnd):
         return False
 
 
+_LATEST_ROUND_CACHE = {}
+
+
+def _round_has_happened(season, rnd):
+    """Cheap future-round guard — skip rounds that haven't run yet BEFORE the costly
+    FastF1 load. A whole-season reconcile otherwise burns the Ergast/Jolpica
+    500-calls/hour budget on future rounds and then has nothing left for the real
+    ones. Past seasons are complete; only the current/future season is gated, and the
+    lookup is cached once per season."""
+    from datetime import datetime, timezone
+    if season < datetime.now(timezone.utc).year:
+        return True
+    if season not in _LATEST_ROUND_CACHE:
+        try:
+            _LATEST_ROUND_CACHE[season] = bf.latest_completed_round(season) or 0
+        except Exception:  # noqa: BLE001
+            _LATEST_ROUND_CACHE[season] = 99
+    return rnd <= _LATEST_ROUND_CACHE[season] + 1  # +1 = the weekend in progress
+
+
 def ingest_round(season, rnd):
     _cache()
     if not FORCE and _round_done(season, rnd):
         print(f"== {season} R{rnd} == already ingested, skip (--force to redo)")
+        return
+    if not FORCE and not _round_has_happened(season, rnd):
+        print(f"== {season} R{rnd} == hasn't run yet; skip (saves Ergast rate budget)")
         return
     print(f"== {season} R{rnd} ==")
     codes = sessions_for_round(season, rnd)

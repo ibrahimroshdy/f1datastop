@@ -21,12 +21,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/f1-setup
+
+      - name: Fail fast if Supabase creds are missing
+        run: |
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "::error::SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are empty — set them in repo secrets."
+            exit 1
+          fi
+
       - name: Latest-race boards + teammate compares
         working-directory: analysis
         # TEAMMATE_PAIRS are the current-season lineups (mirror modal_app.py); update per season.
         run: |
           set -u
+          # The main board is load-bearing: a failure here is a real failure, no suppression.
           python generate.py --latest --session R --format all
+
+          # Teammate compares are best-effort (a driver may be absent from the latest race),
+          # but we count failures instead of swallowing them with `|| true`.
+          runs=0; fails=0
           for pair in "RUS,ANT" "NOR,PIA" "LEC,HAM"; do
-            python generate.py --latest --session R --only driver_compare --drivers "$pair" --format all || true
+            runs=$((runs + 1))
+            if ! python generate.py --latest --session R --only driver_compare --drivers "$pair" --format all; then
+              fails=$((fails + 1))
+              echo "::warning::driver_compare FAILED for $pair"
+            fi
           done
+
+          ok=$((runs - fails))
+          {
+            echo "### F1 latest-race charts"
+            echo ""
+            echo "| teammate compares | ok | failed |"
+            echo "|------------------:|---:|-------:|"
+            echo "| $runs | $ok | $fails |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "compares=$runs ok=$ok failed=$fails"
+          if [ "$runs" -gt 0 ] && [ "$fails" -eq "$runs" ]; then
+            echo "::error::every teammate compare failed — treating as broken, not a no-op."
+            exit 1
+          fi
+          if [ "$fails" -gt 0 ]; then
+            echo "::warning::$fails of $runs teammate compares failed."
+          fi

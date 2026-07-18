@@ -5,6 +5,11 @@ name: F1 refresh current-season assets
 # LATEST round only (all-laps over every round would blow the minute budget; the latest
 # round is the only new one, and it self-skips already-exported laps). Older seasons'
 # per-lap backfill is run locally. Replaces Modal's refresh_current_assets.
+#
+# Failure policy: each exporter self-skips sessions a weekend doesn't have and rounds that
+# haven't run, exiting 0 — so a NON-ZERO exit is a real error. We count them instead of
+# swallowing with `|| true`: individual failures become warnings + a job summary, and a
+# run where EVERY step failed (broken creds, bad deploy) fails the job loudly.
 on:
   schedule:
     - cron: "30 */6 * * *"
@@ -24,24 +29,64 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/f1-setup
+
+      - name: Fail fast if Supabase creds are missing
+        run: |
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "::error::SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are empty — set them in repo secrets."
+            exit 1
+          fi
+
       - name: Telemetry (fastest laps) · geometry · replays — current season
         working-directory: analysis
         run: |
           set -u
           Y="$(date -u +%Y)"
+          runs=0; fails=0
+          # Run a step, counting outcomes. Exporters exit 0 on "skip", so non-zero == real error.
+          try() {
+            runs=$((runs + 1))
+            if ! "$@"; then
+              fails=$((fails + 1))
+              echo "::warning::FAILED: $*"
+            fi
+          }
+
           # All session types. FP1/2/3=practice, Q=quali, SQ=sprint-quali (2024+),
           # SS=sprint-shootout (2023), S=sprint, R=race. Each exporter self-skips finished
           # sessions and no-ops on ones a weekend doesn't have — cheap either way.
           SESSIONS="FP1 FP2 FP3 Q SQ SS S R"
+
           for sess in $SESSIONS; do
             echo "== fastest-lap telemetry $sess =="
-            for r in $(seq 1 24); do python telemetry_export.py --season "$Y" --round "$r" --session "$sess" || true; done
+            for r in $(seq 1 24); do try python telemetry_export.py --season "$Y" --round "$r" --session "$sess"; done
           done
+
           echo "== circuit geometry (session-agnostic) =="
-          for r in $(seq 1 24); do python circuit_geometry_export.py --season "$Y" --round "$r" || true; done
+          for r in $(seq 1 24); do try python circuit_geometry_export.py --season "$Y" --round "$r"; done
+
           for sess in $SESSIONS; do
             echo "== race replays $sess =="
-            for r in $(seq 1 24); do python race_replay_export.py --season "$Y" --round "$r" --session "$sess" || true; done
+            for r in $(seq 1 24); do try python race_replay_export.py --season "$Y" --round "$r" --session "$sess"; done
           done
+
           echo "== per-lap telemetry (latest round, all sessions; self-skips done laps) =="
-          for sess in $SESSIONS; do python telemetry_export.py --season "$Y" --all-laps --latest --session "$sess" || true; done
+          for sess in $SESSIONS; do try python telemetry_export.py --season "$Y" --all-laps --latest --session "$sess"; done
+
+          ok=$((runs - fails))
+          {
+            echo "### F1 assets refresh — ${Y}"
+            echo ""
+            echo "| steps | ok | failed |"
+            echo "|------:|---:|-------:|"
+            echo "| $runs | $ok | $fails |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "steps=$runs ok=$ok failed=$fails"
+          if [ "$runs" -gt 0 ] && [ "$fails" -eq "$runs" ]; then
+            echo "::error::every one of the $runs steps failed — treating as a broken run, not a no-op."
+            exit 1
+          fi
+          if [ "$fails" -gt 0 ]; then
+            echo "::warning::$fails of $runs steps failed (see warnings above)."
+          fi
