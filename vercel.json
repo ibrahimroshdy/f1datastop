@@ -14,7 +14,6 @@
       "destination": "https://api.openf1.org/v1/:path*"
     },
     {
-      "comment": "Social crawlers don't run JS, so a client-rendered SPA previews every shared link as the homepage. Route ONLY those user-agents to /api/og, which returns real per-route metadata. Must precede the SPA catch-all. Human traffic never matches, so a fault here is invisible to users.",
       "source": "/((?!api/).*)",
       "has": [
         {
