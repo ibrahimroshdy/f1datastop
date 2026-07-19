@@ -509,7 +509,7 @@ def ingest_pitstops(session, season, rnd):
 def compute_standings(season):
     rr = bf.supa_select("f1_race_result", "round,driver_id,constructor_id,position,points", season=season) or []
     sr = bf.supa_select("f1_sprint_result", "round,driver_id,constructor_id,position,points", season=season) or []
-    all_rows = rr + sr
+    all_rows = rr + [dict(row, _sprint=True) for row in sr]
     if not all_rows:
         print(f"  standings {season}: no results")
         return 0
@@ -524,14 +524,18 @@ def compute_standings(season):
             did = row.get("driver_id"); cid = row.get("constructor_id")
             pts = float(row.get("points") or 0)
             pos = _int(row.get("position"))
+            # A sprint pays championship points but is not a "win" — F1 and Ergast both
+            # count Grands Prix only. Counting both inflated the trophy tally on every
+            # standings row (Antonelli showed 7 against Ergast's 6, Russell 4 against 2).
+            is_win = pos == 1 and not row.get("_sprint")
             if did:
                 dpts[did] = dpts.get(did, 0) + pts
                 dteam[did] = cid
-                if pos == 1:
+                if is_win:
                     dwins[did] = dwins.get(did, 0) + 1
             if cid:
                 cpts[cid] = cpts.get(cid, 0) + pts
-                if pos == 1:
+                if is_win:
                     cwins[cid] = cwins.get(cid, 0) + 1
         for i, (did, p) in enumerate(sorted(dpts.items(), key=lambda kv: -kv[1]), 1):
             dstand.append({"season": season, "round": r, "driver_id": did,
