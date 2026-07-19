@@ -262,6 +262,14 @@ def _dnf_from_laps(laps, winner_laps):
     return laps < 0.9 * winner_laps
 
 
+def _provisional_status(is_dnf):
+    """Stand-in for Ergast's Status text, using its own vocabulary so consumers that
+    string-match on it ("Finished", "+1 Lap", …) keep working. None when undecidable."""
+    if is_dnf is None:
+        return None
+    return "Retired" if is_dnf else "Finished"
+
+
 def _laps_completed(session, abbr2id):
     """driver_id -> laps completed, counted from timing data (Ergast's Laps is blank)."""
     out = {}
@@ -306,6 +314,8 @@ def ingest_results(session, season, rnd, code):
         else:  # R or S
             f = fast.get(did, (None, None, None))
             pos = _int(r.get("Position"))
+            dnf_flag = (_dnf(r.get("Status")) if _s(r.get("Status"))
+                        else _dnf_from_laps(laps_done.get(did), winner_laps))
             pts = _num(r.get("Points"))
             if pts is None and code == "R":
                 pts = _points_for(pos)
@@ -314,9 +324,12 @@ def ingest_results(session, season, rnd, code):
                 "points": pts,
                 "grid": _int(r.get("GridPosition")),
                 "laps": _int(r.get("Laps")) or laps_done.get(did),
-                "status": _s(r.get("Status")),
-                "is_dnf": (_dnf(r.get("Status")) if _s(r.get("Status"))
-                           else _dnf_from_laps(laps_done.get(did), winner_laps)),
+                # Status is Ergast-only and blank for hours after the flag. The UI treats it
+                # as a required string (sankey.ts does status.includes("+")), so writing the
+                # raw None takes the site down — derive a provisional value instead, and let
+                # the next reconcile replace it with Ergast's richer text.
+                "status": _s(r.get("Status")) or _provisional_status(dnf_flag),
+                "is_dnf": dnf_flag,
                 "time_text": bf._fmt_laptime(r.get("Time")) if _int(r.get("Position")) == 1 else None,
                 "time_millis": _millis(r.get("Time")),
                 "fastest_lap_time": f[0], "fastest_lap_number": f[2],

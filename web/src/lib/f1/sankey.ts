@@ -235,14 +235,18 @@ export const buildSankeyFromRoundResults = (qualifying: any[], raceResults: any[
   raceResults.forEach((driver: any) => {
     if (!driver.position) return;
     
+    // Every field here is optional in practice: for the first hours after a race the
+    // warehouse serves rows built from live timing, where Ergast-only fields (Constructor,
+    // status, points) aren't populated yet. An unguarded `status.includes(...)` threw and
+    // took down every page that renders this chart, so treat the payload as partial.
     const racePosition = parseInt(driver.position);
-    const driverCode = driver.Driver.code;
-    const driverName = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
-    const team = driver.Constructor.constructorId;
-    const teamName = driver.Constructor.name;
+    const driverCode = driver.Driver?.code ?? "";
+    const driverName = `${driver.Driver?.givenName ?? ""} ${driver.Driver?.familyName ?? ""}`.trim();
+    const team = driver.Constructor?.constructorId ?? "unknown";
+    const teamName = driver.Constructor?.name ?? "Unknown";
     const points = parseFloat(driver.points) || 0;
-    const status = driver.status;
-    const isDNF = status !== "Finished" && !status.includes("+");
+    const status = driver.status ?? "";
+    const isDNF = status !== "" && status !== "Finished" && !status.includes("+");
 
     const qualiPos = qualiByDriverId.get(driver.Driver.driverId) ?? null;
     let gridPosition: number;
