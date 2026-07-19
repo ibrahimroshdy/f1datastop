@@ -262,6 +262,54 @@ def _dnf_from_laps(laps, winner_laps):
     return laps < 0.9 * winner_laps
 
 
+def _grid_positions(session, season, rnd):
+    """car_number -> starting grid slot, derived from live timing.
+
+    Ergast's GridPosition is the only place FastF1 exposes the grid, and it stays blank
+    for hours after a race. Falling back to the qualifying position (what the UI did)
+    silently erases every grid penalty — Spa 2026 had three (NOR 3->13, HAD 10->21,
+    SAI 15->19) and 20 of 22 drivers actually started somewhere other than where they
+    qualified, so the quali->grid leg of the progression chart was a straight line.
+
+    The timing stream carries each car's classification position from before lights out,
+    which is the grid. A driver who retires immediately may never stream one (Spa: RUS,
+    lap 1), so any car left over is assigned the unused slots in qualifying order — with
+    a single absentee that is exact, since only one slot can remain.
+    """
+    try:
+        from fastf1 import api
+        _, stream = api.timing_data(session.api_path)
+        seen = stream.dropna(subset=["Position"])
+        if seen.empty:
+            return {}
+        first = seen.sort_values("Time").groupby("Driver").first()
+        grid = {int(d): int(r["Position"]) for d, r in first.iterrows()}
+    except Exception as e:  # noqa: BLE001
+        print(f"  grid {season} R{rnd}: timing stream unavailable ({e}); skipped")
+        return {}
+
+    entrants = set()
+    for _, r in session.results.iterrows():
+        n = _int(r.get("DriverNumber"))
+        if n:
+            entrants.add(n)
+    missing = sorted(entrants - set(grid))
+    if missing:
+        quali = {}
+        try:
+            for row in bf.supa_select("f1_qualifying_result", "car_number,position",
+                                      season=season, round=rnd):
+                if row.get("car_number") and row.get("position"):
+                    quali[int(row["car_number"])] = int(row["position"])
+        except (Exception, SystemExit):  # noqa: BLE001
+            pass
+        used = set(grid.values())
+        free = [p for p in range(1, len(entrants) + 1) if p not in used]
+        for num, slot in zip(sorted(missing, key=lambda n: quali.get(n, 99)), free):
+            grid[num] = slot
+    return grid
+
+
 def _provisional_status(is_dnf):
     """Stand-in for Ergast's Status text, using its own vocabulary so consumers that
     string-match on it ("Finished", "+1 Lap", …) keep working. None when undecidable."""
@@ -292,6 +340,7 @@ def ingest_results(session, season, rnd, code):
     teams = _team_map(season, rnd) if code in ("R", "S") else {}
     laps_done = _laps_completed(session, abbr2id) if code in ("R", "S") else {}
     winner_laps = max(laps_done.values()) if laps_done else None
+    grid_map = _grid_positions(session, season, rnd) if code in ("R", "S") else {}
     rows = []
     for _, r in session.results.iterrows():
         did = _s(r.get("DriverId")) or abbr2id.get(str(r.get("Abbreviation") or "").strip().upper())
@@ -322,7 +371,10 @@ def ingest_results(session, season, rnd, code):
             base.update({
                 "position_text": _s(r.get("ClassifiedPosition")),
                 "points": pts,
-                "grid": _int(r.get("GridPosition")),
+                # Explicit None check, not `or`: Ergast writes grid 0 for a pit-lane start,
+                # which is meaningful and must not be replaced by the derived value.
+                "grid": (_int(r.get("GridPosition")) if _int(r.get("GridPosition")) is not None
+                         else grid_map.get(_int(r.get("DriverNumber")))),
                 "laps": _int(r.get("Laps")) or laps_done.get(did),
                 # Status is Ergast-only and blank for hours after the flag. The UI treats it
                 # as a required string (sankey.ts does status.includes("+")), so writing the
