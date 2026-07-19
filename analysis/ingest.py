@@ -346,12 +346,18 @@ def ingest_results(session, season, rnd, code):
         did = _s(r.get("DriverId")) or abbr2id.get(str(r.get("Abbreviation") or "").strip().upper())
         if not did:
             continue
+        # Ergast's DriverId is the tell: when it's absent the whole Ergast-sourced half of
+        # the row (status, points, grid, time) had to be derived, so flag the row and let
+        # the reconcile come back for it.
+        derived = not _s(r.get("DriverId"))
         base = {
             "race_id": rid, "season": season, "round": rnd,
             "driver_id": did, "constructor_id": _s(r.get("TeamId")) or teams.get(did),
             "car_number": _int(r.get("DriverNumber")),
             "position": _int(r.get("Position")),
         }
+        if code in ("R", "S"):
+            base["provisional"] = derived
         if code == "Q" or code == "SQ":
             base.update({
                 "q1": bf._fmt_laptime(r.get("Q1")),
@@ -524,12 +530,22 @@ def sessions_for_round(season, rnd):
 
 
 def _round_done(season, rnd):
-    """A round is done once its race results are in the warehouse — lets the
-    cron reconcile a whole season cheaply, only ingesting new rounds."""
+    """A round is done once AUTHORITATIVE results are in the warehouse.
+
+    "Has results" isn't enough. A race ingested in the hours before Ergast publishes is
+    stored with derived status/points/grid and provisional=true; treating that as done
+    meant the cron skipped the round forever and the approximations became permanent.
+    Keep retrying while any row is provisional so the reconcile upgrades it in place.
+    """
     try:
-        rows = bf.supa_select("f1_race_result", "driver_id",
+        rows = bf.supa_select("f1_race_result", "driver_id,provisional",
                               season=season, round=rnd, source="fastf1")
-        return bool(rows) and len(rows) >= 5
+        if not rows or len(rows) < 5:
+            return False
+        if any(r.get("provisional") for r in rows):
+            print(f"== {season} R{rnd} == results are provisional; re-ingesting for Ergast data")
+            return False
+        return True
     except Exception:  # noqa: BLE001
         return False
 
