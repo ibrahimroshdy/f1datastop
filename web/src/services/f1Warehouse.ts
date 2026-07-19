@@ -482,8 +482,38 @@ export async function tryWarehouse(
     return dbResponse({ RaceTable: { season: m[1], round: m[2], Races: payload.Races } });
   }
 
-  // NOTE: driverStandings/constructorStandings are VOLATILE in-season — left on
-  // the proxy deliberately. Wire them here only for archived (past) seasons.
+  // /f1/{year}/driverStandings.json
+  //
+  // These were deliberately left on the proxy as "volatile in-season" data. That reasoning
+  // was backwards: Ergast/Jolpica publishes a race hours after the flag, so the proxy is
+  // precisely the stale source in the window where standings matter most — for several
+  // hours after Spa 2026 the table still showed the pre-race totals, with the winner's 25
+  // points missing. Our own standings are recomputed from race + sprint results on every
+  // ingest, so serve those and let the adapter fall through to the proxy on a miss.
+  m = path.match(/\/f1\/(\d{4})\/driverStandings\.json$/);
+  if (m) {
+    const standings = await getDriverStandingsFromDb(Number(m[1]));
+    if (!standings) return null;
+    return dbResponse({
+      StandingsTable: {
+        season: m[1],
+        StandingsLists: [{ season: m[1], DriverStandings: standings }],
+      },
+    });
+  }
+
+  // /f1/{year}/constructorStandings.json
+  m = path.match(/\/f1\/(\d{4})\/constructorStandings\.json$/);
+  if (m) {
+    const standings = await getConstructorStandingsFromDb(Number(m[1]));
+    if (!standings) return null;
+    return dbResponse({
+      StandingsTable: {
+        season: m[1],
+        StandingsLists: [{ season: m[1], ConstructorStandings: standings }],
+      },
+    });
+  }
 
   return null;
 }
