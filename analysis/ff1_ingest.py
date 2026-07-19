@@ -48,8 +48,38 @@ def _load(season, rnd, session_code, *, weather=False, messages=False, laps=Fals
     return s
 
 
-def _abbr_to_id(session):
-    """Abbreviation -> ergast driver_id from session.results."""
+_DB_ABBR_CACHE = {}
+
+
+def _db_abbr_to_id(season):
+    """Abbreviation -> ergast driver_id, from our own f1_driver table.
+
+    FastF1 only populates SessionResults['DriverId'] from Ergast, and Ergast/Jolpica
+    publishes a race hours after the flag — so for a few hours every race row has a blank
+    DriverId even though positions, laps and timing are all already available from the F1
+    API. Keying ingest on that one Ergast field made the entire post-race pipeline wait on
+    a source it doesn't otherwise need (2026 R10: 22 results, 872 laps, all dropped).
+
+    We already know every driver's code, so resolve it locally instead. Cached per season.
+    """
+    if season in _DB_ABBR_CACHE:
+        return _DB_ABBR_CACHE[season]
+    out = {}
+    try:
+        for row in bf.supa_select("f1_driver", "ergast_id,code", active_season=season):
+            code, did = row.get("code"), row.get("ergast_id")
+            if code and did:
+                out[str(code).strip().upper()] = str(did)
+    except (Exception, SystemExit):  # noqa: BLE001
+        # SystemExit too: bf._env() raises it when the Supabase vars are unset, which is
+        # normal for a --no-upload run and must not kill the process.
+        pass  # no creds / offline — caller falls back to whatever the session gave us
+    _DB_ABBR_CACHE[season] = out
+    return out
+
+
+def _abbr_to_id(session, season=None):
+    """Abbreviation -> ergast driver_id, session first then our driver table."""
     out = {}
     try:
         for _, r in session.results.iterrows():
@@ -59,6 +89,11 @@ def _abbr_to_id(session):
                 out[str(ab)] = str(did)
     except Exception:  # noqa: BLE001
         pass
+    if season is None:
+        season = getattr(getattr(session, "event", None), "year", None)
+    if season is not None:
+        for ab, did in _db_abbr_to_id(int(season)).items():
+            out.setdefault(ab, did)
     return out
 
 
@@ -99,7 +134,7 @@ def ingest_overtakes(season, rnd, session_code="R"):
     if laps is None or len(laps) == 0:
         print(f"  overtakes {season} R{rnd}: no laps")
         return 0
-    abbr2id = _abbr_to_id(s)
+    abbr2id = _abbr_to_id(s, season)
 
     # position[lap][driver_abbr] = position (int); pit_laps = (lap, driver) that
     # are pit in/out laps — their position swaps are pit-cycle artifacts, not

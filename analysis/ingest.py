@@ -181,7 +181,7 @@ def upsert_entities(session, season):
 
 
 # ── results (race / qualifying / sprint) ──────────────────────────────────────
-def _fastest_laps(session):
+def _fastest_laps(session, season=None):
     """driver_id -> (fastest_text, rank) across the session."""
     import pandas as pd
     out = {}
@@ -196,7 +196,7 @@ def _fastest_laps(session):
             sec = lt.total_seconds()
             if drv not in best or sec < best[drv][0]:
                 best[drv] = (sec, lp)
-        abbr2id = enrich._abbr_to_id(session)
+        abbr2id = enrich._abbr_to_id(session, season)
         ranked = sorted(best.items(), key=lambda kv: kv[1][0])
         for rank, (abbr, (sec, lp)) in enumerate(ranked, 1):
             out[abbr2id.get(str(abbr), str(abbr))] = (
@@ -206,17 +206,92 @@ def _fastest_laps(session):
     return out
 
 
+# Championship points by finishing position. Only used to fill a race whose Ergast row
+# hasn't published yet — Ergast overwrites it on the next reconcile. Verified empirically
+# against this warehouse's own 2026 rounds 1-9: every position maps to exactly one value,
+# and nothing beyond P10 scores, so there is no fastest-lap bonus to model.
+# Caveat: a race stopped before 75% distance pays half points. That is rare, not derivable
+# from the F1 API alone, and self-corrects once Ergast lands.
+_POINTS_BY_POSITION = {1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1}
+
+
+def _points_for(position):
+    if position is None:
+        return None
+    return float(_POINTS_BY_POSITION.get(int(position), 0))
+
+
+def _team_map(season, rnd):
+    """driver_id -> constructor_id for a round, from data we already hold.
+
+    FastF1's TeamId is Ergast-sourced and blank until Ergast publishes, and TeamName can't
+    be matched by string ("Red Bull" vs "Red Bull Racing", "RB F1 Team" vs "Racing Bulls").
+    This round's qualifying row already carries the real constructor_id per driver, so use
+    that; fall back to the driver's most recent earlier race in the same season.
+    """
+    out = {}
+    try:
+        for row in bf.supa_select("f1_qualifying_result", "driver_id,constructor_id",
+                                  season=season, round=rnd):
+            if row.get("driver_id") and row.get("constructor_id"):
+                out[row["driver_id"]] = row["constructor_id"]
+    except (Exception, SystemExit):  # noqa: BLE001
+        pass
+    if out:
+        return out
+    try:
+        for row in bf.supa_select("f1_race_result", "driver_id,constructor_id,round",
+                                  season=season):
+            if row.get("driver_id") and row.get("constructor_id") and row.get("round") != rnd:
+                out.setdefault(row["driver_id"], row["constructor_id"])
+    except (Exception, SystemExit):  # noqa: BLE001
+        pass
+    return out
+
+
+def _dnf_from_laps(laps, winner_laps):
+    """Classify a finish when Ergast's Status string isn't published yet.
+
+    A driver is classified as a finisher if they covered 90% of the winner's distance —
+    the FIA's own rule — which keeps lapped finishers (Spa 2026: ALO 42, BOT 43 of 44)
+    out of the DNF bucket while still catching real retirements (PER 13, RUS 1, STR 25).
+    Returns None when we can't tell, so the column stays empty rather than guessing.
+    """
+    if not laps or not winner_laps:
+        return None
+    return laps < 0.9 * winner_laps
+
+
+def _laps_completed(session, abbr2id):
+    """driver_id -> laps completed, counted from timing data (Ergast's Laps is blank)."""
+    out = {}
+    try:
+        for abbr, dl in session.laps.groupby("Driver"):
+            did = abbr2id.get(str(abbr).strip().upper())
+            if did:
+                out[did] = int(len(dl))
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
 def ingest_results(session, season, rnd, code):
     rid = bf.race_id_for(season, rnd)
-    fast = _fastest_laps(session) if code in ("R", "S") else {}
+    fast = _fastest_laps(session, season) if code in ("R", "S") else {}
+    # DriverId comes from Ergast, which lags the race by hours; fall back to resolving the
+    # abbreviation against our own driver table so a finished race ingests immediately.
+    abbr2id = enrich._abbr_to_id(session, season)
+    teams = _team_map(season, rnd) if code in ("R", "S") else {}
+    laps_done = _laps_completed(session, abbr2id) if code in ("R", "S") else {}
+    winner_laps = max(laps_done.values()) if laps_done else None
     rows = []
     for _, r in session.results.iterrows():
-        did = _s(r.get("DriverId"))
+        did = _s(r.get("DriverId")) or abbr2id.get(str(r.get("Abbreviation") or "").strip().upper())
         if not did:
             continue
         base = {
             "race_id": rid, "season": season, "round": rnd,
-            "driver_id": did, "constructor_id": _s(r.get("TeamId")),
+            "driver_id": did, "constructor_id": _s(r.get("TeamId")) or teams.get(did),
             "car_number": _int(r.get("DriverNumber")),
             "position": _int(r.get("Position")),
         }
@@ -230,13 +305,18 @@ def ingest_results(session, season, rnd, code):
             rows.append(base)
         else:  # R or S
             f = fast.get(did, (None, None, None))
+            pos = _int(r.get("Position"))
+            pts = _num(r.get("Points"))
+            if pts is None and code == "R":
+                pts = _points_for(pos)
             base.update({
                 "position_text": _s(r.get("ClassifiedPosition")),
-                "points": _num(r.get("Points")),
+                "points": pts,
                 "grid": _int(r.get("GridPosition")),
-                "laps": _int(r.get("Laps")),
+                "laps": _int(r.get("Laps")) or laps_done.get(did),
                 "status": _s(r.get("Status")),
-                "is_dnf": _dnf(r.get("Status")),
+                "is_dnf": (_dnf(r.get("Status")) if _s(r.get("Status"))
+                           else _dnf_from_laps(laps_done.get(did), winner_laps)),
                 "time_text": bf._fmt_laptime(r.get("Time")) if _int(r.get("Position")) == 1 else None,
                 "time_millis": _millis(r.get("Time")),
                 "fastest_lap_time": f[0], "fastest_lap_number": f[2],
@@ -259,22 +339,33 @@ def ingest_results(session, season, rnd, code):
 def ingest_laps(session, season, rnd, code):
     import pandas as pd
     rid = bf.race_id_for(season, rnd)
-    abbr2id = enrich._abbr_to_id(session)
+    abbr2id = enrich._abbr_to_id(session, season)
     rows = []
+    unresolved = set()
     for _, lp in session.laps.iterrows():
         drv = lp.get("Driver")
         ln = _int(lp.get("LapNumber"))
         if drv is None or ln is None:
             continue
+        did = abbr2id.get(str(drv).strip().upper())
+        if not did:
+            # Never fall back to the abbreviation itself: driver_id is an FK to f1_driver,
+            # so "ANT" can only ever produce a 409 that masks the real problem (an
+            # unresolvable driver) behind a constraint error.
+            unresolved.add(str(drv))
+            continue
         rows.append({
             "race_id": rid, "season": season, "round": rnd, "session_type": code,
-            "driver_id": abbr2id.get(str(drv), str(drv)),
+            "driver_id": did,
             "lap_number": ln, "position": _int(lp.get("Position")),
             "time_text": bf._fmt_laptime(lp.get("LapTime")),
             "time_millis": _millis(lp.get("LapTime")),
             "source": "fastf1",
         })
     n = bf.supa_upsert("f1_lap", rows, "season,round,session_type,driver_id,lap_number")
+    if unresolved:
+        print(f"  laps {season} R{rnd} {code}: WARNING unresolved drivers skipped: "
+              f"{', '.join(sorted(unresolved))}")
     print(f"  laps {season} R{rnd} {code}: {n}")
     return n
 
@@ -283,9 +374,12 @@ def ingest_laps(session, season, rnd, code):
 def ingest_pitstops(session, season, rnd):
     import pandas as pd
     rid = bf.race_id_for(season, rnd)
-    abbr2id = enrich._abbr_to_id(session)
+    abbr2id = enrich._abbr_to_id(session, season)
     rows = []
     for drv, dl in session.laps.groupby("Driver"):
+        did = abbr2id.get(str(drv).strip().upper())
+        if not did:
+            continue  # same FK reasoning as ingest_laps — never write a raw abbreviation
         dl = dl.sort_values("LapNumber")
         stop = 0
         laps_list = list(dl.iterrows())
@@ -299,7 +393,7 @@ def ingest_pitstops(session, season, rnd):
                         dur = round((out - lp.get("PitInTime")).total_seconds(), 3)
                 rows.append({
                     "race_id": rid, "season": season, "round": rnd,
-                    "driver_id": abbr2id.get(str(drv), str(drv)),
+                    "driver_id": did,
                     "stop": stop, "lap": _int(lp.get("LapNumber")),
                     "duration_seconds": dur, "source": "fastf1",
                 })
