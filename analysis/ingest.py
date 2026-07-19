@@ -148,6 +148,38 @@ def ingest_schedule(season):
 
 
 # ── entities ──────────────────────────────────────────────────────────────────
+def _merge_upsert(table, rows, conflict_key):
+    """Upsert entity rows WITHOUT nulling columns FastF1 didn't supply.
+
+    A plain upsert overwrites every column in the payload, so any field FastF1 leaves
+    empty wipes a good stored value. That is not hypothetical: FastF1 has no CountryCode
+    for 2026, so re-ingesting Spa blanked nationality for all 22 drivers and every
+    country flag on the site disappeared. It also shortened names to FastF1's version
+    ("Kimi Antonelli" over Ergast's "Andrea Kimi Antonelli").
+
+    Read the existing rows and let a stored value win whenever the incoming one is empty,
+    so an ingest can only ever add detail.
+    """
+    if not rows:
+        return
+    try:
+        keys = {r[conflict_key] for r in rows if r.get(conflict_key)}
+        existing = {}
+        for row in bf.supa_select(table, "*") or []:
+            if row.get(conflict_key) in keys:
+                existing[row[conflict_key]] = row
+    except (Exception, SystemExit):  # noqa: BLE001
+        existing = {}  # can't read — fall through to a plain upsert
+    for r in rows:
+        prev = existing.get(r.get(conflict_key))
+        if not prev:
+            continue
+        for col, val in list(r.items()):
+            if val in (None, "") and prev.get(col) not in (None, ""):
+                r[col] = prev[col]
+    bf.supa_upsert(table, rows, conflict_key)
+
+
 def upsert_entities(session, season):
     drivers, constructors = {}, {}
     for _, r in session.results.iterrows():
@@ -176,8 +208,8 @@ def upsert_entities(session, season):
                 "slug": _slug(nm or tid),
                 "active_season": season,
             }
-    bf.supa_upsert("f1_driver", list(drivers.values()), "ergast_id")
-    bf.supa_upsert("f1_constructor", list(constructors.values()), "ergast_id")
+    _merge_upsert("f1_driver", list(drivers.values()), "ergast_id")
+    _merge_upsert("f1_constructor", list(constructors.values()), "ergast_id")
 
 
 # ── results (race / qualifying / sprint) ──────────────────────────────────────
