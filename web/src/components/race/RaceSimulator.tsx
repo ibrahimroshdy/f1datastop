@@ -136,6 +136,7 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
     const snaps: Snap[] = [];
     for (const d of blob.drivers) {
       const laps = d.laps ?? [];
+      const who = d.code ?? d.driver_id;  // see note on bestHolder below
       const pb: [number, number, number] = [Infinity, Infinity, Infinity];
       let live: (typeof laps)[number] | null = null; // lap the driver is currently on
       let lastC: (typeof laps)[number] | null = null; // last fully-completed lap
@@ -151,8 +152,11 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
           if (sv[k] != null && stt != null && stt <= t) {
             if (sv[k]! < pb[k]) pb[k] = sv[k]!;
             if (sv[k]! < bestSession[k]) {
+              // Attribute by code, not driver_id: the replay blob leaves driver_id empty until
+              // Ergast publishes the round, so every row compared equal to every other and each
+              // driver's sectors all rendered as session-best (and everyone held the fastest lap).
               bestSession[k] = sv[k]!;
-              bestHolder[k] = d.driver_id;
+              bestHolder[k] = who;
             }
             if (stt > secT[k]) {
               secT[k] = stt;
@@ -165,7 +169,7 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
           if (!lastC || l.n > lastC.n) lastC = l;
           if (!l.pit && l.last != null && l.last < flTime) {
             flTime = l.last;
-            flId = d.driver_id;
+            flId = who;
           }
         }
         if (l.ts <= t && (!live || l.n > live.n)) live = l;
@@ -196,7 +200,7 @@ function useTiming(blob: RaceReplayBlob, fi: number) {
     snaps.forEach((s, i) => {
       if (i > 0 && s.gap != null && snaps[i - 1].gap != null) s.int = s.gap - snaps[i - 1].gap!;
       s.lapsDown = s.curLapN != null ? Math.max(0, leaderLap - s.curLapN) : 0;
-      s.isFL = s.id === flId;
+      s.isFL = s.code === flId;
       s.isFLLap = s.lastTime != null && s.lastTime === flTime;
     });
     return { snaps, bestSession, bestHolder, leaderLap, t, flTime, flId };

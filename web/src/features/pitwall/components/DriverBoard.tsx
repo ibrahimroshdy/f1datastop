@@ -48,13 +48,29 @@ interface Props {
 function SectorLeds({ sec, pb, id, bestHolder }: { sec?: (number | null)[]; pb?: [number, number, number]; id: string; bestHolder: (string | null)[] }) {
   if (!sec) return null;
   return (
-    <span className="flex items-center gap-1" title="Sectors 1·2·3">
+    <span className="flex items-center gap-1">
       {sec.map((s, k) => {
         let dot = "bg-muted-foreground/25";
-        if (id === bestHolder[k]) dot = "bg-fastest-lap shadow-[0_0_5px] shadow-fastest-lap/70";
-        else if (s != null && pb && s === pb[k]) dot = "bg-gain shadow-[0_0_5px] shadow-gain/70";
-        else if (s != null) dot = "bg-yellow-500 dark:bg-yellow-400";
-        return <span key={k} className={cn("h-2 w-2 rounded-full transition-colors", dot)} />;
+        let what = "not set";
+        if (id === bestHolder[k]) {
+          dot = "bg-fastest-lap shadow-[0_0_5px] shadow-fastest-lap/70";
+          what = "session best";
+        } else if (s != null && pb && s === pb[k]) {
+          dot = "bg-gain shadow-[0_0_5px] shadow-gain/70";
+          what = "personal best";
+        } else if (s != null) {
+          dot = "bg-yellow-500 dark:bg-yellow-400";
+          what = "set";
+        }
+        // Per-dot title: the times are the point of the gauge, and one label on the group
+        // ("Sectors 1·2·3") gave no way to read them.
+        return (
+          <span
+            key={k}
+            className={cn("h-2 w-2 rounded-full transition-colors", dot)}
+            title={`Sector ${k + 1} — ${s == null ? "—" : `${(s / 1000).toFixed(3)}s`} (${what})`}
+          />
+        );
       })}
     </span>
   );
@@ -185,7 +201,7 @@ export function DriverBoard({
                           <span className={cn("readout text-[11px]", r.isFL ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(r.lastTime)}</span>
                         )}
                         {gapText && <span className="timing text-[9px] text-muted-foreground">{gapText}</span>}
-                        {blob && r.sec && <SectorLeds sec={r.sec} pb={r.pb} id={r.id} bestHolder={bestHolder} />}
+                        {blob && r.sec && <SectorLeds sec={r.sec} pb={r.pb} id={r.code} bestHolder={bestHolder} />}
                       </span>
                     </span>
                   </button>

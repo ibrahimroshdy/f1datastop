@@ -63,8 +63,12 @@ const fmtLap = (s: number | null) => {
 };
 const fmtGap = (s: number | null) => (s == null ? "—" : s < 0.05 ? "—" : `+${s.toFixed(1)}`);
 
+/** Sector time in ms → "28.412". */
+const fmtSector = (ms: number | null | undefined) =>
+  ms == null ? "—" : (ms / 1000).toFixed(3);
+
 /** Sectors 1·2·3 as an LED gauge — purple = session best, green = personal best,
- *  yellow = set this lap, dim = not yet. */
+ *  yellow = set this lap, dim = not yet. Each dot carries its own time on hover. */
 function SectorLeds({
   sec,
   pb,
@@ -77,13 +81,29 @@ function SectorLeds({
   bestHolder: (string | null)[];
 }) {
   return (
-    <span className="flex items-center gap-1" title="Sectors 1·2·3">
+    <span className="flex items-center gap-1">
       {sec.map((s, k) => {
         let dot = "bg-muted-foreground/25";
-        if (id === bestHolder[k]) dot = "bg-fastest-lap shadow-[0_0_5px] shadow-fastest-lap/70";
-        else if (s != null && s === pb[k]) dot = "bg-gain shadow-[0_0_5px] shadow-gain/70";
-        else if (s != null) dot = "bg-yellow-500 dark:bg-yellow-400";
-        return <span key={k} className={cn("h-2 w-2 rounded-full transition-colors", dot)} />;
+        let what = "not set";
+        if (id === bestHolder[k]) {
+          dot = "bg-fastest-lap shadow-[0_0_5px] shadow-fastest-lap/70";
+          what = "session best";
+        } else if (s != null && s === pb[k]) {
+          dot = "bg-gain shadow-[0_0_5px] shadow-gain/70";
+          what = "personal best";
+        } else if (s != null) {
+          dot = "bg-yellow-500 dark:bg-yellow-400";
+          what = "set";
+        }
+        // Per-dot title: the whole point of the gauge is the times behind it, and a single
+        // label on the group ("Sectors 1·2·3") gave no way to read them.
+        return (
+          <span
+            key={k}
+            className={cn("h-2 w-2 rounded-full transition-colors", dot)}
+            title={`Sector ${k + 1} — ${fmtSector(s)}${s != null ? "s" : ""} (${what})`}
+          />
+        );
       })}
     </span>
   );
@@ -297,7 +317,7 @@ export default function RaceControlDriverBoard({
                           </span>
                         )}
                       </span>
-                      <SectorLeds sec={r.sec} pb={r.pb} id={r.id} bestHolder={bestHolder} />
+                      <SectorLeds sec={r.sec} pb={r.pb} id={r.code} bestHolder={bestHolder} />
                     </span>
                   </span>
                 </button>

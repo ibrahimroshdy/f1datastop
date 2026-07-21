@@ -75,6 +75,7 @@ export function computeTiming(blob: RaceReplayBlob, fi: number): TimingResult {
   const snaps: Snap[] = [];
 
   for (const d of blob.drivers) {
+    const who = d.code ?? d.driver_id;
     const laps = d.laps ?? [];
     const pb: [number, number, number] = [Infinity, Infinity, Infinity];
     let live: (typeof laps)[number] | null = null;
@@ -89,8 +90,11 @@ export function computeTiming(blob: RaceReplayBlob, fi: number): TimingResult {
         if (sv[k] != null && stt != null && stt <= t) {
           if (sv[k]! < pb[k]) pb[k] = sv[k]!;
           if (sv[k]! < bestSession[k]) {
+            // Attribute by code, not driver_id: the replay blob leaves driver_id empty until
+            // Ergast publishes the round, so every row compared equal to every other and each
+            // driver's sectors all rendered as session-best (and everyone held the fastest lap).
             bestSession[k] = sv[k]!;
-            bestHolder[k] = d.driver_id;
+            bestHolder[k] = who;
           }
           if (stt > secT[k]) {
             secT[k] = stt;
@@ -103,7 +107,7 @@ export function computeTiming(blob: RaceReplayBlob, fi: number): TimingResult {
         if (!lastC || l.n > lastC.n) lastC = l;
         if (!l.pit && l.last != null && l.last < flTime) {
           flTime = l.last;
-          flId = d.driver_id;
+          flId = who;
         }
       }
       if (l.ts <= t && (!live || l.n > live.n)) live = l;
@@ -155,7 +159,7 @@ export function computeTiming(blob: RaceReplayBlob, fi: number): TimingResult {
   snaps.forEach((s, i) => {
     if (i > 0 && s.gap != null && snaps[i - 1].gap != null) s.int = s.gap - snaps[i - 1].gap!;
     s.lapsDown = s.curLapN != null ? Math.max(0, leaderLap - s.curLapN) : 0;
-    s.isFL = s.id === flId;
+    s.isFL = s.code === flId;
     s.isFLLap = s.lastTime != null && s.lastTime === flTime;
   });
   return { snaps, bestHolder, leaderLap, t, flId };
@@ -170,10 +174,12 @@ export function refLapFrac(blob: RaceReplayBlob, code: string | null, frame: num
   const d = blob.drivers.find((x) => x.code === code);
   if (!d) return 0;
   const t = blob.times[Math.round(frame)] ?? 0;
-  let live: { ts: number; te?: number | null; last?: number | null; n: number } | null = null;
+  let live: { ts: number; te?: number | null; s3t?: number | null; last?: number | null; n: number } | null = null;
   for (const l of d.laps ?? []) if (l.ts <= t && (!live || l.n > live.n)) live = l;
   if (!live) return 0;
-  const te = live.te ?? (live.last != null ? live.ts + live.last : live.ts + 90);
+  // Same lap-end precedence as computeTiming — s3t before the 90s guess.
+  const te =
+    live.te ?? live.s3t ?? (live.last != null ? live.ts + live.last : null) ?? live.ts + 90;
   const span = te - live.ts || 1;
   return Math.max(0, Math.min(1, (t - live.ts) / span));
 }
