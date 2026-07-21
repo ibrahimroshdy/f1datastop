@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { REPLAY_FPS } from "@/components/common/ReplaySpeedControl";
 
-const PLAY_FPS = 12; // frames advanced per wall-second at 1× (~18× real-time)
 
 export interface ReplayPlayhead {
   frame: number;
@@ -28,7 +28,7 @@ export function useReplayPlayhead(frames: number): ReplayPlayhead {
       const dt = (ts - last.current) / 1000;
       last.current = ts;
       setFrame((f) => {
-        const n = f + PLAY_FPS * speed * dt;
+        const n = f + REPLAY_FPS * speed * dt;
         if (n >= lastFrame) {
           setPlaying(false);
           return lastFrame;

@@ -17,6 +17,17 @@ export const REPLAY_SPEEDS = [0.25, 0.5, 1, 2] as const;
 
 export type ReplaySpeed = (typeof REPLAY_SPEEDS)[number];
 
+/**
+ * Frames advanced per wall-second at 1x. Lives here with the ladder because the two are
+ * one contract: the multiplier is meaningless without the base rate, and both surfaces
+ * must share it or "1x" silently means different things on each.
+ *
+ * A replay frame is ~1.5s of session, so 6 fps puts 1x at ~9x real time — a 44-lap race
+ * runs ~9.5 min at 1x, ~38 min at 0.25x, ~4.8 min at 2x. Halved from 12 (18x real time),
+ * which was too fast to follow the racing.
+ */
+export const REPLAY_FPS = 6;
+
 interface Props {
   speed: number;
   setSpeed: (s: ReplaySpeed) => void;

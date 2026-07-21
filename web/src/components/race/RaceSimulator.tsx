@@ -11,15 +11,13 @@ import {
   type ReplaySafetyPeriod,
 } from "@/services/raceReplayService";
 import { getCircuitGeometry, fetchCircuitGeometryBlob } from "@/services/circuitGeometryService";
-import ReplaySpeedControl, { type ReplaySpeed } from "@/components/common/ReplaySpeedControl";
+import ReplaySpeedControl, { REPLAY_FPS, type ReplaySpeed } from "@/components/common/ReplaySpeedControl";
 
 interface Props {
   year: number;
   round: string;
   session?: string;
 }
-
-const PLAY_FPS = 12; // frames advanced per wall-second at 1× (~18× real-time)
 
 const SAFETY_STYLE: Record<ReplaySafetyPeriod["kind"], { label: string; color: string }> = {
   SC: { label: "Safety Car", color: "hsl(45 96% 50%)" },
@@ -85,7 +83,7 @@ function usePlayhead(frames: number) {
       const dt = (ts - last.current) / 1000;
       last.current = ts;
       setFrame((f) => {
-        const next = f + PLAY_FPS * speed * dt;
+        const next = f + REPLAY_FPS * speed * dt;
         if (next >= lastFrame) {
           setPlaying(false);
           return lastFrame;
