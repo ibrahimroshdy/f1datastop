@@ -1,12 +1,10 @@
 import { useMemo } from "react";
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { colorWithAlpha } from "@/constants/f1Colors";
-import { cn } from "@/lib/utils";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
 import type { ReplayPlayhead } from "../hooks/useReplayPlayhead";
 import { computeTiming, fmtClock, SAFETY_STYLE } from "../replayEngine";
-
-const SPEEDS = [0.25, 0.5, 1, 2];
+import ReplaySpeedControl from "@/components/common/ReplaySpeedControl";
 
 interface Props {
   blob: RaceReplayBlob;
@@ -76,21 +74,7 @@ export function RaceProgressBar({ blob, playhead }: Props) {
             {SAFETY_STYLE[active.kind].label}
           </span>
         )}
-        <div className="ml-auto flex overflow-hidden rounded-md border border-border">
-          {SPEEDS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setSpeed(s)}
-              className={cn(
-                "px-2 py-1 text-2xs font-semibold",
-                speed === s ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {s}x
-            </button>
-          ))}
-        </div>
+        <ReplaySpeedControl speed={speed} setSpeed={setSpeed} className="ml-auto" />
       </div>
 
       {/* Timeline — SC solid · VSC hatched · red · overtake ticks */}

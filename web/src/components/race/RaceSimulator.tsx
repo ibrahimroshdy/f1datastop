@@ -11,6 +11,7 @@ import {
   type ReplaySafetyPeriod,
 } from "@/services/raceReplayService";
 import { getCircuitGeometry, fetchCircuitGeometryBlob } from "@/services/circuitGeometryService";
+import ReplaySpeedControl, { type ReplaySpeed } from "@/components/common/ReplaySpeedControl";
 
 interface Props {
   year: number;
@@ -18,12 +19,6 @@ interface Props {
   session?: string;
 }
 
-// Match Pit Wall's transport (features/pitwall/components/RaceProgressBar.tsx). Both
-// surfaces replay the same blob through the same frame loop, so a given multiplier must
-// mean the same thing in each. The old 1-8x ladder had no sub-1x step, so Race Control
-// couldn't be slowed to follow a single move the way Pit Wall can, and its top speed ran
-// 4x faster than anything Pit Wall offers.
-const SPEEDS = [0.25, 0.5, 1, 2] as const;
 const PLAY_FPS = 12; // frames advanced per wall-second at 1× (~18× real-time)
 
 const SAFETY_STYLE: Record<ReplaySafetyPeriod["kind"], { label: string; color: string }> = {
@@ -78,7 +73,7 @@ const fmtSec = (ms: number | null | undefined) => (ms == null ? "—" : (ms / 10
 function usePlayhead(frames: number) {
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
+  const [speed, setSpeed] = useState<ReplaySpeed>(1);
   const raf = useRef<number>();
   const last = useRef<number>(0);
   const lastFrame = frames - 1;
@@ -565,11 +560,7 @@ function SimBody({
           <button type="button" onClick={() => setShowSectors(!showSectors)} className={cn("mr-1 inline-flex min-h-8 items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors", showSectors ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent")}>
             <Layers className="h-3 w-3" /> Sectors
           </button>
-          {SPEEDS.map((sp) => (
-            <button key={sp} type="button" onClick={() => setSpeed(sp)} className={cn("min-h-8 rounded px-2 py-1 text-xs font-medium tabular-nums transition-colors", speed === sp ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent")}>
-              {sp}×
-            </button>
-          ))}
+          <ReplaySpeedControl speed={speed} setSpeed={setSpeed} />
         </div>
       </div>
 
