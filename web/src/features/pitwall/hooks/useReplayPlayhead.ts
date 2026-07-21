@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { REPLAY_FPS } from "@/components/common/ReplaySpeedControl";
+import { REPLAY_FPS, REPLAY_SPEEDS } from "@/components/common/ReplaySpeedControl";
 
 
 export interface ReplayPlayhead {
@@ -16,7 +16,8 @@ export interface ReplayPlayhead {
 export function useReplayPlayhead(frames: number): ReplayPlayhead {
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
+  // Start on the slowest step — the closest this ladder gets to real time.
+  const [speed, setSpeed] = useState<number>(REPLAY_SPEEDS[0]);
   const raf = useRef<number>();
   const last = useRef(0);
   const lastFrame = Math.max(0, frames - 1);

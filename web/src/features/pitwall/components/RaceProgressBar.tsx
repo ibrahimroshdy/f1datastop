@@ -74,7 +74,12 @@ export function RaceProgressBar({ blob, playhead }: Props) {
             {SAFETY_STYLE[active.kind].label}
           </span>
         )}
-        <ReplaySpeedControl speed={speed} setSpeed={setSpeed} className="ml-auto" />
+        <ReplaySpeedControl
+          speed={speed}
+          setSpeed={setSpeed}
+          secondsPerFrame={blob.frames ? blob.duration_s / blob.frames : undefined}
+          className="ml-auto"
+        />
       </div>
 
       {/* Timeline — SC solid · VSC hatched · red · overtake ticks */}

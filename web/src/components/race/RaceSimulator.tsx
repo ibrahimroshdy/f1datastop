@@ -11,7 +11,7 @@ import {
   type ReplaySafetyPeriod,
 } from "@/services/raceReplayService";
 import { getCircuitGeometry, fetchCircuitGeometryBlob } from "@/services/circuitGeometryService";
-import ReplaySpeedControl, { REPLAY_FPS, type ReplaySpeed } from "@/components/common/ReplaySpeedControl";
+import ReplaySpeedControl, { REPLAY_FPS, REPLAY_SPEEDS, type ReplaySpeed } from "@/components/common/ReplaySpeedControl";
 
 interface Props {
   year: number;
@@ -71,7 +71,8 @@ const fmtSec = (ms: number | null | undefined) => (ms == null ? "—" : (ms / 10
 function usePlayhead(frames: number) {
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState<ReplaySpeed>(1);
+  // Start on the slowest step — the closest this ladder gets to real time.
+  const [speed, setSpeed] = useState<ReplaySpeed>(REPLAY_SPEEDS[0]);
   const raf = useRef<number>();
   const last = useRef<number>(0);
   const lastFrame = frames - 1;
@@ -558,7 +559,11 @@ function SimBody({
           <button type="button" onClick={() => setShowSectors(!showSectors)} className={cn("mr-1 inline-flex min-h-8 items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors", showSectors ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent")}>
             <Layers className="h-3 w-3" /> Sectors
           </button>
-          <ReplaySpeedControl speed={speed} setSpeed={setSpeed} />
+          <ReplaySpeedControl
+            speed={speed}
+            setSpeed={setSpeed}
+            secondsPerFrame={blob.frames ? blob.duration_s / blob.frames : undefined}
+          />
         </div>
       </div>
 
