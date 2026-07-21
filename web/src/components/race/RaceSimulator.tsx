@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
 import { Play, Pause, RotateCcw, Flag, ShieldAlert, Radio, Layers } from "lucide-react";
 import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/components/f1";
 import { cn } from "@/lib/utils";
@@ -12,6 +11,7 @@ import {
 } from "@/services/raceReplayService";
 import { getCircuitGeometry, fetchCircuitGeometryBlob } from "@/services/circuitGeometryService";
 import ReplaySpeedControl, { REPLAY_FPS, REPLAY_SPEEDS, type ReplaySpeed } from "@/components/common/ReplaySpeedControl";
+import RaceControlDriverBoard from "./RaceControlDriverBoard";
 
 interface Props {
   year: number;
@@ -308,94 +308,6 @@ function TrackSVG({
   );
 }
 
-// ── Timing tower ──────────────────────────────────────────────────────────────
-function SectorBars({ snap, bestHolder }: { snap: Snap; bestHolder: (string | null)[] }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {snap.sec.map((s, k) => {
-        let cls = "bg-muted-foreground/25"; // no time yet
-        if (snap.id === bestHolder[k]) cls = "bg-fastest-lap"; // session best (purple)
-        else if (s != null && s === snap.pb[k]) cls = "bg-gain"; // personal best (green)
-        else if (s != null) cls = "bg-muted-foreground/50"; // set, not a best
-        return <span key={k} className={cn("h-1 w-2.5 rounded-sm", cls)} />;
-      })}
-    </div>
-  );
-}
-
-function TimingTower({
-  snaps,
-  bestHolder,
-  aidLabel,
-  isRace,
-  sel,
-  setSel,
-}: {
-  snaps: Snap[];
-  bestHolder: (string | null)[];
-  aidLabel: string;
-  isRace: boolean;
-  sel: string | null;
-  setSel: (v: string | null) => void;
-}) {
-  return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border/60">
-      <div className="flex items-center gap-1 border-b border-border/60 bg-muted/30 px-2 py-1.5 text-2xs uppercase tracking-wide text-muted-foreground">
-        <span className="w-4 text-right">P</span>
-        <span className="w-12 pl-1.5">Driver</span>
-        <span className="ml-auto w-14 text-right">Gap</span>
-        <span className="w-[3.9rem] text-right">Last</span>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <AnimatePresence initial={false}>
-          {snaps.map((s) => {
-            const isSel = s.id === sel;
-            const gapText = s.pos === 1 ? (isRace ? "LEADER" : "—") : isRace && s.lapsDown >= 1 ? `+${s.lapsDown}L` : fmtGap(s.gap);
-            return (
-              <motion.button
-                key={s.id}
-                layout
-                type="button"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ layout: { type: "spring", stiffness: 650, damping: 46 }, opacity: { duration: 0.15 } }}
-                onClick={() => setSel(isSel ? null : s.id)}
-                className={cn(
-                  "flex w-full items-center gap-1 border-b border-border/40 px-2 py-1 text-left tabular-nums transition-colors",
-                  isSel ? "bg-primary/10" : "hover:bg-accent/50",
-                  s.pit && "opacity-55",
-                )}
-              >
-                <span className="w-4 shrink-0 text-right text-xs font-bold text-muted-foreground">{s.pos ?? "—"}</span>
-                <span className="ml-0.5 h-3.5 w-1 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-                <span className="w-8 shrink-0 text-sm font-bold" style={{ color: s.color }}>{s.code}</span>
-                {s.tyre && (
-                  <span className="inline-flex shrink-0 items-baseline gap-px text-[9px] font-bold" style={{ color: TYRE_COLOR[s.tyre] ?? "hsl(var(--muted-foreground))" }}>
-                    {s.tyre}
-                    {s.tyl != null && <span className="text-[8px] text-muted-foreground">{s.tyl}</span>}
-                  </span>
-                )}
-                {s.drs && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-gain" title={aidLabel} />}
-                {s.pit && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-position-gold" title="In pit" />}
-                {s.isFL && <span className="shrink-0 text-[8px] leading-none text-fastest-lap" title="Fastest lap">◆</span>}
-                <span className="ml-auto flex w-14 shrink-0 flex-col items-end leading-tight">
-                  <span className="text-2xs text-muted-foreground">{gapText}</span>
-                  {s.pos !== 1 && s.int != null && <span className="text-[9px] text-muted-foreground/60">{fmtGap(s.int)}</span>}
-                </span>
-                <span className="flex w-[3.9rem] shrink-0 flex-col items-end gap-0.5">
-                  <span className={cn("readout text-[11px]", s.isFLLap ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(s.lastTime)}</span>
-                  <SectorBars snap={s} bestHolder={bestHolder} />
-                </span>
-              </motion.button>
-            );
-          })}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
-
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function RaceSimulator({ year, round, session = "R" }: Props) {
   const roundNum = parseInt(round, 10);
@@ -472,7 +384,7 @@ export default function RaceSimulator({ year, round, session = "R" }: Props) {
             )}
           </div>
         ) : (
-          <SimBody blob={blob} geom={geom} sel={sel} setSel={setSel} showSectors={showSectors} setShowSectors={setShowSectors} />
+          <SimBody blob={blob} geom={geom} year={year} sel={sel} setSel={setSel} showSectors={showSectors} setShowSectors={setShowSectors} />
         )}
       </F1CardContent>
     </F1Card>
@@ -482,6 +394,7 @@ export default function RaceSimulator({ year, round, session = "R" }: Props) {
 function SimBody({
   blob,
   geom,
+  year,
   sel,
   setSel,
   showSectors,
@@ -489,6 +402,7 @@ function SimBody({
 }: {
   blob: RaceReplayBlob;
   geom: { outlinePath: string | null; sectorPaths: string[] | null; startFinish: null | { ax: number; ay: number; bx: number; by: number; lx: number; ly: number } };
+  year: number;
   sel: string | null;
   setSel: (v: string | null) => void;
   showSectors: boolean;
@@ -589,7 +503,15 @@ function SimBody({
         </div>
         {hasTiming && (
           <div className="lg:h-[clamp(380px,56vh,600px)]">
-            <TimingTower snaps={snaps} bestHolder={bestHolder} aidLabel={aidLabel} isRace={isRace} sel={sel} setSel={setSel} />
+            <RaceControlDriverBoard
+              rows={snaps}
+              bestHolder={bestHolder}
+              isRace={isRace}
+              year={year}
+              aidLabel={aidLabel}
+              selected={sel}
+              onSelect={setSel}
+            />
           </div>
         )}
       </div>

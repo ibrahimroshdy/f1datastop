@@ -60,7 +60,10 @@ export const DRIVER_CODE_TO_ERGAST_ID: Record<string, string> = {
   RUS: "russell", ANT: "antonelli", LEC: "leclerc", HAM: "hamilton",
   NOR: "norris", PIA: "piastri", OCO: "ocon", BEA: "bearman",
   GAS: "gasly", COL: "colapinto", VER: "max_verstappen", HAD: "hadjar",
-  LAW: "lawson", LIN: "lindblad", HUL: "hulkenberg", BOR: "bortoleto",
+  // Lindblad's Ergast id carries his first name. The portrait map holds both spellings so
+  // the photo resolved either way, but anything keyed on the real id — the standings
+  // lookup behind the team logo — missed silently. Use the canonical form.
+  LAW: "lawson", LIN: "arvid_lindblad", HUL: "hulkenberg", BOR: "bortoleto",
   SAI: "sainz", ALB: "albon", PER: "perez", BOT: "bottas",
   ALO: "alonso", STR: "stroll", CRA: "crawford",
 };
