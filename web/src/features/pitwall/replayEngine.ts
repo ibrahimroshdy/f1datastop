@@ -109,10 +109,23 @@ export function computeTiming(blob: RaceReplayBlob, fi: number): TimingResult {
       if (l.ts <= t && (!live || l.n > live.n)) live = l;
     }
     const curLap = live ?? lastC;
-    // Fraction through the current lap (for the telemetry crosshair).
+    // Fraction through the current lap — this is what positions the telemetry crosshair,
+    // so the lap's end time has to be right or the crosshair drifts against the car.
+    //
+    // te/last are null on 9.5% of laps in a real blob (2026 R10: 83 of 872), not just the
+    // in-progress one, and the old `ts + 90` fallback then assumed a 90-second lap. Spa's
+    // median is 112s, so on those laps the crosshair swept 1.25x too fast, reached the end
+    // of the trace 80% through the lap and sat pinned there for the rest of it.
+    //
+    // s3t (session time at the sector-3 line = the lap's end) is present on 99.9% of laps,
+    // so prefer it over the guess and keep the constant only as a last resort.
     let frac = 0;
     if (live) {
-      const te = live.te ?? (live.last != null ? live.ts + live.last : live.ts + 90);
+      const te =
+        live.te ??
+        live.s3t ??
+        (live.last != null ? live.ts + live.last : null) ??
+        live.ts + 90;
       const span = te - live.ts || 1;
       frac = Math.max(0, Math.min(1, (t - live.ts) / span));
     }

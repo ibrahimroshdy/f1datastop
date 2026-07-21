@@ -18,7 +18,12 @@ interface Props {
   session?: string;
 }
 
-const SPEEDS = [1, 2, 4, 8] as const;
+// Match Pit Wall's transport (features/pitwall/components/RaceProgressBar.tsx). Both
+// surfaces replay the same blob through the same frame loop, so a given multiplier must
+// mean the same thing in each. The old 1-8x ladder had no sub-1x step, so Race Control
+// couldn't be slowed to follow a single move the way Pit Wall can, and its top speed ran
+// 4x faster than anything Pit Wall offers.
+const SPEEDS = [0.25, 0.5, 1, 2] as const;
 const PLAY_FPS = 12; // frames advanced per wall-second at 1× (~18× real-time)
 
 const SAFETY_STYLE: Record<ReplaySafetyPeriod["kind"], { label: string; color: string }> = {
