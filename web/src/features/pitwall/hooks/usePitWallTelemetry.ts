@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useQueries } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, type Query } from "@tanstack/react-query";
 import { resolveLapTelemetry, type LapTelemetryState } from "@/services/telemetryRequestService";
 import type { TelemetryIndexRow } from "@/services/telemetryService";
 
@@ -52,8 +52,15 @@ export function usePitWallTelemetry(
         queryKey: ["pitwall", "lap-telemetry", year, round, session, code, target],
         enabled: !!round && target != null,
         queryFn: () => resolveLapTelemetry(year, round as number, session, code, target as number),
-        refetchInterval: (query: { state: { data?: LapTelemetryState } }) => {
-          const s = query.state.data?.status;
+        // Keep the previous lap's trace on screen while the next lap loads. In auto-follow
+        // the target lap increments every lap as the replay plays, changing the query key;
+        // without this the panel briefly sees no "done" telemetry, empties its ready set,
+        // and falls back to the "Select drivers" placeholder — so the driver you're watching
+        // appears to deselect and reload from scratch each lap boundary. keepPreviousData
+        // holds the last blob until the new one resolves, then swaps in place.
+        placeholderData: keepPreviousData,
+        refetchInterval: (query: Query) => {
+          const s = (query.state.data as LapTelemetryState | undefined)?.status;
           return s === "queued" || s === "processing" ? POLL_MS : false;
         },
         staleTime: 60_000,
