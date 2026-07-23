@@ -12,22 +12,35 @@ export interface AnalysisChart {
 }
 
 /** Pre-generated FastF1 charts for a race (from the analysis pipeline). */
+/** Chart render theme. Maps from the app's ThemeMode: light→light, dark→dark,
+ *  dark-glass→glass (a transparent PNG for the frosted card). */
+export type ChartTheme = "dark" | "light" | "glass";
+
 export async function getAnalysisCharts(
   season: number,
   round: number,
   session = "R",
+  theme: ChartTheme = "dark",
 ): Promise<AnalysisChart[]> {
   if (!season || !round) return [];
+  const db = (supabase as unknown as { from: (t: string) => any });
   // analysis_charts isn't in the generated Database types; query untyped.
-  const { data, error } = await (supabase as unknown as {
-    from: (t: string) => any;
-  })
-    .from("analysis_charts")
-    .select("*")
-    .eq("season", season)
-    .eq("round", round)
-    .eq("session", session)
-    .order("chart_type");
+  const query = (t: ChartTheme) =>
+    db
+      .from("analysis_charts")
+      .select("*")
+      .eq("season", season)
+      .eq("round", round)
+      .eq("session", session)
+      .eq("theme", t)
+      .order("chart_type");
+
+  let { data, error } = await query(theme);
+  // Fall back to the dark set when the requested theme hasn't been generated yet, so a
+  // light/glass viewer still sees charts instead of an empty tab before a full regen.
+  if (!error && theme !== "dark" && (!data || data.length === 0)) {
+    ({ data, error } = await query("dark"));
+  }
 
   if (error) {
     console.warn("[analysisService] getAnalysisCharts:", error.message);

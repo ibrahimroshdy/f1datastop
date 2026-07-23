@@ -7,7 +7,9 @@ import {
   chartFormatOf,
   type AnalysisChart,
   type ChartFormat,
+  type ChartTheme,
 } from "@/services/analysisService";
+import { useTheme } from "@/context/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -82,12 +84,17 @@ function ChartImage({ src, alt, aspect }: { src: string; alt: string; aspect: st
 export default function AnalysisCharts({ year, round, session = "R" }: AnalysisChartsProps) {
   const r = parseInt(round, 10);
   const { cardVariant, glassVariant } = useThemeVariant();
+  const { theme } = useTheme();
+  // The app's three modes map 1:1 onto the three chart renders — glass gets the
+  // transparent PNG that lets the frosted card show through, not the dark one.
+  const chartTheme: ChartTheme =
+    theme === "light" ? "light" : theme === "dark-glass" ? "glass" : "dark";
   const [format, setFormat] = useState<ChartFormat>("landscape");
   const [downloadingAll, setDownloadingAll] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["analysisCharts", year, r, session],
-    queryFn: () => getAnalysisCharts(year, r, session),
+    queryKey: ["analysisCharts", year, r, session, chartTheme],
+    queryFn: () => getAnalysisCharts(year, r, session, chartTheme),
     staleTime: 60 * 60 * 1000,
     enabled: !!year && !!r,
   });

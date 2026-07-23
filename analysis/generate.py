@@ -44,12 +44,42 @@ except Exception:
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-# ── Palette (F1 DataStop — dark Pit Wall, red signature) ────────────────────
-PAPER = "#0A0B0F"     # ≈ app --background (240 8% 3.5%)
-PANEL = "#14161C"     # ≈ app --card / raised surface
-INK = "#F2F3F5"       # ≈ app --foreground (220 15% 96%)
-SUBINK = "#9A9CA6"    # ≈ app --muted-foreground (240 6% 64%)
-GRID = "#23262E"      # ≈ app --border
+# ── Palette (F1 DataStop) ───────────────────────────────────────────────────
+# Only the SURFACE + INK + GRID change between themes; the brand and data colours
+# (RED, GOLD, PURPLE, TEAM_COLORS, COMPOUND_COLORS, SECTOR_COLORS) are identity and
+# stay fixed so a driver/team/tyre reads the same on every theme.
+#
+# Mirrors the app's three modes and its getBaseTheme() model:
+#   dark   solid near-black surface, light ink   (app 'dark')
+#   light  solid near-white surface, dark ink    (app 'light')
+#   glass  TRANSPARENT surface, light ink         (app 'dark-glass' — the frosted card
+#          shows through the plot). Rendered with a transparent PNG background.
+THEMES = {
+    "dark":  {"paper": "#0A0B0F", "panel": "#14161C", "ink": "#F2F3F5",
+              "subink": "#9A9CA6", "grid": "#23262E", "transparent": False},
+    "light": {"paper": "#F6F7F9", "panel": "#FFFFFF", "ink": "#14161C",
+              "subink": "#5B5F6B", "grid": "#E2E4EA", "transparent": False},
+    "glass": {"paper": "#0A0B0F", "panel": "#14161C", "ink": "#F2F3F5",
+              "subink": "#A8AAB4", "grid": "#3A3E48", "transparent": True},
+}
+
+# Active-theme globals — swapped by apply_theme() before each render pass, exactly the
+# way FMT is swapped per format. Charts reference these names directly, so nothing in a
+# chart body needs to know which theme is active.
+PAPER = PANEL = INK = SUBINK = GRID = None
+TRANSPARENT = False
+
+
+def apply_theme(name):
+    """Point the palette globals at one theme. Call before rendering a pass."""
+    global PAPER, PANEL, INK, SUBINK, GRID, TRANSPARENT
+    t = THEMES.get(name, THEMES["dark"])
+    PAPER, PANEL, INK, SUBINK, GRID = t["paper"], t["panel"], t["ink"], t["subink"], t["grid"]
+    TRANSPARENT = t["transparent"]
+
+
+apply_theme("dark")   # default until a pass sets otherwise
+
 RED = "#E10600"       # app --primary (F1 red)
 GOLD = "#E7B008"      # app --position-gold (45 93% 47%)
 
@@ -168,10 +198,14 @@ def LY(key):
 def editorial_fig(left=0.09, right=0.93):
     L = LAYOUT[FMT]
     fig = plt.figure(figsize=L["figsize"], dpi=L["dpi"])
-    fig.patch.set_facecolor(PAPER)
+    face = "none" if TRANSPARENT else PAPER
+    fig.patch.set_facecolor(face)
+    fig.patch.set_alpha(0.0 if TRANSPARENT else 1.0)
     b, h = L["ax"]
     ax = fig.add_axes([left, b, right - left, h])
-    ax.set_facecolor(PAPER)
+    ax.set_facecolor(face)
+    if TRANSPARENT:
+        ax.patch.set_alpha(0.0)
     return fig, ax
 
 
@@ -572,14 +606,22 @@ def add_watermark(fig):
     for j, yy in enumerate(np.arange(0.03, 1.02, 0.092)):
         x0 = -0.06 + (0.07 if j % 2 else 0.0)
         for xx in np.arange(x0, 1.04, 0.143):
-            fig.text(xx, yy, "f1datastop.com", color="#FFFFFF", alpha=0.015, fontsize=8.5,
-                     fontproperties=FP_BODY, rotation=16, ha="left", va="center", zorder=20)
+            # Ink-coloured so the security grain reads on any surface — white is invisible
+            # on the light theme; a hair more opacity there since dark-on-light needs it.
+            fig.text(xx, yy, "f1datastop.com", color=INK,
+                     alpha=0.022 if PAPER == THEMES["light"]["paper"] else 0.015,
+                     fontsize=8.5, fontproperties=FP_BODY, rotation=16,
+                     ha="left", va="center", zorder=20)
 
 
 def fig_png(fig):
     add_watermark(fig)
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", facecolor=PAPER, dpi=200, bbox_inches=None, pad_inches=0)
+    # Glass renders a transparent PNG so the frosted card shows through; the others bake
+    # their solid surface so downloads/social cards look right standing alone.
+    fig.savefig(buf, format="png",
+                facecolor="none" if TRANSPARENT else PAPER,
+                transparent=TRANSPARENT, dpi=200, bbox_inches=None, pad_inches=0)
     plt.close(fig)
     return buf.getvalue()
 
@@ -860,7 +902,7 @@ def chart_speed_distribution(session, meta):
     for i, t in enumerate(teams):
         med = np.median(pooled[t])
         ax.scatter([med], [i + 1], s=46, color=team_color(t), zorder=5,
-                   edgecolor="white", linewidth=1.4)
+                   edgecolor=PAPER, linewidth=1.4)
     x0, x1 = ax.get_xlim()
     ax.set_xlim(x0, x1 + (x1 - x0) * 0.15)
     place_team_cars(ax, [(t, i + 1) for i, t in enumerate(teams)], meta.get("year"))
@@ -1151,7 +1193,7 @@ def chart_teammate_pace(session, meta):
                     body.set_hatch(hatch)
         m_fast, m_slow = float(np.median(a)), float(np.median(b))
         ax.scatter([m_fast], [i + 0.15], s=46, color=col, edgecolor=PAPER, lw=1.2, zorder=6)
-        ax.scatter([m_slow], [i - 0.15], s=46, color="#FFFFFF", edgecolor=col, lw=1.7, zorder=6)
+        ax.scatter([m_slow], [i - 0.15], s=46, color=PAPER, edgecolor=col, lw=1.7, zorder=6)
         ax.annotate(d_fast, (m_fast, i + 0.15), xytext=(7, 0), textcoords="offset points",
                     va="center", ha="left", fontsize=9, color=col,
                     fontproperties=FP_BODY_B, zorder=7)
@@ -1230,7 +1272,7 @@ def chart_teammate_laps(session, meta):
             ax.plot(xs, ys, color=col, lw=1.8, ls=ls, alpha=0.95, solid_capstyle="round")
             fl = d.loc[d["s"].idxmin()]
             ax.scatter([fl["LapNumber"]], [fl["s"]], s=24, color=col,
-                       edgecolor="#FFFFFF", lw=0.9, zorder=6)
+                       edgecolor=PAPER, lw=0.9, zorder=6)
             ax.annotate(drv, (d["LapNumber"].values[-1], d["s"].values[-1]),
                         xytext=(4, 0), textcoords="offset points", va="center", ha="left",
                         fontsize=7.5, color=INK, fontproperties=FP_BODY_B, zorder=7,
@@ -3889,7 +3931,7 @@ def upsert_index(row):
     url = os.environ["SUPABASE_URL"].rstrip("/")
     key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
     r = requests.post(
-        f"{url}/rest/v1/analysis_charts?on_conflict=season,round,session,chart_type",
+        f"{url}/rest/v1/analysis_charts?on_conflict=season,round,session,chart_type,theme",
         headers={"Authorization": f"Bearer {key}", "apikey": key,
                  "Content-Type": "application/json",
                  "Prefer": "resolution=merge-duplicates,return=minimal"},
@@ -4006,6 +4048,10 @@ def main():
                     choices=["landscape", "twitter", "instagram", "story", "both", "all"],
                     help="output size: landscape 16:9, twitter 16:9, instagram 4:5, "
                          "story 9:16, both (landscape+story), or all four")
+    ap.add_argument("--theme", default="dark",
+                    choices=["dark", "light", "glass", "all"],
+                    help="colour theme(s): dark (default), light, glass (transparent), "
+                         "or all three — the frontend serves the one matching the viewer's theme")
     ap.add_argument("--team-labels", default="logo", choices=["text", "logo"],
                     help="team y-axis labels: team logos (default) or text names")
     ap.add_argument("--drivers", help="comma-separated driver codes to feature in "
@@ -4076,62 +4122,72 @@ def main():
     if DRIVERS:
         print(f"Featuring drivers: {', '.join(sorted(DRIVERS))}")
 
+    theme_set = ["dark", "light", "glass"] if args.theme == "all" else [args.theme]
+
     ok = 0
-    for fmt in fmt_sets[args.format]:
-        FMT = fmt
-        # out/<year>/<round>-<Grand Prix>/<session>/<format>/<chart>.png
-        base = f"{args.season}/{rnd:02d}-{slug}/{args.session}/{fmt}"
-        # A custom driver selection gets a stable key suffix (sorted codes) so it
-        # never clobbers the default charts and can be de-duplicated downstream
-        # (same drivers -> same key -> same storage path + index row).
-        dk = ("__" + "-".join(sorted(DRIVERS))) if DRIVERS else ""
-        print(f"== {fmt} ({ratios[fmt]}) ==")
-        allowed = charts_for_session(args.session)
-        for ctype, title, desc, fn in CHARTS:
-            if only_set and ctype not in only_set:
-                continue
-            # Bulk run: skip charts that don't apply to this session type. An explicit
-            # --only bypasses this so on-demand requests still work anywhere.
-            if not only_set and ctype not in allowed:
-                continue
-            try:
-                png = fn(session, meta)
-                if not png:
-                    print(f"  - {fmt}/{ctype}: no data, skipped")
+    # Theme is the outer loop, format the inner: the session is already loaded, so each
+    # theme only re-renders (cheap) — no extra data fetch. dark keeps the original,
+    # theme-less storage path so existing links stay valid; light/glass get a /theme/
+    # segment so their files sit alongside without clobbering.
+    for theme in theme_set:
+        apply_theme(theme)
+        theme_seg = "" if theme == "dark" else f"{theme}/"
+        for fmt in fmt_sets[args.format]:
+            FMT = fmt
+            # out/<year>/<round>-<Grand Prix>/<session>/[<theme>/]<format>/<chart>.png
+            base = f"{args.season}/{rnd:02d}-{slug}/{args.session}/{theme_seg}{fmt}"
+            # A custom driver selection gets a stable key suffix (sorted codes) so it
+            # never clobbers the default charts and can be de-duplicated downstream
+            # (same drivers -> same key -> same storage path + index row).
+            dk = ("__" + "-".join(sorted(DRIVERS))) if DRIVERS else ""
+            print(f"== {theme} · {fmt} ({ratios[fmt]}) ==")
+            allowed = charts_for_session(args.session)
+            for ctype, title, desc, fn in CHARTS:
+                if only_set and ctype not in only_set:
                     continue
-                path = f"{base}/{ctype}{dk}.png"
-                if args.no_upload:
-                    outdir = os.path.join("out", base)
-                    os.makedirs(outdir, exist_ok=True)
-                    # keep the driver-key suffix locally too, so different --drivers
-                    # sets don't overwrite each other (matches the upload path).
-                    with open(os.path.join(outdir, f"{ctype}{dk}.png"), "wb") as f:
-                        f.write(png)
-                    print(f"  - {fmt}/{ctype}{dk}: {len(png) // 1024} KB")
-                else:
-                    ct = (ctype if fmt == "landscape" else f"{ctype}_{fmt}") + dk
-                    # Label a driver/teammate compare by its pair so multiple
-                    # driver_compare cards are distinguishable in Deep Dive.
-                    row_title = (f"{title} · {' vs '.join(sorted(DRIVERS))}"
-                                 if DRIVERS and ctype == "driver_compare" else title)
-                    public_url = upload_png(path, png)
-                    upsert_index({"season": args.season, "round": rnd, "session": args.session,
-                                  "chart_type": ct, "title": row_title, "description": desc,
-                                  "storage_path": path, "public_url": public_url,
-                                  "updated_at": pd.Timestamp.utcnow().isoformat()})
-                    print(f"  - {fmt}/{ctype}: uploaded")
-                ok += 1
-            except Exception as e:  # noqa: BLE001
-                # A session that hasn't run yet (or has no published timing) still loads,
-                # it just has no laps — so every lap-dependent chart raises
-                # DataNotLoadedError. That's an expected "nothing to draw", not a defect.
-                # Report it in one line; a traceback per chart per format buries the real
-                # errors under a hundred identical stacks.
-                if type(e).__name__ == "DataNotLoadedError":
-                    print(f"  - {fmt}/{ctype}: no lap data, skipped")
-                else:
-                    print(f"  ! {fmt}/{ctype} failed: {e}")
-                    traceback.print_exc()
+                # Bulk run: skip charts that don't apply to this session type. An explicit
+                # --only bypasses this so on-demand requests still work anywhere.
+                if not only_set and ctype not in allowed:
+                    continue
+                try:
+                    png = fn(session, meta)
+                    if not png:
+                        print(f"  - {fmt}/{ctype}: no data, skipped")
+                        continue
+                    path = f"{base}/{ctype}{dk}.png"
+                    if args.no_upload:
+                        outdir = os.path.join("out", base)
+                        os.makedirs(outdir, exist_ok=True)
+                        # keep the driver-key suffix locally too, so different --drivers
+                        # sets don't overwrite each other (matches the upload path).
+                        with open(os.path.join(outdir, f"{ctype}{dk}.png"), "wb") as f:
+                            f.write(png)
+                        print(f"  - {fmt}/{ctype}{dk}: {len(png) // 1024} KB")
+                    else:
+                        ct = (ctype if fmt == "landscape" else f"{ctype}_{fmt}") + dk
+                        # Label a driver/teammate compare by its pair so multiple
+                        # driver_compare cards are distinguishable in Deep Dive.
+                        row_title = (f"{title} · {' vs '.join(sorted(DRIVERS))}"
+                                     if DRIVERS and ctype == "driver_compare" else title)
+                        public_url = upload_png(path, png)
+                        upsert_index({"season": args.season, "round": rnd, "session": args.session,
+                                      "chart_type": ct, "theme": theme,
+                                      "title": row_title, "description": desc,
+                                      "storage_path": path, "public_url": public_url,
+                                      "updated_at": pd.Timestamp.utcnow().isoformat()})
+                        print(f"  - {theme}/{fmt}/{ctype}: uploaded")
+                        ok += 1
+                except Exception as e:  # noqa: BLE001
+                    # A session that hasn't run yet (or has no published timing) still
+                    # loads, it just has no laps — so every lap-dependent chart raises
+                    # DataNotLoadedError. That's an expected "nothing to draw", not a
+                    # defect. Report it in one line; a traceback per chart per format
+                    # buries the real errors under a hundred identical stacks.
+                    if type(e).__name__ == "DataNotLoadedError":
+                        print(f"  - {fmt}/{ctype}: no lap data, skipped")
+                    else:
+                        print(f"  ! {theme}/{fmt}/{ctype} failed: {e}")
+                        traceback.print_exc()
 
     print(f"Done. {ok} charts generated into out/{args.season}/{rnd:02d}-{slug}/{args.session}/")
     return 0
