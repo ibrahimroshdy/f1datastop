@@ -3852,7 +3852,165 @@ def chart_sector_pace(session, meta):
     return fig_png(fig)
 
 
+def _td_seconds(v):
+    """A FastF1 Q1/Q2/Q3 timedelta (or NaT) → seconds, or None."""
+    try:
+        if v is None or pd.isna(v):
+            return None
+        return float(v.total_seconds())
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def chart_qualifying_breakdown(session, meta):
+    """The qualifying classification, in full: every driver's Q1/Q2/Q3 time and the sector
+    split of their best lap, grouped by how far they got.
+
+    Reads the two things people actually want from a qualifying session and the pace charts
+    don't give — the segment-by-segment progression (who improved, who was knocked out
+    where) and where each lap's time sits across the three sectors. Purple marks the
+    session best in each column. All drivers, split into the Q3 top ten, the Q2 knockouts
+    and the Q1 knockouts by hairlines, mirroring the real timing screen.
+    """
+    res = getattr(session, "results", None)
+    if res is None or res.empty:
+        return None
+    need = ("Abbreviation", "Position", "Q1", "Q2", "Q3")
+    if any(c not in res.columns for c in need):
+        return None
+
+    # Best-lap sectors per driver code, from timing (Ergast has no sectors).
+    sectors = {}
+    try:
+        laps = session.laps
+        for drv in session.drivers:
+            dl = laps[laps["DriverNumber"] == drv]
+            if dl.empty:
+                continue
+            code = dl["Driver"].iloc[0]
+            lap = dl.pick_fastest()
+            if lap is None or (hasattr(lap, "empty") and lap.empty):
+                continue
+            try:
+                secs = [float(lap[k].total_seconds())
+                        for k in ("Sector1Time", "Sector2Time", "Sector3Time")]
+                if not any(pd.isna(v) for v in secs):
+                    sectors[code] = secs
+            except Exception:  # noqa: BLE001
+                pass
+    except Exception:  # noqa: BLE001
+        pass
+
+    rows = []
+    for _, r in res.iterrows():
+        code = str(r.get("Abbreviation") or "").strip() or None
+        try:
+            pos = int(r.get("Position")) if not pd.isna(r.get("Position")) else None
+        except (TypeError, ValueError):
+            pos = None
+        if not code or pos is None:
+            continue
+        if DRIVERS and code not in DRIVERS:
+            continue
+        rows.append({
+            "code": code, "pos": pos,
+            "q": [_td_seconds(r.get("Q1")), _td_seconds(r.get("Q2")), _td_seconds(r.get("Q3"))],
+            "sec": sectors.get(code),
+        })
+    if len(rows) < 2:
+        return None
+    rows.sort(key=lambda x: x["pos"])
+
+    # Fastest time in each Q column → purple; and the session-best in each sector.
+    best_q = [min((r["q"][k] for r in rows if r["q"][k] is not None), default=None) for k in range(3)]
+    sec_rows = [r["sec"] for r in rows if r["sec"]]
+    best_sec = [min((s[k] for s in sec_rows), default=None) for k in range(3)] if sec_rows else [None] * 3
+
+    # Knockout boundaries: Q3 is a fixed top ten; the Q1 cut is grid-size dependent so it
+    # comes from who set a Q2 time (floored at the Q3 cut so the lines can't cross).
+    n = len(rows)
+    q3_cut = min(10, n)
+    q2_cut = max(sum(1 for r in rows if r["q"][1] is not None), q3_cut)
+
+    fig, ax = editorial_fig(left=0.075, right=0.965)
+    title_block(fig, "Qualifying", "Qualifying Breakdown",
+                "Q1 / Q2 / Q3 times and each driver's best-lap sector split — purple is session best")
+
+    # x layout (axes fraction): rank · code · Q1 · Q2 · Q3 · sector bar.
+    X_CODE, X_Q1, X_Q2, X_Q3 = 0.045, 0.20, 0.30, 0.40
+    X_BAR0, X_BAR1 = 0.52, 0.99
+    # Sector bars scale to the slowest best-lap so lengths are comparable across drivers.
+    bar_max = max((sum(s) for s in sec_rows), default=1.0) or 1.0
+
+    for i, r in enumerate(rows):
+        y = n - 1 - i  # P1 at the top
+        # rank + code, tinted for eliminated groups
+        dim = r["pos"] > q3_cut
+        ax.text(0.0, y, str(r["pos"]), va="center", ha="left", fontsize=9,
+                fontproperties=FP_MONO_B, color=SUBINK if dim else INK)
+        ax.text(X_CODE, y, r["code"], va="center", ha="left", fontsize=10,
+                fontproperties=FP_BODY_B, color=INK)
+        # Q1/Q2/Q3 times
+        for k, x in enumerate((X_Q1, X_Q2, X_Q3)):
+            v = r["q"][k]
+            if v is None:
+                ax.text(x, y, "—", va="center", ha="right", fontsize=8.5,
+                        fontproperties=FP_MONO, color=SUBINK)
+                continue
+            is_best = best_q[k] is not None and abs(v - best_q[k]) < 1e-6
+            ax.text(x, y, fmt_laptime(v), va="center", ha="right", fontsize=8.5,
+                    fontproperties=FP_MONO_B if is_best else FP_MONO,
+                    color=PURPLE if is_best else INK)
+        # sector stacked bar of the best lap
+        if r["sec"]:
+            left = X_BAR0
+            span = (X_BAR1 - X_BAR0)
+            for k in range(3):
+                w = span * (r["sec"][k] / bar_max)
+                ax.add_patch(plt.Rectangle((left, y - 0.34), w, 0.68,
+                             facecolor=SECTOR_COLORS[k], edgecolor=PAPER, linewidth=0.7,
+                             zorder=3))
+                # ring the segment if it holds the session best for that sector
+                if best_sec[k] is not None and abs(r["sec"][k] - best_sec[k]) < 1e-6:
+                    ax.add_patch(plt.Rectangle((left, y - 0.34), w, 0.68, facecolor="none",
+                                 edgecolor=PURPLE, linewidth=1.6, zorder=4))
+                left += w
+
+    # Column headers (mounted just above the top row)
+    hy = n - 0.35
+    for x, lab, ha in ((X_CODE, "DRIVER", "left"), (X_Q1, "Q1", "right"),
+                       (X_Q2, "Q2", "right"), (X_Q3, "Q3", "right"),
+                       (X_BAR0, "BEST-LAP SECTORS", "left")):
+        ax.text(x, hy, lab, va="bottom", ha=ha, fontsize=8,
+                fontproperties=FP_MONO_B, color=SUBINK)
+
+    # Knockout hairlines + group tags on the right margin
+    for cut, tag in ((q3_cut, "Q3"), (q2_cut, "OUT Q2")):
+        yl = n - cut - 0.5
+        if 0 < cut < n:
+            ax.plot([0.0, X_BAR1], [yl, yl], color=GRID, lw=1.2, zorder=2)
+
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-0.7, n - 0.1 + 0.6)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for side in ("top", "right", "bottom", "left"):
+        ax.spines[side].set_visible(False)
+
+    handles = [plt.Rectangle((0, 0), 1, 1, color=SECTOR_COLORS[k]) for k in range(3)]
+    leg = ax.legend(handles, ["Sector 1", "Sector 2", "Sector 3"],
+                    loc="lower right", frameon=False, fontsize=8, ncol=3,
+                    bbox_to_anchor=(1.0, -0.06))
+    for t in leg.get_texts():
+        t.set_color(SUBINK)
+        t.set_fontproperties(FP_BODY_B)
+
+    footer(fig, meta)
+    return fig_png(fig)
+
+
 CHARTS = [
+    ("qualifying_breakdown", "Qualifying Breakdown", "Q1/Q2/Q3 times and best-lap sectors for every driver", chart_qualifying_breakdown),
     ("sector_pace", "Sector Pace", "Each driver's fastest lap split by sector — where the time goes", chart_sector_pace),
     ("race_analysis", "Race Analysis", "The whole race story — strategy, pits, passes and pace on one board", chart_race_analysis),
     ("championship", "Championship", "The title fight so far — standings and points progression", chart_championship),
@@ -3893,6 +4051,9 @@ _PACE_CHARTS = {
     "track_dominance", "dominance_flat", "speed_distribution", "driver_radar",
     "teammate_pace",
 }
+# Qualifying-format sessions (Q / sprint-quali / sprint-shootout) add the segment
+# breakdown, which needs the Q1/Q2/Q3 classification — meaningless for practice or race.
+_QUALI_CHARTS = _PACE_CHARTS | {"qualifying_breakdown"}
 # Race/sprint add everything that needs results, stints, pit stops or grid positions,
 # plus the season-level boards that are tied to a completed round.
 _RACE_CHARTS = _PACE_CHARTS | {
@@ -3902,7 +4063,7 @@ _RACE_CHARTS = _PACE_CHARTS | {
 }
 SESSION_CHARTS = {
     "FP1": _PACE_CHARTS, "FP2": _PACE_CHARTS, "FP3": _PACE_CHARTS,
-    "Q": _PACE_CHARTS, "SQ": _PACE_CHARTS, "SS": _PACE_CHARTS,
+    "Q": _QUALI_CHARTS, "SQ": _QUALI_CHARTS, "SS": _QUALI_CHARTS,
     "S": _RACE_CHARTS, "R": _RACE_CHARTS,
 }
 
