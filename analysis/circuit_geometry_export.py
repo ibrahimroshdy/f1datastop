@@ -213,26 +213,40 @@ def export_circuit(season, rnd, upload=True, force=False):
     circuit_id, circuit_name = (None, None)
     if upload:
         circuit_id, circuit_name = _lookup_circuit(season, rnd)
+        # Skip an already-exported circuit BEFORE loading FastF1 — a whole-season refresh
+        # otherwise loads every session just to throw it away.
+        if not force and circuit_id and _already_exported(season, circuit_id):
+            print(f"  {season} {circuit_id}: already exported, skip (--force to redo)")
+            return None
 
     # The track outline is the same circuit regardless of session, so build it from
     # whichever session has data — Race first (canonical), then Q / practice / sprint.
     # This lets geometry export mid-weekend (e.g. after FP1, before the race) instead of
-    # being stuck on "R", which doesn't exist yet. get_session raises for a round that
-    # doesn't exist; load() fails on sessions FastF1 has no telemetry for — both skip.
-    s = None
+    # being stuck on "R", which doesn't exist yet.
+    #
+    # A session is only usable if its FASTEST LAP yields telemetry, not merely if it has
+    # laps: Monaco 2026's Race fastest lap raises KeyError('Date') on get_telemetry(),
+    # while Q/FP are fine. Extracting the telemetry inside the loop lets a corrupt session
+    # fall through to the next instead of aborting the whole circuit.
+    s, tel = None, None
     for sess in ("R", "Q", "FP1", "FP2", "FP3", "S", "SQ", "SS"):
         try:
             cand = fastf1.get_session(season, rnd, sess)
             cand.load(telemetry=True, weather=False, messages=False)
-            if cand.laps is not None and len(cand.laps) > 0:
-                s = cand
-                if sess != "R":
-                    print(f"  {season} R{rnd}: building geometry from {sess} (R unavailable)")
-                break
+            if cand.laps is None or len(cand.laps) == 0:
+                continue
+            lap = cand.laps.pick_fastest()
+            if lap is None or pd.isna(lap.get("LapNumber")):
+                continue
+            cand_tel = lap.get_telemetry().add_distance()
         except Exception:  # noqa: BLE001
             continue
-    if s is None:
-        print(f"  {season} R{rnd}: no session with lap data; skip")
+        s, tel = cand, cand_tel
+        if sess != "R":
+            print(f"  {season} R{rnd}: building geometry from {sess} (R unusable)")
+        break
+    if s is None or tel is None:
+        print(f"  {season} R{rnd}: no session with usable telemetry; skip")
         return None
 
     # Fall back to the event's own naming when the warehouse lookup is unavailable
@@ -241,20 +255,6 @@ def export_circuit(season, rnd, upload=True, force=False):
         loc = s.event.get("Location") or s.event.get("EventName") or f"r{rnd}"
         circuit_id = _slug(loc)
         circuit_name = circuit_name or s.event.get("EventName")
-
-    if upload and not force and _already_exported(season, circuit_id):
-        print(f"  {season} {circuit_id}: already exported, skip (--force to redo)")
-        return None
-
-    lap = s.laps.pick_fastest()
-    if lap is None or pd.isna(lap.get("LapNumber")):
-        print(f"  {season} R{rnd}: no fastest lap; skip")
-        return None
-    try:
-        tel = lap.get_telemetry().add_distance()
-    except Exception as e:  # noqa: BLE001
-        print(f"  {season} R{rnd}: telemetry failed ({e}); skip")
-        return None
 
     ci = s.get_circuit_info()
     rot = getattr(ci, "rotation", 0.0) or 0.0
