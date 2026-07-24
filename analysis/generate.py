@@ -1503,6 +1503,138 @@ def chart_top_speed(session, meta):
     return fig_png(fig)
 
 
+def chart_lap_down(session, meta):
+    """When backmarkers get lapped — laps-down heatmap, driver × lap.
+
+    Each cell shades how many laps behind the leader a driver is on that lap. A row stays
+    dark while on the lead lap, then lights amber the lap it goes a lap down and deepens if
+    it loses more — so the colour onset IS the lap they were lapped. Retired drivers stop
+    with a hatched cell. Reads the one thing the gap chart can't: the exact lapping lap.
+    """
+    laps = session.laps[["Driver", "LapNumber", "Time"]].dropna(subset=["Time", "LapNumber"]).copy()
+    if laps.empty:
+        return None
+    import bisect
+    laps["t"] = laps["Time"].dt.total_seconds()
+    lmax = int(laps["LapNumber"].max())
+    if lmax < 2:
+        return None
+    # Leader clock: earliest completion time of each lap (first car to reach it), lap 1..lmax
+    # ascending — so bisect over it gives "how many laps the leader has completed by time t".
+    lead_sorted = list(laps.groupby("LapNumber")["t"].min().reindex(range(1, lmax + 1)).ffill().values)
+
+    def leader_laps_by(t):
+        return bisect.bisect_right(lead_sorted, t)
+
+    # Finish order (leader on top); each driver's per-lap completion times.
+    try:
+        order = [a for a in session.results.sort_values("Position")["Abbreviation"].values
+                 if a in set(laps["Driver"])]
+    except Exception:  # noqa: BLE001
+        order = list(laps["Driver"].unique())
+    if DRIVERS:
+        order = [d for d in order if d in DRIVERS]
+    if len(order) < 2:
+        return None
+
+    # Laps-down is measured at each driver's OWN lap crossing: when they complete lap N at
+    # time t, they are leader_laps_by(t) - N laps behind. A few seconds' same-lap gap gives
+    # 0 (both cars have the same completed-lap count) — comparing at the leader's crossing
+    # instead would wrongly read every trailing car as a lap down from lap one.
+    grid = []
+    any_lapped = False
+    for code in order:
+        times = sorted(laps[laps["Driver"] == code]["t"].tolist())
+        if not times:
+            continue
+        events = {}  # laps_down level -> leader lap when first reached
+        for n, t in enumerate(times, start=1):
+            down = leader_laps_by(t) - n
+            if down >= 1 and down not in events:
+                events[down] = leader_laps_by(t)
+                any_lapped = True
+        # Colour the row up to the leader's lap when this driver last crossed the line;
+        # a lapped finisher crosses near race end (row nearly full), a retiree stops early
+        # (row hatches out) — so no separate DNF lookup is needed.
+        l_last = min(lmax, leader_laps_by(times[-1]))
+        row = []
+        for L in range(1, lmax + 1):
+            if L > l_last:
+                row.append(None)
+            else:
+                row.append(max((lvl for lvl, ll in events.items() if ll <= L), default=0))
+        grid.append((code, row, l_last))
+    if not any_lapped:
+        return None  # nobody was lapped (e.g. a red-flag-shortened race) — nothing to show
+
+    # Shade ramp: 0 = near-panel, 1/2/3+ warm through to red.
+    def cell_color(v):
+        if v is None:
+            return None
+        if v <= 0:
+            return PANEL
+        if v == 1:
+            return "#E7B008"   # gold
+        if v == 2:
+            return "#E8590C"   # orange
+        return RED
+
+    fig, ax = editorial_fig(left=0.085, right=0.975)
+    title_block(fig, "Race", "Lapped Drivers",
+                "Laps behind the leader through the race — the colour onset is the lap they were lapped")
+
+    n = len(grid)
+    for i, (code, row, last_lap) in enumerate(grid):
+        y = n - 1 - i  # leader at top
+        for L in range(1, lmax + 1):
+            v = row[L - 1]
+            x = L - 1
+            if v is None:
+                # retired — faint hatched cell
+                ax.add_patch(plt.Rectangle((x, y - 0.42), 1, 0.84, facecolor="none",
+                             edgecolor=GRID, linewidth=0.4, hatch="////", zorder=2))
+                continue
+            ax.add_patch(plt.Rectangle((x, y - 0.42), 1, 0.84, facecolor=cell_color(v),
+                         edgecolor=PAPER, linewidth=0.5, zorder=3))
+        # mark the first lap this driver went a lap down
+        first = next((L for L in range(1, lmax + 1) if (row[L - 1] or 0) >= 1), None)
+        if first:
+            # Dark label — it always sits on a warm (amber/orange/red) cell, so a near-black
+            # numeral reads on every theme.
+            ax.text(first - 0.5, y, str(first), va="center", ha="center", fontsize=7,
+                    fontproperties=FP_MONO_B, color="#0A0B0F", zorder=5)
+
+    ax.set_xlim(0, lmax)
+    ax.set_ylim(-0.7, n - 0.3)
+    ax.set_yticks(range(n))
+    ax.set_yticklabels([g[0] for g in reversed(grid)], fontproperties=FP_BODY_B,
+                       color=INK, fontsize=9)
+    step = 5 if lmax > 30 else 2
+    xt = list(range(0, lmax + 1, step))
+    ax.set_xticks([t + 0.0 for t in xt])
+    ax.set_xticklabels([str(t) if t > 0 else "1" for t in xt], fontproperties=FP_MONO,
+                       color=SUBINK, fontsize=8)
+    ax.set_xlabel("Lap", fontproperties=FP_BODY, color=SUBINK, fontsize=9)
+    for side in ("top", "right", "bottom", "left"):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(length=0)
+    ax.grid(False)
+
+    # legend
+    labels = [("Lead lap", PANEL), ("1 lap down", "#E7B008"),
+              ("2 down", "#E8590C"), ("3+ down", RED)]
+    handles = [plt.Rectangle((0, 0), 1, 1, facecolor=c, edgecolor=GRID, linewidth=0.6)
+               for _, c in labels]
+    leg = ax.legend(handles, [t for t, _ in labels], loc="lower right", frameon=False,
+                    fontsize=8, ncol=4, bbox_to_anchor=(1.0, -0.16))
+    for t in leg.get_texts():
+        t.set_color(SUBINK)
+        t.set_fontproperties(FP_BODY_B)
+
+    footer(fig, meta)
+    return fig_png(fig)
+
+
 def chart_gap_to_leader(session, meta):
     laps = session.laps
     df = laps[["Driver", "LapNumber", "Time", "Team"]].dropna(subset=["Time", "LapNumber"]).copy()
@@ -4022,6 +4154,7 @@ CHARTS = [
     ("parallax_stack", "Parallax Stack", "Top-three fastest laps stacked by pace", chart_parallax_stack),
     ("grid_flow", "Qualifying → Grid → Finish", "Driver flow from qualifying to the chequered flag", chart_grid_flow),
     ("gap_to_leader", "Gap to Leader", "Time behind the lead, lap by lap", chart_gap_to_leader),
+    ("lap_down", "Lapped Drivers", "When each backmarker goes a lap down — laps-behind heatmap", chart_lap_down),
     ("lap_evolution", "Lap-Time Evolution", "Race pace through the stints", chart_lap_evolution),
     ("race_strategy", "Race Strategy Board", "Tyre stints, pit windows and track weather", chart_race_strategy),
     ("teammate_pace", "Teammate Distribution", "Teammate lap-time spread, side by side", chart_teammate_pace),
@@ -4060,6 +4193,7 @@ _RACE_CHARTS = _PACE_CHARTS | {
     "race_analysis", "position_changes", "grid_flow", "gap_to_leader", "lap_evolution",
     "race_strategy", "teammate_laps", "pace_tyre", "places_gained", "tyre_strategy",
     "team_pace", "championship", "constructors", "circuit_history", "season_scorecard",
+    "lap_down",
 }
 SESSION_CHARTS = {
     "FP1": _PACE_CHARTS, "FP2": _PACE_CHARTS, "FP3": _PACE_CHARTS,
