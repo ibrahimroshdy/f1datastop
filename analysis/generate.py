@@ -49,18 +49,16 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # (RED, GOLD, PURPLE, TEAM_COLORS, COMPOUND_COLORS, SECTOR_COLORS) are identity and
 # stay fixed so a driver/team/tyre reads the same on every theme.
 #
-# Mirrors the app's three modes and its getBaseTheme() model:
-#   dark   solid near-black surface, light ink   (app 'dark')
+# Two solid themes only:
+#   dark   solid near-black surface, light ink   (app 'dark' and 'dark-glass')
 #   light  solid near-white surface, dark ink    (app 'light')
-#   glass  TRANSPARENT surface, light ink         (app 'dark-glass' — the frosted card
-#          shows through the plot). Rendered with a transparent PNG background.
+# A transparent "glass" render was tried and dropped — a transparent PNG reads as broken
+# and downloads badly; the app's glass mode just shows the dark chart on its frosted card.
 THEMES = {
     "dark":  {"paper": "#0A0B0F", "panel": "#14161C", "ink": "#F2F3F5",
               "subink": "#9A9CA6", "grid": "#23262E", "transparent": False},
     "light": {"paper": "#F6F7F9", "panel": "#FFFFFF", "ink": "#14161C",
               "subink": "#5B5F6B", "grid": "#E2E4EA", "transparent": False},
-    "glass": {"paper": "#0A0B0F", "panel": "#14161C", "ink": "#F2F3F5",
-              "subink": "#A8AAB4", "grid": "#3A3E48", "transparent": True},
 }
 
 # Active-theme globals — swapped by apply_theme() before each render pass, exactly the
@@ -4344,9 +4342,9 @@ def main():
                     help="output size: landscape 16:9, twitter 16:9, instagram 4:5, "
                          "story 9:16, both (landscape+story), or all four")
     ap.add_argument("--theme", default="dark",
-                    choices=["dark", "light", "glass", "all"],
-                    help="colour theme(s): dark (default), light, glass (transparent), "
-                         "or all three — the frontend serves the one matching the viewer's theme")
+                    choices=["dark", "light", "all"],
+                    help="colour theme(s): dark (default), light, or both — the frontend "
+                         "serves the one matching the viewer's theme (glass mode uses dark)")
     ap.add_argument("--team-labels", default="logo", choices=["text", "logo"],
                     help="team y-axis labels: team logos (default) or text names")
     ap.add_argument("--drivers", help="comma-separated driver codes to feature in "
@@ -4417,13 +4415,13 @@ def main():
     if DRIVERS:
         print(f"Featuring drivers: {', '.join(sorted(DRIVERS))}")
 
-    theme_set = ["dark", "light", "glass"] if args.theme == "all" else [args.theme]
+    theme_set = ["dark", "light"] if args.theme == "all" else [args.theme]
 
     ok = 0
     # Theme is the outer loop, format the inner: the session is already loaded, so each
     # theme only re-renders (cheap) — no extra data fetch. dark keeps the original,
-    # theme-less storage path so existing links stay valid; light/glass get a /theme/
-    # segment so their files sit alongside without clobbering.
+    # theme-less storage path so existing links stay valid; light gets a /light/
+    # segment so its files sit alongside without clobbering.
     for theme in theme_set:
         apply_theme(theme)
         theme_seg = "" if theme == "dark" else f"{theme}/"

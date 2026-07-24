@@ -96,10 +96,9 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
   const r = parseInt(round, 10);
   const { cardVariant, glassVariant } = useThemeVariant();
   const { theme } = useTheme();
-  // The app's three modes map 1:1 onto the three chart renders — glass gets the
-  // transparent PNG that lets the frosted card show through, not the dark one.
-  const chartTheme: ChartTheme =
-    theme === "light" ? "light" : theme === "dark-glass" ? "glass" : "dark";
+  // Two chart renders only: light for light mode, dark for both dark and glass modes
+  // (glass shows the dark chart on its frosted card — the transparent render was dropped).
+  const chartTheme: ChartTheme = theme === "light" ? "light" : "dark";
   const [format, setFormat] = useState<ChartFormat>("landscape");
   const [view, setView] = useState<ViewMode>("grid5");
   const [downloadingAll, setDownloadingAll] = useState(false);
