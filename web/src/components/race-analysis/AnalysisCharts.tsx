@@ -42,13 +42,14 @@ const FORMAT_ORDER: ChartFormat[] = ["landscape", "twitter", "instagram", "story
 
 // Layout density, independent of export format — lets a viewer skim a 4-up grid or read
 // one big chart at a time. Overrides the format's own column count when set.
-type ViewMode = "list" | "grid2" | "grid4";
+type ViewMode = "list" | "grid2" | "grid5";
 const VIEWS: Record<ViewMode, { grid: string; icon: typeof Rows3; label: string }> = {
-  list: { grid: "grid-cols-1", icon: Rows3, label: "List" },
+  // "list" is a compact scan — thumbnail + title rows, not full-size charts (see render).
+  list: { grid: "", icon: Rows3, label: "Compact list" },
   grid2: { grid: "grid-cols-1 md:grid-cols-2", icon: Grid2x2, label: "2 columns" },
-  grid4: { grid: "grid-cols-2 md:grid-cols-3 xl:grid-cols-4", icon: LayoutGrid, label: "Grid" },
+  grid5: { grid: "grid-cols-2 md:grid-cols-3 xl:grid-cols-5", icon: LayoutGrid, label: "Grid" },
 };
-const VIEW_ORDER: ViewMode[] = ["list", "grid2", "grid4"];
+const VIEW_ORDER: ViewMode[] = ["list", "grid2", "grid5"];
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -100,7 +101,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
   const chartTheme: ChartTheme =
     theme === "light" ? "light" : theme === "dark-glass" ? "glass" : "dark";
   const [format, setFormat] = useState<ChartFormat>("landscape");
-  const [view, setView] = useState<ViewMode>("grid2");
+  const [view, setView] = useState<ViewMode>("grid5");
   const [downloadingAll, setDownloadingAll] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -239,31 +240,64 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
         </div>
       </div>
 
-      <div className={`grid gap-4 ${VIEWS[view].grid}`}>
-        {charts.map((c) => (
-          <F1Card key={c.id} variant={cardVariant} glassVariant={glassVariant} size="sm">
-            <F1CardContent className="flex flex-col gap-2.5">
-              <ChartImage src={c.public_url} alt={c.title} aspect={FORMATS[format].aspect} />
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{c.title}</p>
-                  {c.description ? (
-                    <p className="truncate text-xs text-muted-foreground">{c.description}</p>
-                  ) : null}
-                </div>
-                <Button
-                  variant="outline"
-                  className="h-11 w-11 shrink-0 p-0"
-                  onClick={() => saveImage(c.public_url, `${year}-r${r}-${slugify(c.title)}-${format}.png`)}
-                  aria-label={`Download ${c.title}`}
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
+      {view === "list" ? (
+        // Compact scan — hairline rows, small thumbnail + title, quick to skim the whole set.
+        <div className="hairline-grid overflow-hidden rounded-lg border border-border">
+          {charts.map((c) => (
+            <div
+              key={c.id}
+              className="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-muted/40"
+            >
+              <img
+                src={c.public_url}
+                alt=""
+                loading="lazy"
+                className="h-10 w-16 shrink-0 rounded border border-border/60 object-cover"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{c.title}</p>
+                {c.description ? (
+                  <p className="truncate text-xs text-muted-foreground">{c.description}</p>
+                ) : null}
               </div>
-            </F1CardContent>
-          </F1Card>
-        ))}
-      </div>
+              <Button
+                variant="ghost"
+                className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-foreground"
+                onClick={() => saveImage(c.public_url, `${year}-r${r}-${slugify(c.title)}-${format}.png`)}
+                aria-label={`Download ${c.title}`}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={`grid gap-4 ${VIEWS[view].grid}`}>
+          {charts.map((c) => (
+            <F1Card key={c.id} variant={cardVariant} glassVariant={glassVariant} size="sm">
+              <F1CardContent className="flex flex-col gap-2.5">
+                <ChartImage src={c.public_url} alt={c.title} aspect={FORMATS[format].aspect} />
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{c.title}</p>
+                    {c.description ? (
+                      <p className="truncate text-xs text-muted-foreground">{c.description}</p>
+                    ) : null}
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="h-11 w-11 shrink-0 p-0"
+                    onClick={() => saveImage(c.public_url, `${year}-r${r}-${slugify(c.title)}-${format}.png`)}
+                    aria-label={`Download ${c.title}`}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
+              </F1CardContent>
+            </F1Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
