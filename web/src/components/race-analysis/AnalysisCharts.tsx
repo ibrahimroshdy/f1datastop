@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Download, DownloadCloud, Loader2 } from "lucide-react";
+import { Download, DownloadCloud, Loader2, Rows3, Grid2x2, LayoutGrid } from "lucide-react";
 import {
   getAnalysisCharts,
   baseChartType,
@@ -39,6 +39,16 @@ const FORMATS: Record<
   story: { label: "Story · 9:16", grid: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4", aspect: "9 / 16" },
 };
 const FORMAT_ORDER: ChartFormat[] = ["landscape", "twitter", "instagram", "story"];
+
+// Layout density, independent of export format — lets a viewer skim a 4-up grid or read
+// one big chart at a time. Overrides the format's own column count when set.
+type ViewMode = "list" | "grid2" | "grid4";
+const VIEWS: Record<ViewMode, { grid: string; icon: typeof Rows3; label: string }> = {
+  list: { grid: "grid-cols-1", icon: Rows3, label: "List" },
+  grid2: { grid: "grid-cols-1 md:grid-cols-2", icon: Grid2x2, label: "2 columns" },
+  grid4: { grid: "grid-cols-2 md:grid-cols-3 xl:grid-cols-4", icon: LayoutGrid, label: "Grid" },
+};
+const VIEW_ORDER: ViewMode[] = ["list", "grid2", "grid4"];
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -90,6 +100,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
   const chartTheme: ChartTheme =
     theme === "light" ? "light" : theme === "dark-glass" ? "glass" : "dark";
   const [format, setFormat] = useState<ChartFormat>("landscape");
+  const [view, setView] = useState<ViewMode>("grid2");
   const [downloadingAll, setDownloadingAll] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -167,6 +178,30 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
           {charts.length} chart{charts.length === 1 ? "" : "s"}
         </span>
         <div className="flex flex-wrap items-center gap-2">
+          {/* view density — list / 2-up / grid. Pure layout, doesn't touch the images. */}
+          <div className="flex gap-1" role="group" aria-label="Layout">
+            {VIEW_ORDER.map((v) => {
+              const Icon = VIEWS[v].icon;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  aria-pressed={view === v}
+                  aria-label={VIEWS[v].label}
+                  title={VIEWS[v].label}
+                  className={cn(
+                    "grid h-9 w-9 place-items-center rounded-md transition-colors",
+                    view === v
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              );
+            })}
+          </div>
           {/* format picker — segmented buttons (one tap, all formats visible) */}
           <div className="flex flex-wrap gap-1" role="group" aria-label="Export format">
             {FORMAT_ORDER.filter((f) => formatsAvailable.has(f)).map((f) => (
@@ -204,7 +239,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
         </div>
       </div>
 
-      <div className={`grid gap-4 ${FORMATS[format].grid}`}>
+      <div className={`grid gap-4 ${VIEWS[view].grid}`}>
         {charts.map((c) => (
           <F1Card key={c.id} variant={cardVariant} glassVariant={glassVariant} size="sm">
             <F1CardContent className="flex flex-col gap-2.5">
