@@ -1,10 +1,18 @@
 name: F1 latest-race charts
 
-# Race weekends (Fri/Sat/Sun, every 3h): regenerate the analysis charts/posters for the
-# latest race, plus the fixed teammate head-to-heads. Replaces Modal's generate_latest.
+# Deep Dive charts/posters for the current weekend. Covers EVERY session type (FP1/2/3,
+# Q, sprint, race) for the current round + the next — not just the race — so a session's
+# charts appear soon after it runs, in both themes. Each generate call self-skips a
+# session that has no data yet, exiting 0, so a non-zero exit is a real error.
+#
+# Cadence: every 2h across Fri–Sun (down from 3h). This re-renders every session for the
+# round + next each run (generate.py has no skip-if-exists), which takes the better part of
+# an hour — so the interval must comfortably exceed the run, or cancel-in-progress kills
+# each run before it finishes and nothing is ever produced. 2h clears that with margin and
+# still catches a session within ~2h of the flag.
 on:
   schedule:
-    - cron: "30 */3 * * 5,6,0"
+    - cron: "0 */2 * * 5,6,0"
   workflow_dispatch: {}
 
 concurrency:
@@ -31,39 +39,63 @@ jobs:
             exit 1
           fi
 
-      - name: Latest-race boards + teammate compares
+      - name: Session charts (all sessions, current round + next) + teammate compares
         working-directory: analysis
         # TEAMMATE_PAIRS are the current-season lineups (mirror modal_app.py); update per season.
         run: |
           set -u
-          # The main board is load-bearing: a failure here is a real failure, no suppression.
-          python generate.py --latest --session R --format all
-
-          # Teammate compares are best-effort (a driver may be absent from the latest race),
-          # but we count failures instead of swallowing them with `|| true`.
+          Y="$(date -u +%Y)"
           runs=0; fails=0
-          for pair in "RUS,ANT" "NOR,PIA" "LEC,HAM"; do
+          # Run a generate call, counting outcomes. generate.py exits 0 when a session has
+          # no data yet (prints "0 charts"), so a non-zero exit == a real error, not a skip.
+          try() {
             runs=$((runs + 1))
-            if ! python generate.py --latest --session R --only driver_compare --drivers "$pair" --format all; then
+            if ! "$@"; then
               fails=$((fails + 1))
-              echo "::warning::driver_compare FAILED for $pair"
+              echo "::warning::FAILED: $*"
             fi
+          }
+
+          # Current round + next, exactly like f1-assets: latest_completed_round() is the
+          # last round whose RACE is done, so during a live weekend R is last week and R+1
+          # is the weekend running now (its FP/Q charts are the ones people want live).
+          R="$(python -c "import backfill as bf; print(bf.latest_completed_round($Y) or 0)")"
+          ROUNDS=""
+          [ "$R" -ge 1 ] && ROUNDS="$R"
+          ROUNDS="$ROUNDS $((R + 1))"
+          echo "latest completed round: $R  ->  processing rounds:$ROUNDS"
+
+          # Every session type — the point of this change: practice/quali charts, not just
+          # the race. Each self-skips a session a weekend doesn't have or hasn't run.
+          SESSIONS="FP1 FP2 FP3 Q SQ SS S R"
+          for sess in $SESSIONS; do
+            echo "== charts $sess =="
+            for r in $ROUNDS; do
+              try python generate.py --season "$Y" --round "$r" --session "$sess" --format all --theme all
+            done
+          done
+
+          # Teammate head-to-heads (race only) — best-effort; a pair may be absent from a round.
+          for pair in "RUS,ANT" "NOR,PIA" "LEC,HAM"; do
+            for r in $ROUNDS; do
+              try python generate.py --season "$Y" --round "$r" --session R --only driver_compare --drivers "$pair" --format all --theme all
+            done
           done
 
           ok=$((runs - fails))
           {
-            echo "### F1 latest-race charts"
+            echo "### F1 weekend charts — ${Y}"
             echo ""
-            echo "| teammate compares | ok | failed |"
-            echo "|------------------:|---:|-------:|"
+            echo "| generate calls | ok | failed |"
+            echo "|---------------:|---:|-------:|"
             echo "| $runs | $ok | $fails |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          echo "compares=$runs ok=$ok failed=$fails"
+          echo "calls=$runs ok=$ok failed=$fails"
           if [ "$runs" -gt 0 ] && [ "$fails" -eq "$runs" ]; then
-            echo "::error::every teammate compare failed — treating as broken, not a no-op."
+            echo "::error::every one of the $runs generate calls failed — broken run, not a no-op."
             exit 1
           fi
           if [ "$fails" -gt 0 ]; then
-            echo "::warning::$fails of $runs teammate compares failed."
+            echo "::warning::$fails of $runs generate calls failed (see warnings above)."
           fi
