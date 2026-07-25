@@ -11,6 +11,7 @@ Usage:
   python generate.py --latest                                          # CI
 """
 import argparse
+import colorsys
 import io
 import os
 import re
@@ -735,6 +736,7 @@ def chart_speed_trace(session, meta):
     ends = []
     plotted = 0
     seen = {}
+    tmcol = {}
     for drv in top_drivers_by_pace(laps, 5):
         dl = laps[laps["Driver"] == drv]
         if dl.empty:
@@ -743,7 +745,7 @@ def chart_speed_trace(session, meta):
         if lap is None or (hasattr(lap, "empty") and lap.empty):
             continue
         tel = lap.get_car_data().add_distance()
-        c = team_color(lap["Team"])
+        c = teammate_color(lap["Team"], tmcol)
         ax.plot(tel["Distance"], tel["Speed"], color=c, lw=2.6,
                 ls=style_for(lap["Team"], seen), solid_capstyle="round")
         ends.append((drv, c, (look.get(str(drv)) or {}).get("headshot")))
@@ -1321,10 +1323,78 @@ def style_for(team, seen):
     return LINESTYLES[min(k, len(LINESTYLES) - 1)]
 
 
-def neon_lines(ax, segs, array=None, colors=None, cmap=None, lw=8):
-    """Line segments with a neon glow halo (trendy 'pulse' look)."""
+def _hex_rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _rgb_hex(rgb):
+    return "#{:02X}{:02X}{:02X}".format(*(max(0, min(255, int(c))) for c in rgb))
+
+
+def _hue_shift(hexc, dh, dl=0.0):
+    """Rotate hue by dh (fraction of the colour wheel) and nudge lightness by dl.
+    Hue rotation is what survives the neon glow: neon_lines blooms each segment in its
+    OWN colour, so two teammates that differ only in lightness bloom the same hue and
+    merge into one ribbon. Shifting the hue makes the glow itself a different colour."""
+    r, g, b = (c / 255 for c in _hex_rgb(hexc))
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    h = (h + dh) % 1.0
+    l = max(0.0, min(1.0, l + dl))
+    r, g, b = colorsys.hls_to_rgb(h, l, s)
+    return _rgb_hex((r * 255, g * 255, b * 255))
+
+
+# Candidate (hue rotation, lightness nudge) pairs for a 2nd/3rd same-team driver. Teammates
+# sharing the team colour is the #1 complaint on track-dominance ribbons, and a pure lightness
+# tint washes out under the neon glow — so we rotate the hue ~±36° (e.g. Mercedes teal -> blue
+# or green), with lightness as a secondary separator. Both directions are offered so the
+# picker can steer AWAY from other teams' colours (Ferrari-red rotated toward orange would
+# otherwise collide with McLaren).
+TEAMMATE_CANDS = [(0.10, 0.14), (-0.11, -0.10)]
+
+
+def _hue_of(hexc):
+    r, g, b = (c / 255 for c in _hex_rgb(hexc))
+    return colorsys.rgb_to_hls(r, g, b)[0]
+
+
+def _hue_dist(a, b):
+    d = abs(a - b) % 1.0
+    return min(d, 1.0 - d)
+
+
+def teammate_color(team, seen):
+    """First same-team driver keeps the pure team colour; the next gets a hue-rotated
+    variant, choosing the rotation that sits farthest from every OTHER team's colour so a
+    shifted teammate never collides with a different team sharing the destination hue.
+    Mutates `seen` (dict team->count), mirroring style_for."""
+    k = seen.get(team, 0)
+    seen[team] = k + 1
+    base = team_color(team)
+    if k == 0:
+        return base
+    others = [_hue_of(c) for t, c in TEAM_COLORS.items()
+              if str(t) != str(team) and str(c).startswith("#")]
+    best, best_clear = base, -1.0
+    for dh, dl in TEAMMATE_CANDS:
+        cand = _hue_shift(base, dh * k, dl if k < 2 else -dl)
+        clear = min((_hue_dist(_hue_of(cand), o) for o in others), default=1.0)
+        if clear > best_clear:
+            best_clear, best = clear, cand
+    return best
+
+
+def neon_lines(ax, segs, array=None, colors=None, cmap=None, lw=8, glow=1.0):
+    """Line segments with a neon glow halo (trendy 'pulse' look).
+
+    `glow` (0..1) scales the halo spread and opacity. 1.0 = the full bloom, right for a
+    ground-level ribbon on empty space. Drop it (~0.4) on the dense isometric stacks, where
+    a fat halo swallows the track line — the complaint being you can't read the track under
+    the colour. The bright core keeps its width; only the surrounding haze tightens."""
     for glw, ga in ((lw * 3.6, 0.06), (lw * 2.5, 0.09), (lw * 1.6, 0.13)):
-        g = LineCollection(segs, linewidths=glw, capstyle="round", joinstyle="round", alpha=ga)
+        glw = lw + (glw - lw) * glow  # shrink halo toward the core as glow falls
+        g = LineCollection(segs, linewidths=glw, capstyle="round", joinstyle="round", alpha=ga * glow)
         if cmap is not None:
             g.set_cmap(cmap)
             g.set_array(array)
@@ -1845,6 +1915,7 @@ def chart_dominance_stack(session, meta):
     grid = rx = ry = None
     drivers = []        # (drv, color)
     speed_rows = []     # median speed per track point, across all the driver's quick laps
+    tmcol = {}          # teammate tint counter (same-team drivers get distinct shades)
     for drv in top_drivers_by_pace(laps, 3):
         dl = laps[laps["Driver"] == drv]
         ql = dl.pick_quicklaps() if hasattr(dl, "pick_quicklaps") else dl
@@ -1870,7 +1941,7 @@ def chart_dominance_stack(session, meta):
             stack.append(np.interp(grid, cd["Distance"], cd["Speed"]))
         if not stack:
             continue
-        drivers.append((drv, team_color(dl["Team"].iloc[0])))
+        drivers.append((drv, teammate_color(dl["Team"].iloc[0], tmcol)))
         speed_rows.append(np.median(np.vstack(stack), axis=0))
     if len(drivers) < 2 or grid is None:
         return None
@@ -1912,11 +1983,12 @@ def chart_dominance_stack(session, meta):
                      joinstyle="round", zorder=10 * k + 1))
         pp = np.array([sx, sy + dz]).T.reshape(-1, 1, 2)
         segs = np.concatenate([pp[:-1], pp[1:]], axis=1)
-        ax.add_collection(LineCollection(segs, colors="#34383F", linewidths=4.0 + 1.5 * frac,
+        ax.add_collection(LineCollection(segs, colors="#565C66", linewidths=3.2 + 1.2 * frac,
                           capstyle="round", zorder=10 * k + 2))
         wmask = winner[:-1] == di
         if wmask.any():
-            neon_lines(ax, segs[wmask], colors=[col] * int(wmask.sum()), lw=6.0 + 2.0 * frac)
+            neon_lines(ax, segs[wmask], colors=[col] * int(wmask.sum()),
+                       lw=4.5 + 1.3 * frac, glow=0.4)
             for c in ax.collections[-4:]:
                 c.set_zorder(10 * k + 3)
         ay = bsy.mean() + dz
@@ -1968,6 +2040,7 @@ def chart_dominance_flat(session, meta):
     grid = rx = ry = None
     drivers = []        # (drv, color)
     speed_rows = []     # median speed per track point across the driver's quick laps
+    tmcol = {}          # teammate tint counter (same-team drivers get distinct shades)
     for drv in top_drivers_by_pace(laps, 3):
         dl = laps[laps["Driver"] == drv]
         ql = dl.pick_quicklaps() if hasattr(dl, "pick_quicklaps") else dl
@@ -1993,7 +2066,7 @@ def chart_dominance_flat(session, meta):
             stack.append(np.interp(grid, cd["Distance"], cd["Speed"]))
         if not stack:
             continue
-        drivers.append((drv, team_color(dl["Team"].iloc[0])))
+        drivers.append((drv, teammate_color(dl["Team"].iloc[0], tmcol)))
         speed_rows.append(np.median(np.vstack(stack), axis=0))
     if len(drivers) < 2 or grid is None:
         return None
@@ -2316,7 +2389,8 @@ def chart_parallax_stack(session, meta):
                      joinstyle="round", zorder=10 * k + 1))
         pts = np.array([sx, sy + dz]).T.reshape(-1, 1, 2)
         segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
-        lc = neon_lines(ax, segs, array=speeds[di][:-1], cmap="inferno", lw=6.0 + 2.5 * frac)
+        lc = neon_lines(ax, segs, array=speeds[di][:-1], cmap="inferno",
+                        lw=4.5 + 1.7 * frac, glow=0.45)
         for c in ax.collections[-4:]:
             try:
                 c.set_clim(vmin, vmax)
@@ -2956,7 +3030,7 @@ def chart_driver_compare(session, meta):
     colA = team_color(lapA["Team"])
     colB = team_color(lapB["Team"])
     if colA == colB:
-        colB = _lighten(colA, 0.55)
+        colB = _hue_shift(colA, 0.11, 0.14)  # teammates: rotate hue (survives neon glow)
 
     sA = float(lapA["LapTime"].total_seconds())
     sB = float(lapB["LapTime"].total_seconds())
@@ -3294,7 +3368,7 @@ def chart_season_scorecard(session, meta):
     B = infos[1].get("code") or codes[1]
     colA, colB = team_color(SA["team"]), team_color(SB["team"])
     if colA == colB:
-        colB = _lighten(colA, 0.55)
+        colB = _hue_shift(colA, 0.11, 0.14)  # teammates: rotate hue (survives neon glow)
 
     # head-to-head tallies over the rounds both contested
     common = sorted(set(SA["by_round"]) & set(SB["by_round"]))
