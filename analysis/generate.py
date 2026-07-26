@@ -4006,14 +4006,33 @@ def chart_sector_pace(session, meta):
     if len(rows) < 2:
         return None
 
-    rows.sort(key=lambda r: r["total"])
     best_sec = [min(r["secs"][i] for r in rows) for i in range(3)]
-    best_total = rows[0]["total"]
+    best_total = min(r["total"] for r in rows)
+
+    # Race/sprint: order by finishing position so the board reads like the result, not a
+    # fastest-lap table (the winner rarely holds the quickest lap). Other sessions have no
+    # finishing order, so they stay sorted by pace.
+    finish = {}
+    if str(getattr(session, "name", "")).lower() in ("race", "sprint"):
+        try:
+            for _, rr in session.results.iterrows():
+                ab, p = rr.get("Abbreviation"), rr.get("Position")
+                if ab is not None and pd.notna(p):
+                    finish[str(ab)] = int(p)
+        except Exception:
+            finish = {}
+    by_finish = bool(finish) and any(r["code"] in finish for r in rows)
+    if by_finish:
+        rows.sort(key=lambda r: (finish.get(r["code"], 9999), r["total"]))
+    else:
+        rows.sort(key=lambda r: r["total"])
 
     fig, ax = editorial_fig(left=0.10, right=0.88)
     title_block(
         fig, "Session pace", "Sector Pace",
-        "Time lost per sector vs the session's best — bar length is the gap to a perfect lap",
+        ("Fastest lap split by sector · ordered by finish — bar length is the gap to a perfect lap"
+         if by_finish else
+         "Time lost per sector vs the session's best — bar length is the gap to a perfect lap"),
     )
 
     for i, r in enumerate(rows):
@@ -4029,9 +4048,10 @@ def chart_sector_pace(session, meta):
                 ax.plot(0.004, y, marker="o", markersize=4, color=PURPLE, zorder=4)
             left += d
         gap = r["total"] - best_total
-        label = fmt_laptime(r["total"]) + ("" if i == 0 else f"   +{gap:.3f}")
+        is_fastest = gap < 1e-9  # purple marks the fastest-lap holder, wherever it lands now
+        label = fmt_laptime(r["total"]) + ("" if is_fastest else f"   +{gap:.3f}")
         ax.text(left + 0.012, y, label, va="center", ha="left", fontsize=9,
-                fontproperties=FP_BODY_B, color=PURPLE if i == 0 else INK)
+                fontproperties=FP_BODY_B, color=PURPLE if is_fastest else INK)
 
     ax.set_yticks(range(len(rows)))
     ax.set_yticklabels([r["code"] for r in reversed(rows)],
