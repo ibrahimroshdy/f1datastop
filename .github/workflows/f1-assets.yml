@@ -1,6 +1,8 @@
 name: F1 refresh current-season assets
 
-# Every 6h: keep the current season's durable derived assets filled — fastest-lap
+# Once daily (was every 6h — trimmed 2026-08-13 to cut Actions minutes; these are the
+# heaviest runs at ~9 min each and the assets only change when a new round runs):
+# keep the current season's durable derived assets filled — fastest-lap
 # telemetry (all rounds), circuit geometry, race replays, PLUS per-lap telemetry for the
 # LATEST round only (all-laps over every round would blow the minute budget; the latest
 # round is the only new one, and it self-skips already-exported laps). Older seasons'
@@ -12,7 +14,7 @@ name: F1 refresh current-season assets
 # run where EVERY step failed (broken creds, bad deploy) fails the job loudly.
 on:
   schedule:
-    - cron: "30 */6 * * *"
+    - cron: "30 6 * * *"
   workflow_dispatch: {}
 
 concurrency:

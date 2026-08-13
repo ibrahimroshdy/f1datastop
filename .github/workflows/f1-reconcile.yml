@@ -5,14 +5,15 @@ name: F1 reconcile current season
 # for rounds still marked provisional (ingested from live timing before Ergast published,
 # which the pass keeps retrying until real data replaces it).
 #
-# Two cadences: every 2h as the baseline, plus every 20 minutes on race day. A race that
-# finishes just after a 2-hourly tick would otherwise leave the site showing pre-race
-# standings for nearly two hours — exactly when traffic peaks. Sessions run Fri-Sun, so
-# the tight window is scoped to those days and to the hours races actually fall in.
+# Two cadences: every 6h as the baseline, plus every 30 minutes during race-day hours.
+# A race that finishes just after a baseline tick would otherwise leave the site showing
+# pre-race standings — exactly when traffic peaks. Sessions run Fri-Sun, so the tight
+# window is scoped to those days and the hours races actually fall in (12-21).
+# (Trimmed 2026-08-13 to cut Actions minutes: was 2h baseline + every-20min all weekend.)
 on:
   schedule:
-    - cron: "0 */2 * * *"
-    - cron: "*/20 10-23 * * 5,6,0"
+    - cron: "0 */6 * * *"
+    - cron: "*/30 12-21 * * 5,6,0"
   workflow_dispatch: {}
 
 concurrency:
