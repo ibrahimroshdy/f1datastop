@@ -69,18 +69,23 @@ jobs:
 
           # Every session type — the point of this change: practice/quali charts, not just
           # the race. Each self-skips a session a weekend doesn't have or hasn't run.
+          # Scheduled runs skip charts already published (the big minutes saver —
+          # a completed round's data is final, so its charts never change). A manual
+          # dispatch forces a full re-render (use it if data was corrected).
+          SKIP="--skip-existing"
+          [ "${{ github.event_name }}" = "workflow_dispatch" ] && SKIP=""
           SESSIONS="FP1 FP2 FP3 Q SQ SS S R"
           for sess in $SESSIONS; do
             echo "== charts $sess =="
             for r in $ROUNDS; do
-              try python generate.py --season "$Y" --round "$r" --session "$sess" --format all --theme all
+              try python generate.py --season "$Y" --round "$r" --session "$sess" --format all --theme all $SKIP
             done
           done
 
           # Teammate head-to-heads (race only) — best-effort; a pair may be absent from a round.
           for pair in "RUS,ANT" "NOR,PIA" "LEC,HAM"; do
             for r in $ROUNDS; do
-              try python generate.py --season "$Y" --round "$r" --session R --only driver_compare --drivers "$pair" --format all --theme all
+              try python generate.py --season "$Y" --round "$r" --session R --only driver_compare --drivers "$pair" --format all --theme all $SKIP
             done
           done
 

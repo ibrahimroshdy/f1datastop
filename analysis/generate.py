@@ -4328,6 +4328,31 @@ def upsert_index(row):
         raise RuntimeError(f"index upsert failed {r.status_code}: {r.text}")
 
 
+def existing_chart_keys(season, rnd, session):
+    """(chart_type, theme) pairs already indexed for this session.
+
+    One query up front lets --skip-existing avoid re-rendering charts that are
+    already published. On any read failure it returns an empty set — i.e. fail
+    open and render everything, never silently skip real work.
+    """
+    url = os.environ["SUPABASE_URL"].rstrip("/")
+    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    try:
+        r = requests.get(
+            f"{url}/rest/v1/analysis_charts",
+            headers={"Authorization": f"Bearer {key}", "apikey": key},
+            params={"season": f"eq.{season}", "round": f"eq.{rnd}",
+                    "session": f"eq.{session}", "select": "chart_type,theme"},
+            timeout=30)
+        if not r.ok:
+            print(f"  (skip-existing: index read failed {r.status_code} — rendering all)")
+            return set()
+        return {(row["chart_type"], row["theme"]) for row in r.json()}
+    except Exception as e:  # noqa: BLE001 — never let a read error skip real work
+        print(f"  (skip-existing: index read error {e} — rendering all)")
+        return set()
+
+
 def latest_completed_round(year):
     sched = fastf1.get_event_schedule(year, include_testing=False)
     now = pd.Timestamp.utcnow().tz_localize(None)
@@ -4446,6 +4471,11 @@ def main():
     ap.add_argument("--strategy-history", action="store_true",
                     help="multi-year strategy infographic for --event over the last ~5 editions")
     ap.add_argument("--years", type=int, default=5, help="how many past editions for --strategy-history")
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="skip charts already in the index instead of re-rendering them "
+                         "— the big Actions-minutes saver: repeated runs then only draw "
+                         "NEW sessions/charts. A completed round's data is final, so its "
+                         "charts never change. Omit it to force a full re-render.")
     args = ap.parse_args()
 
     cache = os.environ.get("FASTF1_CACHE", ".fastf1cache")
@@ -4511,6 +4541,14 @@ def main():
 
     theme_set = ["dark", "light"] if args.theme == "all" else [args.theme]
 
+    # --skip-existing: fetch what's already published once, so the per-chart loop
+    # can skip the expensive render for charts that exist. Turns a repeated bulk
+    # run (re-drawing every session for ~an hour) into "only draw what's new".
+    existing = set()
+    if args.skip_existing and not args.no_upload:
+        existing = existing_chart_keys(args.season, rnd, args.session)
+        print(f"skip-existing: {len(existing)} charts already indexed for this session")
+
     ok = 0
     # Theme is the outer loop, format the inner: the session is already loaded, so each
     # theme only re-renders (cheap) — no extra data fetch. dark keeps the original,
@@ -4536,6 +4574,17 @@ def main():
                 # --only bypasses this so on-demand requests still work anywhere.
                 if not only_set and ctype not in allowed:
                     continue
+                # Index key (encodes format + driver selection). Computed before the
+                # render so --skip-existing avoids the expensive draw entirely.
+                ct = (ctype if fmt == "landscape" else f"{ctype}_{fmt}") + dk
+                if args.skip_existing:
+                    if not args.no_upload and (ct, theme) in existing:
+                        print(f"  - {theme}/{fmt}/{ctype}: exists, skipped")
+                        continue
+                    if args.no_upload and os.path.exists(
+                            os.path.join("out", base, f"{ctype}{dk}.png")):
+                        print(f"  - {fmt}/{ctype}: exists (local), skipped")
+                        continue
                 try:
                     png = fn(session, meta)
                     if not png:
@@ -4551,7 +4600,6 @@ def main():
                             f.write(png)
                         print(f"  - {fmt}/{ctype}{dk}: {len(png) // 1024} KB")
                     else:
-                        ct = (ctype if fmt == "landscape" else f"{ctype}_{fmt}") + dk
                         # Label a driver/teammate compare by its pair so multiple
                         # driver_compare cards are distinguishable in Deep Dive.
                         row_title = (f"{title} · {' vs '.join(sorted(DRIVERS))}"
