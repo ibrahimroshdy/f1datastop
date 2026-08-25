@@ -378,6 +378,45 @@ def _laps_completed(session, abbr2id):
     return out
 
 
+def _augment_qualifying_from_ergast(rows, season, rnd):
+    """Backfill qualifying from Jolpica when FastF1's classification came back empty.
+
+    FastF1 sometimes returns a qualifying session with no usable results — every
+    Position/Q1-3/team null — even after the session has run (observed on 2026 R12).
+    The round was then marked done off the *race* result and the empty quali never
+    healed, which blanked the Qualifying→Race chart. When no row has a position, pull
+    the classification from Jolpica (the same source backfill uses) and fill blanks
+    only — never overwrite a value FastF1 did provide."""
+    if any(r.get("position") is not None for r in rows):
+        return rows
+    try:
+        doc = bf.jolpica_get(f"{season}/{rnd}/qualifying")
+        races = doc["MRData"]["RaceTable"].get("Races", []) if doc else []
+        qr = races[0].get("QualifyingResults", []) if races else []
+    except Exception as e:  # noqa: BLE001
+        print(f"  quali ergast fallback failed {season} R{rnd}: {e}")
+        return rows
+    by_id = {(q.get("Driver") or {}).get("driverId"): q for q in qr}
+    filled = 0
+    for r in rows:
+        q = by_id.get(r.get("driver_id"))
+        if not q:
+            continue
+        if r.get("position") is None and q.get("position") is not None:
+            r["position"] = _int(q.get("position"))
+            filled += 1
+        for key, src in (("q1", "Q1"), ("q2", "Q2"), ("q3", "Q3")):
+            if not r.get(key) and q.get(src):
+                r[key] = q.get(src)
+        if not r.get("constructor_id"):
+            cid = (q.get("Constructor") or {}).get("constructorId")
+            if cid:
+                r["constructor_id"] = cid
+    if filled:
+        print(f"  quali {season} R{rnd}: filled {filled} rows from Jolpica (FastF1 gave no positions)")
+    return rows
+
+
 def ingest_results(session, season, rnd, code):
     rid = bf.race_id_for(season, rnd)
     fast = _fastest_laps(session, season) if code in ("R", "S") else {}
@@ -444,6 +483,7 @@ def ingest_results(session, season, rnd, code):
                 base["fastest_lap_rank"] = f[1]
             rows.append(base)
     if code in ("Q", "SQ"):
+        rows = _augment_qualifying_from_ergast(rows, season, rnd)
         n = bf.supa_upsert("f1_qualifying_result", rows, "season,round,driver_id")
     elif code == "S":
         n = bf.supa_upsert("f1_sprint_result", rows, "season,round,driver_id")
@@ -595,6 +635,14 @@ def _round_done(season, rnd):
             return False
         if any(r.get("provisional") for r in rows):
             print(f"== {season} R{rnd} == results are provisional; re-ingesting for Ergast data")
+            return False
+        # The race being final isn't enough: a round whose qualifying rows exist but carry
+        # no positions (FastF1 returned an empty quali classification) would otherwise be
+        # marked done and the empty quali never repaired. Keep re-ingesting — the quali
+        # ingest's Jolpica fallback fills it — until qualifying has real positions.
+        q = bf.supa_select("f1_qualifying_result", "position", season=season, round=rnd)
+        if q and not any(row.get("position") is not None for row in q):
+            print(f"== {season} R{rnd} == qualifying has no positions; re-ingesting")
             return False
         return True
     except Exception:  # noqa: BLE001
