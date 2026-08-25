@@ -144,13 +144,14 @@ const LastRaceResultsCard = ({
                 const position = Number(result.position);
                 const teamColor = getTeamHexColor(result.Constructor.constructorId);
                 const isWinner = position === 1;
+                // Gap can be absent (provisional data, or a status like "+1 Lap"/"DNF").
+                // Never render "+" + undefined — fall back to the status text.
+                const gap: string | undefined = result.Time?.time;
                 const timeLabel = isWinner
-                  ? result.Time?.time
-                  : result.Time?.time?.startsWith('+')
-                    ? result.Time.time
-                    : result.status === "Finished"
-                      ? "+" + result.Time?.time
-                      : result.status;
+                  ? (gap || result.status || "")
+                  : gap
+                    ? (gap.startsWith("+") ? gap : "+" + gap)
+                    : (result.status || "");
                 return (
                   <div
                     key={result.position}

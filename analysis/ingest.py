@@ -69,6 +69,21 @@ def _millis(td):
         return None
 
 
+def _result_time_text(t, pos):
+    """Classification time string for f1_race_result / f1_sprint_result.
+
+    FastF1's results `Time` is the winner's *total* race time and, for everyone
+    else, the *gap* to the winner (NaT when lapped or retired — the status text
+    carries "+1 Lap"/"DNF" in that case). Ergast/UI convention shows the winner's
+    total and a leading-"+" gap for the rest — so only P1 gets the bare time.
+    Previously only P1 was written at all, leaving every other row's time_text
+    NULL and the UI rendering "+undefined"."""
+    s = bf._fmt_laptime(t)
+    if s is None:
+        return None
+    return s if pos == 1 else f"+{s}"
+
+
 def _int(v):
     return bf.to_int(v)
 
@@ -420,7 +435,7 @@ def ingest_results(session, season, rnd, code):
                 # the next reconcile replace it with Ergast's richer text.
                 "status": _s(r.get("Status")) or _provisional_status(dnf_flag),
                 "is_dnf": dnf_flag,
-                "time_text": bf._fmt_laptime(r.get("Time")) if _int(r.get("Position")) == 1 else None,
+                "time_text": _result_time_text(r.get("Time"), pos),
                 "time_millis": _millis(r.get("Time")),
                 "fastest_lap_time": f[0], "fastest_lap_number": f[2],
                 "source": "fastf1",
