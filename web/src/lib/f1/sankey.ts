@@ -219,7 +219,7 @@ export const buildSankeyFromRoundResults = (qualifying: any[], raceResults: any[
   const qualiByDriverId = new Map<string, number>();
   if (hasQualifying) {
     qualifying.forEach((driver: any) => {
-      if (driver.position) {
+      if (driver.position && driver.Driver?.driverId) {
         qualiByDriverId.set(driver.Driver.driverId, parseInt(driver.position));
       }
     });
@@ -331,12 +331,17 @@ export const buildSankeyFromRoundResults = (qualifying: any[], raceResults: any[
     qualifying.forEach((driver: any) => {
       if (!driver.position) return;
       const position = parseInt(driver.position);
+      // Same partial-payload guard as the race path above: the warehouse can serve a
+      // qualifying row with a null Constructor (and Driver fields absent) before Ergast
+      // enrichment lands. Unguarded `driver.Constructor.constructorId` here threw and blanked
+      // the whole progression chart ("No progression data") whenever quali had positions but
+      // no constructor yet.
       qualiNodeByPosition.set(position, {
         id: `${qualifyingIdPrefix}${position}`,
-        name: driver.Driver.code,
-        fullName: `${driver.Driver.givenName} ${driver.Driver.familyName}`,
-        team: driver.Constructor.constructorId,
-        teamName: driver.Constructor.name,
+        name: driver.Driver?.code ?? "",
+        fullName: `${driver.Driver?.givenName ?? ""} ${driver.Driver?.familyName ?? ""}`.trim(),
+        team: driver.Constructor?.constructorId ?? "unknown",
+        teamName: driver.Constructor?.name ?? "Unknown",
         position
       });
     });
