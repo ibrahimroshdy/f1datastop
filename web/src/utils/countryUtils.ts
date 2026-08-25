@@ -21,9 +21,11 @@ export const getRaceNameWithoutEmoji = (raceName: string): string => {
       return raceName.substring(4).trim();
     }
 
-    if (raceName.includes(" ") && raceName.indexOf(" ") <= 5) {
-      return raceName.substring(raceName.indexOf(" ") + 1).trim();
-    }
+    // NOTE: no "strip the first word if it's short" fallback. A 5-letter country
+    // name ("Dutch", "Miami", "Qatar", "Spain") has its first space at index 5, so
+    // `indexOf(" ") <= 5` wrongly chopped the country and left a bare "Grand Prix".
+    // The regional-indicator check above already removes real emoji flags; plain
+    // names must pass through untouched.
   }
 
   return raceName;
