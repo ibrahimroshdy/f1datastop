@@ -250,8 +250,13 @@ export const buildSankeyFromRoundResults = (qualifying: any[], raceResults: any[
 
     const qualiPos = qualiByDriverId.get(driver.Driver.driverId) ?? null;
     let gridPosition: number;
-    if (driver.grid != null && driver.grid !== "" && !isNaN(parseInt(driver.grid))) {
-      gridPosition = parseInt(driver.grid);
+    // grid must be a real slot (>= 1). FastF1 writes -1 when it can't resolve the grid
+    // for a just-finished race; an unguarded parseInt("-1") put every driver at grid -1,
+    // which coloured every quali->grid leg as a "gain" and stacked a bogus red bar. Treat
+    // anything <= 0 as "no grid" and fall back to the quali position.
+    const gridNum = parseInt(driver.grid);
+    if (driver.grid != null && driver.grid !== "" && !isNaN(gridNum) && gridNum > 0) {
+      gridPosition = gridNum;
     } else if (qualiPos != null) {
       gridPosition = qualiPos;
     } else {

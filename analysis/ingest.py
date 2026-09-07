@@ -417,6 +417,48 @@ def _augment_qualifying_from_ergast(rows, season, rnd):
     return rows
 
 
+def _resolve_grid(r, grid_map):
+    """Grid slot for a race/sprint row. FastF1's GridPosition is -1 when unresolved (a
+    just-run race, before Ergast publishes); treat <0 as unknown and fall back to the
+    timing-derived grid, else None so the Jolpica augment can fill it. 0 (pit lane) is a
+    real Ergast value and is kept."""
+    gp = _int(r.get("GridPosition"))
+    if gp is not None and gp >= 0:
+        return gp
+    return grid_map.get(_int(r.get("DriverNumber")))
+
+
+def _augment_grid_from_ergast(rows, season, rnd, endpoint, results_key):
+    """Fill race/sprint grid from Jolpica when FastF1 couldn't resolve it (grid None/<0).
+
+    Same failure mode as qualifying: a just-run race can ingest with the grid unresolved,
+    and `_round_done` would lock the round off the finishing order so the -1 grid never
+    heals — which coloured every quali->grid leg as a gain and stacked a bogus red bar on
+    the progression chart. Fill blanks only; never overwrite a real FastF1/timing grid."""
+    if all(r.get("grid") is not None and r.get("grid") >= 0 for r in rows):
+        return rows
+    try:
+        doc = bf.jolpica_get(f"{season}/{rnd}/{endpoint}")
+        races = doc["MRData"]["RaceTable"].get("Races", []) if doc else []
+        er = races[0].get(results_key, []) if races else []
+    except Exception as e:  # noqa: BLE001
+        print(f"  grid ergast fallback failed {season} R{rnd}: {e}")
+        return rows
+    by_id = {(x.get("Driver") or {}).get("driverId"): x for x in er}
+    filled = 0
+    for r in rows:
+        x = by_id.get(r.get("driver_id"))
+        if x is None:
+            continue
+        g = _int(x.get("grid"))
+        if (r.get("grid") is None or r.get("grid") < 0) and g is not None and g >= 0:
+            r["grid"] = g
+            filled += 1
+    if filled:
+        print(f"  grid {season} R{rnd}: filled {filled} rows from Jolpica (FastF1 gave no grid)")
+    return rows
+
+
 def ingest_results(session, season, rnd, code):
     rid = bf.race_id_for(season, rnd)
     fast = _fastest_laps(session, season) if code in ("R", "S") else {}
@@ -463,10 +505,11 @@ def ingest_results(session, season, rnd, code):
             base.update({
                 "position_text": _s(r.get("ClassifiedPosition")),
                 "points": pts,
-                # Explicit None check, not `or`: Ergast writes grid 0 for a pit-lane start,
-                # which is meaningful and must not be replaced by the derived value.
-                "grid": (_int(r.get("GridPosition")) if _int(r.get("GridPosition")) is not None
-                         else grid_map.get(_int(r.get("DriverNumber")))),
+                # Ergast writes grid 0 for a pit-lane start (meaningful, keep it), but FastF1
+                # writes -1 when it can't resolve the grid for a just-run race. Treat <0 as
+                # unknown -> derived timing grid -> None (the Jolpica augment below fills it);
+                # never store -1, which rendered the progression chart as an all-"gain" wall.
+                "grid": _resolve_grid(r, grid_map),
                 "laps": _int(r.get("Laps")) or laps_done.get(did),
                 # Status is Ergast-only and blank for hours after the flag. The UI treats it
                 # as a required string (sankey.ts does status.includes("+")), so writing the
@@ -486,8 +529,10 @@ def ingest_results(session, season, rnd, code):
         rows = _augment_qualifying_from_ergast(rows, season, rnd)
         n = bf.supa_upsert("f1_qualifying_result", rows, "season,round,driver_id")
     elif code == "S":
+        rows = _augment_grid_from_ergast(rows, season, rnd, "sprint", "SprintResults")
         n = bf.supa_upsert("f1_sprint_result", rows, "season,round,driver_id")
     else:
+        rows = _augment_grid_from_ergast(rows, season, rnd, "results", "Results")
         n = bf.supa_upsert("f1_race_result", rows, "season,round,driver_id")
     print(f"  results {season} R{rnd} {code}: {n}")
     return n
@@ -629,12 +674,19 @@ def _round_done(season, rnd):
     Keep retrying while any row is provisional so the reconcile upgrades it in place.
     """
     try:
-        rows = bf.supa_select("f1_race_result", "driver_id,provisional",
+        rows = bf.supa_select("f1_race_result", "driver_id,provisional,grid",
                               season=season, round=rnd, source="fastf1")
         if not rows or len(rows) < 5:
             return False
         if any(r.get("provisional") for r in rows):
             print(f"== {season} R{rnd} == results are provisional; re-ingesting for Ergast data")
+            return False
+        # Grid must resolve too: if every row's grid is unknown (FastF1 gave -1/None for a
+        # just-run race) the round would lock off the finishing order and the grid never
+        # heals — which renders the progression chart as an all-'gain' wall. Re-ingest until
+        # the grid augment fills it.
+        if all((row.get("grid") is None or row.get("grid") < 0) for row in rows):
+            print(f"== {season} R{rnd} == grid unresolved; re-ingesting")
             return False
         # The race being final isn't enough: a round whose qualifying rows exist but carry
         # no positions (FastF1 returned an empty quali classification) would otherwise be
