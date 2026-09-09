@@ -59,7 +59,18 @@ const slugify = (s: string) =>
 /** Fetch a cross-origin image as a blob and save it (the `download` attribute is
  *  ignored for cross-origin URLs, so a plain <a download> only opens a tab). */
 async function saveImage(url: string, filename: string) {
-  const res = await fetch(url);
+  // The CDN edge may have cached this object from a plain <img> request (no
+  // Origin header, so no Access-Control-Allow-Origin on the cached copy). A
+  // fetch() served from that copy fails CORS. Retry once with a cache-busting
+  // query so the edge revalidates against R2 with our Origin.
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch {
+    const sep = url.includes("?") ? "&" : "?";
+    res = await fetch(`${url}${sep}cors=${Date.now()}`);
+  }
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
   const blob = await res.blob();
   const objectUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -87,6 +98,7 @@ function ChartImage({ src, alt, aspect }: { src: string; alt: string; aspect: st
         src={src}
         alt={alt}
         loading="lazy"
+        crossOrigin="anonymous"
         onLoad={() => setLoaded(true)}
         className="absolute inset-0 h-full w-full object-contain"
       />
@@ -257,6 +269,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
                 src={c.thumb_url ?? c.public_url}
                 alt=""
                 loading="lazy"
+                crossOrigin="anonymous"
                 className="h-10 w-16 shrink-0 rounded border border-border/60 object-cover"
               />
               <div className="min-w-0 flex-1">
