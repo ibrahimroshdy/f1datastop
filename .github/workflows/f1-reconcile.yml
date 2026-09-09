@@ -31,7 +31,24 @@ jobs:
       FASTF1_CACHE: ${{ github.workspace }}/analysis/.fastf1cache
     steps:
       - uses: actions/checkout@v4
+
+      # The 30-minute race-day cron only pays for setup when a session actually started in
+      # the last 8 h (analysis/reconcile_needed.py, stdlib, ~5 s). The 6-hourly baseline and
+      # manual runs are unconditional so late-published Ergast data is always picked up.
+      - name: Is there a live/just-finished session?
+        id: gate
+        working-directory: analysis
+        run: |
+          if [ "${{ github.event.schedule }}" = "*/30 12-21 * * 5,6,0" ]; then
+            out="$(python3 reconcile_needed.py --season "$(date -u +%Y)")"; echo "$out"
+            case "$out" in run*) echo "go=true" >> "$GITHUB_OUTPUT";; *) echo "go=false" >> "$GITHUB_OUTPUT"; echo "No session in the window — skipping this tick.";; esac
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: ./.github/actions/f1-setup
+        if: steps.gate.outputs.go == 'true'
       - name: Ingest current season (skips finished rounds)
+        if: steps.gate.outputs.go == 'true'
         working-directory: analysis
         run: python ingest.py --season "$(date -u +%Y)"
