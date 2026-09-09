@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, DownloadCloud, Loader2, Rows3, Grid2x2, LayoutGrid } from "lucide-react";
 import {
   getAnalysisCharts,
@@ -10,6 +10,8 @@ import {
   type ChartTheme,
 } from "@/services/analysisService";
 import { useTheme } from "@/context/ThemeContext";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getRequestState, submitChartRequest } from "@/services/chartRequestService";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -102,6 +104,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
   const [format, setFormat] = useState<ChartFormat>("landscape");
   const [view, setView] = useState<ViewMode>("grid5");
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [downloadTarget, setDownloadTarget] = useState<AnalysisChart | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["analysisCharts", year, r, session, chartTheme],
@@ -202,7 +205,9 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
               );
             })}
           </div>
-          {/* format picker — segmented buttons (one tap, all formats visible) */}
+          {/* format picker — only when more than one format is actually stored (bulk runs
+              pre-render landscape only; other sizes are rendered on demand at download) */}
+          {formatsAvailable.size > 1 && (
           <div className="flex flex-wrap gap-1" role="group" aria-label="Export format">
             {FORMAT_ORDER.filter((f) => formatsAvailable.has(f)).map((f) => (
               <button
@@ -221,6 +226,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
               </button>
             ))}
           </div>
+          )}
           <Button
             variant="outline"
             className="min-h-11 gap-1.5"
@@ -248,7 +254,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
               className="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-muted/40"
             >
               <img
-                src={c.public_url}
+                src={c.thumb_url ?? c.public_url}
                 alt=""
                 loading="lazy"
                 className="h-10 w-16 shrink-0 rounded border border-border/60 object-cover"
@@ -262,7 +268,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
               <Button
                 variant="ghost"
                 className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-foreground"
-                onClick={() => saveImage(c.public_url, `${year}-r${r}-${slugify(c.title)}-${format}.png`)}
+                onClick={() => setDownloadTarget(c)}
                 aria-label={`Download ${c.title}`}
               >
                 <Download className="h-4 w-4" />
@@ -275,7 +281,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
           {charts.map((c) => (
             <F1Card key={c.id} variant={cardVariant} glassVariant={glassVariant} size="sm">
               <F1CardContent className="flex flex-col gap-2.5">
-                <ChartImage src={c.public_url} alt={c.title} aspect={FORMATS[format].aspect} />
+                <ChartImage src={c.thumb_url ?? c.public_url} alt={c.title} aspect={FORMATS[format].aspect} />
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{c.title}</p>
@@ -286,7 +292,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
                   <Button
                     variant="outline"
                     className="h-11 w-11 shrink-0 p-0"
-                    onClick={() => saveImage(c.public_url, `${year}-r${r}-${slugify(c.title)}-${format}.png`)}
+                    onClick={() => setDownloadTarget(c)}
                     aria-label={`Download ${c.title}`}
                   >
                     <Download className="h-4 w-4" />
@@ -297,6 +303,144 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
           ))}
         </div>
       )}
+      <ChartDownloadDialog
+        chart={downloadTarget}
+        year={year}
+        round={r}
+        session={session}
+        theme={chartTheme}
+        onClose={() => setDownloadTarget(null)}
+      />
     </div>
+  );
+}
+
+// ── Download size picker ──────────────────────────────────────────────────────
+// Bulk runs store only the landscape master (+ thumbnail). Other sizes are separate full
+// renders, so they're produced on request: enqueue f1_chart_requests → GitHub Actions
+// renders exactly that format/theme → we poll and hand the file over. Landscape is instant.
+
+type DlPhase = "idle" | "queued" | "processing" | "done" | "error" | "unauthenticated";
+
+const SIZE_HINT: Record<ChartFormat, string> = {
+  landscape: "2560 × 1440 · ready now",
+  twitter: "2560 × 1440 · X/Twitter card",
+  instagram: "2160 × 2700 · 4:5 post",
+  story: "2160 × 3840 · 9:16 story",
+};
+
+function ChartDownloadDialog({
+  chart, year, round, session, theme, onClose,
+}: {
+  chart: AnalysisChart | null;
+  year: number;
+  round: number;
+  session: string;
+  theme: ChartTheme;
+  onClose: () => void;
+}) {
+  const [fmt, setFmt] = useState<ChartFormat>("landscape");
+  const [phase, setPhase] = useState<DlPhase>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const timer = useRef<number | null>(null);
+
+  // reset per chart
+  useEffect(() => {
+    setFmt("landscape");
+    setPhase("idle");
+    setError(null);
+    if (timer.current) window.clearInterval(timer.current);
+    timer.current = null;
+  }, [chart?.id]);
+  useEffect(() => () => { if (timer.current) window.clearInterval(timer.current); }, []);
+
+  if (!chart) return null;
+  const filename = (f: ChartFormat) => `${year}-r${round}-${slugify(chart.title)}-${f}.png`;
+  // chart_type carries "_format" + an optional "__DRV-DRV" custom-driver key
+  const [baseType, driverKey] = baseChartType(chart.chart_type).split("__");
+  const codes = driverKey ? driverKey.split("-") : [];
+
+  const finish = async (url: string) => {
+    if (timer.current) window.clearInterval(timer.current);
+    timer.current = null;
+    setPhase("done");
+    await saveImage(url, filename(fmt));
+    onClose();
+  };
+
+  const start = async () => {
+    if (fmt === "landscape") {
+      await saveImage(chart.public_url, filename("landscape"));
+      onClose();
+      return;
+    }
+    setError(null);
+    const res = await submitChartRequest(year, round, session, baseType, codes, fmt, theme);
+    if (res.status === "done" && res.charts[0]) return finish(res.charts[0].public_url);
+    if (res.status === "unauthenticated") return setPhase("unauthenticated");
+    if (res.status === "error") { setError(res.error); return setPhase("error"); }
+    setPhase(res.status === "processing" ? "processing" : "queued");
+    timer.current = window.setInterval(async () => {
+      const st = await getRequestState(year, round, session, baseType, codes, fmt, theme);
+      if (st.status === "done" && st.charts[0]) return finish(st.charts[0].public_url);
+      if (st.status === "error") {
+        if (timer.current) window.clearInterval(timer.current);
+        timer.current = null;
+        setError(st.error);
+        setPhase("error");
+      } else if (st.status === "processing") setPhase("processing");
+    }, 5000);
+  };
+
+  const busy = phase === "queued" || phase === "processing";
+  return (
+    <Dialog open={!!chart} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Download · {chart.title}</DialogTitle>
+          <DialogDescription>
+            Choose a size. Landscape is stored and downloads instantly; the other sizes are
+            rendered for you on request and take a few minutes.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2" role="radiogroup" aria-label="Size">
+          {FORMAT_ORDER.map((f) => (
+            <button
+              key={f}
+              type="button"
+              role="radio"
+              aria-checked={fmt === f}
+              disabled={busy}
+              onClick={() => setFmt(f)}
+              className={cn(
+                "flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                fmt === f ? "border-primary bg-primary/10" : "border-border hover:bg-muted/40",
+                busy && "opacity-60",
+              )}
+            >
+              <span className="font-medium">{FORMATS[f].label.split("·")[0].trim()}</span>
+              <span className="text-xs text-muted-foreground">{SIZE_HINT[f]}</span>
+            </button>
+          ))}
+        </div>
+        {busy && (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {phase === "processing" ? "Rendering your chart…" : "Queued — rendering starts shortly…"} You can keep this open; the file will download when it's ready.
+          </p>
+        )}
+        {phase === "unauthenticated" && (
+          <p className="text-sm text-muted-foreground">Sign in to request other sizes. Landscape downloads without an account.</p>
+        )}
+        {phase === "error" && <p className="text-sm text-destructive">{error ?? "Rendering failed — try again."}</p>}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={start} disabled={busy}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            <span className="ml-1.5">{fmt === "landscape" ? "Download" : busy ? "Rendering" : "Render & download"}</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

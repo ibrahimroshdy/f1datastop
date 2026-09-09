@@ -59,8 +59,11 @@ def main():
     for req in pending:
         rid = req["id"]
         codes = [str(d).strip().upper() for d in (req.get("drivers") or []) if str(d).strip()]
-        if len(codes) < 2:
-            _patch(rid, {"status": "error", "error": "need at least 2 drivers"})
+        # Two kinds of request share this queue: a custom driver pick (>=2 codes, keyed by
+        # driver_key) and a plain "render this standard chart in <format>" download request
+        # (no codes). A single code is neither.
+        if len(codes) == 1:
+            _patch(rid, {"status": "error", "error": "pick at least 2 drivers (or none for the standard chart)"})
             continue
         # Bulk runs pre-render only the landscape master + thumbnail; a request names the
         # single format/theme the user asked to download, so render exactly that one.
@@ -71,9 +74,10 @@ def main():
             _run(
                 "generate.py", "--season", str(req["season"]), "--round", str(req["round"]),
                 "--session", req.get("session", "R"), "--only", req["chart"],
-                "--drivers", ",".join(codes), "--format", fmt, "--theme", theme,
+                *(["--drivers", ",".join(codes)] if codes else []),
+                "--format", fmt, "--theme", theme,
             )
-            dk = "__" + "-".join(sorted(codes))
+            dk = ("__" + "-".join(sorted(codes))) if codes else ""
             ct = req["chart"] + ("" if fmt == "landscape" else f"_{fmt}") + dk
             cr = rq.get(
                 f"{BASE}/rest/v1/analysis_charts",
