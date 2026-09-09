@@ -43,7 +43,7 @@ export async function getAnalysisCharts(
   const query = (t: ChartTheme) =>
     db
       .from("analysis_charts")
-      .select("*")
+      .select("id,season,round,session,chart_type,title,description,storage_path,public_url,thumb_path")
       .eq("season", season)
       .eq("round", round)
       .eq("session", session)

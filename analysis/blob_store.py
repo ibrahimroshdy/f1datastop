@@ -18,7 +18,7 @@ import functools
 import gzip
 import os
 
-PREFIXES = ("charts", "telemetry", "replays", "circuits")
+PREFIXES = ("charts", "telemetry", "replays", "circuits", "data")
 IMMUTABLE = "public, max-age=31536000, immutable"
 
 

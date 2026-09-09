@@ -33,3 +33,9 @@ jobs:
       - name: Drain pending telemetry requests
         working-directory: analysis
         run: python process_telemetry_requests.py
+
+      - name: Alert Slack on failure
+        if: failure()
+        uses: ./.github/actions/slack-alert
+        with:
+          webhook: ${{ secrets.SLACK_ALERTS_WEBHOOK }}

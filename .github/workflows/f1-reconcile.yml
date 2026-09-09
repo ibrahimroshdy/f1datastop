@@ -26,6 +26,12 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Cloudflare R2 — static season JSON exported after ingest (analysis/data_export.py)
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      BLOB_PUBLIC_BASE: ${{ secrets.BLOB_PUBLIC_BASE }}
       # Livetiming CDN 403s Azure ranges (all GitHub runners); route via allow-listed proxy.
       F1_LIVETIMING_PROXY: ${{ secrets.F1_LIVETIMING_PROXY }}
       FASTF1_CACHE: ${{ github.workspace }}/analysis/.fastf1cache
@@ -52,3 +58,18 @@ jobs:
         if: steps.gate.outputs.go == 'true'
         working-directory: analysis
         run: python ingest.py --season "$(date -u +%Y)"
+
+      # Snapshot the serving RPCs (schedule / standings / per-round results) to static JSON
+      # on R2 so the site reads cdn.f1datastop.com instead of hitting Postgres ~100k times a
+      # month. Runs after every ingest so the files track the warehouse; the frontend falls
+      # back to the RPC on a 404.
+      - name: Export season JSON to R2
+        if: steps.gate.outputs.go == 'true'
+        working-directory: analysis
+        run: python data_export.py --season "$(date -u +%Y)"
+
+      - name: Alert Slack on failure
+        if: failure()
+        uses: ./.github/actions/slack-alert
+        with:
+          webhook: ${{ secrets.SLACK_ALERTS_WEBHOOK }}

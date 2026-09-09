@@ -56,7 +56,7 @@ export async function getCustomChart(
   const types = ["", "_twitter", "_instagram", "_story"].map((f) => `${chart}${f}${key ? `__${key}` : ""}`);
   const { data, error } = await db
     .from("analysis_charts")
-    .select("*")
+    .select("id,season,round,session,chart_type,title,description,storage_path,public_url,thumb_path")
     .eq("season", season)
     .eq("round", round)
     .eq("session", session)

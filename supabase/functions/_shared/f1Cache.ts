@@ -84,6 +84,10 @@ async function logMetric(
     isRateLimit: boolean;
   },
 ) {
+  // A row per proxied request was ~41k inserts/month and 10 MB of table for 3 MAU. Keep
+  // every failure/rate-limit (that's what the table is for) and sample healthy hits 1-in-20.
+  const healthy = entry.statusCode < 400 && !entry.isRateLimit;
+  if (healthy && Math.random() >= 0.05) return;
   try {
     await admin.from("api_metrics").insert({
       source: entry.source,

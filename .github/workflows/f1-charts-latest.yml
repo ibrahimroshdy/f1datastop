@@ -114,3 +114,9 @@ jobs:
           if [ "$runs" -gt 0 ] && [ "$fails" -eq "$runs" ]; then echo "::error::every generate call failed — broken run, not a no-op."; exit 1; fi
           [ "$fails" -gt 0 ] && echo "::warning::$fails of $runs generate calls failed."
           exit 0
+
+      - name: Alert Slack on failure
+        if: failure()
+        uses: ./.github/actions/slack-alert
+        with:
+          webhook: ${{ secrets.SLACK_ALERTS_WEBHOOK }}

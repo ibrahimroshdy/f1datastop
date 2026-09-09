@@ -110,6 +110,47 @@ async function rpc<T = Jsonish>(
   }
 }
 
+// ───────────────────────── static JSON on the CDN (R2) ─────────────────────
+//
+// Every schedule / results / standings read used to be a Postgres RPC — ~100k calls a
+// month for data that changes a few times per race weekend. analysis/data_export.py now
+// snapshots what those RPCs return to `data/{season}/…` on R2 after every ingest, so the
+// browser reads a static file from cdn.f1datastop.com first and only falls back to the
+// RPC when the file is missing (404 — round not ingested yet) or the fetch fails. The
+// objects carry `Cache-Control: max-age=300, stale-while-revalidate=3600`, which the
+// browser cache honours, so repeat views within a session cost nothing at all.
+//
+// The files store EXACTLY the RPC payload, so callers below apply the same empty-checks
+// to either source and the MRData envelope in tryWarehouse() is unchanged.
+
+const STATIC_HOST = ((import.meta.env.VITE_BLOB_HOST as string | undefined) ?? "").replace(/\/+$/, "");
+
+/**
+ * Fetch `data/{path}` from the CDN, or null when the host isn't configured, the object
+ * is missing, the body isn't JSON, or the network fails. Never throws.
+ */
+async function staticJson<T = Jsonish>(path: string): Promise<T | null> {
+  if (!STATIC_HOST) return null;
+  try {
+    const res = await fetch(`${STATIC_HOST}/data/${path}`, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** CDN first, RPC second — the shared read path for every exported domain. */
+async function staticThenRpc<T = Jsonish>(
+  path: string,
+  fn: string,
+  args: Record<string, unknown>,
+): Promise<T | null> {
+  const fromCdn = await staticJson<T>(path);
+  if (fromCdn != null && !isEmpty(fromCdn)) return fromCdn;
+  return rpc<T>(fn, args);
+}
+
 /** Treat empty arrays / empty objects as a MISS so the caller falls through. */
 function isEmpty(value: Jsonish): boolean {
   if (value == null) return true;
@@ -133,7 +174,7 @@ function toRound(round: number | string): number {
  */
 export async function getScheduleFromDb(year: number): Promise<unknown[] | null> {
   if (!canServe(year)) return null;
-  const races = await rpc<unknown[]>("get_schedule", { p_season: year });
+  const races = await staticThenRpc<unknown[]>(`${year}/schedule.json`, "get_schedule", { p_season: year });
   if (races == null || isEmpty(races)) return null;
   return races;
 }
@@ -147,10 +188,11 @@ export async function getRaceResultsFromDb(
   round: number | string,
 ): Promise<Record<string, unknown> | null> {
   if (!canServe(year)) return null;
-  const race = await rpc<Record<string, unknown>>("get_race_results", {
-    p_season: year,
-    p_round: toRound(round),
-  });
+  const race = await staticThenRpc<Record<string, unknown>>(
+    `${year}/${toRound(round)}/results.json`,
+    "get_race_results",
+    { p_season: year, p_round: toRound(round) },
+  );
   if (race == null || isEmpty(race)) return null;
   // A race header with no Results[] means the round exists but isn't ingested
   // yet — fall through to the proxy rather than serving an empty grid.
@@ -266,10 +308,11 @@ export async function getQualifyingFromDb(
   round: number | string,
 ): Promise<Record<string, unknown> | null> {
   if (!canServe(year)) return null;
-  const race = await rpc<Record<string, unknown>>("get_qualifying", {
-    p_season: year,
-    p_round: toRound(round),
-  });
+  const race = await staticThenRpc<Record<string, unknown>>(
+    `${year}/${toRound(round)}/qualifying.json`,
+    "get_qualifying",
+    { p_season: year, p_round: toRound(round) },
+  );
   if (race == null || isEmpty(race)) return null;
   const q = race.QualifyingResults;
   if (Array.isArray(q) && q.length === 0) return null;
@@ -304,10 +347,11 @@ export async function getSprintResultsFromDb(
   round: number | string,
 ): Promise<Record<string, unknown> | null> {
   if (!canServe(year)) return null;
-  const race = await rpc<Record<string, unknown>>("get_sprint", {
-    p_season: year,
-    p_round: toRound(round),
-  });
+  const race = await staticThenRpc<Record<string, unknown>>(
+    `${year}/${toRound(round)}/sprint.json`,
+    "get_sprint",
+    { p_season: year, p_round: toRound(round) },
+  );
   if (race == null || isEmpty(race)) return null;
   const s = race.SprintResults;
   if (Array.isArray(s) && s.length === 0) return null;
@@ -367,10 +411,13 @@ export async function getDriverStandingsFromDb(
   round?: number,
 ): Promise<unknown[] | null> {
   if (!canServe(year)) return null;
-  const standings = await rpc<unknown[]>("get_driver_standings", {
-    p_season: year,
-    p_round: round ?? null,
-  });
+  // Only the latest snapshot is exported; a pinned round still goes to the RPC.
+  const standings = round == null
+    ? await staticThenRpc<unknown[]>(`${year}/driverStandings.json`, "get_driver_standings", {
+        p_season: year,
+        p_round: null,
+      })
+    : await rpc<unknown[]>("get_driver_standings", { p_season: year, p_round: round });
   if (standings == null || isEmpty(standings)) return null;
   return standings;
 }
@@ -384,10 +431,12 @@ export async function getConstructorStandingsFromDb(
   round?: number,
 ): Promise<unknown[] | null> {
   if (!canServe(year)) return null;
-  const standings = await rpc<unknown[]>("get_constructor_standings", {
-    p_season: year,
-    p_round: round ?? null,
-  });
+  const standings = round == null
+    ? await staticThenRpc<unknown[]>(`${year}/constructorStandings.json`, "get_constructor_standings", {
+        p_season: year,
+        p_round: null,
+      })
+    : await rpc<unknown[]>("get_constructor_standings", { p_season: year, p_round: round });
   if (standings == null || isEmpty(standings)) return null;
   return standings;
 }

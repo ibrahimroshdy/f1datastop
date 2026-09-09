@@ -116,3 +116,9 @@ jobs:
           if [ "$fails" -gt 0 ]; then
             echo "::warning::$fails of $runs steps failed (see warnings above)."
           fi
+
+      - name: Alert Slack on failure
+        if: failure()
+        uses: ./.github/actions/slack-alert
+        with:
+          webhook: ${{ secrets.SLACK_ALERTS_WEBHOOK }}
