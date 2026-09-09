@@ -27,8 +27,10 @@ blob_store.py. Add --dry-run to any phase to only print what would happen.
 """
 import argparse
 import os
+import pathlib
 import re
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
@@ -49,10 +51,13 @@ BUCKETS = {
 
 
 def _env():
+    """SUPABASE_URL is required. The service key is optional: with --list-file the copy
+    phase needs only public URLs (listing comes from `supabase storage ls -r`)."""
     try:
-        return os.environ["SUPABASE_URL"].rstrip("/"), os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+        url = os.environ["SUPABASE_URL"].rstrip("/")
     except KeyError as e:
         sys.exit(f"missing env {e}")
+    return url, os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 
 def _hdr(key):
@@ -114,13 +119,35 @@ def copy_one(url, bucket, path, is_json, dry):
         return "skip"
     if dry:
         return "would-copy"
-    r = requests.get(f"{url}/storage/v1/object/public/{bucket}/{path}", timeout=120)
-    if r.status_code == 404:
-        return "missing"
-    r.raise_for_status()
+    # Supabase rate-limits bulk public reads (429) — back off and retry rather than fail.
+    for attempt in range(6):
+        r = requests.get(f"{url}/storage/v1/object/public/{bucket}/{path}", timeout=120)
+        if r.status_code == 404:
+            return "missing"
+        if r.status_code in (429, 500, 502, 503, 504):
+            time.sleep(min(2 ** attempt, 20))
+            continue
+        r.raise_for_status()
+        break
+    else:
+        raise RuntimeError(f"gave up after retries: {r.status_code}")
     ctype = "application/json" if is_json else ("image/webp" if path.endswith(".webp") else "image/png")
     bs.put(bucket, path, r.content, ctype, gzip_body=is_json)
     return "copied"
+
+
+def _names_from_list_file(path, bucket):
+    """Object names for one bucket from a `supabase storage ls -r ss:///<bucket>` dump.
+    Lines look like `<bucket>/2025/01/R/ALB_10.json` (or a bare path); keep files only."""
+    out = []
+    for line in pathlib.Path(path).read_text().splitlines():
+        line = line.strip().lstrip("/")   # CLI prints "/<bucket>/path"
+        if not line or line.endswith("/"):
+            continue
+        if line.startswith(bucket + "/"):
+            line = line[len(bucket) + 1:]
+        out.append(line)
+    return out
 
 
 def phase_copy(args):
@@ -128,7 +155,12 @@ def phase_copy(args):
     for bucket, (_, is_json) in BUCKETS.items():
         if args.bucket and bucket != args.bucket:
             continue
-        names = supabase_objects(url, key, bucket)
+        if args.list_dir:
+            names = _names_from_list_file(os.path.join(args.list_dir, f"{bucket}.txt"), bucket)
+        else:
+            if not key:
+                sys.exit("no SUPABASE_SERVICE_ROLE_KEY: pass --list-dir with `supabase storage ls -r` dumps")
+            names = supabase_objects(url, key, bucket)
         wanted = [n for n in names if keep(bucket, n)]
         print(f"[{bucket}] {len(names)} objects in Supabase, {len(wanted)} to carry over "
               f"({len(names) - len(wanted)} dropped by policy)")
@@ -214,6 +246,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--bucket", choices=list(BUCKETS), help="limit to one bucket")
     ap.add_argument("--workers", type=int, default=16)
+    ap.add_argument("--list-dir", help="dir of <bucket>.txt files from `supabase storage ls -r` (no service key needed)")
     a = ap.parse_args()
     if not (a.copy or a.rewrite or a.purge):
         ap.error("pick at least one of --copy / --rewrite / --purge")
