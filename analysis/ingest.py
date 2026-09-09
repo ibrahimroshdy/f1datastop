@@ -163,6 +163,29 @@ def ingest_schedule(season):
 
 
 # ── entities ──────────────────────────────────────────────────────────────────
+# FastF1 gives a 3-letter IOC country code (GBR, NED, …); the site's flag lookup and the
+# Ergast-shaped payloads want the demonym ("British"). Unknown codes are left as-is
+# rather than dropped, and an empty code stays None so _merge_upsert keeps the stored value.
+_IOC_DEMONYM = {
+    "GBR": "British", "NED": "Dutch", "GER": "German", "ITA": "Italian", "FRA": "French",
+    "ESP": "Spanish", "MON": "Monegasque", "AUS": "Australian", "CAN": "Canadian",
+    "MEX": "Mexican", "JPN": "Japanese", "FIN": "Finnish", "DEN": "Danish", "THA": "Thai",
+    "CHN": "Chinese", "USA": "American", "BRA": "Brazilian", "ARG": "Argentine",
+    "NZL": "New Zealander", "SUI": "Swiss", "AUT": "Austrian", "BEL": "Belgian",
+    "POL": "Polish", "RUS": "Russian", "SWE": "Swedish", "POR": "Portuguese",
+    "IRL": "Irish", "EST": "Estonian", "COL": "Colombian", "IND": "Indian",
+    "RSA": "South African", "VEN": "Venezuelan", "HUN": "Hungarian", "CZE": "Czech",
+    "SGP": "Singaporean", "SIN": "Singaporean", "MAS": "Malaysian", "INA": "Indonesian",
+    "CHI": "Chilean", "URU": "Uruguayan", "ISR": "Israeli", "TUR": "Turkish",
+}
+
+
+def _demonym(code):
+    if not code:
+        return None
+    return _IOC_DEMONYM.get(str(code).upper(), code)
+
+
 def _merge_upsert(table, rows, conflict_key):
     """Upsert entity rows WITHOUT nulling columns FastF1 didn't supply.
 
@@ -208,7 +231,7 @@ def upsert_entities(session, season):
                 "ergast_id": did,
                 "given_name": _s(r.get("FirstName")), "family_name": fam,
                 "code": _s(r.get("Abbreviation")), "permanent_number": _s(r.get("DriverNumber")),
-                "nationality": _s(r.get("CountryCode")),
+                "nationality": _demonym(_s(r.get("CountryCode"))),
                 "headshot_url": _s(r.get("HeadshotUrl")),
                 "slug": _slug(fam or did),
                 "active_season": season,
