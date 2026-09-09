@@ -182,3 +182,5 @@ idea/
 
 .fastf1cache/
 out/
+# R2 credentials (local only)
+analysis/.env.r2

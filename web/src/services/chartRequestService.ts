@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { AnalysisChart } from "./analysisService";
+import type { AnalysisChart, ChartFormat, ChartTheme } from "./analysisService";
+import { chartFormatOf, withChartUrls } from "./analysisService";
 
 /** Charts where "pick your drivers" makes sense (they honour generate.py --drivers).
  *  `max` is the driver cap the chart is actually designed around — head-to-head layouts
@@ -65,7 +66,7 @@ export async function getCustomChart(
     console.warn("[chartRequest] getCustomChart:", error.message);
     return [];
   }
-  return (data ?? []) as AnalysisChart[];
+  return ((data ?? []) as AnalysisChart[]).map(withChartUrls);
 }
 
 /** Queue a custom chart. Returns done immediately if it already exists (dedup). */
@@ -75,8 +76,13 @@ export async function submitChartRequest(
   session: string,
   chart: string,
   codes: string[],
+  format: ChartFormat = "landscape",
+  theme: ChartTheme = "dark",
 ): Promise<ChartRequestState> {
-  const existing = await getCustomChart(season, round, session, chart, codes);
+  // Dedup against the exact variant asked for: bulk runs only pre-render the landscape
+  // master, so a twitter/instagram/story request is new even when landscape exists.
+  const existing = (await getCustomChart(season, round, session, chart, codes))
+    .filter((c) => chartFormatOf(c.chart_type) === format);
   if (existing.length) return { status: "done", charts: existing };
 
   const { data: userData } = await db.auth.getUser();
@@ -92,6 +98,8 @@ export async function submitChartRequest(
     chart,
     driver_key: key,
     drivers,
+    format,
+    theme,
     requested_by: uid,
     status: "pending",
   });
@@ -125,8 +133,11 @@ export async function getRequestState(
   session: string,
   chart: string,
   codes: string[],
+  format: ChartFormat = "landscape",
+  theme: ChartTheme = "dark",
 ): Promise<ChartRequestState> {
-  const existing = await getCustomChart(season, round, session, chart, codes);
+  const existing = (await getCustomChart(season, round, session, chart, codes))
+    .filter((c) => chartFormatOf(c.chart_type) === format);
   if (existing.length) return { status: "done", charts: existing };
 
   const key = driverKeyOf(codes);
@@ -138,6 +149,8 @@ export async function getRequestState(
     .eq("session", session)
     .eq("chart", chart)
     .eq("driver_key", key)
+    .eq("format", format)
+    .eq("theme", theme)
     .limit(1)
     .maybeSingle();
   if (!data) return { status: "idle" };

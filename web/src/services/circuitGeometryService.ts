@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { blobUrl } from "@/lib/blobUrl";
 
 /** Discovery row from get_circuit_geometry — points at a Storage JSON blob. */
 export type CircuitGeometryIndexRow = {
@@ -64,7 +65,8 @@ export async function getCircuitGeometry(
     p_season: season,
     p_round: round,
   });
-  return rows[0] ?? null;
+  const row = rows[0];
+  return row ? { ...row, public_url: blobUrl("circuits", row.storage_path, row.public_url) } : null;
 }
 
 /** Geometry for a circuit by Ergast id (most recent season, or a pinned one). */
@@ -76,7 +78,8 @@ export async function getCircuitGeometryByCircuit(
     p_circuit_id: circuitId,
     p_season: season ?? null,
   });
-  return rows[0] ?? null;
+  const row = rows[0];
+  return row ? { ...row, public_url: blobUrl("circuits", row.storage_path, row.public_url) } : null;
 }
 
 /** Fetch a geometry blob from public Storage. */

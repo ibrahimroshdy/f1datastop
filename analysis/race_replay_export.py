@@ -40,6 +40,7 @@ import pandas as pd
 
 import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import requests
+import blob_store as bs  # R2 uploads (see blob_store.py)
 
 STEP_S = 1.5       # target seconds between shared time-grid samples
 MAX_FRAMES = 4000  # cap blob size on long red-flagged races
@@ -588,15 +589,7 @@ def _emit(blob, path, upload):
             f.write(data)
         return
     url, key = _env()
-    r = requests.post(
-        f"{url}/storage/v1/object/{BUCKET}/{path}",
-        headers={"Authorization": f"Bearer {key}", "apikey": key,
-                 "Content-Type": "application/json", "x-upsert": "true"},
-        data=data, timeout=120,
-    )
-    if not r.ok:
-        raise RuntimeError(f"upload {path} failed {r.status_code}: {r.text[:300]}")
-    public_url = f"{url}/storage/v1/object/public/{BUCKET}/{path}"
+    public_url = bs.put(BUCKET, path, data, "application/json", gzip_body=True)
     idx = {
         "season": blob["season"], "round": blob["round"], "session": blob["session"],
         "circuit_id": blob["circuit_id"], "circuit_name": blob["circuit_name"],

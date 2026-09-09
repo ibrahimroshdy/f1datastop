@@ -18,6 +18,12 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Cloudflare R2 — all chart/telemetry/replay/circuit blobs (analysis/blob_store.py)
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      BLOB_PUBLIC_BASE: ${{ secrets.BLOB_PUBLIC_BASE }}
       # Livetiming CDN 403s Azure ranges (all GitHub runners); route via allow-listed proxy.
       F1_LIVETIMING_PROXY: ${{ secrets.F1_LIVETIMING_PROXY }}
       FASTF1_CACHE: ${{ github.workspace }}/analysis/.fastf1cache

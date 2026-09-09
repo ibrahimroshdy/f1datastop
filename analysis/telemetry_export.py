@@ -37,6 +37,7 @@ import pandas as pd
 
 import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import requests
+import blob_store as bs  # R2 uploads (see blob_store.py)
 
 SAMPLES = 400  # points per lap after distance-resampling (~60-120KB JSON/lap)
 BUCKET = "telemetry"
@@ -372,15 +373,8 @@ def _emit(blob, path, upload):
             f.write(data)
         return
     url, key = _env()
-    r = _post_retry(
-        f"{url}/storage/v1/object/{BUCKET}/{path}",
-        headers={"Authorization": f"Bearer {key}", "apikey": key,
-                 "Content-Type": "application/json", "x-upsert": "true"},
-        data=data,
-    )
-    if not r.ok:
-        raise RuntimeError(f"upload {path} failed {r.status_code}: {r.text[:300]}")
-    public_url = f"{url}/storage/v1/object/public/{BUCKET}/{path}"
+    # R2, gzip-compressed (Content-Encoding: gzip -> browsers decode transparently).
+    public_url = bs.put(BUCKET, path, data, "application/json", gzip_body=True)
     idx = {
         "season": blob["season"], "round": blob["round"], "session": blob["session"],
         "driver_id": blob["driver_id"], "driver_code": blob["driver"],

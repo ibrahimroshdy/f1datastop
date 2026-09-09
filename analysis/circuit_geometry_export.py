@@ -41,6 +41,7 @@ import pandas as pd
 
 import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import requests
+import blob_store as bs  # R2 uploads (see blob_store.py)
 
 OUTLINE_POINTS = 360   # track-outline samples after distance-resampling
 MIN_STRAIGHT_M = 250   # a full-throttle stretch shorter than this isn't a "straight"
@@ -296,15 +297,7 @@ def _emit(blob, path, upload):
             f.write(data)
         return
     url, key = _env()
-    r = requests.post(
-        f"{url}/storage/v1/object/{BUCKET}/{path}",
-        headers={"Authorization": f"Bearer {key}", "apikey": key,
-                 "Content-Type": "application/json", "x-upsert": "true"},
-        data=data, timeout=60,
-    )
-    if not r.ok:
-        raise RuntimeError(f"upload {path} failed {r.status_code}: {r.text[:300]}")
-    public_url = f"{url}/storage/v1/object/public/{BUCKET}/{path}"
+    public_url = bs.put(BUCKET, path, data, "application/json", gzip_body=True)
     idx = {
         "season": blob["season"], "round": blob["round"],
         "circuit_id": blob["circuit_id"], "circuit_name": blob["circuit_name"],

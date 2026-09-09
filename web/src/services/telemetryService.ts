@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { blobUrl } from "@/lib/blobUrl";
 
 /** One discovery row from get_telemetry_index — points at a Storage JSON blob. */
 export type TelemetryIndexRow = {
@@ -74,11 +75,13 @@ export async function getTelemetryIndex(
     p_round: round,
     p_session: session,
   });
-  if (scope === "all") return rows;
+  // Blob host comes from env (R2); rows only carry the host-free storage_path.
+  const resolved = rows.map((r) => ({ ...r, public_url: blobUrl("telemetry", r.storage_path, r.public_url) }));
+  if (scope === "all") return resolved;
   // Keep one row per driver. Prefer the row explicitly marked fastest; fall back to the
   // first seen so a driver never vanishes if lap_type is missing on older exports.
   const byDriver = new Map<string, TelemetryIndexRow>();
-  for (const r of rows) {
+  for (const r of resolved) {
     const cur = byDriver.get(r.driver_code);
     if (!cur || (r.lap_type === "fastest" && cur.lap_type !== "fastest")) {
       byDriver.set(r.driver_code, r);

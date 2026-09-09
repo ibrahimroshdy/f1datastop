@@ -25,6 +25,7 @@ import numpy as np
 import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import pandas as pd
 import requests
+import blob_store as bs  # R2 uploads (see blob_store.py)
 
 matplotlib.use("Agg")
 import matplotlib.font_manager as fm  # noqa: E402
@@ -613,7 +614,36 @@ def add_watermark(fig):
                      ha="left", va="center", zorder=20)
 
 
+class ChartPNG(bytes):
+    """Full-size PNG bytes with a small WebP `.thumb` riding along.
+
+    Every chart function returns plain bytes; subclassing keeps all 33 of them (and every
+    `len(png)` / `f.write(png)` caller) untouched while the uploader can also store the
+    thumbnail the Deep Dive grid/list now render instead of the full 2560x1440 PNG."""
+    thumb = None
+
+
+THUMB_DPI = 36  # 12.8x7.2in figure -> ~460x260 px; grid cards are ~250 px wide
+
+
+def _webp(png_bytes, quality=78):
+    im = Image.open(io.BytesIO(png_bytes)).convert("RGB")
+    out = io.BytesIO()
+    im.save(out, "WEBP", quality=quality, method=4)
+    return out.getvalue()
+
+
 def fig_png(fig):
+    # Thumbnail first — same figure at low dpi, no watermark (the tiled text is invisible
+    # at this size and only bloats the file). ~25-35 KB vs ~450 KB for the master.
+    thumb = None
+    try:
+        tb = io.BytesIO()
+        fig.savefig(tb, format="png", facecolor=PAPER, transparent=False,
+                    dpi=THUMB_DPI, bbox_inches=None, pad_inches=0)
+        thumb = _webp(tb.getvalue())
+    except Exception as e:  # noqa: BLE001 — a thumb failure must never lose the chart
+        print(f"  (thumbnail failed: {e})")
     add_watermark(fig)
     buf = io.BytesIO()
     # Glass renders a transparent PNG so the frosted card shows through; the others bake
@@ -622,7 +652,9 @@ def fig_png(fig):
                 facecolor="none" if TRANSPARENT else PAPER,
                 transparent=TRANSPARENT, dpi=200, bbox_inches=None, pad_inches=0)
     plt.close(fig)
-    return buf.getvalue()
+    png = ChartPNG(buf.getvalue())
+    png.thumb = thumb
+    return png
 
 
 def top_drivers_by_pace(laps, n=5):
@@ -4301,17 +4333,9 @@ def charts_for_session(session_code):
 
 # ── Supabase upload ─────────────────────────────────────────────────────────
 def upload_png(path, png):
-    url = os.environ["SUPABASE_URL"].rstrip("/")
-    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-    r = requests.post(
-        f"{url}/storage/v1/object/charts/{path}",
-        headers={"Authorization": f"Bearer {key}", "apikey": key,
-                 "Content-Type": "image/png", "x-upsert": "true"},
-        data=png, timeout=60,
-    )
-    if not r.ok:
-        raise RuntimeError(f"upload {path} failed {r.status_code}: {r.text}")
-    return f"{url}/storage/v1/object/public/charts/{path}"
+    """Upload a chart image to R2 under charts/{path}; returns its public URL."""
+    ctype = "image/webp" if path.endswith(".webp") else "image/png"
+    return bs.put("charts", path, png, ctype)
 
 
 def upsert_index(row):
@@ -4342,12 +4366,15 @@ def existing_chart_keys(season, rnd, session):
             f"{url}/rest/v1/analysis_charts",
             headers={"Authorization": f"Bearer {key}", "apikey": key},
             params={"season": f"eq.{season}", "round": f"eq.{rnd}",
-                    "session": f"eq.{session}", "select": "chart_type,theme"},
+                    "session": f"eq.{session}", "select": "chart_type,theme,thumb_path"},
             timeout=30)
         if not r.ok:
             print(f"  (skip-existing: index read failed {r.status_code} — rendering all)")
             return set()
-        return {(row["chart_type"], row["theme"]) for row in r.json()}
+        # A row only counts as "done" once it also has a thumbnail: rows published before
+        # thumbnails existed get re-rendered once (master + thumb) instead of being skipped
+        # forever, which is how the Deep Dive grid gets its thumbnails backfilled.
+        return {(row["chart_type"], row["theme"]) for row in r.json() if row.get("thumb_path")}
     except Exception as e:  # noqa: BLE001 — never let a read error skip real work
         print(f"  (skip-existing: index read error {e} — rendering all)")
         return set()
@@ -4598,6 +4625,9 @@ def main():
                         # sets don't overwrite each other (matches the upload path).
                         with open(os.path.join(outdir, f"{ctype}{dk}.png"), "wb") as f:
                             f.write(png)
+                        if getattr(png, "thumb", None):
+                            with open(os.path.join(outdir, f"{ctype}{dk}.thumb.webp"), "wb") as f:
+                                f.write(png.thumb)
                         print(f"  - {fmt}/{ctype}{dk}: {len(png) // 1024} KB")
                     else:
                         # Label a driver/teammate compare by its pair so multiple
@@ -4605,10 +4635,15 @@ def main():
                         row_title = (f"{title} · {' vs '.join(sorted(DRIVERS))}"
                                      if DRIVERS and ctype == "driver_compare" else title)
                         public_url = upload_png(path, png)
+                        thumb = getattr(png, "thumb", None)
+                        thumb_path = f"{base}/{ctype}{dk}.thumb.webp" if thumb else None
+                        if thumb_path:
+                            upload_png(thumb_path, thumb)
                         upsert_index({"season": args.season, "round": rnd, "session": args.session,
                                       "chart_type": ct, "theme": theme,
                                       "title": row_title, "description": desc,
                                       "storage_path": path, "public_url": public_url,
+                                      "thumb_path": thumb_path,
                                       "updated_at": pd.Timestamp.utcnow().isoformat()})
                         print(f"  - {theme}/{fmt}/{ctype}: uploaded")
                         ok += 1

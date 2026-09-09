@@ -1,4 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
+import { blobUrl } from "@/lib/blobUrl";
+
+/** Resolve a chart row's image URLs from its storage paths (R2 host from env). */
+export function withChartUrls<T extends { storage_path?: string | null; public_url: string; thumb_path?: string | null }>(row: T): T & { thumb_url?: string } {
+  return {
+    ...row,
+    public_url: blobUrl("charts", row.storage_path, row.public_url),
+    thumb_url: row.thumb_path ? blobUrl("charts", row.thumb_path) : undefined,
+  };
+}
 
 export interface AnalysisChart {
   id: string;
@@ -8,7 +18,12 @@ export interface AnalysisChart {
   chart_type: string;
   title: string;
   description: string | null;
+  /** host-free key inside the charts bucket; public_url is derived from it */
+  storage_path?: string | null;
   public_url: string;
+  /** small WebP for grids/lists (null on rows rendered before thumbnails existed) */
+  thumb_path?: string | null;
+  thumb_url?: string;
 }
 
 /** Pre-generated FastF1 charts for a race (from the analysis pipeline). */
@@ -49,7 +64,7 @@ export async function getAnalysisCharts(
   // Charts are uploaded in 4 social formats: the landscape (16:9) variant has a
   // bare chart_type, the others are suffixed `_twitter|_instagram|_story`. Return
   // every variant — the UI groups them by base type and lets the user pick a format.
-  return (data ?? []) as AnalysisChart[];
+  return ((data ?? []) as AnalysisChart[]).map(withChartUrls);
 }
 
 /** Social export formats. `landscape` = bare chart_type; others carry a suffix. */

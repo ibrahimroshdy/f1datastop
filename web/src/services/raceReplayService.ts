@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { blobUrl } from "@/lib/blobUrl";
 
 /** Discovery row from get_race_replay — points at a Storage JSON blob. */
 export type RaceReplayIndexRow = {
@@ -108,7 +109,8 @@ async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
 /** Replay index for a session (season, round, session), or null if not exported yet. */
 export async function getRaceReplay(season: number, round: number, session = "R"): Promise<RaceReplayIndexRow | null> {
   const rows = await rpc<RaceReplayIndexRow[]>("get_race_replay", { p_season: season, p_round: round, p_session: session });
-  return rows[0] ?? null;
+  const row = rows[0];
+  return row ? { ...row, public_url: blobUrl("replays", row.storage_path, row.public_url) } : null;
 }
 
 /** Fetch a replay blob from public Storage. */

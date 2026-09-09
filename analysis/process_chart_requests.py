@@ -62,20 +62,25 @@ def main():
         if len(codes) < 2:
             _patch(rid, {"status": "error", "error": "need at least 2 drivers"})
             continue
+        # Bulk runs pre-render only the landscape master + thumbnail; a request names the
+        # single format/theme the user asked to download, so render exactly that one.
+        fmt = req.get("format") or "landscape"
+        theme = req.get("theme") or "dark"
         _patch(rid, {"status": "processing"})
         try:
             _run(
                 "generate.py", "--season", str(req["season"]), "--round", str(req["round"]),
                 "--session", req.get("session", "R"), "--only", req["chart"],
-                "--drivers", ",".join(codes), "--format", "all",
+                "--drivers", ",".join(codes), "--format", fmt, "--theme", theme,
             )
             dk = "__" + "-".join(sorted(codes))
+            ct = req["chart"] + ("" if fmt == "landscape" else f"_{fmt}") + dk
             cr = rq.get(
                 f"{BASE}/rest/v1/analysis_charts",
                 params={
                     "season": f"eq.{req['season']}", "round": f"eq.{req['round']}",
                     "session": f"eq.{req.get('session', 'R')}",
-                    "chart_type": f"eq.{req['chart']}{dk}",
+                    "chart_type": f"eq.{ct}", "theme": f"eq.{theme}",
                     "select": "public_url", "limit": "1",
                 },
                 headers=H, timeout=30,
