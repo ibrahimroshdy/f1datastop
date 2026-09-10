@@ -9,15 +9,19 @@ tick (16 heavy loads, ~45 min) even when nothing new had happened, which is what
   2. have no published charts yet — no dark landscape analysis_charts row with a
      thumbnail for that session (thumb_path is the "rendered by the current pipeline"
      marker, so pre-thumbnail history gets picked up once).
-An empty result means the job should exit immediately. Env: SUPABASE_URL,
-SUPABASE_SERVICE_ROLE_KEY. Args: --season, --grace-hours (default 3), --window-days (7).
+An empty result means the job should exit immediately. Reads the CDN schedule and the
+CDN chart index (no database); SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are only the
+fallback when the CDN is unreachable. Args: --season, --grace-hours (default 3), --window-days (7).
 """
 import argparse
 import json
 import os
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
+
+import cdn_schedule
 from datetime import datetime, timedelta, timezone
 
 TIMED = ("FP1", "FP2", "FP3", "Q", "SQ", "SS", "S", "R")
@@ -32,6 +36,41 @@ def get(url, key, table, params):
         return json.load(r)
 
 
+def _finished_sessions(season, grace_hours, window_days):
+    """[(round, session)] that ended within the window — CDN schedule, Supabase fallback."""
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(days=window_days)
+    try:
+        rows = [(r, c, st) for r, c, st in cdn_schedule.sessions(season) if st >= since]
+        source = "cdn"
+    except Exception as e:  # noqa: BLE001 — CDN file missing: fall back to the warehouse
+        print(f"(schedule: CDN unavailable ({e}); using Supabase)", file=sys.stderr)
+        url = os.environ["SUPABASE_URL"].rstrip("/")
+        key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+        rows = []
+        for s in get(url, key, "f1_session", {
+                "select": "round,session_type,date_start", "season": f"eq.{season}",
+                "date_start": f"gte.{since.isoformat()}", "order": "date_start.asc", "limit": "200"}):
+            if s.get("date_start"):
+                rows.append((int(s["round"]), s["session_type"],
+                             datetime.fromisoformat(s["date_start"].replace("Z", "+00:00"))))
+        source = "supabase"
+    ended = [(r, c) for r, c, st in rows if c in TIMED and now >= st + timedelta(hours=grace_hours)]
+    return ended, source
+
+
+def _has_charts(season, rnd, session):
+    """True when the CDN chart index for the session has a dark landscape row with a thumb."""
+    try:
+        rows = cdn_schedule.fetch_json(f"index/charts/{season}/{rnd:02d}/{session}.json")
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False
+        raise
+    return any(r.get("theme", "dark") == "dark" and r.get("thumb_path")
+               and not any(t in r.get("chart_type", "") for t in SOCIAL) for r in rows)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--season", type=int, default=datetime.now(timezone.utc).year)
@@ -40,31 +79,27 @@ def main():
     ap.add_argument("--window-days", type=int, default=7,
                     help="only look at sessions that started within this many days")
     a = ap.parse_args()
-    url = os.environ["SUPABASE_URL"].rstrip("/")
-    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-    now = datetime.now(timezone.utc)
-    since = (now - timedelta(days=a.window_days)).isoformat()
 
-    sessions = get(url, key, "f1_session", {
-        "select": "round,session_type,date_start", "season": f"eq.{a.season}",
-        "date_start": f"gte.{since}", "order": "date_start.asc", "limit": "200"})
-    ended = []
-    for s in sessions:
-        if s["session_type"] not in TIMED or not s.get("date_start"):
-            continue
-        start = datetime.fromisoformat(s["date_start"].replace("Z", "+00:00"))
-        if now >= start + timedelta(hours=a.grace_hours):
-            ended.append((int(s["round"]), s["session_type"]))
+    ended, source = _finished_sessions(a.season, a.grace_hours, a.window_days)
     if not ended:
         return 0
 
-    rounds = sorted({r for r, _ in ended})
-    have = get(url, key, "analysis_charts", {
-        "select": "round,session,chart_type", "season": f"eq.{a.season}",
-        "round": f"in.({','.join(map(str, rounds))})", "theme": "eq.dark",
-        "thumb_path": "not.is.null", "limit": "5000"})
-    done = {(int(h["round"]), h["session"]) for h in have
-            if not any(t in h["chart_type"] for t in SOCIAL)}
+    # "Done" = the CDN index (index_export.py, rebuilt from R2 after every render) lists a
+    # dark landscape chart with a thumbnail. No database involved; the old analysis_charts
+    # query only runs if the CDN itself is unreachable.
+    try:
+        done = {(r, sess) for r, sess in ended if _has_charts(a.season, r, sess)}
+    except Exception as e:  # noqa: BLE001
+        print(f"(chart index: CDN unavailable ({e}); using Supabase)", file=sys.stderr)
+        url = os.environ["SUPABASE_URL"].rstrip("/")
+        key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+        rounds = sorted({r for r, _ in ended})
+        have = get(url, key, "analysis_charts", {
+            "select": "round,session,chart_type", "season": f"eq.{a.season}",
+            "round": f"in.({','.join(map(str, rounds))})", "theme": "eq.dark",
+            "thumb_path": "not.is.null", "limit": "5000"})
+        done = {(int(h["round"]), h["session"]) for h in have
+                if not any(t in h["chart_type"] for t in SOCIAL)}
     for r, sess in ended:
         if (r, sess) not in done:
             print(f"{r} {sess}")

@@ -40,7 +40,9 @@ import pandas as pd
 
 import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import requests
-import blob_store as bs  # R2 uploads (see blob_store.py)
+import blob_store as bs
+import cdn_schedule
+import db_index  # R2 uploads (see blob_store.py)
 
 STEP_S = 1.5       # target seconds between shared time-grid samples
 MAX_FRAMES = 4000  # cap blob size on long red-flagged races
@@ -70,6 +72,19 @@ def _ascii_key(s):
 
 
 def _lookup_circuit(season, rnd):
+    """Resolve (circuit_id, circuit_name) for a round.
+
+    CDN schedule first (data/{season}/schedule.json carries Circuit.circuitId — no
+    database, survives a Supabase restriction), then the warehouse's f1_race join.
+    Returns (None, None) if neither is available."""
+    try:
+        for race in cdn_schedule.fetch_json(f"{season}/schedule.json"):
+            if int(race.get("round") or 0) == int(rnd):
+                circ = race.get("Circuit") or {}
+                if circ.get("circuitId"):
+                    return circ["circuitId"], circ.get("circuitName")
+    except Exception:  # noqa: BLE001
+        pass
     try:
         url, key = _env()
         r = requests.get(
@@ -87,17 +102,15 @@ def _lookup_circuit(season, rnd):
     return None, None
 
 
+def _replay_path(season, circuit_id, session="R"):
+    suffix = "" if session == "R" else f"_{session}"
+    return f"{season}/{_ascii_key(circuit_id)}{suffix}.json"
+
+
 def _already_exported(season, circuit_id, session="R"):
+    """True if the replay blob is already on R2 (no database involved)."""
     try:
-        url, key = _env()
-        r = requests.get(
-            f"{url}/rest/v1/f1_race_replay",
-            headers={"apikey": key, "Authorization": f"Bearer {key}"},
-            params={"season": f"eq.{season}", "circuit_id": f"eq.{circuit_id}",
-                    "session": f"eq.{session}", "select": "id", "limit": "1"},
-            timeout=30,
-        )
-        return r.ok and len(r.json()) >= 1
+        return bs.exists(BUCKET, _replay_path(season, circuit_id, session))
     except Exception:  # noqa: BLE001
         return False
 
@@ -572,8 +585,7 @@ def export_replay(season, rnd, upload=True, force=False, session="R"):
         "drivers": drivers_out,
         "source": "fastf1",
     }
-    suffix = "" if session == "R" else f"_{session}"
-    path = f"{season}/{_ascii_key(circuit_id)}{suffix}.json"
+    path = _replay_path(season, circuit_id, session)
     _emit(blob, path, upload)
     print(f"  {season} R{rnd} {session} {circuit_id}: {len(drivers_out)} drivers, {frames} frames, "
           f"{blob['duration_s']}s -> {path}")
@@ -588,7 +600,6 @@ def _emit(blob, path, upload):
         with open(local, "wb") as f:
             f.write(data)
         return
-    url, key = _env()
     public_url = bs.put(BUCKET, path, data, "application/json", gzip_body=True)
     idx = {
         "season": blob["season"], "round": blob["round"], "session": blob["session"],
@@ -597,15 +608,9 @@ def _emit(blob, path, upload):
         "driver_count": len(blob["drivers"]), "frames": blob["frames"],
         "duration_s": blob["duration_s"], "rotation": blob["rotation"], "source": "fastf1",
     }
-    ir = requests.post(
-        f"{url}/rest/v1/f1_race_replay?on_conflict=season,circuit_id,session",
-        headers={"Authorization": f"Bearer {key}", "apikey": key,
-                 "Content-Type": "application/json",
-                 "Prefer": "resolution=merge-duplicates,return=minimal"},
-        json=[idx], timeout=30,
-    )
-    if not ir.ok:
-        raise RuntimeError(f"index upsert failed {ir.status_code}: {ir.text[:300]}")
+    # Secondary copy in Postgres — best effort; the CDN index (index_export.py) is
+    # rebuilt from R2 at the end of the workflow and is what the site reads.
+    db_index.upsert("f1_race_replay", "season,circuit_id,session", idx, timeout=30)
 
 
 def main():

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { blobUrl } from "@/lib/blobUrl";
+import { cdnJson } from "@/lib/cdnJson";
 
 /** Discovery row from get_circuit_geometry — points at a Storage JSON blob. */
 export type CircuitGeometryIndexRow = {
@@ -61,10 +62,14 @@ export async function getCircuitGeometry(
   season: number,
   round: number,
 ): Promise<CircuitGeometryIndexRow | null> {
-  const rows = await rpc<CircuitGeometryIndexRow[]>("get_circuit_geometry", {
-    p_season: season,
-    p_round: round,
-  });
+  // CDN first (analysis/index_export.py); RPC only when the season file is missing.
+  const indexed = await cdnJson<CircuitGeometryIndexRow[]>(`index/circuits/${season}.json`);
+  const rows = indexed
+    ? indexed.filter((r) => r.round === round)
+    : await rpc<CircuitGeometryIndexRow[]>("get_circuit_geometry", {
+        p_season: season,
+        p_round: round,
+      });
   const row = rows[0];
   return row ? { ...row, public_url: blobUrl("circuits", row.storage_path, row.public_url) } : null;
 }
@@ -74,10 +79,17 @@ export async function getCircuitGeometryByCircuit(
   circuitId: string,
   season?: number,
 ): Promise<CircuitGeometryIndexRow | null> {
-  const rows = await rpc<CircuitGeometryIndexRow[]>("get_circuit_geometry_by_circuit", {
-    p_circuit_id: circuitId,
-    p_season: season ?? null,
-  });
+  // CDN first: the combined file spans every season; pick the pinned season or the most
+  // recent geometry for the circuit. RPC only when the file is missing.
+  const all = await cdnJson<CircuitGeometryIndexRow[]>("index/circuits/all.json");
+  const rows = all
+    ? all
+        .filter((r) => r.circuit_id === circuitId && (season == null || r.season === season))
+        .sort((a, b) => b.season - a.season)
+    : await rpc<CircuitGeometryIndexRow[]>("get_circuit_geometry_by_circuit", {
+        p_circuit_id: circuitId,
+        p_season: season ?? null,
+      });
   const row = rows[0];
   return row ? { ...row, public_url: blobUrl("circuits", row.storage_path, row.public_url) } : null;
 }

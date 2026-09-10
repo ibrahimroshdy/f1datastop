@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { blobUrl } from "@/lib/blobUrl";
+import { cdnJson } from "@/lib/cdnJson";
 
 /** Resolve a chart row's image URLs from its storage paths (R2 host from env). */
 export function withChartUrls<T extends { storage_path?: string | null; public_url: string; thumb_path?: string | null }>(row: T): T & { thumb_url?: string } {
@@ -38,6 +39,26 @@ export async function getAnalysisCharts(
   theme: ChartTheme = "dark",
 ): Promise<AnalysisChart[]> {
   if (!season || !round) return [];
+
+  // CDN first: analysis/index_export.py derives this file from the R2 bucket listing
+  // after every chart render, so it needs no database at all. Falls through to the
+  // analysis_charts table only when the file isn't there (session never rendered).
+  const rr = String(round).padStart(2, "0");
+  const indexed = await cdnJson<(AnalysisChart & { theme: ChartTheme })[]>(
+    `index/charts/${season}/${rr}/${session}.json`,
+  );
+  if (indexed && indexed.length) {
+    const pick = (t: ChartTheme) => indexed.filter((c) => c.theme === t);
+    let rows = pick(theme);
+    // Fall back to the dark set when the requested theme hasn't been generated yet, so a
+    // light viewer still sees charts instead of an empty tab before a full regen.
+    if (!rows.length && theme !== "dark") rows = pick("dark");
+    return rows
+      .slice()
+      .sort((a, b) => a.chart_type.localeCompare(b.chart_type))
+      .map(withChartUrls);
+  }
+
   const db = (supabase as unknown as { from: (t: string) => any });
   // analysis_charts isn't in the generated Database types; query untyped.
   const query = (t: ChartTheme) =>
@@ -51,8 +72,6 @@ export async function getAnalysisCharts(
       .order("chart_type");
 
   let { data, error } = await query(theme);
-  // Fall back to the dark set when the requested theme hasn't been generated yet, so a
-  // light viewer still sees charts instead of an empty tab before a full regen.
   if (!error && theme !== "dark" && (!data || data.length === 0)) {
     ({ data, error } = await query("dark"));
   }

@@ -25,7 +25,9 @@ import numpy as np
 import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import pandas as pd
 import requests
-import blob_store as bs  # R2 uploads (see blob_store.py)
+import blob_store as bs
+import db_index
+import index_export  # R2 uploads (see blob_store.py)
 
 matplotlib.use("Agg")
 import matplotlib.font_manager as fm  # noqa: E402
@@ -4339,44 +4341,24 @@ def upload_png(path, png):
 
 
 def upsert_index(row):
-    url = os.environ["SUPABASE_URL"].rstrip("/")
-    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-    r = requests.post(
-        f"{url}/rest/v1/analysis_charts?on_conflict=season,round,session,chart_type,theme",
-        headers={"Authorization": f"Bearer {key}", "apikey": key,
-                 "Content-Type": "application/json",
-                 "Prefer": "resolution=merge-duplicates,return=minimal"},
-        json=row, timeout=30,
-    )
-    if not r.ok:
-        raise RuntimeError(f"index upsert failed {r.status_code}: {r.text}")
+    """Secondary copy of the chart row in Postgres — best effort (see db_index.py).
+    The CDN index (index_export.py) is rebuilt from R2 at the end of every workflow."""
+    db_index.upsert("analysis_charts", "season,round,session,chart_type,theme", row, timeout=30)
 
 
 def existing_chart_keys(season, rnd, session):
-    """(chart_type, theme) pairs already indexed for this session.
+    """(chart_type, theme) pairs already published for this session.
 
-    One query up front lets --skip-existing avoid re-rendering charts that are
-    already published. On any read failure it returns an empty set — i.e. fail
-    open and render everything, never silently skip real work.
+    One R2 listing up front lets --skip-existing avoid re-rendering charts that are
+    already on the CDN — no database involved. A row only counts as done once it also
+    has a thumbnail, so pre-thumbnail history gets re-rendered once (master + thumb).
+    On any read failure it returns an empty set — fail open and render everything,
+    never silently skip real work.
     """
-    url = os.environ["SUPABASE_URL"].rstrip("/")
-    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
     try:
-        r = requests.get(
-            f"{url}/rest/v1/analysis_charts",
-            headers={"Authorization": f"Bearer {key}", "apikey": key},
-            params={"season": f"eq.{season}", "round": f"eq.{rnd}",
-                    "session": f"eq.{session}", "select": "chart_type,theme,thumb_path"},
-            timeout=30)
-        if not r.ok:
-            print(f"  (skip-existing: index read failed {r.status_code} — rendering all)")
-            return set()
-        # A row only counts as "done" once it also has a thumbnail: rows published before
-        # thumbnails existed get re-rendered once (master + thumb) instead of being skipped
-        # forever, which is how the Deep Dive grid gets its thumbnails backfilled.
-        return {(row["chart_type"], row["theme"]) for row in r.json() if row.get("thumb_path")}
+        return index_export.chart_variants(season, rnd, session, require_thumb=True)
     except Exception as e:  # noqa: BLE001 — never let a read error skip real work
-        print(f"  (skip-existing: index read error {e} — rendering all)")
+        print(f"  (skip-existing: R2 listing failed {e} — rendering all)")
         return set()
 
 

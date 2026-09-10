@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { blobUrl } from "@/lib/blobUrl";
+import { cdnJson } from "@/lib/cdnJson";
 
 /** One discovery row from get_telemetry_index — points at a Storage JSON blob. */
 export type TelemetryIndexRow = {
@@ -70,11 +71,16 @@ export async function getTelemetryIndex(
   session = "R",
   scope: "fastest" | "all" = "fastest",
 ): Promise<TelemetryIndexRow[]> {
-  const rows = await rpc<TelemetryIndexRow[]>("get_telemetry_index", {
-    p_season: year,
-    p_round: round,
-    p_session: session,
-  });
+  // CDN first (analysis/index_export.py rebuilds this file from the bucket after every
+  // telemetry export); the RPC is only the fallback for a session not indexed yet.
+  const rr = String(round).padStart(2, "0");
+  const rows =
+    (await cdnJson<TelemetryIndexRow[]>(`index/telemetry/${year}/${rr}/${session}.json`)) ??
+    (await rpc<TelemetryIndexRow[]>("get_telemetry_index", {
+      p_season: year,
+      p_round: round,
+      p_session: session,
+    }));
   // Blob host comes from env (R2); rows only carry the host-free storage_path.
   const resolved = rows.map((r) => ({ ...r, public_url: blobUrl("telemetry", r.storage_path, r.public_url) }));
   if (scope === "all") return resolved;

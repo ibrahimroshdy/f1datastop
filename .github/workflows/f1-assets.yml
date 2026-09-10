@@ -117,6 +117,11 @@ jobs:
             echo "::warning::$fails of $runs steps failed (see warnings above)."
           fi
 
+      - name: Refresh CDN indexes (charts / telemetry / replays / circuits)
+        if: ${{ !cancelled() }}
+        working-directory: analysis
+        run: python index_export.py --season "$(date -u +%Y)"
+
       - name: Alert Slack on failure
         if: failure()
         uses: ./.github/actions/slack-alert

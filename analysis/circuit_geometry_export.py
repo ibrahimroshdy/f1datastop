@@ -41,7 +41,9 @@ import pandas as pd
 
 import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import requests
-import blob_store as bs  # R2 uploads (see blob_store.py)
+import blob_store as bs
+import cdn_schedule
+import db_index  # R2 uploads (see blob_store.py)
 
 OUTLINE_POINTS = 360   # track-outline samples after distance-resampling
 MIN_STRAIGHT_M = 250   # a full-throttle stretch shorter than this isn't a "straight"
@@ -65,8 +67,19 @@ def _slug(s):
 
 
 def _lookup_circuit(season, rnd):
-    """Resolve (circuit_id, circuit_name) from the warehouse so the geometry keys
-    join cleanly to f1_race / f1_circuit. Returns (None, None) if unavailable."""
+    """Resolve (circuit_id, circuit_name) for a round.
+
+    CDN schedule first (data/{season}/schedule.json carries Circuit.circuitId — no
+    database, survives a Supabase restriction), then the warehouse's f1_race join.
+    Returns (None, None) if neither is available."""
+    try:
+        for race in cdn_schedule.fetch_json(f"{season}/schedule.json"):
+            if int(race.get("round") or 0) == int(rnd):
+                circ = race.get("Circuit") or {}
+                if circ.get("circuitId"):
+                    return circ["circuitId"], circ.get("circuitName")
+    except Exception:  # noqa: BLE001
+        pass
     try:
         url, key = _env()
         r = requests.get(
@@ -78,24 +91,16 @@ def _lookup_circuit(season, rnd):
         )
         if r.ok and r.json():
             row = r.json()[0]
-            name = (row.get("f1_circuit") or {}).get("name")
-            return row.get("circuit_id"), name
+            return row.get("circuit_id"), (row.get("f1_circuit") or {}).get("name")
     except Exception:  # noqa: BLE001
         pass
     return None, None
 
 
 def _already_exported(season, circuit_id):
+    """True if the geometry blob is already on R2 (no database involved)."""
     try:
-        url, key = _env()
-        r = requests.get(
-            f"{url}/rest/v1/f1_circuit_geometry",
-            headers={"apikey": key, "Authorization": f"Bearer {key}"},
-            params={"season": f"eq.{season}", "circuit_id": f"eq.{circuit_id}",
-                    "select": "id", "limit": "1"},
-            timeout=30,
-        )
-        return r.ok and len(r.json()) >= 1
+        return bs.exists(BUCKET, f"{season}/{circuit_id}.json")
     except Exception:  # noqa: BLE001
         return False
 
@@ -296,7 +301,6 @@ def _emit(blob, path, upload):
         with open(local, "wb") as f:
             f.write(data)
         return
-    url, key = _env()
     public_url = bs.put(BUCKET, path, data, "application/json", gzip_body=True)
     idx = {
         "season": blob["season"], "round": blob["round"],
@@ -305,15 +309,9 @@ def _emit(blob, path, upload):
         "corner_count": len(blob["corners"]), "straight_count": len(blob["straights"]),
         "rotation": blob["rotation"], "source": "fastf1",
     }
-    ir = requests.post(
-        f"{url}/rest/v1/f1_circuit_geometry?on_conflict=season,circuit_id",
-        headers={"Authorization": f"Bearer {key}", "apikey": key,
-                 "Content-Type": "application/json",
-                 "Prefer": "resolution=merge-duplicates,return=minimal"},
-        json=[idx], timeout=30,
-    )
-    if not ir.ok:
-        raise RuntimeError(f"index upsert failed {ir.status_code}: {ir.text[:300]}")
+    # Secondary copy in Postgres — best effort; the CDN index (index_export.py) is
+    # rebuilt from R2 at the end of the workflow and is what the site reads.
+    db_index.upsert("f1_circuit_geometry", "season,circuit_id", idx, timeout=30)
 
 
 def main():

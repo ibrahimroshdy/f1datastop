@@ -48,6 +48,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { cdnJson } from "@/lib/cdnJson";
 
 // ───────────────────────────── flags / window ──────────────────────────────
 
@@ -123,30 +124,13 @@ async function rpc<T = Jsonish>(
 // The files store EXACTLY the RPC payload, so callers below apply the same empty-checks
 // to either source and the MRData envelope in tryWarehouse() is unchanged.
 
-const STATIC_HOST = ((import.meta.env.VITE_BLOB_HOST as string | undefined) ?? "").replace(/\/+$/, "");
-
-/**
- * Fetch `data/{path}` from the CDN, or null when the host isn't configured, the object
- * is missing, the body isn't JSON, or the network fails. Never throws.
- */
-async function staticJson<T = Jsonish>(path: string): Promise<T | null> {
-  if (!STATIC_HOST) return null;
-  try {
-    const res = await fetch(`${STATIC_HOST}/data/${path}`, { headers: { Accept: "application/json" } });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
-}
-
 /** CDN first, RPC second — the shared read path for every exported domain. */
 async function staticThenRpc<T = Jsonish>(
   path: string,
   fn: string,
   args: Record<string, unknown>,
 ): Promise<T | null> {
-  const fromCdn = await staticJson<T>(path);
+  const fromCdn = await cdnJson<T>(path);
   if (fromCdn != null && !isEmpty(fromCdn)) return fromCdn;
   return rpc<T>(fn, args);
 }

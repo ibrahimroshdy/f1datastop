@@ -37,7 +37,8 @@ import pandas as pd
 
 import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import requests
-import blob_store as bs  # R2 uploads (see blob_store.py)
+import blob_store as bs
+import db_index  # R2 uploads (see blob_store.py)
 
 SAMPLES = 400  # points per lap after distance-resampling (~60-120KB JSON/lap)
 BUCKET = "telemetry"
@@ -56,21 +57,24 @@ def _env():
     return url.rstrip("/"), key
 
 
+def _session_keys(season, rnd, session_code):
+    """{(driver_code, lap_number)} already on R2 for a session — one listing, no DB."""
+    out = set()
+    for key, _ in bs.list_keys(BUCKET, f"{season}/{rnd:02d}/{session_code}/"):
+        name = key.rsplit("/", 1)[-1]
+        if name.endswith(".json") and "_" in name:
+            code, _, lap = name[:-5].rpartition("_")
+            if lap.isdigit():
+                out.add((code, int(lap)))
+    return out
+
+
 def _already_exported(season, rnd, session_code):
-    """True if f1_telemetry_index already has rows for this session — lets a
-    whole-season cron pass skip finished rounds before the costly FastF1 load."""
+    """True if the session's telemetry is already on R2 — lets a whole-season cron pass
+    skip finished rounds before the costly FastF1 load. Requires a substantially-complete
+    session (>=10 drivers), so a partial export is re-run instead of counted as done."""
     try:
-        url, key = _env()
-        r = requests.get(
-            f"{url}/rest/v1/f1_telemetry_index",
-            headers={"apikey": key, "Authorization": f"Bearer {key}"},
-            params={"season": f"eq.{season}", "round": f"eq.{rnd}",
-                    "session": f"eq.{session_code}", "select": "driver_code", "limit": "30"},
-            timeout=30,
-        )
-        # Require a substantially-complete session (>=10 drivers), so a partial
-        # or broken export (e.g. 1 row) is re-run instead of counted as done.
-        return r.ok and len(r.json()) >= 10
+        return len({code for code, _ in _session_keys(season, rnd, session_code)}) >= 10
     except Exception:  # noqa: BLE001
         return False
 
@@ -122,43 +126,21 @@ def _metrics(channels):
 
 
 def _lap_already_exported(season, rnd, session_code, driver, lap_number):
-    """True if this exact driver+lap blob is already in f1_telemetry_index — lets the
-    on-demand any-lap path no-op when a lap has been generated before."""
+    """True if this exact driver+lap blob is already on R2 — lets the on-demand any-lap
+    path no-op when a lap has been generated before."""
     try:
-        url, key = _env()
-        r = requests.get(
-            f"{url}/rest/v1/f1_telemetry_index",
-            headers={"apikey": key, "Authorization": f"Bearer {key}"},
-            params={"season": f"eq.{season}", "round": f"eq.{rnd}",
-                    "session": f"eq.{session_code}", "driver_code": f"eq.{driver}",
-                    "lap_number": f"eq.{lap_number}", "select": "public_url", "limit": "1"},
-            timeout=30,
-        )
-        return r.ok and len(r.json()) >= 1
+        return bs.exists(BUCKET, f"{season}/{rnd:02d}/{session_code}/{driver}_{lap_number}.json")
     except Exception:  # noqa: BLE001
         return False
 
 
 def _existing_laps(season, rnd, session_code):
-    """Set of (driver_code, lap_number) already in the index — one fetch, so an
-    --all-laps backfill can skip finished laps in-memory instead of a REST call each."""
-    out = set()
+    """Set of (driver_code, lap_number) already on R2 — one listing, so an --all-laps
+    backfill can skip finished laps in-memory instead of a request each."""
     try:
-        url, key = _env()
-        r = requests.get(
-            f"{url}/rest/v1/f1_telemetry_index",
-            headers={"apikey": key, "Authorization": f"Bearer {key}"},
-            params={"season": f"eq.{season}", "round": f"eq.{rnd}",
-                    "session": f"eq.{session_code}",
-                    "select": "driver_code,lap_number", "limit": "5000"},
-            timeout=30,
-        )
-        if r.ok:
-            for row in r.json():
-                out.add((row.get("driver_code"), row.get("lap_number")))
+        return _session_keys(season, rnd, session_code)
     except Exception:  # noqa: BLE001
-        pass
-    return out
+        return set()
 
 
 _LATEST_ROUND_CACHE = {}
@@ -372,7 +354,6 @@ def _emit(blob, path, upload):
         with open(local, "wb") as f:
             f.write(data)
         return
-    url, key = _env()
     # R2, gzip-compressed (Content-Encoding: gzip -> browsers decode transparently).
     public_url = bs.put(BUCKET, path, data, "application/json", gzip_body=True)
     idx = {
@@ -382,15 +363,9 @@ def _emit(blob, path, upload):
         "storage_path": path, "public_url": public_url,
         "top_speed": blob["metrics"].get("top_speed"), "source": "fastf1",
     }
-    ir = _post_retry(
-        f"{url}/rest/v1/f1_telemetry_index?on_conflict=season,round,session,driver_code,lap_number",
-        headers={"Authorization": f"Bearer {key}", "apikey": key,
-                 "Content-Type": "application/json",
-                 "Prefer": "resolution=merge-duplicates,return=minimal"},
-        json=[idx], timeout=60,
-    )
-    if not ir.ok:
-        raise RuntimeError(f"index upsert failed {ir.status_code}: {ir.text[:300]}")
+    # Secondary copy in Postgres — best effort. The CDN index (index_export.py) is
+    # rebuilt from R2 at the end of the workflow and is what the site reads.
+    db_index.upsert("f1_telemetry_index", "season,round,session,driver_code,lap_number", idx)
 
 
 def latest_completed_round(year):
