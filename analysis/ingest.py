@@ -78,10 +78,15 @@ def _result_time_text(t, pos):
     total and a leading-"+" gap for the rest — so only P1 gets the bare time.
     Previously only P1 was written at all, leaving every other row's time_text
     NULL and the UI rendering "+undefined"."""
-    s = bf._fmt_laptime(t)
-    if s is None:
+    ms = _millis(t)
+    if ms is None:
         return None
-    return s if pos == 1 else f"+{s}"
+    if pos == 1:
+        # Winner's TOTAL race time — needs an hour field (bf._fmt_laptime has none, which
+        # rendered a 1 h 51 m race as "111:15.281").
+        return bf.fmt_duration_ms(ms)
+    gap = bf.fmt_gap_ms(ms)
+    return f"+{gap}" if gap else None
 
 
 def _int(v):

@@ -501,6 +501,43 @@ def _parse_lap_doc(doc, race_id, season, rnd):
     return out
 
 
+def fmt_duration_ms(ms):
+    """Absolute race/session duration -> Ergast 'H:MM:SS.mmm' (or 'M:SS.mmm' under an hour).
+
+    NOT the same as a lap time: _fmt_laptime() has no hour field, so a 1 h 51 m race came
+    out as "111:15.281" instead of "1:51:15.281" for every race winner.
+    """
+    if ms is None:
+        return None
+    ms = int(ms)
+    if ms <= 0:
+        return None
+    hours, rem = divmod(ms, 3_600_000)
+    minutes, rem = divmod(rem, 60_000)
+    seconds = rem / 1000.0
+    if hours:
+        return f"{hours}:{minutes:02d}:{seconds:06.3f}"
+    return f"{minutes}:{seconds:06.3f}"
+
+
+def fmt_gap_ms(ms):
+    """Gap behind the winner -> Ergast form: '3.857' under a minute, else '1:03.857'.
+
+    No leading '+' (callers add it) and no leading '0:' — Ergast/Jolpica write "+3.857",
+    so emitting "+0:03.857" made our rows differ from any Jolpica-sourced round.
+    """
+    if ms is None:
+        return None
+    ms = int(ms)
+    if ms <= 0:
+        return None
+    minutes, rem = divmod(ms, 60_000)
+    seconds = rem / 1000.0
+    if minutes:
+        return f"{minutes}:{seconds:06.3f}"
+    return f"{seconds:.3f}"
+
+
 def _fmt_laptime(td):
     """Timedelta -> Ergast-style 'M:SS.mmm' lap time (None if missing)."""
     try:
