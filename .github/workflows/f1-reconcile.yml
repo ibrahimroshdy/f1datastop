@@ -52,10 +52,11 @@ jobs:
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # Ingest writes to Postgres, so there is nothing useful to do while the Supabase
-      # project is restricted (402 on every request — Free-plan quota breach). Skip
-      # cleanly instead of failing (and paging Slack) on every cron tick; the daily
-      # free-tier digest reports the restriction. The site keeps serving from the CDN.
+      # Ingest writes to Postgres, so it can do nothing while the Supabase project is
+      # restricted (402 on every request — Free-plan quota breach). Skip it cleanly
+      # instead of failing (and paging Slack) on every cron tick. The EXPORT still runs:
+      # data_export.py falls back to Jolpica, so results and standings on the CDN stay
+      # current through the outage. The daily free-tier digest reports the restriction.
       - name: Is Supabase serving?
         id: supabase
         if: steps.gate.outputs.go == 'true'
@@ -71,7 +72,7 @@ jobs:
           fi
 
       - uses: ./.github/actions/f1-setup
-        if: steps.gate.outputs.go == 'true' && steps.supabase.outputs.up == 'true'
+        if: steps.gate.outputs.go == 'true'
       - name: Ingest current season (skips finished rounds)
         if: steps.gate.outputs.go == 'true' && steps.supabase.outputs.up == 'true'
         working-directory: analysis
@@ -82,9 +83,9 @@ jobs:
       # month. Runs after every ingest so the files track the warehouse; the frontend falls
       # back to the RPC on a 404.
       - name: Export season JSON to R2
-        if: steps.gate.outputs.go == 'true' && steps.supabase.outputs.up == 'true'
+        if: steps.gate.outputs.go == 'true'
         working-directory: analysis
-        run: python data_export.py --season "$(date -u +%Y)"
+        run: python data_export.py --season "$(date -u +%Y)" --source auto
 
       - name: Alert Slack on failure
         if: failure()
