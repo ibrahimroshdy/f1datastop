@@ -52,10 +52,28 @@ jobs:
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # Ingest writes to Postgres, so there is nothing useful to do while the Supabase
+      # project is restricted (402 on every request — Free-plan quota breach). Skip
+      # cleanly instead of failing (and paging Slack) on every cron tick; the daily
+      # free-tier digest reports the restriction. The site keeps serving from the CDN.
+      - name: Is Supabase serving?
+        id: supabase
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          code="$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" "$SUPABASE_URL/rest/v1/")"
+          echo "supabase REST -> HTTP $code"
+          if [ "$code" = "402" ]; then
+            echo "up=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Supabase project is restricted (402) — skipping ingest until the quota resets."
+            echo "### Reconcile skipped — Supabase restricted (402)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "up=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: ./.github/actions/f1-setup
-        if: steps.gate.outputs.go == 'true'
+        if: steps.gate.outputs.go == 'true' && steps.supabase.outputs.up == 'true'
       - name: Ingest current season (skips finished rounds)
-        if: steps.gate.outputs.go == 'true'
+        if: steps.gate.outputs.go == 'true' && steps.supabase.outputs.up == 'true'
         working-directory: analysis
         run: python ingest.py --season "$(date -u +%Y)"
 
@@ -64,7 +82,7 @@ jobs:
       # month. Runs after every ingest so the files track the warehouse; the frontend falls
       # back to the RPC on a 404.
       - name: Export season JSON to R2
-        if: steps.gate.outputs.go == 'true'
+        if: steps.gate.outputs.go == 'true' && steps.supabase.outputs.up == 'true'
         working-directory: analysis
         run: python data_export.py --season "$(date -u +%Y)"
 

@@ -33,9 +33,18 @@ def r2_usage():
 
 
 def db_mb():
+    """(size_mb or None, status). A restricted/paused project answers 402 — report it
+    rather than fail the digest (which would then be the only Slack message that day)."""
     url, key = os.environ["SUPABASE_URL"].rstrip("/"), os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-    r = requests.post(f"{url}/rest/v1/rpc/db_size_bytes", headers={"apikey": key, "Authorization": f"Bearer {key}"}, json={}, timeout=30)
-    r.raise_for_status(); return int(r.json()) / 1e6
+    try:
+        r = requests.post(f"{url}/rest/v1/rpc/db_size_bytes", headers={"apikey": key, "Authorization": f"Bearer {key}"}, json={}, timeout=30)
+    except requests.exceptions.RequestException as e:
+        return None, f"unreachable ({type(e).__name__})"
+    if r.status_code == 402:
+        return None, "RESTRICTED (402 — Free-plan quota; see Supabase billing)"
+    if not r.ok:
+        return None, f"error {r.status_code}"
+    return int(r.json()) / 1e6, "ok"
 
 
 def actions_minutes():
@@ -58,11 +67,12 @@ def badge(frac):
 
 def main():
     r2_gb, per = r2_usage()
-    db = db_mb()
+    db, db_status = db_mb()
     mins = actions_minutes()
     lines = [f"*f1datastop free-tier digest* — {dt.datetime.utcnow():%Y-%m-%d} UTC",
              f"{badge(r2_gb/LIM_R2_GB)} R2 storage: *{r2_gb:.2f} / {LIM_R2_GB:.0f} GB* — " + ", ".join(f"{k} {v:.2f}" for k, v in per.items()),
-             f"{badge(db/LIM_DB_MB)} Supabase DB: *{db:.0f} / {LIM_DB_MB:.0f} MB*"]
+             (f"{badge(db/LIM_DB_MB)} Supabase DB: *{db:.0f} / {LIM_DB_MB:.0f} MB*" if db is not None
+              else f":rotating_light: Supabase: *{db_status}* — site is serving from the CDN indexes; ingest paused")]
     if mins is None:
         lines.append(":grey_question: GitHub Actions: n/a (set GH_BILLING_TOKEN secret with Plan:read to track)")
     else:
