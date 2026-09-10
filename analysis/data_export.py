@@ -23,13 +23,21 @@ pinning a stale copy for more than a few minutes.
 
 SOURCES
 -------
-The warehouse RPCs are the default source, but the payloads are Ergast-shaped and Jolpica
-(the Ergast successor the warehouse itself is built from) serves the identical shape. So
-`--source jolpica` produces the same files with no database at all, and the default
-`--source auto` falls back to it the moment the RPCs are unavailable — which is what keeps
-the site current while the Supabase project is restricted (402 on a Free-plan quota
-breach) or paused. Jolpica adds a `url` field on Driver/Constructor that the RPCs omit;
-it is inert extra data the frontend ignores.
+The warehouse RPCs are the default source. Jolpica (the Ergast successor) serves the same
+Ergast shape, so `--source jolpica` can publish these files with no database at all, and
+the default `--source auto` switches to it the moment the RPCs are unavailable — which is
+what keeps new rounds appearing while the Supabase project is restricted (402 on a
+Free-plan quota breach) or paused.
+
+Jolpica FILLS GAPS ONLY: it never overwrites a file the warehouse already published.
+That is not caution for its own sake — the two sources genuinely disagree. Their per-race
+points differ (Gasly is on 50 in the warehouse and 41 on Jolpica after round 13), and the
+warehouse figures are the ones consistent with its own f1_race_result rows AND with every
+Deep Dive chart, replay and telemetry blob, all generated from the same FastF1 data.
+Mixing the two would leave a round's charts disagreeing with its own standings table.
+Jolpica's 2026 calendar is also poorer: it drops two sprint weekends and carries a
+garbled round-16 name. So the fallback publishes a round the warehouse never got to, and
+leaves everything else exactly as it was. Pass --overwrite to override that.
 
 Usage:
   python data_export.py --season 2026            # season files + every round with data
@@ -202,6 +210,44 @@ def load_circuit_overrides(season):
     return out
 
 
+# Constructor display names differ too: the warehouse says "Red Bull Racing" /
+# "Racing Bulls" / "Alpine" where Jolpica says "Red Bull" / "RB F1 Team" /
+# "Alpine F1 Team". constructorId matches, so only the label drifts — but a
+# Jolpica-sourced round rendered next to a warehouse-sourced one shows two different
+# names for the same team. Carry the canonical labels over and rewrite them on the way
+# out, which also keeps the map intact for the next run.
+CONSTRUCTOR_NAMES = {}
+OVERWRITE = False
+
+
+def load_constructor_names(season):
+    out = {}
+    for row in index_export._get_json("data", f"{season}/constructorStandings.json") or []:
+        c = (row or {}).get("Constructor") or {}
+        if c.get("constructorId") and c.get("name"):
+            out[c["constructorId"]] = c["name"]
+    if out:
+        print(f"  constructor labels: {len(out)} carried over from the previous export")
+    return out
+
+
+def apply_constructor_names(node):
+    """Rewrite every Constructor label in a payload to the canonical one, in place."""
+    if not CONSTRUCTOR_NAMES:
+        return node
+    if isinstance(node, list):
+        for item in node:
+            apply_constructor_names(item)
+    elif isinstance(node, dict):
+        cid = node.get("constructorId")
+        if cid and "name" in node and cid in CONSTRUCTOR_NAMES:
+            node["name"] = CONSTRUCTOR_NAMES[cid]
+        for value in node.values():
+            if isinstance(value, (list, dict)):
+                apply_constructor_names(value)
+    return node
+
+
 def apply_circuit(race):
     """Replace a Jolpica race's Circuit with the warehouse-identity one, if we have it."""
     if not (isinstance(race, dict) and CIRCUIT_BY_ROUND):
@@ -230,6 +276,10 @@ def has_rows(race, key):
     return isinstance(rows, list) and len(rows) > 0
 
 
+def exists_on_cdn(path):
+    return index_export._get_json("data", path) is not None
+
+
 def put_json(path, payload):
     body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     url = bs.put("data", path, body, "application/json", gzip_body=True,
@@ -248,7 +298,10 @@ def export_round(season, rnd, source):
         race = fetch(source, name, {"p_season": season, "p_round": rnd},
                      f"{season}/{rnd}/{jol}", _first_race)
         if ACTIVE_SOURCE == "jolpica":
-            race = apply_circuit(race)
+            if not OVERWRITE and exists_on_cdn(f"{season}/{rnd}/{fname}"):
+                print(f"  keep data/{season}/{rnd}/{fname} (warehouse copy — Jolpica fills gaps only)")
+                continue
+            race = apply_constructor_names(apply_circuit(race))
         if not has_rows(race, key):
             print(f"  skip data/{season}/{rnd}/{fname} (no {key})")
             continue
@@ -262,6 +315,9 @@ def main():
     ap.add_argument("--season", type=int, default=datetime.now(timezone.utc).year)
     ap.add_argument("--round", type=int, default=None,
                     help="export only this round (season files are always written)")
+    ap.add_argument("--overwrite", action="store_true",
+                    help="let the Jolpica fallback replace files the warehouse published "
+                         "(off by default — the two sources disagree on points)")
     ap.add_argument("--source", choices=("auto", "db", "jolpica"), default="auto",
                     help="auto (default): warehouse RPCs, falling back to Jolpica if they "
                          "are unavailable; db: RPCs only; jolpica: no database at all")
@@ -273,9 +329,11 @@ def main():
     print(f"data_export: season {season} -> {bs.public_base()}/data/{season}/  (source: {args.source})")
 
     # ── season-level files ────────────────────────────────────────────────────
-    global CIRCUIT_BY_ROUND
+    global CIRCUIT_BY_ROUND, CONSTRUCTOR_NAMES, OVERWRITE
+    OVERWRITE = args.overwrite
     if args.source != "db":
         CIRCUIT_BY_ROUND = load_circuit_overrides(season)
+        CONSTRUCTOR_NAMES = load_constructor_names(season)
 
     schedule = fetch(args.source, "get_schedule", {"p_season": season}, f"{season}", _races)
     if ACTIVE_SOURCE == "jolpica":
@@ -298,8 +356,13 @@ def main():
     for name, fname, jol, field in (
             ("get_driver_standings", "driverStandings.json", "driverStandings", "DriverStandings"),
             ("get_constructor_standings", "constructorStandings.json", "constructorStandings", "ConstructorStandings")):
+        if ACTIVE_SOURCE == "jolpica" and not OVERWRITE and exists_on_cdn(f"{season}/{fname}"):
+            print(f"  keep data/{season}/{fname} (warehouse copy — Jolpica fills gaps only)")
+            continue
         rows = fetch(args.source, name, {"p_season": season, "p_round": None},
                      f"{season}/{jol}", _standings(field))
+        if ACTIVE_SOURCE == "jolpica":
+            rows = apply_constructor_names(rows)
         if is_empty(rows):
             print(f"  skip data/{season}/{fname} (empty)")
             continue
