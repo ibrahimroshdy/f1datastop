@@ -7,10 +7,13 @@
  * nothing links to them from static HTML. The warehouse already knows exactly which
  * rounds exist, so we enumerate from there rather than guessing.
  *
- * Runs at build time. If Supabase is unreachable it still emits the static routes and
- * exits 0 — a missing sitemap is a bad day, a failed deploy is a worse one.
+ * Runs at build time. If Supabase is unreachable it falls back to the static season JSON
+ * on the CDN, and as a last resort keeps the sitemap already committed in the repo — it
+ * will never SHRINK the file. That last rule matters: while the Supabase project was
+ * restricted (402 on every request) every deploy silently published a 10-URL sitemap in
+ * place of a 493-URL one, dropping every race, driver and circuit page from search.
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -47,6 +50,39 @@ async function rest(path) {
   }
 }
 
+const CDN = (process.env.VITE_BLOB_HOST || "https://cdn.f1datastop.com").replace(/\/$/, "");
+
+/** Fetch `data/{path}` from the CDN. null on any failure — the caller degrades. */
+async function cdn(path) {
+  try {
+    const r = await fetch(`${CDN}/data/${path}`, { signal: AbortSignal.timeout(20000) });
+    return r.ok ? await r.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Races/drivers/circuits from the CDN season files — same shape the app reads. */
+async function fromCdn(seasons) {
+  const races = [];
+  const drivers = new Set();
+  for (const season of seasons) {
+    const schedule = await cdn(`${season}/schedule.json`);
+    for (const r of schedule || []) {
+      if (r?.round) races.push({ season, round: Number(r.round), date: r.date });
+    }
+    for (const row of (await cdn(`${season}/driverStandings.json`)) || []) {
+      const id = row?.Driver?.driverId;
+      if (id) drivers.add(id);
+    }
+  }
+  const circuits = new Set();
+  for (const row of (await cdn("index/circuits/all.json")) || []) {
+    if (row?.circuit_id) circuits.add(row.circuit_id);
+  }
+  return { races, drivers: [...drivers], circuits: [...circuits] };
+}
+
 const xmlEscape = (s) => String(s).replace(/[<>&'"]/g, (c) =>
   ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[c]);
 
@@ -65,7 +101,15 @@ async function main() {
   const entries = [...STATIC];
 
   // Races: one analysis page per round, plus the season's race-info page.
-  const races = await rest("f1_race?select=season,round,date&order=season.desc,round.asc&limit=2000");
+  let races = await rest("f1_race?select=season,round,date&order=season.desc,round.asc&limit=2000");
+  let cdnFallback = null;
+  if (!races?.length) {
+    const thisYear = new Date().getFullYear();
+    const seasons = Array.from({ length: 10 }, (_, i) => thisYear - i);
+    cdnFallback = await fromCdn(seasons);
+    races = cdnFallback.races;
+    if (races.length) console.log(`[sitemap] warehouse unavailable — ${races.length} races from the CDN`);
+  }
   if (races?.length) {
     for (const r of races) {
       const lastmod = r.date ? String(r.date).slice(0, 10) : undefined;
@@ -79,7 +123,8 @@ async function main() {
 
   // Drivers and circuits are addressed by slug/id.
   // /drivers/:slug — slug is fully populated and mirrors the Ergast id the app links with.
-  const drivers = await rest("f1_driver?select=slug,ergast_id&limit=1000");
+  let drivers = await rest("f1_driver?select=slug,ergast_id&limit=1000");
+  if (!drivers?.length && cdnFallback) drivers = cdnFallback.drivers.map((id) => ({ slug: id }));
   if (drivers?.length) {
     for (const d of drivers) {
       const id = d.slug || d.ergast_id;
@@ -90,7 +135,8 @@ async function main() {
     console.warn("[sitemap] no driver rows");
   }
 
-  const circuits = await rest("f1_circuit?select=circuit_id&limit=500");
+  let circuits = await rest("f1_circuit?select=circuit_id&limit=500");
+  if (!circuits?.length && cdnFallback) circuits = cdnFallback.circuits.map((c) => ({ circuit_id: c }));
   if (circuits?.length) {
     for (const c of circuits) if (c.circuit_id) entries.push({ path: `/circuits/${c.circuit_id}`, changefreq: "monthly", priority: "0.6" });
     console.log(`[sitemap] ${circuits.length} circuits`);
@@ -105,6 +151,15 @@ async function main() {
 ${unique.map(urlEntry).join("\n")}
 </urlset>
 `;
+  // Never shrink. A data source that is down must not quietly de-index the site; the
+  // sitemap committed in the repo is a known-good floor and simply gets deployed again.
+  if (existsSync(OUT)) {
+    const prev = (readFileSync(OUT, "utf8").match(/<url>/g) || []).length;
+    if (prev > unique.length) {
+      console.warn(`[sitemap] generated ${unique.length} urls but ${prev} are already committed — keeping the existing file`);
+      return;
+    }
+  }
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, xml, "utf8");
   console.log(`[sitemap] wrote ${unique.length} urls -> public/sitemap.xml`);
