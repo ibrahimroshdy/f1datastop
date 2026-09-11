@@ -13,6 +13,8 @@ gzip-compressed JSON on R2:
   data/{season}/{round}/results.json        <- get_race_results(p_season, p_round)
   data/{season}/{round}/qualifying.json     <- get_qualifying(p_season, p_round)
   data/{season}/{round}/sprint.json         <- get_sprint(p_season, p_round)
+  data/{season}/{round}/pitstops.json       <- get_pitstops(p_season, p_round)
+  data/{season}/{round}/laps.json           <- get_laps(p_season, p_round)
 
 The frontend fetches these first and falls through to the RPC on a 404, so a file is
 written only when the RPC returns non-empty data (a round with no results yet gets no
@@ -108,13 +110,16 @@ def rpc(name, params, retries=3):
 
 
 # ── Jolpica source — same Ergast shape, no database ───────────────────────────
-def jolpica(path, limit=100):
+def jolpica(path, limit=100, offset=None):
     """GET a Jolpica document (path WITHOUT .json). None on 404 / persistent failure."""
     url = f"{JOLPICA_BASE}/f1/{path}.json"
+    params = {"limit": limit}
+    if offset:
+        params["offset"] = offset
     last = None
     for attempt in range(4):
         try:
-            r = requests.get(url, params={"limit": limit}, timeout=30)
+            r = requests.get(url, params=params, timeout=30)
             if r.status_code == 404:
                 return None
             if r.status_code == 429 or r.status_code >= 500:
@@ -151,6 +156,39 @@ def _first_race(doc):
     return races[0] if races else None
 
 
+def _race_table(doc):
+    """Jolpica's whole RaceTable — get_pitstops returns this shape, not a bare race."""
+    table = (doc or {}).get("MRData", {}).get("RaceTable")
+    return table if (table or {}).get("Races") else None
+
+
+def jolpica_laps(season, rnd):
+    """Every lap timing for a round, reassembled: Jolpica caps a page at 100 timings.
+
+    Returns get_laps()'s shape — {"Races": [race]} with race["Laps"] complete — or None.
+    """
+    merged, header, offset = {}, None, 0
+    while True:
+        doc = jolpica(f"{season}/{rnd}/laps", limit=100, offset=offset)
+        races = ((doc or {}).get("MRData", {}).get("RaceTable") or {}).get("Races")
+        if not races:
+            break
+        race = races[0]
+        if header is None:
+            header = {k: v for k, v in race.items() if k != "Laps"}
+        for lap in race.get("Laps") or []:
+            merged.setdefault(lap["number"], []).extend(lap.get("Timings") or [])
+        total = int((doc.get("MRData") or {}).get("total") or 0)
+        offset += 100
+        if offset >= total:
+            break
+    if not merged:
+        return None
+    header["Laps"] = [{"number": n, "Timings": merged[n]}
+                      for n in sorted(merged, key=lambda x: int(x))]
+    return {"Races": [header]}
+
+
 def _standings(field):
     def unwrap(doc):
         lists = _mrdata(doc, "StandingsTable", "StandingsLists")
@@ -158,7 +196,7 @@ def _standings(field):
     return unwrap
 
 
-def fetch(source, rpc_name, rpc_params, jol_path, unwrap):
+def fetch(source, rpc_name, rpc_params, jol_path, unwrap, jolpica_fn=None):
     """One logical read, honouring the selected source. Returns the payload or None.
 
     In `auto`, the first warehouse failure flips the whole run to Jolpica — a restricted
@@ -173,7 +211,7 @@ def fetch(source, rpc_name, rpc_params, jol_path, unwrap):
                 raise
             print(f"  warehouse unavailable ({e}) — falling back to Jolpica for this run")
             ACTIVE_SOURCE = "jolpica"
-    return unwrap(jolpica(jol_path))
+    return jolpica_fn() if jolpica_fn else unwrap(jolpica(jol_path))
 
 
 ACTIVE_SOURCE = "db"
@@ -288,6 +326,36 @@ def put_json(path, payload):
     return url
 
 
+def _nested_rows(payload, key):
+    """A RaceTable-shaped payload whose Races[0][key] has rows."""
+    races = (payload or {}).get("Races") if isinstance(payload, dict) else None
+    rows = races[0].get(key) if races else None
+    return isinstance(rows, list) and len(rows) > 0
+
+
+def export_extras(season, rnd, source):
+    """pitstops.json + laps.json — RaceTable-shaped, so they need their own emptiness test."""
+    wrote = 0
+    for name, fname, key, fetcher in (
+        ("get_pitstops", "pitstops.json", "PitStops",
+         lambda: _race_table(jolpica(f"{season}/{rnd}/pitstops", limit=200))),
+        ("get_laps", "laps.json", "Laps", lambda: jolpica_laps(season, rnd)),
+    ):
+        if ACTIVE_SOURCE == "jolpica" and not OVERWRITE and exists_on_cdn(f"{season}/{rnd}/{fname}"):
+            print(f"  keep data/{season}/{rnd}/{fname} (warehouse copy — Jolpica fills gaps only)")
+            continue
+        payload = fetch(source, name, {"p_season": season, "p_round": rnd}, None, None,
+                        jolpica_fn=fetcher)
+        if not _nested_rows(payload, key):
+            print(f"  skip data/{season}/{rnd}/{fname} (no {key})")
+            continue
+        if ACTIVE_SOURCE == "jolpica":
+            payload = apply_constructor_names(payload)
+        put_json(f"{season}/{rnd}/{fname}", payload)
+        wrote += 1
+    return wrote
+
+
 def export_round(season, rnd, source):
     wrote = 0
     for name, fname, key, jol in (
@@ -378,6 +446,7 @@ def main():
     for rnd in rounds:
         print(f"round {rnd}:")
         total += export_round(season, rnd, args.source)
+        total += export_extras(season, rnd, args.source)
     print(f"data_export: done — {total} round file(s) written across {len(rounds)} round(s) "
           f"[source: {ACTIVE_SOURCE}]")
 

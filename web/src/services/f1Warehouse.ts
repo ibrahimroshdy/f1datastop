@@ -351,10 +351,13 @@ export async function getPitStopsFromDb(
   round: number | string,
 ): Promise<Record<string, unknown> | null> {
   if (!canServe(year)) return null;
-  const raceTable = await rpc<Record<string, unknown>>("get_pitstops", {
-    p_season: year,
-    p_round: toRound(round),
-  });
+  // CDN first (analysis/data_export.py publishes the RPC payload verbatim); the RPC is
+  // the fallback for a round that was never exported.
+  const raceTable = await staticThenRpc<Record<string, unknown>>(
+    `${year}/${toRound(round)}/pitstops.json`,
+    "get_pitstops",
+    { p_season: year, p_round: toRound(round) },
+  );
   if (raceTable == null || isEmpty(raceTable)) return null;
   const races = raceTable.Races as Array<Record<string, unknown>> | undefined;
   const pits = races?.[0]?.PitStops;
@@ -372,10 +375,12 @@ export async function getLapTimesFromDb(
   round: number | string,
 ): Promise<{ Races: unknown[] } | null> {
   if (!canServe(year)) return null;
-  const payload = await rpc<{ Races: Array<Record<string, unknown>> }>("get_laps", {
-    p_season: year,
-    p_round: toRound(round),
-  });
+  // CDN first — see getPitStopsFromDb.
+  const payload = await staticThenRpc<{ Races: Array<Record<string, unknown>> }>(
+    `${year}/${toRound(round)}/laps.json`,
+    "get_laps",
+    { p_season: year, p_round: toRound(round) },
+  );
   if (payload == null || !Array.isArray(payload.Races)) return null;
   const laps = payload.Races[0]?.Laps;
   if (!Array.isArray(laps) || laps.length === 0) return null;
