@@ -89,6 +89,11 @@ jobs:
           echo "== circuit geometry (session-agnostic) =="
           for r in $ROUNDS; do try python circuit_geometry_export.py --season "$Y" --round "$r"; done
 
+          # Race weather -> data/{season}/{round}/weather_R.json. Derived from the same
+          # FastF1 stream the warehouse ingest uses, so the Weather tab needs no database.
+          echo "== race weather =="
+          for r in $ROUNDS; do try python weather_export.py --season "$Y" --round "$r"; done
+
           for sess in $SESSIONS; do
             echo "== race replays $sess =="
             for r in $ROUNDS; do try python race_replay_export.py --season "$Y" --round "$r" --session "$sess"; done

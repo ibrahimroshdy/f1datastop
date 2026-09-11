@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { cdnJson } from "@/lib/cdnJson";
 
 /** Thin wrapper over the FastF1-native serving RPCs. Never throws — degrades to
  *  an empty array so the UI shows its own empty-state. */
@@ -59,8 +60,17 @@ export interface DbLapRow {
   time_millis: number | null;
 }
 
-export const getWeather = (season: number, round: number, session = "R") =>
-  rpc<DbWeatherRow>("get_weather", { p_season: season, p_round: round, p_session: session });
+/** Race weather. CDN first (analysis/weather_export.py re-derives it from FastF1 and
+ *  publishes the RPC's exact row shape), RPC as the fallback. */
+export const getWeather = async (
+  season: number,
+  round: number,
+  session = "R",
+): Promise<DbWeatherRow[]> => {
+  const fromCdn = await cdnJson<DbWeatherRow[]>(`${season}/${round}/weather_${session}.json`);
+  if (Array.isArray(fromCdn) && fromCdn.length > 0) return fromCdn;
+  return rpc<DbWeatherRow>("get_weather", { p_season: season, p_round: round, p_session: session });
+};
 
 export const getOvertakes = (season: number, round: number, session = "R") =>
   rpc<DbOvertakeRow>("get_overtakes", { p_season: season, p_round: round, p_session: session });
