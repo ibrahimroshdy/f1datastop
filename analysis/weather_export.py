@@ -90,11 +90,22 @@ def finished_rounds(season):
     """Rounds whose race has already started, newest first, from the CDN schedule."""
     now = cdn_schedule.now_utc()
     try:
-        rounds = sorted({r for r, code, start in cdn_schedule.sessions(season)
-                         if code == "R" and start <= now}, reverse=True)
-    except Exception as e:  # noqa: BLE001 — CDN unreachable: caller can still pass --round
-        sys.exit(f"weather_export: can't read the {season} schedule ({e}); pass --round")
-    return rounds
+        return sorted({r for r, code, start in cdn_schedule.sessions(season)
+                       if code == "R" and start <= now}, reverse=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"  (CDN schedule for {season} unavailable: {e}; using FastF1's)")
+    # FastF1 already ships the calendar and we load it anyway, so a season whose static
+    # schedule hasn't been exported yet (anything before the CDN backfill) still works.
+    try:
+        import fastf1
+        import pandas as pd
+        sched = fastf1.get_event_schedule(season, include_testing=False)
+        cutoff = pd.Timestamp.utcnow().tz_localize(None)
+        return sorted({int(r["RoundNumber"]) for _, r in sched.iterrows()
+                       if pd.notna(r.get("EventDate")) and r["EventDate"] <= cutoff},
+                      reverse=True)
+    except Exception as e:  # noqa: BLE001
+        sys.exit(f"weather_export: can't resolve rounds for {season} ({e}); pass --round")
 
 
 def main():

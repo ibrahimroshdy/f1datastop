@@ -68,7 +68,8 @@ CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=3600"
 
 
 JOLPICA_BASE = os.environ.get("JOLPICA_BASE", "https://api.jolpi.ca/ergast").rstrip("/")
-JOLPICA_PAUSE = 0.35  # polite inter-request delay
+JOLPICA_PAUSE = 0.6   # polite inter-request delay (Jolpica rate-limits a bulk backfill)
+JOLPICA_TRIES = 6
 
 
 class WarehouseUnavailable(RuntimeError):
@@ -117,22 +118,27 @@ def jolpica(path, limit=100, offset=None):
     if offset:
         params["offset"] = offset
     last = None
-    for attempt in range(4):
+    for attempt in range(JOLPICA_TRIES):
         try:
             r = requests.get(url, params=params, timeout=30)
             if r.status_code == 404:
                 return None
             if r.status_code == 429 or r.status_code >= 500:
+                # A bulk backfill trips Jolpica's sustained rate limit (a full season of
+                # laps is ~250 requests). 1.5 s was far too impatient: a whole season
+                # silently came back empty. Honour Retry-After, else back off hard.
+                wait = float(r.headers.get("Retry-After") or 0) or min(5 * 3 ** attempt, 120)
                 last = f"HTTP {r.status_code}"
-                time.sleep(1.5 * (attempt + 1))
+                print(f"  (jolpica {path}: {last}, waiting {wait:.0f}s)")
+                time.sleep(wait)
                 continue
             r.raise_for_status()
             time.sleep(JOLPICA_PAUSE)
             return r.json()
         except requests.RequestException as e:
             last = str(e)
-            time.sleep(1.5 * (attempt + 1))
-    print(f"  (jolpica {path}: {last})")
+            time.sleep(min(5 * 3 ** attempt, 120))
+    print(f"  (jolpica {path}: giving up after {JOLPICA_TRIES} tries — {last})")
     return None
 
 
