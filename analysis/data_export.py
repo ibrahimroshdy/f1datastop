@@ -195,6 +195,54 @@ def jolpica_laps(season, rnd):
     return {"Races": [header]}
 
 
+def derive_standings(season, rounds):
+    """(driver_rows, constructor_rows) summed from the round files we actually publish.
+
+    Standings are the one export that MUST change after every race, so the gap-fill rule
+    that protects results is wrong for them: after round 14 the site showed the new race
+    result beside a championship table still frozen on round 13.
+
+    Taking Jolpica's standings instead would import its historical points, which disagree
+    with ours (Gasly 50 vs 41 after round 13) and with every chart we have rendered. So
+    add up our own published rounds: the table then always reconciles with the results
+    pages next to it, whatever the mix of warehouse and Jolpica rounds behind them.
+    """
+    drivers, teams = {}, {}
+    for rnd in rounds:
+        for fname, key in (("results.json", "Results"), ("sprint.json", "SprintResults")):
+            doc = index_export._get_json("data", f"{season}/{rnd}/{fname}")
+            rows = (doc or {}).get(key) or []
+            for row in rows:
+                drv, con = row.get("Driver") or {}, row.get("Constructor") or {}
+                did, cid = drv.get("driverId"), con.get("constructorId")
+                if not did:
+                    continue
+                pts = float(row.get("points") or 0)
+                # Ergast counts RACE wins only, not sprint wins.
+                won = 1 if (key == "Results" and str(row.get("position")) == "1") else 0
+                d = drivers.setdefault(did, {"Driver": drv, "Constructors": [], "points": 0.0, "wins": 0})
+                d["Driver"], d["points"], d["wins"] = drv, d["points"] + pts, d["wins"] + won
+                if con and con not in d["Constructors"]:
+                    # Ergast lists every team a driver raced for, current one last.
+                    d["Constructors"] = [c for c in d["Constructors"] if c.get("constructorId") != cid] + [con]
+                if cid:
+                    t = teams.setdefault(cid, {"Constructor": con, "points": 0.0, "wins": 0})
+                    t["Constructor"], t["points"], t["wins"] = con, t["points"] + pts, t["wins"] + won
+
+    def rank(items, key_name):
+        out = []
+        for i, (_, v) in enumerate(sorted(items, key=lambda kv: (-kv[1]["points"], -kv[1]["wins"])), 1):
+            row = {"position": str(i), "positionText": str(i),
+                   "points": f"{v['points']:.1f}", "wins": str(v["wins"])}
+            row[key_name] = v[key_name]
+            if key_name == "Driver":
+                row["Constructors"] = v["Constructors"]
+            out.append(row)
+        return out
+
+    return rank(drivers.items(), "Driver"), rank(teams.items(), "Constructor")
+
+
 def _standings(field):
     def unwrap(doc):
         lists = _mrdata(doc, "StandingsTable", "StandingsLists")
@@ -430,13 +478,12 @@ def main():
     for name, fname, jol, field in (
             ("get_driver_standings", "driverStandings.json", "driverStandings", "DriverStandings"),
             ("get_constructor_standings", "constructorStandings.json", "constructorStandings", "ConstructorStandings")):
-        if ACTIVE_SOURCE == "jolpica" and not OVERWRITE and exists_on_cdn(f"{season}/{fname}"):
-            print(f"  keep data/{season}/{fname} (warehouse copy — Jolpica fills gaps only)")
+        if ACTIVE_SOURCE == "jolpica":
+            # Standings are re-derived, never gap-filled: see derive_standings(). Deferred
+            # until the round list is known, below.
             continue
         rows = fetch(args.source, name, {"p_season": season, "p_round": None},
                      f"{season}/{jol}", _standings(field))
-        if ACTIVE_SOURCE == "jolpica":
-            rows = apply_constructor_names(rows)
         if is_empty(rows):
             print(f"  skip data/{season}/{fname} (empty)")
             continue
@@ -447,6 +494,19 @@ def main():
         rounds = [args.round]
     else:
         rounds = sorted({int(r["round"]) for r in schedule if isinstance(r, dict) and "round" in r})
+
+    if ACTIVE_SOURCE == "jolpica":
+        # Every round the season has, not just the ones being exported this run — the
+        # table is cumulative.
+        all_rounds = sorted({int(r["round"]) for r in schedule
+                             if isinstance(r, dict) and str(r.get("round", "")).isdigit()})
+        drv_rows, con_rows = derive_standings(season, all_rounds)
+        for rows, fname in ((drv_rows, "driverStandings.json"), (con_rows, "constructorStandings.json")):
+            if is_empty(rows):
+                print(f"  skip data/{season}/{fname} (no round results to sum)")
+                continue
+            print(f"  derived {fname} from {len(all_rounds)} published round(s)")
+            put_json(f"{season}/{fname}", apply_constructor_names(rows))
 
     total = 0
     for rnd in rounds:
