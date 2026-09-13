@@ -4,11 +4,11 @@
 Measures (all read-only):
   R2 storage        vs 10 GB    (list_objects_v2 per prefix; Class B ops, ~30/day)
   Supabase DB size  vs 500 MB   (public.db_size_bytes(), service role)
-  GitHub Actions    vs 2,000 min (billing usage API; needs GH_BILLING_TOKEN with "Plan: read";
+  CircleCI credits  vs 30,000/mo (insights API; needs CIRCLE_TOKEN;
                                   reported as n/a when the secret isn't set)
 Warns (:warning:) at >= 70 % of any limit, :rotating_light: at >= 90 %.
 Env: SLACK_ALERTS_WEBHOOK, R2_* + BLOB_PUBLIC_BASE, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
-optional GH_BILLING_TOKEN, GH_USER (default ibrahimroshdy), GH_REPO (default f1datastop).
+optional CIRCLE_TOKEN, CIRCLE_PROJECT_SLUG (default gh/ibrahimroshdy/f1datastop).
 """
 import datetime as dt
 import json
@@ -19,7 +19,7 @@ import requests
 
 import blob_store as bs
 
-LIM_R2_GB, LIM_DB_MB, LIM_ACT_MIN = 10.0, 500.0, 2000.0
+LIM_R2_GB, LIM_DB_MB, LIM_CREDITS = 10.0, 500.0, 30000.0
 
 
 def r2_usage():
@@ -47,36 +47,45 @@ def db_mb():
     return int(r.json()) / 1e6, "ok"
 
 
-def actions_minutes():
-    tok = os.environ.get("GH_BILLING_TOKEN")
-    if not tok:
-        return None
-    user, repo = os.environ.get("GH_USER", "ibrahimroshdy"), os.environ.get("GH_REPO", "f1datastop")
-    r = requests.get(f"https://api.github.com/users/{user}/settings/billing/usage",
-                     headers={"Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json"}, timeout=30)
-    if not r.ok:
-        return None
-    month = dt.datetime.utcnow().strftime("%Y-%m")
-    return sum(i["quantity"] for i in r.json().get("usageItems", [])
-               if i.get("repositoryName") == repo and i.get("unitType") == "Minutes" and i["date"].startswith(month))
-
-
 def badge(frac):
     return ":rotating_light:" if frac >= 0.9 else (":warning:" if frac >= 0.7 else ":white_check_mark:")
+
+
+def circleci_credits():
+    """(credits_used_last_30d or None, note).
+
+    The pipeline moved off GitHub Actions on 2026-09-13 after the account's shared 3,000
+    included minutes ran out mid-race-weekend. CircleCI's free plan allows 30,000 credits
+    a month and f1datastop is the only project on it, so the per-project insights figure
+    is the whole bill. Insights lag a little behind a run, so a fresh project reads 0.
+    """
+    tok = os.environ.get("CIRCLE_TOKEN")
+    if not tok:
+        return None, "set CIRCLE_TOKEN to track"
+    slug = os.environ.get("CIRCLE_PROJECT_SLUG", "gh/ibrahimroshdy/f1datastop")
+    try:
+        r = requests.get(f"https://circleci.com/api/v2/insights/{slug}/workflows",
+                         params={"reporting-window": "last-30-days"}, auth=(tok, ""), timeout=30)
+        if not r.ok:
+            return None, f"insights HTTP {r.status_code}"
+        items = r.json().get("items") or []
+        return sum((w.get("metrics") or {}).get("total_credits_used") or 0 for w in items), "ok"
+    except requests.exceptions.RequestException as e:
+        return None, f"unreachable ({type(e).__name__})"
 
 
 def main():
     r2_gb, per = r2_usage()
     db, db_status = db_mb()
-    mins = actions_minutes()
+    credits, cc_note = circleci_credits()
     lines = [f"*f1datastop free-tier digest* — {dt.datetime.utcnow():%Y-%m-%d} UTC",
              f"{badge(r2_gb/LIM_R2_GB)} R2 storage: *{r2_gb:.2f} / {LIM_R2_GB:.0f} GB* — " + ", ".join(f"{k} {v:.2f}" for k, v in per.items()),
              (f"{badge(db/LIM_DB_MB)} Supabase DB: *{db:.0f} / {LIM_DB_MB:.0f} MB*" if db is not None
               else f":rotating_light: Supabase: *{db_status}* — site is serving from the CDN indexes; ingest paused")]
-    if mins is None:
-        lines.append(":grey_question: GitHub Actions: n/a (set GH_BILLING_TOKEN secret with Plan:read to track)")
+    if credits is None:
+        lines.append(f":grey_question: CircleCI: n/a ({cc_note})")
     else:
-        lines.append(f"{badge(mins/LIM_ACT_MIN)} GitHub Actions: *{mins:.0f} / {LIM_ACT_MIN:.0f} min* this month")
+        lines.append(f"{badge(credits/LIM_CREDITS)} CircleCI: *{credits:,.0f} / {LIM_CREDITS:,.0f} credits* (last 30 days)")
     text = "\n".join(lines)
     print(text)
     hook = os.environ.get("SLACK_ALERTS_WEBHOOK")

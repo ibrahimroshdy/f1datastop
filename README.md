@@ -18,6 +18,45 @@
 
 ---
 
+## Pipeline status
+
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/ibrahimroshdy/f1datastop/tree/main.svg?style=svg&circle-token=CIRCLE_STATUS_TOKEN)](https://app.circleci.com/pipelines/github/ibrahimroshdy/f1datastop)
+
+> This repository is **private**, so the badge only renders with a token in the URL.
+> Replace `CIRCLE_STATUS_TOKEN` with a **Status API token** — CircleCI → Project Settings →
+> API Permissions → Add API Token → scope **Status**. Use that, never a personal API token:
+> a status token can read build status and nothing else.
+>
+> CircleCI badges are per **project and branch**; there is no per-workflow badge. For the
+> status of an individual job, open the pipelines page above and filter by workflow name.
+
+All CI runs on **CircleCI** ([`.circleci/config.yml`](.circleci/config.yml)). GitHub Actions
+is no longer used: the account's shared 3,000 included minutes ran out mid-race-weekend on
+2026-09-12, taking the whole pipeline down, so it moved to CircleCI's 30,000 free credits.
+
+| Workflow | Job | When | What it does |
+|---|---|---|---|
+| `on-push` | `web` | every push | typecheck, lint (advisory), test, build |
+| `on-push` | `verify` | every push | byte-compiles the analysis scripts |
+| `reconcile-6h` | `reconcile` | 00/06/12/18 UTC | ingest results, publish season JSON to the CDN |
+| `reconcile-race-weekend` | `reconcile` | every 30 min, 12:00–21:30 UTC, Fri–Sun | same, during sessions |
+| `charts-race-weekend` | `charts` | every 2 h, Fri–Sun | render Deep Dive charts for finished sessions |
+| `assets-daily` | `assets` | 06:30 UTC | telemetry, circuit geometry, replays, weather |
+| `digest-daily` | `digest` | 07:17 UTC | free-tier usage digest to Slack |
+
+Any job can also be run on demand — CircleCI has no `workflow_dispatch`, so a `run_job`
+pipeline parameter stands in:
+
+```bash
+curl -u "$CIRCLE_TOKEN:" -X POST -H 'Content-Type: application/json' \
+  https://circleci.com/api/v2/project/gh/ibrahimroshdy/f1datastop/pipeline \
+  -d '{"branch":"main","parameters":{"run_job":"charts"}}'
+```
+
+Valid values: `reconcile`, `charts`, `assets`, `digest`, `chart_request`, `telemetry_request`.
+
+---
+
 A React + TypeScript app for F1 fans: championship standings, lap and position analysis, race calendar, embeddable widgets, and optional auth via Supabase. Data comes from [Jolpica/Ergast](https://github.com/jolpica/jolpica-f1) (historical) and [OpenF1](https://openf1.org/) (live/session).
 
 ## Features
@@ -38,6 +77,7 @@ A React + TypeScript app for F1 fans: championship standings, lap and position a
 | Backend | Supabase (auth, edge functions, Postgres cache) |
 | Charts | Recharts, D3 |
 | Deploy | Vercel |
+| CI | CircleCI (`.circleci/config.yml`) |
 
 ## Getting started
 

@@ -53,10 +53,16 @@ parameters:
   run_job:
     description: Run one job on demand; "none" leaves the scheduled workflows alone.
     type: enum
-    enum: [none, reconcile, charts, assets, digest]
+    enum: [none, reconcile, charts, assets, digest, chart_request, telemetry_request]
     default: none
 
 executors:
+  web:
+    docker:
+      - image: cimg/node:22.9
+    resource_class: medium
+    working_directory: ~/f1datastop
+
   analysis:
     docker:
       - image: cimg/python:3.11
@@ -275,6 +281,39 @@ jobs:
       - slack_on_fail:
           title: F1 refresh current-season assets
 
+  # ── web CI: typecheck / lint / test / build ────────────────────────────────
+  # Ported from .github/workflows/ci.yml, which had been failing on every push since the
+  # GitHub Actions minutes ran out. Same four steps, same advisory lint.
+  web:
+    executor: web
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - npm-v1-{{ checksum "web/package-lock.json" }}
+            - npm-v1-
+      - run:
+          name: Install dependencies
+          command: cd web && npm ci
+      - save_cache:
+          key: npm-v1-{{ checksum "web/package-lock.json" }}
+          paths:
+            - ~/.npm
+      - run:
+          name: Typecheck
+          command: cd web && npm run typecheck
+      - run:
+          name: Lint
+          # Advisory only, matching the GitHub job's continue-on-error: style nits should
+          # not block a deploy, but the output still belongs in the log.
+          command: cd web && (npm run lint || echo "lint reported issues — advisory, not failing the build")
+      - run:
+          name: Test
+          command: cd web && npm run test
+      - run:
+          name: Build
+          command: cd web && npm run build
+
   # ── push smoke test ────────────────────────────────────────────────────────
   verify:
     executor: analysis
@@ -287,6 +326,48 @@ jobs:
           # -x keeps it to our own scripts: a local checkout has analysis/venv, and third
           # party packages use newer syntax than the 3.11 runtime here.
           command: python -m compileall -q -x '(venv|\.fastf1cache|__pycache__)' analysis
+
+  # ── on-demand request queues ───────────────────────────────────────────────
+  # Ported from the repository_dispatch workflows. Supabase currently triggers those by
+  # POSTing to GitHub's dispatch endpoint; when the project is un-restricted, repoint that
+  # webhook at CircleCI's v2 pipeline endpoint with {"parameters":{"run_job":"chart_request"}}.
+  chart_request:
+    executor: analysis
+    steps:
+      - checkout
+      - require_r2
+      - install_deps
+      - restore_fastf1_cache
+      - run:
+          name: Drain pending chart requests
+          no_output_timeout: 30m
+          command: cd analysis && python process_chart_requests.py
+      - run:
+          name: Refresh CDN indexes
+          when: always
+          command: cd analysis && python index_export.py --season "$(date -u +%Y)"
+      - save_fastf1_cache
+      - slack_on_fail:
+          title: F1 chart request
+
+  telemetry_request:
+    executor: analysis
+    steps:
+      - checkout
+      - require_r2
+      - install_deps
+      - restore_fastf1_cache
+      - run:
+          name: Drain pending telemetry requests
+          no_output_timeout: 30m
+          command: cd analysis && python process_telemetry_requests.py
+      - run:
+          name: Refresh CDN indexes
+          when: always
+          command: cd analysis && python index_export.py --kind telemetry --season "$(date -u +%Y)"
+      - save_fastf1_cache
+      - slack_on_fail:
+          title: F1 telemetry request
 
   # ── daily free-tier digest ─────────────────────────────────────────────────
   digest:
@@ -311,6 +392,7 @@ workflows:
       equal: [none, << pipeline.parameters.run_job >>]
     jobs:
       - verify
+      - web
 
   # ── on-demand equivalents of GitHub's workflow_dispatch ────────────────────
   manual-reconcile:
@@ -336,6 +418,18 @@ workflows:
       equal: [digest, << pipeline.parameters.run_job >>]
     jobs:
       - digest: { context: [f1datastop] }
+
+  manual-chart-request:
+    when:
+      equal: [chart_request, << pipeline.parameters.run_job >>]
+    jobs:
+      - chart_request: { context: [f1datastop] }
+
+  manual-telemetry-request:
+    when:
+      equal: [telemetry_request, << pipeline.parameters.run_job >>]
+    jobs:
+      - telemetry_request: { context: [f1datastop] }
 
   # Everything below is schedule-only and never runs on a push.
   reconcile-6h:
