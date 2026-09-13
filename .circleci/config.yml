@@ -260,11 +260,25 @@ jobs:
       - slack_on_fail:
           title: F1 refresh current-season assets
 
+  # ── push smoke test ────────────────────────────────────────────────────────
+  verify:
+    executor: analysis
+    steps:
+      - checkout
+      - run:
+          name: Byte-compile the analysis scripts
+          # Cheap (~10 s, no dependency install) but it catches a syntax error on the push
+          # that introduced it rather than six hours later inside a scheduled run.
+          # -x keeps it to our own scripts: a local checkout has analysis/venv, and third
+          # party packages use newer syntax than the 3.11 runtime here.
+          command: python -m compileall -q -x '(venv|\.fastf1cache|__pycache__)' analysis
+
   # ── daily free-tier digest ─────────────────────────────────────────────────
   digest:
     executor: analysis
     steps:
       - checkout
+      - require_r2
       - run:
           name: Install minimal deps
           command: pip install -q boto3 requests
@@ -275,8 +289,13 @@ jobs:
           title: Free-tier digest
 
 workflows:
-  # Manual runs and any push to main: validate the config only. The scheduled workflows
-  # below are what actually drive the pipeline.
+  # Runs on every push (no `triggers:` block). Without it CircleCI would build a pipeline
+  # for each push and find no matching workflow, which surfaces as an errored pipeline.
+  on-push:
+    jobs:
+      - verify
+
+  # Everything below is schedule-only and never runs on a push.
   reconcile-6h:
     triggers:
       - schedule:
