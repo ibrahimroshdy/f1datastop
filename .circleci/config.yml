@@ -121,6 +121,25 @@ commands:
             payload=$(python3 -c 'import json,os; print(json.dumps({"text": ":rotating_light: *%s* failed on `%s` (CircleCI) — <%s|open build>" % (os.environ["ALERT_TITLE"], os.environ.get("CIRCLE_BRANCH","?"), os.environ.get("CIRCLE_BUILD_URL","?"))}))')
             curl -s -X POST "$SLACK_ALERTS_WEBHOOK" -H "Content-type: application/json" -d "$payload" >/dev/null || true
 
+  halt_if_supabase_restricted:
+    description: |
+      End the job cleanly when the Supabase project is Fair-Use restricted. The queue
+      drainers read pending rows through PostgREST, so a 402 makes them exit 1 and page
+      Slack — noise for a condition we already know about and cannot fix from here.
+    steps:
+      - run:
+          name: Is Supabase serving?
+          command: |
+            code="$(curl -s -o /dev/null -w '%{http_code}' \
+              -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY:-}" \
+              -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY:-}" \
+              "${SUPABASE_URL:-http://localhost}/rest/v1/" || echo 000)"
+            echo "supabase REST -> HTTP $code"
+            if [ "$code" = "402" ]; then
+              echo "Supabase is restricted (402) — nothing can be queued, halting."
+              circleci-agent step halt
+            fi
+
   require_r2:
     steps:
       - run:
@@ -336,6 +355,7 @@ jobs:
     steps:
       - checkout
       - require_r2
+      - halt_if_supabase_restricted
       - install_deps
       - restore_fastf1_cache
       - run:
@@ -355,6 +375,7 @@ jobs:
     steps:
       - checkout
       - require_r2
+      - halt_if_supabase_restricted
       - install_deps
       - restore_fastf1_cache
       - run:
