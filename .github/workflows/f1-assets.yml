@@ -12,9 +12,11 @@ name: F1 refresh current-season assets
 # haven't run, exiting 0 — so a NON-ZERO exit is a real error. We count them instead of
 # swallowing with `|| true`: individual failures become warnings + a job summary, and a
 # run where EVERY step failed (broken creds, bad deploy) fails the job loudly.
+# SCHEDULING MOVED TO CIRCLECI (.circleci/config.yml) on 2026-09-13: the GitHub account's
+# 3,000 included Actions minutes were exhausted on 2026-09-12 by other repos, and every run
+# here failed in ~1 s. The cron trigger is removed so the two schedulers never double-run;
+# workflow_dispatch is kept so this can still be run by hand from the Actions tab.
 on:
-  schedule:
-    - cron: "30 6 * * *"
   workflow_dispatch: {}
 
 concurrency:
