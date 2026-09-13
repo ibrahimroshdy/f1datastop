@@ -20,12 +20,13 @@
 
 ## Pipeline status
 
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/ibrahimroshdy/f1datastop/tree/main.svg?style=svg&circle-token=CIRCLE_STATUS_TOKEN)](https://app.circleci.com/pipelines/github/ibrahimroshdy/f1datastop)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/ibrahimroshdy/f1datastop/tree/main.svg?style=svg&circle-token=CCIPRJ_Y2Dr4J6BvcB3Yn7Rqtr31A_549ac013fdf5fb9347f456c9ba7b6d4906126d02)](https://app.circleci.com/pipelines/github/ibrahimroshdy/f1datastop)
 
-> This repository is **private**, so the badge only renders with a token in the URL.
-> Replace `CIRCLE_STATUS_TOKEN` with a **Status API token** — CircleCI → Project Settings →
-> API Permissions → Add API Token → scope **Status**. Use that, never a personal API token:
-> a status token can read build status and nothing else.
+> This repository is **private**, so the badge only renders with a token in the URL. The
+> token above is a project **Status API token** (CircleCI → Project Settings → API
+> Permissions, scope **Status**). It is deliberately embedded: it renders the badge and
+> nothing else — reading pipelines, reading the account and triggering builds all return
+> 401/404. Never put a personal API token here; those can do all three.
 >
 > CircleCI badges are per **project and branch**; there is no per-workflow badge. For the
 > status of an individual job, open the pipelines page above and filter by workflow name.
