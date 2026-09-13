@@ -41,6 +41,21 @@ version: 2.1
 # keeps the schedule in the repo. Migrate if CircleCI ever retires it.
 # ─────────────────────────────────────────────────────────────────────────────
 
+# CircleCI has no workflow_dispatch. A workflow carrying a `triggers:` block runs ONLY on
+# its schedule — not on a push and not on an API trigger — so without this parameter there
+# would be no way to run reconcile/charts/assets/digest on demand, which is exactly what
+# you need while catching up after an outage. Trigger one with:
+#
+#   curl -u "$CIRCLE_TOKEN:" -X POST -H 'Content-Type: application/json' \
+#     https://circleci.com/api/v2/project/gh/ibrahimroshdy/f1datastop/pipeline \
+#     -d '{"branch":"main","parameters":{"run_job":"reconcile"}}'
+parameters:
+  run_job:
+    description: Run one job on demand; "none" leaves the scheduled workflows alone.
+    type: enum
+    enum: [none, reconcile, charts, assets, digest]
+    default: none
+
 executors:
   analysis:
     docker:
@@ -292,8 +307,35 @@ workflows:
   # Runs on every push (no `triggers:` block). Without it CircleCI would build a pipeline
   # for each push and find no matching workflow, which surfaces as an errored pipeline.
   on-push:
+    when:
+      equal: [none, << pipeline.parameters.run_job >>]
     jobs:
       - verify
+
+  # ── on-demand equivalents of GitHub's workflow_dispatch ────────────────────
+  manual-reconcile:
+    when:
+      equal: [reconcile, << pipeline.parameters.run_job >>]
+    jobs:
+      - reconcile: { context: [f1datastop] }
+
+  manual-charts:
+    when:
+      equal: [charts, << pipeline.parameters.run_job >>]
+    jobs:
+      - charts: { context: [f1datastop] }
+
+  manual-assets:
+    when:
+      equal: [assets, << pipeline.parameters.run_job >>]
+    jobs:
+      - assets: { context: [f1datastop] }
+
+  manual-digest:
+    when:
+      equal: [digest, << pipeline.parameters.run_job >>]
+    jobs:
+      - digest: { context: [f1datastop] }
 
   # Everything below is schedule-only and never runs on a push.
   reconcile-6h:
