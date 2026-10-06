@@ -369,7 +369,12 @@ def has_rows(race, key):
 
 
 def exists_on_cdn(path):
-    return index_export._get_json("data", path) is not None
+    doc = index_export._get_json("data", path)
+    # An absence marker is not real data: Jolpica gap-fill should still be allowed to
+    # replace it if the round later turns out to have results after all.
+    if isinstance(doc, dict) and doc.get("absent") is True:
+        return False
+    return doc is not None
 
 
 def put_json(path, payload):
@@ -378,6 +383,21 @@ def put_json(path, payload):
                  cache_control=CACHE_CONTROL)
     print(f"  wrote {url}  ({len(body):,} B raw)")
     return url
+
+
+# A round that has run but genuinely has no sprint (most of them) used to produce no
+# sprint.json at all. The browser read that 404 as "not exported yet" and fell through to
+# the database on EVERY page view — ~27k wasted RPCs a month, the single largest source of
+# load on a project that had just been quota-restricted. Publishing an explicit marker
+# turns the miss into an answer: "this round ran, there is no sprint, stop asking".
+#
+# Only written once the round's own results exist, so a race that simply has not happened
+# yet still 404s and still falls through, which is correct — its data is coming.
+ABSENT_MARKER = {"absent": True}
+
+
+def write_absent(path, why):
+    put_json(path, dict(ABSENT_MARKER, reason=why))
 
 
 def _nested_rows(payload, key):
@@ -401,7 +421,11 @@ def export_extras(season, rnd, source):
         payload = fetch(source, name, {"p_season": season, "p_round": rnd}, None, None,
                         jolpica_fn=fetcher)
         if not _nested_rows(payload, key):
-            print(f"  skip data/{season}/{rnd}/{fname} (no {key})")
+            if exists_on_cdn(f"{season}/{rnd}/results.json"):
+                write_absent(f"{season}/{rnd}/{fname}", f"no {key} for this round")
+                wrote += 1
+            else:
+                print(f"  skip data/{season}/{rnd}/{fname} (round not run yet)")
             continue
         if ACTIVE_SOURCE == "jolpica":
             payload = apply_constructor_names(payload)
@@ -412,6 +436,10 @@ def export_extras(season, rnd, source):
 
 def export_round(season, rnd, source):
     wrote = 0
+    # Seed from what is already published: in Jolpica gap-fill mode the loop `continue`s
+    # past an existing results.json, so waiting to learn "the round ran" from this run's
+    # own write would never fire and no absence marker would ever be written.
+    round_has_run = exists_on_cdn(f"{season}/{rnd}/results.json")
     for name, fname, key, jol in (
         ("get_race_results", "results.json", "Results", "results"),
         ("get_qualifying", "qualifying.json", "QualifyingResults", "qualifying"),
@@ -425,8 +453,16 @@ def export_round(season, rnd, source):
                 continue
             race = apply_constructor_names(apply_circuit(race))
         if not has_rows(race, key):
-            print(f"  skip data/{season}/{rnd}/{fname} (no {key})")
+            # results.json is first in the loop, so by the time we reach qualifying/sprint
+            # we know whether the round has actually been run.
+            if round_has_run:
+                write_absent(f"{season}/{rnd}/{fname}", f"no {key} for this round")
+                wrote += 1
+            else:
+                print(f"  skip data/{season}/{rnd}/{fname} (round not run yet)")
             continue
+        if fname == "results.json":
+            round_has_run = True
         put_json(f"{season}/{rnd}/{fname}", race)
         wrote += 1
     return wrote

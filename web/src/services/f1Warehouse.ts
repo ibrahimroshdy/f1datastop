@@ -48,7 +48,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { cdnJson } from "@/lib/cdnJson";
+import { cdnJson, isAbsent } from "@/lib/cdnJson";
 
 // ───────────────────────────── flags / window ──────────────────────────────
 
@@ -131,6 +131,10 @@ async function staticThenRpc<T = Jsonish>(
   args: Record<string, unknown>,
 ): Promise<T | null> {
   const fromCdn = await cdnJson<T>(path);
+  // An absence marker is an ANSWER, not a miss: the round ran and has no such dataset, so
+  // querying Postgres would return the same nothing at real cost. Only a genuine miss
+  // (file not exported yet, CDN unreachable) falls through.
+  if (isAbsent(fromCdn)) return null;
   if (fromCdn != null && !isEmpty(fromCdn)) return fromCdn;
   return rpc<T>(fn, args);
 }
