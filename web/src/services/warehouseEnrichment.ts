@@ -78,8 +78,59 @@ export const getOvertakes = (season: number, round: number, session = "R") =>
 export const getRaceControl = (season: number, round: number, session = "R") =>
   rpc<DbRaceControlRow>("get_race_control", { p_season: season, p_round: round, p_session: session });
 
-export const getSessionsDb = (season: number, round?: number) =>
-  rpc<DbSessionRow>("get_sessions", { p_season: season, p_round: round ?? null });
+/** Map a schedule entry's session blocks to f1_session.session_type codes. */
+const SCHEDULE_SESSIONS: [string, string, string][] = [
+  ["FirstPractice", "FP1", "Practice 1"],
+  ["SecondPractice", "FP2", "Practice 2"],
+  ["ThirdPractice", "FP3", "Practice 3"],
+  ["SprintQualifying", "SQ", "Sprint Qualifying"],
+  ["SprintShootout", "SS", "Sprint Shootout"],
+  ["Sprint", "S", "Sprint"],
+  ["Qualifying", "Q", "Qualifying"],
+];
+
+type ScheduleRace = {
+  round?: string;
+  date?: string;
+  time?: string;
+} & Record<string, { date?: string; time?: string } | string | undefined>;
+
+const startOf = (b: { date?: string; time?: string } | undefined) =>
+  b?.date ? `${b.date}T${b.time ?? "00:00:00Z"}` : null;
+
+/**
+ * Sessions for a round. Derived from the CDN schedule, which already carries every
+ * session's start time — so the picker costs no database query at all.
+ *
+ * This was the last per-round RPC still firing on every page view. It is cheap
+ * individually but it is the one call a visitor makes on EVERY race they open, so it
+ * dominated the residual load once the results/qualifying/sprint fall-through was closed.
+ * Falls back to the RPC when the season's schedule is not on the CDN.
+ */
+export const getSessionsDb = async (season: number, round?: number): Promise<DbSessionRow[]> => {
+  const races = await cdnJson<ScheduleRace[]>(`${season}/schedule.json`);
+  if (Array.isArray(races) && races.length) {
+    const wanted = races.filter((r) => round == null || Number(r.round) === Number(round));
+    const rows: DbSessionRow[] = [];
+    for (const race of wanted) {
+      const rnd = Number(race.round);
+      for (const [key, code, name] of SCHEDULE_SESSIONS) {
+        const start = startOf(race[key] as { date?: string; time?: string } | undefined);
+        if (start) {
+          rows.push({ season, round: rnd, session_type: code, session_name: name,
+                      date_start: start, date_end: null });
+        }
+      }
+      const raceStart = startOf({ date: race.date, time: race.time });
+      if (raceStart) {
+        rows.push({ season, round: rnd, session_type: "R", session_name: "Race",
+                    date_start: raceStart, date_end: null });
+      }
+    }
+    if (rows.length) return rows;
+  }
+  return rpc<DbSessionRow>("get_sessions", { p_season: season, p_round: round ?? null });
+};
 
 export const getLapsDb = (season: number, round: number, session = "R") =>
   rpc<DbLapRow>("get_lap_positions", { p_season: season, p_round: round, p_session: session });
