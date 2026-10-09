@@ -124,11 +124,27 @@ async function rpc<T = Jsonish>(
 // The files store EXACTLY the RPC payload, so callers below apply the same empty-checks
 // to either source and the MRData envelope in tryWarehouse() is unchanged.
 
+/**
+ * True once a round's race has started, from the CDN schedule. Unknown season or round
+ * returns true, so an unexpected shape never suppresses a legitimate query.
+ */
+async function roundHasStarted(season: number, round: number): Promise<boolean> {
+  const races = await cdnJson<{ round?: string; date?: string; time?: string }[]>(
+    `${season}/schedule.json`,
+  );
+  if (!Array.isArray(races) || !races.length) return true;
+  const race = races.find((r) => Number(r.round) === Number(round));
+  if (!race?.date) return true;
+  return new Date(`${race.date}T${race.time ?? "00:00:00Z"}`).getTime() <= Date.now();
+}
+
 /** CDN first, RPC second — the shared read path for every exported domain. */
 async function staticThenRpc<T = Jsonish>(
   path: string,
   fn: string,
   args: Record<string, unknown>,
+  /** Checked only when the CDN misses: return false to skip the database entirely. */
+  guard?: () => Promise<boolean>,
 ): Promise<T | null> {
   const fromCdn = await cdnJson<T>(path);
   // An absence marker is an ANSWER, not a miss: the round ran and has no such dataset, so
@@ -136,6 +152,10 @@ async function staticThenRpc<T = Jsonish>(
   // (file not exported yet, CDN unreachable) falls through.
   if (isAbsent(fromCdn)) return null;
   if (fromCdn != null && !isEmpty(fromCdn)) return fromCdn;
+  // A CDN miss for a race that has not been run is not a gap to fill from Postgres — the
+  // result does not exist anywhere yet. The site loads the NEXT race on every page view,
+  // so without this each visit fired three queries for a race days away.
+  if (guard && !(await guard())) return null;
   return rpc<T>(fn, args);
 }
 
@@ -180,6 +200,7 @@ export async function getRaceResultsFromDb(
     `${year}/${toRound(round)}/results.json`,
     "get_race_results",
     { p_season: year, p_round: toRound(round) },
+    () => roundHasStarted(year, Number(toRound(round))),
   );
   if (race == null || isEmpty(race)) return null;
   // A race header with no Results[] means the round exists but isn't ingested
@@ -207,7 +228,7 @@ export interface DbDriverResult {
 
 /**
  * A driver's whole-season race results, straight from the warehouse
- * (Modal/FastF1-fed) so the driver page never lags the Jolpica proxy on recent
+ * (FastF1-fed) so the driver page never lags the Jolpica proxy on recent
  * rounds. Returns null for out-of-window (pre-warehouse) seasons so the caller
  * keeps the historical proxy path.
  *
@@ -300,6 +321,7 @@ export async function getQualifyingFromDb(
     `${year}/${toRound(round)}/qualifying.json`,
     "get_qualifying",
     { p_season: year, p_round: toRound(round) },
+    () => roundHasStarted(year, Number(toRound(round))),
   );
   if (race == null || isEmpty(race)) return null;
   const q = race.QualifyingResults;
@@ -339,6 +361,7 @@ export async function getSprintResultsFromDb(
     `${year}/${toRound(round)}/sprint.json`,
     "get_sprint",
     { p_season: year, p_round: toRound(round) },
+    () => roundHasStarted(year, Number(toRound(round))),
   );
   if (race == null || isEmpty(race)) return null;
   const s = race.SprintResults;
