@@ -204,7 +204,7 @@ const SeasonChampionshipCard = ({ year }: SeasonChampionshipCardProps) => {
                 className="h-2"
                 indicatorClassName="bg-primary"
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="flex justify-between text-xs tabular-nums text-muted-foreground">
                 <span>{completedRaces.length} completed</span>
                 <span>{remainingRaces} remaining</span>
               </div>

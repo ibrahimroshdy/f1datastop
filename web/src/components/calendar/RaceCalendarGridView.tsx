@@ -77,7 +77,7 @@ export default function RaceCalendarGridView({
                   className="col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-5 flex items-center gap-3 my-1.5 sm:my-2"
                 >
                   <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
-                  <span className="instrument-label shrink-0 whitespace-nowrap text-muted-foreground">
+                  <span className="instrument-label shrink-0 whitespace-nowrap tabular-nums text-muted-foreground">
                     Summer break · {item.dates.start} – {item.dates.end}
                   </span>
                   <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border to-transparent" />
