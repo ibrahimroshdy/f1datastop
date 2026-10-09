@@ -1,7 +1,7 @@
 # Phase 1 — FastF1-Only Migration Plan
 
 **Goal:** FastF1 is the *sole* data source. Drop Ergast/Jolpica **and** OpenF1 entirely.
-Everything is pulled by Modal (running FastF1), written to Supabase, served DB-first
+Everything is pulled by the scheduled CI pipeline (running FastF1), written to Supabase, served DB-first
 to the frontend. Race Analysis keeps its exact UI but gets better, complete data for
 **every** session, past and current.
 
@@ -43,7 +43,7 @@ to the frontend. Race Analysis keeps its exact UI but gets better, complete data
 ## Target architecture
 
 ```
-Modal (FastF1)  ──►  Supabase warehouse            ──►  serving RPCs  ──►  f1Warehouse
+CI (FastF1)     ──►  Supabase warehouse            ──►  serving RPCs  ──►  f1Warehouse
   one session         f1_* tables + Storage blobs        get_*()            adapter (DB-first)
   load per round      (position/telemetry as blobs)                          │
                                                                              ▼
@@ -94,7 +94,7 @@ domains from that one object.
 - Storage: reuse the `telemetry` blob pattern for position/track-XY (new `position` bucket
   or a shared bucket + index).
 
-### 1b. Modal / FastF1 ingest (the core rewrite)
+### 1b. FastF1 ingest (the core rewrite)
 - **Rewrite `backfill.py`** into a single per-session FastF1 extractor that writes ALL
   domains from one `session.load(...)`. Remove every Ergast call and every OpenF1 call.
 - Add extractors: weather (safe load), starting grid, per-lap position, race control,
@@ -106,7 +106,7 @@ domains from that one object.
 - Add a **position/track-XY exporter** (Storage blob + index), mirroring
   `telemetry_export.py`, for the overtakes animated replay.
 - Skip-complete on every domain (like laps/telemetry already do).
-- Modal crons: one `sync_current` (whole current season, 6h, skip-complete) + a one-time
+- Scheduled CI jobs: one `sync_current` (whole current season, 6h, skip-complete) + a one-time
   `backfill_all` for **2018–2024**.
 
 ### 1c. Serving
@@ -158,8 +158,8 @@ domains from that one object.
 - [ ] Charts look identical to today (UI unchanged), data is complete/correct.
 
 ## Risks / open items
-- **FastF1 scale**: 2018–2026 × all sessions is a large one-time backfill — Modal handles
-  it; use FastF1 disk cache + skip-complete + batching.
+- **FastF1 scale**: 2018–2026 × all sessions is a large one-time backfill — run it
+  locally; use FastF1 disk cache + skip-complete + batching.
 - **`weather_data` raises** unless `load(weather=True)` — always load weather; guard empty.
 - **Track-XY volume** — Storage blobs + index only (never raw into Postgres).
 - **Standings edge cases** — fastest-lap point, sprint points, DSQ/penalties: encode the

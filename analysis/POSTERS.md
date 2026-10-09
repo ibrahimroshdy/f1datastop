@@ -92,21 +92,12 @@ export SUPABASE_SERVICE_ROLE_KEY=<service role key>   # never commit this
 ./venv/bin/python generate.py --season 2025 --event "Belgium" --session R --format all
 ```
 
-Or via **Modal** (the production path — see `modal_app.py` for exact function args):
-
-```bash
-modal deploy modal_app.py                       # deploy the app + crons
-modal run modal_app.py::generate_range --from-season 2025 --to-season 2026   # backfill
-```
-
-Scheduled (crons in `modal_app.py`):
-- **generate_latest** — after each race weekend, runs `--format all` → bakes
-  `race_analysis`, `driver_compare` (default = the two fastest), and all 18 charts.
-- **process_chart_requests** — every minute, drains the `f1_chart_requests` queue
-  (the custom driver picks from the app) and generates just those.
-
-> Live generation is currently gated on the Modal **spend cap** — raise it at
-> modal.com settings, then `modal deploy` + the backfill run.
+In production this runs on **CircleCI** (`.circleci/config.yml`):
+- **charts-race-weekend** — every 2 hours Fri–Sun, renders each session's charts plus the
+  fixed teammate `driver_compare` pairs.
+- **manual-chart-request** — started by the `dispatch_ci_request` DB trigger when a row lands
+  in `f1_chart_requests` (the custom driver picks from the app); runs
+  `process_chart_requests.py`.
 
 ---
 

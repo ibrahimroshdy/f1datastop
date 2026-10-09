@@ -1,4 +1,4 @@
--- On-demand custom chart requests (Deep Dive "pick your drivers"). A Modal cron
+-- On-demand custom chart requests (Deep Dive "pick your drivers"). A queue drainer
 -- drains pending rows, runs generate.py --only <chart> --drivers <codes>, and the
 -- chart lands in analysis_charts under a driver-keyed chart_type. Deduped by the
 -- unique key so the same driver set never regenerates.

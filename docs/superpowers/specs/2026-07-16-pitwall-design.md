@@ -46,7 +46,7 @@ vs reference). Everything is URL-shareable.
 
 1. **Frontend** — `web/src/features/pitwall/**` — the adaptive dashboard page + panels.
 2. **Backend** — any-lap telemetry queue: new `f1_telemetry_requests` table, extended
-   `analysis/telemetry_export.py`, new `process_telemetry_requests` Modal cron.
+   `analysis/telemetry_export.py`, new `process_telemetry_requests` queue drainer.
 3. **Rename** — game "Pit Wall" → "Podium".
 
 ## 5. Data inventory (reuse) + constraints
@@ -93,7 +93,6 @@ vs reference). Everything is URL-shareable.
 - Pit **durations** only from Ergast `getPitStops`; pit **laps** from warehouse.
 - Weather only via `useDbWeather` (warehouse coverage gated).
 - No `?drivers=`/`?lap=` URL params yet — add (§10).
-- Modal free plan caps at **5 crons**; 4 used, **1 slot left** for the telemetry drainer.
 
 ## 6. Any-lap telemetry pipeline (backend)
 
@@ -125,11 +124,11 @@ loads the session, picks that driver's specific lap
 (`dl[dl["LapNumber"]==lap]` else nearest), and reuses `_export_one_lap`. Index
 `lap_type = "requested"`. Add CLI `--lap`. Fastest-lap path unchanged.
 
-### 6.3 Modal — `process_telemetry_requests` (5th cron, `* * * * *`)
+### 6.3 Drainer — `process_telemetry_requests`
 Mirror `process_chart_requests`: claim ≤4 `pending` rows, patch `processing`, run
 `telemetry_export.py --season .. --round .. --session .. --drivers DRV --lap N`, then
 GET `f1_telemetry_index` for that key → patch `done`+`public_url` (or `error`).
-**Requires `modal deploy modal_app.py` by the user** to take effect.
+Started per request by the `dispatch_ci_request` DB trigger (CircleCI).
 
 ### 6.4 Frontend
 - `services/telemetryRequestService.ts` — `submitTelemetryLap({season,round,session,driver,lap})`
@@ -229,7 +228,6 @@ responsive (320/375/414/768) + dark/light.
 
 1. **Backend any-lap pipeline** — migration (`f1_telemetry_requests`), `telemetry_export.py`
    `export_lap`, `process_telemetry_requests` cron, `telemetryRequestService` + `useLapTelemetry`.
-   (User: `modal deploy` after.)
 2. **Scaffold** — feature dir, route, nav, `pageShellWide`, `usePitWallState` URL state,
    ContextBar (season/event/session/mode/share), DriverRail, PanelShell.
 3. **P1 LapTimePanel** — tyre dots, pits, outlier toggle, drag-to-zoom, click→lap.
@@ -241,9 +239,8 @@ responsive (320/375/414/768) + dark/light.
 
 ## 15. Risks / constraints / user actions
 
-- **User must `modal deploy modal_app.py`** for any-lap generation to run; until then,
-  non-fastest laps show "generating…" and never complete. Fastest laps work immediately.
-- Modal 5-cron cap: telemetry drainer is the 5th — do not add more scheduled fns.
+- Any-lap generation needs the CI drainer to run; until then, non-fastest laps show
+  "generating…" and never complete. Fastest laps work immediately.
 - `SUPABASE_SERVICE_ROLE_KEY` is a secret (env only; never commit/echo).
 - FastF1 quirks: some rounds fail telemetry (e.g. Monaco 'Date' column) — export must
   fail cleanly and mark the request `error`.

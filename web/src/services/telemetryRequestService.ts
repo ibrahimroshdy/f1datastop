@@ -8,9 +8,9 @@ import {
 
 /**
  * On-demand "any-lap" telemetry. Fastest laps per driver are pre-exported and public;
- * any OTHER lap is generated on demand by the Modal exporter (telemetry_export.py --lap,
+ * any OTHER lap is generated on demand by the CircleCI exporter (telemetry_export.py --lap,
  * drained by process_telemetry_requests). Generation is gated behind auth — same
- * Modal-compute protection as custom charts (f1_chart_requests).
+ * compute protection as custom charts (f1_chart_requests).
  */
 export type LapTelemetryState =
   | { status: "idle" }

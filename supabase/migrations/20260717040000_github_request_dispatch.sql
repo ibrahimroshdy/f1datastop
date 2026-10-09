@@ -1,6 +1,6 @@
 -- Supabase → GitHub bridge: when a Deep Dive chart request or a Pit Wall any-lap
 -- telemetry request is inserted, fire a GitHub `repository_dispatch` so a GitHub Actions
--- workflow generates it. Replaces the two Modal minute-crons (process_chart_requests /
+-- workflow generates it. Replaces the two minute-crons (process_chart_requests /
 -- process_telemetry_requests) with per-request, webhook-triggered runs.
 --
 -- PREREQUISITES (do BEFORE this fires usefully — the function no-ops with a warning if

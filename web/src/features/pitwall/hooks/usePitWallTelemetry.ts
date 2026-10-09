@@ -40,7 +40,7 @@ export function usePitWallTelemetry(
 
   // A specific lap only loads if it's already exported for that driver; otherwise fall
   // back to the driver's fastest lap so the chart always renders (never freezes on an
-  // ungenerated lap). True any-lap needs the Modal export queue (auth-gated).
+  // ungenerated lap). True any-lap needs the export queue (auth-gated).
   const targets = drivers.map((code) =>
     lap != null && available.has(`${code}:${lap}`) ? lap : fastestByCode.get(code) ?? null,
   );

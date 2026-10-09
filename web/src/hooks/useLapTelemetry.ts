@@ -6,7 +6,7 @@ const POLL_MS = 4000;
 /**
  * Resolve deep telemetry for ONE driver+lap on the Pit Wall.
  * - Fastest / already-exported laps → resolves instantly to `done`.
- * - Any other lap → enqueues a Modal export (auth required) and polls until ready.
+ * - Any other lap → enqueues an export (auth required) and polls until ready.
  * The UI reads `status` to show generating / sign-in / error states.
  */
 export function useLapTelemetry(

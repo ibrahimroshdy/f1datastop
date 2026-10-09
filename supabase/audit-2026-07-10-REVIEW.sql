@@ -22,7 +22,7 @@
 --   Dedupe delete is negligible on 3975 rows. If real logical duplicates
 --   differ in payload, the keep-rule (latest updated_at) picks one
 --   arbitrarily — REVIEW before running. NULLS NOT DISTINCT is chosen over
---   NOT NULL sentinels so the Modal ingester needs no change.
+--   NOT NULL sentinels so the ingester needs no change.
 -- NOTE: the CREATE INDEX CONCURRENTLY below MUST NOT be inside a txn block.
 -- ---------------------------------------------------------------------
 
@@ -60,7 +60,7 @@ ALTER FUNCTION public.get_circuit_detail(text)
 
 -- ---------------------------------------------------------------------
 -- BLOCK 3 — Document intent on RLS-on / no-policy backend tables.
---   Both are Modal ingester / observability tables written via service_role
+--   Both are ingester / observability tables written via service_role
 --   (which bypasses RLS); the implicit deny-all to anon/authenticated is
 --   CORRECT and intentional.
 -- RISK: LOW. service_role already bypasses RLS, so these policies change no

@@ -1,5 +1,5 @@
 -- ============================================================================
--- f1datastop — REMOVE the dead edge-ingest pipeline (Modal is the sole ingester)
+-- f1datastop — REMOVE the dead edge-ingest pipeline (analysis/ingest is the sole ingester)
 -- ============================================================================
 -- The edge `f1-ingest` + pg_cron path (added in 20260624130000_f1_cron.sql) never
 -- ingested anything in production: it requires two DB GUCs
@@ -7,7 +7,7 @@
 -- set, so f1_invoke_ingest() returned NULL before issuing the HTTP POST. The
 -- cron ticks "succeeded" but were no-ops.
 --
--- Canonical ingestion is now Modal (analysis/backfill.py): Jolpica core +
+-- Canonical ingestion is now analysis/backfill.py: Jolpica core +
 -- FastF1 laps + telemetry, writing the f1_* tables directly. The f1-proxy edge
 -- function remains as the live read-cache/fallback for the frontend ONLY — it
 -- is not an ingester.

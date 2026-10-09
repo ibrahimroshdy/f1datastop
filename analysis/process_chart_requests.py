@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Drain pending f1_chart_requests (Deep Dive custom charts).
 
-Standalone version of the former Modal `process_chart_requests` cron. Triggered by a
-Supabase DB webhook via GitHub `repository_dispatch` (one run per request), or on a
-low-frequency schedule as a backstop. It claims pending rows, runs generate.py with the
+Run by CircleCI. A Supabase DB trigger (`dispatch_ci_request`) starts a pipeline per
+request, with a low-frequency schedule as a backstop. It claims pending rows, runs generate.py with the
 requested drivers, then writes the result URL back on each row. The web UI is unchanged:
 it inserts the request and polls analysis_charts / the row's status.
 

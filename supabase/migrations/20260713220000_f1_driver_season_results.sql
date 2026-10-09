@@ -1,4 +1,4 @@
--- Per-driver, whole-season race results from the warehouse (Modal/FastF1-fed),
+-- Per-driver, whole-season race results from the warehouse (FastF1-fed),
 -- so the driver page stays current instead of lagging on the Jolpica proxy
 -- (which trails recent rounds of the live season).
 create or replace function public.get_driver_season_results(p_season int, p_driver_id text)

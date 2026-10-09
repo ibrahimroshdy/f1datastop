@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Drain pending f1_telemetry_requests (Pit Wall any-lap telemetry).
 
-Standalone version of the former Modal `process_telemetry_requests` cron. Triggered by a
-Supabase DB webhook via GitHub `repository_dispatch` (one run per request), or on a
-low-frequency schedule as a backstop. It claims pending rows, exports that one driver+lap
+Run by CircleCI. A Supabase DB trigger (`dispatch_ci_request`) starts a pipeline per
+request, with a low-frequency schedule as a backstop. It claims pending rows, exports that one driver+lap
 telemetry blob (telemetry_export.py --lap), then writes the blob URL back on each row.
 
 Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (FASTF1_CACHE optional)

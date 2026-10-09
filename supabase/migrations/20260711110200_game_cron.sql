@@ -1,5 +1,5 @@
 -- F1 Prediction Game — Phase 2 — safety-net cron: regrade active seasons every 30 min.
--- Primary trigger is the Modal post-ingest hook (calls recalc_game_scores after writing results);
+-- Primary trigger is the post-ingest hook (calls recalc_game_scores after writing results);
 -- this catches any missed hook. Idempotent, cheap (small data).
 select cron.schedule(
   'game-recalc-active-seasons',

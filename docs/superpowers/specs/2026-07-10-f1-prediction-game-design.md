@@ -10,7 +10,7 @@
 
 A season-long, race-to-race F1 prediction game built into f1datastop. Logged-in users
 opt into "the F1 League", predict ordered top-10s each race weekend, and are graded
-automatically from results already ingested by the Modal pipeline. Users compete in
+automatically from results already ingested by the CI pipeline. Users compete in
 persistent public/private leagues. Two season-long picks (WDC + Constructors champion)
 award bonus points. Everything is modeled on `../fifa-league`'s proven schema and flows,
 tailored to F1.
@@ -81,7 +81,7 @@ Grading is **automatic, per session**, as soon as that session's results are fin
 `f1_session.date_end < now()` for that session_type.
 
 **Trigger mechanism (idempotent, belt-and-suspenders):**
-1. **Modal post-ingest hook** — after Modal writes a session's results, it calls
+1. **Post-ingest hook** — after the ingest writes a session's results, it calls
    `recalc_game_scores(p_season, p_round)` → points appear seconds after results land.
 2. **pg_cron safety net** — every ~15 min, weekend-gated, re-runs the same grader.
 3. **Admin "Regrade" button** — force a full recalc for a season.
@@ -313,7 +313,7 @@ Admin = email match on `admin@f1datastop.com`.
 1. **Foundation** — all `game_*` tables + RLS + `is_game_admin` + `game_season` config +
    `activate_player`/`open_season` + profile columns + nav/route scaffolding + activation screen.
 2. **Predict + grade** — pick editor (Q/R/S), lock logic (`game_pick_is_editable`),
-   `recalc_game_scores` grader + pg_cron + Modal hook, history page, rules page.
+   `recalc_game_scores` grader + pg_cron + post-ingest hook, history page, rules page.
 3. **Leagues** — create/join public+private, invite codes, standings + tiebreakers +
    rank chart + GOAT/flop, pick reveal, browse.
 4. **Champions + admin + profile** — WDC/WCC picks + season-end bonus, full admin dashboard,
