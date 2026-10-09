@@ -32,6 +32,11 @@ interface RaceDetailDialogProps {
   race: any;
 }
 
+// Underline tab grammar (mirrors Standings) — the dialog's session tabs sit on
+// the shared Tabs primitive, whose default is now the same underline treatment.
+const underlineTabTrigger =
+  "rounded-none border-b-2 border-transparent bg-transparent px-1.5 pb-2 pt-1 text-[11px] shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none";
+
 const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   const navigate = useNavigate();
   const { isGlass } = useTheme();
@@ -103,30 +108,30 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
           <TabsList
             className={cn(
-              `grid w-full ${hasSprint ? "grid-cols-5" : "grid-cols-4"} mb-3 min-h-9 h-auto p-0.5`,
+              `grid w-full ${hasSprint ? "grid-cols-5" : "grid-cols-4"} rounded-none border-b border-border bg-transparent p-0`,
               isGlass && "bg-white/5",
             )}
           >
-            <TabsTrigger value="info" className="text-[11px] h-9 px-1.5 rounded-md transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none">
+            <TabsTrigger value="info" className={underlineTabTrigger}>
               Schedule
             </TabsTrigger>
             {hasSprint && (
-              <TabsTrigger value="sprint-qualifying" className="text-[11px] h-9 px-1.5 rounded-md transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none gap-1">
+              <TabsTrigger value="sprint-qualifying" className={cn(underlineTabTrigger, "gap-1")}>
                 <Zap className="h-2.5 w-2.5" />
                 <span className="hidden sm:inline">Sprint Q</span>
                 <span className="sm:hidden">SQ</span>
               </TabsTrigger>
             )}
             {hasSprint && (
-              <TabsTrigger value="sprint" className="text-[11px] h-9 px-1.5 rounded-md transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none gap-1">
+              <TabsTrigger value="sprint" className={cn(underlineTabTrigger, "gap-1")}>
                 <Zap className="h-2.5 w-2.5" />
                 Sprint
               </TabsTrigger>
             )}
-            <TabsTrigger value="qualifying" className="text-[11px] h-9 px-1.5 rounded-md transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none">
+            <TabsTrigger value="qualifying" className={underlineTabTrigger}>
               Qualifying
             </TabsTrigger>
-            <TabsTrigger value="results" className="text-[11px] h-9 px-1.5 rounded-md transition-colors data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none">
+            <TabsTrigger value="results" className={underlineTabTrigger}>
               Results
             </TabsTrigger>
           </TabsList>

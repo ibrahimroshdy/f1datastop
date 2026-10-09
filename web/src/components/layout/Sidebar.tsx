@@ -139,7 +139,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
               )
             : cn(
                 isDeveloper 
-                  ? "text-amber-500" 
+                  ? "text-position-gold" 
                   : "text-muted-foreground",
                 isGlass
                   ? "hover:bg-white/5 hover:text-foreground"
@@ -153,7 +153,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
             isActive 
               ? "text-primary" 
               : isDeveloper
-                ? "text-amber-500"
+                ? "text-position-gold"
                 : "text-muted-foreground group-hover:text-foreground"
           )} 
         />

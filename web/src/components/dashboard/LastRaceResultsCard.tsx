@@ -1,6 +1,5 @@
 import { Clock, Flag } from "lucide-react";
-import { F1Card, F1CardContent, F1CardHeader } from "@/components/f1";
-import { Badge } from "@/components/ui/badge";
+import { F1Card, F1CardContent, F1CardHeader, F1Badge } from "@/components/f1";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import ReactCountryFlag from "react-country-flag";
 import { getCountryCode } from "@/components/common/CountryFlag";
@@ -24,7 +23,7 @@ const getTeamHexColor = (teamId: string): string => {
   let normalizedTeamId = teamId.toLowerCase();
   if (normalizedTeamId === "alphatauri") normalizedTeamId = "rb";
   else if (normalizedTeamId === "alfa") normalizedTeamId = "sauber";
-  return TEAM_COLORS[normalizedTeamId] || "#666666";
+  return TEAM_COLORS[normalizedTeamId] || TEAM_COLORS.default;
 };
 
 const LastRaceResultsCard = ({
@@ -162,11 +161,11 @@ const LastRaceResultsCard = ({
                     </span>
                     <span className="h-5 w-1 shrink-0 rounded-full" style={{ backgroundColor: teamColor }} />
                     <div className="min-w-0 flex-1">
-                      <span className="text-sm font-semibold">{result.Driver.code}</span>
+                      <span className="timing text-sm font-semibold">{result.Driver.code}</span>
                       <span className="ml-1.5 text-xs capitalize text-muted-foreground">{result.Constructor.name}</span>
                     </div>
                     <span className="timing shrink-0 whitespace-nowrap text-sm text-foreground">{timeLabel}</span>
-                    <Badge variant="outline" className="shrink-0 text-xs">Lap {result.laps}</Badge>
+                    <F1Badge variant="time" className="shrink-0 text-xs">Lap {result.laps}</F1Badge>
                   </div>
                 );
               })}

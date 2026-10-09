@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { F1Card, F1CardHeader, F1CardTitle, F1CardContent, F1Badge, PageHeader } from "@/components/f1";
+import { pageShell, pageStack } from "@/lib/layout";
+import { cn } from "@/lib/utils";
 
 const EmbedInfoPage: React.FC = () => {
   const [domain, setDomain] = useState('https://f1datastop.com');
@@ -40,15 +42,16 @@ const EmbedInfoPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 font-sans bg-background text-foreground">
+    <div className={pageShell}>
+      <div className={cn("mx-auto w-full max-w-4xl", pageStack, "animate-fade-in")}>
       <PageHeader
+        eyebrow="Embeds"
         title="F1 DataStop Embeddable Components"
         description="Easily embed Formula 1 data on your website or blog"
-        className="mb-8"
       />
       
-      <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-4">Available Embeds</h2>
+      <section>
+        <div className="instrument-label mb-3 text-primary">Available Embeds</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <F1Card variant="default">
             <F1CardHeader>
@@ -79,22 +82,22 @@ const EmbedInfoPage: React.FC = () => {
               </div>
             </F1CardContent>
           </F1Card>
-          
-          <div className="border border-border rounded-lg overflow-hidden">
-            <div className="bg-muted p-4 border-b border-border">
-              <h3 className="text-xl font-medium">Constructor Standings</h3>
-            </div>
-            <div className="p-4">
+
+          <F1Card variant="default">
+            <F1CardHeader>
+              <F1CardTitle>Constructor Standings</F1CardTitle>
+            </F1CardHeader>
+            <F1CardContent>
               <p className="mb-4">Display clean F1 constructor standings with customizable theme and font.</p>
               <div className="flex justify-between items-center">
-                <a 
-                  href="/embed/constructor-standings?season=2023&theme=dark" 
+                <a
+                  href="/embed/constructor-standings?season=2023&theme=dark"
                   className="text-primary hover:underline"
                   target="_blank"
                 >
                   View Demo
                 </a>
-                <span className="px-3 py-1 bg-muted text-muted-foreground text-sm rounded-full">Clean</span>
+                <F1Badge>Clean</F1Badge>
               </div>
               <div className="mt-4 relative">
                 <div className="bg-muted rounded p-3 text-sm font-mono overflow-x-auto">
@@ -107,15 +110,18 @@ const EmbedInfoPage: React.FC = () => {
                   {copied === 'constructor' ? 'Copied!' : 'Copy'}
                 </button>
               </div>
-            </div>
-          </div>
+            </F1CardContent>
+          </F1Card>
         </div>
       </section>
-      
-      <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-4">Customize Your Embed</h2>
-        <div className="bg-muted p-6 rounded-lg border border-border">
-          <h3 className="text-lg font-medium mb-3">URL Parameters</h3>
+
+      <section>
+        <div className="instrument-label mb-3 text-primary">Customize Your Embed</div>
+        <F1Card>
+          <F1CardHeader>
+            <F1CardTitle>URL Parameters</F1CardTitle>
+          </F1CardHeader>
+          <F1CardContent>
           <table className="w-full mb-6">
             <thead className="bg-muted border-b border-border">
               <tr>
@@ -146,11 +152,12 @@ const EmbedInfoPage: React.FC = () => {
               </tr>
             </tbody>
           </table>
-        </div>
+          </F1CardContent>
+        </F1Card>
       </section>
-      
-      <section className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Implementation Tips</h2>
+
+      <section>
+        <div className="instrument-label mb-3 text-primary">Implementation Tips</div>
         <ul className="list-disc list-inside space-y-2 ml-4 text-muted-foreground">
           <li>Set the iframe width to <span className="font-mono">100%</span> for responsive design</li>
           <li>Set appropriate heights (e.g., 500px for driver standings, 400px for constructor standings)</li>
@@ -160,7 +167,7 @@ const EmbedInfoPage: React.FC = () => {
         </ul>
       </section>
       
-      <footer className="mt-12 pt-6 border-t border-border text-center text-muted-foreground text-sm">
+      <footer className="border-t border-border pt-6 text-center text-sm text-muted-foreground">
         <p>© {new Date().getFullYear()} F1 DataStop. All rights reserved.</p>
         <p className="mt-1">Formula 1 championship data updated throughout the season.</p>
         <p className="mt-1">
@@ -172,6 +179,7 @@ const EmbedInfoPage: React.FC = () => {
           </a>
         </p>
       </footer>
+      </div>
     </div>
   );
 };

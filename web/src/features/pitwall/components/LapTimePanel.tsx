@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { RotateCcw, ZoomIn } from "lucide-react";
 import { chartTheme } from "@/lib/chartTheme";
+import { F1ChartContainer } from "@/components/f1";
 import { cn } from "@/lib/utils";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
 import { tyreColor } from "../pitwall.config";
@@ -105,9 +106,12 @@ export function LapTimePanel({ blob, selected, activeLap, currentLap, onSelectLa
 
   if (!model || !model.codes.length) {
     return (
-      <div className="flex h-56 items-center justify-center text-xs text-muted-foreground">
-        {blob ? "Select drivers to plot lap times." : "No session data."}
-      </div>
+      <F1ChartContainer
+        minHeight={224}
+        isEmpty
+        emptyTitle="No Lap Time Data"
+        emptyDescription={blob ? "Select drivers to plot lap times." : "No session data."}
+      />
     );
   }
 
@@ -150,7 +154,8 @@ export function LapTimePanel({ blob, selected, activeLap, currentLap, onSelectLa
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={260}>
+      <F1ChartContainer minHeight={260}>
+        <ResponsiveContainer width="100%" height={260}>
         <LineChart
           data={rows}
           margin={{ top: 18, right: 10, left: 4, bottom: 4 }}
@@ -247,6 +252,7 @@ export function LapTimePanel({ blob, selected, activeLap, currentLap, onSelectLa
           )}
         </LineChart>
       </ResponsiveContainer>
+      </F1ChartContainer>
 
       {/* Tyre legend */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted-foreground">

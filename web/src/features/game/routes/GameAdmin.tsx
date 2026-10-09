@@ -5,7 +5,7 @@ import { ShieldAlert, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BackLink } from "@/components/ui/back-link";
-import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -124,17 +124,15 @@ export default function GameAdmin() {
     <div className={pageShell}>
       <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
         <BackLink to="/game">Predictions</BackLink>
-        <div className="flex items-center justify-between gap-2">
-          <div className="space-y-1.5">
-            <div className="instrument-label flex items-center gap-1.5 text-primary">
-              <ShieldAlert className="h-3 w-3" /> Admin · {season}
-            </div>
-            <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Game Admin</h1>
-          </div>
-          <Button variant="outline" className="min-h-11 gap-1.5" onClick={() => regrade.mutate()} disabled={regrade.isPending}>
-            <RefreshCw className={cn("h-4 w-4", regrade.isPending && "animate-spin")} /> Regrade
-          </Button>
-        </div>
+        <PageHeader
+          eyebrow={`Admin · ${season}`}
+          title="Game Admin"
+          actions={
+            <Button variant="outline" className="min-h-11 gap-1.5" onClick={() => regrade.mutate()} disabled={regrade.isPending}>
+              <RefreshCw className={cn("h-4 w-4", regrade.isPending && "animate-spin")} /> Regrade
+            </Button>
+          }
+        />
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-card/40 p-1">

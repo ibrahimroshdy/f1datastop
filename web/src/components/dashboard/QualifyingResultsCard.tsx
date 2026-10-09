@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { F1Card, F1CardContent, F1CardHeader } from "@/components/f1";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { F1Card, F1CardContent, F1CardHeader, F1Badge, F1Skeleton } from "@/components/f1";
 import { Flag } from "lucide-react";
 import { F1ErrorState } from "@/components/f1/F1ErrorState";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -31,7 +29,7 @@ const getTeamHexColor = (teamId: string): string => {
   let normalizedTeamId = teamId.toLowerCase();
   if (normalizedTeamId === "alphatauri") normalizedTeamId = "rb";
   else if (normalizedTeamId === "alfa") normalizedTeamId = "sauber";
-  return TEAM_COLORS[normalizedTeamId] || "#666666";
+  return TEAM_COLORS[normalizedTeamId] || TEAM_COLORS.default;
 };
 
 const QualifyingResultsCard = () => {
@@ -235,7 +233,7 @@ const QualifyingResultsCard = () => {
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-11 w-full" />
+                <F1Skeleton key={i} className="h-11 w-full" />
               ))}
             </div>
           ) : error && isPendingData ? (
@@ -268,15 +266,15 @@ const QualifyingResultsCard = () => {
                     </span>
                     <span className="h-5 w-1 shrink-0 rounded-full" style={{ backgroundColor: teamColor }} />
                     <div className="min-w-0 flex-1">
-                      <span className="text-sm font-semibold">{result.driver.code}</span>
+                      <span className="timing text-sm font-semibold">{result.driver.code}</span>
                       <span className="ml-1.5 text-xs capitalize text-muted-foreground">
                         {result.team.replace("_", " ")}
                       </span>
                     </div>
                     <span className="timing shrink-0 text-sm text-foreground">{result.bestTime}</span>
-                    <Badge variant="outline" className="shrink-0 text-xs">
+                    <F1Badge variant="time" className="shrink-0 text-xs">
                       {result.session}
-                    </Badge>
+                    </F1Badge>
                   </div>
                 );
               })}

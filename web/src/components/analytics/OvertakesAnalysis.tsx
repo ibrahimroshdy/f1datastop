@@ -14,7 +14,7 @@ import { useDbOvertakes, useDbLaps, useDbRaceControl } from "@/hooks/useWarehous
 import { useRaceResults } from "@/hooks/f1";
 import { getTeamColorById } from "@/constants/f1Colors";
 import { chartTheme } from "@/lib/chartTheme";
-import { F1Skeleton, F1EmptyState } from "@/components/f1";
+import { F1Skeleton, F1EmptyState, F1ChartContainer } from "@/components/f1";
 import { deriveSafetyPeriods } from "@/lib/f1/safetyPeriods";
 import { safetyBands, SafetyLegend } from "@/components/analytics/SafetyCarBands";
 
@@ -212,7 +212,13 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
             Position by lap
           </span>
         </div>
-        <ResponsiveContainer width="100%" height={340}>
+        <F1ChartContainer
+          minHeight={340}
+          isEmpty={positionChart.rows.length === 0}
+          emptyTitle="No Position Data"
+          emptyDescription="Position-by-lap data is not available for this session yet."
+        >
+          <ResponsiveContainer width="100%" height={340}>
           <LineChart data={positionChart.rows} margin={{ left: 8, right: 12, top: 8, bottom: 20 }}>
             <CartesianGrid vertical={false} stroke={chartTheme.grid} strokeDasharray="3 3" />
             {safetyBands(safety)}
@@ -249,6 +255,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
             ))}
           </LineChart>
         </ResponsiveContainer>
+        </F1ChartContainer>
         <SafetyLegend periods={safety} className="mt-2 justify-center" />
       </div>
 

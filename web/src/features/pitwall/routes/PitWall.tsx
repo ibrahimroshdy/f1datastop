@@ -218,7 +218,7 @@ export default function PitWall() {
                           title={usingFastest ? "Per-lap telemetry isn't in the database yet, so each trace shows that driver's fastest lap." : undefined}
                         >
                           following lap {leaderLap || "—"}
-                          {usingFastest && <span className="text-amber-500">· fastest-lap shown (per-lap not synced)</span>}
+                          {usingFastest && <span className="text-muted-foreground">· <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-fastest-lap align-middle" aria-hidden />fastest-lap shown (per-lap not synced)</span>}
                         </span>
                       )}
                     </div>

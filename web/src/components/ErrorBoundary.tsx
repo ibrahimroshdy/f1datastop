@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { F1ErrorState } from "@/components/f1";
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -26,18 +27,14 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-6 text-center">
-        <div className="space-y-2">
-          <h1 className="text-xl font-bold uppercase tracking-tight text-foreground">
-            Something went wrong
-          </h1>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            An unexpected error occurred. Reloading usually fixes it.
-          </p>
-        </div>
+        <F1ErrorState
+          variant="fullscreen"
+          title="Something went wrong"
+          message="An unexpected error occurred. Reloading usually fixes it."
+          onRetry={() => window.location.reload()}
+          className="min-h-0"
+        />
         <div className="flex gap-2">
-          <Button className="min-h-11" onClick={() => window.location.reload()}>
-            Reload
-          </Button>
           <Button
             variant="outline"
             className="min-h-11"

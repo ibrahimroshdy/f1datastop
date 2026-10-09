@@ -13,7 +13,6 @@ import {
 import { useRaceSchedule } from "@/hooks/useF1Data";
 import { useCircuitDetail } from "@/hooks/useCircuitDetail";
 import { useTheme } from "@/context/ThemeContext";
-import CountryFlag from "@/components/common/CountryFlag";
 import { getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
 import CircuitGeometryMap from "@/components/race/CircuitGeometryMap";
 import CircuitHistoryCard from "@/components/circuits/CircuitHistoryCard";
@@ -23,6 +22,7 @@ import {
   F1Card,
   F1ErrorState,
   F1Skeleton,
+  PageHeader,
 } from "@/components/f1";
 import { cn } from "@/lib/utils";
 
@@ -89,21 +89,11 @@ const CircuitDetail = () => {
         <BackLink to="/calendar">Calendar</BackLink>
 
         {/* ── Compact identity (eyebrow + name + locality flag) ──────────────── */}
-        <div className="space-y-1.5">
-          <div className="instrument-label flex items-center gap-1.5 text-primary">
-            <MapPin className="h-3 w-3" />
-            <span>Circuit</span>
-          </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
-            {circuit.name}
-          </h1>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CountryFlag country={circuit.country} size={16} />
-            <span>
-              {circuit.locality}, {circuit.country}
-            </span>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Circuit"
+          title={circuit.name}
+          description={`${circuit.locality}, ${circuit.country}`}
+        />
 
         {/* ── Telemetry-derived track map (numbered corners + straights) ─────── */}
         <CircuitGeometryMap circuitId={circuit.circuit_id} />

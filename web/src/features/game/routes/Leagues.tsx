@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Plus, Search, Globe, Lock, ChevronRight, Crown } from "lucide-react";
+import { Plus, Search, Globe, Lock, ChevronRight, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BackLink } from "@/components/ui/back-link";
-import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { getMyLeagues, createLeague, joinLeagueByCode } from "../api/leaguesClient";
@@ -34,17 +34,15 @@ export default function Leagues() {
     <div className={pageShell}>
       <div className={cn(pageStack, "animate-fade-in")}>
         <BackLink to="/game">Predictions</BackLink>
-        <div className="flex items-center justify-between gap-2">
-          <div className="space-y-1.5">
-            <div className="instrument-label flex items-center gap-1.5 text-primary">
-              <Users className="h-3 w-3" /> Leagues
-            </div>
-            <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Your Leagues</h1>
-          </div>
-          <Link to="/game/leagues/browse">
-            <Button variant="outline" className="min-h-11 gap-1.5"><Search className="h-4 w-4" /> Browse</Button>
-          </Link>
-        </div>
+        <PageHeader
+          eyebrow="Leagues"
+          title="Your Leagues"
+          actions={
+            <Link to="/game/leagues/browse">
+              <Button variant="outline" className="min-h-11 gap-1.5"><Search className="h-4 w-4" /> Browse</Button>
+            </Link>
+          }
+        />
 
         {leagues.isLoading ? (
           <F1Skeleton variant="card" className="h-40" />

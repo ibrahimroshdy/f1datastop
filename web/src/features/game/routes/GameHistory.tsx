@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BackLink } from "@/components/ui/back-link";
-import { F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1Skeleton, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useGameActivation } from "../hooks/useGameActivation";
@@ -41,16 +41,16 @@ export default function GameHistory() {
     <div className={pageShell}>
       <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
         <BackLink to="/game">Predictions</BackLink>
-        <div className="space-y-1.5">
-          <div className="instrument-label text-primary">Your season</div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Points History</h1>
-          {total.data && (
-            <p className="text-sm text-muted-foreground">
-              <span className="readout text-primary">{Number(total.data.total_points)}</span> total points ·{" "}
-              {total.data.exact_hits} exact hits
-            </p>
-          )}
-        </div>
+        <PageHeader
+          eyebrow="Your season"
+          title="Points History"
+        />
+        {total.data && (
+          <p className="text-sm text-muted-foreground">
+            <span className="readout text-primary">{Number(total.data.total_points)}</span> total points ·{" "}
+            {total.data.exact_hits} exact hits
+          </p>
+        )}
 
         {history.isLoading ? (
           <F1Skeleton variant="card" className="h-48" />

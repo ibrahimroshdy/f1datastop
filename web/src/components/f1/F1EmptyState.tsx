@@ -174,7 +174,7 @@ const F1EmptyState = React.forwardRef<HTMLDivElement, F1EmptyStateProps>(
         {/* Icon */}
         <div className="relative mb-4">
           <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl" />
-          <div className="relative p-4 bg-muted/50 rounded-full">
+          <div className="relative p-4 bg-muted/40 rounded-full">
             {icon || <IconComponent className={cn(sizes.icon, "text-muted-foreground")} />}
           </div>
         </div>

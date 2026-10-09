@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Trophy } from "lucide-react";
-import { F1Card, F1CardContent, F1CardFooter, F1CardHeader } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardFooter, F1CardHeader, F1ChartContainer } from "@/components/f1";
 import {
   CartesianGrid,
   Line,
@@ -132,9 +132,12 @@ const DriverPositionChart = ({ history, teamColor, code, compare }: DriverPositi
 
   if (history.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-        No race data available
-      </div>
+      <F1ChartContainer
+        minHeight={200}
+        isEmpty
+        emptyTitle="No Race Data"
+        emptyDescription="No race data available for this driver yet."
+      />
     );
   }
 
@@ -152,7 +155,8 @@ const DriverPositionChart = ({ history, teamColor, code, compare }: DriverPositi
         </p>
       </F1CardHeader>
       <F1CardContent className="pb-2">
-        <ChartContainer config={chartConfig} className="h-[200px] w-full">
+        <F1ChartContainer minHeight={200}>
+          <ChartContainer config={chartConfig} className="h-[200px] w-full">
           <LineChart data={chartData} margin={{ top: 16, left: 8, right: 16, bottom: 8 }}>
             <defs>
               <ScopeDefs id="dpos" color={chartTheme.primary} />
@@ -309,6 +313,7 @@ const DriverPositionChart = ({ history, teamColor, code, compare }: DriverPositi
               )}
           </LineChart>
         </ChartContainer>
+        </F1ChartContainer>
       </F1CardContent>
       <F1CardFooter className="flex-col items-start gap-2 border-t-0 pt-0 text-sm">
         {isCompare ? (

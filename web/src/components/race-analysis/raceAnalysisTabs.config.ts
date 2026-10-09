@@ -46,7 +46,7 @@ export const CORE_TABS: RaceAnalysisTabConfig[] = [
   { id: "lapTimes", label: "Lap Times", icon: Clock, group: "core" },
   { id: "positions", label: "Positions", icon: TrendingUp, group: "core" },
   { id: "qualifying", label: "Qualifying", icon: Flag, group: "core" },
-  { id: "progression", label: "Quali → Race", icon: TrendingUpIcon, group: "core" },
+  { id: "progression", label: "Quali / Race", icon: TrendingUpIcon, group: "core" },
   { id: "pitstops", label: "Pit Stops", icon: Wrench, group: "core" },
   { id: "telemetry", label: "Telemetry", icon: Gauge, group: "core" },
   { id: "deepDive", label: "Deep Dive", icon: Activity, group: "core" },

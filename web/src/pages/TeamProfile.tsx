@@ -69,7 +69,8 @@ const TeamProfile = () => {
   }
 
   return (
-      <div className={cn(pageShell, pageStack)}>
+      <div className={pageShell}>
+        <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         <PageHeader
           eyebrow="Team Profile"
           title={displayName}
@@ -91,8 +92,10 @@ const TeamProfile = () => {
         <F1Card
           variant={cardVariant}
           glassVariant={glassVariant}
-          className="overflow-hidden p-0"
-          style={{ borderTopColor: teamColor, borderTopWidth: 4 }}
+          accent="top"
+          teamColor={teamColor}
+          className="overflow-hidden"
+          style={{ borderTopColor: teamColor }}
         >
           <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center">
             <div
@@ -217,6 +220,7 @@ const TeamProfile = () => {
             description="Connect Supabase to load team heritage for this constructor."
           />
         )}
+      </div>
       </div>
   );
 };

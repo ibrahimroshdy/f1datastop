@@ -16,6 +16,7 @@ import {
   F1CardContent,
   F1CardHeader,
   F1CardTitle,
+  PageHeader,
 } from "@/components/f1";
 import { GitCompare, Activity, Calendar, Clock, ChevronRight, Flag as FlagIcon, TriangleAlert } from "lucide-react";
 import { CircuitTrackMap, getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
@@ -344,40 +345,31 @@ const GreetingBlock = ({
 }) => {
   const currentYear = new Date().getFullYear();
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0 space-y-1.5">
-        <div className="instrument-label flex items-center gap-1.5 text-primary">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-primary/60 animate-live-pulse" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-          </span>
-          <span>Live · Season {currentYear}</span>
-        </div>
-        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
-          Formula 1<span className="text-primary"> DataStop</span>
-        </h1>
-      </div>
-
-      <div className="flex w-fit flex-wrap items-center gap-1.5">
-        <StatusPill tone="primary">
-          Round{" "}
-          <span className="timing">
-            {seasonStats.totalRounds
-              ? `${seasonStats.completedRounds}/${seasonStats.totalRounds}`
-              : "—"}
-          </span>
-        </StatusPill>
-        <StatusPill tone={isSeasonComplete ? "muted" : "muted"}>
-          {isSeasonComplete ? "Complete" : "In Progress"}
-        </StatusPill>
-        {isOffline && (
-          <StatusPill tone="warning">
-            <TriangleAlert className="h-3 w-3" />
-            Cached
+    <PageHeader
+      eyebrow={`Live · Season ${currentYear}`}
+      title="Formula 1 DataStop"
+      actions={
+        <>
+          <StatusPill tone="primary">
+            Round{" "}
+            <span className="timing">
+              {seasonStats.totalRounds
+                ? `${seasonStats.completedRounds}/${seasonStats.totalRounds}`
+                : "—"}
+            </span>
           </StatusPill>
-        )}
-      </div>
-    </div>
+          <StatusPill tone="muted">
+            {isSeasonComplete ? "Complete" : "In Progress"}
+          </StatusPill>
+          {isOffline && (
+            <StatusPill tone="warning">
+              <TriangleAlert className="h-3 w-3" />
+              Cached
+            </StatusPill>
+          )}
+        </>
+      }
+    />
   );
 };
 

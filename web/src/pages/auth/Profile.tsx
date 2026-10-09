@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/context/ThemeContext';
 import {
+  F1Avatar,
   F1Card,
   F1CardContent,
   F1CardDescription,
@@ -19,7 +20,6 @@ import {
 import { pageShellNarrow, pageStack } from '@/lib/layout';
 import { cn } from '@/lib/utils';
 import { F1Skeleton } from '@/components/f1/F1Skeleton';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationToggle } from "@/components/pwa/NotificationToggle";
@@ -191,10 +191,8 @@ const Profile = () => {
           <div className="md:col-span-1">
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="h-full flex flex-col p-0">
               <F1CardHeader className="flex flex-col items-center" onClick={handleProfileHeaderClick}>
-                <Avatar className="w-24 h-24 mb-2 bg-primary text-primary-foreground text-2xl cursor-pointer">
-                  <AvatarFallback>{getInitials()}</AvatarFallback>
-                </Avatar>
-                <F1CardTitle className="cursor-pointer justify-center !text-xl">
+                <F1Avatar fallback={getInitials()} alt={profile?.username ?? user?.email ?? "User"} size="xl" className="mb-2 cursor-pointer" />
+                <F1CardTitle className="cursor-pointer justify-center">
                   {profile?.first_name} {profile?.last_name}
                 </F1CardTitle>
                 <F1CardDescription className="text-center">
@@ -214,7 +212,7 @@ const Profile = () => {
           <div className="md:col-span-2">
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="h-full flex flex-col p-0">
               <F1CardHeader>
-                <F1CardTitle className="!text-xl">Edit Profile</F1CardTitle>
+                <F1CardTitle>Edit Profile</F1CardTitle>
                 <F1CardDescription>
                   Update your personal information
                 </F1CardDescription>
@@ -270,7 +268,7 @@ const Profile = () => {
 
         <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
           <F1CardHeader>
-            <F1CardTitle className="!text-xl">Notifications</F1CardTitle>
+            <F1CardTitle>Notifications</F1CardTitle>
             <F1CardDescription>
               Get a push notification before each race weekend.
             </F1CardDescription>

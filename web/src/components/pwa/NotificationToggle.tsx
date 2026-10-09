@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, Loader2 } from "lucide-react";
+import { Bell, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { F1Loader } from "@/components/f1";
 import {
   pushSupported,
   getPushSubscription,
@@ -57,7 +58,7 @@ export function NotificationToggle() {
       disabled={busy}
     >
       {busy ? (
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        <F1Loader size="sm" className="mr-2" />
       ) : subscribed ? (
         <BellOff className="mr-2 h-4 w-4" />
       ) : (

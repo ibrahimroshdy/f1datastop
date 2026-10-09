@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Share, X } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { F1Card } from "@/components/f1";
 import { Button } from "@/components/ui/button";
 import { isIOS, isStandalone } from "@/lib/pwa";
 
@@ -69,7 +69,7 @@ export function AddToHome() {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[calc(3.5rem+0.75rem+env(safe-area-inset-bottom))] md:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-      <Card className="pointer-events-auto relative w-full max-w-[420px] border-primary/30 bg-card/95 p-4 shadow-lg backdrop-blur animate-slide-up">
+      <F1Card size="sm" className="pointer-events-auto relative w-full max-w-[420px] border-primary/30 bg-card/95 p-4 shadow-lg backdrop-blur animate-slide-up">
         <button
           type="button"
           onClick={dismiss}
@@ -124,7 +124,7 @@ export function AddToHome() {
             Add to Home Screen
           </Button>
         )}
-      </Card>
+      </F1Card>
     </div>
   );
 }

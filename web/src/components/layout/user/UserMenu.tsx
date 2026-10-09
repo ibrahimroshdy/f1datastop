@@ -1,6 +1,6 @@
 import { UserCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { F1Avatar } from "@/components/f1";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -49,12 +49,7 @@ const UserMenu = () => {
     <Popover>
       <PopoverTrigger asChild>
         <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Avatar className="h-8 w-8 border border-border">
-            <AvatarImage src={profile?.avatar_url} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-              {getInitials()}
-            </AvatarFallback>
-          </Avatar>
+          <F1Avatar src={profile?.avatar_url} fallback={getInitials()} alt={getDisplayName()} size="sm" />
           <span className="hidden md:inline-block text-sm font-medium text-foreground">
             {getDisplayName()}
           </span>

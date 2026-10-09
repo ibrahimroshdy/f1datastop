@@ -19,9 +19,9 @@ A race engineer's pit-wall console that costs $200k. Every screen reads like a p
 - **Palette:** monochrome (`foreground`/`muted-foreground`) on black + one red accent. Deltas: `status-completed` (gain) / `destructive` (loss). Team color = identity only (thin left bar, dot, chart line), via `@/constants/f1Colors`.
 
 ## Typography
-- Display/headings: **Exo 2** (`font-heading`), tight tracking. Big readouts use `.readout` (mono, tabular, tight) for the hero number feel.
-- Body: **Inter**. Data: **JetBrains Mono** (`.timing`). Labels: `.instrument-label`.
-- Smallest size `text-xs`. Numbers always tabular.
+- Display/headings: **Clash Display** (`font-heading`), tight tracking. Big readouts use `.readout` (mono, tabular, tight) for the hero number feel.
+- Body: **Geist**. Data: **Geist Mono** (`.timing`; JetBrains Mono only as chart-fallback in the `font-mono` stack). Labels: `.instrument-label`.
+- Body copy never below `text-xs`; `text-2xs` sanctioned for micro eyebrows/badges/timing metadata. Numbers always tabular.
 
 ## Motion (snappy, not slow — a terminal responds instantly)
 - Easing `ease-spring` (`cubic-bezier(0.32,0.72,0,1)`); durations 150–300ms (`transition-fast`/`transition-normal`). No 600ms+ agency fades.

@@ -67,8 +67,8 @@ const fmtGap = (s: number | null) => (s == null ? "—" : s < 0.05 ? "—" : `+$
 const fmtSector = (ms: number | null | undefined) =>
   ms == null ? "—" : (ms / 1000).toFixed(3);
 
-/** Sectors 1·2·3 as an LED gauge — purple = session best, green = personal best,
- *  yellow = set this lap, dim = not yet. Each dot carries its own time on hover. */
+/** Sectors 1·2·3 as an LED gauge — fastest-lap token = session best, gain = personal best,
+ *  position-gold = set this lap, dim = not yet. Each dot carries its own time on hover. */
 function SectorLeds({
   sec,
   pb,
@@ -92,7 +92,7 @@ function SectorLeds({
           dot = "bg-gain shadow-[0_0_5px] shadow-gain/70";
           what = "personal best";
         } else if (s != null) {
-          dot = "bg-yellow-500 dark:bg-yellow-400";
+          dot = "bg-position-gold";
           what = "set";
         }
         // Per-dot title: the whole point of the gauge is the times behind it, and a single

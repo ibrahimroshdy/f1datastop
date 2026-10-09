@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Sparkles, Download, LogIn, RefreshCw } from "lucide-react";
+import { Sparkles, Download, LogIn, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { F1Card, F1CardContent, F1CardHeader } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1Loader } from "@/components/f1";
 import { useDriverStandings } from "@/hooks/f1";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -194,7 +194,7 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
           <Button onClick={generate} disabled={picked.length < 2 || busy} className="w-full sm:w-auto">
             {busy ? (
               <>
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Generating…
+                <F1Loader size="sm" /> Generating…
               </>
             ) : (
               <>
@@ -207,7 +207,7 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
         {busy && (
           <div className="space-y-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
             <div className="flex items-center gap-2 text-xs">
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+              <F1Loader size="sm" />
               <span className="font-medium text-foreground">{stage}</span>
               <span className="timing ml-auto tabular-nums text-muted-foreground">
                 {Math.round(elapsed / 1000)}s

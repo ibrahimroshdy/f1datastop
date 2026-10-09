@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
 import { Trophy } from "lucide-react";
-import { F1EmptyState, PitIcon } from "@/components/f1";
+import { F1EmptyState, F1Badge, PitIcon } from "@/components/f1";
 import TeamLogo from "@/components/common/TeamLogo";
-import { Badge } from "@/components/ui/badge";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { useConstructorCareer } from "@/hooks/entity";
 import { cn } from "@/lib/utils";
@@ -173,16 +172,15 @@ const TeamHeritagePanel = ({
       {championshipYears.length > 0 && !compact && (
         <div className="flex flex-wrap gap-1">
           {championshipYears.map((year) => (
-            <Badge
+            <F1Badge
               key={year}
-              variant="outline"
               className={cn(
                 "text-[10px] font-semibold",
                 isGlass && "border-white/20 bg-white/5",
               )}
             >
               {year}
-            </Badge>
+            </F1Badge>
           ))}
         </div>
       )}

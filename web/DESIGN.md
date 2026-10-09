@@ -10,7 +10,7 @@ A dark **"Pit Wall"** system: **deep-carbon** page (hue-shifted near-black ladde
 
 **Three hard rules that catch 80% of violations:**
 1. **Color = tokens only.** Never a Tailwind palette color (`bg-red-500`, `text-zinc-400`, `bg-yellow-500`, `text-purple-500`) and never raw hex/`#fff`. Inline hex is allowed **only** for dynamic per-team colors.
-2. **Never use `f1-red`, `f1-black`, `f1-dark`, `f1-gray` Tailwind utilities.** `f1-red` is mapped to **PURPLE #9333ea** in `tailwind.config.ts` line 70 (Lovable poison). Use `bg-primary`/`bg-background`/`bg-card` instead.
+2. **Never use `f1-red`, `f1-black`, `f1-dark`, `f1-gray` Tailwind utilities.** `f1-red` currently maps to `#E10600` in `tailwind.config.ts` line 70 (the same red family as `--primary`) — an early Lovable-era poison once mapped it to purple `#9333ea`, so treat these legacy utilities as permanently banned regardless of their current value. Use `bg-primary`/`bg-background`/`bg-card` instead.
 3. **Use the F1* component, not raw shadcn or hand markup.** PageHeader for titles, F1Card for cards, F1Badge/PositionBadge/StatusBadge for pills, F1Skeleton/F1EmptyState/F1ErrorState for states.
 
 ---
@@ -58,7 +58,7 @@ Dynamic per-team color is the **only** allowed raw-hex/inline-style usage. Alway
 
 ### 1.5 POISONED / BANNED utilities (never use)
 
-- `bg-f1-red` / `text-f1-red` / `border-f1-red` / `ring-f1-red` → renders **PURPLE #9333ea**. Use `primary`.
+- `bg-f1-red` / `text-f1-red` / `border-f1-red` / `ring-f1-red` → legacy utilities (once poisoned to PURPLE `#9333ea`; now `#E10600`, same family as `--primary` — still banned). Use `primary`.
 - `bg-f1-black` (#15151e), `bg-f1-dark`, `bg-f1-gray`, and literal hex like `#15151e` → use `background`/`card`/`muted`.
 - Frozen team utilities `bg-redbull`/`bg-ferrari`/`bg-mclaren`/etc. → use `getTeamHexColor` inline.
 - **Any** Tailwind palette color: `*-zinc-*`, `*-slate-*`, `*-gray-*`, `*-neutral-*`, `*-red-500`, `*-green-500`, `*-blue-500`, `*-yellow-500`, `*-amber-*`, `*-orange-*`, `*-purple-*`, `*-violet-*`, `*-emerald-*`, `*-indigo-*`, `*-sky-*`, `text-white`, `text-black`, `bg-white/X`, `bg-black/X`. → map to a semantic token below.
@@ -85,7 +85,7 @@ Dynamic per-team color is the **only** allowed raw-hex/inline-style usage. Alway
 
 ### 1.7 Categorical encodings (race-type, weather metrics, chart series)
 
-Where genuinely distinct hues are needed to encode categories (race-type stripes, multi-metric weather charts, chart series), **define named CSS variables** in `index.css` (e.g. `--race-single`, `--race-double`, `--race-triple`, `--race-sprint`, or a `CHART_SERIES[]` constant) and reference those — never raw `bg-blue-500`/`bg-violet-500`. Keep the legend swatch and the chart stroke reading from the **same** source so they can't drift.
+Where genuinely distinct hues are needed to encode categories (race-type stripes, multi-metric weather charts, chart series), **define named CSS variables** in `index.css` (e.g. `--race-single`, `--race-double`, `--race-triple`, `--race-sprint`, or a `CHART_SERIES[]` constant) and reference those — never raw `bg-blue-500`/`bg-violet-500`. Keep the legend swatch and the chart stroke reading from the **same** source so they can't drift. The only sanctioned non-red hues are the categorical tokens `--fastest-lap` / `--gain` / `--loss` and `--position-gold` / `--position-silver` / `--position-bronze` (plus `--status-*` and `--weather-*` chart series) — everything else stays monochrome + the single red accent.
 
 ---
 
@@ -96,6 +96,7 @@ Two display fonts set in `index.css`, plus mono for numerics. (Loaded in `index.
 - **Headings/display → Clash Display** via `.font-heading` (and all `h1`–`h6` get Clash Display + `letter-spacing: -0.015em` + `font-weight: 600` globally).
 - **Body → Geist** (`body`, Tailwind `font-sans`).
 - **Mono → Geist Mono** via `font-mono`, for timing/lap-time/numeric data. Utility `.timing` = `font-mono tabular-nums tracking-wide`.
+- **Fallbacks only (never reference directly in new work):** Exo 2 (display fallback), Inter (body fallback, e.g. embeds), JetBrains Mono (data/chart fallback in the `font-mono` stack). Canonical is Clash Display / Geist / Geist Mono.
 
 ### 2.1 Canonical scale
 
@@ -104,14 +105,14 @@ Two display fonts set in `index.css`, plus mono for numerics. (Loaded in `index.
 | Page title (h1) | `font-heading text-2xl font-bold tracking-tight md:text-3xl` | **PageHeader only** — never hand-roll |
 | Eyebrow (above title) | `text-xs font-semibold uppercase tracking-widest text-primary` | PageHeader eyebrow |
 | Page description | `text-sm text-muted-foreground` | PageHeader description |
-| Card title | `text-lg font-bold` (Exo 2 via global h-rule) | **F1CardTitle** — don't override size |
+| Card title | `text-lg font-bold` (Clash Display via global h-rule) | **F1CardTitle** — don't override size |
 | Card description | F1CardDescription default | — |
 | Stat numeral | `.stat-numeral` = `font-heading text-2xl font-bold tabular-nums tracking-tight` | Big numbers |
 | Body small / caption | `.body-sm` = `text-sm leading-relaxed text-muted-foreground` | Secondary copy |
 
 ### 2.2 Rules
 
-- **Smallest size is `text-xs`.** Never `text-[10px]`, `text-[9px]`, `text-[8px]`, `text-[11px]`, `text-2xs` for new work — use `text-xs`.
+- **Body copy never goes below `text-xs`.** `text-2xs` (0.625rem) is sanctioned **only** for micro eyebrows/badges/timing metadata (instrument labels, counts, lap pills) — never arbitrary `text-[10px]`, `text-[9px]`, `text-[8px]`, `text-[11px]`; use `text-2xs` or `text-xs`.
 - **All numbers are `tabular-nums`** (points, positions, percentages, counts).
 - **Timing/lap/gap/interval data uses `font-mono` (`.timing`).**
 - Responsive bump convention: base mobile size, `md:` one step up (`text-2xl md:text-3xl`).
@@ -136,7 +137,7 @@ The page shell + stack utilities in `web/src/lib/layout.ts` are **mandatory**.
 </div>
 ```
 
-- `pageShell` = `mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8` (variants: `pageShellWide` max-w-[1400px], `pageShellNarrow` max-w-lg).
+- `pageShell` = `mx-auto w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1600px] px-4 py-6 md:px-6 md:py-8 2xl:px-10` (variants: `pageShellWide` max-w-[1400px], `pageShellNarrow` max-w-lg).
 - `pageStack` = `flex flex-col gap-6` (`pageStackTight` = gap-4). Vertical section rhythm is **gap-6**.
 - The inner stack **always** carries `animate-fade-in`. The shell and stack are **two separate divs** — don't merge them or duplicate padding (`pageShellNarrow` already supplies px/py; don't add `py-6` on top).
 - First stack child is **always** `<PageHeader/>`.
@@ -150,7 +151,7 @@ F1Card padding flows from its `size` prop via React context: `sm`=p-3, default=p
 - Inline row gaps: `gap-2` / `gap-3`.
 - Vertical rhythm: use flex `gap-6`/`gap-4` (matching pageStack), **not** `space-y-6`/`space-y-4` and **not** `mb-*`/`mt-8` magic margins on stack children — the parent gap owns spacing.
 - Grids: Tailwind responsive col counts. Custom `xs` breakpoint = 480px available.
-- Container cap = 1400px (2xl). Don't introduce one-off max-widths (`max-w-[1600px]`); use `max-w-7xl` or `pageShellWide`.
+- Container cap = 1600px on 2xl via `pageShell` (`max-w-6xl xl:max-w-7xl 2xl:max-w-[1600px]`). Don't introduce one-off max-widths; use `pageShell` or `pageShellWide`.
 
 ### 3.4 Tabs — underline pattern only
 
@@ -225,7 +226,7 @@ Iconography: **lucide-react** icons (accent ones `text-primary`), **react-countr
 **DON'T**
 ```tsx
 <div className="max-w-7xl mx-auto p-6 space-y-6">            {/* ad-hoc shell, no animate-fade-in */}
-  <h1 className="text-2xl font-bold tracking-tight">Standings</h1>  {/* hand-rolled h1, not Exo2 */}
+  <h1 className="text-2xl font-bold tracking-tight">Standings</h1>  {/* hand-rolled h1, not Clash Display */}
   <Card className="border-border bg-card p-0">              {/* raw Card, forces bg-card, kills glass */}
     <h3 className="font-semibold text-sm">Drivers</h3>      {/* hand-rolled title */}
     <Badge className="bg-yellow-500 text-black">P1</Badge>  {/* palette, not PositionBadge */}
@@ -258,9 +259,9 @@ Components
 - [ ] No duplicate teamColors maps — import `TEAM_COLORS` from `@/constants/f1Colors`.
 
 Typography
-- [ ] Headings Exo 2 (`font-heading`) + `tracking-tight`; no `!important` size overrides on F1CardTitle.
+- [ ] Headings Clash Display (`font-heading`) + `tracking-tight`; no `!important` size overrides on F1CardTitle.
 - [ ] Numbers `tabular-nums`; timing/lap data `font-mono` (`.timing`).
-- [ ] No sub-`text-xs` arbitrary sizes (`text-[10px]` etc.).
+- [ ] Body copy never below `text-xs`; `text-2xs` only for micro eyebrows/badges/timing metadata; no arbitrary `text-[10px]` etc.
 
 Layout & motion
 - [ ] `pageShell` > (`pageStack` + `animate-fade-in`) > `PageHeader`; no ad-hoc max-width/padding, no `space-y-*`/magic margins on stack children.

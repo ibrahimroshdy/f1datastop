@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { F1ChartContainer } from "@/components/f1";
 import { chartTheme } from "@/lib/chartTheme";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
 
@@ -43,9 +44,12 @@ export function PositionChart({ blob, selected, currentLap }: Props) {
 
   if (!model) {
     return (
-      <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
-        Select drivers to chart their positions.
-      </div>
+      <F1ChartContainer
+        minHeight={170}
+        isEmpty
+        emptyTitle="No Position Data"
+        emptyDescription="Select drivers to chart their positions."
+      />
     );
   }
 
@@ -59,7 +63,8 @@ export function PositionChart({ blob, selected, currentLap }: Props) {
   const marker = currentLap && currentLap >= 1 && currentLap <= maxLap ? currentLap : null;
 
   return (
-    <ResponsiveContainer width="100%" height={170}>
+    <F1ChartContainer minHeight={170}>
+      <ResponsiveContainer width="100%" height={170}>
       <LineChart data={rows} margin={{ top: 16, right: 10, left: 2, bottom: 4 }}>
         <CartesianGrid stroke={chartTheme.grid} vertical={false} strokeDasharray="3 3" />
         <XAxis dataKey="lap" type="number" domain={[1, maxLap]} hide />
@@ -96,5 +101,6 @@ export function PositionChart({ blob, selected, currentLap }: Props) {
         ))}
       </LineChart>
     </ResponsiveContainer>
+    </F1ChartContainer>
   );
 }

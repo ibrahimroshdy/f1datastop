@@ -95,7 +95,7 @@ function TrackSVG({
       {showSectors &&
         blob.marshal_sectors.map((m, i) => (
           <circle key={`ms${i}`} cx={m.x} cy={flipY(m.y)} r={r * 0.55}
-            className="fill-yellow-500/70" />
+            fill="hsl(var(--position-gold))" fillOpacity={0.7} />
         ))}
       {/* numbered corners */}
       {showCorners &&

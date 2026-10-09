@@ -1,6 +1,5 @@
 import { Timer, Trophy } from "lucide-react";
-import { F1EmptyState, PitIcon } from "@/components/f1";
-import { Badge } from "@/components/ui/badge";
+import { F1Badge, F1EmptyState, PitIcon } from "@/components/f1";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { useDriverCareer } from "@/hooks/entity";
 import { cn } from "@/lib/utils";
@@ -116,16 +115,15 @@ const DriverCareerPanel = ({
       {championshipYears.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {championshipYears.map((year) => (
-            <Badge
+            <F1Badge
               key={year}
-              variant="outline"
               className={cn(
                 "text-[10px] font-semibold",
                 isGlass && "border-white/20 bg-white/5",
               )}
             >
               {year}
-            </Badge>
+            </F1Badge>
           ))}
         </div>
       )}

@@ -1,5 +1,5 @@
 import { BackLink } from "@/components/ui/back-link";
-import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 
@@ -8,10 +8,10 @@ export default function GameRules() {
     <div className={pageShell}>
       <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
         <BackLink to="/game">Predictions</BackLink>
-        <div className="space-y-1.5">
-          <div className="instrument-label text-primary">How it works</div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Rules &amp; Scoring</h1>
-        </div>
+        <PageHeader
+          eyebrow="How it works"
+          title="Rules & Scoring"
+        />
 
         <F1Card>
           <F1CardHeader><F1CardTitle className="text-base">Each race weekend</F1CardTitle></F1CardHeader>
