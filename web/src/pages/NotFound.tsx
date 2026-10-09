@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import f1Logo from "@/assets/f1-logo.svg";
-import { F1Card, F1CardContent } from "@/components/f1";
+import { F1Card, F1CardContent, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ const NotFound = () => {
   return (
     <div className={pageShell}>
       <div className={cn(pageStack, "animate-fade-in flex items-center justify-center py-16 md:py-24")}>
+        <PageHeader eyebrow="Error 404" title="Page not found" className="sr-only" />
         <F1Card
           variant={isGlass ? "glass" : "default"}
           glassVariant={isGlass ? "panel" : "default"}

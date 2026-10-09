@@ -103,9 +103,9 @@ const ResetPassword = () => {
           <img src={f1Logo} alt="F1 DataStop" className="w-20 h-20" />
         </div>
 
-        <F1Card variant="default" className="w-full p-0">
+        <F1Card variant="default" size="default" className="w-full p-0">
           <F1CardHeader className="space-y-1 text-center">
-            <F1CardTitle className="!text-2xl justify-center">
+            <F1CardTitle className="justify-center">
               {recoveryMode ? 'Set new password' : 'Request password reset'}
             </F1CardTitle>
             <F1CardDescription className="text-muted-foreground">

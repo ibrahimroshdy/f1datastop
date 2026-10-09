@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { F1Card, F1CardContent, PageHeader } from "@/components/f1";
-import { pageShellNarrow } from "@/lib/layout";
+import { pageShellNarrow, pageStack } from "@/lib/layout";
 
 const Privacy = () => {
   const { isGlass } = useTheme();
@@ -10,7 +10,8 @@ const Privacy = () => {
   const calloutGlass = isGlass ? ("subtle" as const) : ("default" as const);
 
   return (
-      <div className={cn(pageShellNarrow, "space-y-6 py-6")}>
+      <div className={pageShellNarrow}>
+        <div className={cn(pageStack, "animate-fade-in")}>
         <Helmet>
           <title>Privacy Policy | F1 DataStop</title>
           <meta name="description" content="F1 DataStop privacy policy and data collection practices" />
@@ -24,13 +25,13 @@ const Privacy = () => {
             "prose-headings:scroll-mt-20 prose-a:text-primary"
           )}
         >
-          <h2 className="text-xl font-semibold mt-8 mb-3">Introduction</h2>
+          <h2 className="instrument-label pt-4 text-primary">Introduction</h2>
           <p>
             F1 DataStop (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your privacy.
             This Privacy Policy explains how we collect, use, and share information about you when you use our website.
           </p>
 
-          <h2 className="text-xl font-semibold mt-8 mb-3">Information We Collect</h2>
+          <h2 className="instrument-label pt-4 text-primary">Information We Collect</h2>
           <p>We collect information about you in various ways when you use our website:</p>
           <ul className="list-disc pl-6 mt-2 mb-6">
             <li>Information you provide directly to us, such as when you create an account or contact us</li>
@@ -41,7 +42,7 @@ const Privacy = () => {
             <li>Information from third parties, where permitted by law</li>
           </ul>
 
-          <h2 className="text-xl font-semibold mt-8 mb-3">User Analytics and Microsoft Clarity</h2>
+          <h2 className="instrument-label pt-4 text-primary">User Analytics and Microsoft Clarity</h2>
           <F1Card variant={calloutVariant} glassVariant={calloutGlass} className="not-prose mb-6">
             <F1CardContent className="text-sm leading-relaxed text-muted-foreground">
               <p className="mb-0">
@@ -64,7 +65,7 @@ const Privacy = () => {
             </F1CardContent>
           </F1Card>
 
-          <h2 className="text-xl font-semibold mt-8 mb-3">How We Use Your Information</h2>
+          <h2 className="instrument-label pt-4 text-primary">How We Use Your Information</h2>
           <p>We use the information we collect to:</p>
           <ul className="list-disc pl-6 mt-2 mb-6">
             <li>Provide, maintain, and improve our services</li>
@@ -76,7 +77,7 @@ const Privacy = () => {
             <li>Detect, investigate, and prevent fraudulent transactions and other illegal activities</li>
           </ul>
 
-          <h2 className="text-xl font-semibold mt-8 mb-3">Cookies and Other Tracking Technologies</h2>
+          <h2 className="instrument-label pt-4 text-primary">Cookies and Other Tracking Technologies</h2>
           <p>
             We and our partners use cookies and similar technologies to collect information about your interactions with our
             website. You can control or reject cookies through your browser settings, although this may limit your ability to
@@ -89,7 +90,7 @@ const Privacy = () => {
             provides on the site.
           </p>
 
-          <h2 className="text-xl font-semibold mt-8 mb-3">Your Rights and Choices</h2>
+          <h2 className="instrument-label pt-4 text-primary">Your Rights and Choices</h2>
           <p>Depending on your location, you may have certain rights regarding your personal information, including:</p>
           <ul className="list-disc pl-6 mt-2 mb-6">
             <li>Access to your personal information</li>
@@ -100,13 +101,14 @@ const Privacy = () => {
             <li>Withdrawal of consent</li>
           </ul>
 
-          <h2 className="text-xl font-semibold mt-8 mb-3">Contact Us</h2>
+          <h2 className="instrument-label pt-4 text-primary">Contact Us</h2>
           <p>
             If you have any questions about this Privacy Policy or our data practices, please contact us at:
             <br />
             <br />
             <strong>Email:</strong> admin@f1datastop.com
           </p>
+        </div>
         </div>
       </div>
   );

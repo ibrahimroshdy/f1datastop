@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Loader2, Lock, Check } from "lucide-react";
+import { Lock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Loader } from "@/components/f1";
 import type { SeasonDriver, SessionType } from "../api/gameClient";
 import { DriverPicker } from "./DriverPicker";
 
@@ -80,7 +80,7 @@ export function SessionPredict({
         {editable && (
           <div className="flex items-center gap-3">
             <Button className="min-h-11 gap-1.5" onClick={save} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : null}
+              {saving ? <F1Loader size="sm" /> : saved ? <Check className="h-4 w-4" /> : null}
               {saved ? "Saved" : "Save picks"}
             </Button>
             {err ? <span className="text-xs text-destructive">{err}</span> : null}

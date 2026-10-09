@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Flag, ChevronRight, Lock, History, BookOpen, Users, Medal, UserCircle, ShieldAlert, TrendingUp } from "lucide-react";
+import { Flag, ChevronRight, Lock, History, BookOpen, Users, Medal, UserCircle, ShieldAlert, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
-import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -72,12 +72,10 @@ function ActivatedHub({ entryId }: { entryId: string }) {
 
       {/* Identity + live scoreboard */}
       <div className="space-y-3">
-        <div className="space-y-1">
-          <div className="instrument-label flex items-center gap-1.5 text-primary">
-            <Trophy className="h-3 w-3" /> {ACTIVE_GAME_SEASON} Podium
-          </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Your Podium</h1>
-        </div>
+        <PageHeader
+          eyebrow={`${ACTIVE_GAME_SEASON} Podium`}
+          title="Your Podium"
+        />
         <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card/40 sm:grid-cols-4 sm:divide-y-0">
           <StatCell label="Points" value={<AnimatedNumber value={points} mono />} accent="hsl(var(--primary))" />
           <StatCell label="Rank" value={percentile.data != null ? <>Top {Math.round(Number(percentile.data))}%</> : "—"} />
@@ -231,16 +229,11 @@ export default function GameHub() {
   if (!isActivated || !entryId) {
     return (
       <div className={cn(pageShell, pageStack, "animate-fade-in")}>
-        <div className="space-y-1.5">
-          <div className="instrument-label flex items-center gap-1.5 text-primary">
-            <Trophy className="h-3 w-3" /> Prediction Game
-          </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Join Podium</h1>
-          <p className="max-w-prose text-sm text-muted-foreground">
-            Predict qualifying &amp; race top-10s every weekend, pick your champions, and climb your
-            league. Activate to start playing the {ACTIVE_GAME_SEASON} season.
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="Prediction Game"
+          title="Join Podium"
+          description={`Predict qualifying & race top-10s every weekend, pick your champions, and climb your league. Activate to start playing the ${ACTIVE_GAME_SEASON} season.`}
+        />
         <F1Card>
           <F1CardContent className="flex flex-col items-start gap-3 py-6">
             <Button size="lg" className="min-h-11 gap-2" onClick={() => activate()} disabled={activating}>

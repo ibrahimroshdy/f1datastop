@@ -7,11 +7,12 @@ import CalendarAnalyticsTracker from "@/components/calendar/CalendarAnalyticsTra
 import RaceCalendarListView from "@/components/calendar/RaceCalendarListView";
 import RaceCalendarGridView from "@/components/calendar/RaceCalendarGridView";
 import { pageShell, pageStack } from "@/lib/layout";
+import { PageHeader } from "@/components/f1";
 import { useRaceCalendar } from "@/hooks/useRaceCalendar";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { cn } from "@/lib/utils";
-import { Grid3x3, List, Star, CalendarDays } from "lucide-react";
+import { Grid3x3, List, Star } from "lucide-react";
 import Seo from "@/components/common/Seo";
 import { breadcrumbSchema } from "@/lib/structuredData";
 
@@ -66,51 +67,45 @@ const RaceCalendar = () => {
       <div className={pageShell}>
         <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
           {/* ── Compact app header (eyebrow + title + round readout) ──────── */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0 space-y-1.5">
-              <div className="instrument-label flex items-center gap-1.5 text-primary">
-                <CalendarDays className="h-3 w-3" />
-                <span>Season {selectedYear}</span>
-              </div>
-              <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
-                Race<span className="text-primary"> Calendar</span>
-              </h1>
-            </div>
-
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-fit sm:justify-end">
-              <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-primary">
-                Rounds
-                <span className="timing">{String(raceCount).padStart(2, "0")}</span>
-              </span>
-              <div className="flex items-center rounded-lg border border-border bg-card p-1 shadow-card">
-                <Button
-                  variant={viewMode === "list" ? "default" : "ghost"}
-                  size="sm"
-                  className={cn(
-                    "h-8 gap-1.5 px-2 text-xs font-semibold uppercase tracking-widest sm:px-3",
-                    viewMode === "list" && "bg-primary text-primary-foreground",
-                  )}
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="h-4 w-4" />
-                  <span className="hidden sm:inline">List</span>
-                </Button>
-                <Button
-                  variant={viewMode === "grid" ? "default" : "ghost"}
-                  size="sm"
-                  className={cn(
-                    "h-8 gap-1.5 px-2 text-xs font-semibold uppercase tracking-widest sm:px-3",
-                    viewMode === "grid" && "bg-primary text-primary-foreground",
-                  )}
-                  onClick={() => setViewMode("grid")}
-                >
-                  <Grid3x3 className="h-4 w-4" />
-                  <span className="hidden sm:inline">Grid</span>
-                </Button>
-              </div>
-              <YearSelector selectedYear={selectedYear} onYearChange={onYearChange} />
-            </div>
-          </div>
+          <PageHeader
+            eyebrow={`Season ${selectedYear}`}
+            title="Race Calendar"
+            actions={
+              <>
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-primary">
+                  Rounds
+                  <span className="timing">{String(raceCount).padStart(2, "0")}</span>
+                </span>
+                <div className="flex items-center rounded-lg border border-border bg-card p-1 shadow-card">
+                  <Button
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "h-8 gap-1.5 px-2 text-xs font-semibold uppercase tracking-widest sm:px-3",
+                      viewMode === "list" && "bg-primary text-primary-foreground",
+                    )}
+                    onClick={() => setViewMode("list")}
+                  >
+                    <List className="h-4 w-4" />
+                    <span className="hidden sm:inline">List</span>
+                  </Button>
+                  <Button
+                    variant={viewMode === "grid" ? "default" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "h-8 gap-1.5 px-2 text-xs font-semibold uppercase tracking-widest sm:px-3",
+                      viewMode === "grid" && "bg-primary text-primary-foreground",
+                    )}
+                    onClick={() => setViewMode("grid")}
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Grid</span>
+                  </Button>
+                </div>
+                <YearSelector selectedYear={selectedYear} onYearChange={onYearChange} />
+              </>
+            }
+          />
 
           {/* ── Weekend-encoding legend (compact instrument row) ──────────── */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">

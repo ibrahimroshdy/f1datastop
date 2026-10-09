@@ -1,5 +1,4 @@
-import { F1Card, F1EmptyState } from "@/components/f1";
-import { Skeleton } from "@/components/ui/skeleton";
+import { F1Card, F1EmptyState, F1Skeleton } from "@/components/f1";
 import { format, parseISO } from "date-fns";
 import { f1ToLocal, userTzLabel } from "@/lib/time";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
@@ -69,14 +68,14 @@ export default function RaceCalendarListView({
             .fill(0)
             .map((_, index) => (
               <li key={index} className="flex min-h-[56px] items-center">
-                <Skeleton className="h-9 w-1 shrink-0 self-stretch" />
+                <F1Skeleton className="h-9 w-1 shrink-0 self-stretch" />
                 <div className="flex flex-1 items-center gap-3 px-4 py-3">
-                  <Skeleton className="h-7 w-7 shrink-0 rounded-md" />
+                  <F1Skeleton className="h-7 w-7 shrink-0 rounded-md" />
                   <div className="flex flex-1 flex-col gap-1.5">
-                    <Skeleton className="h-4 w-2/3" />
-                    <Skeleton className="h-3 w-1/3" />
+                    <F1Skeleton className="h-4 w-2/3" />
+                    <F1Skeleton className="h-3 w-1/3" />
                   </div>
-                  <Skeleton className="h-3 w-12 shrink-0" />
+                  <F1Skeleton className="h-3 w-12 shrink-0" />
                 </div>
               </li>
             ))}

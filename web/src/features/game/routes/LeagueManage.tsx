@@ -9,7 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { BackLink } from "@/components/ui/back-link";
-import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, F1Avatar } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, F1Avatar, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -70,7 +70,10 @@ export default function LeagueManage() {
     <div className={pageShell}>
       <div className={cn(pageStack, "animate-fade-in")}>
         <BackLink to={`/game/leagues/${leagueId}`}>{l?.name ?? "League"}</BackLink>
-        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Manage League</h1>
+        <PageHeader
+          eyebrow="League"
+          title="Manage League"
+        />
 
         {/* Invite */}
         <F1Card>
@@ -134,7 +137,7 @@ export default function LeagueManage() {
               <div className="flex flex-col gap-1.5">
                 <span className="instrument-label text-muted-foreground">Crest</span>
                 <Input value={crest} onChange={(e) => setCrest(e.target.value)} maxLength={4}
-                  placeholder="🏁 / PW" className="h-11 w-24 text-center text-lg" />
+                  placeholder="PW" className="h-11 w-24 text-center text-lg" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <span className="instrument-label text-muted-foreground">Accent</span>

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Medal, Lock, Trophy } from "lucide-react";
+import { Lock, Trophy } from "lucide-react";
 import { getTeamColorById } from "@/constants/f1Colors";
 import { Button } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
-import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useGameActivation } from "../hooks/useGameActivation";
@@ -51,15 +51,11 @@ export default function Champions() {
     <div className={pageShell}>
       <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
         <BackLink to="/game">Predictions</BackLink>
-        <div className="space-y-1.5">
-          <div className="instrument-label flex items-center gap-1.5 text-primary">
-            <Medal className="h-3 w-3" /> Season picks
-          </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Champions</h1>
-          <p className="text-sm text-muted-foreground">
-            {canEdit ? "Editable until the mid-season lock." : "Champion picks are locked for the season."}
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="Season picks"
+          title="Champions"
+          description={canEdit ? "Editable until the mid-season lock." : "Champion picks are locked for the season."}
+        />
 
         {/* Prestige showcase — current champions picks */}
         {!loading && (wdcDriver || wccTeam) && (

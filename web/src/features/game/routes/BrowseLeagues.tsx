@@ -1,9 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
-import { F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1Skeleton, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { listPublicLeagues, joinPublicLeague } from "../api/leaguesClient";
@@ -22,12 +21,10 @@ export default function BrowseLeagues() {
     <div className={pageShell}>
       <div className={cn(pageStack, "animate-fade-in")}>
         <BackLink to="/game/leagues">Leagues</BackLink>
-        <div className="space-y-1.5">
-          <div className="instrument-label flex items-center gap-1.5 text-primary">
-            <Globe className="h-3 w-3" /> Discover
-          </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Public Leagues</h1>
-        </div>
+        <PageHeader
+          eyebrow="Discover"
+          title="Public Leagues"
+        />
 
         {leagues.isLoading ? (
           <F1Skeleton variant="card" className="h-40" />

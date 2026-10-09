@@ -1,9 +1,8 @@
 import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Swords } from "lucide-react";
 import { BackLink } from "@/components/ui/back-link";
-import { F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1Skeleton, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -42,14 +41,10 @@ export default function H2H() {
     <div className={pageShell}>
       <div className={cn(pageStack, "animate-fade-in")}>
         <BackLink to={`/game/leagues/${leagueId}`}>League</BackLink>
-        <div className="space-y-1.5">
-          <div className="instrument-label flex items-center gap-1.5 text-primary">
-            <Swords className="h-3 w-3" /> Head to head
-          </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
-            {meName} <span className="text-muted-foreground">vs</span> {themName}
-          </h1>
-        </div>
+        <PageHeader
+          eyebrow="Head to head"
+          title={`${meName} vs ${themName}`}
+        />
 
         {h2h.isLoading ? (
           <F1Skeleton variant="card" className="h-64" />

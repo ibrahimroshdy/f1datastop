@@ -57,12 +57,12 @@ const Login = () => {
 
   return (
     <AuthShell>
-        <F1Card variant="default" className="w-full p-0">
+        <F1Card variant="default" size="default" className="w-full p-0">
           <F1CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <img src={f1Logo} alt="F1 DataStop" className="w-16 h-16" />
             </div>
-            <F1CardTitle className="!text-2xl justify-center">
+            <F1CardTitle className="justify-center">
               {showForgotPassword ? "Reset Password" : "Sign In"}
             </F1CardTitle>
             <F1CardDescription className="text-muted-foreground">

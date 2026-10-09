@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isoToLocal, userTzLabel } from "@/lib/time";
 import { CalendarClock } from "lucide-react";
 import { BackLink } from "@/components/ui/back-link";
-import { F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1Skeleton, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useGameActivation } from "../hooks/useGameActivation";
@@ -59,27 +59,23 @@ export default function PredictRound() {
       <div className={cn("mx-auto w-full max-w-2xl", pageStack, "animate-fade-in")}>
         <BackLink to="/game">Predictions</BackLink>
 
-        <div className="space-y-1.5">
-          <div className="instrument-label text-primary">
-            Round {round}{meta?.is_sprint ? " · Sprint weekend" : ""}
+        <PageHeader
+          eyebrow={`Round ${round}${meta?.is_sprint ? " · Sprint weekend" : ""}`}
+          title={meta?.race_name ?? `Round ${round}`}
+        />
+        {meta?.deadline && (
+          <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+            <CalendarClock className="h-4 w-4" />
+            {editable.data ? (
+              <>
+                Locks {isoToLocal(meta.deadline, "EEE dd MMM, HH:mm")} {userTzLabel()} ·{" "}
+                <Countdown to={meta.deadline} className="readout font-semibold" />
+              </>
+            ) : (
+              "Picks are locked for this weekend"
+            )}
           </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">
-            {meta?.race_name ?? `Round ${round}`}
-          </h1>
-          {meta?.deadline && (
-            <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-              <CalendarClock className="h-4 w-4" />
-              {editable.data ? (
-                <>
-                  Locks {isoToLocal(meta.deadline, "EEE dd MMM, HH:mm")} {userTzLabel()} ·{" "}
-                  <Countdown to={meta.deadline} className="readout font-semibold" />
-                </>
-              ) : (
-                "Picks are locked for this weekend"
-              )}
-            </div>
-          )}
-        </div>
+        )}
 
         {meta?.deadline && editable.data ? (
           <div className="flex justify-center py-1">

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, F1Avatar } from "@/components/f1";
+import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, F1Avatar, PageHeader } from "@/components/f1";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
@@ -79,26 +79,26 @@ export default function LeagueDetail() {
         <BackLink to="/game/leagues">Leagues</BackLink>
 
         <div className="flex items-start justify-between gap-3 border-l-2 pl-3" style={{ borderLeftColor: accent }}>
-          <div className="flex min-w-0 items-start gap-3">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
             <LeagueCrest league={l ?? { id: leagueId }} size="lg" />
-            <div className="min-w-0 space-y-1.5">
-              <div className="instrument-label text-primary">League</div>
-              <h1 className="truncate font-heading text-2xl font-bold tracking-tight md:text-3xl">
-                {l?.name ?? "League"}
-              </h1>
-              {l?.description && (
-                <p className="max-w-prose text-sm text-muted-foreground">{l.description}</p>
-              )}
-              <div className="text-2xs text-muted-foreground">
+            <div className="min-w-0 flex-1">
+              <PageHeader
+                eyebrow="League"
+                title={l?.name ?? "League"}
+                description={l?.description ?? undefined}
+                actions={
+                  iAmCaptain ? (
+                    <Link to={`/game/leagues/${leagueId}/manage`}>
+                      <Button variant="outline" size="sm" className="min-h-11 gap-1.5"><Settings className="h-4 w-4" /> Manage</Button>
+                    </Link>
+                  ) : undefined
+                }
+              />
+              <div className="mt-1 text-2xs text-muted-foreground">
                 {members.data?.length ?? "…"} members · {l?.is_public ? "Public" : "Private"}
               </div>
             </div>
           </div>
-          {iAmCaptain && (
-            <Link to={`/game/leagues/${leagueId}/manage`}>
-              <Button variant="outline" size="sm" className="min-h-11 gap-1.5"><Settings className="h-4 w-4" /> Manage</Button>
-            </Link>
-          )}
         </div>
 
         {/* Season selector + view toggle */}

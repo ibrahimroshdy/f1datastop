@@ -3,12 +3,12 @@ import { Flag, Link2, Star, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CountryFlag from "@/components/common/CountryFlag";
-import { F1Card } from "@/components/f1";
+import { F1Card, SessionSelector, type SessionOption } from "@/components/f1";
 import { cn } from "@/lib/utils";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { useRaceSchedule } from "@/hooks/f1/useSchedule";
 import type { RaceContext } from "@/components/race-analysis/RaceAnalysisHeader";
-import { PITWALL_SEASONS, sessionsForRace, type CompareMode } from "../pitwall.config";
+import { PITWALL_SEASONS, sessionsForRace, type CompareMode, type SessionCode } from "../pitwall.config";
 import type { PitWallState } from "../hooks/usePitWallState";
 
 interface Props {
@@ -34,6 +34,16 @@ export function ContextBar({ state, patch }: Props) {
     [races, state.round],
   );
   const sessions = sessionsForRace(currentRace);
+  const sessionOptions: SessionOption[] = sessions.map((s, i) => ({
+    session_key: i + 1,
+    session_name: s.short,
+    session_type: s.code,
+    date_start: "",
+    date_end: "",
+    meeting_key: 0,
+  }));
+  const selectedSessionKey =
+    sessionOptions.find((o) => o.session_type === state.session)?.session_key ?? null;
   const raceLabel = currentRace ? cleanName(currentRace.raceName) : "";
 
   const onShare = () => {
@@ -96,25 +106,15 @@ export function ContextBar({ state, patch }: Props) {
           </Select>
         </div>
 
-        <div className="min-w-0">
-          <label className="instrument-label mb-1 block">Session</label>
-          <div className="flex max-w-full overflow-x-auto rounded-lg border border-border">
-            {sessions.map((s) => (
-              <button
-                key={s.code}
-                type="button"
-                title={s.label}
-                onClick={() => patch({ session: s.code, lap: null })}
-                className={cn(
-                  "min-h-9 shrink-0 border-r border-border/60 px-2.5 text-xs font-semibold transition-colors last:border-r-0",
-                  state.session === s.code ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-accent hover:text-foreground",
-                )}
-              >
-                {s.short}
-              </button>
-            ))}
-          </div>
-        </div>
+        <SessionSelector
+          label="Session"
+          sessions={sessionOptions}
+          selectedSessionKey={selectedSessionKey}
+          onSessionChange={(v) => {
+            const opt = sessionOptions.find((o) => String(o.session_key) === v);
+            if (opt) patch({ session: opt.session_type as SessionCode, lap: null });
+          }}
+        />
 
         <div className="ml-auto flex items-end gap-2">
           <div>

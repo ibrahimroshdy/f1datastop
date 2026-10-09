@@ -1,8 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { F1Card, F1CardContent, F1Skeleton } from "@/components/f1";
+import { F1Card, F1CardContent, F1Skeleton, PageHeader } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useGameActivation } from "../hooks/useGameActivation";
@@ -27,12 +26,10 @@ export default function JoinLeague() {
   return (
     <div className={pageShell}>
       <div className={cn("mx-auto w-full max-w-xl", pageStack, "animate-fade-in")}>
-        <div className="space-y-1.5">
-          <div className="instrument-label flex items-center gap-1.5 text-primary">
-            <Users className="h-3 w-3" /> League invite
-          </div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">Join a league</h1>
-        </div>
+        <PageHeader
+          eyebrow="League invite"
+          title="Join a league"
+        />
 
         {preview.isLoading ? (
           <F1Skeleton variant="card" className="h-32" />

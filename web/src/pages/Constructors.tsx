@@ -4,6 +4,7 @@ import { useTheme } from "@/context/ThemeContext";
 import {
   F1Card,
   F1CardContent,
+  F1Skeleton,
   PageHeader,
 } from "@/components/f1";
 import { pageShell, pageStack } from "@/lib/layout";
@@ -12,7 +13,6 @@ import { Search, Trophy } from "lucide-react";
 import { useConstructorStandings, useDriverStandings } from "@/hooks/useF1Data";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Skeleton } from "@/components/ui/skeleton";
 import TeamLogo from "@/components/common/TeamLogo";
 import YearSelector from "@/components/common/YearSelector";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
@@ -106,15 +106,15 @@ const Constructors = () => {
         {isLoading ? (
           <div className="flex flex-col gap-3">
             {Array(10).fill(0).map((_, i) => (
-              <F1Card key={i} variant={cardVariant} glassVariant={glassVariant} className="p-4">
+              <F1Card key={i} variant={cardVariant} glassVariant={glassVariant} size="default">
                 <div className="flex items-center gap-3">
-                  <Skeleton className="h-12 w-12 rounded-md" />
+                  <F1Skeleton className="h-12 w-12 rounded-md" />
                   <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-40" />
-                    <Skeleton className="h-3 w-24" />
+                    <F1Skeleton className="h-4 w-40" />
+                    <F1Skeleton className="h-3 w-24" />
                   </div>
-                  <Skeleton className="h-8 w-16" />
-                  <Skeleton className="hidden h-10 w-56 md:block" />
+                  <F1Skeleton className="h-8 w-16" />
+                  <F1Skeleton className="hidden h-10 w-56 md:block" />
                 </div>
               </F1Card>
             ))}

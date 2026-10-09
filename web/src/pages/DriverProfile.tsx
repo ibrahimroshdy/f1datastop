@@ -5,6 +5,7 @@ import {
   F1CardContent,
   F1EmptyState,
   F1Skeleton,
+  PageHeader,
   PositionBadge,
 } from "@/components/f1";
 import CountryFlag from "@/components/common/CountryFlag";
@@ -134,6 +135,12 @@ const DriverProfile = () => {
         {/* ── Back link (← Drivers) ───────────────────────────────────────── */}
         <BackLink to="/drivers">Drivers</BackLink>
 
+        <PageHeader
+          eyebrow="Driver Profile"
+          title={displayName}
+          description={teamName ?? nationality ?? undefined}
+        />
+
         {/* ── Compact identity + stat readouts header ─────────────────────── */}
         <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-[minmax(0,360px)_1fr] lg:items-start">
           {/* Identity row */}
@@ -159,9 +166,9 @@ const DriverProfile = () => {
                   <FlagIcon className="h-3 w-3" />
                   Driver Profile
                 </div>
-                <h1 className="truncate font-heading text-xl font-bold leading-tight tracking-tight md:text-2xl">
+                <div className="font-heading text-xl font-bold leading-tight tracking-tight md:text-2xl truncate">
                   {displayName}
-                </h1>
+                </div>
                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
                   {driverNumber != null && (
                     <span className="timing font-semibold text-foreground">

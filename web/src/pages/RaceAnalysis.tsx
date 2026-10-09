@@ -182,7 +182,7 @@ const RaceAnalysis = () => {
           ]),
         ]}
       />
-      <div className={cn(pageStack, "animate-fade-in")}>
+      <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         <RaceAnalysisHeader selectedYear={selectedYear} currentRace={currentRace} />
 
         {/* Sticky race-context bar (desktop only — the picker is a single compact
