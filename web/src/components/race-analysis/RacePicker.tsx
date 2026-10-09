@@ -3,13 +3,14 @@ import CountryFlag from "@/components/common/CountryFlag";
 import {
   F1Card,
   SessionSelector,
+  F1Loader,
+  F1Skeleton,
   type SessionOption,
 } from "@/components/f1";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
-import { Flag, Loader2, Star } from "lucide-react";
+import { Flag, Star } from "lucide-react";
 import type { RaceContext } from "./RaceAnalysisHeader";
 
 /** Sprint weekends carry a Sprint / SprintQualifying entry in the schedule. */
@@ -113,8 +114,8 @@ export function RacePicker({
           <label className="instrument-label mb-1 block">Grand Prix</label>
           {isRaceScheduleLoading ? (
             <div className="flex w-full items-center gap-2">
-              <Skeleton className="h-9 w-full" />
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <F1Skeleton className="h-9 w-full" />
+              <F1Loader size="sm" />
             </div>
           ) : (
             <Select value={selectedRace} onValueChange={onRaceChange}>

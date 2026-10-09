@@ -8,7 +8,7 @@ export function getTeamColor(constructorId: string): string {
   let normalizedTeamId = constructorId.toLowerCase();
   if (normalizedTeamId === "alphatauri") normalizedTeamId = "rb";
   else if (normalizedTeamId === "alfa") normalizedTeamId = "sauber";
-  return TEAM_COLORS[normalizedTeamId] || resolveTeamColor(normalizedTeamId) || "#666666";
+  return TEAM_COLORS[normalizedTeamId] || resolveTeamColor(normalizedTeamId) || TEAM_COLORS.default;
 }
 
 export function getTeamColorStyle(constructorId: string) {

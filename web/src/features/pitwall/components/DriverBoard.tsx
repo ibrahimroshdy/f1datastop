@@ -43,7 +43,7 @@ interface Props {
   onSetRef: (code: string) => void;
 }
 
-/** Sectors 1·2·3 as an LED gauge — purple = session best, green = personal best, yellow =
+/** Sectors 1·2·3 as an LED gauge — fastest-lap token = session best, gain = personal best, position-gold =
  *  a completed sector, dim = not set yet. Fills left→right in order as the lap runs. */
 function SectorLeds({ sec, pb, id, bestHolder }: { sec?: (number | null)[]; pb?: [number, number, number]; id: string; bestHolder: (string | null)[] }) {
   if (!sec) return null;
@@ -59,7 +59,7 @@ function SectorLeds({ sec, pb, id, bestHolder }: { sec?: (number | null)[]; pb?:
           dot = "bg-gain shadow-[0_0_5px] shadow-gain/70";
           what = "personal best";
         } else if (s != null) {
-          dot = "bg-yellow-500 dark:bg-yellow-400";
+          dot = "bg-position-gold";
           what = "set";
         }
         // Per-dot title: the times are the point of the gauge, and one label on the group

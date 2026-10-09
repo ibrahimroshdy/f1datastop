@@ -5,7 +5,8 @@ import {
   F1CardDescription,
   F1CardHeader,
   F1CardTitle,
-  F1Skeleton,
+  F1ChartContainer,
+  F1EmptyState,
 } from "@/components/f1";
 import { cn } from "@/lib/utils";
 import { ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
@@ -74,9 +75,14 @@ const TrackMapChart = ({ year, round, session = "R" }: Props) => {
 
   if (!indexLoading && (!index || index.length === 0)) {
     return (
-      <div className="flex h-[260px] items-center justify-center text-center text-sm text-muted-foreground">
-        No telemetry exported for this session yet.
-      </div>
+      <F1EmptyState
+        type="no-chart-data"
+        size="sm"
+        showDecoration={false}
+        title="No Track Map Data"
+        description="No telemetry exported for this session yet."
+        className="h-[260px]"
+      />
     );
   }
 
@@ -117,13 +123,15 @@ const TrackMapChart = ({ year, round, session = "R" }: Props) => {
       </F1CardHeader>
 
       <F1CardContent className="px-0 pb-0">
-        {indexLoading || isLoading ? (
-          <F1Skeleton className="h-[340px] w-full" />
-        ) : !geom ? (
-          <div className="flex h-[340px] items-center justify-center text-muted-foreground">
-            Select a driver.
-          </div>
-        ) : (
+        <F1ChartContainer
+          minHeight={340}
+          isLoading={indexLoading || isLoading}
+          useSkeleton
+          isEmpty={!indexLoading && !isLoading && !geom}
+          emptyTitle="No Track Map Data"
+          emptyDescription="Select a driver."
+        >
+          {geom ? (
           <>
             <svg
               viewBox={`0 0 ${W} ${H}`}
@@ -158,7 +166,8 @@ const TrackMapChart = ({ year, round, session = "R" }: Props) => {
               <span>{Math.round(geom.maxS)} km/h</span>
             </div>
           </>
-        )}
+          ) : null}
+        </F1ChartContainer>
       </F1CardContent>
     </F1Card>
   );

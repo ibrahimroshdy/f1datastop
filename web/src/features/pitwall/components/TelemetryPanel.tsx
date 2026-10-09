@@ -9,8 +9,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Loader2, Lock, RotateCcw, ZoomIn } from "lucide-react";
+import { Lock, RotateCcw, ZoomIn } from "lucide-react";
 import { chartTheme } from "@/lib/chartTheme";
+import { F1ChartContainer, F1Loader } from "@/components/f1";
 import { cn } from "@/lib/utils";
 import type { TelemetryBlob } from "@/services/telemetryService";
 import type { DriverTelemetry } from "../hooks/usePitWallTelemetry";
@@ -151,9 +152,12 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
 
   if (!ready.length && !pending.length) {
     return (
-      <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
-        Select drivers to load telemetry.
-      </div>
+      <F1ChartContainer
+        minHeight={160}
+        isEmpty
+        emptyTitle="No Telemetry Data"
+        emptyDescription="Select drivers to load telemetry."
+      />
     );
   }
 
@@ -304,7 +308,7 @@ function StatusChip({ t, color, time, dash }: { t: DriverTelemetry; color: strin
   // queued / processing / loading
   return (
     <span className={cn(base, "border-border text-muted-foreground")}>
-      <Loader2 className="h-3 w-3 animate-spin" /> {t.code} · generating L{t.lap}…
+      <F1Loader size="sm" className="gap-0" /> {t.code} · generating L{t.lap}…
     </span>
   );
 }
@@ -343,7 +347,8 @@ const ChartBody = memo(function ChartBody({
   onUp,
 }: ChartBodyProps) {
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <F1ChartContainer minHeight={height}>
+      <ResponsiveContainer width="100%" height={height}>
       <LineChart
         data={rows}
         margin={{ top: 4, right: 6, left: 2, bottom: 0 }}
@@ -384,6 +389,7 @@ const ChartBody = memo(function ChartBody({
         )}
       </LineChart>
     </ResponsiveContainer>
+    </F1ChartContainer>
   );
 });
 

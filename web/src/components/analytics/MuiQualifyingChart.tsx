@@ -12,11 +12,9 @@ import {
 } from "recharts";
 import { TEAM_COLORS, DRIVER_COLORS } from "@/constants/f1Colors";
 import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
-import { LayoutGrid } from "lucide-react";
 import { useQualifyingData } from "@/hooks/useQualifyingData";
-import { F1ChartContainer } from "@/components/f1/F1ChartContainer";
+import { F1ChartContainer, F1EmptyState } from "@/components/f1";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 interface MuiQualifyingChartProps {
@@ -140,12 +138,14 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
 
     if (sessionData.labels.length === 0) {
       return (
-        <div className={cn(
-          "flex items-center justify-center text-xs text-muted-foreground",
-          compact ? "h-[180px]" : "h-[300px]"
-        )}>
-          No data for {session}
-        </div>
+        <F1EmptyState
+          type="no-chart-data"
+          size="sm"
+          showDecoration={false}
+          title={`No Data for ${session}`}
+          description="No qualifying times were recorded for this phase."
+          className={cn(compact ? "h-[180px]" : "h-[300px]")}
+        />
       );
     }
 
@@ -272,7 +272,14 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
             <div className="flex flex-1 flex-col rounded-lg border border-border bg-card/40 p-3">
               <PhaseHeader phase={phase} count={data.labels.length} pole={data.fastestSessionTime} />
               <div className="min-h-0 flex-1 overflow-auto">
-                {renderSessionChart(data, phase, true)}
+                <F1ChartContainer
+                  minHeight={180}
+                  isEmpty={data.labels.length === 0}
+                  emptyTitle={`No Data for ${phase}`}
+                  emptyDescription="No qualifying times were recorded for this phase."
+                >
+                  {renderSessionChart(data, phase, true)}
+                </F1ChartContainer>
               </div>
             </div>
           </React.Fragment>
@@ -301,19 +308,20 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
           </button>
         ))}
 
-        {/* View All Button */}
-        <Button
-          variant={selectedSession === 'ALL' ? "default" : "outline"}
-          size="sm"
-          className={cn(
-            "h-6 gap-1 px-2 text-xs",
-            selectedSession === 'ALL' && "bg-primary text-primary-foreground"
-          )}
+        {/* View All Button — same underline-tab grammar as the phase toggles */}
+        <button
+          type="button"
           onClick={() => setSelectedSession('ALL')}
+          aria-pressed={selectedSession === 'ALL'}
+          className={cn(
+            "rounded-none border-b-2 px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-widest transition-fast",
+            selectedSession === 'ALL'
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
         >
-          <LayoutGrid size={12} />
           All Sectors
-        </Button>
+        </button>
 
         {/* Pole time (only show for single session) */}
         {selectedSession !== 'ALL' && 'fastestSessionTime' in muiChartData && (muiChartData.fastestSessionTime ?? 0) > 0 && (

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, DownloadCloud, Loader2, Rows3, Grid2x2, LayoutGrid } from "lucide-react";
+import { Download, DownloadCloud, Rows3, Grid2x2, LayoutGrid } from "lucide-react";
 import {
   getAnalysisCharts,
   baseChartType,
@@ -20,6 +20,7 @@ import {
   F1EmptyState,
   F1Skeleton,
   ChartSkeleton,
+  F1Loader,
 } from "@/components/f1";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 
@@ -246,7 +247,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
             disabled={downloadingAll}
           >
             {downloadingAll ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <F1Loader size="sm" />
             ) : (
               <DownloadCloud className="h-4 w-4" />
             )}
@@ -438,7 +439,7 @@ function ChartDownloadDialog({
         </div>
         {busy && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <F1Loader size="sm" />
             {phase === "processing" ? "Rendering your chart…" : "Queued — rendering starts shortly…"} You can keep this open; the file will download when it's ready.
           </p>
         )}
@@ -449,7 +450,7 @@ function ChartDownloadDialog({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={start} disabled={busy}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {busy ? <F1Loader size="sm" /> : <Download className="h-4 w-4" />}
             <span className="ml-1.5">{fmt === "landscape" ? "Download" : busy ? "Rendering" : "Render & download"}</span>
           </Button>
         </DialogFooter>

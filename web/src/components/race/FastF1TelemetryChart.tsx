@@ -16,7 +16,8 @@ import {
   F1CardDescription,
   F1CardHeader,
   F1CardTitle,
-  F1Skeleton,
+  F1ChartContainer,
+  F1EmptyState,
 } from "@/components/f1";
 import { TEAM_COLORS } from "@/constants/f1Colors";
 import { chartTheme } from "@/lib/chartTheme";
@@ -114,11 +115,23 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
 
   if (!indexLoading && (!index || index.length === 0)) {
     return (
-      <div className="flex h-[300px] items-center justify-center text-center text-sm text-muted-foreground">
-        No telemetry available for this session yet.
-      </div>
+      <F1EmptyState
+        type="no-chart-data"
+        size="sm"
+        showDecoration={false}
+        title="No Telemetry Data"
+        description="No telemetry available for this session yet."
+        className="h-[300px]"
+      />
     );
   }
+
+  const chartIsEmpty = laps.length === 0 || (isDelta && laps.length < 2);
+  const chartEmptyTitle = laps.length === 0 ? "No Telemetry Data" : "Pick a Second Driver";
+  const chartEmptyDescription =
+    laps.length === 0
+      ? "Select a driver to view telemetry."
+      : "Pick a second driver to see the cumulative time gap between them.";
 
   return (
     <F1Card variant="default" className="border-0 bg-transparent p-0 shadow-none">
@@ -195,17 +208,15 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
 
       <F1CardContent className="px-0 pb-0">
         <div className="h-[360px] w-full">
-          {indexLoading || lapsLoading ? (
-            <F1Skeleton className="h-full w-full" />
-          ) : !laps.length ? (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
-              Select a driver to view telemetry.
-            </div>
-          ) : isDelta && laps.length < 2 ? (
-            <div className="flex h-full items-center justify-center px-6 text-center text-muted-foreground">
-              Pick a second driver to see the cumulative time gap between them.
-            </div>
-          ) : (
+          <F1ChartContainer
+            minHeight={360}
+            className="h-[360px]"
+            isLoading={indexLoading || lapsLoading}
+            useSkeleton
+            isEmpty={!indexLoading && !lapsLoading && chartIsEmpty}
+            emptyTitle={chartEmptyTitle}
+            emptyDescription={chartEmptyDescription}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
                 <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" vertical={false} />
@@ -260,7 +271,7 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
                 )}
               </LineChart>
             </ResponsiveContainer>
-          )}
+          </F1ChartContainer>
         </div>
 
         {/* per-driver metric chips */}
