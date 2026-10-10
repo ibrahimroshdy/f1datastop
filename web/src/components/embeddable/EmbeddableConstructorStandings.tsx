@@ -1,0 +1,206 @@
+import React, { useState, useEffect } from 'react';
+import { Spinner } from '../ui/spinner';
+import { cn } from '../../lib/utils';
+import { TEAM_COLORS } from '../../constants/f1Colors';
+import { ergastFetch } from '../../lib/api/f1ApiFetch';
+import {
+  EMBEDDABLE_ERROR_COLOR,
+  getEmbeddableThemeClasses,
+  EmbeddableError,
+  EmbeddableTable,
+} from './embeddableShared';
+
+// Interfaces
+interface EmbeddableConstructorStandingsProps {
+  initialSeason?: number;
+  initialTheme?: 'light' | 'dark';
+  initialFont?: string;
+}
+
+interface ConstructorStanding {
+  position: number;
+  constructorId: string;
+  name: string;
+  nationality: string;
+  points: number;
+  wins: number;
+  logo?: string;
+}
+
+const EmbeddableConstructorStandings: React.FC<EmbeddableConstructorStandingsProps> = ({
+  initialSeason,
+  initialTheme = 'light',
+  initialFont = 'Inter'
+}) => {
+  // Props are the source of truth (the page remounts via key on season change),
+  // so read them directly — a useState copy would go stale when they change.
+  const season = initialSeason ?? new Date().getFullYear();
+  const theme = initialTheme;
+  const fontFamily = initialFont;
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [constructorStandings, setConstructorStandings] = useState<ConstructorStanding[]>([]);
+
+  // Get team color style
+  const getTeamColorStyle = (constructorId: string): string => {
+    // Normalize the team ID to match the keys in TEAM_COLORS
+    let normalizedTeamId = constructorId.toLowerCase();
+    
+    // Handle specific mappings
+    if (normalizedTeamId === "alphatauri") {
+      normalizedTeamId = "rb";
+    } else if (normalizedTeamId === "alfa") {
+      normalizedTeamId = "sauber";
+    }
+    
+    // Get color from TEAM_COLORS or default to a gray color
+    return TEAM_COLORS[normalizedTeamId] || TEAM_COLORS.default;
+  };
+
+  // Fetch constructor standings
+  const fetchConstructorStandings = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Route through the warehouse-aware F1 client (proxy fallback, throttled,
+      // cached) instead of hitting Ergast directly — avoids CORS + rate limits.
+      const response = await ergastFetch(`/f1/${season}/constructorStandings.json`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch constructor standings: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const apiConstructorStandings = data.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || [];
+      
+      // Transform API data to component format
+      const formattedStandings = apiConstructorStandings.map((constructor: any) => ({
+        position: parseInt(constructor.position),
+        constructorId: constructor.Constructor.constructorId,
+        name: constructor.Constructor.name,
+        nationality: constructor.Constructor.nationality,
+        points: parseFloat(constructor.points),
+        wins: parseInt(constructor.wins)
+      }));
+
+      setConstructorStandings(formattedStandings);
+    } catch (err) {
+      console.error('Error fetching constructor standings:', err);
+      setError('Failed to load constructor standings. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Shared light/dark theme class map (single source of truth across widgets)
+  const themeClasses = getEmbeddableThemeClasses(theme);
+
+  // Fetch data on mount and when season changes
+  useEffect(() => {
+    fetchConstructorStandings();
+  }, [season]);
+
+  return (
+    <div style={{ fontFamily: `${fontFamily}, sans-serif` }} className={cn(
+      'h-full w-full p-0 m-0 flex flex-col',
+      themeClasses.background,
+      themeClasses.text
+    )}>
+      {loading ? (
+        <div className="flex justify-center items-center h-full py-4">
+          <Spinner size="lg" />
+        </div>
+      ) : error ? (
+        <EmbeddableError theme={theme} message={error} />
+      ) : (
+        <EmbeddableTable
+          headerBg={themeClasses.headerBg}
+          divider={themeClasses.divider}
+          headers={
+            <>
+              <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">Pos</th>
+              <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">Constructor</th>
+              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider">Points</th>
+              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider">Wins</th>
+            </>
+          }
+        >
+          {constructorStandings.map((constructor) => (
+                <tr key={constructor.constructorId} className={themeClasses.rowBg}>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm">{constructor.position}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm">
+                    <div className="flex items-center">
+                      <div 
+                        className="w-4 h-4 mr-2 rounded-full" 
+                        style={{ backgroundColor: getTeamColorStyle(constructor.constructorId) }}
+                      ></div>
+                      <div>
+                        <div className="font-medium">{constructor.name}</div>
+                        <div className={themeClasses.secondaryText}>
+                          {constructor.nationality}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-right font-medium">{constructor.points}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-right">{constructor.wins}</td>
+                </tr>
+              ))}
+        </EmbeddableTable>
+      )}
+      
+      {/* Subtle branding footer */}
+      <div className={cn("text-center py-2 text-xs", themeClasses.footerText)} style={{ borderTop: `1px solid ${theme === 'dark' ? '#333' : '#eee'}` }}>
+        <span>
+          Provided by <a 
+            href="https://f1datastop.com" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="font-medium"
+            style={{ 
+              textDecoration: 'none', 
+              color: EMBEDDABLE_ERROR_COLOR[theme]
+            }}
+          >
+            F1DataStop
+          </a> 
+          {' · '} 
+          <a 
+            href="https://twitter.com/f1datastop" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={cn("font-medium", themeClasses.footerHover)}
+            style={{ textDecoration: 'none', color: 'inherit' }}
+          >
+            X (@f1datastop)
+          </a>
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default EmbeddableConstructorStandings;
+
+// Usage documentation:
+/*
+To embed this component on another website, use an iframe with the following code:
+
+<iframe 
+  src="https://yourdomain.com/embed/constructor-standings?season=2023&theme=light&font=Roboto,%20sans-serif" 
+  width="100%" 
+  height="600px" 
+  frameborder="0"
+></iframe>
+
+Available parameters:
+- season: Year (2015-present)
+- theme: "light" or "dark"
+- font: Font family name (e.g., "Roboto, sans-serif")
+
+Default values if not specified:
+- season: Current year
+- theme: "light"
+- font: "inherit" (uses the parent page's font)
+*/ 

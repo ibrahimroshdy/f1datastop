@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Google tag (gtag.js) — measurement id injected at BUILD time from the
+         VITE_GA_MEASUREMENT_ID Vercel env var (Vite replaces %VITE_*%). Not a
+         hardcode; the value is public by design. Auto page_view is ON here so the
+         initial load is always counted; SPA route changes are sent in-app
+         (AnalyticsProvider), which skips the first render to avoid a double. -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){ dataLayer.push(arguments); }
+      (function () {
+        var GA_ID = '%VITE_GA_MEASUREMENT_ID%';
+        if (!GA_ID || GA_ID.indexOf('%') !== -1) return; // unset in this environment
+        // EEA/UK/CH consent defaults (must precede config). Rest of world: granted.
+        gtag('consent', 'default', {
+          ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied',
+          analytics_storage: 'denied', functionality_storage: 'denied',
+          personalization_storage: 'denied', security_storage: 'granted',
+          wait_for_update: 500,
+          region: ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','IS','LI','NO','GB','CH']
+        });
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+        document.head.appendChild(s);
+        gtag('js', new Date());
+        gtag('config', GA_ID); // auto page_view ON
+      })();
+    </script>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="F1 DataStop" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+    <!-- Paint the themed background on the FIRST frame, before the CSS bundle
+         loads, to kill the white flash (FOUC) on refresh. -->
+    <style>
+      html, body { background-color: #000; }
+      html.light, html.light body { background-color: #fafafa; }
+    </style>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('f1ds-theme');
+          if (t === 'light-glass') t = 'light';
+          if (t !== 'light' && t !== 'dark' && t !== 'dark-glass') {
+            t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+          }
+          document.documentElement.classList.add(t);
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+
+    <!--
+      canonical and og:url are deliberately NOT hardcoded here. They used to point at the
+      homepage on every route, telling crawlers that every deep page was a duplicate of
+      "/" — effectively an instruction to drop them from the index. Only a per-route
+      canonical is correct, and a missing one beats a wrong one.
+    -->
+    <!--
+      Only the title and tags that NEVER vary per route live here. Per-route
+      title/description/canonical/og/twitter are owned by the Seo component
+      (src/components/common/Seo.tsx, react-helmet-async).
+
+      They used to be duplicated here. Helmet can only replace tags it created, so a
+      static copy meant every page shipped two description metas and two og:title values
+      with different content — conflicting signals for crawlers. The title below stays as
+      the pre-hydration default; a document may only have one, so Helmet replaces it
+      cleanly rather than appending.
+    -->
+    <title>F1 DataStop — Formula 1 Data Analysis Platform</title>
+    <meta name="author" content="F1DataStop" />
+
+    <!--
+      Site-wide fallbacks. These are what a crawler sees before JS runs, and they are the
+      ONLY metadata until the per-route <Seo> component is confirmed working — without
+      them the site ships with no description and no social card at all.
+      Once Seo/react-helmet-async is verified injecting, delete the description/og:title/
+      og:description/twitter:title/twitter:description lines below: Helmet cannot replace
+      tags it did not create, so keeping them then produces duplicates.
+      canonical and og:url stay OUT regardless — a homepage canonical on every route is
+      what was deindexing the deep pages.
+    -->
+    <meta name="description" content="F1 DataStop — Formula 1 Data Analysis Platform. Timing, telemetry, charts & standings. ." />
+    <meta property="og:title" content="F1 DataStop — Formula 1 Data Analysis Platform" />
+    <meta property="og:description" content="Timing, telemetry, charts & standings. ." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="F1 DataStop" />
+    <meta property="og:image" content="https://www.f1datastop.com/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="F1 DataStop — Formula 1 Data Analysis Platform" />
+    <meta name="twitter:description" content="Timing, telemetry, charts & standings. ." />
+    <meta name="twitter:image" content="https://www.f1datastop.com/og-image.png" />
+
+    <!-- Image dimensions + locale/handles: constant across every route, so no duplication. -->
+    <meta property="og:image:secure_url" content="https://www.f1datastop.com/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="F1 DataStop — Formula 1 Data Analysis Platform" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:site" content="@f1datastop" />
+    <meta name="twitter:image:alt" content="F1 DataStop — Formula 1 Data Analysis Platform" />
+    <meta name="twitter:creator" content="@f1datastop" />
+
+    <!-- Typography: Clash Display (headings) + Geist (body) + Geist Mono (readouts) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap" rel="stylesheet" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+
+    <!-- GA4 / AdSense load via src/integrations/bootstrapThirdParty.ts when VITE_* ids are set -->
+</head>
+<body>
+  <div id="root"></div> 
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

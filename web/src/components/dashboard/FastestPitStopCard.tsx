@@ -1,0 +1,290 @@
+import { useEffect, useState } from "react";
+import { Timer } from "lucide-react";
+import { F1Card, F1CardContent, F1CardHeader, F1Badge, F1Skeleton } from "@/components/f1";
+import { F1ErrorState } from "@/components/f1/F1ErrorState";
+import { TEAM_COLORS } from "@/constants/f1Colors";
+import { useLastRaceResults, useLastRacePitStops, useRaceSchedule } from "@/hooks/useF1Data";
+import ReactCountryFlag from "react-country-flag";
+import { getCountryCode } from "@/components/common/CountryFlag";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
+import { F1EmptyState } from "@/components/f1/F1EmptyState";
+
+// Helper function to format pit stop duration
+const formatPitStopDuration = (durationInSeconds: number): string => {
+  const minutes = Math.floor(durationInSeconds / 60);
+  const seconds = durationInSeconds % 60;
+  
+  if (minutes > 0) {
+    return `${minutes}:${seconds.toFixed(3).padStart(6, '0')}`;
+  }
+  return `${seconds.toFixed(3)}`;
+};
+
+interface FastestStop {
+  driver: {
+    code: string;
+    name: string;
+    team: string;
+    constructor: string;
+  };
+  lap: number;
+  time: string;
+  duration: number;
+}
+
+// Helper to get team hex color
+const getTeamHexColor = (teamId: string): string => {
+  let normalizedTeamId = teamId.toLowerCase();
+  if (normalizedTeamId === "alphatauri") normalizedTeamId = "rb";
+  else if (normalizedTeamId === "alfa") normalizedTeamId = "sauber";
+  return TEAM_COLORS[normalizedTeamId] || TEAM_COLORS.default;
+};
+
+// Driver to team mapping
+const DRIVER_TEAM_MAPPING: Record<string, string> = {
+  "max_verstappen": "red_bull", "perez": "red_bull",
+  "leclerc": "ferrari", "sainz": "ferrari", "bearman": "ferrari",
+  "hamilton": "mercedes", "russell": "mercedes", "antonelli": "mercedes",
+  "norris": "mclaren", "piastri": "mclaren",
+  "alonso": "aston_martin", "stroll": "aston_martin",
+  "gasly": "alpine", "ocon": "alpine", "doohan": "alpine",
+  "albon": "williams", "sargeant": "williams",
+  "tsunoda": "rb", "lawson": "rb", "ricciardo": "rb",
+  "bottas": "sauber", "zhou": "sauber", "bortoleto": "sauber",
+  "hulkenberg": "haas", "magnussen": "haas", "hadjar": "haas"
+};
+
+function processDriverFastestPitStops(raceData: any, pitStopData: any): FastestStop[] {
+  let pitStops = pitStopData?.MRData?.RaceTable?.Races?.[0]?.PitStops;
+  if (!pitStops?.length) pitStops = pitStopData?.data?.MRData?.RaceTable?.Races?.[0]?.PitStops;
+  if (!pitStops?.length) pitStops = pitStopData?.data?.Races?.[0]?.PitStops;
+  
+  if (!pitStops?.length) return [];
+
+  const driverInfo = new Map();
+  if (raceData?.data?.results) {
+    raceData.data.results.forEach((result: any) => {
+      driverInfo.set(result.Driver.driverId, {
+        code: result.Driver.code,
+        name: `${result.Driver.givenName} ${result.Driver.familyName}`,
+        team: result.Constructor.constructorId,
+        constructor: result.Constructor.name
+      });
+    });
+  }
+
+  const fastestPitStops = new Map<string, FastestStop>();
+
+  pitStops.forEach((stop: any) => {
+    const driverId = stop.driverId;
+    let driver = driverInfo.get(driverId);
+    
+    if (!driver) {
+      const code = driverId.toUpperCase().substring(0, 3);
+      const team = DRIVER_TEAM_MAPPING[driverId] || "default";
+      driver = {
+        code,
+        name: driverId.split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+        team,
+        constructor: team.split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+      };
+    }
+    
+    const duration = parseFloat(stop.duration);
+    
+    if (!fastestPitStops.has(driverId) || duration < fastestPitStops.get(driverId)!.duration) {
+      fastestPitStops.set(driverId, {
+        driver,
+        lap: parseInt(stop.lap),
+        time: stop.time,
+        duration
+      });
+    }
+  });
+
+  return Array.from(fastestPitStops.values())
+    .sort((a, b) => a.duration - b.duration)
+    .slice(0, 5);
+}
+
+const FastestPitStopCard = () => {
+  const [fastestPitStops, setFastestPitStops] = useState<FastestStop[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [raceName, setRaceName] = useState<string>("");
+  const [countryName, setCountryName] = useState<string>("");
+  const [countryCode, setCountryCode] = useState<string>("");
+  const [lastRace, setLastRace] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { isGlass } = useTheme();
+  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
+  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
+  
+  const lastRaceResult = useLastRaceResults();
+  const lastRacePitStops = useLastRacePitStops();
+  const { data: raceScheduleData } = useRaceSchedule();
+
+  useEffect(() => {
+    if (raceScheduleData?.data) {
+      const races = raceScheduleData.data;
+      const now = new Date();
+      const completedRaces = races.filter((race: any) => new Date(race.date) < now);
+
+      if (completedRaces.length > 0) {
+        const lastRaceData = completedRaces[completedRaces.length - 1];
+        setRaceName(getRaceNameWithoutEmoji(lastRaceData.raceName));
+        const country = lastRaceData.Circuit?.Location?.country || "";
+        setCountryName(country);
+        setCountryCode(getCountryCode(country) || "");
+        setLastRace(lastRaceData);
+      }
+    }
+
+    if (lastRaceResult.data && lastRacePitStops.data) {
+      try {
+        const pitStops = processDriverFastestPitStops(lastRaceResult.data, lastRacePitStops.data);
+
+        if (pitStops.length > 0) {
+          setFastestPitStops(pitStops);
+          setError(null);
+        } else {
+          const hasCompletedRaces = raceScheduleData?.data?.some((race: any) => new Date(race.date) < new Date());
+          if (!hasCompletedRaces) {
+            setError(null);
+          } else {
+            setError("pending");
+          }
+        }
+      } catch (err) {
+        console.error("Error processing pit stop data:", err);
+        setError("Error processing pit stop data");
+      }
+    } else if (!lastRaceResult.isLoading && !lastRacePitStops.isLoading) {
+      const hasCompletedRaces = raceScheduleData?.data?.some((race: any) => new Date(race.date) < new Date());
+      if (!hasCompletedRaces) {
+        setError(null);
+      } else {
+        setError("pending");
+      }
+    }
+  }, [lastRaceResult.data, lastRacePitStops.data, lastRaceResult.isLoading, lastRacePitStops.isLoading, raceScheduleData]);
+
+  const isLoading = lastRaceResult.isLoading || lastRacePitStops.isLoading;
+  const fastestStop = fastestPitStops[0];
+
+  return (
+    <>
+      <F1Card
+        variant={surfaceVariant}
+        glassVariant={surfaceGlass}
+        className={cn("h-full overflow-hidden p-0", isGlass && "border-white/10")}
+      >
+        <F1CardHeader className="pb-2 pt-3 px-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Timer className="h-4 w-4 text-primary shrink-0" />
+              <h3 className="font-semibold text-sm">Fastest Pit Stops</h3>
+            </div>
+            
+            {/* GP Badge - Top Right */}
+            {!isLoading && (!error || error === "pending") && raceName && (
+              <button
+                onClick={() => setIsDialogOpen(true)}
+                className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:border-primary/50 transition-all"
+              >
+                {countryCode && (
+                  <ReactCountryFlag
+                    countryCode={countryCode}
+                    svg
+                    style={{ width: "14px", height: "auto" }}
+                    title={countryName}
+                  />
+                )}
+                <span>{raceName}</span>
+              </button>
+            )}
+          </div>
+          
+          {/* Record Stop Highlight */}
+          {!isLoading && !error && fastestStop && (
+            <div className="mt-2 flex items-center justify-center">
+              <div className="border border-position-gold/40 bg-position-gold/5 px-2 py-0.5 rounded-md inline-flex items-center gap-1.5 text-xs">
+                <span className="text-position-gold font-medium">Record:</span>
+                        <span
+                          className="timing font-bold"
+                  style={{ color: getTeamHexColor(fastestStop.driver.team) }}
+                        >
+                          {fastestStop.driver.code}
+                        </span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="timing">{formatPitStopDuration(fastestStop.duration)}</span>
+                      </div>
+            </div>
+          )}
+        </F1CardHeader>
+        
+        <F1CardContent className="px-2">
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <F1Skeleton key={i} className="h-11 w-full" />
+              ))}
+            </div>
+          ) : error && error !== "pending" && fastestPitStops.length === 0 ? (
+            <F1ErrorState type="custom" title="Error" message={error} variant="inline" size="sm" />
+          ) : error === "pending" && fastestPitStops.length === 0 ? (
+            <F1EmptyState
+              type="season-start"
+              title="Pit Stop Data Pending"
+              description="Pit stop data for the latest race is still being processed. Check back shortly."
+              size="sm"
+            />
+          ) : fastestPitStops.length === 0 && !error ? (
+            <F1EmptyState 
+              type="season-start"
+              title="Pit Stop Data Coming Soon"
+              description="Pit stop times will appear here once the first race is completed."
+              size="sm"
+            />
+          ) : (
+            <div className="divide-y divide-border">
+              {fastestPitStops.map((stop, index) => {
+                const teamColor = getTeamHexColor(stop.driver.team);
+                return (
+                  <div
+                    key={`${stop.driver.code}-${index}`}
+                    className="flex items-center gap-2.5 py-1.5 transition-colors hover:bg-accent/40"
+                  >
+                    <span className="w-5 shrink-0 text-center text-sm font-bold tabular-nums text-muted-foreground">
+                      {index + 1}
+                    </span>
+                    <span className="h-5 w-1 shrink-0 rounded-full" style={{ backgroundColor: teamColor }} />
+                    <div className="min-w-0 flex-1">
+                      <span className="timing text-sm font-semibold">{stop.driver.code}</span>
+                      <span className="ml-1.5 text-xs capitalize text-muted-foreground">{stop.driver.constructor}</span>
+                    </div>
+                    <span className="timing shrink-0 text-sm text-foreground">{formatPitStopDuration(stop.duration)}</span>
+                    <F1Badge variant="time" className="shrink-0 text-xs">Lap {stop.lap}</F1Badge>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </F1CardContent>
+      </F1Card>
+      
+      {/* Race Detail Dialog */}
+      {lastRace && (
+        <RaceDetailDialog 
+          isOpen={isDialogOpen} 
+          onClose={() => setIsDialogOpen(false)} 
+          race={lastRace} 
+        />
+      )}
+    </>
+  );
+};
+
+export default FastestPitStopCard; 

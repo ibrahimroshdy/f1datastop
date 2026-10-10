@@ -1,0 +1,262 @@
+name: PR CI
+
+# Fork-safe: web + python-smoke run with zero credentials on PRs and pushes.
+# Scheduled jobs only run on the main repo (github.repository guard) and read
+# their secrets (R2, Supabase, Slack, GH_TOKEN) from repo Settings → Secrets.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "*/6 * * * *" # reconcile: every 6 h
+    - cron: "*/30 12,13,14,15,16,17,18,19,20,21 * * 5,6,0" # reconcile: race-weekend 30 min ticks
+    - cron: "0 */2 * * 5,6,0" # charts: every 2 h, Fri–Sun
+    - cron: "0 6,12,18 * * 5,6,0" # assets: 06/12/18 UTC, Fri–Sun
+    - cron: "17 7 * * *" # digest: daily 07:17 UTC
+    - cron: "*/5 * * * *" # queue: every 5 min
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint || echo "Lint advisory only"
+      - run: npm run test
+      - run: npm run build
+
+  python-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: analysis/requirements.txt
+      - run: pip install -q -r analysis/requirements.txt
+      - run: python -m compileall -q -x '(venv|\.fastf1cache|__pycache__)' analysis
+
+  reconcile:
+    needs: [web]
+    runs-on: ubuntu-latest
+    if: >-
+      github.repository == 'ibrahimroshdy/f1datastop' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.schedule == '*/6 * * * *' ||
+       github.event.schedule == '*/30 12,13,14,15,16,17,18,19,20,21 * * 5-0')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: analysis/requirements.txt
+      - run: pip install -q -r analysis/requirements.txt
+      - run: |
+          cd analysis
+          out="$(python3 reconcile_needed.py --season "$(date -u +%Y)")" || exit 0
+          echo "$out"
+      - run: |
+          cd analysis
+          python ingest.py --season "$(date -u +%Y)" || echo "ingest completed with warnings"
+      - name: Refresh CDN indexes
+        if: always()
+        run: cd analysis && python index_export.py --season "$(date -u +%Y)"
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          BLOB_PUBLIC_BASE: ${{ secrets.BLOB_PUBLIC_BASE }}
+
+  charts:
+    needs: [web]
+    runs-on: ubuntu-latest
+    if: >-
+      github.repository == 'ibrahimroshdy/f1datastop' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.schedule == '0 */2 * * 5-0')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: analysis/requirements.txt
+      - run: pip install -q -r analysis/requirements.txt
+      - run: |
+          cd analysis
+          python3 charts_todo.py --season "$(date -u +%Y)" > todo.txt || true
+          if [ -s todo.txt ]; then echo "Sessions needing charts:"; cat todo.txt; else echo "All charts complete"; exit 0; fi
+      - run: |
+          cd analysis
+          Y="$(date -u +%Y)"
+          runs=0; fails=0
+          try() { runs=$((runs + 1)); if ! "$@"; then fails=$((fails + 1)); echo "FAILED: $*"; fi; }
+          while read -r r sess; do
+            [ -n "$r" ] || continue
+            echo "== charts R$r $sess =="
+            try python generate.py --season "$Y" --round "$r" --session "$sess" \
+                --format landscape --theme all --skip-existing
+          done < todo.txt
+          for r in $(awk '$2=="R"{print $1}' todo.txt | sort -u 2>/dev/null); do
+            for pair in "RUS,ANT" "NOR,PIA" "LEC,HAM"; do
+              try python generate.py --season "$Y" --round "$r" --session R \
+                  --only driver_compare --drivers "$pair" --format landscape --theme all --skip-existing
+            done
+          done
+          echo "calls=$runs ok=$((runs - fails)) failed=$fails"
+          if [ "$runs" -gt 0 ] && [ "$fails" -eq "$runs" ]; then echo "ERROR: all calls failed"; exit 1; fi
+      - name: Refresh CDN indexes
+        if: always()
+        run: cd analysis && python index_export.py --season "$(date -u +%Y)"
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          BLOB_PUBLIC_BASE: ${{ secrets.BLOB_PUBLIC_BASE }}
+
+  assets:
+    needs: [web]
+    runs-on: ubuntu-latest
+    if: >-
+      github.repository == 'ibrahimroshdy/f1datastop' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.schedule == '0 6,12,18 * * 5-0')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: analysis/requirements.txt
+      - run: pip install -q -r analysis/requirements.txt
+      - run: |
+          cd analysis
+          Y="$(date -u +%Y)"
+          R="$(python -c "import backfill; print(backfill.latest_completed_round($Y) or 0)")"
+          ROUNDS=""
+          [ "$R" -ge 1 ] && ROUNDS="$R"
+          ROUNDS="$ROUNDS $((R + 1))"
+          echo "latest completed round: $R -> processing rounds:$ROUNDS"
+          SESSIONS="FP1 FP2 FP3 Q SQ SS S R"
+          runs=0; fails=0
+          try() { runs=$((runs + 1)); if ! "$@"; then fails=$((fails + 1)); echo "FAILED: $*"; fi; }
+          for sess in $SESSIONS; do
+            for r in $ROUNDS; do try python telemetry_export.py --season "$Y" --round "$r" --session "$sess"; done
+          done
+          for r in $ROUNDS; do try python circuit_geometry_export.py --season "$Y" --round "$r"; done
+          for r in $ROUNDS; do try python weather_export.py --season "$Y" --round "$r"; done
+          for sess in $SESSIONS; do
+            for r in $ROUNDS; do try python race_replay_export.py --season "$Y" --round "$r" --session "$sess"; done
+          done
+          for sess in Q SQ SS S R; do try python telemetry_export.py --season "$Y" --all-laps --latest --session "$sess"; done
+          echo "steps=$runs ok=$((runs - fails)) failed=$fails"
+          if [ "$runs" -gt 0 ] && [ "$fails" -eq "$runs" ]; then echo "ERROR: all steps failed"; exit 1; fi
+      - name: Refresh CDN indexes
+        if: always()
+        run: cd analysis && python index_export.py --season "$(date -u +%Y)"
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          BLOB_PUBLIC_BASE: ${{ secrets.BLOB_PUBLIC_BASE }}
+
+  digest:
+    needs: [web]
+    runs-on: ubuntu-latest
+    if: >-
+      github.repository == 'ibrahimroshdy/f1datastop' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.schedule == '17 7 * * *')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: analysis/requirements.txt
+      - run: pip install -q -r analysis/requirements.txt
+      - run: python free_tier_digest.py
+        working-directory: analysis
+        env:
+          SLACK_ALERTS_WEBHOOK: ${{ secrets.SLACK_ALERTS_WEBHOOK }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          BLOB_PUBLIC_BASE: ${{ secrets.BLOB_PUBLIC_BASE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GH_REPO: ibrahimroshdy/f1datastop
+
+  queue:
+    needs: [web]
+    runs-on: ubuntu-latest
+    if: >-
+      github.repository == 'ibrahimroshdy/f1datastop' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.schedule == '*/5 * * * *')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: analysis/requirements.txt
+      - run: pip install -q -r analysis/requirements.txt
+      - run: python process_chart_requests.py
+        working-directory: analysis
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          BLOB_PUBLIC_BASE: ${{ secrets.BLOB_PUBLIC_BASE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - run: python process_telemetry_requests.py
+        working-directory: analysis
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          BLOB_PUBLIC_BASE: ${{ secrets.BLOB_PUBLIC_BASE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

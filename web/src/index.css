@@ -1,0 +1,1207 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ============================================
+     DARK THEME (Default) - Pure Black
+     ============================================ */
+  :root {
+    /* Deep Carbon ladder — hue-shifted near-blacks, real elevation steps.
+       bg 3.5 → popover 5 → card 6 → muted 10 → accent 14 → border 15 */
+    --background: 240 8% 3.5%;
+    --foreground: 220 15% 96%;
+
+    --card: 240 7% 6%;
+    --card-foreground: 220 15% 96%;
+
+    --popover: 240 8% 5%;
+    --popover-foreground: 220 15% 96%;
+
+    --primary: 0 100% 44%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 7% 11%;
+    --secondary-foreground: 220 14% 94%;
+
+    --muted: 240 7% 10%;
+    --muted-foreground: 240 6% 64%;
+
+    --accent: 240 6% 14%;
+    --accent-foreground: 220 14% 96%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 6% 15%;
+    --input: 240 6% 15%;
+    --ring: 0 100% 44%;
+
+    /* Raised surface (card-on-card / elevated panels) */
+    --elevated: 240 7% 8.5%;
+
+    /* Sharper radius for professional look */
+    --radius: 0.5rem;
+
+    /* Sidebar */
+    --sidebar-background: 240 8% 3.5%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 0 100% 44%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 7% 11%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 240 6% 15%;
+    --sidebar-ring: 0 100% 44%;
+    
+    /* Sidebar widths */
+    --sidebar-collapsed: 64px;
+    --sidebar-expanded: 240px;
+
+    /* Chart Design System */
+    --chart-background: 240 7% 6%;
+    --chart-grid: 240 6% 15%;
+    --chart-axis: 240 6% 64%;
+    --chart-tooltip-bg: 0 0% 0%;
+    --chart-tooltip-border: 0 0% 15%;
+    --chart-tooltip-text: 0 0% 98%;
+
+    /* Weather metric series (categorical chart hues, per DESIGN.md §1.7) */
+    --weather-air: 217 91% 60%;
+    --weather-track: 30 95% 55%;
+    --weather-wind: 142 71% 45%;
+    --weather-humidity: 199 89% 56%;
+    --weather-pressure: 262 60% 60%;
+
+    /* F1 Brand Colors */
+    --f1-red: 0 100% 44%;
+    --f1-black: 240 20% 7%;
+    --f1-white: 0 0% 100%;
+    
+    /* Position Colors */
+    --position-gold: 45 93% 47%;
+    --position-silver: 0 0% 75%;
+    --position-bronze: 30 60% 40%;
+    
+    /* Status Colors */
+    --status-live: 0 84% 60%;
+    --status-completed: 142 71% 45%;
+    --status-upcoming: 217 91% 60%;
+    --status-cancelled: 0 0% 50%;
+
+    /* Categorical encodings (DESIGN.md §1.7) — beyond the single red accent.
+       Purple = fastest lap / overall-best segment (F1 broadcast convention);
+       gain/loss reuse the status ramp so the palette stays coherent. */
+    --fastest-lap: 271 91% 68%;
+    --gain: 142 71% 45%;
+    --loss: 0 84% 62%;
+
+    /* Glass Morphism Variables - Dark */
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-bg-hover: rgba(255, 255, 255, 0.06);
+    --glass-bg-active: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border-hover: rgba(255, 255, 255, 0.12);
+    --glass-blur: 20px;
+    --glass-blur-lg: 40px;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --glass-shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.5);
+    --glass-glow: 0 0 40px rgba(225, 6, 0, 0.12);
+    --glass-glow-subtle: 0 0 20px rgba(225, 6, 0, 0.06);
+    --glass-inner-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+
+    /* Premium Shadows */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.35);
+    --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.4);
+    --shadow-glow: 0 0 20px rgba(225, 6, 0, 0.2);
+    --shadow-glow-lg: 0 0 40px rgba(225, 6, 0, 0.25);
+    /* Machined-edge card shadow: top inset highlight + layered soft elevation */
+    --shadow-card: inset 0 1px 0 0 hsl(0 0% 100% / 0.05), 0 1px 2px hsl(0 0% 0% / 0.4), 0 6px 16px hsl(0 0% 0% / 0.3);
+
+    /* Animation Tokens */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* Spacing Scale */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+
+    /* Glass mode flag (0 = off, 1 = on) */
+    --glass-mode: 0;
+  }
+
+  /* ============================================
+     LIGHT THEME
+     ============================================ */
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 0 100% 44%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 3.9%;
+
+    --muted: 240 5% 94%;
+    --muted-foreground: 240 4% 46.1%;
+
+    --accent: 240 5% 92%;
+    --accent-foreground: 240 10% 3.9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5% 87%;
+    --input: 240 5% 87%;
+    --ring: 0 100% 44%;
+
+    /* Sidebar - Light */
+    --sidebar-background: 0 0% 97%;
+    --sidebar-foreground: 240 10% 3.9%;
+    --sidebar-primary: 0 100% 44%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 5% 92%;
+    --sidebar-accent-foreground: 240 10% 3.9%;
+    --sidebar-border: 240 5% 87%;
+    --sidebar-ring: 0 100% 44%;
+
+    /* Chart Design System - Light */
+    --chart-background: 0 0% 100%;
+    --chart-grid: 240 5% 92%;
+    --chart-axis: 240 4% 46%;
+    --chart-tooltip-bg: 0 0% 100%;
+    --chart-tooltip-border: 240 5% 87%;
+    --chart-tooltip-text: 240 10% 4%;
+
+    /* Weather metric series (categorical chart hues, per DESIGN.md §1.7) */
+    --weather-air: 217 91% 50%;
+    --weather-track: 30 95% 45%;
+    --weather-wind: 142 71% 38%;
+    --weather-humidity: 199 89% 46%;
+    --weather-pressure: 262 55% 52%;
+
+    /* F1 Brand Colors - Same in both themes */
+    --f1-red: 0 100% 44%;
+    --f1-black: 240 20% 7%;
+    --f1-white: 0 0% 100%;
+    
+    /* Position Colors - Light */
+    --position-gold: 45 93% 47%;
+    --position-silver: 0 0% 55%;
+    --position-bronze: 30 60% 35%;
+    
+    /* Status Colors - Light */
+    --status-live: 0 84% 55%;
+    --status-completed: 142 71% 40%;
+    --status-upcoming: 217 91% 55%;
+    --status-cancelled: 0 0% 45%;
+
+    /* Categorical encodings (see dark theme). */
+    --fastest-lap: 271 81% 56%;
+    --gain: 142 71% 40%;
+    --loss: 0 84% 55%;
+
+    /* Glass Morphism Variables - Light */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-bg-hover: rgba(255, 255, 255, 0.8);
+    --glass-bg-active: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-border-hover: rgba(0, 0, 0, 0.12);
+    --glass-blur: 20px;
+    --glass-blur-lg: 40px;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --glass-shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.15);
+    --glass-glow: 0 0 40px rgba(225, 6, 0, 0.08);
+    --glass-glow-subtle: 0 0 20px rgba(225, 6, 0, 0.04);
+    --glass-inner-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, transparent 50%);
+
+    /* Premium Shadows - Light */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.15);
+    --shadow-glow: 0 0 20px rgba(225, 6, 0, 0.12);
+    --shadow-glow-lg: 0 0 40px rgba(225, 6, 0, 0.16);
+    --shadow-card: inset 0 1px 0 0 hsl(0 0% 100% / 0.7), 0 1px 2px hsl(0 0% 0% / 0.06), 0 6px 16px hsl(0 0% 0% / 0.05);
+
+    --glass-mode: 0;
+  }
+
+  /* ============================================
+     DARK GLASS THEME
+     ============================================ */
+  .dark-glass {
+    --background: 240 8% 3.5%;
+    --foreground: 220 15% 96%;
+
+    --card: 240 7% 6%;
+    --card-foreground: 220 15% 96%;
+
+    --popover: 240 8% 5%;
+    --popover-foreground: 220 15% 96%;
+
+    --primary: 0 100% 44%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 7% 11%;
+    --secondary-foreground: 220 14% 94%;
+
+    --muted: 240 7% 10%;
+    --muted-foreground: 240 6% 64%;
+
+    --accent: 240 6% 14%;
+    --accent-foreground: 220 14% 96%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 6% 15%;
+    --input: 240 6% 15%;
+    --ring: 0 100% 44%;
+
+    --elevated: 240 7% 8.5%;
+
+    /* Sidebar - Dark Glass */
+    --sidebar-background: 240 8% 3.5%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 0 100% 44%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 7% 11%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 240 6% 15%;
+    --sidebar-ring: 0 100% 44%;
+
+    /* Chart Design System */
+    --chart-background: 240 7% 6%;
+    --chart-grid: 240 6% 15%;
+    --chart-axis: 240 6% 64%;
+    --chart-tooltip-bg: 0 0% 0%;
+    --chart-tooltip-border: 0 0% 15%;
+    --chart-tooltip-text: 0 0% 98%;
+
+    /* Weather metric series (categorical chart hues, per DESIGN.md §1.7) */
+    --weather-air: 217 91% 60%;
+    --weather-track: 30 95% 55%;
+    --weather-wind: 142 71% 45%;
+    --weather-humidity: 199 89% 56%;
+    --weather-pressure: 262 60% 60%;
+
+    /* F1 Brand Colors */
+    --f1-red: 0 100% 44%;
+    --f1-black: 240 20% 7%;
+    --f1-white: 0 0% 100%;
+    
+    /* Position Colors */
+    --position-gold: 45 93% 47%;
+    --position-silver: 0 0% 75%;
+    --position-bronze: 30 60% 40%;
+    
+    /* Status Colors */
+    --status-live: 0 84% 60%;
+    --status-completed: 142 71% 45%;
+    --status-upcoming: 217 91% 60%;
+    --status-cancelled: 0 0% 50%;
+
+    /* Categorical encodings (DESIGN.md §1.7) — beyond the single red accent.
+       Purple = fastest lap / overall-best segment (F1 broadcast convention);
+       gain/loss reuse the status ramp so the palette stays coherent. */
+    --fastest-lap: 271 91% 68%;
+    --gain: 142 71% 45%;
+    --loss: 0 84% 62%;
+
+    /* Glass Morphism Variables - Dark Glass (Enhanced) */
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-bg-hover: rgba(255, 255, 255, 0.08);
+    --glass-bg-active: rgba(255, 255, 255, 0.12);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-border-hover: rgba(255, 255, 255, 0.15);
+    --glass-blur: 24px;
+    --glass-blur-lg: 48px;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --glass-shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.6);
+    --glass-glow: 0 0 50px rgba(225, 6, 0, 0.15);
+    --glass-glow-subtle: 0 0 25px rgba(225, 6, 0, 0.08);
+    --glass-inner-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08);
+    --glass-highlight: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+
+    /* Premium Shadows - Dark Glass */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.45);
+    --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 25px rgba(225, 6, 0, 0.22);
+    --shadow-glow-lg: 0 0 50px rgba(225, 6, 0, 0.28);
+    --shadow-card: inset 0 1px 0 0 hsl(0 0% 100% / 0.06), 0 2px 8px hsl(0 0% 0% / 0.45);
+
+    --glass-mode: 1;
+  }
+
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-hidden antialiased;
+    font-family: "Geist", "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: "Clash Display", "Geist", system-ui, sans-serif;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+  }
+
+  /* Smooth transitions for theme changes */
+  html {
+    transition: background-color var(--transition-slow), color var(--transition-slow);
+    /* Stop overscroll chaining to the browser chrome (native PWA feel) */
+    overscroll-behavior-y: contain;
+  }
+
+  /* Branded text selection — a red wash, not raw browser grey */
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+    color: hsl(0 0% 100%);
+  }
+
+  /* Charts are for reading, not selecting. Dragging or tapping over a chart used to
+     text-select its axis labels + tooltip (a big red ::selection wash that looked
+     like the whole chart was highlighted). */
+  .recharts-wrapper,
+  .recharts-wrapper svg,
+  .recharts-surface {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+/* ============================================
+   GLASS MORPHISM UTILITY CLASSES
+   ============================================ */
+@layer components {
+  /* Base glass card */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
+  }
+
+  .glass:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+  }
+
+  .glass-lg {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur-lg));
+    -webkit-backdrop-filter: blur(var(--glass-blur-lg));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow-lg), var(--glass-inner-shadow);
+  }
+
+  /* Glass card with glow */
+  .glass-glow {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), var(--glass-glow-subtle), var(--glass-inner-shadow);
+    transition: all var(--transition-normal);
+  }
+
+  .glass-glow:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--glass-shadow-lg), var(--glass-glow), var(--glass-inner-shadow);
+  }
+
+  /* Glass panel (larger surfaces) */
+  .glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur-lg));
+    -webkit-backdrop-filter: blur(var(--glass-blur-lg));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow-lg);
+  }
+
+  /* Glass button */
+  .glass-button {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-sm), var(--glass-inner-shadow);
+    transition: all var(--transition-fast);
+  }
+
+  .glass-button:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--shadow-md), var(--glass-inner-shadow);
+    transform: translateY(-1px);
+  }
+
+  .glass-button:active {
+    background: var(--glass-bg-active);
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* Glass input */
+  .glass-input {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-inner-shadow);
+    transition: all var(--transition-fast);
+  }
+
+  .glass-input:focus {
+    background: var(--glass-bg-hover);
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: var(--glass-inner-shadow), 0 0 0 3px hsl(var(--primary) / 0.1);
+    outline: none;
+  }
+
+  /* Glass badge */
+  .glass-badge {
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* Glass table */
+  .glass-table {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .glass-table-header {
+    background: var(--glass-bg-hover);
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .glass-table-row {
+    border-bottom: 1px solid var(--glass-border);
+    transition: background var(--transition-fast);
+  }
+
+  .glass-table-row:hover {
+    background: var(--glass-bg-hover);
+  }
+
+  /* Glass tabs */
+  .glass-tabs {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 4px;
+  }
+
+  .glass-tab {
+    background: transparent;
+    border-radius: calc(var(--radius) - 4px);
+    transition: all var(--transition-fast);
+  }
+
+  .glass-tab:hover {
+    background: var(--glass-bg-hover);
+  }
+
+  .glass-tab-active {
+    background: var(--glass-bg-active);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Glass modal overlay */
+  .glass-overlay {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Glass modal content */
+  .glass-modal {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur-lg));
+    -webkit-backdrop-filter: blur(var(--glass-blur-lg));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow-lg), var(--glass-glow-subtle);
+  }
+
+  /* Glass highlight effect (top-left shine) */
+  .glass-highlight::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--glass-highlight);
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  /* Glass sidebar */
+  .glass-sidebar {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur-lg));
+    -webkit-backdrop-filter: blur(var(--glass-blur-lg));
+    border-right: 1px solid var(--glass-border);
+  }
+
+  /* Glass topbar */
+  .glass-topbar {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+/* ============================================
+   PREMIUM CARD STYLES
+   ============================================ */
+@layer components {
+  /* Premium card with team color accent */
+  .premium-card {
+    @apply relative rounded-xl overflow-hidden;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-normal);
+  }
+
+  .premium-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  /* Glass mode override for premium cards */
+  .dark-glass .premium-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
+  }
+
+  .dark-glass .premium-card:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--glass-shadow-lg), var(--glass-glow-subtle);
+  }
+
+  /* Card with F1 red accent */
+  .card-accent-red {
+    @apply relative;
+  }
+
+  .card-accent-red::before {
+    content: '';
+    @apply absolute top-0 left-0 w-1 h-full bg-primary rounded-l-xl;
+  }
+
+  /* Card with team color accent */
+  .card-accent-team {
+    @apply relative;
+  }
+
+  .card-accent-team::before {
+    content: '';
+    @apply absolute top-0 left-0 w-1 h-full rounded-l-xl;
+    background: var(--team-color, hsl(var(--primary)));
+  }
+}
+
+/* ============================================
+   RACING-INSPIRED STYLES
+   ============================================ */
+@layer components {
+  /* Racing card */
+.race-card {
+    @apply relative rounded-xl overflow-hidden transition-all duration-300;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-md);
+  }
+
+  .race-card:hover {
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
+    transform: translateY(-2px);
+  }
+
+  /* Glass mode for race cards */
+  .dark-glass .race-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+}
+
+/* Driver bar */
+.driver-bar {
+    @apply h-8 flex items-center rounded-lg overflow-hidden relative transition-all duration-300;
+    box-shadow: var(--shadow-xs);
+}
+
+  /* Position badges */
+  .position-badge {
+    @apply inline-flex items-center justify-center font-bold rounded-lg px-2.5 py-1 text-xs;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .position-badge-1 {
+    background: linear-gradient(135deg, hsl(var(--position-gold)), hsl(var(--position-gold) / 0.72));
+    color: hsl(45 90% 11%);
+    box-shadow: 0 0 12px hsl(var(--position-gold) / 0.35);
+  }
+
+  .position-badge-2 {
+    background: linear-gradient(135deg, hsl(var(--position-silver)), hsl(var(--position-silver) / 0.68));
+    color: hsl(0 0% 14%);
+    box-shadow: 0 0 12px hsl(var(--position-silver) / 0.3);
+  }
+
+  .position-badge-3 {
+    background: linear-gradient(135deg, hsl(var(--position-bronze)), hsl(var(--position-bronze) / 0.68));
+    color: hsl(30 60% 11%);
+    box-shadow: 0 0 12px hsl(var(--position-bronze) / 0.35);
+  }
+
+  /* Team color accents */
+  .team-accent-bar {
+    @apply h-1 w-full rounded-full;
+    box-shadow: var(--shadow-xs);
+  }
+
+  .team-accent-border {
+    @apply border-l-4;
+  }
+
+  /* Racing stripe decoration */
+  .racing-stripe {
+    @apply relative overflow-hidden;
+  }
+
+  .racing-stripe::before {
+    content: '';
+    @apply absolute top-0 left-0 w-1 h-full;
+    background: linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.6) 100%);
+    border-radius: 0 4px 4px 0;
+  }
+
+  /* Checkered flag pattern */
+  .checkered-bg {
+    background-image: 
+      linear-gradient(45deg, hsl(var(--muted)) 25%, transparent 25%),
+      linear-gradient(-45deg, hsl(var(--muted)) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, hsl(var(--muted)) 75%),
+      linear-gradient(-45deg, transparent 75%, hsl(var(--muted)) 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  }
+}
+
+/* ============================================
+   CHART STYLES
+   ============================================ */
+@layer components {
+  /* F1 Chart container */
+  .f1-chart-container {
+    @apply relative w-full h-full;
+  }
+
+  /* F1 Chart tooltip */
+  .f1-chart-tooltip {
+    @apply rounded-xl p-4 text-sm;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
+    color: hsl(var(--foreground));
+  }
+
+  /* Chart legend */
+  .f1-chart-legend {
+    @apply flex flex-wrap gap-2 items-center;
+  }
+
+  /* Responsive chart container */
+  @media (max-width: 640px) {
+    .f1-chart-container {
+      @apply touch-pan-x touch-pan-y;
+    }
+    
+    .f1-chart-legend {
+      @apply flex-col items-start gap-1;
+    }
+  }
+}
+
+/* ============================================
+   ANIMATION UTILITIES
+   ============================================ */
+@layer utilities {
+  /* Shimmer animation */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 25%,
+      hsl(var(--muted-foreground) / 0.1) 50%,
+      hsl(var(--muted)) 75%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* Glass shimmer for loading states */
+  .animate-glass-shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(
+      90deg,
+      var(--glass-bg) 25%,
+      var(--glass-bg-hover) 50%,
+      var(--glass-bg) 75%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* Pulse glow animation */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: var(--shadow-sm);
+    }
+    50% {
+      box-shadow: var(--shadow-md), var(--shadow-glow);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Float animation */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* Slide in from bottom */
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Slide in from right */
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out forwards;
+  }
+
+  /* Scale in */
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out forwards;
+  }
+
+  /* Fade in */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Pit Wall typography utilities (R0) */
+  .stat-numeral {
+    @apply font-heading text-2xl font-bold tabular-nums tracking-tight;
+  }
+
+  .timing {
+    @apply font-mono tabular-nums tracking-wide;
+  }
+
+  /* Session-best time. Purple is the F1 timing-screen convention for "fastest of anyone",
+     so it reads instantly to anyone who has watched a session. */
+  .timing-best {
+    color: hsl(var(--fastest-lap));
+  }
+
+  .body-sm {
+    @apply text-sm leading-relaxed text-muted-foreground;
+  }
+
+  /* ── Telemetry Terminal motifs (see web/DESIGN_TERMINAL.md) ───────────── */
+
+  /* Big instrument readout number */
+  .readout {
+    @apply font-mono font-semibold tabular-nums tracking-tight leading-none;
+  }
+
+  /* Micro instrument label / eyebrow above a value */
+  .instrument-label {
+    @apply text-xs font-semibold uppercase tracking-widest text-muted-foreground;
+  }
+
+  /* Auto hairline rows — a timing-screen list */
+  .hairline-grid > * + * {
+    @apply border-t border-border;
+  }
+
+  /* Compact data row */
+  .data-row {
+    @apply flex items-center justify-between gap-3 py-1.5;
+  }
+
+  /* Corner-tick HUD framing for hero/feature panels */
+  .scope-frame {
+    @apply relative;
+  }
+  .scope-frame::before,
+  .scope-frame::after {
+    content: "";
+    @apply pointer-events-none absolute h-3 w-3;
+    border-color: hsl(var(--primary) / 0.55);
+  }
+  .scope-frame::before {
+    @apply left-1.5 top-1.5;
+    border-top: 1.5px solid hsl(var(--primary) / 0.55);
+    border-left: 1.5px solid hsl(var(--primary) / 0.55);
+  }
+  .scope-frame::after {
+    @apply bottom-1.5 right-1.5;
+    border-bottom: 1.5px solid hsl(var(--primary) / 0.55);
+    border-right: 1.5px solid hsl(var(--primary) / 0.55);
+  }
+
+  .position-pill {
+    @apply inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-muted px-1.5 text-xs font-semibold tabular-nums;
+  }
+
+  /* Stagger children animations */
+  .stagger-children > * {
+    opacity: 0;
+    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .stagger-children > *:nth-child(1) { animation-delay: 30ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 70ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 110ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 190ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 230ms; }
+  .stagger-children > *:nth-child(7) { animation-delay: 270ms; }
+  .stagger-children > *:nth-child(8) { animation-delay: 310ms; }
+  .stagger-children > *:nth-child(9) { animation-delay: 350ms; }
+  .stagger-children > *:nth-child(10) { animation-delay: 390ms; }
+
+  /* Tactile list row — settles rightward + brightens on hover (uses the
+     shared spring). Pair with a left team/accent bar that grows. */
+  .row-tactile {
+    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+                background-color 200ms ease, border-color 200ms ease;
+  }
+  .row-tactile:hover {
+    transform: translateX(3px);
+  }
+
+  /* Live pulse */
+  @keyframes live-pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.1);
+    }
+  }
+
+  .animate-live-pulse {
+    animation: live-pulse 1.5s ease-in-out infinite;
+  }
+
+  /* Number count animation */
+  @keyframes count-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-count {
+    animation: count-up 0.5s ease-out forwards;
+  }
+
+  /* Branded loader — three sector segments sweeping in sequence (F1 timing feel) */
+  @keyframes sector-sweep {
+    0% { transform: scaleX(0); opacity: 0.35; }
+    45% { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(0); opacity: 0.35; }
+  }
+  .animate-sector-sweep {
+    animation: sector-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  /* Fade the edges of a horizontal scroller so clipped content dissolves */
+  .scroll-fade-x {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  }
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
+}
+
+/* Glass mode scrollbar */
+.dark-glass ::-webkit-scrollbar-track {
+  background: var(--glass-bg);
+}
+
+.dark-glass ::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+}
+
+.dark-glass ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.7);
+}
+
+/* ============================================
+   ATMOSPHERIC DEPTH — carbon reads as a lit surface, not dead-flat black.
+   ::before = layered radial depth + faint red bloom from the top.
+   ::after  = ultra-fine film grain so large dark areas have texture.
+   ============================================ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 75% at 50% -12%, hsl(var(--primary) / 0.055), transparent 55%),
+    radial-gradient(90% 90% at 100% 0%, hsl(240 24% 10% / 0.55), transparent 60%),
+    radial-gradient(85% 85% at 0% 100%, hsl(240 22% 8% / 0.5), transparent 62%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.light body::before {
+  background:
+    radial-gradient(120% 75% at 50% -12%, hsl(var(--primary) / 0.04), transparent 55%),
+    radial-gradient(90% 90% at 100% 0%, hsl(240 14% 90% / 0.5), transparent 60%);
+}
+.light body::after {
+  opacity: 0.014;
+}
+
+/* ============================================
+   BACKGROUND PATTERNS FOR GLASS MODES
+   ============================================ */
+.dark-glass body {
+  position: relative;
+}
+
+.dark-glass body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(225, 6, 0, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(225, 6, 0, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(30, 30, 30, 0.4) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ============================================
+   FOCUS STATES FOR ACCESSIBILITY
+   ============================================ */
+@layer base {
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION — collapse all spatial motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+  .glass,
+  .glass-lg,
+  .glass-glow,
+  .glass-panel,
+  .glass-button,
+  .glass-input,
+  .glass-badge,
+  .glass-table,
+  .glass-tabs,
+  .glass-modal {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: white !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ── Mobile safe areas (PWA / notch / home indicator) ───────────────── */
+.safe-top {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+.safe-bottom {
+  padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
+}
+/* Keep fixed bars from re-rasterizing (iOS standalone flicker) */
+.nav-stable {
+  transform: none;
+}
