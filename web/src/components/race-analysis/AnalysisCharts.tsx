@@ -334,7 +334,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
 // renders, so they're produced on request: enqueue f1_chart_requests → GitHub Actions
 // renders exactly that format/theme → we poll and hand the file over. Landscape is instant.
 
-type DlPhase = "idle" | "queued" | "processing" | "done" | "error" | "unauthenticated";
+type DlPhase = "idle" | "queued" | "processing" | "done" | "error";
 
 const SIZE_HINT: Record<ChartFormat, string> = {
   landscape: "2560 × 1440 · ready now",
@@ -391,7 +391,6 @@ function ChartDownloadDialog({
     setError(null);
     const res = await submitChartRequest(year, round, session, baseType, codes, fmt, theme);
     if (res.status === "done" && res.charts[0]) return finish(res.charts[0].public_url);
-    if (res.status === "unauthenticated") return setPhase("unauthenticated");
     if (res.status === "error") { setError(res.error); return setPhase("error"); }
     setPhase(res.status === "processing" ? "processing" : "queued");
     timer.current = window.setInterval(async () => {
@@ -442,9 +441,6 @@ function ChartDownloadDialog({
             <F1Loader size="sm" />
             {phase === "processing" ? "Rendering your chart…" : "Queued — rendering starts shortly…"} You can keep this open; the file will download when it's ready.
           </p>
-        )}
-        {phase === "unauthenticated" && (
-          <p className="text-sm text-muted-foreground">Sign in to request other sizes. Landscape downloads without an account.</p>
         )}
         {phase === "error" && <p className="text-sm text-destructive">{error ?? "Rendering failed — try again."}</p>}
         <DialogFooter>

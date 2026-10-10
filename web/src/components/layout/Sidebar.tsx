@@ -11,8 +11,6 @@ import {
 } from "lucide-react";
 import { navGroups, type NavIcon } from "@/config/navigation";
 import { useIsMediumOrSmaller } from "@/hooks/use-mobile";
-import { useAuth } from "@/context/AuthContext";
-import { useDeveloper } from "@/context/DeveloperContext";
 import { useTheme } from "@/context/ThemeContext";
 import f1Logo from "@/assets/f1-logo.svg";
 import MobileNavigation from "@/components/layout/MobileNavigation";
@@ -39,8 +37,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
   const { pathname } = useLocation();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isMediumOrSmaller = useIsMediumOrSmaller();
-  const { user } = useAuth();
-  const { isDeveloperMode } = useDeveloper();
   const { isGlass } = useTheme();
   
   // On desktop the sidebar collapses to an icon rail (it never fully hides);
@@ -55,23 +51,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
 
   const sidebarGroups = navGroups.map((group) => ({
     label: group.label,
-    items: group.items
-      .filter((item) => {
-        if (item.requiresAuth && !user) return false;
-        if (item.requiresGuest && user) return false;
-        return true;
-      })
-      .map(
-        (item): SidebarNavItem => ({
-          name: item.label,
-          href: item.href,
-          icon: item.icon,
-        }),
-      ),
+    items: group.items.map(
+      (item): SidebarNavItem => ({
+        name: item.label,
+        href: item.href,
+        icon: item.icon,
+      }),
+    ),
   }));
 
   const accountGroup = sidebarGroups.find((g) => g.label === "ACCOUNT");
-  if (accountGroup && user && isDeveloperMode) {
+  if (accountGroup && !accountGroup.items.some((i) => i.href === "/developers")) {
     accountGroup.items.push({
       name: "Developers",
       href: "/developers",

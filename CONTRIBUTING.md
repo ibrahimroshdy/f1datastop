@@ -72,20 +72,20 @@ f1datastop/
 │       ├── lib/f1/        # Canonical types, adapters, calc logic
 │       └── lib/api/       # F1 API fetch + proxy helpers
 ├── supabase/
-│   ├── functions/       # Edge functions (f1-proxy, notify-slack, …)
+│   ├── functions/       # Edge functions (f1-proxy, bmc-webhook)
 │   └── migrations/      # Postgres schema
 └── .github/workflows/   # CI
 ```
 
 ## Environment variables
 
-See [`.env.example`](.env.example) for the full list. Required for auth:
+See [`.env.example`](.env.example) for the full list. Required for data access:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `VITE_SUPABASE_PROJECT_ID`
 
-Optional integrations (GA4, Clarity, AdSense, Mapbox, reCAPTCHA) are no-ops when unset.
+Optional integrations (GA4, Clarity, AdSense) are no-ops when unset.
 
 ## Questions
 

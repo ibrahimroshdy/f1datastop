@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Lock, RotateCcw, ZoomIn } from "lucide-react";
+import { RotateCcw, ZoomIn } from "lucide-react";
 import { chartTheme } from "@/lib/chartTheme";
 import { F1ChartContainer, F1Loader } from "@/components/f1";
 import { cn } from "@/lib/utils";
@@ -292,13 +292,6 @@ function StatusChip({ t, color, time, dash }: { t: DriverTelemetry; color: strin
         />
         {t.code} · L{t.lap}
         {time && <span className="readout font-normal text-muted-foreground">{time.replace(/^0:/, "")}</span>}
-      </span>
-    );
-  }
-  if (s === "unauthenticated") {
-    return (
-      <span className={cn(base, "border-border text-muted-foreground")}>
-        <Lock className="h-3 w-3" /> {t.code} · sign in for lap {t.lap}
       </span>
     );
   }

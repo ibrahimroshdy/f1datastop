@@ -44,14 +44,6 @@ export const THIRD_PARTY_APIS = {
   WEATHER: "https://api.open-meteo.com/v1",
 };
 
-// Google reCAPTCHA configuration (public site key — optional)
-import { isRecaptchaEnabled, recaptchaSiteKey } from '@/config/integrations';
-
-export const RECAPTCHA = {
-  SITE_KEY: recaptchaSiteKey,
-  ENABLED: isRecaptchaEnabled,
-};
-
 // API Request Configuration
 export const API_CONFIG = {
   DEFAULT_TIMEOUT: 30000, // 30 seconds

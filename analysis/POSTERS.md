@@ -61,7 +61,7 @@ Output: `analysis/out/<season>/<round>-<slug>/<session>/<format>/<chart>.png`
 Supabase URL + a read key. The **publishable/anon** key is enough (public-read RLS):
 
 ```bash
-export SUPABASE_URL=https://envqfquhkcbnitwlzepx.supabase.co
+export SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 export SUPABASE_ANON_KEY="$(grep -m1 '^VITE_SUPABASE_PUBLISHABLE_KEY=' ../web/.env | cut -d= -f2)"
 ./venv/bin/python generate.py --season 2025 --round 13 --session R \
     --only season_scorecard --drivers LEC,HAM --no-upload --format story
@@ -87,7 +87,7 @@ Set the service-role key and drop `--no-upload` — it uploads to Storage and up
 `analysis_charts` (which is what the app reads):
 
 ```bash
-export SUPABASE_URL=https://envqfquhkcbnitwlzepx.supabase.co
+export SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=<service role key>   # never commit this
 ./venv/bin/python generate.py --season 2025 --event "Belgium" --session R --format all
 ```

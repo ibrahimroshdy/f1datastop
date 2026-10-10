@@ -20,7 +20,3 @@ export const adsenseSlots = {
   bottomInContent: env("VITE_ADSENSE_SLOT_BOTTOM_IN_CONTENT"),
   sidebar: env("VITE_ADSENSE_SLOT_SIDEBAR"),
 } as const;
-
-// ─── reCAPTCHA (public site key) ─────────────────────────────────────────────
-export const recaptchaSiteKey = env("VITE_RECAPTCHA_SITE_KEY");
-export const isRecaptchaEnabled = recaptchaSiteKey.length > 0;

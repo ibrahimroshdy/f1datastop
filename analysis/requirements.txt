@@ -5,5 +5,6 @@ numpy>=1.24
 scipy>=1.11
 pillow>=10.0
 requests>=2.31
+# pycountry is LGPL-2.1 (weak copyleft), used as unmodified import — see NOTICE
 pycountry>=23.12
 boto3>=1.34

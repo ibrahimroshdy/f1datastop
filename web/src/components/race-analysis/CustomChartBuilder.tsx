@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { Sparkles, Download, LogIn, RefreshCw } from "lucide-react";
+import { Sparkles, Download, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,7 +10,6 @@ import {
 } from "@/components/ui/select";
 import { F1Card, F1CardContent, F1CardHeader, F1Loader } from "@/components/f1";
 import { useDriverStandings } from "@/hooks/f1";
-import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import {
   CUSTOMIZABLE_CHARTS,
@@ -39,7 +37,6 @@ interface CustomChartBuilderProps {
 const EXPECTED_MS = 75_000;
 
 export default function CustomChartBuilder({ year, round, session }: CustomChartBuilderProps) {
-  const { user } = useAuth();
   const { data: standings } = useDriverStandings(year);
 
   const drivers = useMemo(
@@ -184,25 +181,17 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
           })}
         </div>
 
-        {!user ? (
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link to="/auth/login">
-              <LogIn className="mr-1.5 h-4 w-4" /> Sign in to build charts
-            </Link>
-          </Button>
-        ) : (
-          <Button onClick={generate} disabled={picked.length < 2 || busy} className="w-full sm:w-auto">
-            {busy ? (
-              <>
-                <F1Loader size="sm" /> Generating…
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-1.5 h-4 w-4" /> Generate chart
-              </>
-            )}
-          </Button>
-        )}
+        <Button onClick={generate} disabled={picked.length < 2 || busy} className="w-full sm:w-auto">
+          {busy ? (
+            <>
+              <F1Loader size="sm" /> Generating…
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-1.5 h-4 w-4" /> Generate chart
+            </>
+          )}
+        </Button>
 
         {busy && (
           <div className="space-y-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">

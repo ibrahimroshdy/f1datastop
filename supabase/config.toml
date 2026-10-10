@@ -1,7 +1,4 @@
 project_id = "envqfquhkcbnitwlzepx"
 
-[functions.captcha-verify]
-verify_jwt = true
-
 [functions.f1-proxy]
 verify_jwt = false

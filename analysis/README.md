@@ -31,19 +31,22 @@ pip install -r requirements.txt
 python generate.py --season 2024 --round 1 --session R --no-upload
 
 # real run (uploads to Supabase):
-export SUPABASE_URL=https://envqfquhkcbnitwlzepx.supabase.co
+export SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 python generate.py --latest
 ```
 
 ## Automation setup (one-time)
-Add two **GitHub repo secrets** (Settings → Secrets → Actions):
-- `SUPABASE_URL` = https://envqfquhkcbnitwlzepx.supabase.co
+Chart rendering, asset export, and the usage digest run as scheduled CircleCI
+workflows (see `.circleci/config.yml`: `charts-race-weekend`, `assets-daily`,
+`digest-daily`), with on-demand runs via the `run_job` pipeline parameter
+(`charts`, `assets`, `digest`). Secrets live in the `f1datastop` CircleCI
+context — no repo secrets needed:
+
+- `SUPABASE_URL` = https://YOUR_PROJECT.supabase.co
 - `SUPABASE_SERVICE_ROLE_KEY` = the project service-role key
 
-Then `.github/workflows/analysis.yml` runs automatically after each race weekend
-(Sun 20:00 + Mon 09:00 UTC) and on demand (Actions → Run workflow → optional
-season/round/session). Storage bucket `charts` + table `analysis_charts` already exist.
+Storage bucket `charts` + table `analysis_charts` already exist.
 
 ## Canonical data backfill (`backfill.py`)
 `backfill.py` is the Python sibling of the `f1-ingest` edge function. It pulls

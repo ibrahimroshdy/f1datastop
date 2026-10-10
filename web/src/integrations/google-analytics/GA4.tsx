@@ -123,46 +123,6 @@ export const trackEvent = (
   }
 };
 
-// Set user ID when known
-export const setUserId = (userId: string) => {
-  if (!isGaEnabled) return;
-  if (!window.gtag) {
-    initializeGA(); // Initialize if not done yet
-  }
-  
-  try {
-    // Store in localStorage for future visits
-    localStorage.setItem('userId', userId);
-    
-    // Set user ID in GA
-    window.gtag('set', { user_id: userId });
-    
-    // Track user identification event
-    trackEvent('user_identified', {
-      method: 'explicit_set',
-      user_properties: {
-        authenticated: true
-      }
-    });
-  } catch (e) {
-    console.error('[GA4] Error setting user ID', e);
-  }
-};
-
-// Track login events
-export const trackLogin = (method: string): void => {
-  trackEvent('login', {
-    method: method
-  });
-};
-
-// Track signup events
-export const trackSignup = (method: string): void => {
-  trackEvent('sign_up', {
-    method: method
-  });
-};
-
 // Track form submissions
 export const trackFormSubmission = (formName: string, success: boolean): void => {
   trackEvent('form_submit', {

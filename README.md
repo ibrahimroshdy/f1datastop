@@ -20,9 +20,9 @@
 
 ## Pipeline status
 
-All CI runs on **CircleCI** ([`.circleci/config.yml`](.circleci/config.yml)). GitHub Actions
-is no longer used: the account's shared 3,000 included minutes ran out mid-race-weekend on
-2026-09-12, taking the whole pipeline down, so it moved to CircleCI's 30,000 free credits.
+All CI runs on **CircleCI** ([`.circleci/config.yml`](.circleci/config.yml)), plus
+fork-safe PR checks on **GitHub Actions** ([`.github/workflows/pr-ci.yml`](.github/workflows/pr-ci.yml),
+zero secrets: web typecheck, advisory lint, test, build + Python byte-compile).
 
 | Workflow | Job | When | What it does |
 |---|---|---|---|
@@ -47,7 +47,7 @@ Valid values: `reconcile`, `charts`, `assets`, `digest`, `chart_request`, `telem
 
 ---
 
-A React + TypeScript app for F1 fans: championship standings, lap and position analysis, race calendar, embeddable widgets, and optional auth via Supabase. Data comes from [Jolpica/Ergast](https://github.com/jolpica/jolpica-f1) (historical) and [OpenF1](https://openf1.org/) (live/session).
+A React + TypeScript app for F1 fans: championship standings, lap and position analysis, race calendar, embeddable widgets. No login required — every page renders anonymously. Data comes from [Jolpica/Ergast](https://github.com/jolpica/jolpica-f1) (historical) and [OpenF1](https://openf1.org/) (live/session).
 
 ## Features
 
@@ -56,7 +56,6 @@ A React + TypeScript app for F1 fans: championship standings, lap and position a
 - **Race calendar** — list, grid, and 3D globe views with race detail panels
 - **Drivers & constructors** — profiles with team colors and headshots (OpenF1)
 - **Embeddable widgets** — driver/constructor standings iframes
-- **Auth** (optional) — Supabase email + social login for profile features
 
 ## Tech stack
 
@@ -64,7 +63,7 @@ A React + TypeScript app for F1 fans: championship standings, lap and position a
 |-------|--------|
 | Frontend | React 18, TypeScript, Vite, Tailwind, shadcn/ui |
 | Data | React Query, Jolpica/Ergast + OpenF1 APIs |
-| Backend | Supabase (auth, edge functions, Postgres cache) |
+| Backend | Supabase (Postgres warehouse, f1-proxy edge function, api_cache) |
 | Charts | Recharts, D3 |
 | Deploy | Vercel |
 | CI | CircleCI (`.circleci/config.yml`) |
@@ -75,7 +74,7 @@ A React + TypeScript app for F1 fans: championship standings, lap and position a
 
 - Node.js 20+
 - npm
-- Supabase project (for auth and optional F1 API proxy cache)
+- Supabase project (for the F1 API proxy cache and warehouse reads)
 
 ### Install & run
 
@@ -102,7 +101,7 @@ npm run dev
 
 Open http://localhost:8080.
 
-See [`.env.example`](.env.example) for optional integrations (GA4, Clarity, AdSense, Mapbox, reCAPTCHA, F1 proxy). **All integrations are disabled when their env var is unset.**
+See [`.env.example`](.env.example) for optional integrations (GA4, Clarity, AdSense, F1 proxy, DB serving). **All integrations are disabled when their env var is unset.**
 
 ### Scripts (from repo root)
 
@@ -140,7 +139,7 @@ f1datastop/
 │   ├── public/
 │   └── package.json
 ├── supabase/
-│   ├── functions/            # f1-proxy, f1-cache-warm, notify-slack, captcha-verify
+│   ├── functions/            # f1-proxy, bmc-webhook
 │   └── migrations/
 ├── vercel.json               # Build web/, API rewrites
 ├── .env.example

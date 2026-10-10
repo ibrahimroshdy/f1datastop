@@ -7,10 +7,8 @@ import {
   GitCompare,
   Home,
   ListOrdered,
-  LogIn,
+  Settings,
   Shield,
-  Trophy,
-  User,
 } from "lucide-react";
 import { HelmetIcon } from "@/components/common/HelmetIcon";
 
@@ -21,10 +19,6 @@ export type NavItem = {
   label: string;
   href: string;
   icon: NavIcon;
-  /** When true, item is only shown to authenticated users */
-  requiresAuth?: boolean;
-  /** When true, item is only shown to guests */
-  requiresGuest?: boolean;
 };
 
 export type NavGroup = {
@@ -33,6 +27,7 @@ export type NavGroup = {
   items: NavItem[];
 };
 
+/** Every route is public — no login, no auth-filtered items. */
 export const navGroups: NavGroup[] = [
   {
     id: "overview",
@@ -49,7 +44,6 @@ export const navGroups: NavGroup[] = [
       { label: "Standings", href: "/standings", icon: ListOrdered },
       { label: "Race Analysis", href: "/race-analysis", icon: GitCompare },
       { label: "Pit Wall", href: "/pit-wall", icon: Gauge },
-      { label: "Podium", href: "/game", icon: Trophy },
       { label: "Drivers", href: "/drivers", icon: HelmetIcon },
       { label: "Teams", href: "/constructors", icon: Car },
     ],
@@ -58,25 +52,13 @@ export const navGroups: NavGroup[] = [
     id: "account",
     label: "ACCOUNT",
     items: [
-      { label: "Profile", href: "/profile", icon: User, requiresAuth: true },
-      {
-        label: "Sign In",
-        href: "/auth/login",
-        icon: LogIn,
-        requiresGuest: true,
-      },
+      { label: "Developers", href: "/developers", icon: Settings },
       { label: "Privacy", href: "/privacy", icon: Shield },
     ],
   },
 ];
 
-/** Flat list of all nav items (respects auth filters when called with user state). */
-export function getVisibleNavItems(isAuthenticated: boolean): NavItem[] {
-  return navGroups.flatMap((group) =>
-    group.items.filter((item) => {
-      if (item.requiresAuth && !isAuthenticated) return false;
-      if (item.requiresGuest && isAuthenticated) return false;
-      return true;
-    })
-  );
+/** Flat list of all nav items (everything is public). */
+export function getVisibleNavItems(): NavItem[] {
+  return navGroups.flatMap((group) => group.items);
 }

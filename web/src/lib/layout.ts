@@ -1,4 +1,4 @@
-/** Pit Wall layout utilities — see docs/F1_DATASTOP_DESIGN_MASTER.md §6 */
+/** Pit Wall layout utilities — see docs/archive/F1_DATASTOP_DESIGN_MASTER.md §6 */
 
 /** THE canonical content width. Every data/nav page centers on this so the
  *  occupying area is identical across the app, and it's RESPONSIVE so big

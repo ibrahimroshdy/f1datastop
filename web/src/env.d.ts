@@ -23,12 +23,6 @@ interface ImportMetaEnv {
   // ─── Analytics (optional — no-op when unset) ─────────────────────────────
   readonly VITE_GA_MEASUREMENT_ID?: string;
   readonly VITE_CLARITY_PROJECT_ID?: string;
-
-  // ─── reCAPTCHA (optional — public site key) ──────────────────────────────
-  readonly VITE_RECAPTCHA_SITE_KEY?: string;
-
-  // ─── Web Push (optional — VAPID public key) ──────────────────────────────
-  readonly VITE_VAPID_PUBLIC_KEY?: string;
 }
 
 interface ImportMeta {

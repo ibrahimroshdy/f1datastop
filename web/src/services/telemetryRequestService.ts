@@ -9,22 +9,20 @@ import {
 /**
  * On-demand "any-lap" telemetry. Fastest laps per driver are pre-exported and public;
  * any OTHER lap is generated on demand by the CircleCI exporter (telemetry_export.py --lap,
- * drained by process_telemetry_requests). Generation is gated behind auth — same
- * compute protection as custom charts (f1_chart_requests).
+ * drained by process_telemetry_requests). Requests are anonymous, like custom charts
+ * (f1_chart_requests).
  */
 export type LapTelemetryState =
   | { status: "idle" }
   | { status: "queued" } // request row exists, waiting for the drainer
   | { status: "processing" } // drainer is exporting it now
   | { status: "done"; blob: TelemetryBlob }
-  | { status: "error"; error: string }
-  | { status: "unauthenticated" }; // must sign in to generate a non-fastest lap
+  | { status: "error"; error: string };
 
 // f1_telemetry_requests isn't in the generated Database types — untyped cast, mirrors
 // services/chartRequestService.ts.
 const db = supabase as unknown as {
   from: (t: string) => any;
-  auth: typeof supabase.auth;
 };
 
 const codeOf = (driver: string) => driver.trim().toUpperCase();
@@ -45,7 +43,7 @@ export async function findLapIndexRow(
   return rows.find((r) => r.driver_code === code && r.lap_number === lap) ?? null;
 }
 
-/** Queue an on-demand any-lap export. Returns "unauthenticated" if not signed in. */
+/** Queue an on-demand any-lap export (anonymous). */
 export async function submitTelemetryLap(
   season: number,
   round: number,
@@ -53,17 +51,12 @@ export async function submitTelemetryLap(
   driver: string,
   lap: number,
 ): Promise<LapTelemetryState> {
-  const { data: userData } = await db.auth.getUser();
-  const uid = userData?.user?.id;
-  if (!uid) return { status: "unauthenticated" };
-
   const { error } = await db.from("f1_telemetry_requests").insert({
     season,
     round,
     session,
     driver: codeOf(driver),
     lap_number: lap,
-    requested_by: uid,
     status: "pending",
   });
   if (error) {

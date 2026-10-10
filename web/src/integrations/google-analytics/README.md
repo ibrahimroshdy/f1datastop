@@ -39,11 +39,9 @@ The analytics setup tracks the following:
 - Team/constructor views
 - Season changes
 
-### User Authentication
-- Logins (email and Twitter)
-- Signups
-- Password resets
-- Profile updates
+### Anonymous Usage (no login exists)
+- Page views and navigation
+- Chart and telemetry requests
 
 ## Usage
 
@@ -53,7 +51,7 @@ The analytics setup tracks the following:
 import { trackEvent } from '@/integrations/google-analytics/GA4';
 
 // Track a simple event
-trackEvent('button_click', { button_name: 'signup' });
+trackEvent('button_click', { button_name: 'chart_request' });
 ```
 
 ### Using the Analytics Hook
@@ -101,10 +99,10 @@ You can add data attributes to track specific elements:
 
 ```jsx
 <button 
-  data-track-id="signup_button"
+  data-track-id="chart_request_button"
   data-track-type="click"
 >
-  Sign Up
+  Request Chart
 </button>
 ```
 

@@ -6,7 +6,7 @@ fits the screen, nothing endless-scrolls sideways, nothing is smaller than a thu
 **Source of truth:** the sibling app `../fifa-league` (its `ViewSwitcher`, `BottomNav`,
 page shells, list/card patterns). When in doubt, mirror fifa-league's mobile pattern
 and re-token to Pit Wall (f1-red primary, JetBrains Mono numerals, `instrument-label`
-eyebrows). This doc is the short playbook; see also `F1_DATASTOP_DESIGN_MASTER.md`.
+eyebrows). This doc is the short playbook; see also `../../docs/archive/F1_DATASTOP_DESIGN_MASTER.md`.
 
 ---
 

@@ -1,0 +1,5 @@
+F1 DataStop — third-party notices (MIT licensed; see LICENSE).
+
+- pycountry (https://github.com/flyingcircusio/pycountry, LGPL-2.1) is used
+  as an unmodified pip import (see analysis/requirements.txt); it is never
+  vendored or modified.

@@ -3,7 +3,6 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import f1Logo from "@/assets/f1-logo.svg";
 import { Link } from "react-router-dom";
 import NextRaceInfo from "./nextRace/NextRaceInfo";
-import UserMenu from "./user/UserMenu";
 import ShareButton from "./share/ShareButton";
 import SocialLinks from "./social/SocialLinks";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -93,15 +92,6 @@ const TopBar = ({
         
         {/* Share button */}
         <ShareButton />
-        
-        {/* Divider */}
-        <div className={cn(
-          "h-5 w-px mx-1 hidden sm:block",
-          isGlass ? "bg-white/10" : "bg-border"
-        )} />
-        
-        {/* User menu */}
-        <UserMenu />
       </div>
     </div>
   );

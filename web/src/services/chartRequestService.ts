@@ -25,8 +25,7 @@ export type ChartRequestState =
   | { status: "queued" }
   | { status: "processing" }
   | { status: "done"; charts: AnalysisChart[] }
-  | { status: "error"; error: string }
-  | { status: "unauthenticated" };
+  | { status: "error"; error: string };
 
 /** Stable driver key: unique, uppercased, sorted, '-'-joined — matches generate.py. */
 export const driverKeyOf = (codes: string[]) =>
@@ -35,7 +34,6 @@ export const driverKeyOf = (codes: string[]) =>
 // analysis_charts / f1_chart_requests aren't in the generated Database types.
 const db = supabase as unknown as {
   from: (t: string) => any;
-  auth: typeof supabase.auth;
 };
 
 /** Existing custom-chart rows (all social formats) for a driver set, or []. */
@@ -85,10 +83,6 @@ export async function submitChartRequest(
     .filter((c) => chartFormatOf(c.chart_type) === format);
   if (existing.length) return { status: "done", charts: existing };
 
-  const { data: userData } = await db.auth.getUser();
-  const uid = userData?.user?.id;
-  if (!uid) return { status: "unauthenticated" };
-
   const key = driverKeyOf(codes);
   const drivers = [...new Set(codes.map((c) => c.trim().toUpperCase()).filter(Boolean))].sort();
   const { error } = await db.from("f1_chart_requests").insert({
@@ -100,7 +94,6 @@ export async function submitChartRequest(
     drivers,
     format,
     theme,
-    requested_by: uid,
     status: "pending",
   });
   if (error) {
