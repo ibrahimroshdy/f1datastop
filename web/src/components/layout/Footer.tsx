@@ -1,10 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
-<<<<<<< HEAD
-=======
 import { Github } from "lucide-react";
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))
 
 const Footer = () => {
   const { isGlass } = useTheme();
@@ -27,14 +24,6 @@ const Footer = () => {
             ·
           </span>
           <a
-<<<<<<< HEAD
-            href="https://buymeacoffee.com/f1datastop"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-foreground transition-colors"
-          >
-            Support
-=======
             href="https://github.com/ibrahimroshdy/f1datastop"
             target="_blank"
             rel="noopener noreferrer"
@@ -42,7 +31,6 @@ const Footer = () => {
           >
             <Github className="h-3.5 w-3.5" />
             Source
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))
           </a>
         </div>
       </div>
@@ -50,8 +38,4 @@ const Footer = () => {
   );
 };
 
-<<<<<<< HEAD
 export default Footer;
-=======
-export default Footer;
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))

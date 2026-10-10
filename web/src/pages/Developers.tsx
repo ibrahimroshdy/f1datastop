@@ -7,16 +7,10 @@ import {
   PageHeader,
 } from '@/components/f1';
 import { pageShell, pageStack } from '@/lib/layout';
-<<<<<<< HEAD
-import { Code, Database, LayoutTemplate, ExternalLink, Gauge } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useTheme } from '@/context/ThemeContext';
-=======
 import { Code, Database, LayoutTemplate, ExternalLink, Gauge, FileCode, Terminal, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/context/ThemeContext';
 import { useState } from 'react';
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))
 
 const EMBEDS = [
   {
@@ -36,8 +30,6 @@ const EMBEDS = [
   },
 ];
 
-<<<<<<< HEAD
-=======
 const API_ENDPOINTS = [
   {
     method: 'GET',
@@ -127,13 +119,10 @@ const circuitUrl = \`\${import.meta.env.VITE_BLOB_HOST}/circuits/\${storagePath}
 // Buckets: charts | telemetry | replays | circuits
 // storage_path comes from Postgres rows (host-free)`;
 
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))
 const Developers = () => {
   const { isGlass } = useTheme();
   const cardVariant = isGlass ? 'glass' : 'default';
   const glassVariant = isGlass ? 'panel' : 'default';
-<<<<<<< HEAD
-=======
   const [copied, setCopied] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, label: string) => {
@@ -151,7 +140,6 @@ const Developers = () => {
       {copied === label && <span className="text-green-500 ml-1">✓ Copied</span>}
     </button>
   );
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))
 
   return (
     <div className={pageShell}>
@@ -161,11 +149,7 @@ const Developers = () => {
           description="Public API, data layout, embeds, and rate limits — no account needed"
         />
 
-<<<<<<< HEAD
-        {/* Embed options (unchanged) */}
-=======
         {/* Embed options */}
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))
         <section aria-label="Embeds">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
             <LayoutTemplate className="h-5 w-5 text-primary" /> Embeds
@@ -198,64 +182,6 @@ const Developers = () => {
           </div>
         </section>
 
-<<<<<<< HEAD
-        {/* Public read surface */}
-        <section aria-label="Public API">
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
-            <Code className="h-5 w-5 text-primary" /> Public API
-          </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
-              <F1CardHeader className="pb-2">
-                <F1CardTitle className="!text-xl mt-2">f1-proxy (live data)</F1CardTitle>
-                <F1CardDescription>
-                  Ergast and OpenF1 reads go through the Supabase edge function,
-                  which caches upstream responses in Postgres.
-                </F1CardDescription>
-              </F1CardHeader>
-              <F1CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p>
-                  POST to the <code className="text-foreground">f1-proxy</code> function
-                  with <code className="text-foreground">{'{ source, path, params }'}</code> where
-                  source is <code className="text-foreground">ergast</code> or{' '}
-                  <code className="text-foreground">openf1</code>. Responses return{' '}
-                  <code className="text-foreground">{'{ data, cached, cacheKey, status, error }'}</code>.
-                </p>
-                <p>
-                  In the web app this is enabled with{' '}
-                  <code className="text-foreground">VITE_F1_PROXY_ENABLED=true</code>; direct
-                  upstream URLs remain the fallback.
-                </p>
-              </F1CardContent>
-            </F1Card>
-            <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
-              <F1CardHeader className="pb-2">
-                <F1CardTitle className="!text-xl mt-2">Static blobs (R2)</F1CardTitle>
-                <F1CardDescription>
-                  Large assets — chart images, telemetry blobs, replays, circuit
-                  geometry — are served as public files.
-                </F1CardDescription>
-              </F1CardHeader>
-              <F1CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p>
-                  Blob URLs follow{' '}
-                  <code className="text-foreground">VITE_BLOB_HOST/{'{bucket}'}/{'{storage_path}'}</code> with
-                  buckets <code className="text-foreground">charts</code>,{' '}
-                  <code className="text-foreground">telemetry</code>,{' '}
-                  <code className="text-foreground">replays</code>, and{' '}
-                  <code className="text-foreground">circuits</code>. Postgres rows store only
-                  the host-free <code className="text-foreground">storage_path</code>, so the
-                  host stays a single environment variable.
-                </p>
-                <p className="flex items-start gap-1.5">
-                  <Database className="mt-0.5 h-4 w-4 shrink-0" />
-                  Pinned standings, older seasons, and request queues are read live
-                  from Postgres; everything else prefetches from these static files.
-                </p>
-              </F1CardContent>
-            </F1Card>
-          </div>
-=======
         {/* Public REST API */}
         <section aria-label="Public REST API">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
@@ -350,18 +276,12 @@ const Developers = () => {
               </div>
             </F1CardContent>
           </F1Card>
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))
         </section>
 
         {/* Rate-limit policy */}
         <section aria-label="Rate limits">
-<<<<<<< HEAD
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
-            <Gauge className="h-5 w-5 text-primary" /> Rate limits
-=======
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold mt-8">
             <Gauge className="h-5 w-5 text-primary" /> Rate Limits
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))
           </h2>
           <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
             <F1CardContent className="pt-4 text-sm text-muted-foreground">
@@ -374,11 +294,6 @@ const Developers = () => {
                 so normal use — including embedded tables on third-party sites —
                 stays well under the limits.
               </p>
-<<<<<<< HEAD
-            </F1CardContent>
-          </F1Card>
-        </section>
-=======
               <p className="mt-3">
                 <strong className="text-foreground">Typical limits:</strong> ~1000 req/min per IP for API,
                 higher for embeds (cached at edge). No API key required; limits are IP-based.
@@ -426,14 +341,9 @@ const Developers = () => {
             </F1Card>
           </div>
         </section>
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))
       </div>
     </div>
   );
 };
 
-<<<<<<< HEAD
 export default Developers;
-=======
-export default Developers;
->>>>>>> fcc90ba (release: f1datastop v1.0.0 opensource (auth/game/push/captcha drop, MIT, pycountry LGPL noted))
