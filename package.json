@@ -1,0 +1,14 @@
+{
+  "name": "f1datastop",
+  "private": true,
+  "description": "F1 DataStop — monorepo root. Frontend lives in web/, backend in supabase/.",
+  "scripts": {
+    "dev": "npm --prefix web run dev",
+    "build": "npm --prefix web run build",
+    "preview": "npm --prefix web run preview",
+    "lint": "npm --prefix web run lint",
+    "test": "npm --prefix web run test",
+    "typecheck": "npm --prefix web run typecheck",
+    "install:web": "npm --prefix web install"
+  }
+}

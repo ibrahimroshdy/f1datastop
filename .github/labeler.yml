@@ -1,0 +1,42 @@
+# Automatic labeler based on file paths
+# Labels will be created automatically (sync-labels: true)
+
+# Frontend
+"area: frontend":
+  - "web/src/**"
+  - "web/public/**"
+  - "web/package.json"
+  - "web/tsconfig*.json"
+  - "web/vite.config.ts"
+  - "web/tailwind.config.*"
+
+# API / Edge Functions / Supabase
+"area: api":
+  - "supabase/**"
+
+# Data Ingestion / Analysis
+"area: ingestion":
+  - "analysis/**"
+
+# Infrastructure / CI / Deploy
+"area: infra":
+  - ".circleci/**"
+  - ".github/workflows/**"
+  - "vercel.json"
+  - "Dockerfile*"
+  - "docker-compose*"
+
+# Documentation
+"area: docs":
+  - "README.md"
+  - "CONTRIBUTING.md"
+  - "CHANGELOG.md"
+  - "docs/**"
+  - ".github/ISSUE_TEMPLATE/**"
+  - ".github/PULL_REQUEST_TEMPLATE/**"
+
+# Dependencies
+dependencies:
+  - "web/package.json"
+  - "web/package-lock.json"
+  - "analysis/requirements.txt"

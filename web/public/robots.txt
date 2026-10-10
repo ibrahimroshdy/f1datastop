@@ -1,0 +1,25 @@
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: *
+Allow: /
+
+# Auth, profile and prediction-game admin routes carry no search value and are also
+# noindex'd in-app. Keeping crawlers off them concentrates crawl budget on the race,
+# driver and circuit pages that can actually rank.
+Disallow: /auth/
+Disallow: /profile
+Disallow: /join/
+Disallow: /game/admin
+Disallow: /game/profile
+
+Sitemap: https://www.f1datastop.com/sitemap.xml
