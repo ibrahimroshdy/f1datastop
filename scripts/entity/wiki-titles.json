@@ -1,0 +1,39 @@
+{
+  "drivers": {
+    "hamilton": "Lewis_Hamilton",
+    "max_verstappen": "Max_Verstappen",
+    "alonso": "Fernando_Alonso",
+    "leclerc": "Charles_Leclerc",
+    "norris": "Lando_Norris",
+    "piastri": "Oscar_Piastri",
+    "russell": "George_Russell",
+    "sainz": "Carlos_Sainz",
+    "perez": "Sergio_Pérez",
+    "bottas": "Valtteri_Bottas",
+    "gasly": "Pierre_Gasly",
+    "ocon": "Esteban_Ocon",
+    "albon": "Alexander_Albon",
+    "hulkenberg": "Nico_Hülkenberg",
+    "stroll": "Lance_Stroll",
+    "bearman": "Oliver_Bearman",
+    "lawson": "Liam_Lawson",
+    "hadjar": "Isack_Hadjar",
+    "antonelli": "Andrea_Kimi_Antonelli",
+    "arvid_lindblad": "Arvid_Lindblad",
+    "colapinto": "Franco_Colapinto",
+    "bortoleto": "Gabriel_Bortoleto"
+  },
+  "constructors": {
+    "ferrari": "Scuderia_Ferrari",
+    "red_bull": "Red_Bull_Racing",
+    "mercedes": "Mercedes-Benz_in_Formula_One",
+    "mclaren": "McLaren",
+    "williams": "Williams_Racing",
+    "alpine": "Alpine_F1_Team",
+    "aston_martin": "Aston_Martin_in_Formula_One",
+    "rb": "RB_Formula_One_Team",
+    "haas": "Haas_F1_Team",
+    "audi": "Audi_in_Formula_One",
+    "cadillac": "Cadillac_Formula_One_Team"
+  }
+}

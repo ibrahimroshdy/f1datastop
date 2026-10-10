@@ -1,0 +1,29 @@
+# CODEOWNERS - these users/teams will be requested for review on matching files
+
+# Global - all PRs
+* @ibrahimroshdy
+
+# Frontend
+/web/src/** @ibrahimroshdy
+/web/public/** @ibrahimroshdy
+/web/package.json @ibrahimroshdy
+/web/tsconfig*.json @ibrahimroshdy
+/web/vite.config.ts @ibrahimroshdy
+
+# Analysis / Ingestion
+/analysis/*.py @ibrahimroshdy
+/analysis/requirements.txt @ibrahimroshdy
+
+# Supabase / Edge Functions
+/supabase/** @ibrahimroshdy
+
+# CI / Deploy
+/.circleci/config.yml @ibrahimroshdy
+/.github/workflows/** @ibrahimroshdy
+/vercel.json @ibrahimroshdy
+
+# Documentation
+/README.md @ibrahimroshdy
+/CONTRIBUTING.md @ibrahimroshdy
+/CHANGELOG.md @ibrahimroshdy
+/docs/** @ibrahimroshdy

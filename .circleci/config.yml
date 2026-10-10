@@ -1,0 +1,491 @@
+version: 2.1
+
+# ─────────────────────────────────────────────────────────────────────────────
+# f1datastop pipeline on CircleCI
+#
+# Why this exists: the GitHub account's 3,000 included Actions minutes ran out on
+# 2026-09-12 and every workflow began failing in ~1 s with no steps. f1datastop was not
+# the cause (485 min of the 3,025), but it shares the account budget with other repos.
+# CircleCI's free plan gives ~6,000 build minutes a month to this project alone, which is
+# an order of magnitude more than this pipeline needs (~500 min/month).
+#
+# The GitHub workflows keep their `workflow_dispatch` so they can still be run by hand,
+# but their cron triggers are removed so nothing runs twice.
+#
+# ── ONE-TIME SETUP (in the CircleCI web UI) ──────────────────────────────────
+#   1. Projects -> f1datastop -> Set Up Project -> "Fastest: use the .circleci/config.yml
+#      in my repo", branch `main`.
+#   2. Create a context named `f1datastop` (Organization Settings -> Contexts) holding
+#      every variable below, or add them as project-level environment variables and drop
+#      the `context:` lines from the workflows.
+#
+#        R2_ACCOUNT_ID            R2_ACCESS_KEY_ID        R2_SECRET_ACCESS_KEY
+#        R2_BUCKET                BLOB_PUBLIC_BASE        SLACK_ALERTS_WEBHOOK
+#        SUPABASE_URL             SUPABASE_SERVICE_ROLE_KEY
+#        F1_LIVETIMING_PROXY      (optional — see the note on the livetiming CDN below)
+#
+#      The values are the same ones already in the GitHub repo secrets and in
+#      analysis/.env.r2 locally.
+#
+# ── NOTE ON THE LIVETIMING PROXY ─────────────────────────────────────────────
+# The F1 livetiming CDN answers 403 to Azure ranges, which is every GitHub runner, so the
+# pipeline routes through a Supabase edge function via F1_LIVETIMING_PROXY. CircleCI does
+# not run on Azure, so the direct fetch may simply work here — and the proxy is a Supabase
+# function, which is itself 402 while the project is restricted. Leave the variable unset
+# first; if a run reports "no data", set it and re-run.
+#
+# ── NOTE ON SCHEDULES ────────────────────────────────────────────────────────
+# CircleCI scheduled workflows reject cron step syntax (`*/6`), so the GitHub crons are
+# written out in full below. They are otherwise identical schedules, all UTC. This
+# in-config form is deprecated in favour of UI "Schedule Triggers"; it still works and
+# keeps the schedule in the repo. Migrate if CircleCI ever retires it.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# CircleCI has no workflow_dispatch. A workflow carrying a `triggers:` block runs ONLY on
+# its schedule — not on a push and not on an API trigger — so without this parameter there
+# would be no way to run reconcile/charts/assets/digest on demand, which is exactly what
+# you need while catching up after an outage. Trigger one with:
+#
+#   curl -u "$CIRCLE_TOKEN:" -X POST -H 'Content-Type: application/json' \
+#     https://circleci.com/api/v2/project/gh/ibrahimroshdy/f1datastop/pipeline \
+#     -d '{"branch":"main","parameters":{"run_job":"reconcile"}}'
+parameters:
+  run_job:
+    description: Run one job on demand; "none" leaves the scheduled workflows alone.
+    type: enum
+    enum: [none, reconcile, charts, assets, digest, chart_request, telemetry_request]
+    default: none
+
+executors:
+  web:
+    docker:
+      - image: cimg/node:22.9
+    resource_class: medium
+    working_directory: ~/f1datastop
+
+  analysis:
+    docker:
+      - image: cimg/python:3.11
+    resource_class: medium
+    working_directory: ~/f1datastop
+    environment:
+      FASTF1_CACHE: /home/circleci/f1datastop/analysis/.fastf1cache
+
+commands:
+  install_deps:
+    description: Python deps for the analysis scripts, with a warm pip cache.
+    steps:
+      - restore_cache:
+          keys:
+            - pip-v1-{{ checksum "analysis/requirements.txt" }}
+            - pip-v1-
+      - run:
+          name: Install Python deps
+          command: pip install -q -r analysis/requirements.txt
+      - save_cache:
+          key: pip-v1-{{ checksum "analysis/requirements.txt" }}
+          paths:
+            - ~/.cache/pip
+
+  restore_fastf1_cache:
+    description: FastF1 downloads a session once; carrying the cache saves minutes.
+    steps:
+      - restore_cache:
+          keys:
+            - fastf1-v1-
+
+  save_fastf1_cache:
+    steps:
+      - save_cache:
+          # Cache keys are immutable, so the build number makes each save unique and the
+          # `fastf1-v1-` prefix above restores the most recent one.
+          key: fastf1-v1-{{ .Environment.CIRCLE_BUILD_NUM }}
+          paths:
+            - analysis/.fastf1cache
+
+  slack_on_fail:
+    description: Post to #f1-alerts. No-ops when the webhook variable is unset.
+    parameters:
+      title:
+        type: string
+    steps:
+      - run:
+          name: Alert Slack on failure
+          when: on_fail
+          # No heredoc here on purpose: CircleCI expands `<< ... >>` for parameters before
+          # bash ever sees the script, and a `<<'EOF'` heredoc in the same command is an
+          # easy way to get a confusing config-parse error.
+          command: |
+            [ -n "${SLACK_ALERTS_WEBHOOK:-}" ] || { echo "no SLACK_ALERTS_WEBHOOK — skipping"; exit 0; }
+            export ALERT_TITLE="<< parameters.title >>"
+            payload=$(python3 -c 'import json,os; print(json.dumps({"text": ":rotating_light: *%s* failed on `%s` (CircleCI) — <%s|open build>" % (os.environ["ALERT_TITLE"], os.environ.get("CIRCLE_BRANCH","?"), os.environ.get("CIRCLE_BUILD_URL","?"))}))')
+            curl -s -X POST "$SLACK_ALERTS_WEBHOOK" -H "Content-type: application/json" -d "$payload" >/dev/null || true
+
+  halt_if_supabase_restricted:
+    description: |
+      End the job cleanly when the Supabase project is Fair-Use restricted. The queue
+      drainers read pending rows through PostgREST, so a 402 makes them exit 1 and page
+      Slack — noise for a condition we already know about and cannot fix from here.
+    steps:
+      - run:
+          name: Is Supabase serving?
+          command: |
+            code="$(curl -s -o /dev/null -w '%{http_code}' \
+              -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY:-}" \
+              -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY:-}" \
+              "${SUPABASE_URL:-http://localhost}/rest/v1/" || echo 000)"
+            echo "supabase REST -> HTTP $code"
+            if [ "$code" = "402" ]; then
+              echo "Supabase is restricted (402) — nothing can be queued, halting."
+              circleci-agent step halt
+            fi
+
+  require_r2:
+    steps:
+      - run:
+          name: Fail fast if R2 credentials are missing
+          command: |
+            for v in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET BLOB_PUBLIC_BASE; do
+              if [ -z "$(printenv "$v" || true)" ]; then
+                echo "ERROR: $v is empty — add it to the CircleCI context/project env vars."
+                exit 1
+              fi
+            done
+
+jobs:
+  # ── results / standings / season JSON ──────────────────────────────────────
+  reconcile:
+    executor: analysis
+    steps:
+      - checkout
+      - require_r2
+      - run:
+          name: Is there a live or just-finished session?
+          # stdlib only, before any pip install — the same gate the GitHub job used, so a
+          # quiet cron tick costs seconds instead of a full environment build.
+          command: |
+            cd analysis
+            if [ "${FORCE_RUN:-}" = "true" ]; then echo "forced"; exit 0; fi
+            out="$(python3 reconcile_needed.py --season "$(date -u +%Y)")" || exit 0
+            echo "$out"
+            case "$out" in
+              run*) ;;
+              *) echo "No session in the window — halting."; circleci-agent step halt ;;
+            esac
+      - install_deps
+      - restore_fastf1_cache
+      - run:
+          name: Ingest current season (skipped while Supabase is restricted)
+          command: |
+            cd analysis
+            code="$(curl -s -o /dev/null -w '%{http_code}' \
+              -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY:-}" \
+              -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY:-}" \
+              "${SUPABASE_URL:-http://localhost}/rest/v1/" || echo 000)"
+            echo "supabase REST -> HTTP $code"
+            if [ "$code" = "402" ]; then
+              echo "Supabase is restricted (402) — skipping ingest; the export below still runs."
+              exit 0
+            fi
+            python ingest.py --season "$(date -u +%Y)"
+      - save_fastf1_cache
+      - slack_on_fail:
+          title: F1 reconcile current season
+
+  # ── Deep Dive charts ───────────────────────────────────────────────────────
+  charts:
+    executor: analysis
+    steps:
+      - checkout
+      - require_r2
+      - run:
+          name: Which sessions need charts?
+          command: |
+            cd analysis
+            python3 charts_todo.py --season "$(date -u +%Y)" > todo.txt || true
+            if [ -s todo.txt ]; then
+              echo "Sessions needing charts:"; cat todo.txt
+            else
+              echo "Every finished session already has charts — halting."
+              circleci-agent step halt
+            fi
+      - install_deps
+      - restore_fastf1_cache
+      - run:
+          name: Render charts
+          no_output_timeout: 40m
+          command: |
+            cd analysis
+            set -u
+            Y="$(date -u +%Y)"
+            runs=0; fails=0
+            try() { runs=$((runs + 1)); if ! "$@"; then fails=$((fails + 1)); echo "FAILED: $*"; fi; }
+            while read -r r sess; do
+              [ -n "$r" ] || continue
+              echo "== charts R$r $sess =="
+              try python generate.py --season "$Y" --round "$r" --session "$sess" \
+                  --format landscape --theme all --skip-existing
+            done < todo.txt
+            # Teammate head-to-heads only when a race session was just rendered.
+            for r in $(awk '$2=="R"{print $1}' todo.txt | sort -u); do
+              for pair in "RUS,ANT" "NOR,PIA" "LEC,HAM"; do
+                try python generate.py --season "$Y" --round "$r" --session R \
+                    --only driver_compare --drivers "$pair" --format landscape --theme all --skip-existing
+              done
+            done
+            echo "calls=$runs ok=$((runs - fails)) failed=$fails"
+            if [ "$runs" -gt 0 ] && [ "$fails" -eq "$runs" ]; then
+              echo "ERROR: every generate call failed — broken run, not a no-op."; exit 1
+            fi
+            exit 0
+      - run:
+          name: Refresh CDN indexes
+          when: always
+          command: cd analysis && python index_export.py --season "$(date -u +%Y)"
+      - save_fastf1_cache
+      - slack_on_fail:
+          title: F1 latest-race charts
+
+  # ── telemetry / geometry / replays / weather ───────────────────────────────
+  assets:
+    executor: analysis
+    steps:
+      - checkout
+      - require_r2
+      - install_deps
+      - restore_fastf1_cache
+      - run:
+          name: Refresh current-season assets
+          no_output_timeout: 40m
+          command: |
+            cd analysis
+            set -u
+            Y="$(date -u +%Y)"
+            runs=0; fails=0
+            try() { runs=$((runs + 1)); if ! "$@"; then fails=$((fails + 1)); echo "FAILED: $*"; fi; }
+
+            R="$(python -c "import backfill as bf; print(bf.latest_completed_round($Y) or 0)")"
+            ROUNDS=""
+            [ "$R" -ge 1 ] && ROUNDS="$R"
+            ROUNDS="$ROUNDS $((R + 1))"
+            echo "latest completed round: $R  ->  processing rounds:$ROUNDS"
+            SESSIONS="FP1 FP2 FP3 Q SQ SS S R"
+
+            for sess in $SESSIONS; do
+              for r in $ROUNDS; do try python telemetry_export.py --season "$Y" --round "$r" --session "$sess"; done
+            done
+            for r in $ROUNDS; do try python circuit_geometry_export.py --season "$Y" --round "$r"; done
+            for r in $ROUNDS; do try python weather_export.py --season "$Y" --round "$r"; done
+            for sess in $SESSIONS; do
+              for r in $ROUNDS; do try python race_replay_export.py --season "$Y" --round "$r" --session "$sess"; done
+            done
+            # Per-lap blobs only for the sessions people actually replay.
+            for sess in Q SQ SS S R; do try python telemetry_export.py --season "$Y" --all-laps --latest --session "$sess"; done
+
+            echo "steps=$runs ok=$((runs - fails)) failed=$fails"
+            if [ "$runs" -gt 0 ] && [ "$fails" -eq "$runs" ]; then
+              echo "ERROR: every step failed — broken run, not a no-op."; exit 1
+            fi
+            exit 0
+      - run:
+          name: Refresh CDN indexes
+          when: always
+          command: cd analysis && python index_export.py --season "$(date -u +%Y)"
+      - save_fastf1_cache
+      - slack_on_fail:
+          title: F1 refresh current-season assets
+
+  # ── web CI: typecheck / lint / test / build ────────────────────────────────
+  # Ported from .github/workflows/ci.yml, which had been failing on every push since the
+  # GitHub Actions minutes ran out. Same four steps, same advisory lint.
+  web:
+    executor: web
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - npm-v1-{{ checksum "web/package-lock.json" }}
+            - npm-v1-
+      - run:
+          name: Install dependencies
+          command: cd web && npm ci
+      - save_cache:
+          key: npm-v1-{{ checksum "web/package-lock.json" }}
+          paths:
+            - ~/.npm
+      - run:
+          name: Typecheck
+          command: cd web && npm run typecheck
+      - run:
+          name: Lint
+          # Advisory only, matching the GitHub job's continue-on-error: style nits should
+          # not block a deploy, but the output still belongs in the log.
+          command: cd web && (npm run lint || echo "lint reported issues — advisory, not failing the build")
+      - run:
+          name: Test
+          command: cd web && npm run test
+      - run:
+          name: Build
+          command: cd web && npm run build
+
+  # ── push smoke test ────────────────────────────────────────────────────────
+  verify:
+    executor: analysis
+    steps:
+      - checkout
+      - run:
+          name: Byte-compile the analysis scripts
+          # Cheap (~10 s, no dependency install) but it catches a syntax error on the push
+          # that introduced it rather than six hours later inside a scheduled run.
+          # -x keeps it to our own scripts: a local checkout has analysis/venv, and third
+          # party packages use newer syntax than the 3.11 runtime here.
+          command: python -m compileall -q -x '(venv|\.fastf1cache|__pycache__)' analysis
+
+  # ── on-demand request queues ───────────────────────────────────────────────
+  # Ported from the repository_dispatch workflows. Supabase currently triggers those by
+  # POSTing to GitHub's dispatch endpoint; when the project is un-restricted, repoint that
+  # webhook at CircleCI's v2 pipeline endpoint with {"parameters":{"run_job":"chart_request"}}.
+  chart_request:
+    executor: analysis
+    steps:
+      - checkout
+      - require_r2
+      - halt_if_supabase_restricted
+      - install_deps
+      - restore_fastf1_cache
+      - run:
+          name: Drain pending chart requests
+          no_output_timeout: 30m
+          command: cd analysis && python process_chart_requests.py
+      - run:
+          name: Refresh CDN indexes
+          when: always
+          command: cd analysis && python index_export.py --season "$(date -u +%Y)"
+      - save_fastf1_cache
+      - slack_on_fail:
+          title: F1 chart request
+
+  telemetry_request:
+    executor: analysis
+    steps:
+      - checkout
+      - require_r2
+      - halt_if_supabase_restricted
+      - install_deps
+      - restore_fastf1_cache
+      - run:
+          name: Drain pending telemetry requests
+          no_output_timeout: 30m
+          command: cd analysis && python process_telemetry_requests.py
+      - run:
+          name: Refresh CDN indexes
+          when: always
+          command: cd analysis && python index_export.py --kind telemetry --season "$(date -u +%Y)"
+      - save_fastf1_cache
+      - slack_on_fail:
+          title: F1 telemetry request
+
+  # ── daily free-tier digest ─────────────────────────────────────────────────
+  digest:
+    executor: analysis
+    steps:
+      - checkout
+      - require_r2
+      - run:
+          name: Install minimal deps
+          command: pip install -q boto3 requests
+      - run:
+          name: Post digest
+          command: cd analysis && python free_tier_digest.py
+      - slack_on_fail:
+          title: Free-tier digest
+
+workflows:
+  # Runs on every push (no `triggers:` block). Without it CircleCI would build a pipeline
+  # for each push and find no matching workflow, which surfaces as an errored pipeline.
+  on-push:
+    when:
+      equal: [none, << pipeline.parameters.run_job >>]
+    jobs:
+      - verify
+      - web
+
+  # ── on-demand equivalents of GitHub's workflow_dispatch ────────────────────
+  manual-reconcile:
+    when:
+      equal: [reconcile, << pipeline.parameters.run_job >>]
+    jobs:
+      - reconcile: { context: [f1datastop] }
+
+  manual-charts:
+    when:
+      equal: [charts, << pipeline.parameters.run_job >>]
+    jobs:
+      - charts: { context: [f1datastop] }
+
+  manual-assets:
+    when:
+      equal: [assets, << pipeline.parameters.run_job >>]
+    jobs:
+      - assets: { context: [f1datastop] }
+
+  manual-digest:
+    when:
+      equal: [digest, << pipeline.parameters.run_job >>]
+    jobs:
+      - digest: { context: [f1datastop] }
+
+  manual-chart-request:
+    when:
+      equal: [chart_request, << pipeline.parameters.run_job >>]
+    jobs:
+      - chart_request: { context: [f1datastop] }
+
+  manual-telemetry-request:
+    when:
+      equal: [telemetry_request, << pipeline.parameters.run_job >>]
+    jobs:
+      - telemetry_request: { context: [f1datastop] }
+
+  # Everything below is schedule-only and never runs on a push.
+  reconcile-6h:
+    triggers:
+      - schedule:
+          cron: "0 0,6,12,18 * * *"
+          filters: { branches: { only: [main] } }
+    jobs:
+      - reconcile: { context: [f1datastop] }
+
+  reconcile-race-weekend:
+    triggers:
+      - schedule:
+          # every 30 min, 12:00-21:30 UTC, Fri/Sat/Sun
+          cron: "0,30 12,13,14,15,16,17,18,19,20,21 * * 5,6,0"
+          filters: { branches: { only: [main] } }
+    jobs:
+      - reconcile: { context: [f1datastop] }
+
+  charts-race-weekend:
+    triggers:
+      - schedule:
+          # every 2 h, Fri/Sat/Sun
+          cron: "0 0,2,4,6,8,10,12,14,16,18,20,22 * * 5,6,0"
+          filters: { branches: { only: [main] } }
+    jobs:
+      - charts: { context: [f1datastop] }
+
+  assets-daily:
+    triggers:
+      - schedule:
+          cron: "30 6 * * *"
+          filters: { branches: { only: [main] } }
+    jobs:
+      - assets: { context: [f1datastop] }
+
+  digest-daily:
+    triggers:
+      - schedule:
+          cron: "17 7 * * *"
+          filters: { branches: { only: [main] } }
+    jobs:
+      - digest: { context: [f1datastop] }

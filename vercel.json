@@ -1,0 +1,32 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm install --prefix web",
+  "buildCommand": "npm --prefix web run build",
+  "outputDirectory": "web/dist",
+  "rewrites": [
+    {
+      "source": "/api/ergast/:path*",
+      "destination": "https://api.jolpi.ca/ergast/:path*"
+    },
+    {
+      "source": "/api/openf1/:path*",
+      "destination": "https://api.openf1.org/v1/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Twitterbot|Slackbot|Discordbot|WhatsApp|LinkedInBot|TelegramBot|Pinterest|redditbot|Applebot|SkypeUriPreview|vkShare|W3C_Validator|embedly|Iframely|Bluesky).*"
+        }
+      ],
+      "destination": "/api/og"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+name: Pull Request
+description: Describe your changes
+title: ""
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing! Please fill out the sections below.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I've run `npm run typecheck` (web/)
+        - label: I've run `npm run lint` (web/)
+        - label: I've run `npm run test` (web/)
+        - label: I've run `npm run build` (web/)
+        - label: Python byte-compiles: `python -m compileall -q -x '(venv|\.fastf1cache|__pycache__)' analysis`
+        - label: My changes follow the code conventions in CONTRIBUTING.md
+  - type: dropdown
+    id: type
+    attributes:
+      label: Change Type
+      options:
+        - feat: New feature
+        - fix: Bug fix
+        - refactor: Code restructuring (no behavior change)
+        - perf: Performance improvement
+        - docs: Documentation only
+        - chore: Maintenance (deps, CI, config)
+        - test: Test additions / fixes
+      validations:
+        required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What does this PR do? Why?
+      placeholder: "Add sector-time comparison to Race Analysis page..."
+    validations:
+      required: true
+  - type: textarea
+    id: testplan
+    attributes:
+      label: Test Plan
+      description: How did you verify this works? Steps, screenshots, logs.
+      placeholder: |
+        1. Run dev server
+        2. Go to /race-analysis?season=2026&round=1
+        3. Select two drivers
+        4. Verify sector comparison table renders
+    validations:
+      required: true
+  - type: textarea
+    id: breaking
+    attributes:
+      label: Breaking Changes?
+      description: Any API changes, env vars, migrations, or removed features?
+      placeholder: "None"
+  - type: checkboxes
+    id: labels
+    attributes:
+      label: Suggested Labels (maintainer will apply)
+      options:
+        - label: "area: frontend"
+        - label: "area: api"
+        - label: "area: ingestion"
+        - label: "area: infra"
+        - label: "area: docs"
+        - label: "size: S (<10 files)"
+        - label: "size: M (10-50 files)"
+        - label: "size: L (>50 files)"
