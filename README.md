@@ -20,8 +20,6 @@
 
 ## Pipeline status
 
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/ibrahimroshdy/f1datastop/tree/main.svg?style=svg&circle-token=CCIPRJ_Y2Dr4J6BvcB3Yn7Rqtr31A_549ac013fdf5fb9347f456c9ba7b6d4906126d02)](https://app.circleci.com/pipelines/github/ibrahimroshdy/f1datastop)
-
 All CI runs on **CircleCI** ([`.circleci/config.yml`](.circleci/config.yml)). GitHub Actions
 is no longer used: the account's shared 3,000 included minutes ran out mid-race-weekend on
 2026-09-12, taking the whole pipeline down, so it moved to CircleCI's 30,000 free credits.
