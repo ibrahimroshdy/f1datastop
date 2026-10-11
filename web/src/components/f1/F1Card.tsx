@@ -21,7 +21,7 @@ const f1CardVariants = cva(
     variants: {
       variant: {
         default: "bg-card border-border shadow-card",
-        gradient: "bg-gradient-to-br from-card to-card/80 border-border shadow-card",
+        gradient: "bg-linear-to-br from-card to-card/80 border-border shadow-card",
         glass: "border-border/50",
         "team-accent": "bg-card border-border shadow-card",
       },

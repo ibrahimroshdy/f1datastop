@@ -155,7 +155,7 @@ export default function PitWall() {
                 <div className="instrument-label mb-1.5 flex items-center gap-1.5 text-muted-foreground">
                   <Route className="h-3 w-3" /> Track position
                 </div>
-                <div className="aspect-[4/3] w-full">
+                <div className="aspect-4/3 w-full">
                   {data.blob ? (
                     <CockpitTrack blob={data.blob} geom={data.geom} frame={replay.frame} selected={state.drivers} />
                   ) : (

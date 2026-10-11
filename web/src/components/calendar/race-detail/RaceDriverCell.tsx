@@ -41,7 +41,7 @@ export function RaceDriverNameCell({
   return (
     <span className="inline-flex items-center gap-2">
       <span
-        className="h-full min-h-[1.25rem] w-1 shrink-0 self-stretch rounded-full"
+        className="h-full min-h-5 w-1 shrink-0 self-stretch rounded-full"
         style={{ backgroundColor: color }}
         aria-hidden
       />

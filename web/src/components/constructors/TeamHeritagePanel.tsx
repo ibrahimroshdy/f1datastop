@@ -113,7 +113,7 @@ const TeamHeritagePanel = ({
             <TeamLogo
               constructorId={constructorId}
               alt={displayName}
-              className="max-h-9 max-w-[7rem] object-contain"
+              className="max-h-9 max-w-28 object-contain"
               noBackground
             />
           </div>

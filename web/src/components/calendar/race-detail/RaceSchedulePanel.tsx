@@ -62,7 +62,7 @@ function SessionRow({
   emphasized?: boolean;
 }) {
   return (
-    <div className={cn("flex items-center gap-3 px-3 py-2.5", emphasized && "bg-primary/[0.05]")}>
+    <div className={cn("flex items-center gap-3 px-3 py-2.5", emphasized && "bg-primary/5")}>
       <span className={cn("h-8 w-1 shrink-0 rounded-full", RAIL[type])} />
       <div className="min-w-0 flex-1">
         <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
@@ -79,7 +79,7 @@ function SessionRow({
 }
 
 export function RaceSchedulePanel({ race, isGlass, onViewAnalysis }: RaceSchedulePanelProps) {
-  const surface = isGlass ? "bg-white/[0.04]" : "bg-card/50";
+  const surface = isGlass ? "bg-white/4" : "bg-card/50";
   return (
     <div className="mt-0 space-y-3">
       <div className={cn("overflow-hidden rounded-xl border border-border", surface)}>

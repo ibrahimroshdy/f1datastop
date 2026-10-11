@@ -269,7 +269,7 @@ export default function RaceControlDriverBoard({
                             constructorId={cid}
                             size="sm"
                             noBackground
-                            className="!h-3 w-auto shrink-0"
+                            className="h-3! w-auto shrink-0"
                           />
                         )}
                         {r.isFL && (

@@ -120,7 +120,7 @@ const Developers = () => {
                 className="p-0 transition-colors duration-200 hover:border-primary/40"
               >
                 <F1CardHeader className="pb-2">
-                  <F1CardTitle className="!text-xl mt-2">{tool.name}</F1CardTitle>
+                  <F1CardTitle className="text-xl! mt-2">{tool.name}</F1CardTitle>
                   <F1CardDescription>{tool.description}</F1CardDescription>
                 </F1CardHeader>
                 <F1CardContent>
@@ -278,7 +278,7 @@ const Developers = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
               <F1CardHeader className="pb-2">
-                <F1CardTitle className="!text-xl mt-2">Chart Requests</F1CardTitle>
+                <F1CardTitle className="text-xl! mt-2">Chart Requests</F1CardTitle>
                 <F1CardDescription>f1_chart_requests table</F1CardDescription>
               </F1CardHeader>
               <F1CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -290,7 +290,7 @@ const Developers = () => {
             </F1Card>
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
               <F1CardHeader className="pb-2">
-                <F1CardTitle className="!text-xl mt-2">Telemetry Requests</F1CardTitle>
+                <F1CardTitle className="text-xl! mt-2">Telemetry Requests</F1CardTitle>
                 <F1CardDescription>f1_telemetry_requests table</F1CardDescription>
               </F1CardHeader>
               <F1CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -343,7 +343,7 @@ const Developers = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
               <F1CardHeader className="pb-2">
-                <F1CardTitle className="!text-xl mt-2">Core Tables (Ergast/Jolpica)</F1CardTitle>
+                <F1CardTitle className="text-xl! mt-2">Core Tables (Ergast/Jolpica)</F1CardTitle>
                 <F1CardDescription>Warehouse tables populated by cron</F1CardDescription>
               </F1CardHeader>
               <F1CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -362,7 +362,7 @@ const Developers = () => {
             </F1Card>
             <F1Card variant={cardVariant} glassVariant={glassVariant} className="p-0">
               <F1CardHeader className="pb-2">
-                <F1CardTitle className="!text-xl mt-2">FastF1 / OpenF1 Tables</F1CardTitle>
+                <F1CardTitle className="text-xl! mt-2">FastF1 / OpenF1 Tables</F1CardTitle>
                 <F1CardDescription>High-res telemetry & session data</F1CardDescription>
               </F1CardHeader>
               <F1CardContent className="space-y-2 text-sm text-muted-foreground">

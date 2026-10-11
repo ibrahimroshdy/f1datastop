@@ -271,7 +271,7 @@ function TrackSVG({
 
   return (
     <div
-      className="aspect-[4/3] w-full rounded-lg transition-shadow duration-300 lg:aspect-auto lg:h-full"
+      className="aspect-4/3 w-full rounded-lg transition-shadow duration-300 lg:aspect-auto lg:h-full"
       style={active ? { boxShadow: `inset 0 0 0 1.5px color-mix(in srgb, ${SAFETY_STYLE[active.kind].color} 55%, transparent)` } : undefined}
     >
       <svg viewBox={`${min_x - pad} ${min_y - pad} ${w + 2 * pad} ${h + 2 * pad}`} className="h-full w-full" fill="none" role="img" aria-label="Race replay track">
@@ -525,7 +525,7 @@ function SimBody({
 
       {/* Selected-driver focus — sector times + tyre, colour-coded vs bests */}
       {selSnap && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-primary/30 bg-primary/[0.04] px-3 py-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-primary/30 bg-primary/4 px-3 py-2">
           <span className="flex items-center gap-1.5">
             <span className="h-4 w-1.5 rounded-full" style={{ backgroundColor: selSnap.color }} />
             <span className="text-sm font-bold" style={{ color: selSnap.color }}>{selSnap.code}</span>

@@ -178,7 +178,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
                   <span className="font-mono">{result.driver_acronym}</span>
                   {isFastest && <Zap className="h-3 w-3 shrink-0 text-primary" />}
                 </div>
-                <div className="mt-0.5 break-words text-xs text-muted-foreground">
+                <div className="mt-0.5 wrap-break-word text-xs text-muted-foreground">
                   {result.constructor_name}
                 </div>
               </div>
@@ -233,7 +233,7 @@ const SessionResults: React.FC<SessionResultsProps> = ({
                     </div>
                   </td>
                   <td className="border-b border-border py-1.5 pr-3 align-middle">
-                    <span className="break-words text-sm text-muted-foreground">
+                    <span className="wrap-break-word text-sm text-muted-foreground">
                       {result.constructor_name}
                     </span>
                   </td>

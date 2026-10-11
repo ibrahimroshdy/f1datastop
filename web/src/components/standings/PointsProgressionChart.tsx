@@ -184,7 +184,7 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
         {isLoading ? (
           <ChartSkeleton height={220} />
         ) : (
-          <ChartContainer config={chartConfig} className="h-[240px] w-full">
+          <ChartContainer config={chartConfig} className="h-sidebar-expanded w-full">
             <LineChart data={chartData} margin={{ top: 16, left: 8, right: 26, bottom: 8 }}>
               <defs>
                 <ScopeDefs id="pointsprog" color={chartTheme.primary} />
@@ -291,7 +291,7 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
               />
             </svg>
             {s.constructorId ? (
-              <TeamLogo constructorId={s.constructorId} size="sm" noBackground className="!h-3.5 w-auto shrink-0" />
+              <TeamLogo constructorId={s.constructorId} size="sm" noBackground className="h-3.5! w-auto shrink-0" />
             ) : null}
             <span className="timing text-2xs font-semibold">{s.code}</span>
           </span>

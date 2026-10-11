@@ -1,6 +1,886 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  @media (width >= --theme(--breakpoint-xs)) {
+    max-width: none;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+@theme {
+  --breakpoint-xs: 480px;
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --color-f1-red: #e10600;
+  --color-f1-black: #15151e;
+  --color-f1-gray: #d2d2d2;
+  --color-f1-dark: #252530;
+  --color-mercedes: #00d2be;
+  --color-ferrari: #dc0000;
+  --color-redbull: #0600ef;
+  --color-mclaren: #ff8700;
+  --color-alpine: #0090ff;
+  --color-aston-martin: #006f62;
+  --color-williams: #005aff;
+  --color-alphatauri: #2b4562;
+  --color-alfa-romeo: #900000;
+  --color-haas: #ffffff;
+  --color-sauber: #52e252;
+  --color-cadillac: #ffd700;
+
+  --color-glass: var(--glass-bg);
+  --color-glass-hover: var(--glass-bg-hover);
+  --color-glass-active: var(--glass-bg-active);
+  --color-glass-border: var(--glass-border);
+
+  --color-status-live: hsl(var(--status-live));
+  --color-status-completed: hsl(var(--status-completed));
+  --color-status-upcoming: hsl(var(--status-upcoming));
+  --color-status-cancelled: hsl(var(--status-cancelled));
+
+  --color-position-gold: hsl(var(--position-gold));
+  --color-position-silver: hsl(var(--position-silver));
+  --color-position-bronze: hsl(var(--position-bronze));
+
+  --color-fastest-lap: hsl(var(--fastest-lap));
+  --color-gain: hsl(var(--gain));
+  --color-loss: hsl(var(--loss));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --shadow-glass: var(--glass-shadow);
+  --shadow-glass-lg: var(--glass-shadow-lg);
+  --shadow-glow: var(--shadow-glow);
+  --shadow-glow-lg: var(--shadow-glow-lg);
+  --shadow-premium-sm: var(--shadow-sm);
+  --shadow-premium-md: var(--shadow-md);
+  --shadow-premium-lg: var(--shadow-lg);
+  --shadow-premium-xl: var(--shadow-xl);
+  --shadow-card: var(--shadow-card);
+
+  --backdrop-blur-glass: var(--glass-blur);
+  --backdrop-blur-glass-lg: var(--glass-blur-lg);
+
+  --spacing-sidebar-collapsed: 64px;
+  --spacing-sidebar-expanded: 240px;
+
+  --width-sidebar-collapsed: 64px;
+  --width-sidebar-expanded: 240px;
+
+  --min-width-sidebar-collapsed: 64px;
+  --min-width-sidebar-expanded: 240px;
+
+  --font-sans:
+    Geist, SF Pro Display, system-ui, -apple-system, BlinkMacSystemFont,
+    Segoe UI, Roboto, sans-serif;
+  --font-mono: Geist Mono, JetBrains Mono, SF Mono, Monaco, Consolas, monospace;
+  --font-display: Clash Display, Geist, SF Pro Display, system-ui, sans-serif;
+
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-fade-out: fade-out 0.3s ease-out;
+  --animate-slide-in-left: slide-in-left 0.3s ease-out;
+  --animate-slide-down: slide-down 0.3s ease-out;
+  --animate-scale-out: scale-out 0.2s ease-out;
+  --animate-pulse-red: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-bounce-subtle: bounce-subtle 2s ease-in-out infinite;
+  --animate-spin-slow: spin-slow 3s linear infinite;
+  --animate-border-glow: border-glow 2s ease-in-out infinite;
+  --animate-sidebar-expand: sidebar-expand 0.2s ease-out;
+  --animate-sidebar-collapse: sidebar-collapse 0.2s ease-out;
+
+  --ease-bounce-in: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --transition-duration-fast: 150ms;
+  --transition-duration-normal: 250ms;
+  --transition-duration-slow: 400ms;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  @keyframes fade-out {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+  @keyframes slide-in-left {
+    0% {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes slide-down {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes scale-out {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+  @keyframes pulse-red {
+    0%,
+    100% {
+      background-color: rgba(225, 6, 0, 0.05);
+    }
+    50% {
+      background-color: rgba(225, 6, 0, 0.2);
+    }
+  }
+  @keyframes bounce-subtle {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+  @keyframes spin-slow {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes border-glow {
+    0%,
+    100% {
+      border-color: hsl(var(--border));
+    }
+    50% {
+      border-color: hsl(var(--primary));
+    }
+  }
+  @keyframes sidebar-expand {
+    0% {
+      width: 64px;
+    }
+    100% {
+      width: 240px;
+    }
+  }
+  @keyframes sidebar-collapse {
+    0% {
+      width: 240px;
+    }
+    100% {
+      width: 64px;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* ============================================
+   GLASS MORPHISM UTILITY CLASSES
+   ============================================ */
+
+@utility glass {
+  /* Base glass card */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
+
+  &:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+  }
+}
+
+@utility glass-lg {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg));
+  backdrop-filter: blur(var(--glass-blur-lg));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-lg), var(--glass-inner-shadow);
+}
+
+@utility glass-glow {
+  /* Glass card with glow */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    var(--glass-shadow), var(--glass-glow-subtle), var(--glass-inner-shadow);
+  transition: all var(--transition-normal);
+
+  &:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow:
+      var(--glass-shadow-lg), var(--glass-glow), var(--glass-inner-shadow);
+  }
+}
+
+@utility glass-panel {
+  /* Glass panel (larger surfaces) */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg));
+  backdrop-filter: blur(var(--glass-blur-lg));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-lg);
+}
+
+@utility glass-button {
+  /* Glass button */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-sm), var(--glass-inner-shadow);
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--shadow-md), var(--glass-inner-shadow);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    background: var(--glass-bg-active);
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
+  }
+}
+
+@utility glass-input {
+  /* Glass input */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-inner-shadow);
+  transition: all var(--transition-fast);
+
+  &:focus {
+    background: var(--glass-bg-hover);
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow:
+      var(--glass-inner-shadow),
+      0 0 0 3px hsl(var(--primary) / 0.1);
+    outline: none;
+  }
+}
+
+@utility glass-badge {
+  /* Glass badge */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-xs);
+}
+
+@utility glass-table {
+  /* Glass table */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+@utility glass-table-header {
+  background: var(--glass-bg-hover);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+@utility glass-table-row {
+  border-bottom: 1px solid var(--glass-border);
+  transition: background var(--transition-fast);
+
+  &:hover {
+    background: var(--glass-bg-hover);
+  }
+}
+
+@utility glass-tabs {
+  /* Glass tabs */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 4px;
+}
+
+@utility glass-tab {
+  background: transparent;
+  border-radius: calc(var(--radius) - 4px);
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--glass-bg-hover);
+  }
+}
+
+@utility glass-tab-active {
+  background: var(--glass-bg-active);
+  box-shadow: var(--shadow-sm);
+}
+
+@utility glass-overlay {
+  /* Glass modal overlay */
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+@utility glass-modal {
+  /* Glass modal content */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg));
+  backdrop-filter: blur(var(--glass-blur-lg));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-lg), var(--glass-glow-subtle);
+}
+
+@utility glass-highlight {
+  /* Glass highlight effect (top-left shine) */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--glass-highlight);
+    pointer-events: none;
+    border-radius: inherit;
+  }
+}
+
+@utility glass-sidebar {
+  /* Glass sidebar */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg));
+  backdrop-filter: blur(var(--glass-blur-lg));
+  border-right: 1px solid var(--glass-border);
+}
+
+@utility glass-topbar {
+  /* Glass topbar */
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ============================================
+   PREMIUM CARD STYLES
+   ============================================ */
+
+@utility premium-card {
+  /* Premium card with team color accent */
+  @apply relative rounded-xl overflow-hidden;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+
+  &:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  /* Glass mode override for premium cards */
+  .dark-glass & {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
+  }
+
+  .dark-glass &:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--glass-shadow-lg), var(--glass-glow-subtle);
+  }
+}
+
+@utility card-accent-red {
+  /* Card with F1 red accent */
+  @apply relative;
+
+  &::before {
+    content: '';
+    @apply absolute top-0 left-0 w-1 h-full bg-primary rounded-l-xl;
+  }
+}
+
+@utility card-accent-team {
+  /* Card with team color accent */
+  @apply relative;
+
+  &::before {
+    content: '';
+    @apply absolute top-0 left-0 w-1 h-full rounded-l-xl;
+    background: var(--team-color, hsl(var(--primary)));
+  }
+}
+
+/* ============================================
+   RACING-INSPIRED STYLES
+   ============================================ */
+
+@utility race-card {
+  /* Racing card */
+  @apply relative rounded-xl overflow-hidden transition-all duration-300;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-md);
+
+  &:hover {
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
+    transform: translateY(-2px);
+  }
+
+  /* Glass mode for race cards */
+  .dark-glass & {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+  }
+}
+
+@utility driver-bar {
+  /* Driver bar */
+  @apply h-8 flex items-center rounded-lg overflow-hidden relative transition-all duration-300;
+  box-shadow: var(--shadow-xs);
+}
+
+@utility position-badge {
+  /* Position badges */
+  @apply inline-flex items-center justify-center font-bold rounded-lg px-2.5 py-1 text-xs;
+  box-shadow: var(--shadow-xs);
+}
+
+@utility position-badge-1 {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--position-gold)),
+    hsl(var(--position-gold) / 0.72)
+  );
+  color: hsl(45 90% 11%);
+  box-shadow: 0 0 12px hsl(var(--position-gold) / 0.35);
+}
+
+@utility position-badge-2 {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--position-silver)),
+    hsl(var(--position-silver) / 0.68)
+  );
+  color: hsl(0 0% 14%);
+  box-shadow: 0 0 12px hsl(var(--position-silver) / 0.3);
+}
+
+@utility position-badge-3 {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--position-bronze)),
+    hsl(var(--position-bronze) / 0.68)
+  );
+  color: hsl(30 60% 11%);
+  box-shadow: 0 0 12px hsl(var(--position-bronze) / 0.35);
+}
+
+@utility team-accent-bar {
+  /* Team color accents */
+  @apply h-1 w-full rounded-full;
+  box-shadow: var(--shadow-xs);
+}
+
+@utility team-accent-border {
+  @apply border-l-4;
+}
+
+@utility racing-stripe {
+  /* Racing stripe decoration */
+  @apply relative overflow-hidden;
+
+  &::before {
+    content: '';
+    @apply absolute top-0 left-0 w-1 h-full;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--primary) / 0.6) 100%
+    );
+    border-radius: 0 4px 4px 0;
+  }
+}
+
+@utility checkered-bg {
+  /* Checkered flag pattern */
+  background-image:
+    linear-gradient(45deg, hsl(var(--muted)) 25%, transparent 25%),
+    linear-gradient(-45deg, hsl(var(--muted)) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, hsl(var(--muted)) 75%),
+    linear-gradient(-45deg, transparent 75%, hsl(var(--muted)) 75%);
+  background-size: 20px 20px;
+  background-position:
+    0 0,
+    0 10px,
+    10px -10px,
+    -10px 0px;
+}
+
+/* ============================================
+   CHART STYLES
+   ============================================ */
+
+@utility f1-chart-container {
+  /* F1 Chart container */
+  @apply relative w-full h-full;
+  @media (max-width: 640px) {
+    @apply touch-pan-x touch-pan-y;
+  }
+}
+
+@utility f1-chart-tooltip {
+  /* F1 Chart tooltip */
+  @apply rounded-xl p-4 text-sm;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
+  color: hsl(var(--foreground));
+}
+
+@utility f1-chart-legend {
+  /* Chart legend */
+  @apply flex flex-wrap gap-2 items-center;
+
+  /* Responsive chart container */
+  @media (max-width: 640px) {
+    @apply flex-col items-start gap-1;
+  }
+}
+
+@utility animate-shimmer {
+  /* Shimmer animation */
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+}
+
+@utility animate-glass-shimmer {
+  /* Glass shimmer for loading states */
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    90deg,
+    var(--glass-bg) 25%,
+    var(--glass-bg-hover) 50%,
+    var(--glass-bg) 75%
+  );
+  background-size: 200% 100%;
+}
+
+@utility animate-pulse-glow {
+  /* Pulse glow animation */
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@utility animate-float {
+  /* Float animation */
+  animation: float 3s ease-in-out infinite;
+}
+
+@utility animate-slide-up {
+  /* Slide in from bottom */
+  animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility animate-slide-in-right {
+  /* Slide in from right */
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+@utility animate-scale-in {
+  /* Scale in */
+  animation: scale-in 0.2s ease-out forwards;
+}
+
+@utility animate-fade-in {
+  /* Fade in */
+  animation: fade-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility stat-numeral {
+  /* Pit Wall typography utilities (R0) */
+  font-family: "Clash Display", "Geist", system-ui, sans-serif;
+  letter-spacing: -0.015em;
+  @apply text-2xl font-bold tabular-nums tracking-tight;
+}
+
+@utility timing {
+  @apply font-mono tabular-nums tracking-wide;
+}
+
+@utility timing-best {
+  /* Session-best time. Purple is the F1 timing-screen convention for "fastest of anyone",
+     so it reads instantly to anyone who has watched a session. */
+  color: hsl(var(--fastest-lap));
+}
+
+@utility body-sm {
+  @apply text-sm leading-relaxed text-muted-foreground;
+}
+
+@utility readout {
+  /* ── Telemetry Terminal motifs (see web/DESIGN_TERMINAL.md) ───────────── */
+
+  /* Big instrument readout number */
+  @apply font-mono font-semibold tabular-nums tracking-tight leading-none;
+}
+
+@utility instrument-label {
+  /* Micro instrument label / eyebrow above a value */
+  @apply text-xs font-semibold uppercase tracking-widest text-muted-foreground;
+}
+
+@utility hairline-grid {
+  /* Auto hairline rows — a timing-screen list */
+  & > * + * {
+    @apply border-t border-border;
+  }
+}
+
+@utility data-row {
+  /* Compact data row */
+  @apply flex items-center justify-between gap-3 py-1.5;
+}
+
+@utility scope-frame {
+  /* Corner-tick HUD framing for hero/feature panels */
+  @apply relative;
+  &::before {
+    content: '';
+    @apply pointer-events-none absolute h-3 w-3;
+    border-color: hsl(var(--primary) / 0.55);
+  }
+  &::after {
+    content: '';
+    @apply pointer-events-none absolute h-3 w-3;
+    border-color: hsl(var(--primary) / 0.55);
+  }
+  &::before {
+    @apply left-1.5 top-1.5;
+    border-top: 1.5px solid hsl(var(--primary) / 0.55);
+    border-left: 1.5px solid hsl(var(--primary) / 0.55);
+  }
+  &::after {
+    @apply bottom-1.5 right-1.5;
+    border-bottom: 1.5px solid hsl(var(--primary) / 0.55);
+    border-right: 1.5px solid hsl(var(--primary) / 0.55);
+  }
+}
+
+@utility position-pill {
+  @apply inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-muted px-1.5 text-xs font-semibold tabular-nums;
+}
+
+@utility stagger-children {
+  /* Stagger children animations */
+  & > * {
+    opacity: 0;
+    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  & > *:nth-child(1) {
+    animation-delay: 30ms;
+  }
+  & > *:nth-child(2) {
+    animation-delay: 70ms;
+  }
+  & > *:nth-child(3) {
+    animation-delay: 110ms;
+  }
+  & > *:nth-child(4) {
+    animation-delay: 150ms;
+  }
+  & > *:nth-child(5) {
+    animation-delay: 190ms;
+  }
+  & > *:nth-child(6) {
+    animation-delay: 230ms;
+  }
+  & > *:nth-child(7) {
+    animation-delay: 270ms;
+  }
+  & > *:nth-child(8) {
+    animation-delay: 310ms;
+  }
+  & > *:nth-child(9) {
+    animation-delay: 350ms;
+  }
+  & > *:nth-child(10) {
+    animation-delay: 390ms;
+  }
+}
+
+@utility row-tactile {
+  /* Tactile list row — settles rightward + brightens on hover (uses the
+     shared spring). Pair with a left team/accent bar that grows. */
+  transition:
+    transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 200ms ease,
+    border-color 200ms ease;
+  &:hover {
+    transform: translateX(3px);
+  }
+}
+
+@utility animate-live-pulse {
+  /* Live pulse */
+  animation: live-pulse 1.5s ease-in-out infinite;
+}
+
+@utility animate-count {
+  /* Number count animation */
+  animation: count-up 0.5s ease-out forwards;
+}
+
+@utility animate-sector-sweep {
+  /* Branded loader — three sector segments sweeping in sequence (F1 timing feel) */
+  animation: sector-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@utility scroll-fade-x {
+  /* Fade the edges of a horizontal scroller so clipped content dissolves */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 14px,
+    #000 calc(100% - 14px),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 14px,
+    #000 calc(100% - 14px),
+    transparent
+  );
+}
 
 @layer base {
   /* ============================================
@@ -402,387 +1282,9 @@
 }
 
 /* ============================================
-   GLASS MORPHISM UTILITY CLASSES
-   ============================================ */
-@layer components {
-  /* Base glass card */
-  .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
-  }
-
-  .glass:hover {
-    background: var(--glass-bg-hover);
-    border-color: var(--glass-border-hover);
-  }
-
-  .glass-lg {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur-lg));
-    -webkit-backdrop-filter: blur(var(--glass-blur-lg));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow-lg), var(--glass-inner-shadow);
-  }
-
-  /* Glass card with glow */
-  .glass-glow {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow), var(--glass-glow-subtle), var(--glass-inner-shadow);
-    transition: all var(--transition-normal);
-  }
-
-  .glass-glow:hover {
-    background: var(--glass-bg-hover);
-    border-color: var(--glass-border-hover);
-    box-shadow: var(--glass-shadow-lg), var(--glass-glow), var(--glass-inner-shadow);
-  }
-
-  /* Glass panel (larger surfaces) */
-  .glass-panel {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur-lg));
-    -webkit-backdrop-filter: blur(var(--glass-blur-lg));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow-lg);
-  }
-
-  /* Glass button */
-  .glass-button {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-sm), var(--glass-inner-shadow);
-    transition: all var(--transition-fast);
-  }
-
-  .glass-button:hover {
-    background: var(--glass-bg-hover);
-    border-color: var(--glass-border-hover);
-    box-shadow: var(--shadow-md), var(--glass-inner-shadow);
-    transform: translateY(-1px);
-  }
-
-  .glass-button:active {
-    background: var(--glass-bg-active);
-    transform: translateY(0);
-    box-shadow: var(--shadow-xs);
-  }
-
-  /* Glass input */
-  .glass-input {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-inner-shadow);
-    transition: all var(--transition-fast);
-  }
-
-  .glass-input:focus {
-    background: var(--glass-bg-hover);
-    border-color: hsl(var(--primary) / 0.5);
-    box-shadow: var(--glass-inner-shadow), 0 0 0 3px hsl(var(--primary) / 0.1);
-    outline: none;
-  }
-
-  /* Glass badge */
-  .glass-badge {
-    background: var(--glass-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-xs);
-  }
-
-  /* Glass table */
-  .glass-table {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  .glass-table-header {
-    background: var(--glass-bg-hover);
-    border-bottom: 1px solid var(--glass-border);
-  }
-
-  .glass-table-row {
-    border-bottom: 1px solid var(--glass-border);
-    transition: background var(--transition-fast);
-  }
-
-  .glass-table-row:hover {
-    background: var(--glass-bg-hover);
-  }
-
-  /* Glass tabs */
-  .glass-tabs {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius);
-    padding: 4px;
-  }
-
-  .glass-tab {
-    background: transparent;
-    border-radius: calc(var(--radius) - 4px);
-    transition: all var(--transition-fast);
-  }
-
-  .glass-tab:hover {
-    background: var(--glass-bg-hover);
-  }
-
-  .glass-tab-active {
-    background: var(--glass-bg-active);
-    box-shadow: var(--shadow-sm);
-  }
-
-  /* Glass modal overlay */
-  .glass-overlay {
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-
-  /* Glass modal content */
-  .glass-modal {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur-lg));
-    -webkit-backdrop-filter: blur(var(--glass-blur-lg));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow-lg), var(--glass-glow-subtle);
-  }
-
-  /* Glass highlight effect (top-left shine) */
-  .glass-highlight::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--glass-highlight);
-    pointer-events: none;
-    border-radius: inherit;
-  }
-
-  /* Glass sidebar */
-  .glass-sidebar {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur-lg));
-    -webkit-backdrop-filter: blur(var(--glass-blur-lg));
-    border-right: 1px solid var(--glass-border);
-  }
-
-  /* Glass topbar */
-  .glass-topbar {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border-bottom: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-sm);
-  }
-}
-
-/* ============================================
-   PREMIUM CARD STYLES
-   ============================================ */
-@layer components {
-  /* Premium card with team color accent */
-  .premium-card {
-    @apply relative rounded-xl overflow-hidden;
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: var(--shadow-md);
-    transition: all var(--transition-normal);
-  }
-
-  .premium-card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-  }
-
-  /* Glass mode override for premium cards */
-  .dark-glass .premium-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
-  }
-
-  .dark-glass .premium-card:hover {
-    background: var(--glass-bg-hover);
-    border-color: var(--glass-border-hover);
-    box-shadow: var(--glass-shadow-lg), var(--glass-glow-subtle);
-  }
-
-  /* Card with F1 red accent */
-  .card-accent-red {
-    @apply relative;
-  }
-
-  .card-accent-red::before {
-    content: '';
-    @apply absolute top-0 left-0 w-1 h-full bg-primary rounded-l-xl;
-  }
-
-  /* Card with team color accent */
-  .card-accent-team {
-    @apply relative;
-  }
-
-  .card-accent-team::before {
-    content: '';
-    @apply absolute top-0 left-0 w-1 h-full rounded-l-xl;
-    background: var(--team-color, hsl(var(--primary)));
-  }
-}
-
-/* ============================================
-   RACING-INSPIRED STYLES
-   ============================================ */
-@layer components {
-  /* Racing card */
-.race-card {
-    @apply relative rounded-xl overflow-hidden transition-all duration-300;
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: var(--shadow-md);
-  }
-
-  .race-card:hover {
-    box-shadow: var(--shadow-lg), var(--shadow-glow);
-    transform: translateY(-2px);
-  }
-
-  /* Glass mode for race cards */
-  .dark-glass .race-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-}
-
-/* Driver bar */
-.driver-bar {
-    @apply h-8 flex items-center rounded-lg overflow-hidden relative transition-all duration-300;
-    box-shadow: var(--shadow-xs);
-}
-
-  /* Position badges */
-  .position-badge {
-    @apply inline-flex items-center justify-center font-bold rounded-lg px-2.5 py-1 text-xs;
-    box-shadow: var(--shadow-xs);
-  }
-
-  .position-badge-1 {
-    background: linear-gradient(135deg, hsl(var(--position-gold)), hsl(var(--position-gold) / 0.72));
-    color: hsl(45 90% 11%);
-    box-shadow: 0 0 12px hsl(var(--position-gold) / 0.35);
-  }
-
-  .position-badge-2 {
-    background: linear-gradient(135deg, hsl(var(--position-silver)), hsl(var(--position-silver) / 0.68));
-    color: hsl(0 0% 14%);
-    box-shadow: 0 0 12px hsl(var(--position-silver) / 0.3);
-  }
-
-  .position-badge-3 {
-    background: linear-gradient(135deg, hsl(var(--position-bronze)), hsl(var(--position-bronze) / 0.68));
-    color: hsl(30 60% 11%);
-    box-shadow: 0 0 12px hsl(var(--position-bronze) / 0.35);
-  }
-
-  /* Team color accents */
-  .team-accent-bar {
-    @apply h-1 w-full rounded-full;
-    box-shadow: var(--shadow-xs);
-  }
-
-  .team-accent-border {
-    @apply border-l-4;
-  }
-
-  /* Racing stripe decoration */
-  .racing-stripe {
-    @apply relative overflow-hidden;
-  }
-
-  .racing-stripe::before {
-    content: '';
-    @apply absolute top-0 left-0 w-1 h-full;
-    background: linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.6) 100%);
-    border-radius: 0 4px 4px 0;
-  }
-
-  /* Checkered flag pattern */
-  .checkered-bg {
-    background-image: 
-      linear-gradient(45deg, hsl(var(--muted)) 25%, transparent 25%),
-      linear-gradient(-45deg, hsl(var(--muted)) 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, hsl(var(--muted)) 75%),
-      linear-gradient(-45deg, transparent 75%, hsl(var(--muted)) 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-  }
-}
-
-/* ============================================
-   CHART STYLES
-   ============================================ */
-@layer components {
-  /* F1 Chart container */
-  .f1-chart-container {
-    @apply relative w-full h-full;
-  }
-
-  /* F1 Chart tooltip */
-  .f1-chart-tooltip {
-    @apply rounded-xl p-4 text-sm;
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
-    color: hsl(var(--foreground));
-  }
-
-  /* Chart legend */
-  .f1-chart-legend {
-    @apply flex flex-wrap gap-2 items-center;
-  }
-
-  /* Responsive chart container */
-  @media (max-width: 640px) {
-    .f1-chart-container {
-      @apply touch-pan-x touch-pan-y;
-    }
-    
-    .f1-chart-legend {
-      @apply flex-col items-start gap-1;
-    }
-  }
-}
-
-/* ============================================
    ANIMATION UTILITIES
    ============================================ */
 @layer utilities {
-  /* Shimmer animation */
   @keyframes shimmer {
     0% {
       background-position: -200% 0;
@@ -791,31 +1293,6 @@
       background-position: 200% 0;
     }
   }
-
-  .animate-shimmer {
-    animation: shimmer 2s infinite linear;
-    background: linear-gradient(
-      90deg,
-      hsl(var(--muted)) 25%,
-      hsl(var(--muted-foreground) / 0.1) 50%,
-      hsl(var(--muted)) 75%
-    );
-    background-size: 200% 100%;
-  }
-
-  /* Glass shimmer for loading states */
-  .animate-glass-shimmer {
-    animation: shimmer 2s infinite linear;
-    background: linear-gradient(
-      90deg,
-      var(--glass-bg) 25%,
-      var(--glass-bg-hover) 50%,
-      var(--glass-bg) 75%
-    );
-    background-size: 200% 100%;
-  }
-
-  /* Pulse glow animation */
   @keyframes pulse-glow {
     0%, 100% {
       box-shadow: var(--shadow-sm);
@@ -824,12 +1301,6 @@
       box-shadow: var(--shadow-md), var(--shadow-glow);
     }
   }
-
-  .animate-pulse-glow {
-    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  /* Float animation */
   @keyframes float {
     0%, 100% {
       transform: translateY(0);
@@ -838,12 +1309,6 @@
       transform: translateY(-4px);
     }
   }
-
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  /* Slide in from bottom */
   @keyframes slide-up {
     from {
       opacity: 0;
@@ -854,12 +1319,6 @@
       transform: translateY(0);
     }
   }
-
-  .animate-slide-up {
-    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  /* Slide in from right */
   @keyframes slide-in-right {
     from {
       opacity: 0;
@@ -870,12 +1329,6 @@
       transform: translateX(0);
     }
   }
-
-  .animate-slide-in-right {
-    animation: slide-in-right 0.3s ease-out forwards;
-  }
-
-  /* Scale in */
   @keyframes scale-in {
     from {
       opacity: 0;
@@ -886,12 +1339,6 @@
       transform: scale(1);
     }
   }
-
-  .animate-scale-in {
-    animation: scale-in 0.2s ease-out forwards;
-  }
-
-  /* Fade in */
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -900,105 +1347,6 @@
       opacity: 1;
     }
   }
-
-  .animate-fade-in {
-    animation: fade-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  /* Pit Wall typography utilities (R0) */
-  .stat-numeral {
-    @apply font-heading text-2xl font-bold tabular-nums tracking-tight;
-  }
-
-  .timing {
-    @apply font-mono tabular-nums tracking-wide;
-  }
-
-  /* Session-best time. Purple is the F1 timing-screen convention for "fastest of anyone",
-     so it reads instantly to anyone who has watched a session. */
-  .timing-best {
-    color: hsl(var(--fastest-lap));
-  }
-
-  .body-sm {
-    @apply text-sm leading-relaxed text-muted-foreground;
-  }
-
-  /* ── Telemetry Terminal motifs (see web/DESIGN_TERMINAL.md) ───────────── */
-
-  /* Big instrument readout number */
-  .readout {
-    @apply font-mono font-semibold tabular-nums tracking-tight leading-none;
-  }
-
-  /* Micro instrument label / eyebrow above a value */
-  .instrument-label {
-    @apply text-xs font-semibold uppercase tracking-widest text-muted-foreground;
-  }
-
-  /* Auto hairline rows — a timing-screen list */
-  .hairline-grid > * + * {
-    @apply border-t border-border;
-  }
-
-  /* Compact data row */
-  .data-row {
-    @apply flex items-center justify-between gap-3 py-1.5;
-  }
-
-  /* Corner-tick HUD framing for hero/feature panels */
-  .scope-frame {
-    @apply relative;
-  }
-  .scope-frame::before,
-  .scope-frame::after {
-    content: "";
-    @apply pointer-events-none absolute h-3 w-3;
-    border-color: hsl(var(--primary) / 0.55);
-  }
-  .scope-frame::before {
-    @apply left-1.5 top-1.5;
-    border-top: 1.5px solid hsl(var(--primary) / 0.55);
-    border-left: 1.5px solid hsl(var(--primary) / 0.55);
-  }
-  .scope-frame::after {
-    @apply bottom-1.5 right-1.5;
-    border-bottom: 1.5px solid hsl(var(--primary) / 0.55);
-    border-right: 1.5px solid hsl(var(--primary) / 0.55);
-  }
-
-  .position-pill {
-    @apply inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-muted px-1.5 text-xs font-semibold tabular-nums;
-  }
-
-  /* Stagger children animations */
-  .stagger-children > * {
-    opacity: 0;
-    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  .stagger-children > *:nth-child(1) { animation-delay: 30ms; }
-  .stagger-children > *:nth-child(2) { animation-delay: 70ms; }
-  .stagger-children > *:nth-child(3) { animation-delay: 110ms; }
-  .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-  .stagger-children > *:nth-child(5) { animation-delay: 190ms; }
-  .stagger-children > *:nth-child(6) { animation-delay: 230ms; }
-  .stagger-children > *:nth-child(7) { animation-delay: 270ms; }
-  .stagger-children > *:nth-child(8) { animation-delay: 310ms; }
-  .stagger-children > *:nth-child(9) { animation-delay: 350ms; }
-  .stagger-children > *:nth-child(10) { animation-delay: 390ms; }
-
-  /* Tactile list row — settles rightward + brightens on hover (uses the
-     shared spring). Pair with a left team/accent bar that grows. */
-  .row-tactile {
-    transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
-                background-color 200ms ease, border-color 200ms ease;
-  }
-  .row-tactile:hover {
-    transform: translateX(3px);
-  }
-
-  /* Live pulse */
   @keyframes live-pulse {
     0%, 100% {
       opacity: 1;
@@ -1009,12 +1357,6 @@
       transform: scale(1.1);
     }
   }
-
-  .animate-live-pulse {
-    animation: live-pulse 1.5s ease-in-out infinite;
-  }
-
-  /* Number count animation */
   @keyframes count-up {
     from {
       opacity: 0;
@@ -1025,128 +1367,147 @@
       transform: translateY(0);
     }
   }
-
-  .animate-count {
-    animation: count-up 0.5s ease-out forwards;
-  }
-
-  /* Branded loader — three sector segments sweeping in sequence (F1 timing feel) */
   @keyframes sector-sweep {
     0% { transform: scaleX(0); opacity: 0.35; }
     45% { transform: scaleX(1); opacity: 1; }
     100% { transform: scaleX(0); opacity: 0.35; }
   }
-  .animate-sector-sweep {
-    animation: sector-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  }
-
-  /* Fade the edges of a horizontal scroller so clipped content dissolves */
-  .scroll-fade-x {
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
-    mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
-  }
 }
 
-/* ============================================
+@layer utilities {
+  /* ============================================
    SCROLLBAR STYLING
    ============================================ */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-::-webkit-scrollbar-track {
-  background: hsl(var(--background));
-  border-radius: 4px;
-}
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-radius: 4px;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted));
-  border-radius: 4px;
-  transition: background 0.2s;
-}
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary));
-}
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+  }
 
-/* Glass mode scrollbar */
-.dark-glass ::-webkit-scrollbar-track {
-  background: var(--glass-bg);
-}
+  /* Glass mode scrollbar */
+  .dark-glass ::-webkit-scrollbar-track {
+    background: var(--glass-bg);
+  }
 
-.dark-glass ::-webkit-scrollbar-thumb {
-  background: var(--glass-border);
-}
+  .dark-glass ::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+  }
 
-.dark-glass ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.7);
-}
+  .dark-glass ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.7);
+  }
 
-/* ============================================
+  /* ============================================
    ATMOSPHERIC DEPTH — carbon reads as a lit surface, not dead-flat black.
    ::before = layered radial depth + faint red bloom from the top.
    ::after  = ultra-fine film grain so large dark areas have texture.
    ============================================ */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  pointer-events: none;
-  background:
-    radial-gradient(120% 75% at 50% -12%, hsl(var(--primary) / 0.055), transparent 55%),
-    radial-gradient(90% 90% at 100% 0%, hsl(240 24% 10% / 0.55), transparent 60%),
-    radial-gradient(85% 85% at 0% 100%, hsl(240 22% 8% / 0.5), transparent 62%);
-}
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        120% 75% at 50% -12%,
+        hsl(var(--primary) / 0.055),
+        transparent 55%
+      ),
+      radial-gradient(
+        90% 90% at 100% 0%,
+        hsl(240 24% 10% / 0.55),
+        transparent 60%
+      ),
+      radial-gradient(
+        85% 85% at 0% 100%,
+        hsl(240 22% 8% / 0.5),
+        transparent 62%
+      );
+  }
 
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
 
-.light body::before {
-  background:
-    radial-gradient(120% 75% at 50% -12%, hsl(var(--primary) / 0.04), transparent 55%),
-    radial-gradient(90% 90% at 100% 0%, hsl(240 14% 90% / 0.5), transparent 60%);
-}
-.light body::after {
-  opacity: 0.014;
-}
+  .light body::before {
+    background:
+      radial-gradient(
+        120% 75% at 50% -12%,
+        hsl(var(--primary) / 0.04),
+        transparent 55%
+      ),
+      radial-gradient(
+        90% 90% at 100% 0%,
+        hsl(240 14% 90% / 0.5),
+        transparent 60%
+      );
+  }
+  .light body::after {
+    opacity: 0.014;
+  }
 
-/* ============================================
+  /* ============================================
    BACKGROUND PATTERNS FOR GLASS MODES
    ============================================ */
-.dark-glass body {
-  position: relative;
-}
+  .dark-glass body {
+    position: relative;
+  }
 
-.dark-glass body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(ellipse at 20% 20%, rgba(225, 6, 0, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(225, 6, 0, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(30, 30, 30, 0.4) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: -1;
-}
+  .dark-glass body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(
+        ellipse at 20% 20%,
+        rgba(225, 6, 0, 0.06) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse at 80% 80%,
+        rgba(225, 6, 0, 0.04) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse at 50% 50%,
+        rgba(30, 30, 30, 0.4) 0%,
+        transparent 70%
+      );
+    pointer-events: none;
+    z-index: -1;
+  }
 
-/* ============================================
+  /* ============================================
    FOCUS STATES FOR ACCESSIBILITY
    ============================================ */
+}
 @layer base {
   *:focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+    @apply outline-hidden ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
 
   button:focus-visible,
@@ -1154,7 +1515,7 @@ body::after {
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+    @apply outline-hidden ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
 }
 
@@ -1186,8 +1547,8 @@ body::after {
   .glass-table,
   .glass-tabs,
   .glass-modal {
-    backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
     background: white !important;
     border: 1px solid #ddd !important;
     box-shadow: none !important;

@@ -49,7 +49,7 @@ type DriverStandingForTeam = {
 
 /** Compact instrument readout used for Points / Wins. */
 const Stat = ({ label, value }: { label: string; value: string }) => (
-  <div className="min-w-[3.25rem]">
+  <div className="min-w-13">
     <div className="instrument-label">{label}</div>
     <AnimatedNumber value={Number(value) || 0} mono className="readout mt-0.5 block text-xl text-foreground" />
   </div>
@@ -145,7 +145,7 @@ const Constructors = () => {
                   <F1CardContent className="p-0">
                     <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center">
                       {/* Identity: rank + logo + name */}
-                      <div className="flex items-center gap-3 lg:w-[19rem] lg:shrink-0">
+                      <div className="flex items-center gap-3 lg:w-76 lg:shrink-0">
                         <span className="readout w-7 shrink-0 text-center text-lg text-muted-foreground">
                           {constructor.position}
                         </span>
@@ -159,7 +159,7 @@ const Constructors = () => {
                                 <TeamLogo
                                   constructorId={constructor.Constructor.constructorId}
                                   alt={constructor.Constructor.name}
-                                  className="max-h-7 max-w-[2.25rem] object-contain"
+                                  className="max-h-7 max-w-9 object-contain"
                                   noBackground
                                 />
                               </div>
@@ -198,7 +198,7 @@ const Constructors = () => {
                         {teamDrivers.map((driver: DriverStandingForTeam) => (
                           <div
                             key={driver.Driver.driverId}
-                            className="relative flex min-w-[9.5rem] flex-1 items-center gap-2 overflow-hidden rounded-md border border-border/60 py-1.5 pl-3 pr-2.5 lg:flex-none"
+                            className="relative flex min-w-38 flex-1 items-center gap-2 overflow-hidden rounded-md border border-border/60 py-1.5 pl-3 pr-2.5 lg:flex-none"
                           >
                             <span
                               className="pointer-events-none absolute inset-y-0 left-0 w-0.5"

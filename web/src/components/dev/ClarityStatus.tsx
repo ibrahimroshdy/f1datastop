@@ -67,7 +67,7 @@ const ClarityStatus: React.FC<ClarityStatusProps> = ({ projectId }) => {
       variant={isGlass ? "glass" : "default"}
       glassVariant={isGlass ? "panel" : "default"}
       className={cn(
-        "fixed bottom-3 left-3 z-[9999] max-w-[300px] text-xs",
+        "fixed bottom-3 left-3 z-9999 max-w-[300px] text-xs",
         isGlass && "border-white/10"
       )}
     >

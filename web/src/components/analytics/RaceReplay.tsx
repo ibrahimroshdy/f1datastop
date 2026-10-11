@@ -320,7 +320,7 @@ export default function RaceReplay({ year, round }: Props) {
                   transition={{ layout: { type: "spring", stiffness: 600, damping: 42 }, opacity: { duration: 0.2 } }}
                   className={cn(
                     "flex items-center gap-2 px-2 py-1.5 transition-colors",
-                    passing ? "bg-primary/[0.08]" : "bg-transparent",
+                    passing ? "bg-primary/8" : "bg-transparent",
                   )}
                 >
                   <span className="timing w-5 shrink-0 text-right text-xs font-bold tabular-nums text-muted-foreground">

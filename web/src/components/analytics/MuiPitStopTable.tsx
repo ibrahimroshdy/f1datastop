@@ -310,7 +310,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-bold">{row.driver}</span>
-                  <span className="break-words text-xs capitalize text-muted-foreground">
+                  <span className="wrap-break-word text-xs capitalize text-muted-foreground">
                     {row.team.replace(/_/g, ' ')}
                   </span>
                 </div>

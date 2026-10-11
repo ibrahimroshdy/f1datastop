@@ -157,7 +157,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     if (!rows.length) return null;
     return (
       <div className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-xs shadow-card">
-        <div className="mb-1 uppercase tracking-[0.1em] tabular-nums text-muted-foreground">{formatTimeForAxis(label)}</div>
+        <div className="mb-1 uppercase tracking-widest tabular-nums text-muted-foreground">{formatTimeForAxis(label)}</div>
         {rows.map((p: any) => (
           <div key={p.dataKey} className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.stroke }} />

@@ -94,7 +94,7 @@ export default function RaceCalendarListView({
         showDecoration={false}
         className={cn(
           "rounded-xl border py-10 sm:py-12",
-          isGlass ? "border-white/10 bg-white/[0.02]" : "border-border bg-card/40",
+          isGlass ? "border-white/10 bg-white/2" : "border-border bg-card/40",
         )}
       />
     );
@@ -119,11 +119,11 @@ export default function RaceCalendarListView({
             return (
               <li key={`summer-break-${idx}`} className="list-none">
                 <div className="flex items-center gap-3 bg-muted/20 px-4 py-2">
-                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                  <div className="h-px flex-1 bg-linear-to-r from-transparent via-border to-transparent" />
                   <span className="instrument-label shrink-0 whitespace-nowrap text-muted-foreground">
                     Summer break · {item.dates.start} – {item.dates.end}
                   </span>
-                  <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border to-transparent" />
+                  <div className="h-px flex-1 bg-linear-to-l from-transparent via-border to-transparent" />
                 </div>
               </li>
             );
@@ -168,7 +168,7 @@ export default function RaceCalendarListView({
               <div
                 className={cn(
                   "relative flex transition-colors duration-200",
-                  isNext && "bg-primary/[0.06]",
+                  isNext && "bg-primary/6",
                   isDone && "opacity-90",
                 )}
               >

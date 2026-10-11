@@ -64,7 +64,7 @@ export default function RaceCalendarGridView({
           showDecoration={false}
           className={cn(
             "rounded-xl border py-10 sm:py-12",
-            isGlass ? "border-white/10 bg-white/[0.02]" : "border-border bg-card/40",
+            isGlass ? "border-white/10 bg-white/2" : "border-border bg-card/40",
           )}
         />
       ) : (
@@ -76,11 +76,11 @@ export default function RaceCalendarGridView({
                   key={`summer-break-${idx}`}
                   className="col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-5 flex items-center gap-3 my-1.5 sm:my-2"
                 >
-                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                  <div className="h-px flex-1 bg-linear-to-r from-transparent via-border to-transparent" />
                   <span className="instrument-label shrink-0 whitespace-nowrap tabular-nums text-muted-foreground">
                     Summer break · {item.dates.start} – {item.dates.end}
                   </span>
-                  <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border to-transparent" />
+                  <div className="h-px flex-1 bg-linear-to-l from-transparent via-border to-transparent" />
                 </div>
               );
             }

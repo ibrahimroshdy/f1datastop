@@ -203,7 +203,7 @@ export function CircuitGeometryMap({ season, round, circuitId, className, accent
         </div>
       </F1CardHeader>
       <F1CardContent>
-        <div className="aspect-[4/3] w-full">
+        <div className="aspect-4/3 w-full">
           {blob.isLoading ? (
             <F1Skeleton variant="card" className="h-full w-full" />
           ) : blob.data ? (

@@ -185,7 +185,7 @@ export function DriverBoard({
                           <span className={cn("timing text-sm font-bold leading-none", isSel ? "text-foreground" : "text-foreground/90")}>
                             {r.code}
                           </span>
-                          {cid && <TeamLogo constructorId={cid} size="sm" noBackground className="!h-3 w-auto shrink-0" />}
+                          {cid && <TeamLogo constructorId={cid} size="sm" noBackground className="h-3! w-auto shrink-0" />}
                         </span>
                         {blob && (r.tyre || r.speed != null || r.pit) && (
                           <span className="flex items-center gap-2 text-[10px] leading-none text-muted-foreground">

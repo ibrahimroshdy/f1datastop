@@ -231,7 +231,7 @@ function ReplaySVG({
       {/* Track + driver table — side-by-side on desktop, stacked on mobile */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
       <div
-        className="aspect-[4/3] w-full rounded-lg transition-shadow duration-300 lg:aspect-auto lg:h-[clamp(360px,52vh,560px)] lg:min-w-0 lg:flex-1"
+        className="aspect-4/3 w-full rounded-lg transition-shadow duration-300 lg:aspect-auto lg:h-[clamp(360px,52vh,560px)] lg:min-w-0 lg:flex-1"
         style={active ? { boxShadow: `inset 0 0 0 1.5px color-mix(in srgb, ${SAFETY_STYLE[active.kind].color} 55%, transparent)` } : undefined}
       >
         <svg
@@ -345,7 +345,7 @@ function ReplaySVG({
       </div>
 
       {/* Mobile chip legend — tap a chip (or a dot) to follow that car. */}
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 lg:hidden scrollbar-none [&::-webkit-scrollbar]:hidden">
         {blob.drivers.map((d) => {
           const id = d.driver_id;
           const code = d.code ?? id.slice(0, 3).toUpperCase();

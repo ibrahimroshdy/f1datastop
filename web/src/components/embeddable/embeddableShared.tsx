@@ -89,7 +89,7 @@ export const EmbeddableTable: React.FC<EmbeddableTableProps> = ({
   headers,
   children,
 }) => (
-  <div className="overflow-x-auto h-full w-full flex-grow">
+  <div className="overflow-x-auto h-full w-full grow">
     <table className="min-w-full divide-y" style={{ borderCollapse: 'collapse', width: '100%' }}>
       <thead className={cn(headerBg)}>
         <tr>{headers}</tr>

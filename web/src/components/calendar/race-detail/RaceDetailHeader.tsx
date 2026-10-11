@@ -29,7 +29,7 @@ export function RaceDetailSummary({
 }: RaceDetailSummaryProps) {
   const raceDate = race.date ? format(parseISO(race.date), "MMM d") : "—";
   const isRaceCompleted = race.date ? parseISO(race.date) < new Date() : false;
-  const surface = isGlass ? "bg-white/[0.04]" : "bg-card/50";
+  const surface = isGlass ? "bg-white/4" : "bg-card/50";
 
   return (
     <>
