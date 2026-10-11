@@ -8,7 +8,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "*/6 * * * *" # reconcile: every 6 h
+    - cron: "0 */6 * * *" # reconcile: every 6 h (00/06/12/18 UTC)
     - cron: "*/30 12,13,14,15,16,17,18,19,20,21 * * 5,6,0" # reconcile: race-weekend 30 min ticks
     - cron: "0 */2 * * 5,6,0" # charts: every 2 h, Fri–Sun
     - cron: "0 6,12,18 * * 5,6,0" # assets: 06/12/18 UTC, Fri–Sun
@@ -74,7 +74,7 @@ jobs:
       github.repository == 'ibrahimroshdy/f1datastop' &&
       (github.event_name == 'workflow_dispatch' ||
        github.event.schedule == '*/6 * * * *' ||
-       github.event.schedule == '*/30 12,13,14,15,16,17,18,19,20,21 * * 5-0')
+       github.event.schedule == '*/30 12,13,14,15,16,17,18,19,20,21 * * 5,6,0')
     steps:
       - uses: actions/checkout@v5
         with:
