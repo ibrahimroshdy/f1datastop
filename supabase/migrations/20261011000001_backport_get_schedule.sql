@@ -63,3 +63,6 @@ RETURNS jsonb LANGUAGE sql STABLE SECURITY INVOKER AS $$
   ) races;
 $$;
 GRANT EXECUTE ON FUNCTION public.get_schedule(int) TO anon, authenticated;
+-- Keep the 20260620 search_path hardening: CREATE OR REPLACE above resets any
+-- prior ALTER ... SET search_path, so re-pin here (matches baseline §9).
+ALTER FUNCTION public.get_schedule(int) SET search_path = public, pg_temp;

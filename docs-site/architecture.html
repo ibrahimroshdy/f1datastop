@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture &amp; pipeline map — F1 DataStop Docs</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html"><span class="dot"></span>F1 DataStop Docs</a>
+<nav><a href="architecture.html" aria-current="page">Architecture</a><a href="backend.html">Backend</a><a href="data.html">Data &amp; CDN</a><a href="api-embeds.html">API &amp; Embeds</a><a href="runbooks.html">Runbooks</a></nav></header>
+<main>
+<p class="eyebrow">Architecture</p>
+<h1>Monorepo &amp; pipeline map</h1>
+<h2>Layout</h2>
+<pre><code>f1datastop/
+├── web/            # Vite React 18 + TS app (port 8080, builds to web/dist, Vercel deploys it)
+├── supabase/       # functions/ (f1-proxy, bmc-webhook) + migrations/ (fresh-DB squash + forward)
+├── analysis/       # Python: ingest, backfill, generate, *_export, queue processors
+├── api/og.ts       # Vercel OG-image function (bot user-agent rewrite)
+├── docs-site/      # THIS site — plain static HTML served by GitHub Pages
+└── .github/workflows/  # pr-ci.yml (CI + cron), release.yml (manual), docs.yml (this site)</code></pre>
+<h2>Data flow</h2>
+<pre><code>Jolpica/Ergast ──┐
+OpenF1 ──────────┼──▶ f1-proxy edge fn (+ api_cache) ──▶ web (React Query hooks)
+FastF1 (Python) ─┘         │                                    ▲
+                           ▼                                    │ public-read RLS
+              Supabase warehouse (f1_* tables/views) ───────────┘
+                           ▲
+analysis/*.py (Actions cron) ──▶ Cloudflare R2 (cdn.f1datastop.com) ──▶ web Deep Dive tab</code></pre>
+<p>Serving rule: durable warehouse domains (results, laps, schedule) are DB-first behind the <code>VITE_DB_SERVING_ENABLED</code> flag (default off, rollback = flip flag). Volatile data (live timing, standings) stays on the proxy. Any DB miss falls through to proxy — a DB problem degrades to today's behavior, never a user-facing failure. Full spec: <code>docs/DATA_BACKEND.md</code>.</p>
+<h2>Session codes</h2>
+<p>Every layer uses the same codes: <code>FP1 FP2 FP3 Q SQ SS S R</code> (SQ = sprint qualifying/shootout, SS = sprint shootout legacy, S = sprint). Stored in <code>f1_session.session_type</code>, used by R2 paths and export scripts.</p>
+<h2>CI jobs (<code>pr-ci.yml</code>)</h2>
+<table>
+<tr><th>Job</th><th>When</th><th>What</th></tr>
+<tr><td><code>web</code></td><td>every push + PR</td><td>typecheck, advisory lint, test, build</td></tr>
+<tr><td><code>python-smoke</code></td><td>every push + PR</td><td>pip install, byte-compile analysis/</td></tr>
+<tr><td><code>reconcile</code></td><td>every 6 h + 30-min race-weekend ticks</td><td>ingest results, export season JSON to R2</td></tr>
+<tr><td><code>charts</code></td><td>every 2 h Fri–Sun</td><td>render Deep Dive charts for finished sessions</td></tr>
+<tr><td><code>assets</code></td><td>06/12/18 UTC Fri–Sun</td><td>telemetry, circuits, replays, weather</td></tr>
+<tr><td><code>digest</code></td><td>daily 07:17 UTC</td><td>free-tier usage digest to Slack</td></tr>
+<tr><td><code>queue</code></td><td>every 5 min</td><td>drain <code>f1_chart_requests</code> + <code>f1_telemetry_requests</code></td></tr>
+</table>
+<p>All scheduled jobs are guarded to the main repo (<code>github.repository == 'ibrahimroshdy/f1datastop'</code>), so forks get zero-secret CI. Any job runs on demand via workflow_dispatch.</p>
+</main>
+<footer><p>Independent community project. Not affiliated with Formula 1 or the FIA. · <a href="https://github.com/ibrahimroshdy/f1datastop">GitHub</a> · <a href="https://www.f1datastop.com">App</a></p></footer>
+</body>
+</html>

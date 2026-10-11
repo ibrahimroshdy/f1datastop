@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backend &amp; warehouse — F1 DataStop Docs</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html"><span class="dot"></span>F1 DataStop Docs</a>
+<nav><a href="architecture.html">Architecture</a><a href="backend.html" aria-current="page">Backend</a><a href="data.html">Data &amp; CDN</a><a href="api-embeds.html">API &amp; Embeds</a><a href="runbooks.html">Runbooks</a></nav></header>
+<main>
+<p class="eyebrow">Backend</p>
+<h1>Supabase backend &amp; warehouse</h1>
+<h2>Fresh-project bootstrap</h2>
+<p>Migrations are the source of truth: <code>00000000000000_baseline.sql</code> (fresh-DB squash) plus forward migrations. Source: <code>supabase/migrations/README.md</code>.</p>
+<pre><code>supabase login
+supabase link --project-ref &lt;project-ref&gt;
+supabase db push
+supabase functions deploy f1-proxy
+supabase functions deploy bmc-webhook --no-verify-jwt
+supabase secrets set BMC_WEBHOOK_SECRET=&lt;secret&gt;</code></pre>
+<p>Then add Actions secrets: <code>R2_ACCOUNT_ID</code>, <code>R2_ACCESS_KEY_ID</code>, <code>R2_SECRET_ACCESS_KEY</code>, <code>R2_BUCKET</code>, <code>BLOB_PUBLIC_BASE</code>, <code>SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>SLACK_ALERTS_WEBHOOK</code>. Note: <code>bmc-webhook</code> is public (<code>verify_jwt = false</code> in <code>supabase/config.toml</code>) and authenticates via <code>BMC_WEBHOOK_SECRET</code>.</p>
+<h2>Canonical warehouse</h2>
+<p>All tables prefixed <code>f1_</code>, natural keys, UPSERT-on-conflict ingestion, public-read RLS + service-role-only writes (spec: <code>docs/DATA_BACKEND.md</code>):</p>
+<ul>
+<li><b>Dimensions:</b> <code>f1_driver</code>, <code>f1_constructor</code> (+ career tables), <code>f1_season</code>, <code>f1_circuit</code>.</li>
+<li><b>Spine:</b> <code>f1_race</code> (unique <code>season,round</code>) + <code>f1_session</code> (unique <code>season,round,session_type</code>, carries the <code>openf1_session_key</code> crosswalk — no heuristic matching).</li>
+<li><b>Ergast facts:</b> <code>f1_race_result</code>, <code>f1_qualifying_result</code>, <code>f1_sprint_result</code>, <code>f1_pit_stop</code>, <code>f1_lap</code> (heavy), <code>f1_driver_standing</code>, <code>f1_constructor_standing</code>.</li>
+<li><b>OpenF1 facts (2023+):</b> <code>f1_session_driver</code> (driver_number ↔ ergast_id bridge), <code>f1_weather</code>, <code>f1_starting_grid</code>, <code>f1_overtake</code>, <code>f1_team_radio</code>, <code>f1_position</code> (post-session snapshots; live stays on proxy).</li>
+<li><b>FastF1 summaries:</b> <code>f1_lap_summary</code>, <code>f1_stint_summary</code>, <code>f1_session_result_ff1</code> (emitted by <code>generate.py</code> at render time, zero extra fetch).</li>
+<li><b>Ledger:</b> <code>f1_sync_state(domain,season,round,session_type,status,…)</code> — statuses <code>pending|partial|complete|empty|error|not_applicable</code>. Coverage query: <code>SELECT domain,status,count(*) FROM f1_sync_state GROUP BY domain,status;</code></li>
+</ul>
+<h2>Backfill window</h2>
+<p>Current season + last 3 (<code>[currentYear-3 .. currentYear]</code>) plus future scheduled rounds. Older seasons are intentionally not backfilled — the live proxy serves them. Canonical backfill is <code>analysis/backfill.py</code> (Python sibling of the <code>f1-ingest</code> edge function design):</p>
+<pre><code>cd analysis &amp;&amp; . .venv/bin/activate
+export SUPABASE_URL=http://127.0.0.1:54321   # LOCAL stack only — the user ships to prod
+python backfill.py --from-season 2023 --to-season 2026
+python backfill.py --season 2025 --dry-run    # fetch + print, no writes</code></pre>
+<h2>DB-serving cutover</h2>
+<p>Flag <code>VITE_DB_SERVING_ENABLED</code> (default <code>false</code>), independent of <code>VITE_F1_PROXY_ENABLED</code>. Shipping the router with the flag off is a pure no-op; rollback is flipping the flag back. Enable only after <code>f1_sync_state</code> coverage is proven and migrations are applied to prod.</p>
+<div class="warn"><b>Never redistribute raw Ergast data to R2</b> — proxy-only. And never cache empty/error as final: post-session gaps are <code>partial</code> with backoff retry, not <code>complete</code>.</div>
+</main>
+<footer><p>Independent community project. Not affiliated with Formula 1 or the FIA. · <a href="https://github.com/ibrahimroshdy/f1datastop">GitHub</a> · <a href="https://www.f1datastop.com">App</a></p></footer>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API &amp; embed contracts — F1 DataStop Docs</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html"><span class="dot"></span>F1 DataStop Docs</a>
+<nav><a href="architecture.html">Architecture</a><a href="backend.html">Backend</a><a href="data.html">Data &amp; CDN</a><a href="api-embeds.html" aria-current="page">API &amp; Embeds</a><a href="runbooks.html">Runbooks</a></nav></header>
+<main>
+<p class="eyebrow">API &amp; embeds</p>
+<h1>API &amp; embed contracts</h1>
+<h2>f1-proxy edge function</h2>
+<p>All upstream traffic funnels through <code>web/src/lib/api/f1ApiFetch.ts</code> → Supabase <code>f1-proxy</code> (when <code>VITE_F1_PROXY_ENABLED=true</code>) with a Postgres <code>api_cache</code> layer: 8s timeout, stale fallback, <code>api_metrics</code> logging, per-path TTLs (<code>supabase/functions/_shared/cacheTtl.ts</code>). Client never paginates Jolpica — laps/pitstops pagination happens server-side at ingest.</p>
+<h2>Vercel rewrites (<code>vercel.json</code>)</h2>
+<pre><code>/api/ergast/:path* → https://api.jolpi.ca/ergast/:path*   (same-origin, no CORS)
+ /api/openf1/:path* → https://api.openf1.org/v1/:path*      (same-origin, no CORS)
+bot user-agents     → /api/og                              (social preview image)</code></pre>
+<p>Optional same-origin bases: <code>VITE_ERGAST_BASE=/api/ergast</code>, <code>VITE_OPENF1_BASE=/api/openf1</code>.</p>
+<h2>Embeddable widgets</h2>
+<p>Source: <code>web/docs/README-embed.md</code>. Free to use with attribution; data subject to upstream terms.</p>
+<pre><code>&lt;iframe src="https://www.f1datastop.com/embed/driver-standings?season=2025&amp;theme=dark"
+        width="400" height="600"&gt;&lt;/iframe&gt;</code></pre>
+<table>
+<tr><th>Endpoint</th><th>Shows</th></tr>
+<tr><td><code>/embed</code></td><td>overview</td></tr>
+<tr><td><code>/embed/driver-standings</code></td><td>driver standings</td></tr>
+<tr><td><code>/embed/constructor-standings</code></td><td>constructor standings</td></tr>
+</table>
+<table>
+<tr><th>Param</th><th>Options</th><th>Default</th></tr>
+<tr><td><code>season</code></td><td>1950–present</td><td>current year</td></tr>
+<tr><td><code>theme</code></td><td><code>light</code> | <code>dark</code></td><td><code>light</code></td></tr>
+<tr><td><code>font</code></td><td>any web-safe font (URL-encoded)</td><td><code>Inter</code></td></tr>
+</table>
+<p>Self-contained iframes (no external CSS/JS needed), responsive at <code>width="100%"</code>, minimal F1 DataStop attribution footer. CSP must allow iframes from the app host.</p>
+</main>
+<footer><p>Independent community project. Not affiliated with Formula 1 or the FIA. · <a href="https://github.com/ibrahimroshdy/f1datastop">GitHub</a> · <a href="https://www.f1datastop.com">App</a></p></footer>
+</body>
+</html>

@@ -1,0 +1,39 @@
+name: Docs site
+
+# Static docs site → GitHub Pages. Path-filtered to docs-site/** so it never
+# fights pr-ci.yml (which owns CI + data cron). No build step: plain HTML.
+on:
+  push:
+    branches: [main]
+    paths: ["docs-site/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - run: |
+          touch docs-site/.nojekyll
+          test -f docs-site/CNAME || { echo "CNAME missing"; exit 1; }
+          test -f docs-site/index.html || { echo "index.html missing"; exit 1; }
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F1 DataStop — Technical Docs</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html"><span class="dot"></span>F1 DataStop Docs</a>
+<nav><a href="architecture.html">Architecture</a><a href="backend.html">Backend</a><a href="data.html">Data &amp; CDN</a><a href="api-embeds.html">API &amp; Embeds</a><a href="runbooks.html">Runbooks</a></nav></header>
+<main>
+<p class="eyebrow">docs.f1datastop.com</p>
+<h1>F1 DataStop — Technical Documentation</h1>
+<p class="lede">Formula 1 data analysis platform: React 18 + TypeScript + Vite frontend, Supabase Postgres warehouse with an <code>f1-proxy</code> edge function, Python ingestion/chart pipeline on GitHub Actions cron, Cloudflare R2 CDN. Every page renders anonymously — no login.</p>
+<div class="grid">
+<a href="architecture.html"><b>Architecture &amp; pipeline map</b><span>Monorepo layout, data flow, session codes, CI job table.</span></a>
+<a href="backend.html"><b>Backend &amp; warehouse</b><span>Fresh-Supabase bootstrap, canonical f1_* schema, sync state, cutover flag.</span></a>
+<a href="data.html"><b>Data sources &amp; CDN</b><span>Jolpica, OpenF1, FastF1 authority rules and the R2 object layout.</span></a>
+<a href="api-embeds.html"><b>API &amp; embed contracts</b><span>f1-proxy usage, Vercel rewrites, iframe widget endpoints and params.</span></a>
+<a href="runbooks.html"><b>Runbooks &amp; operations</b><span>Cron schedules, chart pipeline, request queues, secrets inventory.</span></a>
+</div>
+<h2>Quick start</h2>
+<pre><code>git clone https://github.com/ibrahimroshdy/f1datastop.git
+cd f1datastop
+npm install --prefix web
+cp .env.example web/.env.local   # set VITE_SUPABASE_URL + VITE_SUPABASE_PUBLISHABLE_KEY
+npm run dev                      # http://localhost:8080</code></pre>
+<h2>Checks before a PR</h2>
+<pre><code>npm run typecheck &amp;&amp; npm run lint &amp;&amp; npm run test &amp;&amp; npm run build
+python -m compileall -q analysis   # python smoke (CI does this too)</code></pre>
+<p>Contributor conventions live in <code>AGENTS.md</code> (design system, F1Card primitives, Pit Wall tokens). General workflow in <code>CONTRIBUTING.md</code>. This site is the hosted, stable narrative; repo markdown remains the working source of truth.</p>
+</main>
+<footer><p>Independent community project. Not affiliated with Formula 1 or the FIA. Data: Jolpica/Ergast, OpenF1, FastF1. · <a href="https://github.com/ibrahimroshdy/f1datastop">GitHub</a> · <a href="https://www.f1datastop.com">App</a></p></footer>
+</body>
+</html>

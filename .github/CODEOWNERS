@@ -18,7 +18,6 @@
 /supabase/** @ibrahimroshdy
 
 # CI / Deploy
-/.circleci/config.yml @ibrahimroshdy
 /.github/workflows/** @ibrahimroshdy
 /vercel.json @ibrahimroshdy
 

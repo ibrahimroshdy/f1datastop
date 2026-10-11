@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data sources &amp; CDN — F1 DataStop Docs</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html"><span class="dot"></span>F1 DataStop Docs</a>
+<nav><a href="architecture.html">Architecture</a><a href="backend.html">Backend</a><a href="data.html" aria-current="page">Data &amp; CDN</a><a href="api-embeds.html">API &amp; Embeds</a><a href="runbooks.html">Runbooks</a></nav></header>
+<main>
+<p class="eyebrow">Data</p>
+<h1>Data sources &amp; CDN layout</h1>
+<h2>Sources &amp; authority</h2>
+<table>
+<tr><th>API</th><th>Use</th><th>Authority</th></tr>
+<tr><td><b>Jolpica/Ergast</b></td><td>Standings, schedules, results, laps, pit stops</td><td>Authoritative for identity, results, standings, schedule, round numbering. Community mirror — <b>proxy-only, never redistributed to R2</b>.</td></tr>
+<tr><td><b>OpenF1</b></td><td>Live timing, weather, team radio, headshots, starting grid, overtakes</td><td>Authoritative for session resources it uniquely provides (2023+). Live position/car data stays on the proxy; only post-session snapshots are warehoused.</td></tr>
+<tr><td><b>FastF1</b></td><td>Telemetry, sectors, compounds, stints</td><td>Authoritative <b>only</b> for sector/compound/stint/ms-precision summaries. Never overwrites Ergast results.</td></tr>
+</table>
+<p>DNF rule (shared by ingest and frontend): <code>status='Finished'</code> or matches <code>+N Lap(s)</code> ⇒ classified, else DNF.</p>
+<h2>R2 / CDN layout (<code>cdn.f1datastop.com</code>)</h2>
+<p>Default host constant in <code>analysis/cdn_schedule.py</code>; override with <code>BLOB_PUBLIC_BASE</code>. Path convention:</p>
+<pre><code>charts/&lt;season&gt;/&lt;round&gt;-&lt;slug&gt;/&lt;session&gt;/&lt;format&gt;/&lt;chart&gt;[__&lt;DRIVERKEY&gt;].png
+telemetry/…  circuits/…  replays/…  weather/…  season JSON (data_export.py)</code></pre>
+<ul>
+<li>Formats: <code>landscape</code> + <code>twitter</code> (16:9, 3200×1800), <code>instagram</code> (4:5), <code>story</code> (9:16). The three comprehensive posters render landscape + twitter + story; the app falls back to landscape where instagram is absent.</li>
+<li>Driver-picked charts append <code>__&lt;DRIVERKEY&gt;</code> (upper, sorted, <code>-</code>-joined codes); social variants suffix <code>_twitter/_instagram/_story</code> on <code>chart_type</code>.</li>
+<li>Index: <code>analysis_charts</code> table, unique on <code>(season, round, session, chart_type)</code>. Indexes refreshed after every cron export via <code>index_export.py</code>.</li>
+</ul>
+<h2>Chart pipeline (<code>analysis/</code>)</h2>
+<p><code>generate.py</code> renders branded Deep Dive posters (Deep Carbon palette, race-country flag, <code>@F1DataStop</code>) from FastF1. Six comprehensive boards (<code>race_analysis</code>, <code>driver_compare</code>, <code>season_scorecard</code>, <code>championship</code>, <code>constructors</code>, <code>circuit_history</code>) plus 18 single-topic charts in the <code>CHARTS</code> registry. Local test writes to <code>out/</code>:</p>
+<pre><code>cd analysis
+./venv/bin/python generate.py --season 2025 --round 13 --session R \
+    --only race_analysis --no-upload --format landscape</code></pre>
+<p><code>season_scorecard</code> is warehouse-backed — it needs <code>SUPABASE_URL</code> + a read (anon) key even with <code>--no-upload</code>. Full flag reference: <code>analysis/POSTERS.md</code>. Pipeline overview: <code>analysis/README.md</code>.</p>
+</main>
+<footer><p>Independent community project. Not affiliated with Formula 1 or the FIA. · <a href="https://github.com/ibrahimroshdy/f1datastop">GitHub</a> · <a href="https://www.f1datastop.com">App</a></p></footer>
+</body>
+</html>

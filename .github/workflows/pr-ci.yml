@@ -31,7 +31,7 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -48,10 +48,10 @@ jobs:
   python-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -68,10 +68,10 @@ jobs:
        github.event.schedule == '*/6 * * * *' ||
        github.event.schedule == '*/30 12,13,14,15,16,17,18,19,20,21 * * 5-0')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -113,10 +113,10 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
        github.event.schedule == '0 */2 * * 5-0')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -163,10 +163,10 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
        github.event.schedule == '0 6,12,18 * * 5-0')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -212,10 +212,10 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
        github.event.schedule == '17 7 * * *')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -233,6 +233,10 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GH_REPO: ibrahimroshdy/f1datastop
+          # Root cause of the old ':grey_question: Actions: n/a': the digest
+          # never received a token, so github_actions_status() always bailed.
+          # GITHUB_TOKEN is auto-provisioned; the workflow grants actions:read.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   queue:
     needs: [web]
@@ -242,10 +246,10 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
        github.event.schedule == '*/5 * * * *')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip

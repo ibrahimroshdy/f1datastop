@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runbooks &amp; operations — F1 DataStop Docs</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html"><span class="dot"></span>F1 DataStop Docs</a>
+<nav><a href="architecture.html">Architecture</a><a href="backend.html">Backend</a><a href="data.html">Data &amp; CDN</a><a href="api-embeds.html">API &amp; Embeds</a><a href="runbooks.html" aria-current="page">Runbooks</a></nav></header>
+<main>
+<p class="eyebrow">Operations</p>
+<h1>Runbooks &amp; operations</h1>
+<h2>Cron quick reference</h2>
+<table>
+<tr><th>Cron</th><th>Job</th><th>Gate</th></tr>
+<tr><td><code>*/6 * * * *</code></td><td>reconcile</td><td><code>reconcile_needed.py</code> decides; <code>ingest.py</code> + <code>data_export.py</code></td></tr>
+<tr><td><code>*/30 12-21 * * 5,6,0</code></td><td>reconcile (race ticks)</td><td>same, 30-min cadence on race weekends</td></tr>
+<tr><td><code>0 */2 * * 5,6,0</code></td><td>charts</td><td><code>charts_todo.py</code>; skip if todo empty; teammate pairs RUS,ANT / NOR,PIA / LEC,HAM</td></tr>
+<tr><td><code>0 6,12,18 * * 5,6,0</code></td><td>assets</td><td>latest completed round + next; all 8 session codes</td></tr>
+<tr><td><code>17 7 * * *</code></td><td>digest</td><td><code>free_tier_digest.py</code> → Slack</td></tr>
+<tr><td><code>*/5 * * * *</code></td><td>queue</td><td><code>process_chart_requests.py</code> + <code>process_telemetry_requests.py</code></td></tr>
+</table>
+<h2>On-demand runs</h2>
+<pre><code>gh workflow run pr-ci.yml --ref main          # Actions tab → PR CI → Run workflow
+python charts_todo.py --season "$(date -u +%Y)"   # inspect pending chart work
+python index_export.py --season "$(date -u +%Y)"  # refresh CDN indexes after manual exports</code></pre>
+<h2>Custom chart requests</h2>
+<p>Flow: user picks drivers in Deep Dive → row in <code>f1_chart_requests</code> → minute-cron runs <code>generate.py --only &lt;chart&gt; --drivers &lt;codes&gt;</code> → PNG in <code>analysis_charts</code> → app polls it in. Deduped by stable <code>driver_key</code> (upper · sorted · <code>-</code>-joined). Customizable charts: <code>driver_compare</code>, <code>season_scorecard</code>, <code>dominance_flat</code>, <code>track_dominance</code>, <code>parallax_stack</code>, <code>speed_trace</code>, <code>driver_radar</code> (registry: <code>web/src/services/chartRequestService.ts</code> → <code>CUSTOMIZABLE_CHARTS</code>).</p>
+<h2>Secrets inventory</h2>
+<ul>
+<li><b>CI (Actions secrets):</b> <code>R2_ACCOUNT_ID</code>, <code>R2_ACCESS_KEY_ID</code>, <code>R2_SECRET_ACCESS_KEY</code>, <code>R2_BUCKET</code>, <code>BLOB_PUBLIC_BASE</code>, <code>SUPABASE_URL</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>SLACK_ALERTS_WEBHOOK</code>.</li>
+<li><b>Frontend (Vercel / <code>.env.example</code>):</b> <code>VITE_SUPABASE_URL</code>, <code>VITE_SUPABASE_PUBLISHABLE_KEY</code>, <code>VITE_SUPABASE_PROJECT_ID</code> required; <code>VITE_F1_PROXY_ENABLED</code>, <code>VITE_DB_SERVING_ENABLED</code>, GA4/Clarity/AdSense optional (no-op when unset).</li>
+<li><b>Edge:</b> <code>BMC_WEBHOOK_SECRET</code> via <code>supabase secrets set</code>.</li>
+</ul>
+<div class="warn"><b>Never commit service-role keys.</b> Browser code takes only the publishable/anon key (RLS-protected). Service-role lives in Actions secrets and local shells only.</div>
+<h2>Failure triage</h2>
+<ul>
+<li>Charts job all-calls-failed ⇒ exit 1; partial failures log <code>FAILED:</code> lines but keep green. Check Jolpica/OpenF1 availability and <code>api_metrics</code> for 429s.</li>
+<li>Empty upstream right after a session is normal (multi-hour Jolpica lag) — retry with backoff, never mark final.</li>
+<li>404 = genuinely absent (<code>empty</code>, stop retrying); 429/5xx/521/522/timeout = transient (retry).</li>
+</ul>
+</main>
+<footer><p>Independent community project. Not affiliated with Formula 1 or the FIA. · <a href="https://github.com/ibrahimroshdy/f1datastop">GitHub</a> · <a href="https://www.f1datastop.com">App</a></p></footer>
+</body>
+</html>
