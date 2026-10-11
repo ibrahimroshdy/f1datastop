@@ -6,6 +6,7 @@ FP1 FP2 FP3 Q SQ SS S R.
 """
 import json
 import os
+import sys
 import urllib.request
 from datetime import datetime, timezone
 
@@ -92,7 +93,7 @@ def sessions(season):
     try:
         races = fetch_proxy_schedule(season)
     except Exception as e:
-        print(f"[cdn_schedule] proxy fetch failed: {e}, falling back to CDN schedule")
+        print(f"[cdn_schedule] proxy fetch failed: {e}, falling back to CDN schedule", file=sys.stderr)
         # Fallback to CDN static schedule (may be stale)
         races = _fetch_cdn_schedule(season)
         if not races:
