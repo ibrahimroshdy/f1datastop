@@ -12,7 +12,7 @@
 # F1 DataStop
 
 <p align="center">
-  <img src="logo-readme.svg" alt="F1 DataStop — Formula 1 Data Analysis Platform" width="600">
+  <img src="docs/assets/f1datastop-hero.svg" alt="F1 DataStop — Formula 1 Data Analysis Platform" width="480">
 </p>
 
 <p align="center">
@@ -32,6 +32,7 @@
   <a href="https://github.com/ibrahimroshdy/f1datastop/actions/workflows/pr-ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/ibrahimroshdy/f1datastop/pr-ci.yml?branch=main&label=CI&logo=github" alt="CI Status"></a>
   <a href="https://github.com/ibrahimroshdy/f1datastop/releases/latest"><img src="https://img.shields.io/github/v/release/ibrahimroshdy/f1datastop?label=release&logo=github" alt="Latest Release"></a>
   <a href="https://github.com/ibrahimroshdy/f1datastop/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ibrahimroshdy/f1datastop?color=blue" alt="License"></a>
+  <a href="https://vercel.com/ibrahimroshdy/f1datastop"><img src="https://img.shields.io/badge/deploy-vercel-000000?logo=vercel" alt="Deployed on Vercel"></a>
 </p>
 
 ---
@@ -165,7 +166,7 @@ f1datastop/
 ├── .env.example
 ├── og-image.png              # Social preview (1200×630)
 ├── logo.svg                  # Logo
-├── logo-readme.svg           # README hero logo
+├── docs/assets/f1datastop-hero.svg  # README hero
 ├── LICENSE                   # MIT
 ├── CHANGELOG.md              # Keep a Changelog format
 ├── CONTRIBUTING.md

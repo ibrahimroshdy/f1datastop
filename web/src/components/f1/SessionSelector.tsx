@@ -82,7 +82,7 @@ export function SessionSelector({
                 active
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : isGlass
-                    ? "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                    ? "glass-button text-muted-foreground hover:text-foreground"
                     : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >

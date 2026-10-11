@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>F1 DataStop — Design Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet" />
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&amp;display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --background: 240 8% 3.5%; --foreground: 220 15% 96%;
+    --card: 240 7% 6%; --card-foreground: 220 15% 96%;
+    --popover: 240 8% 5%; --popover-foreground: 220 15% 96%;
+    --primary: 0 100% 44%; --primary-foreground: 0 0% 100%;
+    --secondary: 240 7% 11%; --secondary-foreground: 220 14% 94%;
+    --muted: 240 7% 10%; --muted-foreground: 240 6% 64%;
+    --accent: 240 6% 14%; --accent-foreground: 220 14% 96%;
+    --destructive: 0 62.8% 30.6%; --destructive-foreground: 0 0% 98%;
+    --border: 240 6% 15%; --input: 240 6% 15%; --ring: 0 100% 44%;
+    --elevated: 240 7% 8.5%; --radius: 0.5rem;
+    --chart-background: 240 7% 6%; --chart-grid: 240 6% 15%; --chart-axis: 240 6% 64%;
+    --chart-tooltip-bg: 0 0% 0%; --chart-tooltip-border: 0 0% 15%; --chart-tooltip-text: 0 0% 98%;
+    --f1-red: 0 100% 44%; --f1-black: 240 20% 7%; --f1-white: 0 0% 100%;
+    --position-gold: 45 93% 47%; --position-silver: 0 0% 75%; --position-bronze: 30 60% 40%;
+    --status-live: 0 84% 60%; --status-completed: 142 71% 45%;
+    --status-upcoming: 217 91% 60%; --status-cancelled: 0 0% 50%;
+    --fastest-lap: 271 91% 68%; --gain: 142 71% 45%; --loss: 0 84% 62%;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin: 0; background: hsl(var(--background)); color: hsl(var(--foreground));
+    font-family: "Geist","SF Pro Display",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-feature-settings: "rlig" 1,"calt" 1; -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(120% 75% at 50% -12%, hsl(var(--primary) / 0.055), transparent 55%),
+      radial-gradient(90% 90% at 100% 0%, hsl(240 24% 10% / 0.55), transparent 60%);
+  }
+  h1,h2,h3{ font-family:"Clash Display","Geist",system-ui,sans-serif; letter-spacing:-0.015em; font-weight:600; margin:0; }
+  .wrap{ max-width: 1120px; margin: 0 auto; padding: 40px 24px 80px; }
+  .eyebrow{ font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.14em; color:hsl(var(--primary)); font-family:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .hero{ position:relative; border:1px solid hsl(var(--border)); border-radius:12px; background:hsl(var(--card));
+    padding:36px 32px; display:flex; gap:28px; align-items:center; flex-wrap:wrap;
+    box-shadow: inset 0 1px 0 0 hsl(0 0% 100% / 0.05), 0 1px 2px hsl(0 0% 0% / 0.4), 0 6px 16px hsl(0 0% 0% / 0.3); }
+  .hero h1{ font-size:32px; line-height:1.1; }
+  .hero p{ color:hsl(var(--muted-foreground)); font-size:14px; line-height:1.6; max-width:62ch; }
+  .scope-frame{ position:relative; }
+  .scope-frame::before,.scope-frame::after{ content:""; pointer-events:none; position:absolute; height:12px; width:12px; border-color:hsl(var(--primary) / 0.55); }
+  .scope-frame::before{ left:6px; top:6px; border-top:1.5px solid hsl(var(--primary) / 0.55); border-left:1.5px solid hsl(var(--primary) / 0.55); }
+  .scope-frame::after{ bottom:6px; right:6px; border-bottom:1.5px solid hsl(var(--primary) / 0.55); border-right:1.5px solid hsl(var(--primary) / 0.55); }
+  nav.toc{ display:flex; flex-wrap:wrap; gap:8px; margin:24px 0 8px; }
+  nav.toc a{ font-family:"Geist Mono",ui-monospace,monospace; font-size:12px; color:hsl(var(--muted-foreground));
+    border:1px solid hsl(var(--border)); border-radius:6px; padding:6px 10px; text-decoration:none; background:hsl(var(--card)); }
+  nav.toc a:hover{ color:hsl(var(--foreground)); border-color:hsl(var(--primary) / 0.5); }
+  section.board{ margin-top:44px; }
+  section.board > h2{ font-size:24px; margin-bottom:4px; }
+  section.board > .sec-sub{ color:hsl(var(--muted-foreground)); font-size:13px; margin:0 0 18px; max-width:78ch; line-height:1.6; }
+  .panel{ border:1px solid hsl(var(--border)); border-radius:12px; background:hsl(var(--card)); padding:22px; margin-bottom:16px;
+    box-shadow: inset 0 1px 0 0 hsl(0 0% 100% / 0.05), 0 1px 2px hsl(0 0% 0% / 0.4), 0 6px 16px hsl(0 0% 0% / 0.3); }
+  .panel h3{ font-size:16px; margin-bottom:12px; }
+  .instrument-label{ font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.14em; color:hsl(var(--muted-foreground)); }
+  .timing{ font-family:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-variant-numeric:tabular-nums; letter-spacing:0.02em; }
+  .readout{ font-family:"Geist Mono",ui-monospace,monospace; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; line-height:1; }
+  .stage{ border-radius:10px; padding:20px; border:1px solid; margin-bottom:14px; }
+  .stage-dark{ background:hsl(240 8% 3.5%); border-color:hsl(240 6% 15%); color:hsl(220 15% 96%); }
+  .stage-light{ background:hsl(0 0% 98%); border-color:hsl(240 5% 87%); color:hsl(240 10% 3.9%); }
+  .stage-glass{ background:hsl(240 8% 3.5%); border-color:hsl(240 6% 15%); color:hsl(220 15% 96%);
+    background-image:radial-gradient(ellipse at 20% 20%, rgba(225,6,0,0.06) 0%, transparent 50%),radial-gradient(ellipse at 80% 80%, rgba(225,6,0,0.04) 0%, transparent 50%); }
+  .stage-cap{ font-family:"Geist Mono",monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; opacity:0.65; margin-bottom:14px; }
+  .logo-row{ display:flex; align-items:flex-end; gap:28px; flex-wrap:wrap; }
+  .logo-cell{ text-align:center; }
+  .logo-cell figcaption{ font-family:"Geist Mono",monospace; font-size:11px; opacity:0.65; margin-top:8px; }
+  .logo-pad{ display:inline-flex; align-items:center; justify-content:center; background:rgba(127,127,127,0.08); border-radius:8px; padding:10px; }
+  table.tokens{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.tokens th{ font-family:"Geist Mono",monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.1em; text-align:left; opacity:0.6; padding:8px 10px; border-bottom:1px solid currentColor; }
+  table.tokens td{ padding:7px 10px; border-bottom:1px solid rgba(127,127,127,0.22); }
+  table.tokens td.v{ font-family:"Geist Mono",monospace; white-space:nowrap; }
+  table.tokens td.n{ font-family:"Geist Mono",monospace; white-space:nowrap; }
+  .sw{ display:inline-block; width:14px; height:14px; border-radius:4px; border:1px solid rgba(127,127,127,0.4); vertical-align:-2px; margin-right:8px; }
+  .type-sample{ padding:14px 0; border-top:1px solid hsl(var(--border)); }
+  .type-sample:first-of-type{ border-top:none; }
+  .badge{ display:inline-flex; align-items:center; font-family:"Geist Mono",monospace; font-size:12px; font-weight:600;
+    border-radius:6px; padding:3px 10px; border:1px solid transparent; margin:2px 4px 2px 0; white-space:nowrap; }
+  .pos-1{ background:linear-gradient(135deg,hsl(45 93% 47%),hsl(45 93% 47% / 0.72)); color:hsl(45 90% 11%); }
+  .pos-2{ background:linear-gradient(135deg,hsl(0 0% 75%),hsl(0 0% 75% / 0.68)); color:hsl(0 0% 14%); }
+  .pos-3{ background:linear-gradient(135deg,hsl(30 60% 40%),hsl(30 60% 40% / 0.68)); color:hsl(30 60% 11%); }
+  .st-live{ background:hsl(0 84% 60% / 0.14); color:hsl(0 84% 60%); border-color:hsl(0 84% 60% / 0.4); }
+  .st-done{ background:hsl(142 71% 45% / 0.12); color:hsl(142 71% 45%); border-color:hsl(142 71% 45% / 0.35); }
+  .st-next{ background:hsl(217 91% 60% / 0.12); color:hsl(217 91% 60%); border-color:hsl(217 91% 60% / 0.35); }
+  .st-cancel{ background:hsl(0 0% 50% / 0.14); color:hsl(0 0% 50%); border-color:hsl(0 0% 50% / 0.35); }
+  .stage-light .st-live{ color:hsl(0 84% 55%); border-color:hsl(0 84% 55% / 0.4); background:hsl(0 84% 55% / 0.1); }
+  .stage-light .st-done{ color:hsl(142 71% 40%); border-color:hsl(142 71% 40% / 0.35); background:hsl(142 71% 40% / 0.1); }
+  .stage-light .st-next{ color:hsl(217 91% 55%); border-color:hsl(217 91% 55% / 0.35); background:hsl(217 91% 55% / 0.1); }
+  .stage-light .st-cancel{ color:hsl(0 0% 45%); border-color:hsl(0 0% 45% / 0.35); background:hsl(0 0% 45% / 0.1); }
+  .stage-light .pos-2{ background:linear-gradient(135deg,hsl(0 0% 55%),hsl(0 0% 55% / 0.68)); color:#fff; }
+  .stage-light .pos-3{ background:linear-gradient(135deg,hsl(30 60% 35%),hsl(30 60% 35% / 0.68)); color:#fff; }
+  .hairline-grid > * + *{ border-top:1px solid rgba(127,127,127,0.25); }
+  .data-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 0; font-size:13px; }
+  .f1card{ position:relative; border-radius:12px; padding:16px 18px; border:1px solid rgba(127,127,127,0.3); background:rgba(127,127,127,0.06); max-width:340px; }
+  .f1card h4{ margin:0 0 4px; font-size:15px; }
+  .f1card p{ margin:0; font-size:13px; opacity:0.7; }
+  .cards-2{ display:flex; gap:16px; flex-wrap:wrap; }
+  code{ font-family:"Geist Mono",monospace; font-size:12px; background:rgba(127,127,127,0.14); padding:1px 6px; border-radius:5px; }
+  pre{ font-family:"Geist Mono",monospace; font-size:12px; line-height:1.65; background:rgba(127,127,127,0.08);
+    border:1px solid rgba(127,127,127,0.25); border-radius:8px; padding:14px 16px; overflow-x:auto; }
+  .chart-grid{ display:grid; grid-template-columns: 1fr; gap:16px; }
+  table.laps{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.laps th{ font-family:"Geist Mono",monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; text-align:right; opacity:0.6; padding:6px 10px; }
+  table.laps th:first-child, table.laps td:first-child{ text-align:left; }
+  table.laps td{ font-family:"Geist Mono",monospace; font-variant-numeric:tabular-nums; text-align:right; padding:6px 10px; border-top:1px solid rgba(127,127,127,0.22); }
+  .best{ color:hsl(271 91% 68%); font-weight:600; }
+  .stage-light .best{ color:hsl(271 81% 56%); }
+  ul.rules{ margin:0; padding-left:20px; line-height:1.7; font-size:13.5px; color:hsl(var(--muted-foreground)); }
+  ul.rules li{ margin-bottom:6px; }
+  ul.rules strong{ color:hsl(var(--foreground)); font-weight:600; }
+  .note{ border-left:2px solid hsl(var(--primary)); padding:10px 14px; background:hsl(var(--primary) / 0.06); border-radius:0 8px 8px 0; font-size:13px; line-height:1.65; color:hsl(var(--muted-foreground)); }
+  .note strong{ color:hsl(var(--foreground)); }
+  footer{ margin-top:56px; padding-top:18px; border-top:1px solid hsl(var(--border)); font-family:"Geist Mono",monospace; font-size:11.5px; color:hsl(var(--muted-foreground)); }
+  @media (max-width:640px){ .hero h1{ font-size:26px; } .wrap{ padding:24px 14px 60px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero scope-frame">
+    <svg width="72" height="72" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 DataStop mark"><defs><radialGradient id="rh" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#FF2A12"/><stop offset="1" stop-color="#C10000"/></radialGradient><linearGradient id="bandh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#3a3a3a"/></linearGradient></defs><circle cx="80" cy="80" r="80" fill="url(#rh)"/><circle cx="80" cy="80" r="75.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/><path d="M40 60C40 60 65 50 80 50C95 50 120 60 120 60L130 80C130 80 105 70 80 70C55 70 30 80 30 80L40 60Z" fill="#0d0d0d"/><path d="M30 80C30 80 55 70 80 70C105 70 130 80 130 80L120 100C120 100 95 90 80 90C65 90 40 100 40 100L30 80Z" fill="url(#bandh)"/><g stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 63L55 97"/><path d="M110 63L105 97"/><path d="M75 53L80 107"/><path d="M85 53L80 107"/></g></svg>
+    <div>
+      <div class="eyebrow">F1 DataStop · Pit Wall instrument system</div>
+      <h1>F1 DataStop Design Board</h1>
+      <p>The tightened F1* kit, locked on one page: logo use, colour tokens copied verbatim from
+      <code>web/src/index.css</code> (<code>:root</code> dark · <code>.light</code> · <code>.dark-glass</code>),
+      type scale, component motifs in all three themes, a scope-style chart, and the decisions that shape the UI.
+      Tokens are frozen — this board copies values; any drift is a bug.</p>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Board sections">
+    <a href="#logo-use">01 · logo-use</a>
+    <a href="#colour">02 · colour</a>
+    <a href="#type">03 · type</a>
+    <a href="#motifs">04 · motifs</a>
+    <a href="#charts">05 · charts</a>
+    <a href="#decisions">06 · decisions</a>
+  </nav>
+
+  <!-- ============ 01 LOGO ============ -->
+  <section class="board" id="logo-use">
+    <h2>01 · Logo use — Final, do not redesign</h2>
+    <p class="sec-sub">Canonical source is root <code>logo.svg</code> (red-circle mark, verified byte-equivalent to
+    <code>web/public/favicon.svg</code>). Shown below inlined at the four sanctioned sizes on light and dark stages.</p>
+    <div class="panel">
+      <h3>Size ladder — dark stage</h3>
+      <div class="stage stage-dark">
+        <div class="stage-cap">dark · :root tokens</div>
+        <div class="logo-row">
+          <div class="logo-cell"><span class="logo-pad"><svg width="16" height="16" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 DataStop mark at 16 px"><defs><radialGradient id="rd1" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#FF2A12"/><stop offset="1" stop-color="#C10000"/></radialGradient><linearGradient id="bd1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#3a3a3a"/></linearGradient></defs><circle cx="80" cy="80" r="80" fill="url(#rd1)"/><circle cx="80" cy="80" r="75.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/><path d="M40 60C40 60 65 50 80 50C95 50 120 60 120 60L130 80C130 80 105 70 80 70C55 70 30 80 30 80L40 60Z" fill="#0d0d0d"/><path d="M30 80C30 80 55 70 80 70C105 70 130 80 130 80L120 100C120 100 95 90 80 90C65 90 40 100 40 100L30 80Z" fill="url(#bd1)"/><g stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 63L55 97"/><path d="M110 63L105 97"/><path d="M75 53L80 107"/><path d="M85 53L80 107"/></g></svg></span><figcaption>16 px · min size</figcaption></div>
+          <div class="logo-cell"><span class="logo-pad"><svg width="32" height="32" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 DataStop mark at 32 px"><defs><radialGradient id="rd2" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#FF2A12"/><stop offset="1" stop-color="#C10000"/></radialGradient><linearGradient id="bd2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#3a3a3a"/></linearGradient></defs><circle cx="80" cy="80" r="80" fill="url(#rd2)"/><circle cx="80" cy="80" r="75.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/><path d="M40 60C40 60 65 50 80 50C95 50 120 60 120 60L130 80C130 80 105 70 80 70C55 70 30 80 30 80L40 60Z" fill="#0d0d0d"/><path d="M30 80C30 80 55 70 80 70C105 70 130 80 130 80L120 100C120 100 95 90 80 90C65 90 40 100 40 100L30 80Z" fill="url(#bd2)"/><g stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 63L55 97"/><path d="M110 63L105 97"/><path d="M75 53L80 107"/><path d="M85 53L80 107"/></g></svg></span><figcaption>32 px</figcaption></div>
+          <div class="logo-cell"><span class="logo-pad"><svg width="64" height="64" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 DataStop mark at 64 px"><defs><radialGradient id="rd3" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#FF2A12"/><stop offset="1" stop-color="#C10000"/></radialGradient><linearGradient id="bd3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#3a3a3a"/></linearGradient></defs><circle cx="80" cy="80" r="80" fill="url(#rd3)"/><circle cx="80" cy="80" r="75.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/><path d="M40 60C40 60 65 50 80 50C95 50 120 60 120 60L130 80C130 80 105 70 80 70C55 70 30 80 30 80L40 60Z" fill="#0d0d0d"/><path d="M30 80C30 80 55 70 80 70C105 70 130 80 130 80L120 100C120 100 95 90 80 90C65 90 40 100 40 100L30 80Z" fill="url(#bd3)"/><g stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 63L55 97"/><path d="M110 63L105 97"/><path d="M75 53L80 107"/><path d="M85 53L80 107"/></g></svg></span><figcaption>64 px</figcaption></div>
+          <div class="logo-cell"><span class="logo-pad"><svg width="192" height="192" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 DataStop mark at 192 px"><defs><radialGradient id="rd4" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#FF2A12"/><stop offset="1" stop-color="#C10000"/></radialGradient><linearGradient id="bd4" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#3a3a3a"/></linearGradient></defs><circle cx="80" cy="80" r="80" fill="url(#rd4)"/><circle cx="80" cy="80" r="75.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/><path d="M40 60C40 60 65 50 80 50C95 50 120 60 120 60L130 80C130 80 105 70 80 70C55 70 30 80 30 80L40 60Z" fill="#0d0d0d"/><path d="M30 80C30 80 55 70 80 70C105 70 130 80 130 80L120 100C120 100 95 90 80 90C65 90 40 100 40 100L30 80Z" fill="url(#bd4)"/><g stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 63L55 97"/><path d="M110 63L105 97"/><path d="M75 53L80 107"/><path d="M85 53L80 107"/></g></svg></span><figcaption>192 px</figcaption></div>
+        </div>
+      </div>
+      <h3>Size ladder — light stage</h3>
+      <div class="stage stage-light">
+        <div class="stage-cap">light · .light tokens</div>
+        <div class="logo-row">
+          <div class="logo-cell"><span class="logo-pad"><svg width="16" height="16" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 DataStop mark at 16 px"><defs><radialGradient id="rl1" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#FF2A12"/><stop offset="1" stop-color="#C10000"/></radialGradient><linearGradient id="bl1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#3a3a3a"/></linearGradient></defs><circle cx="80" cy="80" r="80" fill="url(#rl1)"/><circle cx="80" cy="80" r="75.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/><path d="M40 60C40 60 65 50 80 50C95 50 120 60 120 60L130 80C130 80 105 70 80 70C55 70 30 80 30 80L40 60Z" fill="#0d0d0d"/><path d="M30 80C30 80 55 70 80 70C105 70 130 80 130 80L120 100C120 100 95 90 80 90C65 90 40 100 40 100L30 80Z" fill="url(#bl1)"/><g stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 63L55 97"/><path d="M110 63L105 97"/><path d="M75 53L80 107"/><path d="M85 53L80 107"/></g></svg></span><figcaption>16 px · min size</figcaption></div>
+          <div class="logo-cell"><span class="logo-pad"><svg width="32" height="32" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 DataStop mark at 32 px"><defs><radialGradient id="rl2" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#FF2A12"/><stop offset="1" stop-color="#C10000"/></radialGradient><linearGradient id="bl2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#3a3a3a"/></linearGradient></defs><circle cx="80" cy="80" r="80" fill="url(#rl2)"/><circle cx="80" cy="80" r="75.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/><path d="M40 60C40 60 65 50 80 50C95 50 120 60 120 60L130 80C130 80 105 70 80 70C55 70 30 80 30 80L40 60Z" fill="#0d0d0d"/><path d="M30 80C30 80 55 70 80 70C105 70 130 80 130 80L120 100C120 100 95 90 80 90C65 90 40 100 40 100L30 80Z" fill="url(#bl2)"/><g stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 63L55 97"/><path d="M110 63L105 97"/><path d="M75 53L80 107"/><path d="M85 53L80 107"/></g></svg></span><figcaption>32 px</figcaption></div>
+          <div class="logo-cell"><span class="logo-pad"><svg width="64" height="64" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 DataStop mark at 64 px"><defs><radialGradient id="rl3" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#FF2A12"/><stop offset="1" stop-color="#C10000"/></radialGradient><linearGradient id="bl3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#3a3a3a"/></linearGradient></defs><circle cx="80" cy="80" r="80" fill="url(#rl3)"/><circle cx="80" cy="80" r="75.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/><path d="M40 60C40 60 65 50 80 50C95 50 120 60 120 60L130 80C130 80 105 70 80 70C55 70 30 80 30 80L40 60Z" fill="#0d0d0d"/><path d="M30 80C30 80 55 70 80 70C105 70 130 80 130 80L120 100C120 100 95 90 80 90C65 90 40 100 40 100L30 80Z" fill="url(#bl3)"/><g stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 63L55 97"/><path d="M110 63L105 97"/><path d="M75 53L80 107"/><path d="M85 53L80 107"/></g></svg></span><figcaption>64 px</figcaption></div>
+          <div class="logo-cell"><span class="logo-pad"><svg width="192" height="192" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1 DataStop mark at 192 px"><defs><radialGradient id="rl4" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#FF2A12"/><stop offset="1" stop-color="#C10000"/></radialGradient><linearGradient id="bl4" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#3a3a3a"/></linearGradient></defs><circle cx="80" cy="80" r="80" fill="url(#rl4)"/><circle cx="80" cy="80" r="75.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="2"/><path d="M40 60C40 60 65 50 80 50C95 50 120 60 120 60L130 80C130 80 105 70 80 70C55 70 30 80 30 80L40 60Z" fill="#0d0d0d"/><path d="M30 80C30 80 55 70 80 70C105 70 130 80 130 80L120 100C120 100 95 90 80 90C65 90 40 100 40 100L30 80Z" fill="url(#bl4)"/><g stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M50 63L55 97"/><path d="M110 63L105 97"/><path d="M75 53L80 107"/><path d="M85 53L80 107"/></g></svg></span><figcaption>192 px</figcaption></div>
+        </div>
+      </div>
+      <div class="note"><strong>Final, do not redesign.</strong> Don'ts: no recolor, no reshape, no new mark.
+      Minimum size 16 px · clearspace = 25% of mark width on all sides. The mark above is the root
+      <code>logo.svg</code> artwork pasted verbatim (only gradient ids suffixed per instance so copies stay self-contained).</div>
+    </div>
+  </section>
+
+  <!-- ============ 02 COLOUR ============ -->
+  <section class="board" id="colour">
+    <h2>02 · Colour — tokens copied verbatim</h2>
+    <p class="sec-sub">Source of truth is <code>web/src/index.css</code> (frozen, read-only). One accent only:
+    primary red <code>0 100% 44%</code> (the #E10600 family). Swatches render from the same values they list.</p>
+
+    <div class="panel">
+      <h3>:root — dark (default)</h3>
+      <div class="stage stage-dark"><div class="stage-cap">:root</div>
+      <table class="tokens">
+        <tr><th>Token</th><th>Value</th><th>Swatch</th></tr>
+        <tr><td class="n">--background</td><td class="v">240 8% 3.5%</td><td><span class="sw" style="background:hsl(240 8% 3.5%)"></span>page</td></tr>
+        <tr><td class="n">--foreground</td><td class="v">220 15% 96%</td><td><span class="sw" style="background:hsl(220 15% 96%)"></span>text</td></tr>
+        <tr><td class="n">--card</td><td class="v">240 7% 6%</td><td><span class="sw" style="background:hsl(240 7% 6%)"></span>panel</td></tr>
+        <tr><td class="n">--card-foreground</td><td class="v">220 15% 96%</td><td><span class="sw" style="background:hsl(220 15% 96%)"></span></td></tr>
+        <tr><td class="n">--popover</td><td class="v">240 8% 5%</td><td><span class="sw" style="background:hsl(240 8% 5%)"></span></td></tr>
+        <tr><td class="n">--popover-foreground</td><td class="v">220 15% 96%</td><td><span class="sw" style="background:hsl(220 15% 96%)"></span></td></tr>
+        <tr><td class="n">--primary</td><td class="v">0 100% 44%</td><td><span class="sw" style="background:hsl(0 100% 44%)"></span>F1 red · the one accent</td></tr>
+        <tr><td class="n">--primary-foreground</td><td class="v">0 0% 100%</td><td><span class="sw" style="background:hsl(0 0% 100%)"></span></td></tr>
+        <tr><td class="n">--secondary</td><td class="v">240 7% 11%</td><td><span class="sw" style="background:hsl(240 7% 11%)"></span></td></tr>
+        <tr><td class="n">--secondary-foreground</td><td class="v">220 14% 94%</td><td><span class="sw" style="background:hsl(220 14% 94%)"></span></td></tr>
+        <tr><td class="n">--muted</td><td class="v">240 7% 10%</td><td><span class="sw" style="background:hsl(240 7% 10%)"></span></td></tr>
+        <tr><td class="n">--muted-foreground</td><td class="v">240 6% 64%</td><td><span class="sw" style="background:hsl(240 6% 64%)"></span>secondary text</td></tr>
+        <tr><td class="n">--accent</td><td class="v">240 6% 14%</td><td><span class="sw" style="background:hsl(240 6% 14%)"></span></td></tr>
+        <tr><td class="n">--accent-foreground</td><td class="v">220 14% 96%</td><td><span class="sw" style="background:hsl(220 14% 96%)"></span></td></tr>
+        <tr><td class="n">--destructive</td><td class="v">0 62.8% 30.6%</td><td><span class="sw" style="background:hsl(0 62.8% 30.6%)"></span></td></tr>
+        <tr><td class="n">--destructive-foreground</td><td class="v">0 0% 98%</td><td><span class="sw" style="background:hsl(0 0% 98%)"></span></td></tr>
+        <tr><td class="n">--border</td><td class="v">240 6% 15%</td><td><span class="sw" style="background:hsl(240 6% 15%)"></span>hairlines</td></tr>
+        <tr><td class="n">--input</td><td class="v">240 6% 15%</td><td><span class="sw" style="background:hsl(240 6% 15%)"></span></td></tr>
+        <tr><td class="n">--ring</td><td class="v">0 100% 44%</td><td><span class="sw" style="background:hsl(0 100% 44%)"></span></td></tr>
+        <tr><td class="n">--elevated</td><td class="v">240 7% 8.5%</td><td><span class="sw" style="background:hsl(240 7% 8.5%)"></span>raised surface</td></tr>
+        <tr><td class="n">--chart-background</td><td class="v">240 7% 6%</td><td><span class="sw" style="background:hsl(240 7% 6%)"></span></td></tr>
+        <tr><td class="n">--chart-grid</td><td class="v">240 6% 15%</td><td><span class="sw" style="background:hsl(240 6% 15%)"></span></td></tr>
+        <tr><td class="n">--chart-axis</td><td class="v">240 6% 64%</td><td><span class="sw" style="background:hsl(240 6% 64%)"></span></td></tr>
+        <tr><td class="n">--chart-tooltip-bg</td><td class="v">0 0% 0%</td><td><span class="sw" style="background:hsl(0 0% 0%)"></span></td></tr>
+        <tr><td class="n">--chart-tooltip-border</td><td class="v">0 0% 15%</td><td><span class="sw" style="background:hsl(0 0% 15%)"></span></td></tr>
+        <tr><td class="n">--chart-tooltip-text</td><td class="v">0 0% 98%</td><td><span class="sw" style="background:hsl(0 0% 98%)"></span></td></tr>
+        <tr><td class="n">--f1-red</td><td class="v">0 100% 44%</td><td><span class="sw" style="background:hsl(0 100% 44%)"></span></td></tr>
+        <tr><td class="n">--f1-black</td><td class="v">240 20% 7%</td><td><span class="sw" style="background:hsl(240 20% 7%)"></span></td></tr>
+        <tr><td class="n">--f1-white</td><td class="v">0 0% 100%</td><td><span class="sw" style="background:hsl(0 0% 100%)"></span></td></tr>
+        <tr><td class="n">--position-gold</td><td class="v">45 93% 47%</td><td><span class="sw" style="background:hsl(45 93% 47%)"></span>P1</td></tr>
+        <tr><td class="n">--position-silver</td><td class="v">0 0% 75%</td><td><span class="sw" style="background:hsl(0 0% 75%)"></span>P2</td></tr>
+        <tr><td class="n">--position-bronze</td><td class="v">30 60% 40%</td><td><span class="sw" style="background:hsl(30 60% 40%)"></span>P3</td></tr>
+        <tr><td class="n">--status-live</td><td class="v">0 84% 60%</td><td><span class="sw" style="background:hsl(0 84% 60%)"></span></td></tr>
+        <tr><td class="n">--status-completed</td><td class="v">142 71% 45%</td><td><span class="sw" style="background:hsl(142 71% 45%)"></span>also gain</td></tr>
+        <tr><td class="n">--status-upcoming</td><td class="v">217 91% 60%</td><td><span class="sw" style="background:hsl(217 91% 60%)"></span></td></tr>
+        <tr><td class="n">--status-cancelled</td><td class="v">0 0% 50%</td><td><span class="sw" style="background:hsl(0 0% 50%)"></span></td></tr>
+        <tr><td class="n">--fastest-lap</td><td class="v">271 91% 68%</td><td><span class="sw" style="background:hsl(271 91% 68%)"></span>session-best purple</td></tr>
+        <tr><td class="n">--gain</td><td class="v">142 71% 45%</td><td><span class="sw" style="background:hsl(142 71% 45%)"></span></td></tr>
+        <tr><td class="n">--loss</td><td class="v">0 84% 62%</td><td><span class="sw" style="background:hsl(0 84% 62%)"></span></td></tr>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <h3>.light</h3>
+      <div class="stage stage-light"><div class="stage-cap">.light</div>
+      <table class="tokens">
+        <tr><th>Token</th><th>Value</th><th>Swatch</th></tr>
+        <tr><td class="n">--background</td><td class="v">0 0% 98%</td><td><span class="sw" style="background:hsl(0 0% 98%)"></span>page</td></tr>
+        <tr><td class="n">--foreground</td><td class="v">240 10% 3.9%</td><td><span class="sw" style="background:hsl(240 10% 3.9%)"></span>text</td></tr>
+        <tr><td class="n">--card</td><td class="v">0 0% 100%</td><td><span class="sw" style="background:hsl(0 0% 100%)"></span>panel</td></tr>
+        <tr><td class="n">--card-foreground</td><td class="v">240 10% 3.9%</td><td><span class="sw" style="background:hsl(240 10% 3.9%)"></span></td></tr>
+        <tr><td class="n">--popover</td><td class="v">0 0% 100%</td><td><span class="sw" style="background:hsl(0 0% 100%)"></span></td></tr>
+        <tr><td class="n">--popover-foreground</td><td class="v">240 10% 3.9%</td><td><span class="sw" style="background:hsl(240 10% 3.9%)"></span></td></tr>
+        <tr><td class="n">--primary</td><td class="v">0 100% 44%</td><td><span class="sw" style="background:hsl(0 100% 44%)"></span>F1 red · unchanged</td></tr>
+        <tr><td class="n">--primary-foreground</td><td class="v">0 0% 98%</td><td><span class="sw" style="background:hsl(0 0% 98%)"></span></td></tr>
+        <tr><td class="n">--secondary</td><td class="v">240 5% 96%</td><td><span class="sw" style="background:hsl(240 5% 96%)"></span></td></tr>
+        <tr><td class="n">--secondary-foreground</td><td class="v">240 10% 3.9%</td><td><span class="sw" style="background:hsl(240 10% 3.9%)"></span></td></tr>
+        <tr><td class="n">--muted</td><td class="v">240 5% 94%</td><td><span class="sw" style="background:hsl(240 5% 94%)"></span></td></tr>
+        <tr><td class="n">--muted-foreground</td><td class="v">240 4% 46.1%</td><td><span class="sw" style="background:hsl(240 4% 46.1%)"></span>secondary text</td></tr>
+        <tr><td class="n">--accent</td><td class="v">240 5% 92%</td><td><span class="sw" style="background:hsl(240 5% 92%)"></span></td></tr>
+        <tr><td class="n">--accent-foreground</td><td class="v">240 10% 3.9%</td><td><span class="sw" style="background:hsl(240 10% 3.9%)"></span></td></tr>
+        <tr><td class="n">--destructive</td><td class="v">0 84.2% 60.2%</td><td><span class="sw" style="background:hsl(0 84.2% 60.2%)"></span></td></tr>
+        <tr><td class="n">--destructive-foreground</td><td class="v">0 0% 98%</td><td><span class="sw" style="background:hsl(0 0% 98%)"></span></td></tr>
+        <tr><td class="n">--border</td><td class="v">240 5% 87%</td><td><span class="sw" style="background:hsl(240 5% 87%)"></span>hairlines</td></tr>
+        <tr><td class="n">--input</td><td class="v">240 5% 87%</td><td><span class="sw" style="background:hsl(240 5% 87%)"></span></td></tr>
+        <tr><td class="n">--ring</td><td class="v">0 100% 44%</td><td><span class="sw" style="background:hsl(0 100% 44%)"></span></td></tr>
+        <tr><td class="n">--chart-background</td><td class="v">0 0% 100%</td><td><span class="sw" style="background:hsl(0 0% 100%)"></span></td></tr>
+        <tr><td class="n">--chart-grid</td><td class="v">240 5% 92%</td><td><span class="sw" style="background:hsl(240 5% 92%)"></span></td></tr>
+        <tr><td class="n">--chart-axis</td><td class="v">240 4% 46%</td><td><span class="sw" style="background:hsl(240 4% 46%)"></span></td></tr>
+        <tr><td class="n">--chart-tooltip-bg</td><td class="v">0 0% 100%</td><td><span class="sw" style="background:hsl(0 0% 100%)"></span></td></tr>
+        <tr><td class="n">--chart-tooltip-border</td><td class="v">240 5% 87%</td><td><span class="sw" style="background:hsl(240 5% 87%)"></span></td></tr>
+        <tr><td class="n">--chart-tooltip-text</td><td class="v">240 10% 4%</td><td><span class="sw" style="background:hsl(240 10% 4%)"></span></td></tr>
+        <tr><td class="n">--f1-red</td><td class="v">0 100% 44%</td><td><span class="sw" style="background:hsl(0 100% 44%)"></span></td></tr>
+        <tr><td class="n">--f1-black</td><td class="v">240 20% 7%</td><td><span class="sw" style="background:hsl(240 20% 7%)"></span></td></tr>
+        <tr><td class="n">--f1-white</td><td class="v">0 0% 100%</td><td><span class="sw" style="background:hsl(0 0% 100%)"></span></td></tr>
+        <tr><td class="n">--position-gold</td><td class="v">45 93% 47%</td><td><span class="sw" style="background:hsl(45 93% 47%)"></span>P1</td></tr>
+        <tr><td class="n">--position-silver</td><td class="v">0 0% 55%</td><td><span class="sw" style="background:hsl(0 0% 55%)"></span>P2 · deepened for light</td></tr>
+        <tr><td class="n">--position-bronze</td><td class="v">30 60% 35%</td><td><span class="sw" style="background:hsl(30 60% 35%)"></span>P3 · deepened for light</td></tr>
+        <tr><td class="n">--status-live</td><td class="v">0 84% 55%</td><td><span class="sw" style="background:hsl(0 84% 55%)"></span></td></tr>
+        <tr><td class="n">--status-completed</td><td class="v">142 71% 40%</td><td><span class="sw" style="background:hsl(142 71% 40%)"></span>also gain</td></tr>
+        <tr><td class="n">--status-upcoming</td><td class="v">217 91% 55%</td><td><span class="sw" style="background:hsl(217 91% 55%)"></span></td></tr>
+        <tr><td class="n">--status-cancelled</td><td class="v">0 0% 45%</td><td><span class="sw" style="background:hsl(0 0% 45%)"></span></td></tr>
+        <tr><td class="n">--fastest-lap</td><td class="v">271 81% 56%</td><td><span class="sw" style="background:hsl(271 81% 56%)"></span>session-best, deepened</td></tr>
+        <tr><td class="n">--gain</td><td class="v">142 71% 40%</td><td><span class="sw" style="background:hsl(142 71% 40%)"></span></td></tr>
+        <tr><td class="n">--loss</td><td class="v">0 84% 55%</td><td><span class="sw" style="background:hsl(0 84% 55%)"></span></td></tr>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <h3>.dark-glass</h3>
+      <div class="stage stage-glass"><div class="stage-cap">.dark-glass · same ramps as :root, glass surfaces on top</div>
+      <table class="tokens">
+        <tr><th>Token</th><th>Value</th><th>Swatch</th></tr>
+        <tr><td class="n">--background</td><td class="v">240 8% 3.5%</td><td><span class="sw" style="background:hsl(240 8% 3.5%)"></span></td></tr>
+        <tr><td class="n">--foreground</td><td class="v">220 15% 96%</td><td><span class="sw" style="background:hsl(220 15% 96%)"></span></td></tr>
+        <tr><td class="n">--card</td><td class="v">240 7% 6%</td><td><span class="sw" style="background:hsl(240 7% 6%)"></span></td></tr>
+        <tr><td class="n">--card-foreground</td><td class="v">220 15% 96%</td><td><span class="sw" style="background:hsl(220 15% 96%)"></span></td></tr>
+        <tr><td class="n">--popover</td><td class="v">240 8% 5%</td><td><span class="sw" style="background:hsl(240 8% 5%)"></span></td></tr>
+        <tr><td class="n">--popover-foreground</td><td class="v">220 15% 96%</td><td><span class="sw" style="background:hsl(220 15% 96%)"></span></td></tr>
+        <tr><td class="n">--primary</td><td class="v">0 100% 44%</td><td><span class="sw" style="background:hsl(0 100% 44%)"></span>F1 red · unchanged</td></tr>
+        <tr><td class="n">--primary-foreground</td><td class="v">0 0% 100%</td><td><span class="sw" style="background:hsl(0 0% 100%)"></span></td></tr>
+        <tr><td class="n">--secondary</td><td class="v">240 7% 11%</td><td><span class="sw" style="background:hsl(240 7% 11%)"></span></td></tr>
+        <tr><td class="n">--secondary-foreground</td><td class="v">220 14% 94%</td><td><span class="sw" style="background:hsl(220 14% 94%)"></span></td></tr>
+        <tr><td class="n">--muted</td><td class="v">240 7% 10%</td><td><span class="sw" style="background:hsl(240 7% 10%)"></span></td></tr>
+        <tr><td class="n">--muted-foreground</td><td class="v">240 6% 64%</td><td><span class="sw" style="background:hsl(240 6% 64%)"></span></td></tr>
+        <tr><td class="n">--accent</td><td class="v">240 6% 14%</td><td><span class="sw" style="background:hsl(240 6% 14%)"></span></td></tr>
+        <tr><td class="n">--accent-foreground</td><td class="v">220 14% 96%</td><td><span class="sw" style="background:hsl(220 14% 96%)"></span></td></tr>
+        <tr><td class="n">--destructive</td><td class="v">0 62.8% 30.6%</td><td><span class="sw" style="background:hsl(0 62.8% 30.6%)"></span></td></tr>
+        <tr><td class="n">--destructive-foreground</td><td class="v">0 0% 98%</td><td><span class="sw" style="background:hsl(0 0% 98%)"></span></td></tr>
+        <tr><td class="n">--border</td><td class="v">240 6% 15%</td><td><span class="sw" style="background:hsl(240 6% 15%)"></span></td></tr>
+        <tr><td class="n">--input</td><td class="v">240 6% 15%</td><td><span class="sw" style="background:hsl(240 6% 15%)"></span></td></tr>
+        <tr><td class="n">--ring</td><td class="v">0 100% 44%</td><td><span class="sw" style="background:hsl(0 100% 44%)"></span></td></tr>
+        <tr><td class="n">--elevated</td><td class="v">240 7% 8.5%</td><td><span class="sw" style="background:hsl(240 7% 8.5%)"></span></td></tr>
+        <tr><td class="n">--chart-background</td><td class="v">240 7% 6%</td><td><span class="sw" style="background:hsl(240 7% 6%)"></span></td></tr>
+        <tr><td class="n">--chart-grid</td><td class="v">240 6% 15%</td><td><span class="sw" style="background:hsl(240 6% 15%)"></span></td></tr>
+        <tr><td class="n">--chart-axis</td><td class="v">240 6% 64%</td><td><span class="sw" style="background:hsl(240 6% 64%)"></span></td></tr>
+        <tr><td class="n">--chart-tooltip-bg</td><td class="v">0 0% 0%</td><td><span class="sw" style="background:hsl(0 0% 0%)"></span></td></tr>
+        <tr><td class="n">--chart-tooltip-border</td><td class="v">0 0% 15%</td><td><span class="sw" style="background:hsl(0 0% 15%)"></span></td></tr>
+        <tr><td class="n">--chart-tooltip-text</td><td class="v">0 0% 98%</td><td><span class="sw" style="background:hsl(0 0% 98%)"></span></td></tr>
+        <tr><td class="n">--position-gold</td><td class="v">45 93% 47%</td><td><span class="sw" style="background:hsl(45 93% 47%)"></span>P1</td></tr>
+        <tr><td class="n">--position-silver</td><td class="v">0 0% 75%</td><td><span class="sw" style="background:hsl(0 0% 75%)"></span>P2</td></tr>
+        <tr><td class="n">--position-bronze</td><td class="v">30 60% 40%</td><td><span class="sw" style="background:hsl(30 60% 40%)"></span>P3</td></tr>
+        <tr><td class="n">--status-live</td><td class="v">0 84% 60%</td><td><span class="sw" style="background:hsl(0 84% 60%)"></span></td></tr>
+        <tr><td class="n">--status-completed</td><td class="v">142 71% 45%</td><td><span class="sw" style="background:hsl(142 71% 45%)"></span></td></tr>
+        <tr><td class="n">--status-upcoming</td><td class="v">217 91% 60%</td><td><span class="sw" style="background:hsl(217 91% 60%)"></span></td></tr>
+        <tr><td class="n">--status-cancelled</td><td class="v">0 0% 50%</td><td><span class="sw" style="background:hsl(0 0% 50%)"></span></td></tr>
+        <tr><td class="n">--fastest-lap</td><td class="v">271 91% 68%</td><td><span class="sw" style="background:hsl(271 91% 68%)"></span></td></tr>
+        <tr><td class="n">--gain</td><td class="v">142 71% 45%</td><td><span class="sw" style="background:hsl(142 71% 45%)"></span></td></tr>
+        <tr><td class="n">--loss</td><td class="v">0 84% 62%</td><td><span class="sw" style="background:hsl(0 84% 62%)"></span></td></tr>
+        <tr><td class="n">--glass-bg</td><td class="v">rgba(255, 255, 255, 0.05)</td><td><span class="sw" style="background:rgba(255,255,255,0.05)"></span></td></tr>
+        <tr><td class="n">--glass-border</td><td class="v">rgba(255, 255, 255, 0.1)</td><td><span class="sw" style="background:rgba(255,255,255,0.1)"></span></td></tr>
+        <tr><td class="n">--glass-blur</td><td class="v">24px</td><td>—</td></tr>
+        <tr><td class="n">--glass-mode</td><td class="v">1</td><td>glass on</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ============ 03 TYPE ============ -->
+  <section class="board" id="type">
+    <h2>03 · Type — Clash Display / Geist / Geist Mono</h2>
+    <p class="sec-sub">Canonical scale per DESIGN.md §2. Loaded via the same Fontshare + Google Fonts links as
+    <code>web/index.html</code>, with system fallbacks. All numbers are <code>tabular-nums</code>; timing data is mono.</p>
+    <div class="panel">
+      <div class="type-sample">
+        <div class="instrument-label">Page title · PageHeader only · font-heading text-2xl font-bold tracking-tight md:text-3xl</div>
+        <h2 style="font-size:30px; font-weight:700; letter-spacing:-0.015em; margin-top:6px;">The Pit Wall</h2>
+      </div>
+      <div class="type-sample">
+        <div class="instrument-label">Eyebrow · text-xs font-semibold uppercase tracking-widest text-primary</div>
+        <div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.14em; color:hsl(0 100% 44%); margin-top:6px;">Round 14 · Spa-Francorchamps</div>
+      </div>
+      <div class="type-sample">
+        <div class="instrument-label">Page description · text-sm text-muted-foreground</div>
+        <div style="font-size:14px; color:hsl(240 6% 64%); margin-top:6px;">Live timing, telemetry and standings for every session of the race weekend.</div>
+      </div>
+      <div class="type-sample">
+        <div class="instrument-label">Card title · text-lg font-bold (Clash Display via global h-rule) · F1CardTitle</div>
+        <h3 style="font-size:18px; font-weight:700; margin-top:6px;">Driver Standings</h3>
+      </div>
+      <div class="type-sample">
+        <div class="instrument-label">Stat numeral · .stat-numeral = font-heading text-2xl font-bold tabular-nums tracking-tight</div>
+        <div style="font-family:'Clash Display','Geist',sans-serif; font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-0.015em; margin-top:6px;">387 PTS</div>
+      </div>
+      <div class="type-sample">
+        <div class="instrument-label">Readout · .readout = mono semibold tabular tight leading-none</div>
+        <div class="readout" style="font-size:34px; margin-top:6px;">287.4 <span style="font-size:14px; opacity:0.6;">km/h</span></div>
+      </div>
+      <div class="type-sample">
+        <div class="instrument-label">Timing · .timing = font-mono tabular-nums tracking-wide</div>
+        <div class="timing" style="font-size:15px; margin-top:6px;">1:27.342 <span class="best">1:26.910</span> +0.432</div>
+      </div>
+      <div class="type-sample">
+        <div class="instrument-label">Body small · .body-sm = text-sm leading-relaxed text-muted-foreground</div>
+        <div style="font-size:14px; line-height:1.7; color:hsl(240 6% 64%); margin-top:6px;">Session notes and secondary copy sit here. Body copy never goes below <code>text-xs</code>; <code>text-2xs</code> is sanctioned only for micro eyebrows, badges and timing metadata.</div>
+      </div>
+      <div class="note" style="margin-top:14px;"><strong>Type rules:</strong> headings Clash Display + tracking-tight ·
+      every number tabular-nums · timing/lap/gap data always mono · metadata separators use <code>•</code>, never <code>|</code> ·
+      responsive bump is base size + one <code>md:</code> step up · never hand-roll an <code>h1</code> (PageHeader owns it).</div>
+    </div>
+  </section>
+
+  <!-- ============ 04 MOTIFS ============ -->
+  <section class="board" id="motifs">
+    <h2>04 · Motifs — F1* kit in all three themes</h2>
+    <p class="sec-sub">PositionBadge P1–P3, StatusBadge live / completed / upcoming / cancelled,
+    <code>.timing</code> / <code>.readout</code> / <code>.instrument-label</code> / <code>.hairline-grid</code>,
+    plus F1Card with the Task 1 <code>scope</code> prop. F1Card API:
+    <code>scope?: boolean</code> (default <code>false</code>) toggles class <code>scope-frame</code>
+    (frozen, <code>web/src/index.css:950</code>); <code>&lt;F1Card scope&gt;</code> root carries
+    <code>relative rounded-xl … scope-frame</code> with <code>::before</code>/<code>::after</code> corner ticks in
+    <code>hsl(var(--primary) / 0.55)</code>.</p>
+
+    <div class="panel">
+      <h3>Dark · :root</h3>
+      <div class="stage stage-dark"><div class="stage-cap">dark</div>
+        <div><span class="badge pos-1">P1</span><span class="badge pos-2">P2</span><span class="badge pos-3">P3</span>
+        <span class="badge st-live">● live</span><span class="badge st-done">completed</span><span class="badge st-next">upcoming</span><span class="badge st-cancel">cancelled</span></div>
+        <div class="instrument-label" style="margin:14px 0 4px;">Top speed · Spa</div>
+        <div class="readout" style="font-size:30px;">287.4 <span style="font-size:13px; opacity:0.6;">km/h</span></div>
+        <div class="timing" style="font-size:13px; margin-top:6px;">LAP 12 · 1:27.342 · GAP +0.432 · <span class="best">BEST 1:26.910</span></div>
+        <div class="hairline-grid" style="margin-top:12px;">
+          <div class="data-row"><span>VER · Red Bull Racing</span><span class="timing">1:26.910</span></div>
+          <div class="data-row"><span>NOR · McLaren</span><span class="timing">1:27.342</span></div>
+          <div class="data-row"><span>LEC · Ferrari</span><span class="timing">1:27.508</span></div>
+        </div>
+        <div class="cards-2" style="margin-top:14px;">
+          <div class="f1card"><h4>Race Pace</h4><p>F1Card default — machined plate, hairline border, card shadow.</p></div>
+          <div class="f1card scope-frame" style="padding:22px;"><h4>Hero Panel</h4><p><code>&lt;F1Card scope&gt;</code> — corner-tick HUD framing. Signature, not wallpaper.</p></div>
+        </div>
+      </div>
+      <h3>Light · .light</h3>
+      <div class="stage stage-light"><div class="stage-cap">light</div>
+        <div><span class="badge pos-1">P1</span><span class="badge pos-2">P2</span><span class="badge pos-3">P3</span>
+        <span class="badge st-live">● live</span><span class="badge st-done">completed</span><span class="badge st-next">upcoming</span><span class="badge st-cancel">cancelled</span></div>
+        <div class="instrument-label" style="margin:14px 0 4px; color:hsl(240 4% 46.1%);">Top speed · Spa</div>
+        <div class="readout" style="font-size:30px;">287.4 <span style="font-size:13px; opacity:0.6;">km/h</span></div>
+        <div class="timing" style="font-size:13px; margin-top:6px;">LAP 12 · 1:27.342 · GAP +0.432 · <span class="best">BEST 1:26.910</span></div>
+        <div class="hairline-grid" style="margin-top:12px;">
+          <div class="data-row"><span>VER · Red Bull Racing</span><span class="timing">1:26.910</span></div>
+          <div class="data-row"><span>NOR · McLaren</span><span class="timing">1:27.342</span></div>
+          <div class="data-row"><span>LEC · Ferrari</span><span class="timing">1:27.508</span></div>
+        </div>
+        <div class="cards-2" style="margin-top:14px;">
+          <div class="f1card" style="background:#fff; border-color:hsl(240 5% 87%);"><h4>Race Pace</h4><p>F1Card default on light.</p></div>
+          <div class="f1card scope-frame" style="background:#fff; border-color:hsl(240 5% 87%); padding:22px;"><h4>Hero Panel</h4><p><code>&lt;F1Card scope&gt;</code> on light.</p></div>
+        </div>
+      </div>
+      <h3>Dark glass · .dark-glass</h3>
+      <div class="stage stage-glass"><div class="stage-cap">dark-glass · glass surfaces, red bloom</div>
+        <div><span class="badge pos-1">P1</span><span class="badge pos-2">P2</span><span class="badge pos-3">P3</span>
+        <span class="badge st-live">● live</span><span class="badge st-done">completed</span><span class="badge st-next">upcoming</span><span class="badge st-cancel">cancelled</span></div>
+        <div class="instrument-label" style="margin:14px 0 4px;">Top speed · Spa</div>
+        <div class="readout" style="font-size:30px;">287.4 <span style="font-size:13px; opacity:0.6;">km/h</span></div>
+        <div class="timing" style="font-size:13px; margin-top:6px;">LAP 12 · 1:27.342 · GAP +0.432 · <span class="best">BEST 1:26.910</span></div>
+        <div class="hairline-grid" style="margin-top:12px;">
+          <div class="data-row"><span>VER · Red Bull Racing</span><span class="timing">1:26.910</span></div>
+          <div class="data-row"><span>NOR · McLaren</span><span class="timing">1:27.342</span></div>
+          <div class="data-row"><span>LEC · Ferrari</span><span class="timing">1:27.508</span></div>
+        </div>
+        <div class="cards-2" style="margin-top:14px;">
+          <div class="f1card" style="background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.1); backdrop-filter:blur(24px);"><h4>Race Pace</h4><p>Glass surface variant.</p></div>
+          <div class="f1card scope-frame" style="background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.1); backdrop-filter:blur(24px); padding:22px;"><h4>Hero Panel</h4><p><code>&lt;F1Card scope&gt;</code> on glass.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 05 CHARTS ============ -->
+  <section class="board" id="charts">
+    <h2>05 · Charts — scope-style lap chart + table view</h2>
+    <p class="sec-sub">Oscilloscope look per <code>chartTheme.ts</code>: dark plot, hairline grid, mono ticks, crisp lines
+    with area fade, crosshair tooltip in dark glass, session-best marker in <code>--fastest-lap</code> purple. Same data as a table below.</p>
+    <div class="panel scope-frame" style="padding:28px;">
+      <div class="instrument-label">Spa-Francorchamps · Q3 final runs · lap time (s)</div>
+      <div class="chart-grid" style="margin-top:12px;">
+      <svg viewBox="0 0 640 260" width="100%" role="img" aria-label="Scope-style lap chart: VER, NOR, LEC over laps 8 to 12" style="display:block; background:hsl(240 7% 6%); border:1px solid hsl(240 6% 15%); border-radius:8px;">
+        <defs>
+          <linearGradient id="fadeVer" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E10600" stop-opacity="0.35"/><stop offset="1" stop-color="#E10600" stop-opacity="0"/></linearGradient>
+        </defs>
+        <g font-family="Geist Mono, monospace" font-size="10" fill="hsl(240 6% 64%)">
+          <line x1="44" y1="20" x2="44" y2="210" stroke="hsl(240 6% 15%)"/><line x1="44" y1="210" x2="620" y2="210" stroke="hsl(240 6% 15%)"/>
+          <line x1="44" y1="165" x2="620" y2="165" stroke="hsl(240 6% 15%)" stroke-dasharray="3 4"/><line x1="44" y1="120" x2="620" y2="120" stroke="hsl(240 6% 15%)" stroke-dasharray="3 4"/><line x1="44" y1="75" x2="620" y2="75" stroke="hsl(240 6% 15%)" stroke-dasharray="3 4"/><line x1="44" y1="30" x2="620" y2="30" stroke="hsl(240 6% 15%)" stroke-dasharray="3 4"/>
+          <text x="6" y="33">88.0</text><text x="6" y="78">87.5</text><text x="6" y="123">87.0</text><text x="6" y="168">86.5</text><text x="6" y="213">86.0</text>
+          <text x="120" y="228">L8</text><text x="248" y="228">L9</text><text x="376" y="228">L10</text><text x="492" y="228">L11</text><text x="588" y="228">L12</text>
+        </g>
+        <path d="M60,150 L180,142 L300,150 L420,138 L540,60 L540,210 L60,210 Z" fill="url(#fadeVer)"/>
+        <polyline points="60,150 180,142 300,150 420,138 540,60" fill="none" stroke="#E10600" stroke-width="2" style="filter:drop-shadow(0 0 6px rgba(225,6,0,0.5))"/>
+        <polyline points="60,160 180,155 300,148 420,145 540,102" fill="none" stroke="hsl(217 91% 60%)" stroke-width="1.5"/>
+        <polyline points="60,158 180,160 300,152 420,150 540,118" fill="none" stroke="hsl(0 0% 75%)" stroke-width="1.5"/>
+        <circle cx="540" cy="60" r="4.5" fill="hsl(271 91% 68%)" style="filter:drop-shadow(0 0 6px hsl(271 91% 68%))"/>
+        <line x1="420" y1="20" x2="420" y2="210" stroke="hsl(0 0% 100% / 0.35)" stroke-dasharray="4 3"/>
+        <g>
+          <rect x="436" y="34" width="150" height="62" rx="8" fill="hsl(0 0% 0%)" stroke="hsl(0 0% 15%)"/>
+          <text x="448" y="54" font-family="Geist Mono, monospace" font-size="11" fill="hsl(0 0% 98%)">LAP 11 · VER</text>
+          <text x="448" y="72" font-family="Geist Mono, monospace" font-size="12" fill="#E10600">1:27.138</text>
+          <text x="448" y="88" font-family="Geist Mono, monospace" font-size="10" fill="hsl(240 6% 64%)">NOR 1:27.345 · LEC 1:27.350</text>
+        </g>
+        <g font-family="Geist Mono, monospace" font-size="11">
+          <rect x="60" y="238" width="10" height="10" fill="#E10600"/><text x="74" y="247" fill="hsl(220 15% 96%)">VER</text>
+          <rect x="130" y="238" width="10" height="10" fill="hsl(217 91% 60%)"/><text x="144" y="247" fill="hsl(220 15% 96%)">NOR</text>
+          <rect x="200" y="238" width="10" height="10" fill="hsl(0 0% 75%)"/><text x="214" y="247" fill="hsl(220 15% 96%)">LEC</text>
+          <circle cx="280" cy="243" r="5" fill="hsl(271 91% 68%)"/><text x="290" y="247" fill="hsl(220 15% 96%)">session best</text>
+        </g>
+      </svg>
+      </div>
+      <div class="instrument-label" style="margin:18px 0 6px;">Table view · same data</div>
+      <table class="laps">
+        <tr><th>Lap</th><th>VER</th><th>NOR</th><th>LEC</th></tr>
+        <tr><td>L8</td><td>1:27.550</td><td>1:27.760</td><td>1:27.758</td></tr>
+        <tr><td>L9</td><td>1:27.442</td><td>1:27.655</td><td>1:27.700</td></tr>
+        <tr><td>L10</td><td>1:27.550</td><td>1:27.548</td><td>1:27.552</td></tr>
+        <tr><td>L11</td><td>1:27.138</td><td>1:27.345</td><td>1:27.350</td></tr>
+        <tr><td>L12</td><td class="best">1:26.910</td><td>1:27.342</td><td>1:27.508</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 06 DECISIONS ============ -->
+  <section class="board" id="decisions">
+    <h2>06 · Decisions that shape the UI</h2>
+    <p class="sec-sub">Hard rules from DESIGN.md + the six terminal motifs from DESIGN_TERMINAL.md. These are law for every screen.</p>
+    <div class="panel">
+      <h3>Hard rules</h3>
+      <ul class="rules">
+        <li><strong>Token-only colour.</strong> Every fill, text and border flows through HSL tokens in <code>web/src/index.css</code>, consumed via semantic classes. No raw palette hex in components; no new hues.</li>
+        <li><strong>One accent.</strong> Primary red <code>0 100% 44%</code> is the only brand accent — active state, emphasis, key datum, live pulse. Categorical data uses only the sanctioned ramps: <code>--fastest-lap</code>, <code>--gain</code>/<code>--loss</code>, <code>--position-*</code>, <code>--status-*</code>, <code>--weather-*</code>.</li>
+        <li><strong>Team colour is identity only</strong> — thin left bar, dot or chart line, inline-style only, sourced from <code>@/constants/f1Colors</code>. Never a surface fill, never a Tailwind utility.</li>
+        <li><strong>Component API is additive-optional.</strong> No renames, removals or new required props (e.g. F1Card <code>scope?: boolean</code>, default <code>false</code>). Pure class-only changes preferred.</li>
+        <li><strong>Page structure is fixed:</strong> pageShell &gt; pageStack + animate-fade-in &gt; PageHeader, then F1Card sections; loading/empty/error route through F1Skeleton / F1EmptyState / F1ErrorState; charts through F1ChartContainer.</li>
+        <li><strong>Logo is locked</strong> (see §01). Tokens are frozen (see §02) — tightening fixes component <em>usage</em> of tokens, never token values.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Terminal motifs — every screen shows at least two</h3>
+      <ul class="rules">
+        <li><strong>1 · Hairline instrument grid</strong> — rows split by <code>border-border</code> hairlines (<code>.hairline-grid</code>), not whitespace gaps. Tables read like a timing screen.</li>
+        <li><strong>2 · Mono numerics everywhere</strong> — every lap, gap, delta, speed, position, points, % and count is <code>font-mono tabular-nums</code> (<code>.timing</code>). Strongest terminal signal.</li>
+        <li><strong>3 · Instrument labels</strong> — micro eyebrows (<code>.instrument-label</code>), value below in mono. Label/value pairs, not sentences.</li>
+        <li><strong>4 · Corner-tick framing</strong> — hero/feature panels carry HUD corner ticks (<code>.scope-frame</code>, enabled via <code>&lt;F1Card scope&gt;</code>). Signature, not wallpaper.</li>
+        <li><strong>5 · Scope charts</strong> — dark plot, hairline grid, mono ticks, area fade + series glow, crosshair tooltip in dark glass (see §05).</li>
+        <li><strong>6 · Machined depth + restrained glow</strong> — <code>shadow-card</code> elevation; <code>shadow-glow</code> reserved for interactive/live emphasis.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Direction for the hero / social preview (Task 3 reuses this)</h3>
+      <ul class="rules">
+        <li><strong>Badge:</strong> flat-square mono badges on dark carbon — red wash for the live/lead badge, hairline-bordered status tokens for the rest (see §04 chips).</li>
+        <li><strong>Tagline:</strong> “Timing, telemetry, charts &amp; standings.” — secondary copy in <code>text-muted-foreground</code>, never over the mark.</li>
+        <li><strong>Red/carbon:</strong> deep-carbon field (<code>240 8% 3.5%</code>) with one red accent (<code>0 100% 44%</code>); big mono numeral + red accent must read at thumbnail size, no hairline-only detail.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>F1 DataStop design board · tokens frozen at web/src/index.css · logo final, do not redesign · standalone file, no build step</footer>
+
+</div>
+</body>
+</html>

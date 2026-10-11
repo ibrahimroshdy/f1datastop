@@ -110,6 +110,11 @@ export interface F1CardProps
   interactive?: boolean;
   /** Glass sub-variant when variant="glass" */
   glassVariant?: F1CardGlassVariant;
+  /**
+   * Telemetry-terminal corner-tick framing (`.scope-frame` in index.css).
+   * Use sparingly for hero/feature panels — signature, not wallpaper.
+   */
+  scope?: boolean;
 }
 
 const F1Card = React.forwardRef<HTMLDivElement, F1CardProps>(
@@ -126,6 +131,7 @@ const F1Card = React.forwardRef<HTMLDivElement, F1CardProps>(
       size = "default",
       hover = false,
       accent = "none",
+      scope = false,
       children,
       style,
       ...props
@@ -173,6 +179,7 @@ const F1Card = React.forwardRef<HTMLDivElement, F1CardProps>(
     const sharedClassName = cn(
       variantClasses,
       sizePadding,
+      scope && "scope-frame",
       loading && "animate-pulse",
       isClickable &&
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
