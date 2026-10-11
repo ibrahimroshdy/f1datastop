@@ -84,6 +84,17 @@ jobs:
       - run: |
           cd analysis
           python ingest.py --season "$(date -u +%Y)" || echo "ingest completed with warnings"
+      - run: |
+          cd analysis
+          python data_export.py --season "$(date -u +%Y)" || echo "data export completed with warnings"
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          BLOB_PUBLIC_BASE: ${{ secrets.BLOB_PUBLIC_BASE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       - name: Refresh CDN indexes
         if: always()
         run: cd analysis && python index_export.py --season "$(date -u +%Y)"
