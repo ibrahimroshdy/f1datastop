@@ -2,7 +2,7 @@
 // Asserts the Task 3 social-preview + README-hero swap:
 // root og-image.png and web/public/og-image.png exist, are 1200x630,
 // and are byte-identical (matching SHA256); logo-readme.svg is gone;
-// README.md no longer references logo-readme.svg and points at the new hero.
+// README.md no longer references logo-readme.svg and shows hero-{dark,light}.webp.
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
@@ -47,7 +47,12 @@ ok(!existsSync(oldHero), "logo-readme.svg still exists");
 if (existsSync(readmePath)) {
   const readme = readFileSync(readmePath, "utf8");
   ok(!readme.includes("logo-readme.svg"), "README.md still references logo-readme.svg");
-  ok(readme.includes("docs/public/assets/f1datastop-hero.svg"), "README.md does not reference docs/public/assets/f1datastop-hero.svg");
+  for (const hero of ["docs/public/assets/hero-dark.webp", "docs/public/assets/hero-light.webp"]) {
+    ok(existsSync(join(root, hero)), `${hero} missing`);
+    ok(readme.includes(hero), `README.md does not reference ${hero}`);
+  }
+  ok(!readme.includes("f1datastop-hero.svg"), "README.md still references the retired f1datastop-hero.svg");
+  ok(!existsSync(join(root, "docs", "public", "assets", "f1datastop-hero.svg")), "docs/public/assets/f1datastop-hero.svg still exists");
 } else {
   ok(false, "README.md missing");
 }

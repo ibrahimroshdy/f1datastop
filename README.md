@@ -1,11 +1,8 @@
 # F1 DataStop
 
 <p align="center">
-  <img src="docs/public/assets/f1datastop-hero.svg" alt="F1 DataStop — Formula 1 Data Analysis Platform" width="480">
-</p>
-
-<p align="center">
-  <strong>A free, open-source Formula 1 site: standings, results, lap analysis, telemetry charts and a race calendar.</strong>
+  <strong>Every Formula 1 race, lap by lap, in clear charts.</strong><br>
+  A free, open-source site for standings, results, lap times, telemetry and the race calendar.
 </p>
 
 <p align="center">
@@ -13,6 +10,13 @@
   <a href="https://docs.f1datastop.com"><img src="https://img.shields.io/badge/docs-docs.f1datastop.com-e10600" alt="Documentation"></a>
   <a href="https://github.com/ibrahimroshdy/f1datastop/releases/latest"><img src="https://img.shields.io/github/v/release/ibrahimroshdy/f1datastop?label=release&logo=github" alt="Latest Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/ibrahimroshdy/f1datastop?color=blue" alt="License"></a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/public/assets/hero-dark.webp">
+    <img src="docs/public/assets/hero-light.webp" alt="F1 DataStop's Pit Wall on a desktop, with the 2026 Singapore Grand Prix track map, the driver list and speed and throttle traces for Antonelli and Russell, and the home page on a phone in front showing the drivers' championship standings">
+  </picture>
 </p>
 
 **Live site:** https://www.f1datastop.com · **Documentation:** https://docs.f1datastop.com

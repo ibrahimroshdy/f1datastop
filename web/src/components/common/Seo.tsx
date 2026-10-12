@@ -14,7 +14,7 @@ import { Helmet } from "react-helmet-async";
 
 export const SITE_URL = "https://www.f1datastop.com";
 export const SITE_NAME = "F1 DataStop";
-const DEFAULT_IMAGE = `${SITE_URL}/f1-cover.png`;
+const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 const DEFAULT_DESCRIPTION =
   "F1 DataStop turns raw Formula 1 telemetry and race stats into clear insights — lap time deltas, stint strategy breakdowns, and driver vs. teammate comparisons.";
 

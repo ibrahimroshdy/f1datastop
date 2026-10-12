@@ -11,7 +11,7 @@ const required = [
   'index.html', 'getting-started.html', 'architecture.html', 'backend.html', 'data.html',
   'pipeline.html', 'api-embeds.html', 'releases.html', 'runbooks.html', 'developers.html',
   '404.html', 'CNAME', '.nojekyll',
-  'assets/favicon.svg', 'assets/favicon.ico', 'assets/apple-touch-icon.png', 'assets/f1datastop-hero.svg',
+  'assets/favicon.svg', 'assets/favicon.ico', 'assets/apple-touch-icon.png', 'assets/hero-dark.webp', 'assets/hero-light.webp',
 ];
 for (const f of required) if (!existsSync(join(dist, f))) fail(`missing file: ${f}`);
 if (!existsSync(join(dist, 'pagefind')) || !statSync(join(dist, 'pagefind')).isDirectory()) {

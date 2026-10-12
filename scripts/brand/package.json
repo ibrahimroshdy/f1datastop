@@ -1,0 +1,10 @@
+{
+  "name": "f1datastop-brand",
+  "private": true,
+  "description": "Dev-only tooling for the README hero and the share cards (scripts/capture-screens.mjs, scripts/render-social-preview.mjs). Kept out of web/ so Vercel never installs it.",
+  "type": "module",
+  "devDependencies": {
+    "playwright": "1.63.0",
+    "sharp": "0.35.5"
+  }
+}
