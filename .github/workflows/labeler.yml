@@ -1,7 +1,10 @@
 name: Label PR
 
+# pull_request_target so labels can be applied to pull requests from forks (their
+# pull_request token is read-only). Safe because nothing from the pull request is
+# checked out or run: the labeler only reads the list of changed files.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
 
 jobs:
@@ -12,7 +15,6 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v5
       - uses: actions/labeler@v5
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
