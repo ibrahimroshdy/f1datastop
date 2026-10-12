@@ -53,9 +53,15 @@ Everything else is on the docs site:
 - [Releases](https://docs.f1datastop.com/releases.html): how version numbers are made
 - [Runbooks](https://docs.f1datastop.com/runbooks.html): operations and troubleshooting
 
+## Roadmap and community
+
+- **Roadmap:** [F1 DataStop Roadmap](https://github.com/users/ibrahimroshdy/projects/10), what is being built now, next and later.
+- **Ideas and questions:** [Discussions](https://github.com/ibrahimroshdy/f1datastop/discussions). Popular ideas become roadmap issues.
+- **Want to help?** Start with a [good first issue](https://github.com/ibrahimroshdy/f1datastop/contribute).
+
 ## Contributing
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md). Pull requests must pass CI (type check, lint, tests, build) and use a conventional title such as `feat(web): add a tyre chart`. Report security problems as described in [SECURITY.md](SECURITY.md).
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md). Pull requests must pass CI (type check, lint, tests, build) and use a conventional title such as `feat(web): add a tyre chart`. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
