@@ -15,7 +15,7 @@ import sys
 import urllib.request
 from datetime import datetime, timezone
 
-PROXY_BASE = os.environ.get("F1_PROXY_URL", "https://f1datastop.vercel.app").rstrip("/")
+PROXY_BASE = os.environ.get("F1_PROXY_URL", "https://www.f1datastop.com").rstrip("/")
 DEFAULT_HOST = "https://cdn.f1datastop.com"
 _KEYS = (("FirstPractice", "FP1"), ("SecondPractice", "FP2"), ("ThirdPractice", "FP3"),
          ("Qualifying", "Q"), ("SprintQualifying", "SQ"), ("SprintShootout", "SS"), ("Sprint", "S"))
