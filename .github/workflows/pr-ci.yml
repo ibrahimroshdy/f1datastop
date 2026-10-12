@@ -78,5 +78,4 @@ jobs:
         run: python -m unittest discover -s tests
       - name: Workflow schedule check
         run: |
-          pip install -q "pyyaml>=6,<7"
           python .github/scripts/check_schedules.py
