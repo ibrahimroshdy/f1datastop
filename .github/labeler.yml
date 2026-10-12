@@ -1,41 +1,52 @@
-# Automatic labeler based on file paths
-# Labels will be created automatically (sync-labels: true)
+# Labels pull requests by the files they change (actions/labeler v5 format).
+# With sync-labels: true, a label is removed again when its files are no longer changed.
 
 # Frontend
 "area: frontend":
-  - "web/src/**"
-  - "web/public/**"
-  - "web/package.json"
-  - "web/tsconfig*.json"
-  - "web/vite.config.ts"
-  - "web/tailwind.config.*"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "web/src/**"
+          - "web/public/**"
+          - "web/package.json"
+          - "web/tsconfig*.json"
+          - "web/vite.config.ts"
+          - "web/tailwind.config.*"
 
 # API / Edge Functions / Supabase
 "area: api":
-  - "supabase/**"
+  - changed-files:
+      - any-glob-to-any-file: "supabase/**"
 
 # Data Ingestion / Analysis
 "area: ingestion":
-  - "analysis/**"
+  - changed-files:
+      - any-glob-to-any-file: "analysis/**"
 
 # Infrastructure / CI / Deploy
 "area: infra":
-  - ".github/workflows/**"
-  - "vercel.json"
-  - "Dockerfile*"
-  - "docker-compose*"
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - "vercel.json"
+          - "Dockerfile*"
+          - "docker-compose*"
 
 # Documentation
 "area: docs":
-  - "README.md"
-  - "CONTRIBUTING.md"
-  - "CHANGELOG.md"
-  - "docs/**"
-  - ".github/ISSUE_TEMPLATE/**"
-  - ".github/pull_request_template.md"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "README.md"
+          - "CONTRIBUTING.md"
+          - "CHANGELOG.md"
+          - "CODE_OF_CONDUCT.md"
+          - "docs/**"
+          - ".github/ISSUE_TEMPLATE/**"
+          - ".github/pull_request_template.md"
 
 # Dependencies
 dependencies:
-  - "web/package.json"
-  - "web/package-lock.json"
-  - "analysis/requirements.txt"
+  - changed-files:
+      - any-glob-to-any-file:
+          - "web/package.json"
+          - "web/package-lock.json"
+          - "analysis/requirements.txt"
