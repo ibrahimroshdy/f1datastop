@@ -6,7 +6,9 @@ Source of truth: `AGENTS.md` (read it before writing code).
 
 - App lives in `web/` (React 18 + TS + Vite). Commands from repo root:
   `npm run dev` (port 8080), `npm run build`, `npm run typecheck`, `npm run lint`, `npm run test`.
-- CI (`.github/workflows/pr-ci.yml`) must stay green: typecheck, lint, test, build.
+- CI (`.github/workflows/pr-ci.yml`) must stay green: typecheck, lint, test, build, docs.
+- Docs site: Astro + Starlight in `docs/` (pages in `docs/src/content/docs/`, brand in `docs/src/styles/brand.css`).
+  `npm --prefix docs ci && npm --prefix docs run check` builds it and checks the output. Schedules page: `docs/src/content/docs/pipeline.md`.
 - UI: `F1Card` for content cards; `F1EmptyState` / `F1ErrorState` / `F1Skeleton` for states;
   shadcn primitives from `web/src/components/ui/`. Glass only in `dark-glass` theme.
 - Charts: Recharts / D3 inside `F1ChartContainer`, styled via `@/lib/chartTheme`.

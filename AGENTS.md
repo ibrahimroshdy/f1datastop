@@ -3,7 +3,7 @@
 React 18 + TypeScript + Vite app in `web/` (React Query, Tailwind, shadcn/ui).
 Data: Jolpica/Ergast (historical, proxy-only) + OpenF1 (session data) + FastF1 (telemetry). No live timing.
 Backend: Supabase (Postgres warehouse, `f1-proxy` edge function). CDN: Cloudflare R2.
-Documentation: the docs site in `docs/` (https://docs.f1datastop.com, plain HTML/CSS) is the one place for detailed docs. Keep it in sync with code changes and keep README/markdown files short. Write plain language, no jargon.
+Documentation: the docs site in `docs/` (https://docs.f1datastop.com, Astro + Starlight) is the one place for detailed docs. Keep it in sync with code changes and keep README/markdown files short. Write plain language, no jargon.
 CI: GitHub Actions (`pr-ci.yml`, `pipeline.yml`, `queue.yml` in `.github/workflows/`). No login — every page renders anonymously.
 
 ## Commands (run from repo root)
@@ -94,11 +94,11 @@ Cards, empty/error/loading, `Dialog` (focus trap, Esc, labelled), `Tabs`, tables
   (user chart/telemetry requests in `queue.yml`) and publish to R2; `charts_todo.py` decides what
   needs rendering. The clock is `pg_cron` in Supabase (`f1ds-*` jobs start the workflows via
   `workflow_dispatch`; migrations `20261012130000` + `20261012140000`). The one place that lists
-  every schedule in plain words is `docs/pipeline.html`. `check_schedules.py` (PR CI) enforces that
+  every schedule in plain words is `docs/src/content/docs/pipeline.md`. `check_schedules.py` (PR CI) enforces that
   the migration's cron entries equal the schedule table inside the script, that no workflow has a
   `schedule:` trigger except the single once-a-day digest backup in `pipeline.yml` (`41 7 * * *`),
   and that every started workflow/input exists. It does not read the docs, so change a schedule in
-  the migration, the checker's table and `docs/pipeline.html` together. The `f1ds-queue` tick calls
+  the migration, the checker's table and `docs/src/content/docs/pipeline.md` together. The `f1ds-queue` tick calls
   `f1_dispatch_queue_if_needed()` (starts the queue only when a request is pending/stuck); the daily
   digest reports `f1_dispatch_health()` and reconcile freshness. `generate.py` exits 0 on
   success/nothing due, 2 when session data is not yet available upstream, 1 on failure. Never

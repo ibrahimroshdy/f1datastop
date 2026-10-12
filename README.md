@@ -1,7 +1,7 @@
 # F1 DataStop
 
 <p align="center">
-  <img src="docs/assets/f1datastop-hero.svg" alt="F1 DataStop — Formula 1 Data Analysis Platform" width="480">
+  <img src="docs/public/assets/f1datastop-hero.svg" alt="F1 DataStop — Formula 1 Data Analysis Platform" width="480">
 </p>
 
 <p align="center">

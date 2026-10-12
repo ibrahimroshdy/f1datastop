@@ -22,7 +22,7 @@
 
 - [ ] `npm run typecheck && npm run lint && npm run test && npm run build` pass
 - [ ] If I changed Python: `python -m compileall -q analysis` and `cd analysis && python -m unittest discover -s tests` pass
-- [ ] If I changed a schedule or workflow: `python .github/scripts/check_schedules.py` passes and `docs/pipeline.html` is updated
+- [ ] If I changed a schedule or workflow: `python .github/scripts/check_schedules.py` passes and `docs/src/content/docs/pipeline.md` is updated
 - [ ] The docs site (`docs/`) is updated if behaviour changed
 
 ## Breaking changes

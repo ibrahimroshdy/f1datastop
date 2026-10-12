@@ -24,7 +24,7 @@ WORKFLOWS = REPO / ".github" / "workflows"
 MIGRATION = REPO / "supabase" / "migrations" / "20261012140000_clock_robustness.sql"
 
 # The documented schedule (UTC): jobname -> (cron, workflow file, dispatch inputs).
-# Keep in sync with docs/pipeline.html, the one place that lists the schedules in plain words
+# Keep in sync with docs/src/content/docs/pipeline.md, the one place that lists the schedules in plain words
 # (this script does not read it, so update both together).
 EXPECTED = {
     "f1ds-queue": ("*/5 * * * *", "queue.yml", {}),

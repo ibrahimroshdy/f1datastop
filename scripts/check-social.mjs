@@ -47,7 +47,7 @@ ok(!existsSync(oldHero), "logo-readme.svg still exists");
 if (existsSync(readmePath)) {
   const readme = readFileSync(readmePath, "utf8");
   ok(!readme.includes("logo-readme.svg"), "README.md still references logo-readme.svg");
-  ok(readme.includes("docs/assets/f1datastop-hero.svg"), "README.md does not reference docs/assets/f1datastop-hero.svg");
+  ok(readme.includes("docs/public/assets/f1datastop-hero.svg"), "README.md does not reference docs/public/assets/f1datastop-hero.svg");
 } else {
   ok(false, "README.md missing");
 }

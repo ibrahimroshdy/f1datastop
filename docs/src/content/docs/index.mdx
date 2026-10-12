@@ -1,0 +1,44 @@
+---
+title: Overview
+description: "Documentation for F1 DataStop: a free, open-source Formula 1 site with standings, results, lap analysis and telemetry charts."
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+F1 DataStop is a free, open-source Formula 1 site: standings, race results, lap and position analysis, a race calendar, telemetry charts and embeddable widgets. Every page works without an account.
+
+These pages are the full documentation. The [README](https://github.com/ibrahimroshdy/f1datastop#readme) on GitHub is only a short introduction.
+
+<CardGrid>
+  <LinkCard title="Getting started" href="/getting-started.html" description="Run the site on your own computer, and the checks to run before a pull request." />
+  <LinkCard title="How it works" href="/architecture.html" description="Where the data comes from and the order the site looks for it." />
+  <LinkCard title="Backend" href="/backend.html" description="The database, migrations and server functions." />
+  <LinkCard title="Data and CDN" href="/data.html" description="Data sources, who is trusted for what, and where files are stored." />
+  <LinkCard title="Scheduled jobs" href="/pipeline.html" description="Every automatic job, when it runs and what it does." />
+  <LinkCard title="API and embeds" href="/api-embeds.html" description="Put standings tables on your own site." />
+  <LinkCard title="Developers" href="/developers.html" description="Public data, the request queues and the database tables you can read." />
+  <LinkCard title="Releases" href="/releases.html" description="How version numbers and release notes are made." />
+  <LinkCard title="Runbooks" href="/runbooks.html" description="Day-to-day operations and what to do when something breaks." />
+</CardGrid>
+
+## What is in the project
+
+- `web/`: the website (React, TypeScript, Vite).
+- `supabase/`: database migrations and the server functions.
+- `analysis/`: Python scripts that collect data and draw charts.
+- `api/`: a small Vercel function that builds social preview images.
+- `docs/`: this site (Astro and Starlight).
+- `.github/workflows/`: the automatic checks, jobs and releases.
+
+## Where to start
+
+- Want to run it or change it: [Getting started](/getting-started.html), then the [contributing guide](https://github.com/ibrahimroshdy/f1datastop/blob/main/CONTRIBUTING.md).
+- What is coming next: the [roadmap](https://github.com/users/ibrahimroshdy/projects/10). Ideas and questions go in [Discussions](https://github.com/ibrahimroshdy/f1datastop/discussions).
+- Want to know why a number or chart looks the way it does: [Data and CDN](/data.html).
+- Something stopped updating: [Runbooks](/runbooks.html).
+- Want standings on your own site: [API and embeds](/api-embeds.html).
+- Want to read the public data or the tables directly: [Developers](/developers.html).
+
+---
+
+F1 DataStop is an independent, community-run project. It is not affiliated with, endorsed by or sponsored by Formula 1, the FIA, or any team or organiser. Formula 1, FIA and related marks belong to their owners. MIT licence.
