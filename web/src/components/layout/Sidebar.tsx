@@ -6,7 +6,6 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
-  Settings,
   X,
 } from "lucide-react";
 import { navGroups, type NavIcon } from "@/config/navigation";
@@ -47,7 +46,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
     onCollapseChange?.(isCollapsed);
   }, [isCollapsed, onCollapseChange]);
 
-  type SidebarNavItem = { name: string; href: string; icon: NavIcon };
+  type SidebarNavItem = { name: string; href: string; icon: NavIcon; external?: boolean };
 
   const sidebarGroups = navGroups.map((group) => ({
     label: group.label,
@@ -56,23 +55,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
         name: item.label,
         href: item.href,
         icon: item.icon,
+        external: item.external,
       }),
     ),
   }));
 
-  const accountGroup = sidebarGroups.find((g) => g.label === "RESOURCES");
-  if (accountGroup && !accountGroup.items.some((i) => i.href === "/developers")) {
-    accountGroup.items.push({
-      name: "Developers",
-      href: "/developers",
-      icon: Settings,
-    });
-  }
-
-  const isNavActive = (href: string) =>
-    pathname === href ||
-    (href !== "/" && pathname.startsWith(`${href}/`)) ||
-    (href === "/constructors" && pathname.startsWith("/teams/"));
+  const isNavActive = (item: SidebarNavItem) =>
+    !item.external &&
+    (pathname === item.href ||
+      (item.href !== "/" && pathname.startsWith(`${item.href}/`)) ||
+      (item.href === "/constructors" && pathname.startsWith("/teams/")));
 
   // Close sidebar when clicking outside on mobile/medium
   useEffect(() => {
@@ -105,46 +97,36 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
   const NavItem = ({ 
     item, 
     isActive,
-    isDeveloper = false 
   }: { 
     item: SidebarNavItem; 
     isActive: boolean;
-    isDeveloper?: boolean;
   }) => {
-    const linkContent = (
-      <Link
-        to={item.href}
-        onClick={handleNavClick}
-        aria-current={isActive ? "page" : undefined}
-        className={cn(
-          "group relative flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
-          isCollapsed && !isMediumOrSmaller ? "justify-center px-2 py-2" : "px-3 py-2",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          isActive
-            ? cn(
-                "text-foreground",
-                isGlass 
-                  ? "bg-primary/10" 
-                  : "bg-accent"
-              )
-            : cn(
-                isDeveloper 
-                  ? "text-position-gold" 
-                  : "text-muted-foreground",
-                isGlass
-                  ? "hover:bg-white/5 hover:text-foreground"
-                  : "hover:bg-accent/50 hover:text-foreground"
-              )
-        )}
-      >
+    const linkClassName = cn(
+      "group relative flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
+      isCollapsed && !isMediumOrSmaller ? "justify-center px-2 py-2" : "px-3 py-2",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      isActive
+        ? cn(
+            "text-foreground",
+            isGlass 
+              ? "bg-primary/10" 
+              : "bg-accent"
+          )
+        : cn(
+            "text-muted-foreground",
+            isGlass
+              ? "hover:bg-white/5 hover:text-foreground"
+              : "hover:bg-accent/50 hover:text-foreground"
+          )
+    );
+    const linkInner = (
+      <>
         <item.icon
           className={cn(
             "h-4 w-4 shrink-0 transition-colors duration-200",
             isActive 
               ? "text-primary" 
-              : isDeveloper
-                ? "text-position-gold"
-                : "text-muted-foreground group-hover:text-foreground"
+              : "text-muted-foreground group-hover:text-foreground"
           )} 
         />
         
@@ -163,6 +145,26 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
             />
           </>
         )}
+      </>
+    );
+    const linkContent = item.external ? (
+      <a
+        href={item.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={handleNavClick}
+        className={linkClassName}
+      >
+        {linkInner}
+      </a>
+    ) : (
+      <Link
+        to={item.href}
+        onClick={handleNavClick}
+        aria-current={isActive ? "page" : undefined}
+        className={linkClassName}
+      >
+        {linkInner}
       </Link>
     );
 
@@ -301,8 +303,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen, onCollapseChange }: SidebarProps
                     <NavItem
                       key={item.href}
                       item={item}
-                      isActive={isNavActive(item.href)}
-                      isDeveloper={item.href === "/developers"}
+                      isActive={isNavActive(item)}
                     />
                   ))}
                 </div>
