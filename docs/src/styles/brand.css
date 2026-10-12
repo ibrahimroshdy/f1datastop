@@ -1,0 +1,136 @@
+/*
+ * F1 DataStop brand for Starlight.
+ * Values come from the app's tokens in web/src/index.css (":root" = dark "Deep Carbon",
+ * ".light" = light) and from f1datastop-design-board.html. The accent is the F1 red, hsl(0 100% 44%).
+ * Starlight's own variables are in docs/node_modules/@astrojs/starlight/dist/style/props.css.
+ */
+:root {
+  /* Type: Geist body, Geist Mono code, Clash Display headings (fonts load from <head>, see astro.config.mjs). */
+  --sl-font: 'Geist', 'SF Pro Display', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --sl-font-mono: 'Geist Mono', 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+  --f1-font-display: 'Clash Display', 'Geist', 'SF Pro Display', system-ui, sans-serif;
+
+  /* Dark: --background 240 8% 3.5%, --card 240 7% 6%, --border 240 6% 15%,
+     --muted-foreground 240 6% 64%, --foreground 220 15% 96%. */
+  --sl-color-black: hsl(240 8% 3.5%);
+  --sl-color-gray-6: hsl(240 7% 6%);
+  --sl-color-gray-5: hsl(240 6% 15%);
+  --sl-color-gray-4: hsl(240 5% 34%);
+  --sl-color-gray-3: hsl(240 6% 64%);
+  --sl-color-gray-2: hsl(220 14% 82%);
+  --sl-color-gray-1: hsl(220 15% 92%);
+  --sl-color-white: hsl(220 15% 96%);
+
+  /* Accent = --primary 0 100% 44% (#e10600 family). Text links use a lighter red to keep AA contrast on dark. */
+  --sl-color-accent-low: hsl(0 70% 15%);
+  --sl-color-accent: hsl(0 100% 44%);
+  --sl-color-accent-high: hsl(0 100% 74%);
+  --sl-color-text-accent: var(--sl-color-accent-high);
+  --sl-color-bg-accent: var(--sl-color-accent);
+  --sl-color-text-invert: #fff;
+
+  --sl-color-bg-nav: hsl(240 8% 3.5%);
+  --sl-color-bg-sidebar: hsl(240 7% 6%);
+  --sl-color-bg-inline-code: hsl(240 6% 14%);
+  --sl-color-hairline: hsl(240 6% 15%);
+  --sl-color-hairline-light: hsl(240 6% 15%);
+
+  /* Status ramp from the app (--status-completed / --status-upcoming), used by asides. */
+  --sl-color-green: hsl(142 71% 45%);
+  --sl-color-blue: hsl(217 91% 60%);
+  --sl-color-orange: hsl(30 95% 55%);
+  --sl-color-red: hsl(0 84% 62%);
+  --sl-color-purple: hsl(271 91% 68%);
+
+  /* --radius 0.5rem */
+  --f1-radius: 0.5rem;
+  --sl-content-width: 50rem;
+}
+
+:root[data-theme='light'] {
+  /* Light: --background 0 0% 98%, --card 0 0% 100%, --muted 240 5% 94%, --border 240 5% 87%,
+     --muted-foreground 240 4% 46.1%, --foreground 240 10% 3.9%. */
+  --sl-color-black: hsl(0 0% 98%);
+  --sl-color-gray-7: hsl(0 0% 100%);
+  --sl-color-gray-6: hsl(240 5% 94%);
+  --sl-color-gray-5: hsl(240 5% 87%);
+  --sl-color-gray-4: hsl(240 4% 55%);
+  --sl-color-gray-3: hsl(240 4% 40%);
+  --sl-color-gray-2: hsl(240 6% 25%);
+  --sl-color-gray-1: hsl(240 8% 12%);
+  --sl-color-white: hsl(240 10% 3.9%);
+
+  --sl-color-accent-low: hsl(0 100% 94%);
+  --sl-color-accent: hsl(0 100% 44%);
+  --sl-color-accent-high: hsl(0 100% 35%);
+
+  --sl-color-bg-nav: hsl(0 0% 100%);
+  --sl-color-bg-sidebar: hsl(0 0% 97%);
+  --sl-color-bg-inline-code: hsl(240 5% 92%);
+  --sl-color-hairline: hsl(240 5% 87%);
+  --sl-color-hairline-light: hsl(240 5% 87%);
+
+  --sl-color-green: hsl(142 71% 32%);
+  --sl-color-blue: hsl(217 91% 45%);
+  --sl-color-orange: hsl(30 95% 40%);
+  --sl-color-red: hsl(0 84% 45%);
+  --sl-color-purple: hsl(271 81% 50%);
+}
+
+/* Headings and the site title in Clash Display. */
+:root :is(h1, h2, h3, h4, h5, h6),
+:root .site-title,
+:root .sl-markdown-content :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--f1-font-display);
+  /* Clash Display drops its word spaces when tracked tight; keep them (same fix as the old docs). */
+  letter-spacing: 0;
+  word-spacing: 0.12em;
+}
+/* Wordmark uses the normal text colour, as in the app's TopBar; red stays for accents and links. */
+:root .site-title {
+  color: var(--sl-color-white);
+  font-weight: 700;
+  font-size: var(--sl-text-lg);
+}
+:root .site-title img {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+/* Eyebrow-style sidebar group labels and page-title accent, as on the design board. */
+.sidebar-content a[aria-current='page'] {
+  background-color: color-mix(in srgb, var(--sl-color-accent) 14%, transparent);
+  color: var(--sl-color-white);
+  box-shadow: inset 2px 0 0 var(--sl-color-accent);
+}
+.sidebar-content a[aria-current='page']:hover { color: var(--sl-color-white); }
+
+/* Content surfaces use the app's radius and card/border steps. */
+.sl-markdown-content :not(pre) > code {
+  border-radius: calc(var(--f1-radius) - 4px);
+  padding: 0.1em 0.35em;
+  overflow-wrap: anywhere;
+}
+.sl-markdown-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.sl-markdown-content :is(th, td) code { overflow-wrap: anywhere; }
+.sl-markdown-content th {
+  font-family: 'Geist Mono', var(--sl-font-mono);
+  font-size: var(--sl-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.sl-markdown-content .starlight-aside,
+.sl-markdown-content .expressive-code .frame { border-radius: var(--f1-radius); }
+
+/* Keep long words, addresses and code from pushing the page sideways on a phone. */
+.sl-markdown-content { overflow-wrap: break-word; }
+.sl-markdown-content :is(pre, .expressive-code) { max-width: 100%; }
+
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--sl-color-accent-high);
+  outline-offset: 2px;
+}

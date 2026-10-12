@@ -1,6 +1,6 @@
 # Contributing to F1 DataStop
 
-Thanks for your interest. The website lives in `web/`, database migrations and server functions in `supabase/`, and the Python scripts in `analysis/`. The full documentation is at https://docs.f1datastop.com. Start with [Getting started](https://docs.f1datastop.com/getting-started.html) to run the site on your computer.
+Thanks for your interest. The website lives in `web/`, database migrations and server functions in `supabase/`, and the Python scripts in `analysis/`. The full documentation is at https://docs.f1datastop.com. Start with [Getting started](https://docs.f1datastop.com/getting-started.html) to run the site on your computer. The docs are Markdown files in `docs/src/content/docs/`; after editing them run `npm --prefix docs ci && npm --prefix docs run check`.
 
 Not sure what to work on? Pick a [good first issue](https://github.com/ibrahimroshdy/f1datastop/contribute), see what is planned on the [roadmap](https://github.com/users/ibrahimroshdy/projects/10), or ask in [Discussions](https://github.com/ibrahimroshdy/f1datastop/discussions). Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 

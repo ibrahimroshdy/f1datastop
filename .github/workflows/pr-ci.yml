@@ -1,6 +1,6 @@
 name: PR CI
 
-# Fork-safe: web + python-smoke run with zero credentials on PRs and pushes.
+# Fork-safe: web + docs + python-smoke run with zero credentials on PRs and pushes.
 # Scheduled data jobs live in pipeline.yml (Pipeline) and queue.yml (Queue).
 on:
   pull_request:
@@ -57,6 +57,23 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+
+  docs:
+    # Fails the pull request if the docs site no longer builds or the built files are wrong.
+    if: github.event_name != 'pull_request' || github.event.action != 'edited'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - run: npm --prefix docs ci
+      - run: npm --prefix docs run check
 
   python-smoke:
     if: github.event_name != 'pull_request' || github.event.action != 'edited'

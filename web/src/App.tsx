@@ -28,7 +28,6 @@ const TeamProfile = lazy(() => import("./pages/TeamProfile"));
 const Standings = lazy(() => import("./pages/Standings"));
 const CircuitDetail = lazy(() => import("./pages/CircuitDetail"));
 const PitWall = lazy(() => import("./features/pitwall/routes/PitWall"));
-const Developers = lazy(() => import("./pages/Developers"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 
@@ -175,14 +174,6 @@ const App = () => (
                           element={
                             <Suspense fallback={<F1Loader label="Loading…" />}>
                               <Privacy />
-                            </Suspense>
-                          }
-                        />
-                        <Route
-                          path="/developers"
-                          element={
-                            <Suspense fallback={<F1Loader label="Loading…" />}>
-                              <Developers />
                             </Suspense>
                           }
                         />

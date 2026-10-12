@@ -7,7 +7,7 @@ import {
   GitCompare,
   Home,
   ListOrdered,
-  Settings,
+  BookOpen,
   Shield,
 } from "lucide-react";
 import { HelmetIcon } from "@/components/common/HelmetIcon";
@@ -19,6 +19,8 @@ export type NavItem = {
   label: string;
   href: string;
   icon: NavIcon;
+  /** Leaves the app (opens in a new tab); never highlighted as the active route. */
+  external?: boolean;
 };
 
 export type NavGroup = {
@@ -52,7 +54,7 @@ export const navGroups: NavGroup[] = [
     id: "resources",
     label: "RESOURCES",
     items: [
-      { label: "Developers", href: "/developers", icon: Settings },
+      { label: "Docs", href: "https://docs.f1datastop.com", icon: BookOpen, external: true },
       { label: "Privacy", href: "/privacy", icon: Shield },
     ],
   },

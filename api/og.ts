@@ -16,7 +16,7 @@
  */
 
 const SITE = "https://www.f1datastop.com";
-const DEFAULT_IMAGE = `${SITE}/f1-cover.png`;
+const DEFAULT_IMAGE = `${SITE}/og-image.png`;
 const SITE_NAME = "F1 DataStop";
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL ?? "";

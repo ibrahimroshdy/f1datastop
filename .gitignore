@@ -185,3 +185,6 @@ analysis/.env.r2
 *.key
 secrets/
 _site/
+
+# Astro (docs site)
+.astro/

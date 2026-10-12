@@ -4,6 +4,13 @@
   "installCommand": "npm install --prefix web",
   "buildCommand": "npm --prefix web run build",
   "outputDirectory": "web/dist",
+  "redirects": [
+    {
+      "source": "/developers",
+      "destination": "https://docs.f1datastop.com/developers.html",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/ergast/:path*",

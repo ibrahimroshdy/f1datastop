@@ -32,7 +32,6 @@ const STATIC = [
   { path: "/pit-wall", changefreq: "weekly", priority: "0.8" },
   { path: "/drivers", changefreq: "weekly", priority: "0.8" },
   { path: "/constructors", changefreq: "weekly", priority: "0.8" },
-  { path: "/developers", changefreq: "monthly", priority: "0.4" },
   { path: "/privacy", changefreq: "yearly", priority: "0.2" },
 ];
 

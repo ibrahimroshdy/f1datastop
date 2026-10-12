@@ -8,6 +8,7 @@ interface NavigationItem {
   name: string;
   href: string;
   icon: NavIcon;
+  external?: boolean;
 }
 
 interface MobileNavigationProps {
@@ -22,34 +23,28 @@ const MobileNavigation = ({ items, onNavClick }: MobileNavigationProps) => {
   return (
     <div className="space-y-1 px-3">
       {items.map((item) => {
-        const isActive = pathname === item.href || 
-          (item.href !== "/" && pathname.startsWith(item.href + "/"));
-        
-        return (
-          <Link
-            key={item.name}
-            to={item.href}
-            onClick={onNavClick}
-            aria-current={isActive ? "page" : undefined}
-            className={cn(
-              "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
-              "transition-all duration-200 active:scale-[0.98]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              isActive
-                ? cn(
-                    "text-foreground",
-                    isGlass 
-                      ? "glass-glow bg-primary/10" 
-                      : "bg-accent"
-                  )
-                : cn(
-                    "text-muted-foreground",
-                    isGlass
-                      ? "hover:bg-white/5 hover:text-foreground active:bg-white/10"
-                      : "hover:bg-accent/50 hover:text-foreground active:bg-accent"
-                  )
-            )}
-          >
+        const isActive = !item.external && (pathname === item.href || 
+          (item.href !== "/" && pathname.startsWith(item.href + "/")));
+        const linkClassName = cn(
+          "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
+          "transition-all duration-200 active:scale-[0.98]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          isActive
+            ? cn(
+                "text-foreground",
+                isGlass 
+                  ? "glass-glow bg-primary/10" 
+                  : "bg-accent"
+              )
+            : cn(
+                "text-muted-foreground",
+                isGlass
+                  ? "hover:bg-white/5 hover:text-foreground active:bg-white/10"
+                  : "hover:bg-accent/50 hover:text-foreground active:bg-accent"
+              )
+        );
+        const linkInner = (
+          <>
             {/* Icon */}
             <div className={cn(
               "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200",
@@ -81,6 +76,29 @@ const MobileNavigation = ({ items, onNavClick }: MobileNavigationProps) => {
                   : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 text-muted-foreground"
               )} 
             />
+          </>
+        );
+
+        return item.external ? (
+          <a
+            key={item.name}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onNavClick}
+            className={linkClassName}
+          >
+            {linkInner}
+          </a>
+        ) : (
+          <Link
+            key={item.name}
+            to={item.href}
+            onClick={onNavClick}
+            aria-current={isActive ? "page" : undefined}
+            className={linkClassName}
+          >
+            {linkInner}
           </Link>
         );
       })}

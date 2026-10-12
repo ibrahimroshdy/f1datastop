@@ -1,12 +1,12 @@
 name: Docs site
 
-# Static docs site → GitHub Pages. Path-filtered to docs/** so it never
+# Static docs site (Astro + Starlight) → GitHub Pages. Path-filtered to docs/** so it never
 # fights pr-ci.yml (which owns CI only; data jobs live in pipeline.yml/queue.yml).
-# No build step: plain HTML. Only html, css, CNAME and assets/ are staged and published.
+# Build and check: `npm --prefix docs run check`. The published folder is docs/dist.
 on:
   push:
     branches: [main]
-    paths: ["docs/**"]
+    paths: ["docs/**", ".github/workflows/docs.yml"]
   workflow_dispatch:
 
 permissions:
@@ -29,18 +29,16 @@ jobs:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - name: Stage the site
-        run: |
-          test -f docs/CNAME || { echo "CNAME missing"; exit 1; }
-          test -f docs/index.html || { echo "index.html missing"; exit 1; }
-          # Publish only the site files, never the rest of docs/.
-          mkdir -p _site
-          cp docs/*.html docs/styles.css docs/CNAME _site/
-          cp -R docs/assets _site/assets
-          touch _site/.nojekyll
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - run: npm --prefix docs ci
+      - run: npm --prefix docs run check
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: docs/dist
       - id: deployment
         uses: actions/deploy-pages@v4
