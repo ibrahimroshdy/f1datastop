@@ -1,0 +1,90 @@
+name: Queue
+
+# User-triggered chart and telemetry requests. Started only through workflow_dispatch by the
+# database: a trigger (public.f1_dispatch_queue, via pg_net) fires whenever a request becomes
+# pending, and a pg_cron job (f1ds-queue, every 5 minutes) is the backstop. There is no
+# `schedule:` trigger (GitHub's cron is best-effort); see
+# supabase/migrations/20261012130000_pg_cron_clock.sql.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: queue
+  cancel-in-progress: false
+
+jobs:
+  queue:
+    if: github.repository == 'ibrahimroshdy/f1datastop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      BLOB_PUBLIC_BASE: ${{ secrets.BLOB_PUBLIC_BASE }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      F1_LIVETIMING_PROXY: ${{ secrets.F1_LIVETIMING_PROXY }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: analysis/requirements.txt
+      - run: pip install -q -r analysis/requirements.txt
+      # Time budget. Each script runs one row at a time under a hard per-row subprocess timeout
+      # (CHART_ROW_TIMEOUT_S / TELEMETRY_ROW_TIMEOUT_S; a timed-out row is marked `error`), and
+      # before claiming a row it checks elapsed + row timeout <= QUEUE_TIME_BUDGET_S. The
+      # subprocess is therefore bounded by the budget, but the Supabase calls around a row (claim,
+      # result lookup, status write: 30 s HTTP timeout each) can add up to ~1.5 min after the
+      # last row starts, and the start/leftover checks ~1 min more. Worst case:
+      #   charts 540 + ~120, telemetry 300 + ~120, setup ~60  =  ~1140 s  (~19 min)
+      # against the 30-min job timeout, so ~11 min of margin.
+      # Measured: a chart row took 25-31 s on a cold FastF1 cache (run 38237999414), so 240 s
+      # is ~8x headroom. If rows remain when a script stops for budget (and it made progress with
+      # no failed status write) it sets `leftover=true` and the last step starts the next Queue
+      # run; the `queue` concurrency group makes that run wait for this one. Rows a killed job
+      # leaves in `processing` are reset to `pending` by the next run (QUEUE_STALE_PROCESSING_S,
+      # default 1800 s).
+      - id: charts
+        run: python process_chart_requests.py
+        working-directory: analysis
+        env:
+          QUEUE_TIME_BUDGET_S: "540"
+          CHART_ROW_TIMEOUT_S: "240"
+      - id: telemetry
+        run: python process_telemetry_requests.py
+        working-directory: analysis
+        env:
+          QUEUE_TIME_BUDGET_S: "300"
+          TELEMETRY_ROW_TIMEOUT_S: "180"
+      # workflow_dispatch started with GITHUB_TOKEN does create a run (the documented exception
+      # to the "no recursive runs" rule), so the backlog keeps draining without the cron.
+      - name: Continue draining
+        if: ${{ !cancelled() && (steps.charts.outputs.leftover == 'true' || steps.telemetry.outputs.leftover == 'true') }}
+        run: gh workflow run queue.yml --ref main --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      # Visibility gate, after the continuation decision (which is already suppressed when status
+      # writes failed): the scripts exit 0 so every step above still runs, but a failed status
+      # write must not leave a green run. The job conclusion `failure` is what the free-tier
+      # digest's Queue line counts.
+      - name: Fail the run if status writes failed
+        if: ${{ !cancelled() }}
+        env:
+          CHART_WRITE_FAILURES: ${{ steps.charts.outputs.write_failures }}
+          TELEMETRY_WRITE_FAILURES: ${{ steps.telemetry.outputs.write_failures }}
+        run: |
+          c="${CHART_WRITE_FAILURES:-0}"; t="${TELEMETRY_WRITE_FAILURES:-0}"
+          if [ "$c" -gt 0 ] || [ "$t" -gt 0 ]; then
+            echo "::error::Queue status writes failed (charts=$c, telemetry=$t); check the service-role grants/RLS on f1_chart_requests / f1_telemetry_requests"
+            exit 1
+          fi

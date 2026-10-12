@@ -1,0 +1,138 @@
+/* F1 DataStop docs. Plain CSS, no build step.
+   Colours are the app's dark tokens from web/src/index.css (HSL), F1 red accent.
+   Fonts: Geist and Geist Mono from Google Fonts, Clash Display (headings) from Fontshare,
+   loaded by each page with the same URLs as the app. */
+:root {
+  --bg: hsl(240 8% 3.5%);
+  --card: hsl(240 7% 6%);
+  --muted-bg: hsl(240 7% 10%);
+  --accent-bg: hsl(240 6% 14%);
+  --border: hsl(240 6% 15%);
+  --fg: hsl(220 15% 96%);
+  --muted: hsl(240 6% 64%);
+  --red: #e10600;
+  --link: #ff6b66;
+  --sans: "Geist", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --display: "Clash Display", "Geist", system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --measure: 72ch;
+  --side: 15rem;
+  --header: 3.5rem;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: calc(var(--header) + 1rem); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.7 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--link); text-underline-offset: 2px; }
+a:hover { color: var(--fg); }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 4px; }
+
+.skip { position: absolute; left: -999px; top: 0; background: var(--red); color: #fff; padding: .5rem 1rem; z-index: 20; }
+.skip:focus { left: 0; }
+
+/* Header */
+.top {
+  position: sticky; top: 0; z-index: 10;
+  height: var(--header);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0 1.25rem;
+  background: hsl(240 8% 3.5% / .92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: .6rem; color: var(--fg); font-weight: 700; text-decoration: none; letter-spacing: 0; word-spacing: .12em; }
+.brand:hover { color: var(--fg); }
+.logo { width: 24px; height: 24px; flex: none; }
+.brand small { color: var(--muted); font-weight: 500; font-family: var(--sans); letter-spacing: 0; }
+.toplinks { display: flex; gap: 1.25rem; font-size: .9rem; }
+.toplinks a { color: var(--muted); text-decoration: none; }
+.toplinks a:hover { color: var(--fg); }
+
+/* Layout: sidebar on wide screens, scrolling strip on narrow ones (CSS only) */
+.layout { display: block; }
+.side {
+  display: flex; gap: .25rem; overflow-x: auto;
+  padding: .5rem 1rem; border-bottom: 1px solid var(--border);
+  background: var(--card);
+  position: sticky; top: var(--header); z-index: 9;
+}
+.side a {
+  flex: none; padding: .4rem .75rem; border-radius: 6px;
+  color: var(--muted); text-decoration: none; font-size: .9rem; white-space: nowrap;
+}
+.side a:hover { color: var(--fg); background: var(--muted-bg); }
+.side a[aria-current="page"] { color: var(--fg); background: var(--accent-bg); box-shadow: inset 2px 0 0 var(--red); }
+.side .label { display: none; }
+
+main { padding: 2rem 1.25rem 4rem; min-width: 0; }
+.content { max-width: 62rem; }
+/* prose keeps a readable line length; tables and code blocks may use the full width */
+.content > :is(p, ul, ol, h1, h2, h3, .note, .warn) { max-width: var(--measure); }
+
+@media (min-width: 900px) {
+  .layout { display: grid; grid-template-columns: var(--side) minmax(0, 1fr); max-width: 78rem; margin: 0 auto; }
+  .side {
+    display: block; position: sticky; top: var(--header);
+    align-self: start; height: calc(100vh - var(--header));
+    padding: 1.5rem 1rem; border-bottom: 0; border-right: 1px solid var(--border);
+    background: transparent; overflow-y: auto;
+  }
+  .side a { display: block; margin-bottom: .1rem; }
+  .side .label { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; margin: 0 .75rem .6rem; }
+  main { padding: 2.5rem 3rem 5rem; }
+}
+
+/* Type: Clash Display for headings and the wordmark, as in the app */
+h1, h2, h3, .brand { font-family: var(--display); }
+h1, h2, h3 { font-weight: 600; letter-spacing: 0; word-spacing: .12em; }
+h1 { font-size: 2.1rem; line-height: 1.2; margin: .3rem 0 .6rem; }
+h2 { font-size: 1.35rem; margin: 2.6rem 0 .6rem; padding-top: 1.4rem; border-top: 1px solid var(--border); }
+h3 { font-size: 1.05rem; margin: 1.8rem 0 .3rem; }
+h1 + .lede + h2, .eyebrow + h1 + h2 { border-top: 0; }
+p, ul, ol { margin: .8rem 0; }
+li { margin: .3rem 0; }
+.eyebrow { color: var(--link); text-transform: uppercase; font-size: .75rem; font-weight: 600; letter-spacing: .12em; margin: 0; }
+.lede { color: var(--muted); font-size: 1.1rem; }
+code, pre { font-family: var(--mono); }
+code { background: var(--muted-bg); border: 1px solid var(--border); border-radius: 5px; padding: .08em .35em; font-size: .86em; overflow-wrap: anywhere; }
+pre {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1rem 1.1rem; overflow-x: auto; font-size: .84rem; line-height: 1.6; margin: 1rem 0;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; overflow-wrap: normal; }
+
+/* Tables scroll inside their wrapper so the page never scrolls sideways */
+.table { overflow-x: auto; margin: 1.1rem 0; border: 1px solid var(--border); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; min-width: 34rem; }
+th, td { padding: .6rem .85rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+tr:last-child td { border-bottom: 0; }
+th { background: var(--card); color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+td code { white-space: nowrap; }
+
+/* Notes */
+.note, .warn {
+  margin: 1.2rem 0; padding: .8rem 1rem; border-radius: 8px;
+  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--muted);
+}
+.warn { border-left-color: var(--red); }
+.note > :first-child, .warn > :first-child { margin-top: 0; }
+.note > :last-child, .warn > :last-child { margin-bottom: 0; }
+
+/* Overview cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .9rem; margin: 1.5rem 0; max-width: 60rem; }
+.grid a {
+  display: block; background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1rem 1.1rem; text-decoration: none; color: var(--fg);
+}
+.grid a:hover { border-color: var(--red); }
+.grid b { display: block; margin-bottom: .25rem; }
+.grid span { color: var(--muted); font-size: .9rem; }
+
+/* Footer */
+footer { border-top: 1px solid var(--border); padding: 1.5rem 1.25rem; color: var(--muted); font-size: .85rem; text-align: center; }
+footer p { margin: .3rem auto; max-width: 60rem; }

@@ -1,0 +1,582 @@
+import { useDriverStandings, useConstructorStandings, useRaceSchedule, useLastRaceResults, useLastRacePitStops } from "@/hooks/useF1Data";
+import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from "react";
+import { getTeamColor } from "@/utils/teamUtils";
+import { pageShell, pageStack } from "@/lib/layout";
+import BuyMeCoffeeWidget from "@/components/common/BuyMeCoffeeWidget";
+import CombinedStandingsCard from "@/components/dashboard/CombinedStandingsCard";
+import SeasonChampionshipCard from "@/components/dashboard/SeasonChampionshipCard";
+import LastRaceResultsCard from "@/components/dashboard/LastRaceResultsCard";
+import FastestPitStopCard from "@/components/dashboard/FastestPitStopCard";
+import QualifyingResultsCard from "@/components/dashboard/QualifyingResultsCard";
+import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import { useTheme } from "@/context/ThemeContext";
+import {
+  F1Card,
+  F1CardContent,
+  F1CardHeader,
+  F1CardTitle,
+  PageHeader,
+  F1Loader,
+} from "@/components/f1";
+import { GitCompare, Activity, Calendar, Clock, ChevronRight, Flag as FlagIcon, TriangleAlert } from "lucide-react";
+import { CircuitTrackMap, getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
+import ReactCountryFlag from "react-country-flag";
+import CountryFlag, { getCountryCode } from "@/components/common/CountryFlag";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { getNextSession } from "@/utils/nextSessionUtils";
+import { cn } from "@/lib/utils";
+import { F1Skeleton } from "@/components/f1";
+import { F1EmptyState } from "@/components/f1/F1EmptyState";
+
+import useAnalytics from '@/hooks/useAnalytics';
+import useClarity from '@/hooks/useClarity';
+import Seo from "@/components/common/Seo";
+
+const MuiSankeyChart = lazy(() => import("@/components/analytics/MuiSankeyChart"));
+
+type IndexScheduleRace = {
+  date: string;
+  time?: string;
+  season: string;
+  round: string;
+  raceName: string;
+  Circuit?: { circuitId?: string; circuitName?: string; Location?: { country?: string; locality?: string } };
+  [key: string]: unknown;
+};
+
+
+const Index = () => {
+  const {
+    data: driverStandings,
+    isLoading: isDriversLoading,
+    isError: isDriversError,
+  } = useDriverStandings();
+  const {
+    data: constructorStandings,
+    isLoading: isConstructorsLoading,
+    isError: isConstructorsError,
+  } = useConstructorStandings();
+  const {
+    data: raceSchedule,
+    isLoading: isScheduleLoading,
+    isError: isScheduleError,
+  } = useRaceSchedule();
+  const {
+    data: lastRaceResults,
+    isLoading: isResultsLoading
+  } = useLastRaceResults();
+  const {
+    data: _lastRacePitStops,
+    isLoading: isPitStopsLoading
+  } = useLastRacePitStops();
+
+  const { isGlass } = useTheme();
+  const isLoading = isDriversLoading || isConstructorsLoading || isScheduleLoading || isResultsLoading || isPitStopsLoading;
+  const [isOffline, setIsOffline] = useState(false);
+  const [, setStandingsExpanded] = useState(false);
+  const [isSankeyDialogOpen, setIsSankeyDialogOpen] = useState(false);
+  const [isNextRaceDialogOpen, setIsNextRaceDialogOpen] = useState(false);
+
+  const analytics = useAnalytics();
+  const clarity = useClarity();
+
+  // Check if season is complete
+  const isSeasonComplete = useMemo(() => {
+    if (!raceSchedule?.data) return false;
+    const now = new Date();
+    const completedRaces = raceSchedule.data.filter(
+      (race: IndexScheduleRace) => new Date(race.date) < now
+    );
+    return completedRaces.length === raceSchedule.data.length && completedRaces.length > 0;
+  }, [raceSchedule?.data]);
+
+  // Get last completed race info
+  const lastCompletedRace = useMemo(() => {
+    if (!raceSchedule?.data) return null;
+    const races = raceSchedule.data;
+    // Prefer the most recent race that actually has published results (resolved
+    // by useLastRaceResults, which walks back past not-yet-scored races). A race
+    // flips to date<now at the START of race day, hours before results land —
+    // scoping by date alone leaves the Sankey/dialog empty until Ergast catches
+    // up. Fall back to the date-based pick if results aren't loaded yet.
+    const lr = lastRaceResults?.data as { season?: string; round?: string } | null | undefined;
+    let lastRace = lr?.round
+      ? races.find(
+          (race: IndexScheduleRace) =>
+            String(race.round) === String(lr.round) &&
+            (!lr.season || String(race.season) === String(lr.season)),
+        )
+      : undefined;
+    if (!lastRace) {
+      const now = new Date();
+      const completedRaces = races.filter((race: IndexScheduleRace) => new Date(race.date) < now);
+      if (completedRaces.length === 0) return null;
+      lastRace = completedRaces[completedRaces.length - 1];
+    }
+    return {
+      year: parseInt(lastRace.season),
+      round: lastRace.round,
+      raceName: getRaceNameWithoutEmoji(lastRace.raceName),
+      country: lastRace.Circuit?.Location?.country || "",
+      countryCode: getCountryCode(lastRace.Circuit?.Location?.country || "") || "",
+      raceData: lastRace, // Full race data for the dialog
+    };
+  }, [raceSchedule?.data, lastRaceResults?.data]);
+
+  useEffect(() => {
+    // Only show offline warning for critical API failures (standings and schedule).
+    // The service layer now throws on fetch failure, so React Query isError is the
+    // signal (the old {data, error} envelope is success-only).
+    // Don't show offline for "no data" scenarios like early season with no completed races
+    const hasCriticalError =
+      (isDriversError && !driverStandings?.data) ||
+      (isConstructorsError && !constructorStandings?.data) ||
+      (isScheduleError && !raceSchedule?.data);
+
+    setIsOffline(Boolean(hasCriticalError));
+  }, [isDriversError, isConstructorsError, isScheduleError, driverStandings, constructorStandings, raceSchedule]);
+
+  useEffect(() => {
+    analytics.trackContentView(
+      'homepage',
+      'page',
+      'F1 DataStop Homepage',
+      { sponsor_visible: true }
+    );
+
+    clarity.setTag('page_type', 'homepage');
+    clarity.setTag('page_version', 'v2');
+  }, [analytics, clarity]);
+
+  const nextRace = raceSchedule?.data?.find((race: { date: string; time?: string }) => {
+    const raceDate = new Date(race.date + "T" + (race.time || "00:00:00Z"));
+    return raceDate > new Date();
+  });
+
+  // Season telemetry: round progress + championship leaders for the status pills
+  const seasonStats = useMemo(() => {
+    const races = (raceSchedule?.data ?? []) as IndexScheduleRace[];
+    const totalRounds = races.length;
+    const now = new Date();
+    const completedRounds = races.filter((race) => new Date(race.date) < now).length;
+    return { totalRounds, completedRounds };
+  }, [raceSchedule?.data]);
+
+  return (
+    <div className={pageShell}>
+      <Seo
+        path="/"
+        description="Formula 1 telemetry, race analysis and strategy breakdowns — lap time deltas, stint strategy, tyre life and driver head-to-heads, updated every race weekend."
+      />
+      <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
+        {/* ── Greeting block (compact, app-style — NOT a big hero) ───────── */}
+        <GreetingBlock
+          seasonStats={seasonStats}
+          isSeasonComplete={isSeasonComplete}
+          isOffline={isOffline}
+        />
+
+        {/* ── Next session status card (compact, tappable → race dialog) ── */}
+        <NextSessionCard
+          nextRace={nextRace}
+          isSeasonComplete={isSeasonComplete}
+          onOpenNextRace={() => setIsNextRaceDialogOpen(true)}
+        />
+
+        {isLoading ? (
+          <DashboardSkeleton />
+        ) : (
+          <>
+            {/* ── Full standings + season championship ──────────────────── */}
+            <SectionLabel icon={<FlagIcon className="h-3 w-3" />}>
+              Championship Standings
+            </SectionLabel>
+            <div className={`grid grid-cols-1 gap-4 md:gap-6 ${isSeasonComplete ? '' : 'lg:grid-cols-3'}`}>
+              <div className={isSeasonComplete ? '' : 'lg:col-span-2'}>
+                <CombinedStandingsCard
+                  constructorStandings={constructorStandings}
+                  driverStandings={driverStandings}
+                  getTeamColor={getTeamColor}
+                  onExpandChange={setStandingsExpanded}
+                />
+              </div>
+              {!isSeasonComplete && <SeasonChampionshipCard />}
+            </div>
+
+            {/* ── Qualifying → Race Progression (full width) ─────────────── */}
+            <SectionLabel icon={<Activity className="h-3 w-3" />}>
+              Race Progression Scope
+            </SectionLabel>
+            <F1Card
+              variant={isGlass ? "glass" : "default"}
+              glassVariant={isGlass ? "panel" : "default"}
+              className="scope-frame border-border p-0"
+            >
+              <F1CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <F1CardTitle
+                      icon={<GitCompare className="h-5 w-5 shrink-0 text-primary" />}
+                      className="text-lg md:text-xl"
+                    >
+                      Qualifying to Race
+                    </F1CardTitle>
+                  </div>
+                  {lastCompletedRace && (
+                    <button
+                      onClick={() => setIsSankeyDialogOpen(true)}
+                      className="shrink-0 rounded-md border timing text-xs font-medium uppercase tracking-wide border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:border-primary/50 transition-all"
+                    >
+                      <ReactCountryFlag
+                        countryCode={lastCompletedRace.countryCode}
+                        svg
+                        style={{ width: "14px", height: "auto" }}
+                        title={lastCompletedRace.country}
+                      />
+                      <span>{lastCompletedRace.raceName}</span>
+                    </button>
+                  )}
+                </div>
+              </F1CardHeader>
+              <F1CardContent className="p-0">
+                {lastCompletedRace ? (
+                  <Suspense fallback={<F1Loader label="Loading progression…" className="h-[400px]" />}>
+                    <MuiSankeyChart
+                      year={lastCompletedRace.year}
+                      round={lastCompletedRace.round}
+                    />
+                  </Suspense>
+                ) : (
+                  <F1EmptyState
+                    type="season-start"
+                    title="Season Starting Soon"
+                    description="Qualifying to race progression will appear here once the first race is completed."
+                    size="md"
+                  />
+                )}
+              </F1CardContent>
+            </F1Card>
+
+            {/* ── Last race readouts ────────────────────────────────────── */}
+            <SectionLabel icon={<FlagIcon className="h-3 w-3" />}>
+              Last Race Readouts
+            </SectionLabel>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              <QualifyingResultsCard />
+              <LastRaceResultsCard
+                lastRaceResults={lastRaceResults}
+                isResultsLoading={isResultsLoading}
+                getTeamColor={getTeamColor}
+              />
+              <FastestPitStopCard />
+            </div>
+          </>
+        )}
+
+        {/* ── Support ───────────────────────────────────────────────────── */}
+        <div className="flex justify-center py-2">
+          <BuyMeCoffeeWidget size="large" position="inline" />
+        </div>
+      </div>
+
+      {/* Race Detail Dialog for Sankey Chart */}
+      {lastCompletedRace?.raceData && (
+        <RaceDetailDialog
+          isOpen={isSankeyDialogOpen}
+          onClose={() => setIsSankeyDialogOpen(false)}
+          race={lastCompletedRace.raceData}
+        />
+      )}
+
+      {/* Race Detail Dialog for the next race */}
+      {nextRace && (
+        <RaceDetailDialog
+          isOpen={isNextRaceDialogOpen}
+          onClose={() => setIsNextRaceDialogOpen(false)}
+          race={nextRace}
+        />
+      )}
+    </div>
+  );
+};
+
+// ── Instrument section eyebrow ──────────────────────────────────────────────
+const SectionLabel = ({
+  icon,
+  children,
+}: {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) => (
+  <div className="instrument-label -mb-2 flex items-center gap-1.5 text-primary">
+    {icon}
+    <span>{children}</span>
+  </div>
+);
+
+// ── Status pill (live dot / round / status) ─────────────────────────────────
+const StatusPill = ({
+  children,
+  live,
+  tone = "muted",
+}: {
+  children: React.ReactNode;
+  live?: boolean;
+  tone?: "muted" | "primary" | "warning";
+}) => (
+  <span
+    className={cn(
+      "inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide",
+      tone === "primary" && "border-primary/40 bg-primary/10 text-primary",
+      tone === "warning" && "border-position-gold/40 bg-position-gold/10 text-position-gold",
+      tone === "muted" && "border-border bg-secondary/50 text-secondary-foreground"
+    )}
+  >
+    {live && (
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inline-flex h-full w-full rounded-full bg-primary/60 animate-live-pulse" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+      </span>
+    )}
+    {children}
+  </span>
+);
+
+// ── Compact greeting block — the native-app front door (no big hero) ─────────
+const GreetingBlock = ({
+  seasonStats,
+  isSeasonComplete,
+  isOffline,
+}: {
+  seasonStats: { totalRounds: number; completedRounds: number };
+  isSeasonComplete: boolean;
+  isOffline: boolean;
+}) => {
+  const currentYear = new Date().getFullYear();
+  return (
+    <PageHeader
+      eyebrow={`Live · Season ${currentYear}`}
+      title="Formula 1 DataStop"
+      actions={
+        <>
+          <StatusPill tone="primary">
+            Round{" "}
+            <span className="timing">
+              {seasonStats.totalRounds
+                ? `${seasonStats.completedRounds}/${seasonStats.totalRounds}`
+                : "—"}
+            </span>
+          </StatusPill>
+          <StatusPill tone="muted">
+            {isSeasonComplete ? "Complete" : "In Progress"}
+          </StatusPill>
+          {isOffline && (
+            <StatusPill tone="warning">
+              <TriangleAlert className="h-3 w-3" />
+              Cached
+            </StatusPill>
+          )}
+        </>
+      }
+    />
+  );
+};
+
+// ── Compact "next session" status card — tappable → existing race dialog ─────
+const NextSessionCard = ({
+  nextRace,
+  isSeasonComplete,
+  onOpenNextRace,
+}: {
+  nextRace: IndexScheduleRace | undefined;
+  isSeasonComplete: boolean;
+  onOpenNextRace: () => void;
+}) => {
+  const { session: nextSession, raceName, country } = useMemo(
+    () => getNextSession(nextRace),
+    [nextRace]
+  );
+
+  // Small track outline for the island (falls back to locality; null → hidden).
+  const track = useMemo(
+    () => getCircuitTrack(nextRace?.Circuit?.circuitName, nextRace?.Circuit?.Location?.locality),
+    [nextRace]
+  );
+
+  const sessionDate = useMemo(() => {
+    if (!nextSession) return null;
+    return new Date(nextSession.date + "T" + (nextSession.time || "00:00:00Z"));
+  }, [nextSession]);
+
+  const calculateTimeLeft = useCallback(() => {
+    if (!sessionDate) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    const diff = sessionDate.getTime() - Date.now();
+    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    return {
+      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((diff / (1000 * 60)) % 60),
+      seconds: Math.floor((diff / 1000) % 60),
+    };
+  }, [sessionDate]);
+
+  const [countdown, setCountdown] = useState(calculateTimeLeft);
+
+  useEffect(() => {
+    if (!sessionDate) return;
+    setCountdown(calculateTimeLeft());
+    const timer = setInterval(() => setCountdown(calculateTimeLeft()), 1000);
+    return () => clearInterval(timer);
+  }, [sessionDate, calculateTimeLeft]);
+
+  const isUrgent = countdown.days < 3;
+  const isImminent = countdown.days === 0 && countdown.hours < 6;
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  if (!nextRace || !nextSession || !sessionDate) {
+    return (
+      <F1Card size="sm" className="p-3">
+        <div className="instrument-label mb-1 flex items-center gap-1.5">
+          <Clock className="h-3 w-3" />
+          Next Session
+        </div>
+        <p className="timing text-sm text-muted-foreground">
+          {isSeasonComplete ? "Season complete" : "Schedule pending"}
+        </p>
+      </F1Card>
+    );
+  }
+
+  return (
+    <F1Card
+      size="sm"
+      interactive
+      onClick={onOpenNextRace}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenNextRace();
+        }
+      }}
+      aria-label={`Next session: ${getRaceNameWithoutEmoji(raceName)} ${nextSession.shortName}. Open race details.`}
+      className={cn(
+        "group cursor-pointer p-3 transition-all hover:border-primary/40",
+        isImminent && "border-primary/50"
+      )}
+    >
+      <div className="instrument-label mb-2 flex items-center justify-between">
+        <span className="flex items-center gap-1.5">
+          <Clock className="h-3 w-3" />
+          Next Session
+        </span>
+        <span
+          className={cn(
+            "timing rounded px-1.5 py-0.5 text-xs",
+            isImminent
+              ? "bg-primary/15 text-primary"
+              : isUrgent
+                ? "bg-position-gold/15 text-position-gold"
+                : "bg-secondary text-secondary-foreground"
+          )}
+        >
+          {nextSession.shortName}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2.5">
+        <span className="shrink-0 rounded-md bg-muted p-1.5">
+          <CountryFlag country={country} size={20} />
+        </span>
+        {track && (
+          <span className="shrink-0 rounded-md bg-muted p-1.5" aria-hidden>
+            <CircuitTrackMap
+              circuitName={nextRace?.Circuit?.circuitName}
+              locality={nextRace?.Circuit?.Location?.locality}
+              className="h-5 w-5 text-primary"
+              strokeWidth={4}
+            />
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-semibold leading-tight">
+            {getRaceNameWithoutEmoji(raceName)}
+          </div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3 shrink-0" />
+            <span className="timing">
+              {sessionDate.toLocaleDateString(undefined, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
+          </div>
+        </div>
+
+        {/* Compact mono countdown row (not huge digits) */}
+        <div className="hidden shrink-0 items-baseline gap-1 sm:flex">
+          <span
+            className={cn(
+              "readout text-base md:text-lg",
+              isUrgent ? "text-primary" : "text-foreground"
+            )}
+          >
+            {countdown.days > 0 && `${countdown.days}d `}
+            {pad(countdown.hours)}:{pad(countdown.minutes)}:{pad(countdown.seconds)}
+          </span>
+        </div>
+
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+      </div>
+
+      {/* Mobile countdown row — under the GP line, compact mono */}
+      <div className="mt-2 flex items-baseline gap-1.5 border-t border-border pt-2 sm:hidden">
+        <span className="instrument-label">In</span>
+        <span
+          className={cn(
+            "readout text-base",
+            isUrgent ? "text-primary" : "text-foreground"
+          )}
+        >
+          {countdown.days > 0 && `${countdown.days}d `}
+          {pad(countdown.hours)}:{pad(countdown.minutes)}:{pad(countdown.seconds)}
+        </span>
+      </div>
+    </F1Card>
+  );
+};
+
+
+// Dashboard Loading Skeleton
+const DashboardSkeleton = () => {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <F1Skeleton variant="card" className="h-[320px]" />
+        <F1Skeleton variant="card" className="h-[320px]" />
+      </div>
+
+      {/* Standings Row Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-2">
+          <F1Skeleton variant="card" className="h-[400px]" />
+        </div>
+        <F1Skeleton variant="card" className="h-[400px]" />
+      </div>
+
+      {/* Sankey Skeleton */}
+      <F1Skeleton variant="chart" className="h-[500px]" />
+
+      {/* Readouts Row Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <F1Skeleton variant="card" className="h-[300px]" />
+        <F1Skeleton variant="card" className="h-[300px]" />
+        <F1Skeleton variant="card" className="h-[300px]" />
+      </div>
+    </div>
+  );
+};
+
+export default Index;

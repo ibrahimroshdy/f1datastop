@@ -1,0 +1,51 @@
+name: Release
+
+# Semantic version from conventional commits (web/scripts/semver.mjs). Creates a GitHub Release and
+# its tag on the pushed commit. Never commits anything; Vercel keeps deploying main independently.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'ibrahimroshdy/f1datastop' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Compute version
+        id: semver
+        run: |
+          set -o pipefail
+          node web/scripts/semver.mjs | tee semver.json
+          echo "version=$(jq -r .version semver.json)" >> "$GITHUB_OUTPUT"
+          echo "bump=$(jq -r '.bump // ""' semver.json)" >> "$GITHUB_OUTPUT"
+          echo "fallback=$(jq -r .fallback semver.json)" >> "$GITHUB_OUTPUT"
+      - name: Create release
+        if: steps.semver.outputs.bump != '' && steps.semver.outputs.fallback != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.semver.outputs.version }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          tag="v${VERSION}"
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "Tag ${tag} already exists; nothing to do."
+            exit 0
+          fi
+          gh release create "${tag}" --target "${TARGET_SHA}" --title "${tag}" --generate-notes

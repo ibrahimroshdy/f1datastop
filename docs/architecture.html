@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works · F1 DataStop Docs</title>
+<meta name="description" content="How F1 DataStop gets data to your screen: CDN files, the database and the proxy, plus project layout and tech stack.">
+<link rel="canonical" href="https://docs.f1datastop.com/architecture.html">
+<meta property="og:title" content="How it works · F1 DataStop Docs">
+<meta property="og:description" content="How F1 DataStop gets data to your screen: CDN files, the database and the proxy, plus project layout and tech stack.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="F1 DataStop Docs">
+<meta property="og:url" content="https://docs.f1datastop.com/architecture.html">
+<meta property="og:image" content="https://www.f1datastop.com/og-image.png">
+<meta property="og:image:secure_url" content="https://www.f1datastop.com/og-image.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="F1 DataStop — Formula 1 Data Analysis Platform">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@f1datastop">
+<meta name="twitter:title" content="How it works · F1 DataStop Docs">
+<meta name="twitter:description" content="How F1 DataStop gets data to your screen: CDN files, the database and the proxy, plus project layout and tech stack.">
+<meta name="twitter:image" content="https://www.f1datastop.com/og-image.png">
+<meta name="twitter:image:alt" content="F1 DataStop — Formula 1 Data Analysis Platform">
+<meta name="theme-color" content="#08080a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="assets/favicon.ico" type="image/x-icon">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+<a class="brand" href="index.html"><img class="logo" src="assets/logo.svg" alt="" width="24" height="24">F1 DataStop <small>Docs</small></a>
+<div class="toplinks"><a href="https://www.f1datastop.com">Live site</a><a href="https://github.com/ibrahimroshdy/f1datastop">GitHub</a></div>
+</header>
+<div class="layout">
+<nav class="side" aria-label="Documentation"><span class="label">Documentation</span><a href="index.html">Overview</a><a href="getting-started.html">Getting started</a><a href="architecture.html" aria-current="page">How it works</a><a href="backend.html">Backend</a><a href="data.html">Data and CDN</a><a href="pipeline.html">Scheduled jobs</a><a href="api-embeds.html">API and embeds</a><a href="releases.html">Releases</a><a href="runbooks.html">Runbooks</a></nav>
+<main id="main"><div class="content">
+
+<p class="eyebrow">How it works</p>
+<h1>How the data gets to your screen</h1>
+<p class="lede">For recent seasons the site can read from ready-made files on a CDN, then our own database, and only then from the original data providers through a caching proxy. This only happens when database reading is switched on; otherwise it goes straight to the proxy or the provider.</p>
+<h2>The three steps</h2>
+<p>Which path a request takes depends on a setting and on the season asked for.</p>
+<ol>
+<li><b>When <code>VITE_DB_SERVING_ENABLED</code> is <code>true</code>, Supabase is configured and the season is inside the stored window</b> (the newest season and the three before it, plus future rounds), the site tries our own copy of the data first, in this order:
+<ol type="a">
+<li><b>CDN files.</b> Scheduled jobs publish season data as static files on <code>cdn.f1datastop.com</code>. The site reads these through <code>web/src/services/f1Warehouse.ts</code>.</li>
+<li><b>Our database (the warehouse).</b> If the CDN file is missing or cannot be reached, the site asks the Supabase tables whose names start with <code>f1_</code>.</li>
+</ol></li>
+<li><b>The proxy or the provider.</b> If the setting is off, the season is older than the window, or neither CDN nor database had an answer, the request goes through <code>web/src/lib/api/f1ApiFetch.ts</code>. With <code>VITE_F1_PROXY_ENABLED=true</code> it goes to the <code>f1-proxy</code> server function, which caches answers in the database. Otherwise it goes straight to Jolpica or OpenF1.</li>
+</ol>
+<p>Fast-changing data (current standings, and OpenF1 live, position and car data) never uses our own copy: it always goes to the proxy or the provider, which keeps short cache times. A problem with the CDN or database therefore makes the site slower, but it does not show an error to visitors.</p>
+<p>Chart images and Deep Dive files are separate: the site loads them straight from the CDN.</p>
+<p>The diagram shows where the data lives, not the order of the lookups above.</p>
+<pre><code>Jolpica / Ergast ─┐
+OpenF1 ───────────┼─▶ f1-proxy (with cache) ─▶ website
+FastF1 (Python) ──┘           │                    ▲
+                              ▼                    │ read only
+                  Supabase database (f1_ tables) ──┘
+                              ▲
+  Python scripts on GitHub ───┴─▶ Cloudflare R2 (cdn.f1datastop.com) ─▶ website</code></pre>
+<h2>Session codes</h2>
+<p>Every part of the project uses the same short codes for a session in a race weekend.</p>
+<div class="table"><table>
+<tr><th>Code</th><th>Session</th></tr>
+<tr><td><code>FP1</code>, <code>FP2</code>, <code>FP3</code></td><td>Free practice</td></tr>
+<tr><td><code>Q</code></td><td>Qualifying</td></tr>
+<tr><td><code>SQ</code></td><td>Sprint qualifying</td></tr>
+<tr><td><code>SS</code></td><td>Sprint shootout (older name for sprint qualifying)</td></tr>
+<tr><td><code>S</code></td><td>Sprint</td></tr>
+<tr><td><code>R</code></td><td>Race</td></tr>
+</table></div>
+<h2>Rules that apply by season</h2>
+<p>From 2011 to 2025 cars have DRS (a flap that opens on straights). The 2026 season has no DRS: it uses active aerodynamics and a battery boost, with 22 cars and new engines. Check the season before assuming a rule.</p>
+<h2>Project layout</h2>
+<pre><code>f1datastop/
+├── web/                 the website (React, TypeScript, Vite)
+│   └── src/
+│       ├── components/  screens and widgets, grouped by feature
+│       ├── hooks/f1/    data hooks (React Query)
+│       ├── lib/f1/      types, adapters and calculations
+│       ├── lib/api/     fetch and proxy helpers
+│       ├── services/    CDN and warehouse readers
+│       ├── config/      optional third-party settings
+│       └── integrations/ analytics and Supabase clients
+├── api/                 Vercel function for social preview images
+├── supabase/
+│   ├── functions/       f1-proxy, f1-livetiming-proxy, bmc-webhook
+│   └── migrations/      database changes
+├── analysis/            Python: collect data, draw charts, export files
+├── docs/                this site
+└── .github/workflows/   checks, scheduled jobs, releases, docs deploy</code></pre>
+<h2>Tech stack</h2>
+<div class="table"><table>
+<tr><th>Part</th><th>What is used</th></tr>
+<tr><td>Website</td><td>React 18, TypeScript, Vite, Tailwind CSS v4, shadcn/ui</td></tr>
+<tr><td>Data fetching</td><td>React Query</td></tr>
+<tr><td>Charts</td><td>Recharts and D3 in the website; matplotlib in the Python scripts</td></tr>
+<tr><td>Database and server functions</td><td>Supabase (Postgres and edge functions)</td></tr>
+<tr><td>File storage and CDN</td><td>Cloudflare R2</td></tr>
+<tr><td>Hosting</td><td>Vercel for the site, GitHub Pages for these docs</td></tr>
+<tr><td>Automation</td><td>GitHub Actions, started by a clock inside Supabase (see <a href="pipeline.html">Scheduled jobs</a>)</td></tr>
+</table></div>
+<h2>Workflows</h2>
+<div class="table"><table>
+<tr><th>Workflow</th><th>Purpose</th></tr>
+<tr><td>PR CI (<code>pr-ci.yml</code>)</td><td>Checks every push and pull request. It needs no secrets, so it runs on forks too.</td></tr>
+<tr><td>Pipeline (<code>pipeline.yml</code>)</td><td>The scheduled data jobs.</td></tr>
+<tr><td>Queue (<code>queue.yml</code>)</td><td>Handles chart and telemetry requests made by visitors.</td></tr>
+<tr><td>Release (<code>release.yml</code>)</td><td>Creates version tags and GitHub Releases. See <a href="releases.html">Releases</a>.</td></tr>
+<tr><td>Docs (<code>docs.yml</code>)</td><td>Publishes this site when files in <code>docs/</code> change.</td></tr>
+</table></div>
+<p>Pipeline and Queue only run in the main repository, so forks never need any secrets. The times and details are on <a href="pipeline.html">Scheduled jobs</a>.</p>
+
+</div></main>
+</div>
+<footer>
+<p>F1 DataStop is an independent, community-run project. It is not affiliated with, endorsed by or sponsored by Formula 1, the FIA, or any team or organiser. Formula 1, FIA and related marks belong to their owners.</p>
+<p><a href="https://github.com/ibrahimroshdy/f1datastop">GitHub</a> · <a href="https://www.f1datastop.com">Live site</a> · MIT licence</p>
+</footer>
+</body>
+</html>
