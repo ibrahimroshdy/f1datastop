@@ -47,6 +47,36 @@ for (const p of htmlFiles) {
   if (/dead-man/i.test(html)) fail(`${rel}: contains "dead-man"`);
 }
 
+// Local links: every href/src must point at an existing file, and a #fragment must match an id in the target page.
+const ids = new Map();
+const idsOf = (file) => {
+  if (!ids.has(file)) {
+    const html = readFileSync(file, 'utf8');
+    ids.set(file, new Set([...html.matchAll(/\sid=["']([^"']+)["']/g)].map((m) => m[1])));
+  }
+  return ids.get(file);
+};
+for (const p of htmlFiles) {
+  const rel = p.slice(dist.length + 1);
+  const html = readFileSync(p, 'utf8');
+  for (const m of html.matchAll(/\s(?:href|src)=["']([^"']*)["']/g)) {
+    const ref = m[1].trim();
+    if (!ref || ref.startsWith('#') || ref.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(ref)) continue;
+    const [pathPart, frag] = ref.split('#');
+    const clean = pathPart.split('?')[0];
+    let target = clean.startsWith('/') ? join(dist, clean) : join(dirname(p), clean);
+    if (!clean) target = p;
+    if (existsSync(target) && statSync(target).isDirectory()) target = join(target, 'index.html');
+    if (!existsSync(target)) {
+      fail(`${rel}: broken link ${ref}`);
+      continue;
+    }
+    if (frag && target.endsWith('.html') && !idsOf(target).has(decodeURIComponent(frag))) {
+      fail(`${rel}: link ${ref} has no matching #${frag} in the target page`);
+    }
+  }
+}
+
 if (failures.length) {
   console.error(`docs check failed (${failures.length}):\n - ${failures.join('\n - ')}`);
   process.exit(1);

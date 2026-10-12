@@ -78,17 +78,21 @@
 }
 
 /* Headings and the site title in Clash Display. */
-h1, h2, h3, h4, h5, h6,
-.site-title,
-.sl-markdown-content :is(h1, h2, h3, h4, h5, h6) {
+:root :is(h1, h2, h3, h4, h5, h6),
+:root .site-title,
+:root .sl-markdown-content :is(h1, h2, h3, h4, h5, h6) {
   font-family: var(--f1-font-display);
-  letter-spacing: -0.01em;
+  /* Clash Display drops its word spaces when tracked tight; keep them (same fix as the old docs). */
+  letter-spacing: 0;
+  word-spacing: 0.12em;
 }
-.site-title {
-  font-weight: 600;
+/* Wordmark uses the normal text colour, as in the app's TopBar; red stays for accents and links. */
+:root .site-title {
+  color: var(--sl-color-white);
+  font-weight: 700;
   font-size: var(--sl-text-lg);
 }
-.site-title img {
+:root .site-title img {
   width: 1.75rem;
   height: 1.75rem;
 }

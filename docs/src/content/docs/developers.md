@@ -7,13 +7,13 @@ Public data, embeds and request queues. No account is needed. Fair use; access m
 
 ## Embeds
 
-Embeddable standings tables for any site. Each address opens in a new tab on the live site, and the iframe snippet, the options and the tips are on [API and embeds](/api-embeds.html).
+Embeddable standings tables for any site. Each address is a page on the live site that you can put in an iframe. The iframe snippet, the options and the tips are on [API and embeds](/api-embeds.html).
 
 | Embed | What it is | Address |
 | --- | --- | --- |
 | Embed overview | All embeddable components with copy-paste iframe snippets. | [`/embed`](https://www.f1datastop.com/embed) |
-| Driver standings | Driver standings table for any site. | [`/embed/driver-standings`](https://www.f1datastop.com/embed/driver-standings) |
-| Constructor standings | Constructor standings table for any site. | [`/embed/constructor-standings`](https://www.f1datastop.com/embed/constructor-standings) |
+| Driver standings | Live driver standings table for any site. | [`/embed/driver-standings`](https://www.f1datastop.com/embed/driver-standings) |
+| Constructor standings | Live constructor standings table for any site. | [`/embed/constructor-standings`](https://www.f1datastop.com/embed/constructor-standings) |
 
 Embed URL parameters: `season` (year, default current), `theme` (`light` or `dark`, default light) and `font` (one of Roboto, Open Sans, Montserrat, Inter; default Inter).
 
