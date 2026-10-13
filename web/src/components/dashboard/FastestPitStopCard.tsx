@@ -224,7 +224,7 @@ const FastestPitStopCard = () => {
                         >
                           {fastestStop.driver.code}
                         </span>
-                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">|</span>
                         <span className="timing">{formatPitStopDuration(fastestStop.duration)}</span>
                       </div>
             </div>
