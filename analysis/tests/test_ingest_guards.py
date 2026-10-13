@@ -403,3 +403,16 @@ class PitStopsFromJolpica(unittest.TestCase):
         with mock.patch.object(ingest, "_recently_completed", return_value=True), \
                 mock.patch.object(ingest, "_pitstops_diverge", side_effect=RuntimeError("x")):
             ingest._recheck_pitstops(2026, 17)
+
+class LapsValue(unittest.TestCase):
+    """BUG-006: 2026 R6 VER, R10 RUS, R12 VER retired on lap 1 (Jolpica laps 0)."""
+    def test_zero_is_kept(self):
+        self.assertEqual(ingest._laps_value(0, 1), 0)
+        self.assertEqual(ingest._laps_value(0.0, 1), 0)
+
+    def test_missing_falls_back(self):
+        self.assertEqual(ingest._laps_value(None, 57), 57)
+        self.assertEqual(ingest._laps_value(float("nan"), 57), 57)
+
+    def test_value_wins(self):
+        self.assertEqual(ingest._laps_value(62, 61), 62)
