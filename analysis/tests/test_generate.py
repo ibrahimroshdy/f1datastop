@@ -197,3 +197,17 @@ class StandingsChartsCache(unittest.TestCase):
         kws = [c.kwargs.get("cache_control") for c in put.call_args_list]
         self.assertEqual(kws[:2], ["public, max-age=600"] * 2)
         self.assertIsNone(kws[2])
+
+class SafetyCell(unittest.TestCase):
+    """SC and VSC are counted separately in the race summary."""
+    def test_two_vscs_singapore_2026(self):
+        p = [{"kind": "VSC", "start": 8, "end": 9}, {"kind": "VSC", "start": 39, "end": 40}]
+        self.assertEqual(g.safety_cell(p), ("VIRTUAL SC", "2", 2))
+
+    def test_mixed(self):
+        p = [{"kind": "SC", "start": 1, "end": 3}, {"kind": "VSC", "start": 9, "end": 9},
+             {"kind": "RED", "start": 20, "end": 20}]
+        self.assertEqual(g.safety_cell(p), ("SC · VSC", "1 · 1", 2))
+
+    def test_none(self):
+        self.assertEqual(g.safety_cell([]), ("SAFETY CARS", "0", 0))
