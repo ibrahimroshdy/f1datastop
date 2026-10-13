@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import { isGaEnabled } from '@/config/integrations';
 
 // Interface for the gtag function
@@ -304,7 +302,8 @@ export const trackViewAnalysisClick = (race: any): void => {
     race_round: parseInt(race.round),
     race_season: parseInt(race.season),
     country: race.Circuit?.Location?.country,
-    source: 'race_detail_dialog',
+    // Not `source`: gtag reads that name as the campaign source and re-attributes the session.
+    click_source: 'race_detail_dialog',
     timestamp: new Date().toISOString()
   });
   
@@ -334,19 +333,3 @@ export const trackCalendarSession = (sessionData: {
     timestamp: new Date().toISOString()
   });
 };
-
-// Google Analytics Component
-const GoogleAnalytics = () => {
-  const location = useLocation();
-  
-  useEffect(() => {
-    if (!isGaEnabled) return;
-    if (typeof window !== 'undefined') {
-      trackPageView(location.pathname + location.search);
-    }
-  }, [location]);
-  
-  return null; // This component doesn't render anything
-};
-
-export default GoogleAnalytics; 

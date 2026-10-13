@@ -1,7 +1,7 @@
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { isGaEnabled } from '@/config/integrations';
-import { trackPageView, trackPerformance, trackDeviceInfo, trackError } from './GA4.tsx';
+import { trackPerformance, trackDeviceInfo, trackError } from './GA4.tsx';
 import EngagementTracker from './EngagementTracker';
 
 interface AnalyticsProviderProps {
@@ -36,19 +36,12 @@ if (isGaEnabled) {
 
 const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => {
   const location = useLocation();
-  // index.html's gtag config already auto-sends the FIRST page_view. Skip the
-  // initial render here so the landing page isn't counted twice; send manual
-  // page_views only on subsequent SPA route changes.
-  const isFirstRender = useRef(true);
-
+  // Page views are NOT sent from here. index.html's gtag('config') counts the first
+  // load, and GA4 Enhanced Measurement ("page changes based on browser history
+  // events", on by default) counts every SPA route change from history.pushState.
+  // Sending a manual page_view as well double-counted every navigation.
   useEffect(() => {
     if (!isGaEnabled) return;
-
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-    } else {
-      trackPageView(location.pathname + location.search);
-    }
 
     const timer = setTimeout(() => {
       trackPerformance();
@@ -66,7 +59,6 @@ const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => {
       <EngagementTracker
         trackScrollDepth={true}
         trackTimeOnPage={true}
-        trackInactivity={true}
       />
       {children}
     </>

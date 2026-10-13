@@ -1,5 +1,6 @@
 /**
- * Mirror the Google Funding Choices (TCF) consent decision to Microsoft Clarity.
+ * Mirror the Google Funding Choices (TCF) consent decision to Microsoft Clarity and to
+ * Google tag Consent Mode.
  *
  * Clarity requires a consent signal for EEA/UK/CH traffic and accepts it through
  * `clarity('consentv2', { ad_Storage, analytics_Storage })`. There is no custom banner in
@@ -64,8 +65,29 @@ function sendToClarity(ad: Granted, analytics: Granted): void {
   w.clarity!("consentv2", { ad_Storage: ad, analytics_Storage: analytics });
 }
 
-/** Start forwarding TCF consent to Clarity. Safe to call once, with or without a CMP. */
-export function bridgeConsentToClarity(): void {
+/**
+ * Send the same decision to Google tag Consent Mode. index.html starts EEA/UK/CH visitors
+ * with analytics/ad storage denied and nothing else ever updated it, so GA dropped or only
+ * modelled those visits even after the visitor accepted.
+ */
+export function sendToGtag(ad: Granted, analytics: Granted): void {
+  const w = window as unknown as { gtag?: (...a: unknown[]) => void };
+  if (typeof w.gtag !== "function") return; // GA not configured in this environment
+  w.gtag("consent", "update", {
+    analytics_storage: analytics,
+    ad_storage: ad,
+    ad_user_data: ad,
+    ad_personalization: ad,
+  });
+}
+
+export interface ConsentTargets {
+  clarity?: boolean;
+  gtag?: boolean;
+}
+
+/** Start forwarding TCF consent to Clarity and/or gtag. Safe to call once, with or without a CMP. */
+export function bridgeConsent(targets: ConsentTargets): void {
   if (typeof window === "undefined") return;
   let waited = 0;
   const timer = window.setInterval(() => {
@@ -74,11 +96,18 @@ export function bridgeConsentToClarity(): void {
       window.__tcfapi("addEventListener", 2, (data, success) => {
         if (!success) return;
         const decided = consentFromTcData(data);
-        if (decided) sendToClarity(decided.ad, decided.analytics);
+        if (!decided) return;
+        if (targets.clarity) sendToClarity(decided.ad, decided.analytics);
+        if (targets.gtag) sendToGtag(decided.ad, decided.analytics);
       });
       return;
     }
     waited += POLL_MS;
     if (waited >= MAX_WAIT_MS) window.clearInterval(timer);
   }, POLL_MS);
+}
+
+/** Backwards-compatible entry point: Clarity only. */
+export function bridgeConsentToClarity(): void {
+  bridgeConsent({ clarity: true });
 }
