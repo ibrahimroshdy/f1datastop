@@ -859,7 +859,7 @@ def _jolpica_pitstop_rows(season, rnd):
                 "race_id": rid, "season": season, "round": rnd,
                 "driver_id": ps.get("driverId"), "stop": _int(ps.get("stop")),
                 "lap": _int(ps.get("lap")), "time_local": ps.get("time"),
-                "duration_seconds": _num(ps.get("duration")), "source": "ergast",
+                "duration_seconds": bf.parse_pit_duration(ps.get("duration")), "source": "ergast",
             })
         offset += 100
         if total is None or offset >= total:
