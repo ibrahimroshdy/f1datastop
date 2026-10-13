@@ -13,3 +13,18 @@ describe("pit-stop durations (BUG-008)", () => {
     expect(durationStats([null])).toEqual({ min: null, max: null });
   });
 });
+
+describe("parseDuration M:SS.sss", () => {
+  it("reads minutes:seconds", () => {
+    expect(parseDuration("1:21.474")).toBeCloseTo(81.474, 3);
+    expect(parseDuration("35:54.149")).toBeCloseTo(2154.149, 3);
+    expect(parseDuration("23.591")).toBe(23.591);
+  });
+  it("rejects malformed values", () => {
+    expect(parseDuration("1:2:3")).toBeNull();
+    expect(parseDuration("abc")).toBeNull();
+  });
+  it("fastest stop ignores the minute-long stops", () => {
+    expect(durationStats(["1:21.474", "23.1", "1:00.446"].map(parseDuration)).min).toBe(23.1);
+  });
+});
