@@ -1,3 +1,4 @@
+import { durationStats, parseDuration } from "@/lib/f1/pitStops";
 import React, { useState, useEffect, useMemo } from 'react';
 import { Timer, Flag, Zap, ArrowUpDown } from 'lucide-react';
 import { getTeamHexColor } from '@/components/standings/standingsUtils';
@@ -18,7 +19,8 @@ interface PitStopRow {
   driver: string;
   team: string;
   lap: number;
-  duration: number;
+  /** null when the source has no duration (e.g. the car retired in the pit lane) */
+  duration: number | null;
   timeOfDay: string;
 }
 
@@ -26,7 +28,8 @@ type SortField = 'driver' | 'lap' | 'duration';
 type SortDir = 'asc' | 'desc';
 
 // Format pit stop duration
-const formatDuration = (seconds: number): string => {
+const formatDuration = (seconds: number | null): string => {
+  if (seconds === null || !Number.isFinite(seconds)) return '—';
   if (seconds >= 60) {
     const mins = Math.floor(seconds / 60);
     const secs = (seconds % 60).toFixed(3).padStart(6, '0');
@@ -65,7 +68,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
             result.Driver.driverId,
             {
               code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
-              team: result.Constructor?.constructorId || 'unknown',
+              team: result.Constructor?.name || result.Constructor?.constructorId || 'unknown',
             },
           ])
         );
@@ -84,7 +87,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
             driver: driver?.code || stop.driverId.substring(0, 3).toUpperCase(),
             team: driver?.team || 'unknown',
             lap: parseInt(stop.lap),
-            duration: parseFloat(stop.duration),
+            duration: parseDuration(stop.duration),
             timeOfDay: stop.time,
           };
         });
@@ -110,9 +113,10 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
     // Get fastest stop per driver
     const driverBestStops = new Map<string, { duration: number; team: string }>();
     pitStopData.forEach(stop => {
+      if (stop.duration === null) return;
       const existing = driverBestStops.get(stop.driver);
-      if (!existing || stop.duration < existing.duration) {
-        driverBestStops.set(stop.driver, { duration: stop.duration, team: stop.team });
+      if (!existing || stop.duration! < existing.duration) {
+        driverBestStops.set(stop.driver, { duration: stop.duration!, team: stop.team });
       }
     });
 
@@ -149,18 +153,15 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
     rows.sort((a, b) => {
       let cmp = 0;
       if (sortField === 'driver') cmp = a.driver.localeCompare(b.driver);
-      else cmp = a[sortField] - b[sortField];
+      else if (sortField === 'lap') cmp = a.lap - b.lap;
+      else cmp = (a.duration ?? Infinity) - (b.duration ?? Infinity); // no duration sorts last
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return rows;
   }, [pitStopData, sortField, sortDir]);
 
-  const fastestStop = useMemo(
-    () => (pitStopData.length ? Math.min(...pitStopData.map(d => d.duration)) : 0),
-    [pitStopData],
-  );
-  const maxDuration = useMemo(
-    () => (pitStopData.length ? Math.max(...pitStopData.map(d => d.duration)) : 0),
+  const { min: fastestStop, max: maxDuration } = useMemo(
+    () => durationStats(pitStopData.map((d) => d.duration)),
     [pitStopData],
   );
 
@@ -361,7 +362,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
             {sortedRows.map(row => {
               const isRecord = row.duration === fastestStop;
               const teamColor = getTeamHexColor(row.team);
-              const barPct = maxDuration > 0 ? (row.duration / maxDuration) * 100 : 0;
+              const barPct = maxDuration && row.duration ? (row.duration / maxDuration) * 100 : 0;
               return (
                 <tr key={row.id} className="border-b border-border last:border-b-0 hover:bg-muted/40">
                   <td className="px-3 py-1.5">
