@@ -185,7 +185,10 @@ const FastestPitStopCard = () => {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Timer className="h-4 w-4 text-primary shrink-0" />
-              <h3 className="font-semibold text-sm">Fastest Pit Stops</h3>
+              <div>
+                <h3 className="font-semibold text-sm">Fastest Pit Stops</h3>
+                <p className="text-[11px] text-muted-foreground">Time in pit lane, entry to exit</p>
+              </div>
             </div>
             
             {/* GP Badge - Top Right */}
