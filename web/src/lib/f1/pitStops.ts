@@ -8,7 +8,13 @@
  */
 export function parseDuration(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
-  const n = typeof v === "number" ? v : parseFloat(String(v));
+  let n: number;
+  if (typeof v === "number") n = v;
+  else {
+    // Jolpica writes stops of a minute or more as M:SS.sss ("1:21.474"); parseFloat read that as 1.
+    const m = /^\s*(?:(\d+):)?(\d+(?:\.\d+)?)\s*$/.exec(String(v));
+    n = m ? Number(m[1] ?? 0) * 60 + Number(m[2]) : NaN;
+  }
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
