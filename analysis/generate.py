@@ -3687,6 +3687,36 @@ def _wh_portraits(codes):
     return out
 
 
+def _wh_sprint_points(season, ergast_id, upto):
+    """{round: sprint points} for one driver through `upto` (empty when none/unconfigured)."""
+    rows = _wh_call("GET", "f1_sprint_result",
+                    params={"season": f"eq.{int(season)}", "driver_id": f"eq.{ergast_id}",
+                            "round": f"lte.{int(upto)}", "select": "round,points"}, timeout=20)
+    out = {}
+    for row in rows or []:
+        try:
+            out[int(row["round"])] = out.get(int(row["round"]), 0.0) + float(row.get("points") or 0)
+        except (TypeError, ValueError, KeyError):
+            continue
+    return out
+
+
+def _add_sprint_points(series, sprint_by_round):
+    """Fold sprint points into a cumulative [(round, pts)] race-points series, so the
+    championship line ends on the standings value (race + sprint)."""
+    if not sprint_by_round:
+        return series
+    out, extra = [], 0.0
+    for rnd, cum in series:
+        extra += sum(p for r, p in sprint_by_round.items() if r == rnd)
+        out.append((rnd, cum + extra))
+    # sprint rounds with no race row (e.g. race not yet classified) still count at the end
+    leftover = sum(p for r, p in sprint_by_round.items() if r not in {x for x, _ in series})
+    if leftover and out:
+        out[-1] = (out[-1][0], out[-1][1] + leftover)
+    return out
+
+
 def chart_championship(session, meta):
     """The championship after this round: driver standings table + points
     progression for the leaders. Warehouse-backed (ignores the session). Whole
@@ -3722,6 +3752,9 @@ def chart_championship(session, meta):
         if res:
             ser = _sc_summary(res, upto)["series"]
             if ser:
+                # get_driver_season_results is Grand Prix rows only; the table includes
+                # sprint points, so add them or the line ends below the table value.
+                ser = _add_sprint_points(ser, _wh_sprint_points(season, r["id"], upto))
                 prog.append((r, ser))
 
     tall = FMT == "story"

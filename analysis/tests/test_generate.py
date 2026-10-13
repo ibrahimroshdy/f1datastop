@@ -168,3 +168,21 @@ class ExitCodes(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ChampionshipSprintPoints(unittest.TestCase):
+    """BUG-002: the progression line must include sprint points (table does)."""
+    def test_sprint_points_are_folded_in(self):
+        ser = [(1, 25.0), (2, 43.0), (3, 43.0)]
+        self.assertEqual(g._add_sprint_points(ser, {2: 8.0, 3: 5.0}),
+                         [(1, 25.0), (2, 51.0), (3, 56.0)])
+
+    def test_no_sprints_is_identity(self):
+        ser = [(1, 25.0)]
+        self.assertEqual(g._add_sprint_points(ser, {}), ser)
+
+    def test_line_ends_on_table_value_singapore(self):
+        # Antonelli 2026: 309 race points + 31 sprint points = 340 (the standings value)
+        ser = [(16, 300.0), (17, 309.0)]
+        sprint = {2: 4.0, 4: 3.0, 5: 6.0, 9: 8.0, 12: 5.0, 17: 5.0}
+        self.assertEqual(g._add_sprint_points(ser, sprint)[-1], (17, 340.0))
