@@ -186,3 +186,14 @@ class ChampionshipSprintPoints(unittest.TestCase):
         ser = [(16, 300.0), (17, 309.0)]
         sprint = {2: 4.0, 4: 3.0, 5: 6.0, 9: 8.0, 12: 5.0, 17: 5.0}
         self.assertEqual(g._add_sprint_points(ser, sprint)[-1], (17, 340.0))
+
+class StandingsChartsCache(unittest.TestCase):
+    """BUG-003: re-rendered standings charts must not be cached as immutable."""
+    def test_standings_charts_get_short_cache(self):
+        with mock.patch.object(g.bs, "put", return_value="u") as put:
+            g.upload_png("2026/17-X/R/landscape/championship.png", b"x")
+            g.upload_png("2026/17-X/R/landscape/constructors.thumb.webp", b"x")
+            g.upload_png("2026/17-X/R/landscape/places_gained.png", b"x")
+        kws = [c.kwargs.get("cache_control") for c in put.call_args_list]
+        self.assertEqual(kws[:2], ["public, max-age=600"] * 2)
+        self.assertIsNone(kws[2])

@@ -92,3 +92,59 @@ class Errors(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StandingsFingerprint(unittest.TestCase):
+    """BUG-003: a done race session whose standings charts are stale is re-queued."""
+    D = [{"Driver": {"driverId": "antonelli"}, "points": "340.0"},
+         {"Driver": {"driverId": "piastri"}, "points": "138.0"}]
+    C = [{"Constructor": {"constructorId": "red_bull"}, "points": "332.0"}]
+    ROWS = [{"chart_type": "championship", "theme": "dark",
+             "storage_path": "2026/17-Singapore-Grand-Prix/R/landscape/championship.png"}]
+
+    def run_stale(self, have):
+        import standings_fp
+        def fetch_json(path):
+            return self.D if "driver" in path else self.C
+        side = have if isinstance(have, Exception) else None
+        with mock.patch.object(ct.cdn_schedule, "fetch_json", side_effect=fetch_json), \
+                mock.patch.object(ct.cdn_schedule, "cdn_host", return_value="https://cdn"), \
+                mock.patch.object(ct, "_fetch_text", side_effect=side,
+                                  return_value=None if side else have) as ft:
+            out = ct._standings_stale(2026, self.ROWS)
+        return out, ft, standings_fp
+
+    def test_fingerprint_is_order_independent_and_point_sensitive(self):
+        import standings_fp as fp
+        a = fp.fingerprint(self.D, self.C)
+        self.assertEqual(a, fp.fingerprint(list(reversed(self.D)), self.C))
+        changed = [dict(self.D[0]), {"Driver": {"driverId": "piastri"}, "points": "136.0"}]
+        self.assertNotEqual(a, fp.fingerprint(changed, self.C))
+
+    def test_matching_fingerprint_is_not_stale(self):
+        import standings_fp as fp
+        out, ft, _ = self.run_stale(fp.fingerprint(self.D, self.C))
+        self.assertFalse(out)
+        self.assertEqual(ft.call_args[0][0],
+                         "https://cdn/charts/2026/17-Singapore-Grand-Prix/R/standings.fp")
+
+    def test_changed_standings_are_stale(self):
+        self.assertTrue(self.run_stale("deadbeef")[0])
+
+    def test_missing_fingerprint_is_stale_once(self):
+        import urllib.error
+        err = urllib.error.HTTPError("u", 404, "nf", {}, None)
+        self.assertTrue(self.run_stale(err)[0])
+
+    def test_outage_is_not_stale(self):
+        self.assertFalse(self.run_stale(RuntimeError("down"))[0])
+
+    def test_only_latest_round_is_checked(self):
+        rows = rows_ok = None
+        with mock.patch.object(ct.cdn_schedule, "fetch_json", return_value=[]), \
+                mock.patch.object(ct, "_is_complete", return_value=True), \
+                mock.patch.object(ct, "_standings_stale", return_value=True) as st:
+            self.assertTrue(ct._has_charts(2026, 16, "R", latest=False))
+            self.assertFalse(ct._has_charts(2026, 17, "R", latest=True))
+            self.assertTrue(ct._has_charts(2026, 17, "Q", latest=True))
+        self.assertEqual(st.call_count, 1)
