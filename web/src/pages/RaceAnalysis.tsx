@@ -1,3 +1,4 @@
+import { pickInitialSession } from "@/lib/f1/sessionPick";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { RaceAnalysisHeader } from "@/components/race-analysis/RaceAnalysisHeader";
@@ -104,13 +105,10 @@ const RaceAnalysis = () => {
     opts.sort((a, b) => a.session_key - b.session_key);
     setAvailableSessions(opts);
     if (!selectedSessionKey) {
-      const urlSession = searchParams.get("session");
-      const fromUrl = urlSession ? opts.find((o) => o.session_type === urlSession) : undefined;
-      const race = opts.find((o) => o.session_type === "R");
-      const chosen = fromUrl ?? race ?? opts[opts.length - 1];
-      setSelectedSessionKey(chosen.session_key);
+      const chosen = pickInitialSession(opts, searchParams.get("session"), !isSessionsLoading);
+      if (chosen) setSelectedSessionKey(chosen.session_key);
     }
-  }, [dbSessions, selectedRace, selectedSessionKey, searchParams]);
+  }, [dbSessions, isSessionsLoading, selectedRace, selectedSessionKey, searchParams]);
 
   const hasSessions = availableSessions.length > 0;
 
