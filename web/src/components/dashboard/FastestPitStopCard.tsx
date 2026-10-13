@@ -11,6 +11,7 @@ import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { F1EmptyState } from "@/components/f1/F1EmptyState";
+import { parseDuration } from "@/lib/f1/pitStops";
 
 // Helper function to format pit stop duration
 const formatPitStopDuration = (durationInSeconds: number): string => {
@@ -57,7 +58,7 @@ const DRIVER_TEAM_MAPPING: Record<string, string> = {
   "hulkenberg": "haas", "magnussen": "haas", "hadjar": "haas"
 };
 
-function processDriverFastestPitStops(raceData: any, pitStopData: any): FastestStop[] {
+export function processDriverFastestPitStops(raceData: any, pitStopData: any): FastestStop[] {
   let pitStops = pitStopData?.MRData?.RaceTable?.Races?.[0]?.PitStops;
   if (!pitStops?.length) pitStops = pitStopData?.data?.MRData?.RaceTable?.Races?.[0]?.PitStops;
   if (!pitStops?.length) pitStops = pitStopData?.data?.Races?.[0]?.PitStops;
@@ -93,8 +94,10 @@ function processDriverFastestPitStops(raceData: any, pitStopData: any): FastestS
       };
     }
     
-    const duration = parseFloat(stop.duration);
-    
+    // Jolpica writes stops of a minute or more as M:SS.sss; parseFloat read "1:21.474" as 1.
+    const duration = parseDuration(stop.duration);
+    if (duration === null) return;
+
     if (!fastestPitStops.has(driverId) || duration < fastestPitStops.get(driverId)!.duration) {
       fastestPitStops.set(driverId, {
         driver,
