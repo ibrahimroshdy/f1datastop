@@ -14,7 +14,7 @@ The measurement ID is injected at build time from `VITE_GA_MEASUREMENT_ID` (`%VI
 ## Consent
 
 - Visitors from the EEA, UK and Switzerland start with `ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage` (and functionality/personalization storage) **denied**, with `wait_for_update: 500`. Everyone else starts granted.
-- There is no custom banner and this code never calls `gtag('consent', 'update', ...)`. Whether Google's consent message (Funding Choices, loaded with AdSense) updates Consent Mode on its own is not confirmed in Google's public docs; see the Task 4 report.
+- There is no custom banner. `consentBridge.ts` forwards the consent message's TCF decision as `gtag('consent', 'update', ...)` (and to Clarity). Whether Google's consent message (Funding Choices, loaded with AdSense) updates Consent Mode on its own is not confirmed in Google's public docs; see the Task 4 report.
 - `src/integrations/clarity/consentBridge.ts` forwards the TCF decision to Microsoft Clarity (`consentv2`). It is started from `bootstrapThirdParty.ts`.
 - No identifier is written by this code: there is no `user_id` and no custom cookie domain or cookie flags. GA uses its own default cookies.
 
@@ -23,8 +23,9 @@ The measurement ID is injected at build time from `VITE_GA_MEASUREMENT_ID` (`%VI
 | File | Purpose |
 | --- | --- |
 | `GA4.tsx` | `trackPageView`, `trackEvent` and the F1-specific helpers (calendar, race card, results, driver/team interactions). All guard on `isGaEnabled` and `window.gtag`. Also exports a `GoogleAnalytics` route-change component. |
-| `AnalyticsProvider.tsx` | Wraps the app. Sends a `page_view` on each SPA route change, **skipping the first render** (index.html already sent it). Registers error / unhandled-rejection tracking and renders `EngagementTracker`. |
-| `EngagementTracker.tsx` | Scroll depth, time on page and inactivity events. |
+| `AnalyticsProvider.tsx` | Wraps the app. Sends **no** page_views: the first load is counted by index.html's `gtag('config')`, and SPA route changes by GA4 Enhanced Measurement ("page changes based on browser history events" must stay ON). Registers error / unhandled-rejection tracking and renders `EngagementTracker`. |
+| `EngagementTracker.tsx` | Scroll depth (measured on `#main-content`, the real scroll container) and visible-only time on page. No inactivity events. |
+| `engagementUtils.ts` | Pure helpers for the tracker (scroll %, thresholds, visible-time clock). |
 
 `src/hooks/useAnalytics.ts` is the hook components use to send events.
 
@@ -36,7 +37,7 @@ import { trackEvent } from '@/integrations/google-analytics/GA4';
 trackEvent('button_click', { button_name: 'chart_request' });
 ```
 
-Page views for route changes are sent by `AnalyticsProvider`; do not send them by hand.
+Do not send page_views by hand; Enhanced Measurement counts route changes. Do not name event params `source`, `medium` or `campaign` (gtag treats them as campaign attribution).
 
 ## Debugging
 

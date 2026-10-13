@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { trackEvent } from './GA4.tsx';
+import { getScrollContainer, newThresholds, scrollPercent, VisibleClock } from './engagementUtils';
 
 // Maximum scroll depth reached
 let maxScrollDepth = 0;
@@ -30,27 +31,21 @@ const safeTrackEvent = (eventName: string, eventParams?: Record<string, any>) =>
 interface EngagementTrackerProps {
   trackScrollDepth?: boolean;
   trackTimeOnPage?: boolean;
-  trackInactivity?: boolean;
   trackSession?: boolean; // Added session tracking option
   scrollThresholds?: number[]; // Scroll depth percentage thresholds
   timeThresholds?: number[]; // Time thresholds in seconds
-  inactivityThreshold?: number; // Time in seconds before considered inactive
   sessionSampleRate?: number; // Rate at which to sample detailed session data (0-100)
 }
 
 const EngagementTracker: React.FC<EngagementTrackerProps> = ({
   trackScrollDepth = true,
   trackTimeOnPage = true,
-  trackInactivity = true,
   trackSession = true, // Enable session tracking by default
   scrollThresholds = [25, 50, 75, 90],
   timeThresholds = [10, 30, 60, 120, 300],
-  inactivityThreshold = 120, // 2 minutes
   sessionSampleRate = 10 // 10% of sessions will be tracked in detail
 }) => {
-  const [visitStartTime] = useState(Date.now());
-  const inactivityTimer = useRef<NodeJS.Timeout | null>(null);
-  const [isInactive, setIsInactive] = useState(false);
+  const clock = useRef(new VisibleClock(Date.now(), typeof document === 'undefined' || !document.hidden));
   const [sessionId, setSessionId] = useState<string>('');
   const [shouldRecordDetailed, setShouldRecordDetailed] = useState(false);
   const thresholdsReached = useRef<{
@@ -115,10 +110,6 @@ const EngagementTracker: React.FC<EngagementTrackerProps> = ({
         window.removeEventListener('beforeunload', handleBeforeUnload);
         // Track time spent on page when component unmounts
         trackTimeSpent(false);
-        
-        if (inactivityTimer.current) {
-          clearTimeout(inactivityTimer.current);
-        }
       };
     } catch (error) {
       console.error('[Engagement] Error in initialization:', error);
@@ -202,146 +193,77 @@ const EngagementTracker: React.FC<EngagementTrackerProps> = ({
     }
   };
 
-  // Track scroll depth
+  // Track scroll depth on the element that really scrolls (see engagementUtils).
   useEffect(() => {
     if (!trackScrollDepth) return;
 
-    try {
-      const handleScroll = () => {
-        // Throttle scroll events - only process once every 500ms
-        if (Date.now() - lastScrollEventTime < 500) return;
-        
-        // Calculate scroll depth as percentage
-        const docHeight = Math.max(
-          document.body.scrollHeight,
-          document.documentElement.scrollHeight,
-          document.body.offsetHeight,
-          document.documentElement.offsetHeight,
-          document.body.clientHeight,
-          document.documentElement.clientHeight
-        );
+    const container = getScrollContainer();
+    // When the container is the document, scroll events fire on window, not on <html>.
+    const target: HTMLElement | Window = container === document.documentElement ? window : container;
 
-        const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const trackLength = docHeight - windowHeight;
-        
-        // Handle divide by zero
-        if (trackLength <= 0) return;
-        
-        const scrollPercent = Math.floor((scrollTop / trackLength) * 100);
+    const handleScroll = () => {
+      if (Date.now() - lastScrollEventTime < 500) return;
+      const percent = scrollPercent(container);
+      if (percent === null || percent <= maxScrollDepth) return;
+      maxScrollDepth = percent;
+      newThresholds(percent, scrollThresholds, thresholdsReached.current.scroll).forEach((threshold) => {
+        lastScrollEventTime = Date.now();
+        thresholdsReached.current.scroll.push(threshold);
+        safeTrackEvent('scroll_depth', {
+          session_id: sessionId,
+          scroll_percent: threshold,
+          page_path: window.location.pathname,
+          page_title: document.title
+        });
+      });
+    };
 
-        // Update max scroll depth
-        if (scrollPercent > maxScrollDepth) {
-          maxScrollDepth = scrollPercent;
-
-          // Check if we've passed any thresholds
-          scrollThresholds.forEach(threshold => {
-            if (
-              scrollPercent >= threshold &&
-              !thresholdsReached.current.scroll.includes(threshold)
-            ) {
-              lastScrollEventTime = Date.now();
-              thresholdsReached.current.scroll.push(threshold);
-              safeTrackEvent('scroll_depth', {
-                session_id: sessionId,
-                scroll_percent: threshold,
-                page_path: window.location.pathname,
-                page_title: document.title
-              });
-            }
-          });
-        }
-      };
-
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      return () => window.removeEventListener('scroll', handleScroll);
-    } catch (error) {
-      console.error('[Engagement] Error in scroll tracking:', error);
-    }
+    target.addEventListener('scroll', handleScroll, { passive: true });
+    return () => target.removeEventListener('scroll', handleScroll);
   }, [trackScrollDepth, scrollThresholds, sessionId]);
 
-  // Track time spent on page
+  // Track time on page. Time only counts while the tab is visible, the interval is
+  // paused while hidden, and it stops for good once the last threshold has been sent,
+  // so an idle or background tab cannot keep a GA session alive or start new ones.
   useEffect(() => {
     if (!trackTimeOnPage) return;
-    
-    try {
-      const timeInterval = setInterval(() => {
-        trackTimeSpent(true);
-      }, 10000); // Check every 10 seconds instead of 5
-      
-      return () => clearInterval(timeInterval);
-    } catch (error) {
-      console.error('[Engagement] Error in time tracking setup:', error);
-    }
-  }, [trackTimeOnPage, timeThresholds, sessionId]);
 
-  // Track user inactivity
-  useEffect(() => {
-    if (!trackInactivity) return;
-    
-    try {
-      // Reset inactivity timer on user interactions
-      const resetInactivityTimer = () => {
-        if (isInactive) {
-          // User became active again
-          setIsInactive(false);
-          safeTrackEvent('user_activity', {
-            session_id: sessionId,
-            event_type: 'active',
-            inactive_duration: 'calculated_on_server',
-            url: window.location.pathname
-          });
-        }
-        
-        if (inactivityTimer.current) {
-          clearTimeout(inactivityTimer.current);
-        }
-        
-        inactivityTimer.current = setTimeout(() => {
-          setIsInactive(true);
-          safeTrackEvent('user_activity', {
-            session_id: sessionId,
-            event_type: 'inactive',
-            threshold_seconds: inactivityThreshold,
-            url: window.location.pathname
-          });
-        }, inactivityThreshold * 1000);
-      };
-      
-      // Add event listeners for user activity
-      const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
-      events.forEach(event => {
-        window.addEventListener(event, resetInactivityTimer, { passive: true });
-      });
-      
-      // Initial setup
-      resetInactivityTimer();
-      
-      return () => {
-        events.forEach(event => {
-          window.removeEventListener(event, resetInactivityTimer);
-        });
-        
-        if (inactivityTimer.current) {
-          clearTimeout(inactivityTimer.current);
-        }
-      };
-    } catch (error) {
-      console.error('[Engagement] Error in inactivity tracking:', error);
-    }
-  }, [trackInactivity, inactivityThreshold, isInactive, sessionId]);
+    let timeInterval: ReturnType<typeof setInterval> | null = null;
+    const lastThreshold = Math.max(...timeThresholds);
+    const stop = () => {
+      if (timeInterval) clearInterval(timeInterval);
+      timeInterval = null;
+    };
+    const start = () => {
+      if (timeInterval || document.hidden) return;
+      if (thresholdsReached.current.time.includes(lastThreshold)) return;
+      timeInterval = setInterval(() => {
+        trackTimeSpent(true);
+        if (thresholdsReached.current.time.includes(lastThreshold)) stop();
+      }, 10000);
+    };
+    const onVisibility = () => {
+      clock.current.setVisible(!document.hidden, Date.now());
+      if (document.hidden) stop();
+      else start();
+    };
+
+    start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [trackTimeOnPage, timeThresholds, sessionId]);
 
   // Track time spent on page
   const trackTimeSpent = (isInterval: boolean) => {
     try {
-      const timeSpent = Math.floor((Date.now() - visitStartTime) / 1000);
+      const timeSpent = clock.current.seconds(Date.now());
       
       // Check for time thresholds
-      timeThresholds.forEach(threshold => {
-        if (
-          timeSpent >= threshold &&
-          !thresholdsReached.current.time.includes(threshold)
-        ) {
+      newThresholds(timeSpent, timeThresholds, thresholdsReached.current.time).forEach(threshold => {
+        {
           thresholdsReached.current.time.push(threshold);
           safeTrackEvent('time_on_page', {
             session_id: sessionId,

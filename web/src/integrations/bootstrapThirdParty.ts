@@ -2,8 +2,9 @@ import {
   adsenseClientId,
   isAdSenseEnabled,
   isClarityEnabled,
+  isGaEnabled,
 } from "@/config/integrations";
-import { bridgeConsentToClarity } from "./clarity/consentBridge";
+import { bridgeConsent } from "./clarity/consentBridge";
 
 // NOTE: the Google tag (gtag.js) + consent defaults now load from index.html's
 // inline snippet (build-time id from VITE_GA_MEASUREMENT_ID), so the initial
@@ -27,8 +28,9 @@ export function bootstrapThirdPartyScripts(): void {
   if (typeof window === "undefined") return;
 
   // Clarity needs a consent signal for EEA/UK/CH visitors; the only consent UI is Google's
-  // (Funding Choices), so forward its TCF decision. No-op if no CMP ever appears.
-  if (isClarityEnabled) bridgeConsentToClarity();
+  // (Funding Choices), so forward its TCF decision. GA needs the same decision as a
+  // gtag('consent','update') or EEA/UK/CH visits stay denied. No-op if no CMP ever appears.
+  if (isClarityEnabled || isGaEnabled) bridgeConsent({ clarity: isClarityEnabled, gtag: isGaEnabled });
 
   if (isAdSenseEnabled) {
     const client = encodeURIComponent(adsenseClientId);
