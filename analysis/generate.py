@@ -2823,19 +2823,20 @@ def _ra_places(ax, session):
     if "GridPosition" not in res or "Position" not in res:
         _ra_empty(ax, "No grid data")
         return
-    res = res.dropna(subset=["GridPosition", "Position"])
-    res = res[res["GridPosition"] > 0]
-    if res.empty:
+    rows = places_gained_rows(res)   # BUG-005: retirements tagged, not counted as losses
+    if not any(d is not None for _, d, _ in rows):
         _ra_empty(ax, "No grid data")
         return
-    res["delta"] = res["GridPosition"] - res["Position"]
-    res = res.sort_values("delta")
-    codes = list(res["Abbreviation"].values)
-    deltas = res["delta"].values
+    codes = [c for c, _, _ in rows]
+    deltas = [d if d is not None else 0 for _, d, _ in rows]
     cols = [_GAIN if d > 0 else (_LOSS if d < 0 else SUBINK) for d in deltas]
     ax.barh(range(len(codes)), deltas, color=cols, height=0.66, zorder=3,
             edgecolor=PAPER, linewidth=0.6)
     ax.axvline(0, color="#3A3D45", lw=1.1)
+    for i, (_, d, label) in enumerate(rows):
+        if d is None:
+            ax.text(0.3, i, label, va="center", ha="left", fontsize=6.2,
+                    fontproperties=FP_MONO_B, color=SUBINK)
     ax.set_yticks(range(len(codes)))
     ax.set_yticklabels(codes, fontproperties=FP_BODY_B, color=INK, fontsize=6.8)
     ax.set_ylim(-0.7, len(codes) - 0.3)
