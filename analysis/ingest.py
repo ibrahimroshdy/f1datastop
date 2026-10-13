@@ -826,6 +826,67 @@ def ingest_pitstops(session, season, rnd):
     return n
 
 
+def _jolpica_pitstop_rows(season, rnd):
+    """Jolpica's pit stops for a round as f1_pit_stop rows, or None when unavailable.
+    Jolpica is the authority: FastF1's PitOut-PitIn derivation drifts from the official
+    pit-lane times (Singapore 2026: RUS 23.613 vs the official 23.648)."""
+    rows, offset, total = [], 0, None
+    rid = bf.race_id_for(season, rnd)
+    while True:
+        doc, state = bf.jolpica_fetch(f"{season}/{rnd}/pitstops", limit=100, offset=offset)
+        if state != "ok":
+            return None
+        try:
+            total = _int(doc["MRData"].get("total"))
+            races = doc["MRData"]["RaceTable"].get("Races", [])
+        except (KeyError, TypeError):
+            return None
+        if not races:
+            break
+        for ps in races[0].get("PitStops", []):
+            rows.append({
+                "race_id": rid, "season": season, "round": rnd,
+                "driver_id": ps.get("driverId"), "stop": _int(ps.get("stop")),
+                "lap": _int(ps.get("lap")), "time_local": ps.get("time"),
+                "duration_seconds": _num(ps.get("duration")), "source": "ergast",
+            })
+        offset += 100
+        if total is None or offset >= total:
+            break
+    return rows or None
+
+
+def _overwrite_pitstops_from_jolpica(season, rnd):
+    """Make f1_pit_stop for one round exactly Jolpica's list: upsert its rows, then delete
+    any warehouse stop it doesn't list (a FastF1-derived extra stop). Returns rows written,
+    or None when Jolpica has nothing yet (the FastF1 rows stay as a provisional stand-in)."""
+    rows = _jolpica_pitstop_rows(season, rnd)
+    if not rows:
+        return None
+    n = bf.supa_upsert("f1_pit_stop", rows, "season,round,driver_id,stop")
+    keep = {(r["driver_id"], r["stop"]) for r in rows}
+    have = bf.supa_select("f1_pit_stop", "driver_id,stop", season=season, round=rnd) or []
+    for h in have:
+        if (h.get("driver_id"), _int(h.get("stop"))) not in keep:
+            _delete_rows("f1_pit_stop", season=f"eq.{season}", round=f"eq.{rnd}",
+                         driver_id=f"eq.{h.get('driver_id')}", stop=f"eq.{h.get('stop')}")
+    print(f"  pitstops {season} R{rnd}: overwritten from Jolpica ({n} rows)")
+    return n
+
+
+def _pitstops_diverge(season, rnd):
+    """True when the warehouse pit stops differ from Jolpica's (lap or duration), None
+    when Jolpica can't be read."""
+    rows = _jolpica_pitstop_rows(season, rnd)
+    if not rows:
+        return None
+    want = {(r["driver_id"], r["stop"]): (r["lap"], r["duration_seconds"]) for r in rows}
+    have = {(h.get("driver_id"), _int(h.get("stop"))): (_int(h.get("lap")), _num(h.get("duration_seconds")))
+            for h in (bf.supa_select("f1_pit_stop", "driver_id,stop,lap,duration_seconds",
+                                     season=season, round=rnd) or [])}
+    return want != have
+
+
 # ── standings (computed from race + sprint points) ────────────────────────────
 def compute_standings(season):
     rr = bf.supa_select("f1_race_result", "round,driver_id,constructor_id,position,points", season=season) or []
@@ -1085,12 +1146,24 @@ def _reverify_after_reingest(season, rnd):
         RESULT_DIVERGENCE[(season, rnd)] = f"re-verification failed: {e}"
 
 
+def _recheck_pitstops(season, rnd):
+    """On a done, recent round: re-sync pit stops when Jolpica has corrected them since.
+    Best-effort, never fatal (a stale pit-stop list must not block the run)."""
+    try:
+        if _recently_completed(season, rnd) and _pitstops_diverge(season, rnd) is True:
+            print(f"== {season} R{rnd} == Jolpica pit stops differ from the warehouse; re-syncing")
+            _overwrite_pitstops_from_jolpica(season, rnd)
+    except Exception as e:  # noqa: BLE001
+        print(f"== {season} R{rnd} == pit-stop re-check skipped ({e})")
+
+
 def ingest_round(season, rnd):
     if (season, rnd) in IDENTITY_ERRORS:
         print(f"== {season} R{rnd} == identity guard rejected this round; not ingesting")
         return
     fresh = False
     if not FORCE and _round_done(season, rnd):
+        _recheck_pitstops(season, rnd)
         if not _needs_penalty_recheck(season, rnd):
             _cache()
             print(f"== {season} R{rnd} == already ingested, skip (--force to redo)")
@@ -1135,6 +1208,11 @@ def _ingest_round_sessions(season, rnd):
                 ingest_pitstops(s, season, rnd)
             except Exception as e:  # noqa: BLE001
                 print(f"  pitstops failed: {e}")
+            try:
+                # FastF1 rows are only a stand-in until Jolpica publishes the official list.
+                _overwrite_pitstops_from_jolpica(season, rnd)
+            except Exception as e:  # noqa: BLE001
+                print(f"  pitstops Jolpica overwrite failed: {e}")
             # enrichment reuses its own loads (weather/messages/laps)
             for fn in (lambda: enrich.ingest_weather(season, rnd, "R"),
                        lambda: enrich.ingest_overtakes(season, rnd, "R"),

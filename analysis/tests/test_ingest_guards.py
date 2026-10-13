@@ -170,6 +170,7 @@ class IngestRoundRecheck(unittest.TestCase):
                 mock.patch.object(ingest, "_round_has_happened", return_value=True), \
                 mock.patch.object(ingest, "sessions_for_round", return_value=["R"]), \
                 mock.patch.object(ingest, "_reverify_after_reingest"), \
+                mock.patch.object(ingest, "_recheck_pitstops"), \
                 mock.patch.object(ingest, "_load", side_effect=fake_load):
             ingest.ingest_round(2026, 6)
         return loads
@@ -346,3 +347,59 @@ class FreshCacheCleanup(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _pit_doc(stops):
+    return {"MRData": {"total": str(len(stops)), "RaceTable": {"Races": [{"PitStops": stops}]}}}
+
+
+class PitStopsFromJolpica(unittest.TestCase):
+    """BUG-001: FastF1-derived pit stops must be replaced by Jolpica's official list."""
+    JOL = [{"driverId": "antonelli", "stop": "2", "lap": "39", "time": "t", "duration": "23.591"},
+           {"driverId": "stroll", "stop": "1", "lap": "26", "time": "t", "duration": "23.601"},
+           {"driverId": "russell", "stop": "1", "lap": "39", "time": "t", "duration": "23.648"}]
+    WH = [{"driver_id": "russell", "stop": 1, "lap": 39, "duration_seconds": 23.613},
+          {"driver_id": "antonelli", "stop": 2, "lap": 39, "duration_seconds": 23.646},
+          {"driver_id": "stroll", "stop": 1, "lap": 26, "duration_seconds": 23.695},
+          {"driver_id": "stroll", "stop": 2, "lap": 50, "duration_seconds": 30.0}]
+
+    def patches(self, wh=None):
+        return (mock.patch.object(ingest.bf, "jolpica_fetch", return_value=(_pit_doc(self.JOL), "ok")),
+                mock.patch.object(ingest.bf, "race_id_for", return_value=1),
+                mock.patch.object(ingest.bf, "supa_select", return_value=self.WH if wh is None else wh))
+
+    def test_stale_fastf1_rows_diverge(self):
+        a, b, c = self.patches()
+        with a, b, c:
+            self.assertTrue(ingest._pitstops_diverge(2026, 17))
+
+    def test_matching_rows_do_not_diverge(self):
+        same = [{"driver_id": r["driverId"], "stop": int(r["stop"]), "lap": int(r["lap"]),
+                 "duration_seconds": float(r["duration"])} for r in self.JOL]
+        a, b, c = self.patches(same)
+        with a, b, c:
+            self.assertFalse(ingest._pitstops_diverge(2026, 17))
+
+    def test_unavailable_is_unverifiable(self):
+        with mock.patch.object(ingest.bf, "jolpica_fetch", return_value=(None, "unavailable")), \
+                mock.patch.object(ingest.bf, "race_id_for", return_value=1):
+            self.assertIsNone(ingest._pitstops_diverge(2026, 17))
+            self.assertIsNone(ingest._overwrite_pitstops_from_jolpica(2026, 17))
+
+    def test_overwrite_upserts_jolpica_and_deletes_extra_stop(self):
+        a, b, c = self.patches()
+        with a, b, c, mock.patch.object(ingest.bf, "supa_upsert", return_value=3) as up, \
+                mock.patch.object(ingest, "_delete_rows") as dele:
+            self.assertEqual(ingest._overwrite_pitstops_from_jolpica(2026, 17), 3)
+        rows = up.call_args[0][1]
+        self.assertEqual({(r["driver_id"], r["duration_seconds"]) for r in rows},
+                         {("antonelli", 23.591), ("stroll", 23.601), ("russell", 23.648)})
+        self.assertTrue(all(r["source"] == "ergast" for r in rows))
+        dele.assert_called_once()
+        self.assertEqual(dele.call_args.kwargs["driver_id"], "eq.stroll")
+        self.assertEqual(dele.call_args.kwargs["stop"], "eq.2")
+
+    def test_recheck_never_raises(self):
+        with mock.patch.object(ingest, "_recently_completed", return_value=True), \
+                mock.patch.object(ingest, "_pitstops_diverge", side_effect=RuntimeError("x")):
+            ingest._recheck_pitstops(2026, 17)
