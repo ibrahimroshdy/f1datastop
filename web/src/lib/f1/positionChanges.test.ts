@@ -100,3 +100,19 @@ describe("getPositionChangeSummary", () => {
     expect(summary?.change).toBe(4);
   });
 });
+
+describe("isErgastDriverDNF with positionText (BUG-005)", () => {
+  it("Lapped but not classified is a DNF (2026 R1 STR)", () => {
+    expect(isErgastDriverDNF("Lapped", 20, "N")).toBe(true);
+  });
+  it("Retired but classified is a finish (2026 R17 ALB P18)", () => {
+    expect(isErgastDriverDNF("Retired", 18, "18")).toBe(false);
+  });
+  it("R is a DNF", () => {
+    expect(isErgastDriverDNF("Retired", 20, "R")).toBe(true);
+  });
+  it("DNS is not a DNF", () => {
+    expect(isErgastDriverDNF("Did not start", 22, "W")).toBe(false);
+    expect(isErgastDriverDNF("Did not start", 22)).toBe(false);
+  });
+});

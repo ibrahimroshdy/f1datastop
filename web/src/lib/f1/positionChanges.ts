@@ -63,7 +63,18 @@ export interface PositionChangeSummary {
 
 export type PositionChartLap = { lap: number; [driverCode: string]: number };
 
-export function isErgastDriverDNF(status: string, position: number): boolean {
+/**
+ * DNF from Ergast/Jolpica positionText when available (BUG-005): numeric = classified
+ * (even with status "Retired"), "R"/"N"/"D"/"E" = not classified, "W"/"F" or status
+ * "Did not start" = DNS, which is not a DNF. Without positionText, the old status rule.
+ */
+export function isErgastDriverDNF(status: string, position: number, positionText?: string): boolean {
+  if (status.toLowerCase() === "did not start") return false;
+  const pt = (positionText ?? "").trim().toUpperCase();
+  if (pt) {
+    if (/^\d+$/.test(pt)) return false;
+    return !["W", "F"].includes(pt);
+  }
   const finishedStatuses = ["Finished", "finished"];
   const isFinished =
     finishedStatuses.includes(status) || status.includes("+") || status.includes("Lap");
@@ -81,13 +92,14 @@ export function mapErgastResultsToDrivers(results: Array<{
   Driver: { driverId: string; code?: string; givenName: string; familyName: string };
   Constructor?: { constructorId?: string };
   position: string;
+  positionText?: string;
   grid?: string;
   status?: string;
 }>): PositionDriver[] {
   return results.map((result) => {
     const status = result.status || "";
     const finishPosition = parseInt(result.position, 10) || 0;
-    const isDNF = isErgastDriverDNF(status, finishPosition);
+    const isDNF = isErgastDriverDNF(status, finishPosition, result.positionText);
 
     return {
       driverId: result.Driver.driverId,
