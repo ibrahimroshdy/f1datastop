@@ -20,6 +20,7 @@ import argparse
 import os
 import re
 
+import classification
 import backfill as bf   # supa_upsert, supa_select, _env, to_int, _fmt_laptime, race_id_for
 import f1_proxy  # noqa: F401 — repoints livetiming at the proxy when configured
 import ff1_ingest as enrich
@@ -718,8 +719,10 @@ def ingest_results(session, season, rnd, code):
         else:  # R or S
             f = fast.get(did, (None, None, None))
             pos = _int(r.get("Position"))
-            dnf_flag = (_dnf(r.get("Status")) if _s(r.get("Status"))
-                        else _dnf_from_laps(laps_done.get(did), winner_laps))
+            # BUG-005: ClassifiedPosition (== Jolpica positionText) decides, not Status.
+            dnf_flag = classification.is_dnf(r.get("ClassifiedPosition"), r.get("Status"))
+            if dnf_flag is None:
+                dnf_flag = _dnf_from_laps(laps_done.get(did), winner_laps)
             pts = _num(r.get("Points"))
             if pts is None and code == "R":
                 pts = _points_for(pos)

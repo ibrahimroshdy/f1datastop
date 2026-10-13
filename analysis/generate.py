@@ -40,6 +40,7 @@ import blob_store as bs
 import db_index
 import index_export  # R2 uploads (see blob_store.py)
 import standings_fp
+import classification
 
 matplotlib.use("Agg")
 import matplotlib.font_manager as fm  # noqa: E402
@@ -1038,6 +1039,30 @@ def chart_speed_distribution(session, meta):
     return fig_png(fig)
 
 
+def places_gained_rows(res):
+    """[(code, delta|None, label)] for the places-gained chart, best gain first.
+
+    BUG-005: only classified drivers (numeric positionText / ClassifiedPosition) get a
+    grid-to-finish delta. A retirement is not "places lost": retired / NC / DSQ drivers
+    are listed at the bottom with their tag and no bar; DNS drivers aren't starters and
+    are left out."""
+    done, other = [], []
+    for _, r in res.iterrows():
+        code = r.get("Abbreviation")
+        cls = classification.classify(r.get("ClassifiedPosition"), r.get("Status"))
+        grid = r.get("GridPosition")
+        if cls in ("dns", "dnq"):
+            continue
+        if cls == "classified" or (cls is None and pd.notna(r.get("Position"))):
+            if pd.isna(grid) or grid <= 0:
+                continue  # pit-lane start / unknown grid: no meaningful delta
+            done.append((code, int(grid - r.get("Position")), None))
+        elif cls is not None:
+            other.append((code, None, classification.LABEL.get(cls, "NC")))
+    done.sort(key=lambda t: -t[1])
+    return done + other
+
+
 def chart_places_gained(session, meta):
     try:
         res = session.results.copy()
@@ -1045,23 +1070,26 @@ def chart_places_gained(session, meta):
         return None
     if "GridPosition" not in res or "Position" not in res:
         return None
-    res = res.dropna(subset=["GridPosition", "Position"])
-    res = res[res["GridPosition"] > 0]
     if DRIVERS:
         res = res[res["Abbreviation"].isin(DRIVERS)]
-    if res.empty:
+    rows = places_gained_rows(res)
+    if not any(d is not None for _, d, _ in rows):
         return None
-    res["delta"] = res["GridPosition"] - res["Position"]
-    res = res.sort_values("delta")
+    rows = rows[::-1]  # barh draws bottom-up: best gain on top, non-classified at the bottom
     fig, ax = editorial_fig(left=0.10)
-    title_block(fig, "Race", "Places Gained & Lost", "Grid position to finish")
-    codes = list(res["Abbreviation"].values)
-    deltas = res["delta"].values
+    title_block(fig, "Race", "Places Gained & Lost",
+                "Grid position to finish · classified drivers; DNF/NC shown without a bar")
+    codes = [c for c, _, _ in rows]
+    deltas = [d if d is not None else 0 for _, d, _ in rows]
     colors = ["#2BD46A" if d > 0 else ("#FF4136" if d < 0 else SUBINK) for d in deltas]
     ax.barh(range(len(codes)), deltas, color=colors, height=0.62, zorder=3,
             edgecolor=PAPER, linewidth=1.0)
     ax.axvline(0, color="#3A3D45", lw=1.4)
-    for i, d in enumerate(deltas):
+    for i, (_, d, label) in enumerate(rows):
+        if d is None:
+            ax.text(0.35, i, label, va="center", ha="left", fontsize=10.5,
+                    fontproperties=FP_MONO_B, color=SUBINK)
+            continue
         ha = "left" if d >= 0 else "right"
         off = 0.35 if d >= 0 else -0.35
         ax.text(d + off, i, f"+{int(d)}" if d > 0 else str(int(d)), va="center", ha=ha,
@@ -2795,19 +2823,20 @@ def _ra_places(ax, session):
     if "GridPosition" not in res or "Position" not in res:
         _ra_empty(ax, "No grid data")
         return
-    res = res.dropna(subset=["GridPosition", "Position"])
-    res = res[res["GridPosition"] > 0]
-    if res.empty:
+    rows = places_gained_rows(res)   # BUG-005: retirements tagged, not counted as losses
+    if not any(d is not None for _, d, _ in rows):
         _ra_empty(ax, "No grid data")
         return
-    res["delta"] = res["GridPosition"] - res["Position"]
-    res = res.sort_values("delta")
-    codes = list(res["Abbreviation"].values)
-    deltas = res["delta"].values
+    codes = [c for c, _, _ in rows]
+    deltas = [d if d is not None else 0 for _, d, _ in rows]
     cols = [_GAIN if d > 0 else (_LOSS if d < 0 else SUBINK) for d in deltas]
     ax.barh(range(len(codes)), deltas, color=cols, height=0.66, zorder=3,
             edgecolor=PAPER, linewidth=0.6)
     ax.axvline(0, color="#3A3D45", lw=1.1)
+    for i, (_, d, label) in enumerate(rows):
+        if d is None:
+            ax.text(0.3, i, label, va="center", ha="left", fontsize=6.2,
+                    fontproperties=FP_MONO_B, color=SUBINK)
     ax.set_yticks(range(len(codes)))
     ax.set_yticklabels(codes, fontproperties=FP_BODY_B, color=INK, fontsize=6.8)
     ax.set_ylim(-0.7, len(codes) - 0.3)

@@ -43,6 +43,8 @@ Usage:
 See the "Backfill" section of analysis/README.md for the full runbook.
 """
 import argparse
+
+import classification
 import os
 import re
 import sys
@@ -192,14 +194,11 @@ def to_num(v):
 _LAP_STATUS = re.compile(r"^\+\d+\s+Lap")
 
 
-def derive_dnf(status):
-    """Same rule as f1Service: classified if 'Finished', 'Lapped', or '+N Lap(s)';
-    else DNF. 'Lapped' is a classified finisher ≥1 lap down (a real result), not
-    a retirement."""
-    if not status:
-        return None
-    s = str(status).strip()
-    return not (s == "Finished" or s == "Lapped" or _LAP_STATUS.match(s))
+def derive_dnf(status, position_text=None):
+    """DNF from Jolpica positionText when present (BUG-005: a "Retired" driver can be
+    classified, a "Lapped" one can be NC, a DNS is neither); else the old status rule
+    (classified if 'Finished', 'Lapped' or '+N Lap(s)')."""
+    return classification.is_dnf(position_text, status)
 
 
 def slugify(*parts):
@@ -373,7 +372,7 @@ def _result_row(season, rnd, race_id, res, *, sprint=False):
         "position_text": res.get("positionText"),
         "points": to_num(res.get("points")), "grid": to_int(res.get("grid")),
         "laps": to_int(res.get("laps")), "status": res.get("status"),
-        "is_dnf": derive_dnf(res.get("status")),
+        "is_dnf": derive_dnf(res.get("status"), res.get("positionText")),
         "time_millis": to_int(tm.get("millis")), "time_text": tm.get("time"),
         "fastest_lap_number": to_int(fl.get("lap")),
         "fastest_lap_time": (fl.get("Time") or {}).get("time"),
