@@ -191,6 +191,23 @@ def to_num(v):
         return None
 
 
+_PIT_DURATION = re.compile(r"^\s*(?:(\d+):)?(\d+(?:\.\d+)?)\s*$")
+
+
+def parse_pit_duration(v):
+    """Jolpica pit stop duration in seconds. Accepts plain seconds ("23.591") and
+    minutes:seconds ("1:21.474", "35:54.149" for red-flag stops). None when unparseable."""
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return round(float(v), 3) if v == v else None
+    m = _PIT_DURATION.match(str(v))
+    if not m:
+        return None
+    mins, secs = m.groups()
+    return round(int(mins or 0) * 60 + float(secs), 3)
+
+
 _LAP_STATUS = re.compile(r"^\+\d+\s+Lap")
 
 
@@ -450,7 +467,7 @@ def backfill_pitstops(season, rnd, race_id):
                 "race_id": race_id, "season": season, "round": rnd,
                 "driver_id": ps.get("driverId"), "stop": to_int(ps.get("stop")),
                 "lap": to_int(ps.get("lap")), "time_local": ps.get("time"),
-                "duration_seconds": to_num(ps.get("duration")), "source": "ergast",
+                "duration_seconds": parse_pit_duration(ps.get("duration")), "source": "ergast",
             })
         offset += PAGE_LIMIT
         if total is None or offset >= total:
