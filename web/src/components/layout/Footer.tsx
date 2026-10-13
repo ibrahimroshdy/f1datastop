@@ -17,26 +17,26 @@ const Footer = () => {
   return (
     <footer
       className={cn(
-        "mt-auto border-t px-4 py-3 md:px-6",
+        "mt-auto border-t px-4 pb-4 pt-3 md:px-6 md:py-3",
         isGlass ? "border-white/5 bg-card/50" : "border-border bg-muted/30",
       )}
     >
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-1 text-xs text-muted-foreground sm:flex-row sm:gap-2">
         <p>© {currentYear} F1 DataStop</p>
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-          <Link to="/privacy" className="hover:text-foreground transition-colors">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-0">
+          <Link
+            to="/privacy"
+            className="inline-flex min-h-11 items-center px-1 hover:text-foreground transition-colors md:min-h-0"
+          >
             Privacy
           </Link>
           {repoUrl && (
             <>
-              <span aria-hidden className="text-border">
-                ·
-              </span>
               <a
                 href={repoUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-foreground transition-colors"
+                className="inline-flex min-h-11 items-center gap-1 px-1 hover:text-foreground transition-colors md:min-h-0"
               >
                 <Github className="h-3.5 w-3.5" />
                 Source
@@ -45,10 +45,7 @@ const Footer = () => {
           )}
           {(appVersion || knownSha) && (
             <>
-              <span aria-hidden className="text-border">
-                ·
-              </span>
-              <span className="font-mono text-[11px] opacity-70">
+              <span className="inline-flex min-h-11 items-center gap-2 font-mono text-[11px] opacity-70 md:min-h-0">
                 {appVersion &&
                   (repoUrl && released ? (
                     <a
@@ -56,22 +53,21 @@ const Footer = () => {
                       target="_blank"
                       rel="noreferrer"
                       aria-label={`Release v${appVersion} on GitHub`}
-                      className="hover:text-foreground transition-colors"
+                      className="inline-flex min-h-11 items-center hover:text-foreground transition-colors md:min-h-0"
                     >
                       v{appVersion}
                     </a>
                   ) : (
                     <>v{appVersion}</>
                   ))}
-                {appVersion && knownSha && " "}
-                {knownSha &&
+                                {knownSha &&
                   (repoUrl ? (
                     <a
                       href={`${repoUrl}/commit/${knownSha}`}
                       target="_blank"
                       rel="noreferrer"
                       aria-label={`Build ${knownSha} on GitHub`}
-                      className="hover:text-foreground transition-colors"
+                      className="inline-flex min-h-11 items-center hover:text-foreground transition-colors md:min-h-0"
                     >
                       {knownSha.slice(0, 7)}
                     </a>

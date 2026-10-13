@@ -125,7 +125,7 @@ const MainLayout = () => {
         <main
           id="main-content"
           role="main"
-          className="flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"
+          className="flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300 pb-[calc(3.5rem+1px+max(0.4rem,env(safe-area-inset-bottom)))] md:pb-0"
         >
           <PullToRefresh>
             <div className={cn("min-h-full p-4 md:p-6 lg:px-8", isGlass && "relative")}>
