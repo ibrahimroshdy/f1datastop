@@ -1,4 +1,4 @@
-import { differenceInDays, getMonth, getWeek, getYear, parseISO } from "date-fns";
+import { differenceInDays, getMonth, parseISO } from "date-fns";
 
 export type CalendarView = "list" | "grid";
 
@@ -25,17 +25,17 @@ export interface RaceTypeResult {
   summerBreakEnd: number;
 }
 
+/**
+ * True when two race dates fall on back-to-back weekends (BUG-009).
+ *
+ * This used to compare Sunday-based week numbers, so a Saturday race (Baku 2026, Sat 26 Sep)
+ * looked "consecutive" to a race 13 days earlier (Madrid, Sun 13 Sep), and the calendar
+ * marked Monza–Madrid–Baku a triple header. Back-to-back weekends are 5–9 days apart
+ * (a Sunday race followed by a Saturday or Sunday race the next weekend).
+ */
 export const areConsecutiveWeekends = (date1: Date, date2: Date): boolean => {
-  const week1 = getWeek(date1);
-  const week2 = getWeek(date2);
-  const year1 = getYear(date1);
-  const year2 = getYear(date2);
-
-  if (year1 === year2) {
-    return week2 - week1 === 1;
-  }
-
-  return year2 > year1 && week1 >= 52 && week2 <= 1;
+  const days = differenceInDays(date2, date1);
+  return days >= 5 && days <= 9;
 };
 
 export const determineRaceTypes = (races: any[]): RaceTypeResult => {
