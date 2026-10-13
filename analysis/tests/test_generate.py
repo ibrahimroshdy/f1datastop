@@ -211,3 +211,30 @@ class SafetyCell(unittest.TestCase):
 
     def test_none(self):
         self.assertEqual(g.safety_cell([]), ("SAFETY CARS", "0", 0))
+
+
+class Subtitles(unittest.TestCase):
+    """Subtitles must name the session and the drivers actually shown."""
+    class S:
+        def __init__(self, name):
+            self.name = name
+
+    def test_pace_word(self):
+        self.assertEqual(g.pace_word(self.S("Race")), "race")
+        self.assertEqual(g.pace_word(self.S("Qualifying")), "qualifying")
+        self.assertEqual(g.pace_word(self.S("Sprint Qualifying")), "qualifying")
+        self.assertEqual(g.pace_word(self.S("Sprint Shootout")), "qualifying")
+        self.assertEqual(g.pace_word(self.S("Sprint")), "sprint")
+        self.assertEqual(g.pace_word(self.S("Practice 2")), "practice")
+
+    def test_drivers_label(self):
+        with mock.patch.object(g, "DRIVERS", None):
+            self.assertEqual(g.drivers_label(["A", "B", "C", "D", "E"], 5), "top five")
+        with mock.patch.object(g, "DRIVERS", {"ANT", "RUS"}):
+            self.assertEqual(g.drivers_label(["ANT", "RUS"], 5), "ANT vs RUS")
+        with mock.patch.object(g, "DRIVERS", {"HAM", "LEC", "RUS"}):
+            self.assertEqual(g.drivers_label(["HAM", "LEC", "RUS"], 5), "HAM, LEC, RUS")
+
+    def test_cap_keeps_driver_codes(self):
+        self.assertEqual(g._cap("ANT vs RUS"), "ANT vs RUS")
+        self.assertEqual(g._cap("top five"), "Top five")

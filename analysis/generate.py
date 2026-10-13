@@ -750,6 +750,36 @@ def fig_png(fig):
     return png
 
 
+def pace_word(session):
+    """'race' / 'sprint' / 'qualifying' / 'practice' for subtitles, from the session name."""
+    name = str(getattr(session, "name", "") or "").lower()
+    if "qualifying" in name or "shootout" in name:
+        return "qualifying"
+    if "practice" in name:
+        return "practice"
+    if "sprint" in name:
+        return "sprint"
+    return "race"
+
+
+_NUM = {2: "two", 3: "three", 4: "four", 5: "five"}
+
+
+def _cap(text):
+    """Upper-case the first letter only (str.capitalize() would lower-case driver codes)."""
+    return text[:1].upper() + text[1:]
+
+
+def drivers_label(drivers, n):
+    """Who a chart actually shows: the picked drivers by code ("ANT vs RUS",
+    "HAM, LEC, RUS") or "top N" for a bulk run. Subtitles used to say "top five" even on a
+    two-driver compare."""
+    drivers = [str(d) for d in drivers]
+    if DRIVERS:
+        return " vs ".join(drivers) if len(drivers) == 2 else ", ".join(drivers)
+    return f"top {_NUM.get(n, n)}"
+
+
 def top_drivers_by_pace(laps, n=5):
     q = laps.pick_quicklaps() if hasattr(laps, "pick_quicklaps") else laps
     order = list(q.groupby("Driver")["LapTime"].min().sort_values().index)
@@ -856,13 +886,15 @@ def shade_safety(ax, session):
 def chart_speed_trace(session, meta):
     laps = session.laps
     fig, ax = editorial_fig(right=LY("headshot_right"))
-    title_block(fig, "Fastest Lap", "Speed Trace", "Top five drivers · fastest lap")
+    shown = top_drivers_by_pace(laps, 5)
+    title_block(fig, "Fastest Lap", "Speed Trace",
+                f"{_cap(drivers_label(shown, 5))} · fastest {pace_word(session)} lap")
     look = driver_lookup(session)
     ends = []
     plotted = 0
     seen = {}
     tmcol = {}
-    for drv in top_drivers_by_pace(laps, 5):
+    for drv in shown:
         dl = laps[laps["Driver"] == drv]
         if dl.empty:
             continue
@@ -1209,7 +1241,8 @@ def chart_track_dominance(session, meta):
     pts = np.array([rx, ry]).T.reshape(-1, 1, 2)
     segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
     fig, ax = editorial_fig()
-    title_block(fig, "Telemetry", "Track Dominance", "Fastest driver in each mini-sector")
+    title_block(fig, "Telemetry", "Track Dominance",
+                f"Fastest {pace_word(session)} laps of {', '.join(drv_list)} · quickest in each mini-sector")
     neon_lines(ax, segs, colors=seg_colors[:-1], lw=8)
     ax.set_aspect("equal")
     ax.axis("off")
@@ -1899,7 +1932,7 @@ def chart_lap_evolution(session, meta):
     quick["s"] = quick["LapTime"].dt.total_seconds()
     look = driver_lookup(session)
     fig, ax = editorial_fig(right=LY("headshot_right"))
-    title_block(fig, "Pace", "Lap-Time Evolution", "Race pace through the stints · top five")
+    title_block(fig, "Pace", "Lap-Time Evolution", f"{pace_word(session).capitalize()} pace through the stints · top five")
     shade_safety(ax, session)
     ends = []
     seen = {}
@@ -2115,7 +2148,8 @@ def chart_dominance_stack(session, meta):
     n = len(idxs)
     fig, ax = editorial_fig()
     title_block(fig, "Telemetry", "Dominance Stack",
-                "Median pace across all race laps · who is quickest at each point of the track")
+                f"Median pace across {pace_word(session)} laps · {', '.join(str(d[0]) for d in drivers)} · "
+                "quickest at each point of the track")
     pad = 0.18
     box = np.array([[-1 - pad, -1 - pad], [1 + pad, -1 - pad],
                     [1 + pad, 1 + pad], [-1 - pad, 1 + pad]])
@@ -2234,7 +2268,7 @@ def chart_dominance_flat(session, meta):
 
     fig, ax = editorial_fig()
     title_block(fig, "Telemetry", "Track Dominance",
-                "Median race pace · who is quickest at each point of the lap")
+                f"Median {pace_word(session)} pace · who is quickest at each point of the lap")
 
     P = np.column_stack([nx, ny]).reshape(-1, 1, 2)
     segs = np.concatenate([P[:-1], P[1:]], axis=1)
