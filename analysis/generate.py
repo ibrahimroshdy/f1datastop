@@ -765,6 +765,11 @@ def pace_word(session):
 _NUM = {2: "two", 3: "three", 4: "four", 5: "five"}
 
 
+def _cap(text):
+    """Upper-case the first letter only (str.capitalize() would lower-case driver codes)."""
+    return text[:1].upper() + text[1:]
+
+
 def drivers_label(drivers, n):
     """Who a chart actually shows: the picked drivers by code ("ANT vs RUS",
     "HAM, LEC, RUS") or "top N" for a bulk run. Subtitles used to say "top five" even on a
@@ -883,7 +888,7 @@ def chart_speed_trace(session, meta):
     fig, ax = editorial_fig(right=LY("headshot_right"))
     shown = top_drivers_by_pace(laps, 5)
     title_block(fig, "Fastest Lap", "Speed Trace",
-                f"{drivers_label(shown, 5).capitalize()} · fastest {pace_word(session)} lap")
+                f"{_cap(drivers_label(shown, 5))} · fastest {pace_word(session)} lap")
     look = driver_lookup(session)
     ends = []
     plotted = 0

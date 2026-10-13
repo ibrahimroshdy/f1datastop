@@ -234,3 +234,7 @@ class Subtitles(unittest.TestCase):
             self.assertEqual(g.drivers_label(["ANT", "RUS"], 5), "ANT vs RUS")
         with mock.patch.object(g, "DRIVERS", {"HAM", "LEC", "RUS"}):
             self.assertEqual(g.drivers_label(["HAM", "LEC", "RUS"], 5), "HAM, LEC, RUS")
+
+    def test_cap_keeps_driver_codes(self):
+        self.assertEqual(g._cap("ANT vs RUS"), "ANT vs RUS")
+        self.assertEqual(g._cap("top five"), "Top five")
