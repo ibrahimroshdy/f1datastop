@@ -575,6 +575,13 @@ def _grid_positions(session, season, rnd):
     return grid
 
 
+def _laps_value(laps, fallback):
+    """Laps completed: FastF1/Ergast value when present, even 0 (BUG-006: a lap-1
+    retirement was stored as 1 lap because `0 or fallback` took the timing count)."""
+    v = _int(laps)
+    return fallback if v is None else v
+
+
 def _provisional_status(is_dnf):
     """Stand-in for Ergast's Status text, using its own vocabulary so consumers that
     string-match on it ("Finished", "+1 Lap", …) keep working. None when undecidable."""
@@ -734,7 +741,8 @@ def ingest_results(session, season, rnd, code):
                 # unknown -> derived timing grid -> None (the Jolpica augment below fills it);
                 # never store -1, which rendered the progression chart as an all-"gain" wall.
                 "grid": _resolve_grid(r, grid_map),
-                "laps": _int(r.get("Laps")) or laps_done.get(did),
+                # 0 is a real value (a lap-1 retirement); only a missing count falls back.
+                "laps": _laps_value(r.get("Laps"), laps_done.get(did)),
                 # Status is Ergast-only and blank for hours after the flag. The UI treats it
                 # as a required string (sankey.ts does status.includes("+")), so writing the
                 # raw None takes the site down — derive a provisional value instead, and let
