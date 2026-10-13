@@ -2,6 +2,8 @@ import { toast } from "sonner";
 import { ergastFetch, throttledErgastFetch } from "@/lib/api/f1ApiFetch";
 import { getDriverSeasonResultsFromDb } from "./f1Warehouse";
 
+import { JOLPICA_PAGE, byDriverFromRaces, mergeRacePages, remainingOffsets } from "@/lib/f1/seasonResults";
+
 const ERGAST = "/f1";
 
 // Get the current F1 season year
@@ -509,48 +511,32 @@ export const getDriverResultsBySeason = async (year: number, driverId: string) =
 // Fetch ALL drivers' season results in ONE request, grouped by driverId.
 // Replaces the per-driver N+1 (one request per driver card) with a single call.
 // Throws on fetch failure (see getDriverStandings).
-export const getAllDriverResultsBySeason = async (year: number) => {
-  const path = `${ERGAST}/${year}/results.json?limit=1000`;
-  const response = await throttledFetch(path, 4000, 8);
-
-  if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`);
+/** Every page of a Jolpica season list (limit is capped at 100 upstream). */
+async function fetchAllRacePages(path: string, key: "Results" | "SprintResults") {
+  const first = await throttledFetch(`${path}?limit=${JOLPICA_PAGE}&offset=0`, 4000, 8);
+  if (!first.ok) throw new Error(`API request failed with status ${first.status}`);
+  const data = await first.json();
+  const pages = [data.MRData?.RaceTable?.Races || []];
+  const total = Number(data.MRData?.total || 0);
+  for (const offset of remainingOffsets(total)) {
+    const r = await throttledFetch(`${path}?limit=${JOLPICA_PAGE}&offset=${offset}`, 4000, 8);
+    if (!r.ok) throw new Error(`API request failed with status ${r.status}`);
+    pages.push((await r.json()).MRData?.RaceTable?.Races || []);
   }
+  return mergeRacePages(pages, key);
+}
 
-  const data = await response.json();
-  const races: any[] = data.MRData?.RaceTable?.Races || [];
-
-    const byDriver: Record<string, any[]> = {};
-    races.forEach((race: any) => {
-      (race.Results || []).forEach((result: any) => {
-        const driverId = result.Driver?.driverId;
-        if (!driverId) return;
-        const status = result.status || '';
-        // "Lapped" + "+N Lap(s)" are classified finishes, not DNFs (see getDriverResultsBySeason).
-        const isFinished = status === 'Finished' || status === 'Lapped' || status.startsWith('+');
-        const isDNF = !isFinished && status !== '';
-        if (!byDriver[driverId]) byDriver[driverId] = [];
-        byDriver[driverId].push({
-          round: race.round,
-          raceName: race.raceName,
-          date: race.date,
-          circuit: race.Circuit?.circuitName,
-          country: race.Circuit?.Location?.country,
-          position: result.position,
-          status,
-          isDNF,
-          points: Number(result.points || 0),
-          constructor: result.Constructor?.name,
-        });
-      });
-    });
-
-    // Sort each driver's races by round
-    Object.values(byDriver).forEach((list) =>
-      list.sort((a, b) => parseInt(a.round) - parseInt(b.round)),
-    );
-
-    return { data: byDriver, error: null };
+export const getAllDriverResultsBySeason = async (year: number) => {
+  // BUG-007: page through the whole season (the old limit=1000 silently got 100 rows,
+  // ~4.5 rounds) and fold sprint points in so the progression ends on the standings value.
+  const races = await fetchAllRacePages(`${ERGAST}/${year}/results.json`, "Results");
+  let sprints: Awaited<ReturnType<typeof fetchAllRacePages>> = [];
+  try {
+    sprints = await fetchAllRacePages(`${ERGAST}/${year}/sprint.json`, "SprintResults");
+  } catch {
+    /* no sprint data: race points only */
+  }
+  return { data: byDriverFromRaces(races, sprints), error: null };
 };
 
 // Cache management utilities - Deprecated but kept for compatibility if needed, or can be removed
