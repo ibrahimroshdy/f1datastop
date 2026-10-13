@@ -2980,9 +2980,22 @@ def _ra_result_cells(session, laps):
     except Exception:
         pass
     cells.append(("LAPS", str(total), INK, None, None))
-    n_sc = len([p for p in safety_periods(session) if p["kind"] in ("SC", "VSC")])
-    cells.append(("SAFETY CARS", str(n_sc), GOLD if n_sc else SUBINK, None, None))
+    label, value, n = safety_cell(safety_periods(session))
+    cells.append((label, value, GOLD if n else SUBINK, None, None))
     return cells
+
+
+def safety_cell(periods):
+    """(label, value, total) for the race summary. Safety cars and Virtual Safety Cars are
+    counted separately: a VSC is not a safety car, so "Safety cars 2" for two VSCs
+    (Singapore 2026) was wrong."""
+    n_sc = sum(1 for p in periods if p["kind"] == "SC")
+    n_vsc = sum(1 for p in periods if p["kind"] == "VSC")
+    if n_sc and n_vsc:
+        return "SC · VSC", f"{n_sc} · {n_vsc}", n_sc + n_vsc
+    if n_vsc:
+        return "VIRTUAL SC", str(n_vsc), n_vsc
+    return "SAFETY CARS", str(n_sc), n_sc
 
 
 def _ra_header(fig, session, laps, meta):
