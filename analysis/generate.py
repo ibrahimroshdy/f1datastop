@@ -39,6 +39,7 @@ import requests
 import blob_store as bs
 import db_index
 import index_export  # R2 uploads (see blob_store.py)
+import standings_fp
 
 matplotlib.use("Agg")
 import matplotlib.font_manager as fm  # noqa: E402
@@ -4438,9 +4439,24 @@ def charts_for_session(session_code):
 
 # ── Supabase upload ─────────────────────────────────────────────────────────
 def upload_png(path, png):
-    """Upload a chart image to R2 under charts/{path}; returns its public URL."""
+    """Upload a chart image to R2 under charts/{path}; returns its public URL.
+
+    Standings-backed charts are re-rendered in place when standings change (BUG-003), so
+    they must not carry the year-long immutable cache header the CDN would keep serving."""
     ctype = "image/webp" if path.endswith(".webp") else "image/png"
+    name = path.rsplit("/", 1)[-1].split(".")[0]
+    if name in standings_fp.STANDINGS_CHARTS:
+        return bs.put("charts", path, png, ctype, cache_control="public, max-age=600")
     return bs.put("charts", path, png, ctype)
+
+
+def standings_fingerprint(season, upto):
+    """Fingerprint of the standings the standings charts are drawn from (None if unknown)."""
+    d = _wh_driver_standings(season, upto)
+    c = _wh_constructor_standings(season, upto)
+    if not d or not c:
+        return None
+    return standings_fp.fingerprint(d, c)
 
 
 def upsert_index(row):
@@ -4739,7 +4755,9 @@ def main():
                 # Index key (encodes format + driver selection). Computed before the
                 # render so --skip-existing avoids the expensive draw entirely.
                 ct = (ctype if fmt == "landscape" else f"{ctype}_{fmt}") + dk
-                if args.skip_existing:
+                # Standings charts are never skipped: they are cheap and must follow
+                # standings corrections (BUG-003); charts_todo re-queues on a changed fingerprint.
+                if args.skip_existing and ctype not in standings_fp.STANDINGS_CHARTS:
                     if not args.no_upload and (ct, theme) in existing:
                         print(f"  - {theme}/{fmt}/{ctype}: exists, skipped")
                         continue
@@ -4796,6 +4814,24 @@ def main():
                         print(f"  ! {theme}/{fmt}/{ctype} failed: {e}")
                         traceback.print_exc()
                         failed.append(f"{theme}/{fmt}/{ctype}")
+
+    # BUG-003: record which standings the standings charts were drawn from, next to them,
+    # so charts_todo can re-queue this session when the standings are later corrected.
+    if args.session in ("R", "S") and (only_set is None or only_set & set(standings_fp.STANDINGS_CHARTS)):
+        try:
+            fp = standings_fingerprint(args.season, rnd)
+        except Exception as e:  # noqa: BLE001 — a missing fingerprint only means "re-check"
+            fp = None
+            print(f"  (standings fingerprint unavailable: {e})")
+        if fp:
+            fp_path = f"{args.season}/{rnd:02d}-{slug}/{args.session}/{standings_fp.FP_NAME}"
+            if args.no_upload:
+                os.makedirs(os.path.dirname(os.path.join("out", fp_path)), exist_ok=True)
+                with open(os.path.join("out", fp_path), "w") as f:
+                    f.write(fp)
+            else:
+                bs.put("charts", fp_path, fp.encode(), "text/plain", cache_control="no-cache")
+            print(f"  standings fingerprint {fp[:10]} -> {fp_path}")
 
     code = select_exit_code(failed, nodata, rendered)
     print(f"Done. {ok} charts uploaded, {rendered} rendered, {len(failed)} failed "

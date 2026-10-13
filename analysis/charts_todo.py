@@ -34,6 +34,7 @@ import urllib.parse
 import urllib.request
 
 import cdn_schedule
+import standings_fp
 from datetime import datetime, timedelta, timezone
 
 TIMED = ("FP1", "FP2", "FP3", "Q", "SQ", "SS", "S", "R")
@@ -122,15 +123,53 @@ def _is_complete(published, session):
     return not (expected_charts(session) - set(published))
 
 
-def _has_charts(season, rnd, session):
-    """True when the CDN chart index has the session's FULL expected chart set."""
+def _has_charts(season, rnd, session, latest=False):
+    """True when the CDN chart index has the session's FULL expected chart set and its
+    standings charts still match the current standings (BUG-003)."""
     try:
         rows = cdn_schedule.fetch_json(f"index/charts/{season}/{rnd:02d}/{session}.json")
     except urllib.error.HTTPError as e:
         if e.code == 404:
             return False
         raise
-    return _is_complete(_done_types(rows), session)
+    if not _is_complete(_done_types(rows), session):
+        return False
+    # The season-level standings export only describes the newest round.
+    return not (latest and session in ("R", "S") and _standings_stale(season, rows))
+
+
+def _fetch_text(url):
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "f1datastop-actions/1.0 (+https://www.f1datastop.com)"})
+    with urllib.request.urlopen(req, timeout=20) as r:  # noqa: S310 — our own CDN
+        return r.read().decode().strip()
+
+
+def _standings_stale(season, rows):
+    """True when the session's standings charts were drawn from different standings than
+    the current CDN export (or carry no fingerprint at all). Only the newest round's charts
+    are comparable to the season-level export, so callers pass the index rows of one
+    session; a read error is treated as "not stale" (never loop re-rendering on an outage)."""
+    path = next((r.get("storage_path") for r in rows
+                 if r.get("chart_type") == "championship" and r.get("theme", "dark") == "dark"),
+                None)
+    if not path:
+        return False
+    try:
+        d = cdn_schedule.fetch_json(f"{season}/driverStandings.json")
+        c = cdn_schedule.fetch_json(f"{season}/constructorStandings.json")
+        want = standings_fp.fingerprint(d, c)
+        fp_url = path.split("/landscape/")[0] + "/" + standings_fp.FP_NAME
+        try:
+            have = _fetch_text(f"{cdn_schedule.cdn_host().rstrip('/')}/charts/{fp_url}")
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return True   # rendered before fingerprints existed: re-check once
+            raise
+    except Exception as e:  # noqa: BLE001
+        print(f"(standings check skipped: {e})", file=sys.stderr)
+        return False
+    return have != want
 
 
 def main():
@@ -150,7 +189,9 @@ def main():
     # dark landscape chart with a thumbnail. No database involved; the old analysis_charts
     # query only runs if the CDN itself is unreachable.
     try:
-        done = {(r, sess) for r, sess in ended if _has_charts(a.season, r, sess)}
+        latest = max((r for r, _ in ended), default=None)
+        done = {(r, sess) for r, sess in ended
+                if _has_charts(a.season, r, sess, latest=(r == latest))}
     except Exception as e:  # noqa: BLE001
         print(f"(chart index: CDN unavailable ({e}); using Supabase)", file=sys.stderr)
         url = os.environ["SUPABASE_URL"].rstrip("/")
