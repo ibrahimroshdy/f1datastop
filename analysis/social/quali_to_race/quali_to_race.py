@@ -83,6 +83,9 @@ def build(race):
     race slot. A missing or zero grid (pit lane start) falls back to the quali slot; when that
     slot is taken it goes behind the last grid slot, so no two drivers share a node."""
     quali = {r["Driver"]["driverId"]: int(r["position"]) for r in race.get("QualifyingResults", []) if r.get("position")}
+    # no Q1/Q2/Q3 time (formula1.com lists these as NC); only when the session has times at all
+    timed = {r["Driver"]["driverId"]: any(r.get(k) for k in ("Q1", "Q2", "Q3")) for r in race.get("QualifyingResults", [])}
+    nc = {d for d, t in timed.items() if not t} if any(timed.values()) else set()
     rows, used = [], set()
     for r in race["Results"]:
         g = int(r["grid"]) if str(r.get("grid", "")).lstrip("-").isdigit() else 0
@@ -100,6 +103,7 @@ def build(race):
         rows.append(dict(code=r["Driver"].get("code") or r["Driver"]["familyName"][:3].upper(),
             family=r["Driver"]["familyName"], team=r["Constructor"]["constructorId"],
             quali=qp if qp is not None else g, has_quali=qp is not None, grid=g, race=int(r["position"]),
+            quali_label="NC" if did in nc else str(qp if qp is not None else g),
             race_label=pt if pt.isdigit() else "DNF", dnf=not finished, status=st))
     return rows
 
@@ -195,7 +199,7 @@ def render(race, rows, W, H, path, stat):
 
     # chart extent (site margins: 100 px left/right for labels)
     fn = font(MONO, (26 if not portrait_tall else 27) * s, 600)
-    lab_w = max(text_w(d, f"{r['quali']} {r['code']}", fn) for r in rows)
+    lab_w = max(text_w(d, f"{r['quali_label']} {r['code']}", fn) for r in rows)
     lab_w = max(lab_w, max(text_w(d, f"{r['code']} {r['race_label']}", fn) for r in rows))
     lp = 14 * s
     x0 = cx0 + 30 * s + lab_w + lp; x1 = cx1 - 30 * s - lab_w - lp
@@ -234,7 +238,7 @@ def render(race, rows, W, H, path, stat):
         d.rounded_rectangle((nx, ny, nx + nw, ny + kh), radius=int(3 * s), fill=rgba(c, 0.95))
         cyl = ny + kh / 2
         if key == "quali":
-            d.text((nx - lp, cyl), f"{r['quali']} {code}", font=fn, fill=MUTE, anchor="rm")
+            d.text((nx - lp, cyl), f"{r['quali_label']} {code}", font=fn, fill=MUTE, anchor="rm")
         elif key == "race":
             d.text((nx + nw + lp, cyl), f"{code} {r['race_label']}", font=fn, fill=MUTE, anchor="lm")
 
