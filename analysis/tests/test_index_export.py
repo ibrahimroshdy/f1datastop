@@ -118,6 +118,35 @@ class DedupeTests(unittest.TestCase):
         out, _ = self.dedupe(rows, kind="circuits")
         self.assertEqual([r["circuit_id"] for r in out], ["villeneuve", "monaco"])
 
+    def test_charts_dedupe_keeps_schedule_circuit(self):
+        # Two slugs, same round (5): an event-name slug and the schedule's circuit id.
+        # Only the schedule-matching circuit id (villeneuve) is kept.
+        rows = [
+            _row("2026/05-singapore-grand-prix/R/landscape/circuit_history.png",
+                 "singapore-grand-prix", 5),
+            _row("2026/05-villeneuve/R/landscape/circuit_history.png",
+                 "villeneuve", 5),
+        ]
+        out, logs = self.dedupe(rows, kind="charts")
+        self.assertEqual([r["circuit_id"] for r in out], ["villeneuve"])
+        self.assertEqual([r["storage_path"] for r in out],
+                         ["2026/05-villeneuve/R/landscape/circuit_history.png"])
+        self.assertEqual(logs, [])
+
+    def test_charts_dedupe_schedule_unavailable_keeps_first_and_warns(self):
+        rows = [
+            _row("2026/05-singapore-grand-prix/R/landscape/circuit_history.png",
+                 "singapore-grand-prix", 5),
+            _row("2026/05-villeneuve/R/landscape/circuit_history.png",
+                 "villeneuve", 5),
+        ]
+        out, logs = self.dedupe(rows, kind="charts", schedule=None)
+        self.assertEqual([r["storage_path"] for r in out],
+                         ["2026/05-singapore-grand-prix/R/landscape/circuit_history.png"])
+        warn = [m for m in logs if "round 5" in m]
+        self.assertEqual(len(warn), 1)
+        self.assertIn("2026/05-villeneuve/R/landscape/circuit_history.png", warn[0])
+
 
 if __name__ == "__main__":
     unittest.main()
