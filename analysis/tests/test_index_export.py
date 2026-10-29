@@ -59,8 +59,9 @@ class OtherKeyTests(unittest.TestCase):
         self.assertEqual((m["session"], m["code"], m["lap"]), ("R", "VER", "12"))
 
 
-def _row(path, cid, rnd, session="R", season=2026):
-    return {"season": season, "round": rnd, "session": session, "circuit_id": cid, "storage_path": path}
+def _row(path, cid, rnd, session="R", season=2026, chart_type=None, theme="dark"):
+    return {"season": season, "round": rnd, "session": session, "circuit_id": cid,
+            "chart_type": chart_type, "theme": theme, "storage_path": path}
 
 
 SCHEDULE = [{"round": "5", "Circuit": {"circuitId": "villeneuve"}},
@@ -146,6 +147,26 @@ class DedupeTests(unittest.TestCase):
         warn = [m for m in logs if "round 5" in m]
         self.assertEqual(len(warn), 1)
         self.assertIn("2026/05-villeneuve/R/landscape/circuit_history.png", warn[0])
+
+    def test_charts_dedupe_keeps_all_chart_types_same_session(self):
+        # Same round/session: circuit_history under two slugs (stale event-name +
+        # canonical circuit id) plus a different chart type. circuit_history
+        # collapses to the schedule match; championship survives as its own
+        # group — dedupe must not keep a single chart per session.
+        rows = [
+            _row("2026/05-singapore-grand-prix/R/landscape/circuit_history.png",
+                 "singapore-grand-prix", 5, chart_type="circuit_history"),
+            _row("2026/05-villeneuve/R/landscape/circuit_history.png",
+                 "villeneuve", 5, chart_type="circuit_history"),
+            _row("2026/05-villeneuve/R/landscape/championship.png",
+                 "villeneuve", 5, chart_type="championship"),
+        ]
+        out, logs = self.dedupe(rows, kind="charts")
+        self.assertEqual([r["storage_path"] for r in out],
+                         ["2026/05-villeneuve/R/landscape/circuit_history.png",
+                          "2026/05-villeneuve/R/landscape/championship.png"])
+        self.assertEqual([r["chart_type"] for r in out], ["circuit_history", "championship"])
+        self.assertEqual(logs, [])
 
 
 if __name__ == "__main__":

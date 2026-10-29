@@ -316,7 +316,11 @@ def _dedupe_rows(rows, group_key, season):
 
 
 _DEDUPE_KEYS = {
-    "charts": lambda r: (r["season"], r["round"], r["session"]),
+    # (season, round, session, chart_type, theme): dedupe only collapses true
+    # slug-duplicates of the *same chart* of a session. Broader than just
+    # (season, round, session), which would keep a single chart per session and
+    # silently drop championship/positions/laptimes and the light vs dark variants.
+    "charts": lambda r: (r["season"], r["round"], r["session"], r["chart_type"], r["theme"]),
     "replays": lambda r: (r["season"], r["round"], r.get("session") or "R"),
     "circuits": lambda r: (r["season"], r["round"]),
 }
