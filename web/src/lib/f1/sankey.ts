@@ -432,6 +432,30 @@ export interface SeasonSankeyLink {
   }>;
 }
 
+// Input shape for buildSeasonSankey: one race's results as returned by the
+// warehouse `getRaceResultsFromDb` (RaceTable.Races[0] with .Results[]).
+export interface SeasonDriverResult {
+  grid: string | number | null | undefined;
+  position: string | number | null | undefined;
+  status: string;
+  Driver?: {
+    code?: string | null;
+    givenName?: string | null;
+    familyName?: string | null;
+  } | null;
+  Constructor?: {
+    constructorId?: string | null;
+    name?: string | null;
+  } | null;
+  points?: string | number | null;
+}
+
+export interface SeasonRoundResult {
+  round?: string | number | null;
+  raceName?: string | null;
+  Results?: SeasonDriverResult[] | null;
+}
+
 interface SeasonLinkAccum {
   source: string;
   target: string;
@@ -463,7 +487,7 @@ interface SeasonLinkAccum {
  * Returns empty nodes/links (never throws) when there is nothing to show.
  */
 export const buildSeasonSankey = (
-  roundResults: any[]
+  roundResults: SeasonRoundResult[]
 ): { nodes: SankeyNode[]; links: SeasonSankeyLink[] } => {
   const linkMap = new Map<string, SeasonLinkAccum>();
   const gridPositions = new Set<number>();
@@ -471,9 +495,9 @@ export const buildSeasonSankey = (
   let hasPitLane = false;
   let hasDNF = false;
 
-  roundResults.forEach((race: any) => {
+  roundResults.forEach((race: SeasonRoundResult) => {
     const results = Array.isArray(race?.Results) ? race.Results : [];
-    results.forEach((result: any) => {
+    results.forEach((result: SeasonDriverResult) => {
       const gridRaw = result.grid;
       const gridNum = Number(gridRaw);
       const isPitLane =

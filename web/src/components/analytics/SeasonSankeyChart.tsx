@@ -1,18 +1,20 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
-import {
-  sankey,
-  sankeyLinkHorizontal,
-  sankeyLeft,
-  type SankeyNode,
-  type SankeyLink,
-  type SankeyGraph,
-} from 'd3-sankey';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { TEAM_COLORS } from '@/constants/f1Colors';
 import { F1ChartContainer } from '@/components/f1';
 import { cn } from '@/lib/utils';
 import { getRaceResultsFromDb, getScheduleFromDb } from '@/services/f1Warehouse';
-import { buildSeasonSankey, type SeasonSankeyLink } from '@/lib/f1/sankey';
+import { buildSeasonSankey } from '@/lib/f1/sankey';
+import {
+  Mode,
+  SeasonSankeyChartProps,
+  SankeyNodeData,
+  SankeyLinkData,
+  SeasonDriverResult,
+  SeasonRoundResult,
+  SeasonScheduleRace,
+} from './SeasonSankeyTypes';
+import SeasonSankeySurface from './SeasonSankeySurface';
 
 // Semantic SVG color tokens (DESIGN.md: SVG fills/strokes route through hsl(var(--*)))
 const TOKEN = {
@@ -36,55 +38,13 @@ const getTeamColor = (team: string): string => {
   return TEAM_COLORS[normalizedTeam] || TEAM_COLORS.default;
 };
 
-type Mode = 'all' | 'driver' | 'team';
-
-interface SeasonSankeyChartProps {
-  year: number;
-}
-
-// Node datum that feeds d3-sankey. d3-sankey mutates these in place, adding
-// the computed layout fields (x0/x1/y0/y1/index/value/depth/...).
-interface SankeyNodeData {
-  id: string;
-  name: string;
-  position: number;
-  type: 'grid' | 'finish' | 'pit-lane' | 'dnf';
-  team?: string;
-  teamName?: string;
-  fullName?: string;
-  color: string;
-}
-
-// Link datum that feeds d3-sankey. `source`/`target` start as node-id strings
-// and are resolved to node objects by the sankey() layout.
-interface SankeyLinkData {
-  source: string;
-  target: string;
-  value: number;
-  sourcePosition: number;
-  color: string;
-  dimLine: boolean;
-  driverName?: string;
-  driverCode?: string;
-  team?: string;
-  gridPosition?: number;
-  racePosition?: number;
-  positionChange?: number;
-  isDNF?: boolean;
-  isPitLane?: boolean;
-  teams?: string[];
-}
-
-type LaidOutNode = SankeyNode<SankeyNodeData, SankeyLinkData>;
-type LaidOutLink = SankeyLink<SankeyNodeData, SankeyLinkData>;
-
 // Keep only the results for the selected driver / team before aggregation.
 const filterRaceResults = (
-  results: any[],
+  results: SeasonDriverResult[],
   mode: Mode,
   selectedDriver: string | null,
   selectedTeam: string | null
-): any[] => {
+): SeasonDriverResult[] => {
   if (mode === 'all') return results;
   if (mode === 'driver' && selectedDriver)
     return results.filter((r) => r.Driver?.code === selectedDriver);
@@ -97,7 +57,7 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
   const [mode, setMode] = useState<Mode>('all');
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
-  const [rawResults, setRawResults] = useState<Record<string, unknown>[] | null>(null);
+  const [rawResults, setRawResults] = useState<SeasonRoundResult[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [drivers, setDrivers] = useState<Array<{
@@ -118,8 +78,8 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
 
     const load = async () => {
       try {
-        const races = await getScheduleFromDb(year);
-        if (!races || !Array.isArray(races) || races.length === 0) {
+        const races = (await getScheduleFromDb(year)) as SeasonScheduleRace[] | null;
+        if (!races || races.length === 0) {
           if (!cancelled) {
             setRawResults([]);
             setDrivers([]);
@@ -130,19 +90,19 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
         }
 
         const rounds = races
-          .map((r) => Number((r as any).round))
+          .map((r) => Number(r.round))
           .filter((r) => Number.isFinite(r));
         const fetched = await Promise.all(rounds.map((r) => getRaceResultsFromDb(year, r)));
         const valid = fetched.filter(
           (r): r is Record<string, unknown> =>
-            !!r && Array.isArray((r as any).Results) && (r as any).Results.length > 0
-        );
+            !!r && Array.isArray(r.Results) && (r.Results as unknown[]).length > 0
+        ) as SeasonRoundResult[];
 
         // Build filter lists from the raw results.
         const driverMap = new Map<string, { name: string; team: string; teamName: string }>();
         const teamSet = new Set<string>();
         valid.forEach((race) => {
-          (race.Results as any[]).forEach((r: any) => {
+          (race.Results ?? []).forEach((r) => {
             const code = r.Driver?.code || "";
             const team = r.Constructor?.constructorId || "unknown";
             const teamName = r.Constructor?.name || "Unknown";
@@ -186,13 +146,13 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
       .map((race) => ({
         ...race,
         Results: filterRaceResults(
-          (race as any).Results,
+          race.Results ?? [],
           mode,
           selectedDriver,
           selectedTeam
         ),
       }))
-      .filter((race) => (race as any).Results.length > 0);
+      .filter((race) => (race.Results?.length ?? 0) > 0);
     if (filtered.length === 0) return null;
     const data = buildSeasonSankey(filtered);
     if (data.nodes.length === 0 || data.links.length === 0) return null;
@@ -232,7 +192,7 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
 
       const nodeIds = new Set(nivoNodes.map((n) => n.id));
       const nivoLinks: SankeyLinkData[] = originalLinks
-        .map((link: SeasonSankeyLink): SankeyLinkData | null => {
+        .map((link): SankeyLinkData | null => {
           if (!nodeIds.has(link.source) || !nodeIds.has(link.target)) return null;
           const value = toValidNumber(link.value, 1);
           const sourceNode = nodeMap.get(link.source);
@@ -288,13 +248,11 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
     [sankey]
   );
 
-  const isEmpty = !!sankeyData && sankeyData.nodes.length === 0;
-
   return (
     <F1ChartContainer
       isLoading={isLoading}
       error={error}
-      isEmpty={!sankeyData || isEmpty}
+      isEmpty={!sankeyData}
       useSkeleton
       minHeight={400}
       loadingMessage="Loading season Sankey…"
@@ -311,8 +269,8 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
             </span>
             <div className="flex items-center gap-1 border border-input bg-input rounded-md p-1">
               <button
-                role="switch"
-                aria-checked={mode === 'all'}
+                role="button"
+                aria-pressed={mode === 'all'}
                 className={cn(
                   "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                   mode === 'all'
@@ -328,8 +286,8 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
                 All drivers
               </button>
               <button
-                role="switch"
-                aria-checked={mode === 'driver'}
+                role="button"
+                aria-pressed={mode === 'driver'}
                 className={cn(
                   "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                   mode === 'driver'
@@ -344,8 +302,8 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
                 Driver
               </button>
               <button
-                role="switch"
-                aria-checked={mode === 'team'}
+                role="button"
+                aria-pressed={mode === 'team'}
                 className={cn(
                   "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                   mode === 'team'
@@ -364,6 +322,7 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Driver:</span>
                 <select
+                  aria-label="Driver filter"
                   value={selectedDriver ?? ""}
                   onChange={(e) => setSelectedDriver(e.target.value || null)}
                   className="bg-input border border-input rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -381,6 +340,7 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Team:</span>
                 <select
+                  aria-label="Team filter"
                   value={selectedTeam ?? ""}
                   onChange={(e) => setSelectedTeam(e.target.value || null)}
                   className="bg-input border border-input rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -436,287 +396,5 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
     </F1ChartContainer>
   );
 };
-
-// Layout constants matching the previous Nivo configuration / MuiSankeyChart idiom
-const MARGIN = { top: 10, right: 100, bottom: 10, left: 100 };
-const NODE_WIDTH = 12;
-const NODE_PADDING = 4;
-const NODE_RADIUS = 3;
-const LABEL_PADDING = 12;
-
-type HoverTarget =
-  | { kind: 'node'; node: LaidOutNode; x: number; y: number }
-  | { kind: 'link'; link: LaidOutLink; x: number; y: number }
-  | null;
-
-function SeasonSankeySurface({
-  sankeyData,
-}: {
-  sankeyData: { nodes: SankeyNodeData[]; links: SankeyLinkData[] };
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [hover, setHover] = useState<HoverTarget>(null);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const update = () => {
-      const w = el.clientWidth;
-      const h = el.clientHeight;
-      setDimensions((prev) =>
-        prev.width === w && prev.height === h ? prev : { width: w, height: h }
-      );
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const hasSize = dimensions.width >= 50 && dimensions.height >= 50;
-  const isNarrow = dimensions.width > 0 && dimensions.width < 480;
-  const leftM = isNarrow ? 48 : MARGIN.left;
-  const rightM = isNarrow ? 48 : MARGIN.right;
-  const x0 = leftM;
-  const x1 = dimensions.width - rightM;
-  const y0 = MARGIN.top;
-  const y1 = dimensions.height - MARGIN.bottom;
-
-  const graph = useMemo<SankeyGraph<SankeyNodeData, SankeyLinkData> | null>(() => {
-    if (!hasSize || x1 <= x0 || y1 <= y0) return null;
-    const layout = sankey<SankeyNodeData, SankeyLinkData>()
-      .nodeId((d) => d.id)
-      .nodeWidth(NODE_WIDTH)
-      .nodePadding(NODE_PADDING)
-      .nodeAlign(sankeyLeft)
-      .nodeSort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-      .extent([
-        [x0, y0],
-        [x1, y1],
-      ]);
-    try {
-      return layout({
-        nodes: sankeyData.nodes.map((n) => ({ ...n })),
-        links: sankeyData.links.map((l) => ({ ...l })),
-      });
-    } catch {
-      return null;
-    }
-  }, [sankeyData, dimensions.width, dimensions.height, hasSize, isNarrow]);
-
-  const linkPath = useMemo(() => sankeyLinkHorizontal<SankeyNodeData, SankeyLinkData>(), []);
-  const labelColor = 'hsl(var(--muted-foreground))';
-
-  return (
-    <div ref={containerRef} className="relative flex-1 min-h-[400px]" style={{ minHeight: 400 }}>
-      {hasSize && graph ? (
-        <svg
-          width={dimensions.width}
-          height={dimensions.height}
-          onMouseLeave={() => setHover(null)}
-          onPointerDown={() => setHover(null)}
-        >
-          {/* Links (drawn first so nodes sit on top) */}
-          <g fill="none">
-            {graph.links.map((link, i) => {
-              const d = linkPath(link);
-              if (!d) return null;
-              const data = link as LaidOutLink & SankeyLinkData;
-              const isHovered = hover?.kind === 'link' && hover.link === link;
-              const isHold = data.color === TOKEN.neutral;
-              const baseOpacity = data.dimLine ? 0.14 : isHold ? 0.09 : 0.5;
-              return (
-                <path
-                  key={`link-${i}`}
-                  d={d}
-                  stroke={data.color || TEAM_COLORS.default}
-                  strokeWidth={Math.max(isHold ? 1 : 2, link.width ?? 1)}
-                  strokeOpacity={isHovered ? (isHold ? 0.5 : 0.85) : baseOpacity}
-                  style={{ cursor: 'pointer' }}
-                  onMouseMove={(e) => {
-                    const rect = containerRef.current?.getBoundingClientRect();
-                    setHover({
-                      kind: 'link',
-                      link,
-                      x: e.clientX - (rect?.left ?? 0),
-                      y: e.clientY - (rect?.top ?? 0),
-                    });
-                  }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    const rect = containerRef.current?.getBoundingClientRect();
-                    setHover({
-                      kind: 'link',
-                      link,
-                      x: e.clientX - (rect?.left ?? 0),
-                      y: e.clientY - (rect?.top ?? 0),
-                    });
-                  }}
-                  onMouseLeave={() => setHover(null)}
-                />
-              );
-            })}
-          </g>
-
-          {/* Nodes */}
-          <g>
-            {graph.nodes.map((node, i) => {
-              const data = node as LaidOutNode & SankeyNodeData;
-              const x0n = node.x0 ?? 0;
-              const y0n = node.y0 ?? 0;
-              const w = (node.x1 ?? 0) - x0n;
-              const h = Math.max(0, (node.y1 ?? 0) - y0n);
-              const isHovered = hover?.kind === 'node' && hover.node === node;
-              const labelOnLeft = data.type === 'grid' || data.type === 'pit-lane';
-              const labelPad = isNarrow ? 5 : LABEL_PADDING;
-              const labelText = labelOnLeft ? `${data.name}` : `${data.name}`;
-              return (
-                <g key={`node-${i}`}>
-                  <rect
-                    x={x0n}
-                    y={y0n}
-                    width={w}
-                    height={h}
-                    rx={NODE_RADIUS}
-                    ry={NODE_RADIUS}
-                    fill={data.color || TEAM_COLORS.default}
-                    fillOpacity={isHovered ? 1 : 0.9}
-                    style={{ cursor: 'pointer' }}
-                    onMouseMove={(e) => {
-                      const rect = containerRef.current?.getBoundingClientRect();
-                      setHover({
-                        kind: 'node',
-                        node,
-                        x: e.clientX - (rect?.left ?? 0),
-                        y: e.clientY - (rect?.top ?? 0),
-                      });
-                    }}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      const rect = containerRef.current?.getBoundingClientRect();
-                      setHover({
-                        kind: 'node',
-                        node,
-                        x: e.clientX - (rect?.left ?? 0),
-                        y: e.clientY - (rect?.top ?? 0),
-                      });
-                    }}
-                    onMouseLeave={() => setHover(null)}
-                  />
-                  <text
-                    x={labelOnLeft ? x0n - labelPad : (node.x1 ?? 0) + labelPad}
-                    y={(y0n + (node.y1 ?? 0)) / 2}
-                    dy="0.35em"
-                    textAnchor={labelOnLeft ? 'end' : 'start'}
-                    fontSize={isNarrow ? 9 : 11}
-                    fontWeight={600}
-                    fontFamily="var(--font-mono, monospace)"
-                    fill={isHovered ? 'hsl(var(--foreground))' : labelColor}
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    {labelText}
-                  </text>
-                </g>
-              );
-            })}
-          </g>
-        </svg>
-      ) : null}
-
-      {/* Tooltip overlay */}
-      {hover?.kind === 'node' && (
-        <SankeyTooltip x={hover.x} y={hover.y}>
-          <NodeTooltipContent node={hover.node as LaidOutNode & SankeyNodeData} />
-        </SankeyTooltip>
-      )}
-      {hover?.kind === 'link' && (
-        <SankeyTooltip x={hover.x} y={hover.y}>
-          <LinkTooltipContent link={hover.link as LaidOutLink & SankeyLinkData} />
-        </SankeyTooltip>
-      )}
-    </div>
-  );
-}
-
-function SankeyTooltip({ x, y, children }: { x: number; y: number; children: React.ReactNode }) {
-  return (
-    <div className="pointer-events-none absolute z-50" style={{ left: x + 12, top: y + 12 }}>
-      {children}
-    </div>
-  );
-}
-
-function NodeTooltipContent({ node }: { node: LaidOutNode & SankeyNodeData }) {
-  return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 font-mono text-xs text-foreground shadow-card">
-      <div className="mb-1 font-bold">{node.fullName || node.name}</div>
-      <div className="mb-2 text-muted-foreground">{node.teamName}</div>
-      <div className="flex justify-between gap-4">
-        <span className="text-muted-foreground">
-          {node.type === 'pit-lane' ? 'Pit lane' : node.type === 'dnf' ? 'DNF' : 'Grid'} Position
-        </span>
-        <span className="font-mono font-medium tabular-nums">{node.name}</span>
-      </div>
-    </div>
-  );
-}
-
-function LinkTooltipContent({ link }: { link: LaidOutLink & SankeyLinkData }) {
-  const sourceNode = link.source as LaidOutNode & SankeyNodeData;
-  const targetNode = link.target as LaidOutNode & SankeyNodeData;
-  let changeText = '—';
-  let changeColor = 'text-muted-foreground';
-  if (link.gridPosition != null && link.racePosition != null) {
-    const change = link.gridPosition - link.racePosition;
-    if (change > 0) {
-      changeText = `+${change} positions`;
-      changeColor = 'text-status-completed';
-    } else if (change < 0) {
-      changeText = `${change} positions`;
-      changeColor = 'text-destructive';
-    } else {
-      changeText = 'No change';
-    }
-  }
-  const teams = link.teams?.length
-    ? link.teams.length === 1
-      ? link.teams[0]
-      : `${link.teams.length} teams`
-    : '—';
-  return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 font-mono text-xs text-foreground shadow-card">
-      <div className="mb-1 font-bold">{link.driverName || sourceNode?.name}</div>
-      <div className="mb-2 text-muted-foreground">{link.team || sourceNode?.teamName || teams}</div>
-      <div className="flex flex-col gap-1">
-        <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">Grid</span>
-          <span className="font-mono font-medium tabular-nums">
-            {link.isPitLane ? 'Pit lane' : `P${sourceNode?.position}`}
-          </span>
-        </div>
-        <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">Finish</span>
-          <span className="font-mono font-medium tabular-nums">
-            {link.isDNF ? 'DNF' : `P${targetNode?.position}`}
-          </span>
-        </div>
-        <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">Change</span>
-          <span className={cn('font-mono font-medium tabular-nums', changeColor)}>{changeText}</span>
-        </div>
-        <div className="flex justify-between gap-4 border-t border-border pt-1 mt-1">
-          <span className="text-muted-foreground">Races</span>
-          <span className="font-mono font-medium tabular-nums">{link.value}</span>
-        </div>
-        {link.isDNF && (
-          <div className="mt-1 border-t border-border pt-1 font-medium text-destructive">
-            Did not finish
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default SeasonSankeyChart;
