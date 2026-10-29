@@ -392,3 +392,170 @@ export const buildSankeyFromRoundResults = (qualifying: any[], raceResults: any[
 
   return { nodes, links };
 };
+
+// ───────────────────────────── season sankey ─────────────────────────────
+
+/** A classified finish (Finished / Lapped / +N Lap) is never a DNF — mirrors
+ *  the same rule in f1Warehouse + the ingest pipeline, guarding against stale
+ *  warehouse rows where is_dnf is set but the driver was classified. */
+const isClassifiedFinish = (status: string): boolean => {
+  const s = (status ?? "").trim();
+  return s === "Finished" || s === "Lapped" || /^\+\d+\s+Lap/i.test(s);
+};
+
+const isValidPosition = (v: unknown): boolean => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0;
+};
+
+const isDNFResult = (position: unknown, status: string): boolean => {
+  return !isValidPosition(position) || !isClassifiedFinish(status);
+};
+
+// Nodes outside the normal P1..Pn range sort last (bottom of their column).
+const POSITION_NODE_LAST = 9999;
+
+export interface SeasonSankeyLink {
+  source: string; // node id: "grid-1" | "grid-pitlane"
+  target: string; // node id: "finish-3" | "finish-dnf"
+  value: number; // number of races with this grid → finish
+  gridPosition: number | null; // null ⇒ pit-lane start
+  racePosition: number | null; // null ⇒ DNF
+  isDNF: boolean;
+  isPitLane: boolean;
+  teams: string[]; // constructorIds of the contributing drivers (deduped)
+  drivers: Array<{
+    code: string;
+    name: string;
+    team: string;
+    teamName: string;
+  }>;
+}
+
+interface SeasonLinkAccum {
+  source: string;
+  target: string;
+  value: number;
+  gridPosition: number | null;
+  racePosition: number | null;
+  isDNF: boolean;
+  isPitLane: boolean;
+  teams: Set<string>;
+  drivers: Array<{
+    code: string;
+    name: string;
+    team: string;
+    teamName: string;
+  }>;
+}
+
+/**
+ * Aggregate every driver's grid → finishing position across all races in a
+ * season into one Sankey.
+ *
+ * - One link per driver per race (value = 1), summed by (grid, finish) pair,
+ *   so link value = count of races with that grid → finish.
+ * - Left column: starting positions (P1…Pn) plus a dedicated "Pit lane" node.
+ * - Right column: finishing positions (P1…Pn) plus a dedicated "DNF" node.
+ * - Drivers starting from the pit lane (grid null / 0 / invalid) flow from the
+ *   "Pit lane" node; drivers who don't finish flow into the "DNF" node.
+ *
+ * Returns empty nodes/links (never throws) when there is nothing to show.
+ */
+export const buildSeasonSankey = (
+  roundResults: any[]
+): { nodes: SankeyNode[]; links: SeasonSankeyLink[] } => {
+  const linkMap = new Map<string, SeasonLinkAccum>();
+  const gridPositions = new Set<number>();
+  const finishPositions = new Set<number>();
+  let hasPitLane = false;
+  let hasDNF = false;
+
+  roundResults.forEach((race: any) => {
+    const results = Array.isArray(race?.Results) ? race.Results : [];
+    results.forEach((result: any) => {
+      const gridRaw = result.grid;
+      const gridNum = Number(gridRaw);
+      const isPitLane =
+        gridRaw == null || gridRaw === "" || !Number.isFinite(gridNum) || gridNum <= 0;
+
+      const position = result.position;
+      const status = String(result.status ?? "");
+      const dnf = isDNFResult(position, status);
+
+      const driverCode = result.Driver?.code ?? "";
+      const driverName =
+        `${result.Driver?.givenName ?? ""} ${result.Driver?.familyName ?? ""}`.trim() ||
+        driverCode;
+      const team = result.Constructor?.constructorId ?? "unknown";
+      const teamName = result.Constructor?.name ?? "Unknown";
+
+      const sourceId = isPitLane ? "grid-pitlane" : `grid-${gridNum}`;
+      const targetId = dnf ? "finish-dnf" : `finish-${Number(position)}`;
+
+      if (isPitLane) hasPitLane = true;
+      else gridPositions.add(gridNum);
+      if (dnf) hasDNF = true;
+      else finishPositions.add(Number(position));
+
+      const key = `${sourceId}|${targetId}`;
+      const existing = linkMap.get(key);
+      if (existing) {
+        existing.value += 1;
+        existing.teams.add(team);
+        existing.drivers.push({ code: driverCode, name: driverName, team, teamName });
+      } else {
+        linkMap.set(key, {
+          source: sourceId,
+          target: targetId,
+          value: 1,
+          gridPosition: isPitLane ? null : gridNum,
+          racePosition: dnf ? null : Number(position),
+          isDNF: dnf,
+          isPitLane,
+          teams: new Set([team]),
+          drivers: [{ code: driverCode, name: driverName, team, teamName }],
+        });
+      }
+    });
+  });
+
+  const nodes: SankeyNode[] = [];
+  [...gridPositions]
+    .sort((a, b) => a - b)
+    .forEach((pos) => {
+      nodes.push({ id: `grid-${pos}`, name: `P${pos}`, position: pos, type: "grid" });
+    });
+  if (hasPitLane) {
+    nodes.push({
+      id: "grid-pitlane",
+      name: "Pit lane",
+      position: POSITION_NODE_LAST,
+      type: "pit-lane",
+    });
+  }
+  [...finishPositions]
+    .sort((a, b) => a - b)
+    .forEach((pos) => {
+      nodes.push({ id: `finish-${pos}`, name: `P${pos}`, position: pos, type: "finish" });
+    });
+  if (hasDNF) {
+    nodes.push({
+      id: "finish-dnf",
+      name: "DNF",
+      position: POSITION_NODE_LAST,
+      type: "dnf",
+      isDNF: true,
+    });
+  }
+
+  const links: SeasonSankeyLink[] = Array.from(linkMap.values()).map(
+    ({ teams, drivers, ...rest }) => ({
+      ...rest,
+      teams: Array.from(teams),
+      drivers,
+    })
+  );
+
+  return { nodes, links };
+};
