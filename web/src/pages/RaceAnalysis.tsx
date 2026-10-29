@@ -10,7 +10,7 @@ import {
   type RaceAnalysisTabId,
 } from "@/components/race-analysis/raceAnalysisTabs.config";
 import { type SessionOption } from "@/components/f1";
-import { useRaceSchedule } from "@/hooks/useF1Data";
+import { useRaceSchedule, useSpoilerShield } from "@/hooks/useF1Data";
 import { useDbSessions } from "@/hooks/useWarehouse";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,13 @@ const RaceAnalysis = () => {
   const { data: dbSessions, isLoading: isSessionsLoading } =
     useDbSessions(selectedYear, parseInt(selectedRace, 10));
   const { isGlass } = useTheme();
+
+  const { isShielded: raceShielded, showResults: raceShowResults, latestRace: raceLatestRace } =
+    useSpoilerShield({ season: selectedYear, races: raceScheduleData?.data ?? null });
+  // Only the currently selected round is shielded, and only when it is the
+  // latest race weekend; other rounds and past seasons are untouched.
+  const isLatestRace = !!raceLatestRace && raceLatestRace.round === selectedRace;
+  const shielded = isLatestRace && raceShielded;
 
   const currentRace = useMemo(() => {
     if (!raceScheduleData?.data) return null;
@@ -212,6 +219,8 @@ const RaceAnalysis = () => {
           selectedYear={selectedYear}
           selectedRace={selectedRace}
           selectedSession={selectedSession}
+          isShielded={shielded}
+          onShowResults={raceShowResults}
         />
       </div>
     </div>

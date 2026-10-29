@@ -2,7 +2,12 @@
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDriverStandings, useConstructorStandings } from "@/hooks/useF1Data";
+import {
+  useDriverStandings,
+  useConstructorStandings,
+  useRaceSchedule,
+  useSpoilerShield,
+} from "@/hooks/useF1Data";
 import TeamLogo from "@/components/common/TeamLogo";
 import ReactCountryFlag from "react-country-flag";
 import {
@@ -30,6 +35,7 @@ import {
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import PointsProgressionChart from "@/components/standings/PointsProgressionChart";
 import ReliabilityBoard from "@/components/standings/ReliabilityBoard";
+import { SpoilerShield } from "@/components/spoiler-shield/SpoilerShield";
 import Seo from "@/components/common/Seo";
 import { breadcrumbSchema } from "@/lib/structuredData";
 
@@ -158,11 +164,23 @@ const Standings = () => {
     refetch: refetchConstructors,
   } = useConstructorStandings();
 
+  const { data: raceScheduleData } = useRaceSchedule(currentSeason);
+  const { isShielded, showResults, latestRace } = useSpoilerShield({
+    season: currentSeason,
+    races: raceScheduleData?.data ?? null,
+  });
+  // Only the latest race weekend is shielded; once the user has shown results
+  // for the season, everything stays revealed.
+  const shielded = isShielded && !!latestRace;
+
   const cardVariant = isGlass ? "glass" : "default";
   const glassVariant = isGlass ? "panel" : "default";
 
   const drivers = (driverStandings?.data ?? []) as DriverStandingRow[];
   const constructors = (constructorStandings?.data ?? []) as ConstructorStandingRow[];
+
+  const driversReady = drivers.length > 0 && !isDriversLoading && !isDriversError;
+  const constructorsReady = constructors.length > 0 && !isConstructorsLoading && !isConstructorsError;
 
   const leaderDriverPts = Number(drivers[0]?.points ?? 0);
   const leaderTeamPts = Number(constructors[0]?.points ?? 0);
@@ -342,57 +360,61 @@ const Standings = () => {
           </TabsList>
 
           <TabsContent value="drivers" className="mt-4 space-y-4 md:mt-6 md:space-y-6">
-            {drivers.length > 0 && (
-              <PointsProgressionChart
-                year={currentSeason}
-                series={driverSeries}
-                title="Championship Progression"
-                subtitle="Cumulative points · every driver"
-              />
-            )}
-            <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
-              <ListHeader
-                icon={<FlagIcon className="h-3 w-3" />}
-                label={`Drivers ${currentSeason}`}
-                count={drivers.length}
-              />
-              {isDriversError ? (
-                <F1ErrorState type="network" variant="inline" className="py-8" onRetry={() => refetchDrivers()} />
-              ) : isDriversLoading ? (
-                skeletonPlate
-              ) : !drivers.length ? (
-                <F1EmptyState type="no-data" className="py-10" />
-              ) : (
-                driverRows
+            <SpoilerShield isShielded={shielded && driversReady} onShowResults={showResults}>
+              {drivers.length > 0 && (
+                <PointsProgressionChart
+                  year={currentSeason}
+                  series={driverSeries}
+                  title="Championship Progression"
+                  subtitle="Cumulative points · every driver"
+                />
               )}
-            </F1Card>
+              <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
+                <ListHeader
+                  icon={<FlagIcon className="h-3 w-3" />}
+                  label={`Drivers ${currentSeason}`}
+                  count={drivers.length}
+                />
+                {isDriversError ? (
+                  <F1ErrorState type="network" variant="inline" className="py-8" onRetry={() => refetchDrivers()} />
+                ) : isDriversLoading ? (
+                  skeletonPlate
+                ) : !drivers.length ? (
+                  <F1EmptyState type="no-data" className="py-10" />
+                ) : (
+                  driverRows
+                )}
+              </F1Card>
+            </SpoilerShield>
           </TabsContent>
 
           <TabsContent value="constructors" className="mt-4 space-y-4 md:mt-6 md:space-y-6">
-            {constructors.length > 0 && (
-              <PointsProgressionChart
-                year={currentSeason}
-                series={constructorSeries}
-                title="Constructor Progression"
-                subtitle="Cumulative team points · every team"
-              />
-            )}
-            <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
-              <ListHeader
-                icon={<FlagIcon className="h-3 w-3" />}
-                label={`Constructors ${currentSeason}`}
-                count={constructors.length}
-              />
-              {isConstructorsError ? (
-                <F1ErrorState type="network" variant="inline" className="py-8" onRetry={() => refetchConstructors()} />
-              ) : isConstructorsLoading ? (
-                skeletonPlate
-              ) : !constructors.length ? (
-                <F1EmptyState type="no-data" className="py-10" />
-              ) : (
-                constructorRows
+            <SpoilerShield isShielded={shielded && constructorsReady} onShowResults={showResults}>
+              {constructors.length > 0 && (
+                <PointsProgressionChart
+                  year={currentSeason}
+                  series={constructorSeries}
+                  title="Constructor Progression"
+                  subtitle="Cumulative team points · every team"
+                />
               )}
-            </F1Card>
+              <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
+                <ListHeader
+                  icon={<FlagIcon className="h-3 w-3" />}
+                  label={`Constructors ${currentSeason}`}
+                  count={constructors.length}
+                />
+                {isConstructorsError ? (
+                  <F1ErrorState type="network" variant="inline" className="py-8" onRetry={() => refetchConstructors()} />
+                ) : isConstructorsLoading ? (
+                  skeletonPlate
+                ) : !constructors.length ? (
+                  <F1EmptyState type="no-data" className="py-10" />
+                ) : (
+                  constructorRows
+                )}
+              </F1Card>
+            </SpoilerShield>
           </TabsContent>
 
           <TabsContent value="reliability" className="mt-4 space-y-4 md:mt-6 md:space-y-6">
