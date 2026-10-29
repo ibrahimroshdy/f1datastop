@@ -23,6 +23,11 @@ import { useDbRaceControl } from "@/hooks/useWarehouse";
 import { deriveSafetyPeriods } from "@/lib/f1/safetyPeriods";
 import { safetyBands } from "./safetyBands";
 import { SafetyLegend } from "@/components/analytics/SafetyCarBands";
+import {
+  getRaceReplay,
+  fetchRaceReplayBlob,
+  type RaceReplayBlob,
+} from "@/services/raceReplayService";
 
 interface MuiLapTimeChartProps {
   year: number;
@@ -49,6 +54,28 @@ interface ErgastPitStop {
   stop: string;
 }
 
+/** Per-lap sector times for one driver (ms), keyed by driver code then lap number. */
+export type SectorLap = { s1: number | null; s2: number | null; s3: number | null };
+export type SectorData = { [driverCode: string]: { [lap: number]: SectorLap } };
+
+/** Build { [driverCode]: { [lap]: {s1,s2,s3} } } from a race replay blob.
+ *  Silent-degradation friendly: missing codes/laps are skipped, null sectors stay null. */
+export function buildSectorData(blob: RaceReplayBlob): SectorData {
+  const data: SectorData = {};
+  for (const driver of blob.drivers) {
+    if (!driver.code || !driver.laps || driver.laps.length === 0) continue;
+    data[driver.code] = {};
+    for (const lap of driver.laps) {
+      data[driver.code][lap.n] = {
+        s1: lap.s1 ?? null,
+        s2: lap.s2 ?? null,
+        s3: lap.s3 ?? null,
+      };
+    }
+  }
+  return data;
+}
+
 const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
   year,
   round,
@@ -61,6 +88,10 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
   const [showPitStops, setShowPitStops] = useState(true);
   const [pitStops, setPitStops] = useState<PitStopData[]>([]);
   const [, setPitStopsLoading] = useState(false);
+
+  // Per-lap sector times (S1/S2/S3, ms) for the selected drivers, sourced from
+  // the race replay blob (CDN-first, silent degradation when unavailable).
+  const [sectorData, setSectorData] = useState<SectorData | null>(null);
 
   // Mobile detection
   useEffect(() => {
@@ -105,6 +136,34 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
     if (year && round) {
       fetchPitStops();
     }
+  }, [year, round]);
+
+  // Fetch per-lap sector times from the race replay blob (CDN-first via
+  // getRaceReplay / fetchRaceReplayBlob). Errors or missing blobs leave
+  // sectorData null so the chart renders exactly as before.
+  useEffect(() => {
+    let cancelled = false;
+    const fetchSectors = async () => {
+      if (!year || !round) {
+        setSectorData(null);
+        return;
+      }
+      try {
+        const index = await getRaceReplay(year, parseInt(round, 10), "R");
+        if (!index?.public_url) {
+          if (!cancelled) setSectorData(null);
+          return;
+        }
+        const blob = await fetchRaceReplayBlob(index.public_url);
+        if (!cancelled) setSectorData(buildSectorData(blob));
+      } catch {
+        if (!cancelled) setSectorData(null);
+      }
+    };
+    fetchSectors();
+    return () => {
+      cancelled = true;
+    };
   }, [year, round]);
 
   const {
@@ -323,6 +382,34 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
     }
   };
 
+  // Format a sector time (ms) as s.mmm.
+  const formatSector = (ms: number | null) => {
+    if (ms == null) return "–";
+    return (ms / 1000).toFixed(3);
+  };
+
+  // Fastest-sector cell: highlights the minimum sector of the lap using the
+  // --fastest-lap token color (never a raw hex).
+  const SectorCell = ({
+    value,
+    isFastest,
+  }: {
+    value: number | null;
+    isFastest: boolean;
+  }) => {
+    return (
+      <span
+        className="font-mono tabular-nums"
+        style={{
+          color: isFastest ? "hsl(var(--fastest-lap))" : undefined,
+          fontWeight: isFastest ? "bold" : undefined,
+        }}
+      >
+        {formatSector(value)}
+      </span>
+    );
+  };
+
   // Calculate chart height based on available space
   const chartHeight = isMobile ? 220 : 280;
 
@@ -400,7 +487,78 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
           fastestLapTime={fastestLapTime}
           getAverageTime={getAverageTime}
         />
-        
+
+        {/* Compact per-lap sector times for the selected drivers.
+            Fastest sector of each lap is highlighted with --fastest-lap.
+            Renders nothing when the replay blob is unavailable. */}
+        {sectorData && Object.keys(sectorData).length > 0 && (
+          <div className="flex flex-col gap-1">
+            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              Sector times
+            </span>
+            {selectedDrivers.map((driverCode) => {
+              const laps = sectorData[driverCode];
+              if (!laps) return null;
+              const driver = availableDrivers.find((d) => d.code === driverCode);
+              const color = driver
+                ? TEAM_COLORS[driver.team] ||
+                    DRIVER_COLORS[driver.code] ||
+                    TEAM_COLORS.default
+                : TEAM_COLORS.default;
+              const lapNumbers = Object.keys(laps)
+                .map(Number)
+                .sort((a, b) => a - b);
+              return (
+                <div key={driverCode} className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="font-mono text-xs font-bold">
+                      {driverCode}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 max-h-[180px] overflow-y-auto">
+                    {lapNumbers.map((lap) => {
+                      const s = laps[lap];
+                      const vals = [s.s1, s.s2, s.s3].filter(
+                        (v): v is number => v != null,
+                      );
+                      const fastest =
+                        vals.length > 0 ? Math.min(...vals) : null;
+                      return (
+                        <div
+                          key={lap}
+                          className="flex items-center gap-1 font-mono text-[10px] tabular-nums"
+                        >
+                          <span className="w-5 text-muted-foreground">
+                            L{lap}
+                          </span>
+                          <SectorCell
+                            value={s.s1}
+                            isFastest={s.s1 != null && s.s1 === fastest}
+                          />
+                          <span className="text-muted-foreground">·</span>
+                          <SectorCell
+                            value={s.s2}
+                            isFastest={s.s2 != null && s.s2 === fastest}
+                          />
+                          <span className="text-muted-foreground">·</span>
+                          <SectorCell
+                            value={s.s3}
+                            isFastest={s.s3 != null && s.s3 === fastest}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <F1ChartContainer
           ref={chartRef}
           className="min-h-0 flex-1 overflow-x-auto"
