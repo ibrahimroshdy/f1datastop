@@ -368,6 +368,47 @@ def end_tag(ax, x, y, code, color):
                 ha="left", fontsize=8.5, fontproperties=FP_BODY_B, color=color, zorder=6)
 
 
+def de_collide_end_labels(items, min_gap):
+    """
+    Spread line-end labels whose endpoints sit too close together so they stack
+    instead of overlapping (e.g. RUS / VER / HAM end tags on the championship
+    progression when the leaders are close on points).
+
+    `items` is a list of (x, y, text, color) — one label per line end. All ends
+    share the same x here, so only y is de-collided. Labels whose endpoints are
+    closer than `min_gap` (data units) form a cluster and are re-laid-out
+    centred on the cluster's mean y with `min_gap` separation, preserving
+    top-to-bottom order. A final pass guarantees every neighbour pair is at
+    least `min_gap` apart, so clusters that drifted toward each other can't
+    re-overlap.
+
+    Pure: no matplotlib, no I/O — straightforward to unit test.
+
+    Returns a new list of (x, y, text, color) with de-collided y positions.
+    """
+    if min_gap <= 0 or len(items) < 2:
+        return [tuple(it) for it in items]
+    pts = [list(p) for p in sorted(items, key=lambda p: p[1])]
+    n = len(pts)
+    i = 0
+    while i < n:
+        j = i + 1
+        while j < n and pts[j][1] - pts[j - 1][1] < min_gap:
+            j += 1
+        if j - i > 1:
+            cluster = pts[i:j]
+            mean = sum(p[1] for p in cluster) / len(cluster)
+            half = (len(cluster) - 1) / 2.0
+            for k, p in enumerate(cluster):
+                p[1] = mean + (k - half) * min_gap
+        i = j
+    # Guarantee separation: pull no label closer than min_gap to its predecessor.
+    for k in range(1, n):
+        if pts[k][1] - pts[k - 1][1] < min_gap:
+            pts[k][1] = pts[k - 1][1] + min_gap
+    return [tuple(p) for p in pts]
+
+
 def _hex_to_rgb(h):
     h = h.lstrip("#")
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
@@ -3837,11 +3878,11 @@ def chart_championship(session, meta):
     tall = FMT == "story"
     if tall:
         fig = plt.figure(figsize=(10.8, 19.2), dpi=200)
-        R = {"table": [0.06, 0.470, 0.88, 0.385], "prog": [0.11, 0.050, 0.83, 0.330]}
+        R = {"table": [0.06, 0.470, 0.88, 0.385], "prog": [0.11, 0.050, 0.78, 0.330]}
         nrows = 12
     else:
         fig = plt.figure(figsize=(16, 9), dpi=200)
-        R = {"table": [0.035, 0.075, 0.415, 0.745], "prog": [0.515, 0.095, 0.455, 0.720]}
+        R = {"table": [0.035, 0.075, 0.415, 0.745], "prog": [0.515, 0.095, 0.40, 0.720]}
         nrows = 14
     fig.patch.set_facecolor(PAPER)
     ex = meta.get("event", "")
@@ -3907,13 +3948,20 @@ def chart_championship(session, meta):
     ax = fig.add_axes(rc)
     ax.set_facecolor(PAPER)
     _ra_ptitle(fig, rc[0], rc[1] + rc[3] + 0.012, "Points Progression · leaders")
+    ends = []
     for r, ser in prog:
         xs = [rr for rr, _ in ser]
         ys = [cc for _, cc in ser]
         c = team_color(r["team"])
         ax.plot(xs, ys, color=c, lw=1.8, solid_capstyle="round")
         if xs:
-            ax.annotate(r["code"], (xs[-1], ys[-1]), xytext=(5, 0), textcoords="offset points",
+            ends.append((xs[-1], ys[-1], r["code"], c))
+    if ends:
+        # De-collide end tags whose final points are close (RUS / VER / HAM etc.)
+        # so they stack instead of overlapping. min_gap scales with the points axis.
+        yspan = ax.get_ylim()[1] - ax.get_ylim()[0] or 1.0
+        for x, y, code, c in de_collide_end_labels(ends, min_gap=yspan * 0.02):
+            ax.annotate(code, (x, y), xytext=(5, 0), textcoords="offset points",
                         va="center", ha="left", fontsize=8, fontproperties=FP_BODY_B, color=c)
     ax.grid(axis="y", color=GRID, linewidth=0.9)
     _ra_axstyle(ax, "Round", "Points")
