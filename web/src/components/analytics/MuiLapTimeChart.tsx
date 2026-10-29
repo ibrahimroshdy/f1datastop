@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   LineChart,
   Line,
@@ -27,6 +27,10 @@ import { SafetyLegend } from "@/components/analytics/SafetyCarBands";
 interface MuiLapTimeChartProps {
   year: number;
   round: string;
+  /** When a moment link (?driver=&lap=) opens the page, select this driver. */
+  focusDriver?: string;
+  /** When a moment link (?driver=&lap=) opens the page, highlight this lap. */
+  focusLap?: number;
 }
 
 interface PitStopData {
@@ -45,7 +49,13 @@ interface ErgastPitStop {
   stop: string;
 }
 
-const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
+const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
+  year,
+  round,
+  focusDriver,
+  focusLap,
+}) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
   const [isMobile, setIsMobile] = useState(false);
   const [showPitStops, setShowPitStops] = useState(true);
@@ -101,6 +111,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
     chartData,
     availableDrivers,
     selectedDrivers,
+    setSelectedDrivers,
     visibleDrivers,
     isLoading,
     isError,
@@ -111,7 +122,26 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
     handleDriverHover,
     getAverageTime,
     retryCount,
-  } = useLapTimeData(year, round, displayMode);
+  } = useLapTimeData(year, round, displayMode, focusDriver);
+
+  // When a moment link focuses a driver, select it (replacing the default
+  // winner selection). useLapTimeData skips its own auto-selection while
+  // focusDriver is set, so this is the single source of truth here.
+  useEffect(() => {
+    if (focusDriver) {
+      setSelectedDrivers([focusDriver]);
+    }
+  }, [focusDriver, setSelectedDrivers]);
+
+  // Scroll the chart container to bring the focused lap into view.
+  useEffect(() => {
+    if (focusLap == null || !chartRef.current || !maxLap || maxLap < 2) return;
+    const container = chartRef.current;
+    const scrollable = container.scrollWidth - container.clientWidth;
+    if (scrollable <= 0) return;
+    const progress = (focusLap - 1) / (maxLap - 1);
+    container.scrollLeft = Math.round(progress * scrollable);
+  }, [focusLap, maxLap]);
 
   const toggleDisplayMode = () => {
     setDisplayMode(prev => prev === 'absolute' ? 'gap' : 'absolute');
@@ -372,7 +402,8 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
         />
         
         <F1ChartContainer
-          className="min-h-0 flex-1"
+          ref={chartRef}
+          className="min-h-0 flex-1 overflow-x-auto"
           minHeight={chartHeight}
           isEmpty={lines.length === 0}
           emptyTitle="No Drivers Selected"
@@ -393,6 +424,21 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
                   strokeDasharray="3 3"
                 />
                 {safetyBands(safety)}
+                {focusLap != null && maxLap > 0 && (
+                  <ReferenceLine
+                    x={Math.max(1, Math.min(focusLap, maxLap))}
+                    stroke="hsl(var(--primary))"
+                    strokeDasharray="4 4"
+                    strokeWidth={2}
+                    label={{
+                      value: `Lap ${focusLap}`,
+                      position: 'insideTopRight',
+                      fontSize: 11,
+                      fill: 'hsl(var(--primary))',
+                      fontFamily: 'var(--font-mono, monospace)',
+                    }}
+                  />
+                )}
                 <XAxis
                   dataKey="lap"
                   type="number"

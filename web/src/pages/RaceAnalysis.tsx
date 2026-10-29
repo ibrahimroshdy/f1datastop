@@ -1,6 +1,8 @@
 import { pickInitialSession } from "@/lib/f1/sessionPick";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { Link2 } from "lucide-react";
 import { RaceAnalysisHeader } from "@/components/race-analysis/RaceAnalysisHeader";
 import { RacePicker } from "@/components/race-analysis/RacePicker";
 import { RaceAnalysisTabs } from "@/components/race-analysis/RaceAnalysisTabs";
@@ -18,6 +20,7 @@ import Seo from "@/components/common/Seo";
 import { useTheme } from "@/context/ThemeContext";
 import { breadcrumbSchema, raceSchema } from "@/lib/structuredData";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { Button } from "@/components/ui/button";
 
 type RaceScheduleEntry = {
   round: string;
@@ -39,12 +42,21 @@ const RaceAnalysis = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // A shared moment link (?driver=&lap=) opens the race at a specific lap and
+  // driver on the lap-times tab.
+  const focusDriver = searchParams.get("driver") || undefined;
+  const focusLapRaw = searchParams.get("lap");
+  const focusLapParsed = focusLapRaw ? parseInt(focusLapRaw, 10) : NaN;
+  const focusLap = Number.isFinite(focusLapParsed) ? focusLapParsed : undefined;
+
   const [selectedYear, setSelectedYear] = useState<number>(
     urlYear ? parseInt(urlYear, 10) : getDefaultYear()
   );
   const [selectedRace, setSelectedRace] = useState<string>(urlRound || "1");
   const [selectedTab, setSelectedTab] = useState<RaceAnalysisTabId>(() => {
     const t = searchParams.get("tab");
+    // A moment link with a driver always opens the lap-times tab.
+    if (focusDriver && !t) return "lapTimes";
     return isRaceAnalysisTab(t) ? t : DEFAULT_RACE_ANALYSIS_TAB;
   });
   const [selectedSessionKey, setSelectedSessionKey] = useState<number | null>(null);
@@ -157,6 +169,22 @@ const RaceAnalysis = () => {
     }
   };
 
+  // Copy a link that opens the current view (tab/session/driver/lap) so a
+  // moment can be shared and opened by anyone with the URL.
+  const handleCopyLink = () => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", selectedTab);
+    if (focusDriver) params.set("driver", focusDriver);
+    else params.delete("driver");
+    if (focusLap != null) params.set("lap", String(focusLap));
+    else params.delete("lap");
+    const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => toast.success("Moment link copied"))
+      .catch(() => toast.error("Couldn't copy link"));
+  };
+
   // Race pages are the deepest, most numerous and most search-visible routes — each one
   // gets its own title, canonical and SportsEvent card rather than inheriting the
   // homepage's metadata.
@@ -192,6 +220,19 @@ const RaceAnalysis = () => {
       <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
         <RaceAnalysisHeader selectedYear={selectedYear} currentRace={currentRace} />
 
+        {/* One-click link to the current moment (tab/session/driver/lap). */}
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopyLink}
+            title="Copy link to this moment"
+          >
+            <Link2 className="h-3.5 w-3.5" />
+            Copy link
+          </Button>
+        </div>
+
         {/* Sticky race-context bar (desktop only — the picker is a single compact
             row there; on mobile it stacks tall so it scrolls normally). Keeps the
             selected GP/session visible while scrolling long analysis tabs. */}
@@ -215,6 +256,8 @@ const RaceAnalysis = () => {
         <RaceAnalysisTabs
           selectedTab={selectedTab}
           onTabChange={handleTabChange}
+          focusDriver={focusDriver}
+          focusLap={focusLap}
           hasOpenF1Data
           selectedYear={selectedYear}
           selectedRace={selectedRace}

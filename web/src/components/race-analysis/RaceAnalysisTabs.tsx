@@ -131,6 +131,9 @@ interface RaceAnalysisTabsProps {
   selectedYear: number;
   selectedRace: string;
   selectedSession?: string;
+  /** When a moment link (?driver=&lap=) opens the page, focus this driver/lap on the lapTimes tab. */
+  focusDriver?: string;
+  focusLap?: number;
   /** Hide results content behind a "Show results" button when true (latest race only). */
   isShielded: boolean;
   onShowResults: () => void;
@@ -143,6 +146,8 @@ export function RaceAnalysisTabs({
   selectedYear,
   selectedRace,
   selectedSession = "R",
+  focusDriver,
+  focusLap,
   isShielded,
   onShowResults,
 }: RaceAnalysisTabsProps) {
@@ -241,7 +246,12 @@ export function RaceAnalysisTabs({
                 </F1CardDescription>
               </F1CardHeader>
               <F1CardContent className="min-h-[480px] px-4 pb-4">
-                <MuiLapTimeChart year={selectedYear} round={selectedRace} />
+                <MuiLapTimeChart
+                  year={selectedYear}
+                  round={selectedRace}
+                  focusDriver={focusDriver}
+                  focusLap={focusLap}
+                />
               </F1CardContent>
             </F1Card>
           </SpoilerShield>
