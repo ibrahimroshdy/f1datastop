@@ -21,7 +21,8 @@ import { cn } from "@/lib/utils";
 import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
 import { useDbRaceControl } from "@/hooks/useWarehouse";
 import { deriveSafetyPeriods } from "@/lib/f1/safetyPeriods";
-import { safetyBands, SafetyLegend } from "@/components/analytics/SafetyCarBands";
+import { safetyBands } from "./safetyBands";
+import { SafetyLegend } from "@/components/analytics/SafetyCarBands";
 
 interface MuiLapTimeChartProps {
   year: number;
@@ -34,6 +35,14 @@ interface PitStopData {
   duration: string;
   team?: string;
   stop?: number; // Pit stop number (1, 2, 3...)
+}
+
+/** A single Ergast pit stop row (untyped at the service boundary). */
+interface ErgastPitStop {
+  driverId: string;
+  lap: string;
+  duration: string;
+  stop: string;
 }
 
 const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
@@ -60,7 +69,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
         if (response?.data?.Races?.[0]?.PitStops) {
           // Group by driver to assign stop numbers
           const stopsByDriver: { [driver: string]: number } = {};
-          const pitStopData = response.data.Races[0].PitStops.map((ps: any) => {
+          const pitStopData = response.data.Races[0].PitStops.map((ps: ErgastPitStop) => {
             const driverId = ps.driverId;
             stopsByDriver[driverId] = (stopsByDriver[driverId] || 0) + 1;
             return {
@@ -288,18 +297,32 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
   const chartHeight = isMobile ? 220 : 280;
 
   // Custom tooltip mirroring the old MUI hover (sorted fastest-first, formatted time)
-  const LapTooltip = ({ active, payload, label }: any) => {
+  type TipItem = {
+    dataKey: string | number;
+    value: number;
+    color?: string;
+    stroke?: string;
+  };
+  const LapTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: TipItem[];
+    label?: string | number;
+  }) => {
     if (!active || !payload?.length) return null;
     const rows = payload
-      .filter((p: any) => p.value != null)
-      .sort((a: any, b: any) => a.value - b.value);
+      .filter((p) => p.value != null)
+      .sort((a, b) => a.value - b.value);
     if (!rows.length) return null;
     return (
       <div className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-xs shadow-card">
         <div className="mb-1 font-mono uppercase tracking-widest text-muted-foreground">
           Lap {label}
         </div>
-        {rows.map((p: any) => (
+        {rows.map((p) => (
           <div key={p.dataKey} className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.stroke }} />
             <span className="w-9 font-mono font-bold text-foreground">{p.dataKey}</span>

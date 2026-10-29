@@ -62,15 +62,20 @@ function SeasonSankeySurface({
 
   const hasSize = dimensions.width >= 50 && dimensions.height >= 50;
   const isNarrow = dimensions.width > 0 && dimensions.width < 480;
-  const leftM = isNarrow ? 48 : MARGIN.left;
-  const rightM = isNarrow ? 48 : MARGIN.right;
-  const x0 = leftM;
-  const x1 = dimensions.width - rightM;
-  const y0 = MARGIN.top;
-  const y1 = dimensions.height - MARGIN.bottom;
 
   const graph = useMemo<SankeyGraph<SankeyNodeData, SankeyLinkData> | null>(() => {
-    if (!hasSize || x1 <= x0 || y1 <= y0) return null;
+    if (!hasSize) return null;
+
+    // Left column carries "position + code" so it needs a wider margin than the
+    // right (code only). Keep the generous margins on wide screens.
+    const leftM = isNarrow ? 48 : MARGIN.left;
+    const rightM = isNarrow ? 48 : MARGIN.right;
+    const x0 = leftM;
+    const x1 = dimensions.width - rightM;
+    const y0 = MARGIN.top;
+    const y1 = dimensions.height - MARGIN.bottom;
+    if (x1 <= x0 || y1 <= y0) return null;
+
     const layout = d3Sankey<SankeyNodeData, SankeyLinkData>()
       .nodeId((d) => d.id)
       .nodeWidth(NODE_WIDTH)

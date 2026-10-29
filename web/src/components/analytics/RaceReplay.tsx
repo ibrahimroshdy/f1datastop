@@ -6,7 +6,7 @@ import { useRaceResults } from "@/hooks/f1";
 import { getTeamColorById } from "@/constants/f1Colors";
 import { F1Card, F1CardContent, F1CardHeader, F1CardTitle, F1Skeleton, F1EmptyState } from "@/components/f1";
 import { deriveSafetyPeriods, kindTag } from "@/lib/f1/safetyPeriods";
-import { BAND_COLOR } from "@/components/analytics/SafetyCarBands";
+import { BAND_COLOR } from "./safetyBands";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -135,7 +135,7 @@ export default function RaceReplay({ year, round }: Props) {
   }, [posByLap, lap]);
 
   const lapPits = pitsByLap.get(lap);
-  const lapOts = otByLap.get(lap) ?? [];
+  const lapOts = useMemo(() => otByLap.get(lap) ?? [], [otByLap, lap]);
   const otMovers = useMemo(() => new Set(lapOts.map((o) => o.overtaking_driver_id)), [lapOts]);
   const activeSafety = safety.find((p) => lap >= p.startLap && lap <= p.endLap) ?? null;
 

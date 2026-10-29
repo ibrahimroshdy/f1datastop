@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -54,7 +54,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
   } = useQualifyingData(year, round);
 
   // Get data for a specific session
-  const getSessionData = (session: 'Q1' | 'Q2' | 'Q3') => {
+  const getSessionData = useCallback((session: 'Q1' | 'Q2' | 'Q3') => {
     const sessionKey = session === 'Q1' ? 'q1Time' :
                        session === 'Q2' ? 'q2Time' : 'q3Time';
 
@@ -74,7 +74,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     });
 
     return { labels, times, gaps, colors, fastestSessionTime, driversWithTimes };
-  };
+  }, [availableDrivers]);
 
   // Transform data for the bar chart (horizontal: drivers on Y, gap on X)
   const muiChartData = useMemo(() => {
@@ -89,7 +89,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     }
 
     return getSessionData(selectedSession);
-  }, [availableDrivers, selectedSession]);
+  }, [availableDrivers, selectedSession, getSessionData]);
 
   // Format time
   const formatTime = (seconds: number) => {
@@ -114,7 +114,14 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
   }
 
   // Custom tooltip mirroring the old hover (gap + absolute formatted time)
-  const QualifyingTooltip = ({ active, payload }: any) => {
+  type QualiRow = { code: string; time: number; gap: number; color: string };
+  const QualifyingTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{ payload: QualiRow }>;
+  }) => {
     if (!active || !payload?.length) return null;
     const row = payload[0]?.payload;
     if (!row) return null;

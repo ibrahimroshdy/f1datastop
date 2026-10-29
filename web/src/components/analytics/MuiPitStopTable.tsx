@@ -27,6 +27,33 @@ interface PitStopRow {
 type SortField = 'driver' | 'lap' | 'duration';
 type SortDir = 'asc' | 'desc';
 
+interface ErgastDriver {
+  driverId: string;
+  code: string;
+  familyName: string;
+  givenName?: string;
+}
+interface ErgastConstructor {
+  name: string;
+  constructorId?: string;
+}
+interface ErgastResult {
+  number: string;
+  position: string;
+  laps: string;
+  Driver: ErgastDriver;
+  Constructor?: ErgastConstructor;
+}
+
+/** A single Ergast pit stop row (untyped at the service boundary). */
+interface ErgastPitStop {
+  driverId: string;
+  lap: string;
+  duration: string;
+  stop: string;
+  time: string;
+}
+
 // Format pit stop duration
 const formatDuration = (seconds: number | null): string => {
   if (seconds === null || !Number.isFinite(seconds)) return '—';
@@ -64,7 +91,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
 
         // Create driver info map
         const driverInfo = new Map<string, { code: string; team: string }>(
-          resultsResponse.data.Results.map((result: any) => [
+          resultsResponse.data.Results.map((result: ErgastResult) => [
             result.Driver.driverId,
             {
               code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
@@ -80,7 +107,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
         }
 
         const pitStops = pitStopsResponse.data.Races[0].PitStops;
-        const processedData: PitStopRow[] = pitStops.map((stop: any, index: number) => {
+        const processedData: PitStopRow[] = pitStops.map((stop: ErgastPitStop, index: number) => {
           const driver = driverInfo.get(stop.driverId);
           return {
             id: `${stop.driverId}-${stop.lap}-${index}`,
@@ -93,9 +120,9 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
         });
 
         setPitStopData(processedData);
-      } catch (err: any) {
+      } catch (err) {
         console.error('Error fetching pit stop data:', err);
-        setError(err.message || 'Failed to load pit stop data');
+        setError(err instanceof Error ? err.message : 'Failed to load pit stop data');
       } finally {
         setIsLoading(false);
       }
