@@ -33,26 +33,18 @@ class ProxyParsing(unittest.TestCase):
 
 
 class Fallback(unittest.TestCase):
-    def test_proxy_error_falls_back_to_cdn(self):
-        with mock.patch.object(cs, "_post_json", return_value=env([], error="boom")), \
-                mock.patch.object(cs, "fetch_json", return_value=[RACE]):
+    def test_cdn_schedule_used(self):
+        with mock.patch.object(cs, "fetch_json", return_value=[RACE]):
             out = cs.sessions(2026)
         self.assertIn((6, "R"), [(r, c) for r, c, _ in out])
 
-    def test_proxy_empty_falls_back_to_cdn(self):
-        with mock.patch.object(cs, "_post_json", return_value=env([])), \
-                mock.patch.object(cs, "fetch_json", return_value=[RACE]):
-            self.assertTrue(cs.sessions(2026))
-
-    def test_both_empty_raises(self):
-        with mock.patch.object(cs, "_post_json", return_value=env([])), \
-                mock.patch.object(cs, "fetch_json", return_value=[]):
+    def test_cdn_empty_raises(self):
+        with mock.patch.object(cs, "fetch_json", return_value=[]):
             with self.assertRaises(cs.ScheduleUnavailable):
                 cs.sessions(2026)
 
-    def test_proxy_exception_and_cdn_failure_raises(self):
-        with mock.patch.object(cs, "_post_json", side_effect=OSError("net")), \
-                mock.patch.object(cs, "fetch_json", side_effect=OSError("cdn")):
+    def test_cdn_fetch_failure_raises(self):
+        with mock.patch.object(cs, "fetch_json", side_effect=OSError("cdn")):
             with self.assertRaises(cs.ScheduleUnavailable):
                 cs.sessions(2026)
 
