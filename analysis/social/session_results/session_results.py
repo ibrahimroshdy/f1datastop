@@ -4,7 +4,8 @@
 Every classified driver in order: position, headshot in a team colour ring, country flag, car
 number, name, real team logo, best lap (or race time / status) and the gap to P1. Header: race
 flag + circuit name, big plain title ("Mexico City GP Practice 2"), one stat line. 2026 carbon
-background with red glow (no watermark), F1 DataStop logo + wordmark top right.
+background with red glow (no watermark), F1 DataStop logo + wordmark top right. Titillium Web
+type, white and light grey text only; team colour car numbers; P1's time, label and card in F1 purple.
 Reflows into two columns above 12 rows so a full 22 car field stays legible on a phone.
 
   python3 session_results.py --season 2026 --race mexico --session fp2 [--out DIR] [--slug NAME]
@@ -30,13 +31,11 @@ def _load_theme():
 make_background = _load_theme()["make_background"]
 
 GF = "/usr/share/fonts/truetype/sand-box/google/"
-BLK = GF + "Barlow Condensed/BarlowCondensed-Black.ttf"
-XB = GF + "Barlow Condensed/BarlowCondensed-ExtraBold.ttf"
-BLD = GF + "Barlow Condensed/BarlowCondensed-Bold.ttf"
-SEMI = GF + "Barlow Condensed/BarlowCondensed-SemiBold.ttf"
-MED = GF + "Barlow Condensed/BarlowCondensed-Medium.ttf"
-for _p in ("SEMI", "MED"):
-    if not os.path.exists(globals()[_p]): globals()[_p] = BLD
+TW = GF + "Titillium Web/TitilliumWeb-"                 # Titillium Web (OFL): close to F1's own display type
+BLK = TW + "Black.ttf"; XB = TW + "Bold.ttf"; BLD = TW + "Bold.ttf"; SEMI = TW + "SemiBold.ttf"
+MED = TW + "Regular.ttf"; LIGHT = TW + "Light.ttf"
+for _p in ("BLK", "XB", "BLD", "SEMI", "MED", "LIGHT"):
+    if not os.path.exists(globals()[_p]): sys.exit(f"missing font {globals()[_p]}")
 SIZES = T.SIZES
 LOGOS = "/workspace/assets/team-logos/"
 HS_CACHE = "/workspace/assets/headshots/session/"       # headshots fetched for drivers not in T.HS
@@ -44,7 +43,7 @@ F1 = "https://www.formula1.com"
 JOLPICA = "https://api.jolpi.ca/ergast/f1"
 UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) f1datastop"}
 BANNED = re.compile(r"[|\u2022\u00b7]|https?://|www\.|\.com\b", re.I)
-INK = (242, 243, 245); SEC = (214, 216, 224); MUTE = (170, 172, 184); GOLD = (231, 176, 8); RED = (225, 6, 0)
+INK = (242, 243, 245); SEC = (214, 216, 224); MUTE = (170, 172, 184); PURPLE = (168, 85, 247)   # F1 fastest-time purple
 
 SESSIONS = {   # key: (formula1.com results path, title label, kind)
     "fp1": ("practice/1", "Practice 1", "practice"), "fp2": ("practice/2", "Practice 2", "practice"),
@@ -302,18 +301,26 @@ def fit(d, s, path, size, maxw, minsize=8):
     return F(path, size)
 
 
-def draw_row(img, d, e, kind, x, y, w, h, S, first):
+def draw_row(img, d, e, kind, x, y, w, h, S, first, name_size=None):
+    """Draws one row; with img=None only returns the name size that fits (for one size across rows)."""
     tc = rgb(e["team_colour"])
+    if img is None:
+        pw = d.textlength("22", font=F(LIGHT, min(h * 0.50, S(46)))); cx = x + S(16) + pw + S(10)
+        cx += int(min(h - S(12), w * 0.17)) + S(12); big, small = right_text(e, kind)
+        bf = F(XB, min(h * (0.40 if small else 0.44), w * 0.058)); sf = F(SEMI, min(h * 0.27, w * 0.045))
+        tw_ = max(d.textlength(big, font=bf), d.textlength(small, font=sf) if small else 0)
+        room = x + w - S(14) - tw_ - S(14) - cx; ns = min(h * 0.36, w * 0.060); fw = T.flag(ensure_flag(e["flag"]), int(ns * 0.62)).width
+        return fit(d, e["driver"], BLD, ns, room - fw - S(8)).size
     card = Image.new("RGBA", (int(w), int(h))); cd = ImageDraw.Draw(card)
     cd.rounded_rectangle((0, 0, card.width - 1, card.height - 1), radius=S(14),
-                         fill=(231, 176, 8, 30) if first else (255, 255, 255, 15),
-                         outline=GOLD + (255,) if first else (255, 255, 255, 38), width=max(1, S(2)))
+                         fill=PURPLE + (34,) if first else (255, 255, 255, 15),
+                         outline=PURPLE + (255,) if first else (255, 255, 255, 38), width=max(1, S(2)))
     cd.rounded_rectangle((0, S(8), S(6), card.height - S(8)), radius=S(3), fill=tc + (255,))
     img.alpha_composite(card, (int(x), int(y)))
     cy = y + h / 2
     # position
-    pf = F(BLK, min(h * 0.50, S(46))); pw = d.textlength("22", font=pf)
-    d.text((x + S(16) + pw / 2, cy), e["pos"] or "NC", font=pf, fill=GOLD if first else INK, anchor="mm")
+    pf = F(LIGHT, min(h * 0.50, S(46))); pw = d.textlength("22", font=pf)
+    d.text((x + S(16) + pw / 2, cy), e["pos"] or "NC", font=pf, fill=INK, anchor="mm")
     cx = x + S(16) + pw + S(10)
     # headshot
     ad = int(min(h - S(12), w * 0.17)); hp = headshot(e)
@@ -321,20 +328,20 @@ def draw_row(img, d, e, kind, x, y, w, h, S, first):
     img.alpha_composite(ring_avatar(hp, ad, tc), (int(cx), int(cy - ad / 2))); cx += ad + S(12)
     # right: time + gap
     big, small = right_text(e, kind)
-    bf = F(XB, min(h * (0.40 if small else 0.44), w * 0.066)); sf = F(SEMI, min(h * 0.27, w * 0.045))
+    bf = F(XB, min(h * (0.40 if small else 0.44), w * 0.058)); sf = F(SEMI, min(h * 0.27, w * 0.045))
     rx = x + w - S(14)
     if small:
-        d.text((rx, cy - h * 0.06), big, font=bf, fill=GOLD if first else INK, anchor="rs")
-        d.text((rx, cy + h * 0.06), small, font=sf, fill=SEC, anchor="rt")
+        d.text((rx, cy - h * 0.06), big, font=bf, fill=PURPLE if first else INK, anchor="rs")
+        d.text((rx, cy + h * 0.06), small, font=sf, fill=PURPLE if first else SEC, anchor="rt")
     else:
-        d.text((rx, cy), big, font=bf, fill=GOLD if first else INK, anchor="rm")
+        d.text((rx, cy), big, font=bf, fill=PURPLE if first else INK, anchor="rm")
     tw_ = max(d.textlength(big, font=bf), d.textlength(small, font=sf) if small else 0)
     room = rx - tw_ - S(14) - cx
     # line 1: flag + name; line 2: number + team logo + team
     ns = min(h * 0.36, w * 0.060); fl = T.flag(ensure_flag(e["flag"]), int(ns * 0.62))
     img.alpha_composite(fl, (int(cx), int(cy - h * 0.20 - fl.height / 2)))
     nx = cx + fl.width + S(8)
-    nf = fit(d, e["driver"], BLD, ns, room - fl.width - S(8))
+    nf = F(BLD, name_size) if name_size else fit(d, e["driver"], BLD, ns, room - fl.width - S(8))
     d.text((nx, cy - h * 0.20), e["driver"], font=nf, fill=INK, anchor="lm")
     ly = cy + h * 0.21; lf = F(BLD, min(h * 0.26, w * 0.043))
     num = e["number"]; d.text((cx, ly), num, font=lf, fill=tc if sum(tc) > 160 else SEC, anchor="lm")
@@ -354,23 +361,24 @@ def render(ev, rows, kind, label, stat, W, H, path):
     T.brand(img, W * SS - M, top, S(54))
     fl = T.flag(ensure_flag(ev["flag"]), S(34)); img.alpha_composite(fl, (M, int(top - fl.height / 2)))
     cf = fit(d, ev["circuit"].upper(), BLD, S(34), W * SS * 0.55 - fl.width)
-    d.text((M + fl.width + S(14), top), ev["circuit"].upper(), font=cf, fill=RED, anchor="lm")
+    d.text((M + fl.width + S(14), top), ev["circuit"].upper(), font=cf, fill=SEC, anchor="lm")
     title = f"{ev['gp']} {label}"
     ts = S(112) if H / W > 1.3 else S(104)
     tf = fit(d, title, XB, ts, W * SS - 2 * M)
     ty = top + S(44); d.text((M - S(2), ty), title, font=tf, fill=INK, anchor="lt")
     tb = d.textbbox((M, ty), title, font=tf, anchor="lt")
     sy = tb[3] + S(14); sf = fit(d, stat, BLD, S(50), W * SS - 2 * M)
-    d.text((M, sy), stat, font=sf, fill=GOLD, anchor="lt")
+    d.text((M, sy), stat, font=sf, fill=SEC, anchor="lt")
     y0 = d.textbbox((M, sy), stat, font=sf, anchor="lt")[3] + S(30)
     n = len(rows); cols = 1 if n <= 12 else 2; per = -(-n // cols)
     gx = S(14); gy = S(9 if cols == 2 else 12)
     cw = (W * SS - 2 * M + S(16) - gx * (cols - 1)) / cols; x0 = M - S(8)
     rh = (H * SS - S(40) - y0 - gy * (per - 1)) / per
     rh = min(rh, S(120))
+    ns = min(draw_row(None, d, e, kind, 0, 0, cw, rh, S, i == 0) for i, e in enumerate(rows))   # one name size
     for i, e in enumerate(rows):
         c, r = divmod(i, per)
-        draw_row(img, d, e, kind, x0 + c * (cw + gx), y0 + r * (rh + gy), cw, rh, S, i == 0)
+        draw_row(img, d, e, kind, x0 + c * (cw + gx), y0 + r * (rh + gy), cw, rh, S, i == 0, ns)
     img.convert("RGB").resize((W, H), Image.LANCZOS).save(path, optimize=True)
     return path
 
