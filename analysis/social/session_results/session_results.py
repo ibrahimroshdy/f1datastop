@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """F1 DataStop session results card (FP1, FP2, FP3, sprint qualifying, sprint, qualifying, race).
 
-Every classified driver in order: position, headshot in a thin neutral ring, country flag, car
-number, name, real team logo and team, best lap (or race time / status) and the gap to P1.
-Editorial matte style: flat charcoal background (no glow, gradient or watermark), no team colour
-accents, hairline row dividers, tabular figures, letterspaced caps for small labels. Header: race
-flag + circuit name, plain title ("Mexico City GP Practice 2"), one stat line, a hairline rule with
-one short red accent. F1 DataStop logo + wordmark top right.
+Every classified driver in order: position, headshot in a team colour ring, country flag, car
+number, name, real team logo, best lap (or race time / status) and the gap to P1. Header: race
+flag + circuit name, big plain title ("Mexico City GP Practice 2"), one stat line. 2026 carbon
+background with red glow (no watermark), F1 DataStop logo + wordmark top right.
 Reflows into two columns above 12 rows so a full 22 car field stays legible on a phone.
 
   python3 session_results.py --season 2026 --race mexico --session fp2 [--out DIR] [--slug NAME]
@@ -25,14 +23,19 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, "/workspace/final/templates/driver_cards")
 import template as T                                    # brand, flag, fonts, headshot dir
 
+THEME_SRC = "/workspace/charts/mocks/stat_19_v3.py"
+def _load_theme():
+    src = open(THEME_SRC).read(); cut = src.index("# ---------------- data")
+    ns = {"__name__": "stat_19_theme"}; exec(compile(src[:cut], THEME_SRC, "exec"), ns); return ns
+make_background = _load_theme()["make_background"]
+
 GF = "/usr/share/fonts/truetype/sand-box/google/"
 BLK = GF + "Barlow Condensed/BarlowCondensed-Black.ttf"
 XB = GF + "Barlow Condensed/BarlowCondensed-ExtraBold.ttf"
 BLD = GF + "Barlow Condensed/BarlowCondensed-Bold.ttf"
 SEMI = GF + "Barlow Condensed/BarlowCondensed-SemiBold.ttf"
 MED = GF + "Barlow Condensed/BarlowCondensed-Medium.ttf"
-REG = GF + "Barlow Condensed/BarlowCondensed-Regular.ttf"
-for _p in ("SEMI", "MED", "REG"):
+for _p in ("SEMI", "MED"):
     if not os.path.exists(globals()[_p]): globals()[_p] = BLD
 SIZES = T.SIZES
 LOGOS = "/workspace/assets/team-logos/"
@@ -41,7 +44,7 @@ F1 = "https://www.formula1.com"
 JOLPICA = "https://api.jolpi.ca/ergast/f1"
 UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) f1datastop"}
 BANNED = re.compile(r"[|\u2022\u00b7]|https?://|www\.|\.com\b", re.I)
-INK = (242, 243, 245); SEC = (200, 202, 208); MUTE = (150, 152, 160); RED = (225, 6, 0)
+INK = (242, 243, 245); SEC = (214, 216, 224); MUTE = (170, 172, 184); GOLD = (231, 176, 8); RED = (225, 6, 0)
 
 SESSIONS = {   # key: (formula1.com results path, title label, kind)
     "fp1": ("practice/1", "Practice 1", "practice"), "fp2": ("practice/2", "Practice 2", "practice"),
@@ -243,9 +246,9 @@ def headshot(e):
     return c
 
 
-def ring_avatar(path, d, ring=(92, 94, 102), ss=4, rw_frac=0.025):
-    """Circle headshot with a thin neutral hairline ring, drawn at ss x then downsampled."""
-    D = d * ss; rw = max(2, int(D * rw_frac))
+def ring_avatar(path, d, ring, ss=4):
+    """Circle headshot in a team colour ring, drawn at ss x then downsampled (smooth edges)."""
+    D = d * ss; rw = max(2, int(D * 0.06))
     h = Image.open(path).convert("RGBA"); w = h.width
     if h.height / w > 1.3:                                 # full length 2026 portrait: crop head + shoulders
         a = np.array(h)[..., 3]; top = int(np.argmax(a.max(1) > 20)); t = max(0, top - int(w * .04))
@@ -256,7 +259,7 @@ def ring_avatar(path, d, ring=(92, 94, 102), ss=4, rw_frac=0.025):
     face = h.crop(box).resize((inner, inner), Image.LANCZOS)
     out = Image.new("RGBA", (D, D)); dr = ImageDraw.Draw(out); dr.ellipse((0, 0, D - 1, D - 1), fill=ring + (255,))
     m = Image.new("L", (inner, inner)); ImageDraw.Draw(m).ellipse((0, 0, inner - 1, inner - 1), fill=255)
-    c = Image.new("RGBA", (inner, inner), (30, 31, 35, 255)); c.alpha_composite(face); out.paste(c, (rw, rw), m)
+    c = Image.new("RGBA", (inner, inner), (34, 36, 46, 255)); c.alpha_composite(face); out.paste(c, (rw, rw), m)
     return out.resize((d, d), Image.LANCZOS)
 
 
@@ -294,106 +297,80 @@ def right_text(e, kind):
 
 
 # ---------------------------------------------------------------- drawing
-TNUM = ["tnum"]                                             # tabular figures: times line up digit for digit
-BG = (15, 16, 19)                                           # flat matte charcoal, no glow, no watermark
-RULE = (255, 255, 255, 26); RULE_STRONG = (255, 255, 255, 70)
-
-
-def fit(d, s, path, size, maxw, minsize=8, **kw):
-    while size > minsize and d.textlength(s, font=F(path, size), **kw) > maxw: size -= 1
+def fit(d, s, path, size, maxw, minsize=8):
+    while size > minsize and d.textlength(s, font=F(path, size)) > maxw: size -= 1
     return F(path, size)
 
 
-def spaced(d, xy, s, font, fill, track, anchor="ls"):
-    """Letterspaced caps (editorial small labels). Returns the drawn width."""
-    x, y = xy; w = sum(d.textlength(c, font=font) for c in s) + track * max(0, len(s) - 1)
-    if anchor[0] == "r": x -= w
-    for c in s:
-        d.text((x, y), c, font=font, fill=fill, anchor="l" + anchor[1]); x += d.textlength(c, font=font) + track
-    return w
-
-
-def spaced_w(d, s, font, track): return sum(d.textlength(c, font=font) for c in s) + track * max(0, len(s) - 1)
-
-
-def draw_row(img, d, e, kind, x, y, w, h, S, first, last):
-    """One flat row: tabular position, hairline ringed headshot, flag + name over number, logo and
-    team, tabular time over gap on the right. Hairline divider underneath (none after the last)."""
+def draw_row(img, d, e, kind, x, y, w, h, S, first):
+    tc = rgb(e["team_colour"])
+    card = Image.new("RGBA", (int(w), int(h))); cd = ImageDraw.Draw(card)
+    cd.rounded_rectangle((0, 0, card.width - 1, card.height - 1), radius=S(14),
+                         fill=(231, 176, 8, 30) if first else (255, 255, 255, 15),
+                         outline=GOLD + (255,) if first else (255, 255, 255, 38), width=max(1, S(2)))
+    cd.rounded_rectangle((0, S(8), S(6), card.height - S(8)), radius=S(3), fill=tc + (255,))
+    img.alpha_composite(card, (int(x), int(y)))
     cy = y + h / 2
-    if not last: d.line((x, y + h, x + w, y + h), fill=RULE, width=max(1, S(1)))
-    # position, right aligned in a fixed slot so 1 and 22 share an edge
-    pf = F(SEMI if first else MED, min(h * 0.40, S(38))); pw = d.textlength("22", font=pf, features=TNUM)
-    d.text((x + pw, cy), e["pos"] or "NC", font=pf, fill=INK if first else MUTE, anchor="rm", features=TNUM)
-    cx = x + pw + S(16)
+    # position
+    pf = F(BLK, min(h * 0.50, S(46))); pw = d.textlength("22", font=pf)
+    d.text((x + S(16) + pw / 2, cy), e["pos"] or "NC", font=pf, fill=GOLD if first else INK, anchor="mm")
+    cx = x + S(16) + pw + S(10)
     # headshot
-    ad = int(min(h - S(16), w * 0.15)); hp = headshot(e)
+    ad = int(min(h - S(12), w * 0.17)); hp = headshot(e)
     if not hp: sys.exit(f"no headshot for {e['code']} {e['driver']}")
-    img.alpha_composite(ring_avatar(hp, ad), (int(cx), int(cy - ad / 2))); cx += ad + S(16)
-    # right: time + gap, tabular
+    img.alpha_composite(ring_avatar(hp, ad, tc), (int(cx), int(cy - ad / 2))); cx += ad + S(12)
+    # right: time + gap
     big, small = right_text(e, kind)
-    bf = F(MED, min(h * (0.34 if small else 0.38), w * 0.056)); sf = F(REG, min(h * 0.26, w * 0.044))
-    rx = x + w
+    bf = F(XB, min(h * (0.40 if small else 0.44), w * 0.066)); sf = F(SEMI, min(h * 0.27, w * 0.045))
+    rx = x + w - S(14)
     if small:
-        d.text((rx, cy - h * 0.05), big, font=bf, fill=INK, anchor="rs", features=TNUM)
-        if small.isupper() and not re.search(r"\d", small):
-            spaced(d, (rx, cy + h * 0.07), small, F(MED, min(h * 0.21, w * 0.036)), MUTE, S(2), anchor="rt")
-        else:
-            d.text((rx, cy + h * 0.07), small, font=sf, fill=SEC, anchor="rt", features=TNUM)
+        d.text((rx, cy - h * 0.06), big, font=bf, fill=GOLD if first else INK, anchor="rs")
+        d.text((rx, cy + h * 0.06), small, font=sf, fill=SEC, anchor="rt")
     else:
-        d.text((rx, cy), big, font=bf, fill=INK, anchor="rm", features=TNUM)
-    tw_ = max(d.textlength(big, font=bf, features=TNUM), d.textlength(small, font=sf, features=TNUM) if small else 0)
-    room = rx - tw_ - S(16) - cx
-    # line 1: flag + name
-    ns = min(h * 0.33, w * 0.057); fl = T.flag(ensure_flag(e["flag"]), int(ns * 0.62))
-    ny = cy - h * 0.18
-    img.alpha_composite(fl, (int(cx), int(ny - fl.height / 2)))
-    nx = cx + fl.width + S(10)
-    nf = fit(d, e["driver"], MED, ns, room - fl.width - S(10))
-    d.text((nx, ny), e["driver"], font=nf, fill=INK, anchor="lm")
-    # line 2: number, logo, team in letterspaced caps
-    ly = cy + h * 0.21; lf = F(MED, min(h * 0.25, w * 0.042))
-    num = e["number"]; d.text((cx, ly), num, font=lf, fill=SEC, anchor="lm", features=TNUM)
-    lx = cx + max(d.textlength(num, font=lf, features=TNUM), d.textlength("00", font=lf, features=TNUM)) + S(12)
-    lg = team_logo(e["team_key"], int(min(h * 0.22, w * 0.038)))
+        d.text((rx, cy), big, font=bf, fill=GOLD if first else INK, anchor="rm")
+    tw_ = max(d.textlength(big, font=bf), d.textlength(small, font=sf) if small else 0)
+    room = rx - tw_ - S(14) - cx
+    # line 1: flag + name; line 2: number + team logo + team
+    ns = min(h * 0.36, w * 0.060); fl = T.flag(ensure_flag(e["flag"]), int(ns * 0.62))
+    img.alpha_composite(fl, (int(cx), int(cy - h * 0.20 - fl.height / 2)))
+    nx = cx + fl.width + S(8)
+    nf = fit(d, e["driver"], BLD, ns, room - fl.width - S(8))
+    d.text((nx, cy - h * 0.20), e["driver"], font=nf, fill=INK, anchor="lm")
+    ly = cy + h * 0.21; lf = F(BLD, min(h * 0.26, w * 0.043))
+    num = e["number"]; d.text((cx, ly), num, font=lf, fill=tc if sum(tc) > 160 else SEC, anchor="lm")
+    lx = cx + d.textlength(num, font=lf) + S(10)
+    lg = team_logo(e["team_key"], int(min(h * 0.24, w * 0.040)))
     if lg is None: sys.exit(f"no team logo for {e['team']!r} in {LOGOS}")
-    img.alpha_composite(lg, (int(lx), int(ly - lg.height / 2))); lx += lg.width + S(10)
-    tn = TEAM_SHORT.get(e["team_key"], e["team"].upper()); ts = min(h * 0.23, w * 0.039); tr = S(1.4)
-    tf = F(MED, ts)
-    while ts > 8 and spaced_w(d, tn, tf, tr) > cx + room - lx: ts -= 1; tf = F(MED, ts)
-    if cx + room - lx > S(40): spaced(d, (lx, ly), tn, tf, MUTE, tr, anchor="lm")
+    img.alpha_composite(lg, (int(lx), int(ly - lg.height / 2))); lx += lg.width + S(8)
+    tn = TEAM_SHORT.get(e["team_key"], e["team"].upper())
+    tf = fit(d, tn, MED, min(h * 0.24, w * 0.040), max(S(10), cx + room - lx))
+    if cx + room - lx > S(40): d.text((lx, ly), tn, font=tf, fill=SEC, anchor="lm")
 
 
 def render(ev, rows, kind, label, stat, W, H, path):
     SS = 2; k = W / 1080 * SS; S = lambda v: int(v * k)
-    img = Image.new("RGBA", (W * SS, H * SS), BG + (255,)); d = ImageDraw.Draw(img, "RGBA")
-    M = S(56); top = S(68)
-    T.brand(img, W * SS - M, top, S(48))
-    # kicker: flag + circuit, letterspaced caps
-    fl = T.flag(ensure_flag(ev["flag"]), S(26)); img.alpha_composite(fl, (M, int(top - fl.height / 2)))
-    kx = M + fl.width + S(14); circ = ev["circuit"].upper(); cs = S(26); tr = S(3)
-    while cs > 8 and spaced_w(d, circ, F(SEMI, cs), tr) > W * SS * 0.58 - fl.width: cs -= 1
-    spaced(d, (kx, top), circ, F(SEMI, cs), SEC, tr, anchor="lm")
-    # title + stat
+    img = make_background(W * SS, H * SS, watermark=None).convert("RGBA"); d = ImageDraw.Draw(img, "RGBA")
+    M = S(48); top = S(70)
+    T.brand(img, W * SS - M, top, S(54))
+    fl = T.flag(ensure_flag(ev["flag"]), S(34)); img.alpha_composite(fl, (M, int(top - fl.height / 2)))
+    cf = fit(d, ev["circuit"].upper(), BLD, S(34), W * SS * 0.55 - fl.width)
+    d.text((M + fl.width + S(14), top), ev["circuit"].upper(), font=cf, fill=RED, anchor="lm")
     title = f"{ev['gp']} {label}"
-    tf = fit(d, title, SEMI, S(84) if H / W > 1.3 else S(80), W * SS - 2 * M)
-    ty = top + S(46); d.text((M - S(2), ty), title, font=tf, fill=INK, anchor="lt")
+    ts = S(112) if H / W > 1.3 else S(104)
+    tf = fit(d, title, XB, ts, W * SS - 2 * M)
+    ty = top + S(44); d.text((M - S(2), ty), title, font=tf, fill=INK, anchor="lt")
     tb = d.textbbox((M, ty), title, font=tf, anchor="lt")
-    sy = tb[3] + S(16); sf = fit(d, stat, REG, S(40), W * SS - 2 * M, features=TNUM)
-    d.text((M, sy), stat, font=sf, fill=SEC, anchor="lt", features=TNUM)
-    sb = d.textbbox((M, sy), stat, font=sf, anchor="lt", features=TNUM)
-    ry = sb[3] + S(28)
-    d.line((M, ry, W * SS - M, ry), fill=RULE_STRONG, width=max(1, S(1.5)))
-    d.line((M, ry, M + S(64), ry), fill=RED + (255,), width=max(2, S(3)))     # one short red accent
-    y0 = ry + S(10)
+    sy = tb[3] + S(14); sf = fit(d, stat, BLD, S(50), W * SS - 2 * M)
+    d.text((M, sy), stat, font=sf, fill=GOLD, anchor="lt")
+    y0 = d.textbbox((M, sy), stat, font=sf, anchor="lt")[3] + S(30)
     n = len(rows); cols = 1 if n <= 12 else 2; per = -(-n // cols)
-    gx = S(44)
-    cw = (W * SS - 2 * M - gx * (cols - 1)) / cols
-    rh = min((H * SS - S(48) - y0) / per, S(124))
-    for c in range(1, cols):
-        vx = M + c * cw + (c - 0.5) * gx; d.line((vx, y0 + S(14), vx, y0 + rh * per - S(14)), fill=RULE, width=max(1, S(1)))
+    gx = S(14); gy = S(9 if cols == 2 else 12)
+    cw = (W * SS - 2 * M + S(16) - gx * (cols - 1)) / cols; x0 = M - S(8)
+    rh = (H * SS - S(40) - y0 - gy * (per - 1)) / per
+    rh = min(rh, S(120))
     for i, e in enumerate(rows):
         c, r = divmod(i, per)
-        draw_row(img, d, e, kind, M + c * (cw + gx), y0 + r * rh, cw, rh, S, i == 0, r == per - 1 or i == n - 1)
+        draw_row(img, d, e, kind, x0 + c * (cw + gx), y0 + r * (rh + gy), cw, rh, S, i == 0)
     img.convert("RGB").resize((W, H), Image.LANCZOS).save(path, optimize=True)
     return path
 
