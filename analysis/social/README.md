@@ -11,6 +11,10 @@ shared theme, fonts, logo, flags and headshots from its /workspace paths.
 - `deepdive/run_deepdive.py`: session auto export. Runs `analysis/generate.py` (unchanged) and fits
   its charts to the three sizes; `grid_flow` is drawn by `quali_to_race.py` instead of generate.py.
   `python run_deepdive.py ROUND SESSION [--season 2026] [--charts a,b] [--out DIR]`
+- `session_results/session_results.py`: full classification card for any session (FP1, FP2, FP3,
+  sprint quali, sprint, quali, race). Data from the formula1.com results page (saved as
+  `<slug>_data.csv` next to the images), or a CSV/JSON file via `--data`. Holds when not published.
+  `python session_results.py --season 2026 --race mexico --session fp2 --out DIR --slug NAME`
 - `news_card/news_card.py`: one headline, one number, optional driver or team. See `news_card/README.md`.
 
 No output overwrites an existing file. No image carries a URL, credits or the | and dot separators.
