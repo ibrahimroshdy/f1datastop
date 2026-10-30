@@ -5,7 +5,7 @@ Every classified driver in order: position, headshot in a team colour ring, coun
 number, name, real team logo, best lap (or race time / status) and the gap to P1. Header: race
 flag + circuit name, big plain title ("Mexico City GP Practice 2"), one stat line. 2026 carbon
 background with red glow (no watermark), F1 DataStop logo + wordmark top right.
-P1's lap time (race winner's time) in F1 purple. A round tyre badge (S/M/H/I/W) next to each time
+P1's row (outline, tint, accent bar, position, time, label) in F1 purple. A round tyre badge (S/M/H/I/W) next to each time
 shows the compound of that lap (race: fastest lap), from OpenF1; left out when unknown, never guessed.
 Reflows into two columns above 12 rows so a full 22 car field stays legible on a phone.
 
@@ -254,13 +254,19 @@ def fetch_tyres(season, ev, s, rows, kind):
     return out
 
 
-def tyre_badge(comp, D, ss=4):
-    """Round tyre badge: coloured ring on dark fill, coloured letter, D px wide."""
+BADGE_FONT = GF + "Barlow/Barlow-Bold.ttf"              # clean geometric S (condensed S reads like a $ when small)
+if not os.path.exists(BADGE_FONT): BADGE_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+
+
+def tyre_badge(comp, D, ss=8):
+    """Pirelli-style compound icon, D px wide: thick coloured ring (filled annulus) round a dark centre,
+    bold letter in the ring colour, optically centred on its ink box. Drawn at ss x and LANCZOS downsampled."""
     letter, col = TYRE[comp]; R = D * ss
     im = Image.new("RGBA", (R, R)); dr = ImageDraw.Draw(im)
     dr.ellipse((0, 0, R - 1, R - 1), fill=col + (255,))
-    t = int(R * 0.12); dr.ellipse((t, t, R - 1 - t, R - 1 - t), fill=(22, 22, 26, 255))
-    dr.text((R / 2, R / 2 + R * 0.02), letter, font=F(BLK, R * 0.64), fill=col + (255,), anchor="mm")
+    t = int(R * 0.17); dr.ellipse((t, t, R - 1 - t, R - 1 - t), fill=(18, 18, 22, 255))
+    f = F(BADGE_FONT, R * 0.53); l, tp, rr, b = dr.textbbox((0, 0), letter, font=f, anchor="lt")
+    dr.text((R / 2 - (l + rr) / 2, R / 2 - (tp + b) / 2), letter, font=f, fill=col + (255,), anchor="lt")
     return im.resize((D, D), Image.LANCZOS)
 
 
@@ -354,14 +360,14 @@ def draw_row(img, d, e, kind, x, y, w, h, S, first):
     tc = rgb(e["team_colour"])
     card = Image.new("RGBA", (int(w), int(h))); cd = ImageDraw.Draw(card)
     cd.rounded_rectangle((0, 0, card.width - 1, card.height - 1), radius=S(14),
-                         fill=(231, 176, 8, 30) if first else (255, 255, 255, 15),
-                         outline=GOLD + (255,) if first else (255, 255, 255, 38), width=max(1, S(2)))
-    cd.rounded_rectangle((0, S(8), S(6), card.height - S(8)), radius=S(3), fill=tc + (255,))
+                         fill=PURPLE + (30,) if first else (255, 255, 255, 15),
+                         outline=PURPLE + (255,) if first else (255, 255, 255, 38), width=max(1, S(2)))
+    cd.rounded_rectangle((0, S(8), S(6), card.height - S(8)), radius=S(3), fill=(PURPLE if first else tc) + (255,))
     img.alpha_composite(card, (int(x), int(y)))
     cy = y + h / 2
     # position
     pf = F(BLK, min(h * 0.50, S(46))); pw = d.textlength("22", font=pf)
-    d.text((x + S(16) + pw / 2, cy), e["pos"] or "NC", font=pf, fill=GOLD if first else INK, anchor="mm")
+    d.text((x + S(16) + pw / 2, cy), e["pos"] or "NC", font=pf, fill=PURPLE if first else INK, anchor="mm")
     cx = x + S(16) + pw + S(10)
     # headshot
     ad = int(min(h - S(12), w * 0.17)); hp = headshot(e)
@@ -373,13 +379,13 @@ def draw_row(img, d, e, kind, x, y, w, h, S, first):
     rx = x + w - S(14)
     if small:
         d.text((rx, cy - h * 0.06), big, font=bf, fill=PURPLE if first else INK, anchor="rs")
-        d.text((rx, cy + h * 0.06), small, font=sf, fill=SEC, anchor="rt")
+        d.text((rx, cy + h * 0.06), small, font=sf, fill=PURPLE if first else SEC, anchor="rt")
     else:
         d.text((rx, cy), big, font=bf, fill=PURPLE if first else INK, anchor="rm")
     tw_ = max(d.textlength(big, font=bf), d.textlength(small, font=sf) if small else 0)
     if e.get("tyre") in TYRE:                         # tyre badge left of the time block
-        bd = int(min(h * 0.42, w * 0.07)); bx = rx - tw_ - S(10) - bd
-        img.alpha_composite(tyre_badge(e["tyre"], bd), (int(bx), int(cy - bd / 2))); tw_ += bd + S(10)
+        bd = int(min(h * 0.48, w * 0.08)); bx = rx - tw_ - S(14) - bd
+        img.alpha_composite(tyre_badge(e["tyre"], bd), (int(bx), int(cy - bd / 2))); tw_ += bd + S(14)
     room = rx - tw_ - S(14) - cx
     # line 1: flag + name; line 2: number + team logo + team
     ns = min(h * 0.36, w * 0.060); fl = T.flag(ensure_flag(e["flag"]), int(ns * 0.62))
