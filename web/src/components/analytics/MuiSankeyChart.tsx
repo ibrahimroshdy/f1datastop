@@ -70,6 +70,37 @@ interface SankeyLinkData {
   points?: number;
 }
 
+/** Raw node/link as delivered by the data hook (untyped at the service boundary). */
+interface RawSankeyNode {
+  id: string;
+  type: string;
+  position: number;
+  name: string;
+  team?: string;
+  teamName?: string;
+  fullName?: string;
+  status?: string;
+  isDNF?: boolean;
+  points?: number;
+}
+
+interface RawSankeyLink {
+  source: string;
+  target: string;
+  value: number;
+  status?: string;
+  isDNF?: boolean;
+  fullName?: string;
+  name?: string;
+  code?: string;
+  teamName?: string;
+  qualifyingPosition?: number;
+  gridPosition?: number;
+  racePosition?: number;
+  positionChange?: number;
+  points?: number;
+}
+
 type LaidOutNode = SankeyNode<SankeyNodeData, SankeyLinkData>;
 type LaidOutLink = SankeyLink<SankeyNodeData, SankeyLinkData>;
 
@@ -82,17 +113,19 @@ const getTeamColor = (team: string): string => {
 };
 
 // Determine link color based on position change (semantic tokens only)
-const getLinkColor = (source: any, target: any): string => {
-  const isQualiToGrid = source.type === 'qualifying' && target.type === 'grid';
-  const isGridToRace = source.type === 'grid' && target.type === 'race';
+const getLinkColor = (source?: RawSankeyNode, target?: RawSankeyNode): string => {
+  const isQualiToGrid = source?.type === 'qualifying' && target?.type === 'grid';
+  const isGridToRace = source?.type === 'grid' && target?.type === 'race';
 
-  if (isQualiToGrid || isGridToRace) {
-    if (source.position > target.position) return TOKEN.gain; // positions up
-    if (source.position < target.position) return TOKEN.loss; // positions down
+  if ((isQualiToGrid || isGridToRace) && source && target) {
+    const sp = source.position;
+    const tp = target.position;
+    if (sp > tp) return TOKEN.gain; // positions up
+    if (sp < tp) return TOKEN.loss; // positions down
     return TOKEN.neutral; // no change
   }
 
-  return getTeamColor(source.team || '');
+  return getTeamColor(source?.team || '');
 };
 
 const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
@@ -112,7 +145,7 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
     const gridNodes: SankeyNodeData[] = [];
     const raceNodes: SankeyNodeData[] = [];
 
-    originalNodes.forEach((node: any) => {
+    originalNodes.forEach((node: RawSankeyNode) => {
       const id = `${node.type}-${node.position}-${node.name}`;
       const position = toValidNumber(node.position, 0);
       const nivoNode: SankeyNodeData = {
@@ -153,9 +186,9 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
     // Only include links where both source and target exist; ensure value is finite and >= 1 to avoid NaN in layout
     const nodeIds = new Set(nivoNodes.map((n) => n.id));
     const nivoLinks: SankeyLinkData[] = originalLinks
-      .map((link: any): SankeyLinkData | null => {
-        const sourceNode = nodeMap.get(link.source) || originalNodes.find((n: any) => n.id === link.source);
-        const targetNode = nodeMap.get(link.target) || originalNodes.find((n: any) => n.id === link.target);
+      .map((link: RawSankeyLink): SankeyLinkData | null => {
+        const sourceNode = nodeMap.get(link.source) || originalNodes.find((n: RawSankeyNode) => n.id === link.source);
+        const targetNode = nodeMap.get(link.target) || originalNodes.find((n: RawSankeyNode) => n.id === link.target);
 
         const sourceId = nodeMap.get(link.source)?.id || link.source;
         const targetId = nodeMap.get(link.target)?.id || link.target;
@@ -164,10 +197,7 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
 
         const value = toValidNumber(link.value, 1);
 
-        const linkColor = getLinkColor(
-          { type: sourceNode?.type, position: sourceNode?.position, team: sourceNode?.team },
-          { type: targetNode?.type, position: targetNode?.position }
-        );
+        const linkColor = getLinkColor(sourceNode, targetNode);
         // Mark Grid→Race links for DNF/DNS/Retired so we can dim them
         const isGridToRace = sourceNode?.type === 'grid' && targetNode?.type === 'race';
         const statusStr = link.status ? String(link.status).toLowerCase() : '';

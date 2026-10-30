@@ -13,6 +13,7 @@ import { useTheme } from "@/context/ThemeContext";
 import {
   F1Card,
   F1CardContent,
+  F1CardDescription,
   F1CardHeader,
   F1CardTitle,
   PageHeader,
@@ -33,6 +34,7 @@ import useClarity from '@/hooks/useClarity';
 import Seo from "@/components/common/Seo";
 
 const MuiSankeyChart = lazy(() => import("@/components/analytics/MuiSankeyChart"));
+const SeasonSankeyChart = lazy(() => import("@/components/analytics/SeasonSankeyChart"));
 
 type IndexScheduleRace = {
   date: string;
@@ -254,6 +256,37 @@ const Index = () => {
                     size="md"
                   />
                 )}
+              </F1CardContent>
+            </F1Card>
+
+            {/* ── Season grid → finish (whole season) ───────────────────── */}
+            <SectionLabel icon={<GitCompare className="h-3 w-3" />}>
+              Season Grid → Finish
+            </SectionLabel>
+            <F1Card
+              variant={isGlass ? "glass" : "default"}
+              glassVariant={isGlass ? "panel" : "default"}
+              className="scope-frame border-border p-0"
+            >
+              <F1CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <F1CardTitle className="text-lg md:text-xl">
+                      Season Grid → Finish
+                    </F1CardTitle>
+                    <F1CardDescription>
+                      Every driver&rsquo;s starting position flowing to their finishing position, summed
+                      across the season so far.
+                    </F1CardDescription>
+                  </div>
+                </div>
+              </F1CardHeader>
+              <F1CardContent className="p-0">
+                <Suspense fallback={<F1Loader label="Loading season…" className="h-[400px]" />}>
+                  <SeasonSankeyChart
+                    year={lastCompletedRace?.year ?? new Date().getFullYear()}
+                  />
+                </Suspense>
               </F1CardContent>
             </F1Card>
 

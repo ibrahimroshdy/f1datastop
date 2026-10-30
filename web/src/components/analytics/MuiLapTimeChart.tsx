@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   LineChart,
   Line,
@@ -21,11 +21,21 @@ import { cn } from "@/lib/utils";
 import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
 import { useDbRaceControl } from "@/hooks/useWarehouse";
 import { deriveSafetyPeriods } from "@/lib/f1/safetyPeriods";
-import { safetyBands, SafetyLegend } from "@/components/analytics/SafetyCarBands";
+import { safetyBands } from "./safetyBands";
+import { SafetyLegend } from "@/components/analytics/SafetyCarBands";
+import {
+  getRaceReplay,
+  fetchRaceReplayBlob,
+  type RaceReplayBlob,
+} from "@/services/raceReplayService";
 
 interface MuiLapTimeChartProps {
   year: number;
   round: string;
+  /** When a moment link (?driver=&lap=) opens the page, select this driver. */
+  focusDriver?: string;
+  /** When a moment link (?driver=&lap=) opens the page, highlight this lap. */
+  focusLap?: number;
 }
 
 interface PitStopData {
@@ -36,12 +46,52 @@ interface PitStopData {
   stop?: number; // Pit stop number (1, 2, 3...)
 }
 
-const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
+/** A single Ergast pit stop row (untyped at the service boundary). */
+interface ErgastPitStop {
+  driverId: string;
+  lap: string;
+  duration: string;
+  stop: string;
+}
+
+/** Per-lap sector times for one driver (ms), keyed by driver code then lap number. */
+export type SectorLap = { s1: number | null; s2: number | null; s3: number | null };
+export type SectorData = { [driverCode: string]: { [lap: number]: SectorLap } };
+
+/** Build { [driverCode]: { [lap]: {s1,s2,s3} } } from a race replay blob.
+ *  Silent-degradation friendly: missing codes/laps are skipped, null sectors stay null. */
+export function buildSectorData(blob: RaceReplayBlob): SectorData {
+  const data: SectorData = {};
+  for (const driver of blob.drivers) {
+    if (!driver.code || !driver.laps || driver.laps.length === 0) continue;
+    data[driver.code] = {};
+    for (const lap of driver.laps) {
+      data[driver.code][lap.n] = {
+        s1: lap.s1 ?? null,
+        s2: lap.s2 ?? null,
+        s3: lap.s3 ?? null,
+      };
+    }
+  }
+  return data;
+}
+
+const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
+  year,
+  round,
+  focusDriver,
+  focusLap,
+}) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [displayMode, setDisplayMode] = useState<'absolute' | 'gap'>('absolute');
   const [isMobile, setIsMobile] = useState(false);
   const [showPitStops, setShowPitStops] = useState(true);
   const [pitStops, setPitStops] = useState<PitStopData[]>([]);
   const [, setPitStopsLoading] = useState(false);
+
+  // Per-lap sector times (S1/S2/S3, ms) for the selected drivers, sourced from
+  // the race replay blob (CDN-first, silent degradation when unavailable).
+  const [sectorData, setSectorData] = useState<SectorData | null>(null);
 
   // Mobile detection
   useEffect(() => {
@@ -60,7 +110,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
         if (response?.data?.Races?.[0]?.PitStops) {
           // Group by driver to assign stop numbers
           const stopsByDriver: { [driver: string]: number } = {};
-          const pitStopData = response.data.Races[0].PitStops.map((ps: any) => {
+          const pitStopData = response.data.Races[0].PitStops.map((ps: ErgastPitStop) => {
             const driverId = ps.driverId;
             stopsByDriver[driverId] = (stopsByDriver[driverId] || 0) + 1;
             return {
@@ -88,10 +138,39 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
     }
   }, [year, round]);
 
+  // Fetch per-lap sector times from the race replay blob (CDN-first via
+  // getRaceReplay / fetchRaceReplayBlob). Errors or missing blobs leave
+  // sectorData null so the chart renders exactly as before.
+  useEffect(() => {
+    let cancelled = false;
+    const fetchSectors = async () => {
+      if (!year || !round) {
+        setSectorData(null);
+        return;
+      }
+      try {
+        const index = await getRaceReplay(year, parseInt(round, 10), "R");
+        if (!index?.public_url) {
+          if (!cancelled) setSectorData(null);
+          return;
+        }
+        const blob = await fetchRaceReplayBlob(index.public_url);
+        if (!cancelled) setSectorData(buildSectorData(blob));
+      } catch {
+        if (!cancelled) setSectorData(null);
+      }
+    };
+    fetchSectors();
+    return () => {
+      cancelled = true;
+    };
+  }, [year, round]);
+
   const {
     chartData,
     availableDrivers,
     selectedDrivers,
+    setSelectedDrivers,
     visibleDrivers,
     isLoading,
     isError,
@@ -102,7 +181,26 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
     handleDriverHover,
     getAverageTime,
     retryCount,
-  } = useLapTimeData(year, round, displayMode);
+  } = useLapTimeData(year, round, displayMode, focusDriver);
+
+  // When a moment link focuses a driver, select it (replacing the default
+  // winner selection). useLapTimeData skips its own auto-selection while
+  // focusDriver is set, so this is the single source of truth here.
+  useEffect(() => {
+    if (focusDriver) {
+      setSelectedDrivers([focusDriver]);
+    }
+  }, [focusDriver, setSelectedDrivers]);
+
+  // Scroll the chart container to bring the focused lap into view.
+  useEffect(() => {
+    if (focusLap == null || !chartRef.current || !maxLap || maxLap < 2) return;
+    const container = chartRef.current;
+    const scrollable = container.scrollWidth - container.clientWidth;
+    if (scrollable <= 0) return;
+    const progress = (focusLap - 1) / (maxLap - 1);
+    container.scrollLeft = Math.round(progress * scrollable);
+  }, [focusLap, maxLap]);
 
   const toggleDisplayMode = () => {
     setDisplayMode(prev => prev === 'absolute' ? 'gap' : 'absolute');
@@ -284,22 +382,64 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
     }
   };
 
+  // Format a sector time (ms) as s.mmm.
+  const formatSector = (ms: number | null) => {
+    if (ms == null) return "–";
+    return (ms / 1000).toFixed(3);
+  };
+
+  // Fastest-sector cell: highlights the minimum sector of the lap using the
+  // --fastest-lap token color (never a raw hex).
+  const SectorCell = ({
+    value,
+    isFastest,
+  }: {
+    value: number | null;
+    isFastest: boolean;
+  }) => {
+    return (
+      <span
+        className="font-mono tabular-nums"
+        style={{
+          color: isFastest ? "hsl(var(--fastest-lap))" : undefined,
+          fontWeight: isFastest ? "bold" : undefined,
+        }}
+      >
+        {formatSector(value)}
+      </span>
+    );
+  };
+
   // Calculate chart height based on available space
   const chartHeight = isMobile ? 220 : 280;
 
   // Custom tooltip mirroring the old MUI hover (sorted fastest-first, formatted time)
-  const LapTooltip = ({ active, payload, label }: any) => {
+  type TipItem = {
+    dataKey: string | number;
+    value: number;
+    color?: string;
+    stroke?: string;
+  };
+  const LapTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: TipItem[];
+    label?: string | number;
+  }) => {
     if (!active || !payload?.length) return null;
     const rows = payload
-      .filter((p: any) => p.value != null)
-      .sort((a: any, b: any) => a.value - b.value);
+      .filter((p) => p.value != null)
+      .sort((a, b) => a.value - b.value);
     if (!rows.length) return null;
     return (
       <div className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-xs shadow-card">
         <div className="mb-1 font-mono uppercase tracking-widest text-muted-foreground">
           Lap {label}
         </div>
-        {rows.map((p: any) => (
+        {rows.map((p) => (
           <div key={p.dataKey} className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.stroke }} />
             <span className="w-9 font-mono font-bold text-foreground">{p.dataKey}</span>
@@ -347,9 +487,81 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
           fastestLapTime={fastestLapTime}
           getAverageTime={getAverageTime}
         />
-        
+
+        {/* Compact per-lap sector times for the selected drivers.
+            Fastest sector of each lap is highlighted with --fastest-lap.
+            Renders nothing when the replay blob is unavailable. */}
+        {sectorData && Object.keys(sectorData).length > 0 && (
+          <div className="flex flex-col gap-1">
+            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              Sector times
+            </span>
+            {selectedDrivers.map((driverCode) => {
+              const laps = sectorData[driverCode];
+              if (!laps) return null;
+              const driver = availableDrivers.find((d) => d.code === driverCode);
+              const color = driver
+                ? TEAM_COLORS[driver.team] ||
+                    DRIVER_COLORS[driver.code] ||
+                    TEAM_COLORS.default
+                : TEAM_COLORS.default;
+              const lapNumbers = Object.keys(laps)
+                .map(Number)
+                .sort((a, b) => a - b);
+              return (
+                <div key={driverCode} className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="font-mono text-xs font-bold">
+                      {driverCode}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 max-h-[180px] overflow-y-auto">
+                    {lapNumbers.map((lap) => {
+                      const s = laps[lap];
+                      const vals = [s.s1, s.s2, s.s3].filter(
+                        (v): v is number => v != null,
+                      );
+                      const fastest =
+                        vals.length > 0 ? Math.min(...vals) : null;
+                      return (
+                        <div
+                          key={lap}
+                          className="flex items-center gap-1 font-mono text-[10px] tabular-nums"
+                        >
+                          <span className="w-5 text-muted-foreground">
+                            L{lap}
+                          </span>
+                          <SectorCell
+                            value={s.s1}
+                            isFastest={s.s1 != null && s.s1 === fastest}
+                          />
+                          <span className="text-muted-foreground">·</span>
+                          <SectorCell
+                            value={s.s2}
+                            isFastest={s.s2 != null && s.s2 === fastest}
+                          />
+                          <span className="text-muted-foreground">·</span>
+                          <SectorCell
+                            value={s.s3}
+                            isFastest={s.s3 != null && s.s3 === fastest}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <F1ChartContainer
-          className="min-h-0 flex-1"
+          ref={chartRef}
+          className="min-h-0 flex-1 overflow-x-auto"
           minHeight={chartHeight}
           isEmpty={lines.length === 0}
           emptyTitle="No Drivers Selected"
@@ -370,6 +582,21 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({ year, round }) => {
                   strokeDasharray="3 3"
                 />
                 {safetyBands(safety)}
+                {focusLap != null && maxLap > 0 && (
+                  <ReferenceLine
+                    x={Math.max(1, Math.min(focusLap, maxLap))}
+                    stroke="hsl(var(--primary))"
+                    strokeDasharray="4 4"
+                    strokeWidth={2}
+                    label={{
+                      value: `Lap ${focusLap}`,
+                      position: 'insideTopRight',
+                      fontSize: 11,
+                      fill: 'hsl(var(--primary))',
+                      fontFamily: 'var(--font-mono, monospace)',
+                    }}
+                  />
+                )}
                 <XAxis
                   dataKey="lap"
                   type="number"

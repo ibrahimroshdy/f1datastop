@@ -31,6 +31,33 @@ interface ProcessedResult {
   team_color: string;
 }
 
+interface ErgastDriver {
+  driverId: string;
+  code: string;
+  givenName?: string;
+  familyName?: string;
+}
+interface ErgastConstructor {
+  name: string;
+  constructorId?: string;
+}
+interface ErgastResult {
+  number: string;
+  position: string;
+  laps: string;
+  Driver: ErgastDriver;
+  Constructor?: ErgastConstructor;
+  Q1?: string;
+  Q2?: string;
+  Q3?: string;
+  FastestLap?: { Time: { time: string } };
+}
+interface ErgastRace {
+  Results: ErgastResult[];
+  SprintResults?: ErgastResult[];
+  QualifyingResults?: ErgastResult[];
+}
+
 /** Parse an "m:ss.mmm" (or "ss.mmm") lap-time string to seconds. */
 function parseLap(t?: string | null): number | null {
   if (!t) return null;
@@ -53,13 +80,13 @@ const SessionResults: React.FC<SessionResultsProps> = ({
   const active = isQuali ? quali : isSprint ? sprint : race;
 
   const processedResults = useMemo<ProcessedResult[]>(() => {
-    const raceObj: any = (active.data as any)?.data ?? {};
-    const list: any[] = isQuali
+    const raceObj: ErgastRace = active.data?.data ?? {};
+    const list = isQuali
       ? raceObj.QualifyingResults ?? []
       : isSprint
         ? raceObj.SprintResults ?? []
         : raceObj.Results ?? [];
-    const rows: ProcessedResult[] = list.map((r: any, i: number) => {
+    const rows: ProcessedResult[] = list.map((r, i) => {
       const best = isQuali
         ? parseLap(r.Q3 || r.Q2 || r.Q1)
         : parseLap(r.FastestLap?.Time?.time);

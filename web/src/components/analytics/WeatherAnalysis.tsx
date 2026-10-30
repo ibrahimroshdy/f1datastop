@@ -97,7 +97,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   const hasError = !!weatherError;
 
   // Handle highlight change for synchronized hover (driven by recharts onMouseMove)
-  const handleHighlightChange = useCallback((state: any) => {
+  const handleHighlightChange = useCallback((state: { isTooltipActive?: boolean; activeTooltipIndex?: number }) => {
     if (state?.isTooltipActive && state.activeTooltipIndex !== undefined && state.activeTooltipIndex !== null) {
       setHighlightedIndex(state.activeTooltipIndex);
     } else {
@@ -151,14 +151,33 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   };
 
   // Custom tooltip rendering each active series with its unit
-  const WeatherTooltip = ({ active, payload, label, unit }: any) => {
+  type WeatherTipItem = {
+    dataKey: string | number;
+    value: number;
+    name?: string | number;
+    color?: string;
+    stroke?: string;
+  };
+  const WeatherTooltip = ({
+    active,
+    payload,
+    label,
+    unit,
+  }: {
+    active?: boolean;
+    payload?: WeatherTipItem[];
+    label?: number;
+    unit?: string;
+  }) => {
     if (!active || !payload?.length) return null;
-    const rows = payload.filter((p: any) => p.value != null);
+    const rows = payload.filter((p) => p.value != null);
     if (!rows.length) return null;
     return (
       <div className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-xs shadow-card">
-        <div className="mb-1 uppercase tracking-widest tabular-nums text-muted-foreground">{formatTimeForAxis(label)}</div>
-        {rows.map((p: any) => (
+        <div className="mb-1 uppercase tracking-widest tabular-nums text-muted-foreground">
+          {formatTimeForAxis(label ?? 0)}
+        </div>
+        {rows.map((p) => (
           <div key={p.dataKey} className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: p.color || p.stroke }} />
             <span className="font-medium">{p.name}</span>

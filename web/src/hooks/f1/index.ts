@@ -1,6 +1,7 @@
 export { createRetryConfig, defaultRetryConfig, lapTimesRetryConfig } from "./retryConfig";
 export { useDriverStandings, useConstructorStandings } from "./useStandings";
 export { useRaceSchedule, useNextRace, useLastRaceResults } from "./useSchedule";
+export { useSpoilerShield, type RaceScheduleEntry, getLatestRace, isShieldedByDefault } from "./useSpoilerShield";
 export {
   useRaceResults,
   useRaceQualifying,

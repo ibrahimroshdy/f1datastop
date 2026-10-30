@@ -16,12 +16,30 @@ import { getTeamColorById } from "@/constants/f1Colors";
 import { chartTheme } from "@/lib/chartTheme";
 import { F1Skeleton, F1EmptyState, F1ChartContainer } from "@/components/f1";
 import { deriveSafetyPeriods } from "@/lib/f1/safetyPeriods";
-import { safetyBands, SafetyLegend } from "@/components/analytics/SafetyCarBands";
+import { safetyBands } from "@/components/analytics/safetyBands";
+import { SafetyLegend } from "@/components/analytics/SafetyCarBands";
 
 interface OvertakesAnalysisProps {
   year: number;
   round: string;
   session?: string;
+}
+
+interface ErgastDriver {
+  driverId: string;
+  code: string;
+  givenName?: string;
+  familyName?: string;
+}
+interface ErgastConstructor {
+  name: string;
+  constructorId?: string;
+}
+interface ErgastResult {
+  number: string;
+  position: string;
+  Driver: ErgastDriver;
+  Constructor?: ErgastConstructor;
 }
 
 const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) => {
@@ -37,7 +55,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
   // driver_id -> { code, color }
   const driverMeta = useMemo(() => {
     const map: Record<string, { code: string; color: string }> = {};
-    const results: any[] = (race.data as any)?.data?.Results ?? [];
+    const results: ErgastResult[] = race.data?.data?.Results ?? [];
     results.forEach((r) => {
       const id = r.Driver?.driverId;
       if (!id) return;
@@ -49,7 +67,10 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
     return map;
   }, [race.data]);
 
-  const code = (id: string) => driverMeta[id]?.code || id.slice(0, 3).toUpperCase();
+  const code = (id: string | number) => {
+    const sid = String(id);
+    return driverMeta[sid]?.code || sid.slice(0, 3).toUpperCase();
+  };
   const color = (id: string) => driverMeta[id]?.color || "hsl(var(--muted-foreground))";
 
   const isLoading = isOtLoading || isLapsLoading || race.isLoading;
@@ -79,9 +100,9 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
       row[l.driver_id] = l.position;
       byLap.set(l.lap_number, row);
     });
-    const rows = Array.from(byLap.values()).sort((a: any, b: any) => a.lap - b.lap);
+    const rows = Array.from(byLap.values()).sort((a, b) => a.lap - b.lap);
     const series = Array.from(driverIds);
-    const maxPos = Math.max(1, ...rows.flatMap((r: any) => series.map((s) => r[s] ?? 0)));
+    const maxPos = Math.max(1, ...rows.flatMap((r: Record<string, number>) => series.map((s) => r[s] ?? 0)));
     return { rows, series, maxPos };
   }, [laps]);
 
@@ -153,16 +174,30 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
   const topMover = stats[0];
 
   // Position-chart tooltip (P1 first)
-  const PosTooltip = ({ active, payload, label }: any) => {
+  type TipItem = {
+    dataKey: string | number;
+    value: number;
+    color?: string;
+    stroke?: string;
+  };
+  const PosTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: TipItem[];
+    label?: string | number;
+  }) => {
     if (!active || !payload?.length) return null;
     const rows = payload
-      .filter((p: any) => p.value != null)
-      .sort((a: any, b: any) => a.value - b.value)
+      .filter((p) => p.value != null)
+      .sort((a, b) => a.value - b.value)
       .slice(0, 12);
     return (
       <div className="rounded-md border border-border bg-popover/95 px-2 py-1.5 text-xs shadow-premium-sm">
         <div className="mb-1 font-mono tabular-nums text-muted-foreground">LAP {label}</div>
-        {rows.map((p: any) => (
+        {rows.map((p) => (
           <div key={p.dataKey} className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
             <span className="w-9 font-bold">{code(p.dataKey)}</span>

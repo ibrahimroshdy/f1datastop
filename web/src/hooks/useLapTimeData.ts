@@ -11,7 +11,12 @@ export interface Driver {
   hasFastestLap?: boolean;
 }
 
-export const useLapTimeData = (year: number, round: string, _displayMode: 'absolute' | 'gap') => {
+export const useLapTimeData = (
+  year: number,
+  round: string,
+  _displayMode: 'absolute' | 'gap',
+  focusDriver?: string,
+) => {
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [hoveredDriver, setHoveredDriver] = useState<string | null>(null);
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
@@ -118,8 +123,9 @@ export const useLapTimeData = (year: number, round: string, _displayMode: 'absol
       
       setAvailableDrivers(drivers);
       
-      // Auto-select only the winner by default
-      if (drivers.length > 0) {
+      // Auto-select only the winner by default. Skipped when a moment link
+      // (?driver=) focuses a specific driver — the chart selects that instead.
+      if (drivers.length > 0 && !focusDriver) {
         const winner = drivers.find((d: Driver) => d.finishPosition === 1);
         if (winner) {
           setSelectedDrivers([winner.code]);
@@ -146,7 +152,7 @@ export const useLapTimeData = (year: number, round: string, _displayMode: 'absol
         });
       }
     }
-  }, [raceResultsData]);
+  }, [raceResultsData, focusDriver]);
 
   // Process lap times data
   useEffect(() => {
@@ -298,6 +304,7 @@ export const useLapTimeData = (year: number, round: string, _displayMode: 'absol
     chartData,
     availableDrivers,
     selectedDrivers,
+    setSelectedDrivers,
     hoveredDriver,
     visibleDrivers,
     isLoading,

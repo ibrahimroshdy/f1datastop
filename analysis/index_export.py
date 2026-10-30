@@ -137,10 +137,21 @@ def index_charts(season, registry):
             "chart_type": chart_type, "title": title, "description": desc,
             "storage_path": storage_path, "public_url": bs.public_url("charts", storage_path),
             "thumb_path": thumb_path,
+            # The key's slug is the row's circuit identity: canonical re-exports use the
+            # Ergast circuit id (marina_bay, …), while stale event-name slugs
+            # (singapore-grand-prix) won't match the schedule and are dropped by the
+            # _dedupe_rows call below — so a stray round's charts stop surfacing under
+            # the wrong circuit.
+            "circuit_id": m.group("slug"),
         }
         by_session[(row["round"], row["session"])].append(row)
     written = 0
     for (rnd, sess), rows in sorted(by_session.items()):
+        # Drop same-round re-exports under a non-canonical slug, keeping the row whose
+        # circuit id matches the CDN schedule for the round (same machinery as replays /
+        # circuits). Only the canonical slug is published to the stable path below, so
+        # same-round different-slug charts no longer merge into one session file.
+        rows = _dedupe_rows(rows, _DEDUPE_KEYS["charts"], season)
         rows.sort(key=lambda r: (r["theme"], r["chart_type"]))
         _put_index(f"index/charts/{season}/{rnd:02d}/{sess}.json", rows)
         written += 1
@@ -305,6 +316,11 @@ def _dedupe_rows(rows, group_key, season):
 
 
 _DEDUPE_KEYS = {
+    # (season, round, session, chart_type, theme): dedupe only collapses true
+    # slug-duplicates of the *same chart* of a session. Broader than just
+    # (season, round, session), which would keep a single chart per session and
+    # silently drop championship/positions/laptimes and the light vs dark variants.
+    "charts": lambda r: (r["season"], r["round"], r["session"], r["chart_type"], r["theme"]),
     "replays": lambda r: (r["season"], r["round"], r.get("session") or "R"),
     "circuits": lambda r: (r["season"], r["round"]),
 }

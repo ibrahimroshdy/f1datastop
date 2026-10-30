@@ -1,13 +1,9 @@
-"""Session start times from f1-proxy (or CDN fallback) — shared by the Actions gates.
+"""Session start times from the CDN schedule — shared by the Actions gates.
 
-A proxy answer only counts when it is usable: an `error` field, a non-OK status, or zero
-races is a FAILURE and falls back to the CDN schedule. If the fallback is also empty or
-unreadable, `sessions()` raises — callers (charts_todo) then fail loudly instead of
-treating "no schedule" as "nothing to do".
-
-Reads schedule via f1-proxy (Ergast/Jolpica) so gates work with no database credentials
-and keep working while Supabase is restricted. Session codes match f1_session.session_type:
-FP1 FP2 FP3 Q SQ SS S R.
+Reads the static CDN schedule file ({season}/schedule.json, Ergast-shaped). If it is
+empty or unreadable, `sessions()` raises — callers (charts_todo) then fail loudly
+instead of treating "no schedule" as "nothing to do". Session codes match
+f1_session.session_type: FP1 FP2 FP3 Q SQ SS S R.
 """
 import json
 import os
@@ -115,15 +111,10 @@ def _ts(obj):
 
 def sessions(season):
     """[(round:int, code:str, start:datetime UTC)] for every timed session."""
-    try:
-        races = fetch_proxy_schedule(season)
-    except Exception as e:  # noqa: BLE001
-        print(f"[cdn_schedule] proxy fetch failed: {e}, falling back to CDN schedule", file=sys.stderr)
-        # Fallback to CDN static schedule (may be stale)
-        races = _fetch_cdn_schedule(season)
-        if not races:
-            raise ScheduleUnavailable(
-                f"no usable {season} schedule: proxy failed ({e}) and CDN schedule is empty/unreadable")
+    races = _fetch_cdn_schedule(season)
+    if not races:
+        raise ScheduleUnavailable(
+            f"no usable {season} schedule: CDN schedule is empty/unreadable")
     out = []
     for race in races:
         rnd = int(race.get("round") or 0)

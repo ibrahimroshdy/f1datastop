@@ -238,3 +238,66 @@ class Subtitles(unittest.TestCase):
     def test_cap_keeps_driver_codes(self):
         self.assertEqual(g._cap("ANT vs RUS"), "ANT vs RUS")
         self.assertEqual(g._cap("top five"), "Top five")
+
+
+class EndLabelDeCollision(unittest.TestCase):
+    """De-colliding chart end labels (issue #73): close tags stack, far tags stay put."""
+
+    def test_far_apart_labels_are_unchanged(self):
+        items = [(0.0, 0.0, "RUS", "#00A19B"), (0.0, 25.0, "VER", "#3671C6")]
+        self.assertEqual(g.de_collide_end_labels(items, min_gap=5.0), items)
+
+    def _ys(self, out):
+        return [o[1] for o in out]
+
+    def test_close_pair_stacks_centred(self):
+        items = [(0.0, 0.0, "RUS", "#00A19B"), (0.0, 1.0, "VER", "#3671C6")]
+        out = g.de_collide_end_labels(items, min_gap=4.0)
+        ys = self._ys(out)
+        self.assertEqual(ys, sorted(ys))          # order preserved
+        self.assertAlmostEqual(ys[1] - ys[0], 4.0)  # exactly min_gap apart
+        self.assertAlmostEqual(sum(ys) / 2, 0.5)  # centred on the mean (0.5)
+        # x, text and colour ride along untouched
+        self.assertEqual([o[0] for o in out], [0.0, 0.0])
+        self.assertEqual([o[2] for o in out], ["RUS", "VER"])
+        self.assertEqual([o[3] for o in out], ["#00A19B", "#3671C6"])
+
+    def test_close_cluster_stacks_with_min_gap(self):
+        items = [(0.0, 0.0, "A", "c"), (0.0, 0.5, "B", "c"), (0.0, 0.9, "C", "c")]
+        out = g.de_collide_end_labels(items, min_gap=2.0)
+        ys = self._ys(out)
+        self.assertEqual(ys, sorted(ys))
+        self.assertAlmostEqual(ys[1] - ys[0], 2.0)
+        self.assertAlmostEqual(ys[2] - ys[1], 2.0)
+        self.assertAlmostEqual(sum(ys) / 3, 1.4 / 3)  # centred on the cluster mean
+
+    def test_mixed_clusters_and_loners(self):
+        items = [(0.0, 0.0, "A", "c"), (0.0, 0.5, "B", "c"), (0.0, 50.0, "C", "c")]
+        out = g.de_collide_end_labels(items, min_gap=2.0)
+        ys = self._ys(out)
+        self.assertEqual(ys, sorted(ys))
+        self.assertAlmostEqual(ys[1] - ys[0], 2.0)
+        self.assertAlmostEqual(ys[0], -0.75)
+        self.assertAlmostEqual(ys[1], 1.25)
+        self.assertEqual(ys[2], 50.0)  # loner untouched
+
+    def test_cluster_drifted_toward_a_loner_still_separated(self):
+        # One-pass centring can nudge a cluster edge toward a neighbour cluster;
+        # the final separation pass guarantees min_gap everywhere.
+        items = [(0.0, 0.0, "A", "c"), (0.0, 0.9, "B", "c"), (0.0, 1.79, "C", "c"),
+                 (0.0, 2.8, "D", "c")]
+        out = g.de_collide_end_labels(items, min_gap=1.0)
+        ys = self._ys(out)
+        self.assertEqual(ys, sorted(ys))
+        for a, b in zip(ys, ys[1:]):
+            self.assertGreaterEqual(b - a, 1.0 - 1e-9)
+
+    def test_empty_and_single(self):
+        self.assertEqual(g.de_collide_end_labels([], min_gap=1.0), [])
+        self.assertEqual(g.de_collide_end_labels([(0.0, 1.0, "X", "c")], min_gap=1.0),
+                         [(0.0, 1.0, "X", "c")])
+
+    def test_non_positive_gap_is_noop(self):
+        items = [(0.0, 0.0, "A", "c"), (0.0, 0.1, "B", "c")]
+        self.assertEqual(g.de_collide_end_labels(items, min_gap=0.0), items)
+        self.assertEqual(g.de_collide_end_labels(items, min_gap=-1.0), items)

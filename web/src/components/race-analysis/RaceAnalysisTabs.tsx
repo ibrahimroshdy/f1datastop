@@ -9,6 +9,7 @@ import {
   F1CardTitle,
   F1ChartContainer,
 } from "@/components/f1";
+import { SpoilerShield } from "@/components/spoiler-shield/SpoilerShield";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { cn } from "@/lib/utils";
 import CustomChartBuilder from "./CustomChartBuilder";
@@ -130,6 +131,12 @@ interface RaceAnalysisTabsProps {
   selectedYear: number;
   selectedRace: string;
   selectedSession?: string;
+  /** When a moment link (?driver=&lap=) opens the page, focus this driver/lap on the lapTimes tab. */
+  focusDriver?: string;
+  focusLap?: number;
+  /** Hide results content behind a "Show results" button when true (latest race only). */
+  isShielded: boolean;
+  onShowResults: () => void;
 }
 
 export function RaceAnalysisTabs({
@@ -139,6 +146,10 @@ export function RaceAnalysisTabs({
   selectedYear,
   selectedRace,
   selectedSession = "R",
+  focusDriver,
+  focusLap,
+  isShielded,
+  onShowResults,
 }: RaceAnalysisTabsProps) {
   const { cardVariant, glassVariant } = useThemeVariant();
   const cardClassName = "overflow-hidden p-0";
@@ -223,37 +234,46 @@ export function RaceAnalysisTabs({
         </TabsContent>
 
         <TabsContent value="lapTimes" className="mt-4">
-          <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
-            <F1CardHeader className="px-4 pb-2 pt-3">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
-                <F1CardTitle className="text-base">Lap Time Analysis</F1CardTitle>
-              </div>
-              <F1CardDescription className="text-xs">
-                Compare lap-by-lap times between drivers
-              </F1CardDescription>
-            </F1CardHeader>
-            <F1CardContent className="min-h-[480px] px-4 pb-4">
-              <MuiLapTimeChart year={selectedYear} round={selectedRace} />
-            </F1CardContent>
-          </F1Card>
+          <SpoilerShield isShielded={isShielded} onShowResults={onShowResults}>
+            <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
+              <F1CardHeader className="px-4 pb-2 pt-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <F1CardTitle className="text-base">Lap Time Analysis</F1CardTitle>
+                </div>
+                <F1CardDescription className="text-xs">
+                  Compare lap-by-lap times between drivers
+                </F1CardDescription>
+              </F1CardHeader>
+              <F1CardContent className="min-h-[480px] px-4 pb-4">
+                <MuiLapTimeChart
+                  year={selectedYear}
+                  round={selectedRace}
+                  focusDriver={focusDriver}
+                  focusLap={focusLap}
+                />
+              </F1CardContent>
+            </F1Card>
+          </SpoilerShield>
         </TabsContent>
 
         <TabsContent value="positions" className="mt-4">
-          <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
-            <F1CardHeader className="px-4 pb-2 pt-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <F1CardTitle className="text-base">Position Changes</F1CardTitle>
-              </div>
-              <F1CardDescription className="text-xs">
-                Track position changes throughout the race
-              </F1CardDescription>
-            </F1CardHeader>
-            <F1CardContent className="min-h-[480px] px-4 pb-4">
-              <MuiPositionChart year={selectedYear} round={selectedRace} />
-            </F1CardContent>
-          </F1Card>
+          <SpoilerShield isShielded={isShielded} onShowResults={onShowResults}>
+            <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
+              <F1CardHeader className="px-4 pb-2 pt-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <F1CardTitle className="text-base">Position Changes</F1CardTitle>
+                </div>
+                <F1CardDescription className="text-xs">
+                  Track position changes throughout the race
+                </F1CardDescription>
+              </F1CardHeader>
+              <F1CardContent className="min-h-[480px] px-4 pb-4">
+                <MuiPositionChart year={selectedYear} round={selectedRace} />
+              </F1CardContent>
+            </F1Card>
+          </SpoilerShield>
         </TabsContent>
 
         <TabsContent value="qualifying" className="mt-4 space-y-4">
@@ -392,24 +412,26 @@ export function RaceAnalysisTabs({
             </TabsContent>
 
             <TabsContent value="results" className="mt-4">
-              <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
-                <F1CardHeader className="px-4 pb-2 pt-3">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-4 w-4 text-primary" />
-                    <F1CardTitle className="text-base">Session Results</F1CardTitle>
-                  </div>
-                  <F1CardDescription className="text-xs">
-                    Final classification and standings
-                  </F1CardDescription>
-                </F1CardHeader>
-                <F1CardContent className="min-h-[500px] px-4 pb-4">
-                  <SessionResults
-                    year={selectedYear}
-                    round={selectedRace}
-                    session={selectedSession}
-                  />
-                </F1CardContent>
-              </F1Card>
+              <SpoilerShield isShielded={isShielded} onShowResults={onShowResults}>
+                <F1Card variant={cardVariant} glassVariant={glassVariant} className={cardClassName}>
+                  <F1CardHeader className="px-4 pb-2 pt-3">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-primary" />
+                      <F1CardTitle className="text-base">Session Results</F1CardTitle>
+                    </div>
+                    <F1CardDescription className="text-xs">
+                      Final classification and standings
+                    </F1CardDescription>
+                  </F1CardHeader>
+                  <F1CardContent className="min-h-[500px] px-4 pb-4">
+                    <SessionResults
+                      year={selectedYear}
+                      round={selectedRace}
+                      session={selectedSession}
+                    />
+                  </F1CardContent>
+                </F1Card>
+              </SpoilerShield>
             </TabsContent>
 
             <TabsContent value="racecontrol" className="mt-4 space-y-4">
