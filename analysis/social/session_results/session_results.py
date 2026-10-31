@@ -17,6 +17,11 @@ instead (columns: pos, number, code, driver, team, time, gap, plus optional flag
 headshot_url, team_colour). The parsed classification is always saved as <slug>_data.csv
 next to the images. Writes <slug>_x.png 1080x1350, _ig 1080x1440, _threads 1440x1920; never
 overwrites (a clash gets _2, _3 ...). Never crops: the layout is drawn natively per size.
+
+Teammate head-to-head (on by default, --h2h on|off|only): <slug base>_h2h_{x,ig,threads}.png + _h2h_data.csv
+(slug base = slug without a trailing _results). One row per team: logo, both drivers (headshot, flag,
+surname, best lap + tyre badge), centre gap bar in team colour toward the faster driver, sorted closest
+first. Quali: best of Q1-Q3. Race/sprint: finishing position and gap at the flag; DNF/lapped show status.
 """
 import argparse, csv, html, json, os, re, sys, time, unicodedata, urllib.request
 import numpy as np
@@ -432,6 +437,224 @@ def render(ev, rows, kind, label, stat, W, H, path):
     return path
 
 
+# ---------------------------------------------------------------- teammate head-to-head card
+def _qbest(raw):
+    """Quali: the driver's best time across Q1-Q3 (SQ1-SQ3) from the raw classification row."""
+    ts = [(ms(str(raw.get(k, ""))), str(raw.get(k, "")).strip()) for k in ("Q1", "Q2", "Q3", "SQ1", "SQ2", "SQ3")]
+    ts = [t for t in ts if t[0]]
+    return min(ts)[1] if ts else ""
+
+
+def h2h_value(e, kind, raw=None):
+    """(sort value in ms or None, shown value) for one driver.
+    practice: best lap; quali: best of Q1-Q3; race: race time to the flag (winner time + gap) and position."""
+    if kind == "practice": return (ms(e["time"]) if e["time"] else None, e["time"] or e["status"] or "No time")
+    if kind == "quali":
+        t = _qbest(raw or {}) or e["time"]
+        return (ms(t) if t else None, t or e["status"] or "No time")
+    return (None, "")                                     # race handled in h2h_pairs
+
+
+def h2h_pairs(rows, raws, kind):
+    """One pair per team: [{team, a, b, gap_ms|None, faster 'a'|'b'|None, centre text}], sorted closest first."""
+    teams = {}
+    for e, r in zip(rows, raws):
+        e = dict(e)
+        if kind == "race":
+            lead = next((ms(x["time"]) for x in rows if x["time"] and ms(x["time"])), None)
+            num_pos = e["pos"].isdigit()
+            if e["time"] and ms(e["time"]): t = 0
+            elif e["gap"] and (g := ms(e["gap"].lstrip("+"))) is not None: t = g
+            else: t = None
+            e["h_ms"] = t if num_pos else None
+            e["h_pos"] = int(e["pos"]) if num_pos else 999
+            e["h_show"] = f"P{e['pos']}" if num_pos else (e["status"] or e["pos"] or "DNF")
+            e["h_note"] = "" if t is not None or not num_pos else (e["gap"] or e["status"])
+        else:
+            v, s = h2h_value(e, kind, r); e["h_ms"] = v; e["h_show"] = s; e["h_note"] = ""
+        teams.setdefault(e["team_key"], []).append(e)
+    pairs, skipped = [], []
+    for tk, ds in teams.items():
+        if len(ds) != 2: skipped.append(f"{tk} ({len(ds)} drivers)"); continue
+        a, b = sorted(ds, key=lambda x: int(x["number"]) if x["number"].isdigit() else 999)
+        p = dict(team_key=tk, team=a["team"], colour=a["team_colour"], a=a, b=b, gap=None, faster=None, centre="")
+        if kind == "race":
+            if a["h_pos"] != b["h_pos"]: p["faster"] = "a" if a["h_pos"] < b["h_pos"] else "b"
+            if a["h_ms"] is not None and b["h_ms"] is not None: p["gap"] = abs(a["h_ms"] - b["h_ms"])
+            else:
+                fast, slow = (a, b) if p["faster"] == "a" else (b, a)
+                sn = slow["h_note"] or slow["h_show"]; fn = fast["h_note"] or fast["h_show"]
+                if not p["faster"]: p["centre"] = f"Both {a['h_show']}"
+                elif fast["h_ms"] is None and fn.lower() == sn.lower(): p["centre"] = f"Both {sn}"
+                else: p["centre"] = sn
+        else:
+            if a["h_ms"] is not None and b["h_ms"] is not None:
+                p["gap"] = abs(a["h_ms"] - b["h_ms"]); p["faster"] = "a" if a["h_ms"] <= b["h_ms"] else "b"
+            else:
+                p["faster"] = "a" if a["h_ms"] is not None else ("b" if b["h_ms"] is not None else None)
+                p["centre"] = "No time"
+        pairs.append(p)
+    pairs.sort(key=lambda p: (p["gap"] is None, p["gap"] if p["gap"] is not None else 0,
+                              min(p["a"].get("h_pos", 0) or 0, p["b"].get("h_pos", 0) or 0)))
+    return pairs, skipped
+
+
+def fmt_gap(v):
+    m, s = divmod(v, 60000)
+    return f"+{m}:{s / 1000:06.3f}" if m else f"+{s / 1000:.3f}"
+
+
+def h2h_stat(pairs, kind):
+    p = next((p for p in pairs if p["gap"] is not None), None)
+    if not p: return "Teammate gaps"
+    f, s = (p["a"], p["b"]) if p["faster"] == "a" else (p["b"], p["a"])
+    if p["gap"] == 0: return f"{surname(f)} and {surname(s)} dead level, the closest pair"
+    verb = "beats" if kind == "race" else "edges"
+    return f"{surname(f)} {verb} {surname(s)} by {p['gap'] / 1000:.3f}s, the closest pair"
+
+
+def _logo_fit(tk, bw, bh):
+    lg = Image.open(LOGOS + tk + ".png").convert("RGBA"); lg = lg.crop(lg.getbbox())
+    s = min(bw / lg.width, bh / lg.height)
+    return lg.resize((max(1, int(lg.width * s)), max(1, int(lg.height * s))), Image.LANCZOS)
+
+
+def h2h_driver(img, d, e, side, x0, x1, cy, h, S, fastest, faster):
+    """One driver half: avatar at the outer edge, flag + surname, value + tyre badge (mirrored on the right)."""
+    tc = rgb(e["team_colour"]); ad = int(h - S(16)); hp = headshot(e)
+    if not hp: sys.exit(f"no headshot for {e['code']} {e['driver']}")
+    av = ring_avatar(hp, ad, tc)
+    if side == "l": img.alpha_composite(av, (int(x0), int(cy - ad / 2))); tx0, tx1 = x0 + ad + S(12), x1
+    else: img.alpha_composite(av, (int(x1 - ad), int(cy - ad / 2))); tx0, tx1 = x0, x1 - ad - S(12)
+    room = tx1 - tx0
+    # line 1: flag + surname
+    ns = h * 0.30; fl = T.flag(ensure_flag(e["flag"]), int(ns * 0.66)); name = surname(e)
+    nf = fit(d, name, BLD, ns, room - fl.width - S(8)); ny = cy - h * 0.19
+    if side == "l":
+        img.alpha_composite(fl, (int(tx0), int(ny - fl.height / 2)))
+        d.text((tx0 + fl.width + S(8), ny), name, font=nf, fill=INK, anchor="lm")
+    else:
+        img.alpha_composite(fl, (int(tx1 - fl.width), int(ny - fl.height / 2)))
+        d.text((tx1 - fl.width - S(8), ny), name, font=nf, fill=INK, anchor="rm")
+    # line 2: value + tyre badge
+    val = e["h_show"]; numeric = e.get("h_ms") is not None or val.startswith("P")
+    bd = int(h * 0.30) if e.get("tyre") in TYRE and numeric else 0
+    vf = fit(d, val, XB if numeric else SEMI, h * 0.34, room - (bd + S(10) if bd else 0)); vy = cy + h * 0.20
+    col = PURPLE if fastest else (INK if faster or not numeric else SEC)
+    if not numeric: col = MUTE
+    vw = d.textlength(val, font=vf)
+    if side == "l":
+        d.text((tx0, vy), val, font=vf, fill=col, anchor="lm")
+        if bd: img.alpha_composite(tyre_badge(e["tyre"], bd), (int(tx0 + vw + S(10)), int(vy - bd / 2)))
+    else:
+        d.text((tx1, vy), val, font=vf, fill=col, anchor="rm")
+        if bd: img.alpha_composite(tyre_badge(e["tyre"], bd), (int(tx1 - vw - S(10) - bd), int(vy - bd / 2)))
+
+
+def h2h_row(img, d, p, x, y, w, h, S, maxgap, fastest_codes):
+    tc = rgb(p["colour"])
+    card = Image.new("RGBA", (int(w), int(h))); cd = ImageDraw.Draw(card)
+    cd.rounded_rectangle((0, 0, card.width - 1, card.height - 1), radius=S(14), fill=(255, 255, 255, 15),
+                         outline=(255, 255, 255, 38), width=max(1, S(2)))
+    cd.rounded_rectangle((0, S(8), S(6), card.height - S(8)), radius=S(3), fill=tc + (255,))
+    img.alpha_composite(card, (int(x), int(y)))
+    cy = y + h / 2
+    # team logo
+    lw = w * 0.085; lx = x + S(18)
+    lg = _logo_fit(p["team_key"], lw, h * 0.42)
+    img.alpha_composite(lg, (int(lx + (lw - lg.width) / 2), int(cy - lg.height / 2)))
+    ax = lx + lw + S(14); xr = x + w - S(12); mid = (ax + xr) / 2; cw = (xr - ax) * 0.22
+    h2h_driver(img, d, p["a"], "l", ax, mid - cw / 2 - S(6), cy, h, S, p["a"]["code"] in fastest_codes, p["faster"] == "a")
+    h2h_driver(img, d, p["b"], "r", mid + cw / 2 + S(6), xr, cy, h, S, p["b"]["code"] in fastest_codes, p["faster"] == "b")
+    # centre: gap + bar toward the faster driver
+    gt = fmt_gap(p["gap"]) if p["gap"] is not None else p["centre"]
+    gf = fit(d, gt, XB if p["gap"] is not None else SEMI, h * 0.34, cw)
+    d.text((mid, cy - h * 0.15), gt, font=gf, fill=INK if p["gap"] is not None else MUTE, anchor="mm")
+    by = cy + h * 0.23; bh = max(2, int(h * 0.12)); half = cw / 2
+    ox, oy = int(mid - half - S(4)), int(by - bh)              # translucent track drawn on a layer so it blends
+    lay = Image.new("RGBA", (int(2 * half) + S(8), 2 * bh + 2)); ld = ImageDraw.Draw(lay)
+    L_ = lambda v: v - ox; T_ = lambda v: v - oy
+    ld.rounded_rectangle((L_(mid - half), T_(by - bh / 2), L_(mid + half), T_(by + bh / 2)), radius=bh // 2,
+                         fill=(255, 255, 255, 40))
+    if p["faster"]:
+        frac = 1.0 if p["gap"] is None else (max(0.10, min(1.0, p["gap"] / maxgap)) if maxgap else 0.10)
+        L = half * frac
+        x0_, x1_ = (mid - L, mid) if p["faster"] == "a" else (mid, mid + L)
+        ld.rounded_rectangle((L_(x0_), T_(by - bh / 2), L_(x1_), T_(by + bh / 2)), radius=bh // 2, fill=tc + (255,))
+    ld.rectangle((L_(mid - max(1, S(1))), 0, L_(mid + max(1, S(1))), lay.height - 1), fill=INK + (255,))
+    img.alpha_composite(lay, (ox, oy))
+
+
+def render_h2h(ev, pairs, label, stat, W, H, path, fastest_codes):
+    SS = 2; k = W / 1080 * SS; S = lambda v: int(v * k)
+    img = make_background(W * SS, H * SS, watermark=None).convert("RGBA"); d = ImageDraw.Draw(img, "RGBA")
+    M = S(48); top = S(70)
+    T.brand(img, W * SS - M, top, S(54))
+    fl = T.flag(ensure_flag(ev["flag"]), S(34)); img.alpha_composite(fl, (M, int(top - fl.height / 2)))
+    sub = f"{ev['gp']} {label}".upper()
+    cf = fit(d, sub, BLD, S(34), W * SS * 0.55 - fl.width)
+    d.text((M + fl.width + S(14), top), sub, font=cf, fill=RED, anchor="lm")
+    title = "Teammate Head-to-Head"
+    tf = fit(d, title, XB, S(112) if H / W > 1.3 else S(104), W * SS - 2 * M)
+    ty = top + S(44); d.text((M - S(2), ty), title, font=tf, fill=INK, anchor="lt")
+    tb = d.textbbox((M, ty), title, font=tf, anchor="lt")
+    sy = tb[3] + S(14); sf = fit(d, stat, BLD, S(50), W * SS - 2 * M)
+    d.text((M, sy), stat, font=sf, fill=GOLD, anchor="lt")
+    y0 = d.textbbox((M, sy), stat, font=sf, anchor="lt")[3] + S(30)
+    n = max(1, len(pairs)); gy = S(12); x0 = M - S(8); cw = W * SS - 2 * M + S(16)
+    rh = min((H * SS - S(40) - y0 - gy * (n - 1)) / n, S(150))
+    maxgap = max([p["gap"] for p in pairs if p["gap"] is not None] or [0])
+    for i, p in enumerate(pairs):
+        h2h_row(img, d, p, x0, y0 + i * (rh + gy), cw, rh, S, maxgap, fastest_codes)
+    img.convert("RGB").resize((W, H), Image.LANCZOS).save(path, optimize=True)
+    return path
+
+
+H2H_FIELDS = ["team", "a_code", "a_driver", "a_value", "a_tyre", "b_code", "b_driver", "b_value", "b_tyre",
+              "faster", "gap", "centre"]
+
+
+def run_h2h(a, ev, s, label, kind, rows, raws, slug):
+    """Build and export the teammate head-to-head card next to the results card."""
+    pairs, skipped = h2h_pairs(rows, raws, kind)
+    if skipped: print(f"WARNING: h2h skipped teams without exactly 2 drivers: {', '.join(skipped)}", file=sys.stderr)
+    if not pairs: sys.exit("no teammate pairs")
+    if kind == "quali" and not a.no_tyres:              # best of Q1-Q3 can differ from the card's (last segment) time
+        drv = [p[x] for p in pairs for x in "ab"]
+        need = [dict(e, time=e["h_show"]) for e in drv if e["h_ms"] is not None]
+        try:
+            ty = fetch_tyres(a.season, ev, s, need, kind)
+            for e in drv: e["tyre"] = ty.get(e["number"], "")
+        except Exception as x:
+            print(f"WARNING: h2h tyre compounds unavailable ({x})", file=sys.stderr)
+            for e in drv: e["tyre"] = ""
+    drv = [p[x] for p in pairs for x in "ab"]
+    miss = [e["code"] for e in drv if e.get("tyre") not in TYRE]
+    if miss: print(f"h2h: no tyre badge for {', '.join(miss)}", file=sys.stderr)
+    if kind == "race": fastest = {e["code"] for e in drv if e.get("h_pos") == 1}
+    else:
+        best = min([e["h_ms"] for e in drv if e["h_ms"] is not None] or [None]) if any(e["h_ms"] is not None for e in drv) else None
+        fastest = {e["code"] for e in drv if best is not None and e["h_ms"] == best}
+    stat = h2h_stat(pairs, kind)
+    for t in [stat, label, ev["gp"]] + [p["centre"] for p in pairs] + [e["h_show"] for e in drv]:
+        if BANNED.search(t): sys.exit(f"banned character or URL in h2h text: {t!r}")
+    hs = (slug[:-len("_results")] if slug.endswith("_results") else slug) + "_h2h"
+    dp = free(os.path.join(a.out, f"{hs}_data.csv"))
+    with open(dp, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=H2H_FIELDS); w.writeheader()
+        for p in pairs:
+            w.writerow(dict(team=p["team"], a_code=p["a"]["code"], a_driver=p["a"]["driver"], a_value=p["a"]["h_show"],
+                            a_tyre=p["a"].get("tyre", ""), b_code=p["b"]["code"], b_driver=p["b"]["driver"],
+                            b_value=p["b"]["h_show"], b_tyre=p["b"].get("tyre", ""),
+                            faster=p[p["faster"]]["code"] if p["faster"] else "",
+                            gap=f"{p['gap'] / 1000:.3f}" if p["gap"] is not None else "", centre=p["centre"]))
+    print(dp)
+    for k_, (W, H) in SIZES.items():
+        if k_ in a.sizes.split(","):
+            print(render_h2h(ev, pairs, label, stat, W, H, free(os.path.join(a.out, f"{hs}_{k_}.png")), fastest))
+    print(f"h2h stat {stat}\nh2h {len(pairs)} teams", file=sys.stderr)
+
+
 def free(path):
     if not os.path.exists(path): return path
     b, e = os.path.splitext(path); i = 2
@@ -454,6 +677,8 @@ def main():
     ap.add_argument("--circuit"); ap.add_argument("--flag", help="race country flag code, e.g. mx")
     ap.add_argument("--flags", default="", help="extra driver flags, e.g. VES=dk,TSO=bg")
     ap.add_argument("--no-tyres", action="store_true", help="skip the OpenF1 tyre compound badges")
+    ap.add_argument("--h2h", default="on", choices=["on", "off", "only"],
+                    help="teammate head-to-head card next to the results card (only: skip the results card)")
     ap.add_argument("--sizes", default="x,ig,threads"); ap.add_argument("--out", default="."); ap.add_argument("--slug")
     a = ap.parse_args()
     t0 = time.time()
@@ -486,12 +711,18 @@ def main():
         if BANNED.search(t): sys.exit(f"banned character or URL in text: {t!r}")
     slug = a.slug or f"{a.race}_{a.season}_{s}_results"
     os.makedirs(a.out, exist_ok=True)
-    dp = free(os.path.join(a.out, f"{slug}_data.csv"))
-    with open(dp, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore"); w.writeheader(); w.writerows(rows)
-    print(dp)
-    for k_, (W, H) in SIZES.items():
-        if k_ in a.sizes.split(","): print(render(ev, rows, kind, label, stat, W, H, free(os.path.join(a.out, f"{slug}_{k_}.png"))))
+    if a.h2h != "only":
+        dp = free(os.path.join(a.out, f"{slug}_data.csv"))
+        with open(dp, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore"); w.writeheader(); w.writerows(rows)
+        print(dp)
+        for k_, (W, H) in SIZES.items():
+            if k_ in a.sizes.split(","): print(render(ev, rows, kind, label, stat, W, H, free(os.path.join(a.out, f"{slug}_{k_}.png"))))
+    if a.h2h != "off":
+        try: run_h2h(a, ev, s, label, kind, rows, raw, slug)
+        except (Exception, SystemExit) as x:
+            if a.h2h == "only": raise
+            print(f"WARNING: head-to-head card not exported ({x}); results card is unaffected", file=sys.stderr)
     print(f"source {src}\nstat {stat}\n{len(rows)} rows in {time.time() - t0:.1f}s", file=sys.stderr)
 
 
