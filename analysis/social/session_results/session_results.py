@@ -5,8 +5,10 @@ Every classified driver in order: position, headshot in a team colour ring, coun
 number, name, real team logo, best lap (or race time / status) and the gap to P1. Header: race
 flag + circuit name, big plain title ("Mexico City GP Practice 2"), one stat line. 2026 carbon
 background with red glow (no watermark), F1 DataStop logo + wordmark top right.
-P1's row (outline, tint, accent bar, position, time, label) in F1 purple. A round tyre badge (S/M/H/I/W) next to each time
-shows the compound of that lap (race: fastest lap), from OpenF1; left out when unknown, never guessed.
+P1's row (outline, tint, accent bar, position, time, label) in F1 purple. A mini stint strip next to each time
+shows every compound the driver used (Pirelli colours, proportional to laps, small lap numbers only where a
+stop happened), from OpenF1 stints; laps OpenF1 does not cover stay an empty track, a driver with no
+stint data gets no strip, never guessed. Disqualified drivers (formula1.com "DQ") show DQ, no time.
 Reflows into two columns above 12 rows so a full 22 car field stays legible on a phone.
 
   python3 session_results.py --season 2026 --race mexico --session fp2 [--out DIR] [--slug NAME]
@@ -22,6 +24,12 @@ Teammate head-to-head (on by default, --h2h on|off|only): <slug base>_h2h_{x,ig,
 (slug base = slug without a trailing _results). One row per team: logo, both drivers (headshot, flag,
 surname, best lap + tyre badge), centre gap bar in team colour toward the faster driver, sorted closest
 first. Quali: best of Q1-Q3. Race/sprint: finishing position and gap at the flag; DNF/lapped show status.
+A disqualified driver shows DQ and never counts as the faster one.
+
+Race fastest laps (race only, --times auto|on|off|only; auto = on for the race, off elsewhere):
+<slug base>_times_{x,ig,threads}.png + _times_data.csv. Every driver's fastest race lap from the formula1.com
+fastest-laps page, ranked, gap to the fastest and the lap it was set on; the overall fastest in purple.
+A failure prints a WARNING and the other cards still render.
 """
 import argparse, csv, html, json, os, re, sys, time, unicodedata, urllib.request
 import numpy as np
@@ -63,7 +71,9 @@ SESSIONS = {   # key: (formula1.com results path, title label, kind)
     "fp1": ("practice/1", "Practice 1", "practice"), "fp2": ("practice/2", "Practice 2", "practice"),
     "fp3": ("practice/3", "Practice 3", "practice"), "quali": ("qualifying", "Qualifying", "quali"),
     "sprint_quali": ("sprint-qualifying", "Sprint Qualifying", "quali"),
-    "sprint": ("sprint-results", "Sprint", "race"), "race": ("race-result", "Race", "race")}
+    "sprint": ("sprint-results", "Sprint", "race"), "race": ("race-result", "Race", "race"),
+    "fastest_laps": ("fastest-laps", "Fastest Laps", "fastlap"),
+    "starting_grid": ("starting-grid", "Starting Grid", "grid")}   # last two: data only (times card, grid flow)
 SESSION_ALIASES = {"q": "quali", "qualifying": "quali", "sq": "sprint_quali", "sprint-qualifying": "sprint_quali",
     "sprint_qualifying": "sprint_quali", "gp": "race", "practice1": "fp1", "practice2": "fp2", "practice3": "fp3"}
 
@@ -210,6 +220,8 @@ def classify(raw, kind):
             elif ms(tr) is not None: e["time"] = tr
             else: e["status"] = tr or st
             e["pts"] = g("pts", "Pts.", "Pts")
+        if e["pos"].upper() in ("DQ", "DSQ", "EX"):          # disqualified: no time on the card, ever
+            e["pos"] = "DQ"; e["time"] = e["gap"] = ""; e["status"] = "DQ"; e["segment"] = ""
         if not e["status"] and not e["time"] and not e["gap"]: e["status"] = g("status") or "No time"
         if not e["code"]:
             e["code"] = norm(e["driver"].split()[-1])[:3].upper()
@@ -229,17 +241,52 @@ def classify(raw, kind):
     return out
 
 
-def fetch_tyres(season, ev, s, rows, kind):
-    """Compound of each driver's shown lap from OpenF1 (no login): {car number: 'SOFT'|...}.
-    Practice/quali: the lap whose time equals the card's time; race/sprint: the driver's fastest lap.
-    That lap is mapped to its stint's compound. Anything not found is left out, never guessed."""
+def of1_session(season, ev, s):
+    """OpenF1 session_key for this event's session (matched on name and the race date)."""
     if not ev.get("date"): raise RuntimeError("no race date to find the OpenF1 session")
-    names = OF1_SESSION[s]; rd = time.strptime(ev["date"], "%Y-%m-%d"); rd = time.mktime(rd)
+    names = OF1_SESSION[s]; rd = time.mktime(time.strptime(ev["date"], "%Y-%m-%d"))
     ss = [x for x in _get(f"{OPENF1}/sessions?year={season}", True)
           if x.get("session_name") in names and not x.get("is_cancelled")
           and -5 * 86400 <= time.mktime(time.strptime(x["date_start"][:10], "%Y-%m-%d")) - rd <= 86400]
     if len(ss) != 1: raise RuntimeError(f"OpenF1 has {len(ss)} '{names[0]}' sessions near {ev['date']}")
-    sk = ss[0]["session_key"]
+    return ss[0]["session_key"]
+
+
+def stints_by_driver(stints, kind):
+    """OpenF1 stints -> {car number: [[compound, lap_start, lap_end], ...]} in lap order.
+    A driver with any stint lacking a known compound or lap range is left out (never guessed).
+    Practice/quali: back-to-back runs on the same compound are merged (run plan, not pit stops);
+    race/sprint: every stint is kept, so a soft-to-soft stop still shows its lap number."""
+    by = {}
+    for x in stints: by.setdefault(str(x.get("driver_number")), []).append(x)
+    out = {}
+    for n, xs in by.items():
+        xs = sorted(xs, key=lambda x: (x.get("lap_start") or 0, x.get("stint_number") or 0))
+        if any(x.get("compound") not in TYRE or not x.get("lap_start") or not x.get("lap_end")
+               or x["lap_end"] < x["lap_start"] for x in xs): continue
+        segs = []
+        for x in xs:
+            if segs and kind != "race" and segs[-1][0] == x["compound"] and x["lap_start"] == segs[-1][2] + 1:
+                segs[-1][2] = x["lap_end"]
+            else: segs.append([x["compound"], x["lap_start"], x["lap_end"]])
+        out[n] = segs
+    return out
+
+
+def fetch_stints(season, ev, s, kind):
+    """{car number: stint segments} from OpenF1 /stints (no login), plus the session's last lap."""
+    sk = of1_session(season, ev, s)
+    st = _get(f"{OPENF1}/stints?session_key={sk}", True)
+    if not st: raise RuntimeError(f"OpenF1 has no stints yet for session {sk}")
+    segs = stints_by_driver(st, kind)
+    return segs, max([g[-1][2] for g in segs.values()] or [0])
+
+
+def fetch_tyres(season, ev, s, rows, kind):
+    """Compound of each driver's shown lap from OpenF1 (no login): {car number: 'SOFT'|...}.
+    Practice/quali: the lap whose time equals the card's time; race/sprint: the driver's fastest lap.
+    That lap is mapped to its stint's compound. Anything not found is left out, never guessed."""
+    sk = of1_session(season, ev, s)
     laps = _get(f"{OPENF1}/laps?session_key={sk}", True); stints = _get(f"{OPENF1}/stints?session_key={sk}", True)
     if not laps or not stints: raise RuntimeError(f"OpenF1 has no laps/stints yet for session {sk}")
     out = {}
@@ -273,6 +320,29 @@ def tyre_badge(comp, D, ss=8):
     f = F(BADGE_FONT, R * 0.53); l, tp, rr, b = dr.textbbox((0, 0), letter, font=f, anchor="lt")
     dr.text((R / 2 - (l + rr) / 2, R / 2 - (tp + b) / 2), letter, font=f, fill=col + (255,), anchor="lt")
     return im.resize((D, D), Image.LANCZOS)
+
+
+def stint_strip(img, d, segs, total, x, cy, w, h, S):
+    """Mini stint strip, w x h box centred on cy: a faint track for laps 1..total, one rounded segment per
+    stint in its Pirelli colour, small lap numbers under the bar where a stop happened (a label is skipped
+    when it would collide with the previous one)."""
+    bh = max(S(5), int(h * 0.36)); by0 = cy - h / 2; by1 = by0 + bh
+    total = max(total, segs[-1][2]); u = w / total
+    lay = Image.new("RGBA", (int(w) + 2, int(bh) + 2)); ld = ImageDraw.Draw(lay)
+    ld.rounded_rectangle((0, 0, int(w), int(bh)), radius=int(bh / 2), fill=(255, 255, 255, 34))
+    gap = max(1, S(2))
+    for i, (comp, a, b) in enumerate(segs):
+        x0 = (a - 1) * u + (gap / 2 if i else 0); x1 = b * u - (gap / 2 if i < len(segs) - 1 else 0)
+        if x1 - x0 < 1: x1 = x0 + 1
+        ld.rounded_rectangle((int(x0), 0, int(x1), int(bh)), radius=int(min(bh / 2, (x1 - x0) / 2)),
+                             fill=TYRE[comp][1] + (255,))
+    img.alpha_composite(lay, (int(x), int(by0)))
+    lf = F(SEMI, max(S(10), h * 0.52)); last = -10 ** 9
+    for comp, a, b in segs[1:]:
+        lx = x + (a - 1) * u; t = str(a); tw = d.textlength(t, font=lf)
+        lx = min(max(lx, x + tw / 2), x + w - tw / 2)
+        if lx - tw / 2 < last + S(4): continue
+        d.text((lx, by1 + S(2)), t, font=lf, fill=SEC, anchor="mt"); last = lx + tw / 2
 
 
 # ---------------------------------------------------------------- assets
@@ -344,6 +414,9 @@ def auto_stat(rows, kind):
 
 def right_text(e, kind):
     """(big value, small line) for the right side of a row."""
+    if kind == "fastlap":
+        lap = f"LAP {e['lap']}" if e.get("lap") else ""
+        return (e["time"], f"{e['gap']}  {lap}".strip() if e["gap"] else f"FASTEST  {lap}".strip())
     if kind == "practice" or kind == "quali":
         if not e["time"]: return (e["status"] or "No time", "")
         small = e["gap"] if e["gap"] else ("FASTEST" if kind == "practice" else "POLE")
@@ -388,9 +461,6 @@ def draw_row(img, d, e, kind, x, y, w, h, S, first):
     else:
         d.text((rx, cy), big, font=bf, fill=PURPLE if first else INK, anchor="rm")
     tw_ = max(d.textlength(big, font=bf), d.textlength(small, font=sf) if small else 0)
-    if e.get("tyre") in TYRE:                         # tyre badge left of the time block
-        bd = int(min(h * 0.48, w * 0.08)); bx = rx - tw_ - S(14) - bd
-        img.alpha_composite(tyre_badge(e["tyre"], bd), (int(bx), int(cy - bd / 2))); tw_ += bd + S(14)
     room = rx - tw_ - S(14) - cx
     # line 1: flag + name; line 2: number + team logo + team
     ns = min(h * 0.36, w * 0.060); fl = T.flag(ensure_flag(e["flag"]), int(ns * 0.62))
@@ -404,9 +474,16 @@ def draw_row(img, d, e, kind, x, y, w, h, S, first):
     lg = team_logo(e["team_key"], int(min(h * 0.24, w * 0.040)))
     if lg is None: sys.exit(f"no team logo for {e['team']!r} in {LOGOS}")
     img.alpha_composite(lg, (int(lx), int(ly - lg.height / 2))); lx += lg.width + S(8)
-    tn = TEAM_SHORT.get(e["team_key"], e["team"].upper())
-    tf = fit(d, tn, MED, min(h * 0.24, w * 0.040), max(S(10), cx + room - lx))
-    if cx + room - lx > S(40): d.text((lx, ly), tn, font=tf, fill=SEC, anchor="lm")
+    tn = TEAM_SHORT.get(e["team_key"], e["team"].upper()); end = cx + room
+    if kind == "fastlap" and e.get("tyre") in TYRE:  # times card: small compound badge of that lap, end of line 2
+        bd = int(h * 0.30); img.alpha_composite(tyre_badge(e["tyre"], bd), (int(end - bd), int(ly - bd / 2))); end -= bd + S(10)
+    if e.get("stints"):                               # mini stint strip at the end of line 2
+        sw = min(w * 0.17, end - lx); sh = h * 0.36
+        if sw > S(40):
+            stint_strip(img, d, e["stints"], e.get("stint_total") or 0, end - sw, ly - h * 0.08 + sh / 2, sw, sh, S)
+            end -= sw + S(10)
+    ts_ = min(h * 0.24, w * 0.040); tf = fit(d, tn, MED, ts_, max(S(10), end - lx), minsize=ts_ * 0.8)
+    if end - lx > S(40) and d.textlength(tn, font=tf) <= end - lx: d.text((lx, ly), tn, font=tf, fill=SEC, anchor="lm")
 
 
 def render(ev, rows, kind, label, stat, W, H, path):
@@ -448,6 +525,7 @@ def _qbest(raw):
 def h2h_value(e, kind, raw=None):
     """(sort value in ms or None, shown value) for one driver.
     practice: best lap; quali: best of Q1-Q3; race: race time to the flag (winner time + gap) and position."""
+    if e["pos"] == "DQ": return (None, "DQ")
     if kind == "practice": return (ms(e["time"]) if e["time"] else None, e["time"] or e["status"] or "No time")
     if kind == "quali":
         t = _qbest(raw or {}) or e["time"]
@@ -468,7 +546,7 @@ def h2h_pairs(rows, raws, kind):
             else: t = None
             e["h_ms"] = t if num_pos else None
             e["h_pos"] = int(e["pos"]) if num_pos else 999
-            e["h_show"] = f"P{e['pos']}" if num_pos else (e["status"] or e["pos"] or "DNF")
+            e["h_show"] = f"P{e['pos']}" if num_pos else ("DQ" if e["pos"] == "DQ" else (e["status"] or e["pos"] or "DNF"))
             e["h_note"] = "" if t is not None or not num_pos else (e["gap"] or e["status"])
         else:
             v, s = h2h_value(e, kind, r); e["h_ms"] = v; e["h_show"] = s; e["h_note"] = ""
@@ -492,7 +570,8 @@ def h2h_pairs(rows, raws, kind):
                 p["gap"] = abs(a["h_ms"] - b["h_ms"]); p["faster"] = "a" if a["h_ms"] <= b["h_ms"] else "b"
             else:
                 p["faster"] = "a" if a["h_ms"] is not None else ("b" if b["h_ms"] is not None else None)
-                p["centre"] = "No time"
+                dq = [x for x in (a, b) if x["h_show"] == "DQ"]
+                p["centre"] = f"{surname(dq[0])} DQ" if len(dq) == 1 else ("Both DQ" if dq else "No time")
         pairs.append(p)
     pairs.sort(key=lambda p: (p["gap"] is None, p["gap"] if p["gap"] is not None else 0,
                               min(p["a"].get("h_pos", 0) or 0, p["b"].get("h_pos", 0) or 0)))
@@ -655,6 +734,46 @@ def run_h2h(a, ev, s, label, kind, rows, raws, slug):
     print(f"h2h stat {stat}\nh2h {len(pairs)} teams", file=sys.stderr)
 
 
+# ---------------------------------------------------------------- race fastest laps (times card)
+TIMES_FIELDS = ["pos", "number", "code", "driver", "team", "flag", "lap", "time", "gap", "tyre", "team_colour", "headshot_url"]
+
+
+def compound_on_lap(segs, lap):
+    hit = [c for c, a_, b_ in (segs or []) if a_ <= lap <= b_]
+    return hit[0] if len(hit) == 1 else ""
+
+
+def run_times(a, ev, s, rows, slug, segs):
+    """Race fastest laps card: formula1.com fastest-laps page (same race id as the classification)."""
+    if a.times_data: raw, src = load_file(a.times_data), a.times_data
+    else: raw, src = fetch_f1(a.season, a.race, "fastest_laps")
+    if not raw: raise RuntimeError(f"no published fastest laps yet at {src}")
+    tr = classify(raw, "practice")
+    known = {e["number"]: e for e in rows}
+    for e, r in zip(tr, raw):
+        e["lap"] = str(r.get("Lap") or r.get("lap") or "").strip()
+        k = known.get(e["number"], {})
+        e["flag"] = k.get("flag") or e["flag"] or NATION.get(e["code"], "")
+        if not e["headshot_url"]: e["headshot_url"] = k.get("headshot_url", "")
+        if not e["flag"]: raise RuntimeError(f"no nationality for {e['code']}")
+        if not e["team_key"]: raise RuntimeError(f"unknown team {e['team']!r} for {e['code']}")
+        if not e["time"] or ms(e["time"]) is None: raise RuntimeError(f"no lap time for {e['code']} at {src}")
+        e["tyre"] = compound_on_lap(segs.get(e["number"]), int(e["lap"])) if e["lap"].isdigit() else ""
+    lead = tr[0]
+    stat = a.times_stat or f"{surname(lead)} sets the fastest lap, {lead['time']} on lap {lead['lap']}"
+    for t in [stat] + [e["driver"] for e in tr]:
+        if BANNED.search(t): raise RuntimeError(f"banned character or URL in times text: {t!r}")
+    ts = (slug[:-len("_results")] if slug.endswith("_results") else slug) + "_times"
+    dp = free(os.path.join(a.out, f"{ts}_data.csv"))
+    with open(dp, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=TIMES_FIELDS, extrasaction="ignore"); w.writeheader(); w.writerows(tr)
+    print(dp)
+    for k_, (W, H) in SIZES.items():
+        if k_ in a.sizes.split(","):
+            print(render(ev, tr, "fastlap", "Fastest Laps", stat, W, H, free(os.path.join(a.out, f"{ts}_{k_}.png"))))
+    print(f"times source {src}\ntimes stat {stat}\ntimes {len(tr)} drivers", file=sys.stderr)
+
+
 def free(path):
     if not os.path.exists(path): return path
     b, e = os.path.splitext(path); i = 2
@@ -663,7 +782,7 @@ def free(path):
 
 
 FIELDS = ["pos", "number", "code", "driver", "team", "flag", "time", "gap", "segment", "status", "laps", "pts",
-          "team_colour", "headshot_url", "tyre"]
+          "team_colour", "headshot_url", "tyre", "stints_text"]
 
 
 def main():
@@ -679,11 +798,15 @@ def main():
     ap.add_argument("--no-tyres", action="store_true", help="skip the OpenF1 tyre compound badges")
     ap.add_argument("--h2h", default="on", choices=["on", "off", "only"],
                     help="teammate head-to-head card next to the results card (only: skip the results card)")
+    ap.add_argument("--times", default="auto", choices=["auto", "on", "off", "only"],
+                    help="race fastest laps card (auto: on for the race only; only: skip results and h2h)")
+    ap.add_argument("--times-data", help="CSV or JSON fastest laps instead of formula1.com (Pos., No., Driver, Team, Lap, Time)")
+    ap.add_argument("--times-stat", help="override the fastest laps stat line")
     ap.add_argument("--sizes", default="x,ig,threads"); ap.add_argument("--out", default="."); ap.add_argument("--slug")
     a = ap.parse_args()
     t0 = time.time()
     s = SESSION_ALIASES.get(a.session.lower(), a.session.lower())
-    if s not in SESSIONS: sys.exit(f"unknown session {a.session!r}")
+    if s not in SESSIONS or s in ("fastest_laps", "starting_grid"): sys.exit(f"unknown session {a.session!r}")
     path_, label, kind = SESSIONS[s]
     if a.title and a.circuit and a.flag: ev = dict(gp=a.title, circuit=a.circuit, flag=a.flag)
     else:
@@ -698,7 +821,20 @@ def main():
         e["flag"] = (extra.get(e["code"]) or e["flag"] or NATION.get(e["code"], "")).lower()
         if not e["flag"]: sys.exit(f"no nationality for {e['code']} {e['driver']}: pass --flags {e['code']}=cc")
         if not e["team_key"]: sys.exit(f"unknown team {e['team']!r} for {e['code']}")
+    times = a.times in ("on", "only") or (a.times == "auto" and s == "race")
+    if times and s != "race":
+        print(f"WARNING: the times card is race only; no times card for {label}", file=sys.stderr); times = False
+    if a.times == "only" and not times: sys.exit("--times only needs --session race")
+    segs = {}
     if not a.no_tyres:
+        try:
+            segs, last = fetch_stints(a.season, ev, s, kind)
+            for e in rows:
+                e["stints"] = segs.get(e["number"], []); e["stint_total"] = last
+            miss = [e["code"] for e in rows if not e["stints"]]
+            print(f"stints {len(rows) - len(miss)}/{len(rows)} from OpenF1" + (f"; no strip for {', '.join(miss)}" if miss else ""), file=sys.stderr)
+        except Exception as x:
+            print(f"WARNING: tyre stints unavailable ({x}); rendering without stint strips", file=sys.stderr)
         try:
             ty = fetch_tyres(a.season, ev, s, rows, kind)
             for e in rows: e["tyre"] = ty.get(e["number"], "")
@@ -711,7 +847,11 @@ def main():
         if BANNED.search(t): sys.exit(f"banned character or URL in text: {t!r}")
     slug = a.slug or f"{a.race}_{a.season}_{s}_results"
     os.makedirs(a.out, exist_ok=True)
+    if a.times == "only":
+        run_times(a, ev, s, rows, slug, segs)
+        print(f"source {src}\n{len(rows)} rows in {time.time() - t0:.1f}s", file=sys.stderr); return
     if a.h2h != "only":
+        for e in rows: e["stints_text"] = " ".join(f"{c[0]}{a_}-{b_}" for c, a_, b_ in e.get("stints") or [])
         dp = free(os.path.join(a.out, f"{slug}_data.csv"))
         with open(dp, "w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore"); w.writeheader(); w.writerows(rows)
@@ -723,6 +863,10 @@ def main():
         except (Exception, SystemExit) as x:
             if a.h2h == "only": raise
             print(f"WARNING: head-to-head card not exported ({x}); results card is unaffected", file=sys.stderr)
+    if times:
+        try: run_times(a, ev, s, rows, slug, segs)
+        except (Exception, SystemExit) as x:
+            print(f"WARNING: fastest laps card not exported ({x}); the other cards are unaffected", file=sys.stderr)
     print(f"source {src}\nstat {stat}\n{len(rows)} rows in {time.time() - t0:.1f}s", file=sys.stderr)
 
 

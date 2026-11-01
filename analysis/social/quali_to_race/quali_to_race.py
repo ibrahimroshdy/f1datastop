@@ -11,6 +11,13 @@ Laid out natively for each portrait size (no padding), F1 DataStop logo top righ
 flag next to the race and circuit name.
 
   python3 quali_to_race.py --season 2025 --round 20 [--stat "..."] [--out DIR] [--slug NAME]
+  python3 quali_to_race.py --season 2026 --f1 mexico [--title "Mexico City Grand Prix 2026"] [--out DIR]
+
+--f1 SLUG takes every column from formula1.com instead of Jolpica: QUALI from the qualifying page,
+GRID from the OFFICIAL starting-grid page (penalties, back-of-grid starts and quali DQs applied),
+RACE from the race-result page. A quali DQ shows as "DQ" at the back of the quali column, a race DQ
+as "DQ", a non-classified finish as "DNF". The headline becomes the event title ("<Grand Prix name>
+<season>", or --title) with QUALIFYING TO RACE above it; the Jolpica mode is unchanged.
 
 Writes DIR/<slug>_x.png 1080x1350, _ig 1080x1440, _threads 1440x1920. Never overwrites:
 a clash gets _2, _3 ... Data: Jolpica qualifying + race results (same fields the site uses).
@@ -86,6 +93,7 @@ def build(race):
     # no Q1/Q2/Q3 time (formula1.com lists these as NC); only when the session has times at all
     timed = {r["Driver"]["driverId"]: any(r.get(k) for k in ("Q1", "Q2", "Q3")) for r in race.get("QualifyingResults", [])}
     nc = {d for d, t in timed.items() if not t} if any(timed.values()) else set()
+    if race.get("_rows"): return race["_rows"]     # already built by the formula1.com adapter
     rows, used = [], set()
     for r in race["Results"]:
         g = int(r["grid"]) if str(r.get("grid", "")).lstrip("-").isdigit() else 0
@@ -106,6 +114,51 @@ def build(race):
             quali_label="NC" if did in nc else str(qp if qp is not None else g),
             race_label=pt if pt.isdigit() else "DNF", dnf=not finished, status=st))
     return rows
+
+
+# ---------------------------------------------------------------- formula1.com adapter (--f1)
+SR_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "session_results")
+F1_TEAM = {"red bull racing": "red_bull", "red bull": "red_bull", "ferrari": "ferrari", "mercedes": "mercedes",
+    "mclaren": "mclaren", "aston martin": "aston_martin", "alpine": "alpine", "williams": "williams",
+    "racing bulls": "rb", "rb": "rb", "kick sauber": "sauber", "sauber": "sauber", "audi": "audi",
+    "haas f1 team": "haas", "haas": "haas", "cadillac": "cadillac"}
+NOT_RUN = ("DNF", "DNS", "DQ", "DSQ", "EX", "NC")
+
+
+def fetch_f1(season, slug, title=None):
+    """Race dict + rows from formula1.com (qualifying, official starting grid, race result) and the
+    Jolpica schedule for the race name and circuit. Exits if the grid or result is not published."""
+    sys.path.insert(0, os.path.abspath(SR_DIR)); import session_results as R
+    q, _ = R.fetch_f1(season, slug, "quali")
+    g, gurl = R.fetch_f1(season, slug, "starting_grid")
+    res, rurl = R.fetch_f1(season, slug, "race")
+    if not g: sys.exit(f"formula1.com has no starting grid yet: {gurl}")
+    if not res: sys.exit(f"formula1.com has no race result yet: {rurl}")
+    rnd = R.event_info(season, slug)["round"]
+    race = _get(f"{JOLPICA}/{season}/{rnd}.json")["MRData"]["RaceTable"]["Races"][0]
+    race["title"] = title or f"{race['raceName']} {season}"
+
+    def order(rows):                                 # numbered places first, then the rest in page order
+        num = sorted((int(r["pos"]), r["number"]) for r in rows if r["pos"].isdigit())
+        return {n: i + 1 for i, (_, n) in enumerate(num + [(0, r["number"]) for r in rows if not r["pos"].isdigit()])}
+    qo, go, ro = order(q), order(g), order(res)
+    qpos = {r["number"]: r["pos"].upper() for r in q}
+    nxt = max(list(go.values()) + [len(res)]) + 1
+    rows = []
+    for r in res:
+        n = r["number"]; p = r["pos"].upper(); ret = r.get("Time / Retired", "").upper()
+        team = F1_TEAM.get(r["team"].lower())
+        if not team: print(f"WARNING unknown team {r['team']!r} for {r['code']}, grey node", file=sys.stderr); team = "default"
+        gs = go.get(n)
+        if gs is None: gs = nxt; nxt += 1           # not on the published grid (pit lane): behind the last slot
+        qs = qo.get(n, gs); ql = qpos.get(n, "")
+        ql = "DQ" if ql in ("DQ", "DSQ", "EX") else ql if ql.isdigit() else ("NC" if ql else str(gs))
+        rl = p if p.isdigit() else "DQ" if p in ("DQ", "DSQ", "EX") else "DNF"
+        rows.append(dict(code=r["code"] or r["driver"].split()[-1][:3].upper(), family=r["driver"].split()[-1],
+            team=team, quali=qs, has_quali=n in qo, grid=gs, race=ro[n], quali_label=ql, race_label=rl,
+            dnf=not p.isdigit() or ret in NOT_RUN, status=ret or p))
+    race["_rows"] = rows
+    return race
 
 
 def ordinal(n): return f"{n}{'th' if 11 <= n % 100 <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
@@ -166,11 +219,14 @@ def render(race, rows, W, H, path, stat):
         sys.exit(f"no flag for {race['Circuit']['Location']['country']} in {T.FL}")
     fh = int(40 * s); fl = T.flag(cc, fh); y = 78 * s
     img.alpha_composite(fl, (int(M), int(y - fh / 2)))
-    fk = font(MONO, 25 * s, 600)
-    tracked(d, (M + fl.width + 18 * s, y), f"{race['season']} {race['raceName'].upper()}", fk, INK, 2.2 * s)
+    fk = font(MONO, 25 * s, 600); title = race.get("title")
+    head = "QUALIFYING TO RACE" if title else f"{race['season']} {race['raceName'].upper()}"
+    tracked(d, (M + fl.width + 18 * s, y), head, fk, INK, 2.2 * s)
     y = 150 * s
-    ft = font(SANS, 84 * s, 800)
-    d.text((M, y), "Qualifying to Race", font=ft, fill=INK, anchor="lm")
+    title = title or "Qualifying to Race"; tsz = 84
+    while tsz > 40 and d.textlength(title, font=font(SANS, tsz * s, 800)) > W * SS - 2 * M: tsz -= 2
+    ft = font(SANS, tsz * s, 800)
+    d.text((M, y), title, font=ft, fill=INK, anchor="lm")
     y += 72 * s
     fc = font(SANS, 30 * s, 500)
     d.text((M, y), race["Circuit"]["circuitName"], font=fc, fill=MUTE, anchor="lm")
@@ -258,7 +314,7 @@ def render_all(race, out, slug, stat=None, sizes=None):
     rows = build(race)
     if not rows: return []
     stat = stat or auto_stat(rows)
-    for t in (stat, race["raceName"], race["Circuit"]["circuitName"]):
+    for t in (stat, race["raceName"], race["Circuit"]["circuitName"], race.get("title", "")):
         if BANNED.search(t): sys.exit(f"banned character or URL in text: {t!r}")
     os.makedirs(out, exist_ok=True); done = []
     for k, (W, H) in SIZES.items():
@@ -269,9 +325,16 @@ def render_all(race, out, slug, stat=None, sizes=None):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--season", type=int, required=True); ap.add_argument("--round", type=int, required=True)
+    ap.add_argument("--season", type=int, required=True); ap.add_argument("--round", type=int)
+    ap.add_argument("--f1", metavar="SLUG", help="formula1.com race slug (e.g. mexico): official grid + result")
+    ap.add_argument("--title", help="headline in --f1 mode (default '<Grand Prix name> <season>')")
     ap.add_argument("--stat"); ap.add_argument("--out", default="."); ap.add_argument("--slug")
     a = ap.parse_args()
+    if a.f1:
+        race = fetch_f1(a.season, a.f1, a.title)
+        for p in render_all(race, a.out, a.slug or f"quali_to_race_{a.season}_{a.f1}", a.stat): print(p)
+        return
+    if a.round is None: ap.error("--round is required without --f1")
     race = fetch(a.season, a.round)
     if not race: sys.exit(f"no race results for {a.season} round {a.round}")
     for p in render_all(race, a.out, a.slug or f"quali_to_race_{a.season}_{a.round:02d}", a.stat): print(p)
