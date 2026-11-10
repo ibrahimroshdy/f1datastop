@@ -13,6 +13,7 @@ TYRE = {"S": ("Soft", "#DA291C"), "M": ("Medium", "#FFD12E"), "H": ("Hard", "#F0
 RUBBER = "#16161A"
 
 FLAGS = {
+    "IT": '<rect width="8" height="18" fill="#009246"/><rect x="8" width="8" height="18" fill="#fff"/><rect x="16" width="8" height="18" fill="#CE2B37"/>',
     "US": ('<rect width="24" height="18" fill="#B22234"/>'
            + "".join(f'<rect y="{18 / 13 * i:.2f}" width="24" height="{18 / 13:.2f}" fill="#fff"/>' for i in range(1, 13, 2))
            + '<rect width="10" height="9.7" fill="#3C3B6E"/>'
@@ -81,3 +82,9 @@ def tyres_html():
                     f'<span class="strip" role="img" aria-label="{who}: {words} laps">{bar}</span><small>{words[0].upper() + words[1:]} laps</small></li>')
     key = "".join(f'<span class="tk">{tyre(c, 24)}{TYRE[c][0]}</span>' for c in TYRE)
     return (f'<h4>Tyres, Las Vegas</h4><div class="tkey">{key}</div><ul class="stints">{"".join(rows)}</ul>')
+
+
+def flag_fill(code):
+    """The flag stretched to fill a livery stripe (slice, so it always covers)."""
+    return (f'<svg class="lv-flag" viewBox="0 0 24 18" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'
+            f'{FLAGS[code]}</svg>')

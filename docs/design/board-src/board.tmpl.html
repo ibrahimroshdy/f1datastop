@@ -62,8 +62,12 @@ h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-top:56px}
 .card{background:var(--card);border-radius:var(--rc);padding:16px;box-shadow:0 0 0 1px var(--line),0 8px 24px rgba(0,0,0,.12);position:relative;overflow:hidden}
 .t-dark .card{box-shadow:0 0 0 1px var(--line),0 10px 28px rgba(0,0,0,.45)}
 .c-sheet .card{box-shadow:0 0 0 1px var(--line)}
-.c-livery .card:not(.full)::before{content:"";position:absolute;right:-30px;top:-14px;width:120px;height:26px;background:var(--mark);transform:rotate(-24deg);opacity:.9}
-.c-livery .card:not(.full)::after{content:"";position:absolute;right:-30px;top:16px;width:120px;height:8px;background:var(--mark);transform:rotate(-24deg);opacity:.45}
+.livery{position:absolute;right:-40px;top:-6px;width:170px;height:58px;transform:rotate(-24deg);pointer-events:none}
+.lv-band{position:absolute;left:0;right:0;top:0;height:32px;overflow:hidden;display:flex;align-items:center;justify-content:flex-start;padding-left:34px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.lv-flag{position:absolute;inset:0;width:100%;height:100%}
+.lv-n{position:relative;font:800 italic 24px/1 var(--display);letter-spacing:.02em;white-space:nowrap}
+.lv-trail{position:absolute;left:0;right:0;top:38px;height:7px;opacity:.5}
+.c-flood .card.lead .race-top,.c-flood .card.lead h4{padding-right:96px}
 .card h4,.card caption{font-family:var(--display);text-transform:var(--tt);color:var(--heading);font-weight:700;letter-spacing:-.005em}
 .c-sheet .card h4,.c-sheet .card caption{font-weight:600}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -77,7 +81,9 @@ h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-top:56px}
 .btn.q{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
 /* Race card */
 .race h4{font-size:26px;margin:10px 0 2px;line-height:1.05}
-.c-livery .race h4{font-size:21px}
+.tdrv{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.tdrv .who{flex:1}.tdrv .who b{color:var(--heading);font-weight:600}.tdrv .who small{color:var(--ink3);font-size:13px}.tdrv>b{font-size:18px}
+.team h4{font-size:26px;margin:10px 0 2px;line-height:1.05}.team .where{margin:0 0 8px}
 .race .where{margin:0;color:var(--ink2);font-size:14px}
 .race-top{padding-right:72px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .rnd{font:600 13px var(--mono);color:var(--ink3)}
@@ -164,39 +170,44 @@ h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-top:56px}
 .dec th{white-space:nowrap;font-family:var(--code)}
 .dec td code{overflow-wrap:anywhere}
 @media (max-width:600px){.dec tr,.dec th,.dec td{display:block}.dec th{border-bottom:0;padding-bottom:0}}
+.why{margin:8px 0 0;padding-left:20px}.why li{margin:6px 0}
+.flowt thead th{font:600 12px var(--code);color:var(--ink-2)}
+.nodes{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:12px}
+.node{border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.node b{font-size:16px}.node p{margin:4px 0 0;color:var(--ink-2);font-size:14px}
 .ask{background:var(--hl);color:var(--on-hl);border-radius:20px;padding:20px;margin-top:16px}
 .ask ol{margin:8px 0 0;padding-left:20px}.ask li{margin:6px 0}
 </style>
 <div class="wrap">
-<p class="kicker">F1 DataStop design release, round 3, 10 Nov 2026</p>
-<h1>Red and carbon, three ways</h1>
-<p class="lede">Round 3. F1 DataStop keeps its own red and carbon: every direction below wears the same colours and differs only in type and material. Races lead with their Grand Prix and flag, tyres have one icon, and the logo is today's rear wing, redrawn. What comes over from Mondar is the app shell and its details (floating bars, dock, sheets, motion), shown on the next board. Figures are shaped like the real season; session times are sample data. Team colours, purple for fastest and tyre colours are the real ones and never change.</p>
-<nav class="toc" aria-label="Sections"><a href="#colours">The colours</a><a href="#pick">The three</a>@@TOC@@<a href="#tyres">Tyres</a><a href="#logos">Logo</a><a href="#open">Your picks</a></nav>
+<p class="kicker">F1 DataStop design release, round 4, 10 Nov 2026</p>
+<h1>Floodlight Livery, in red and carbon</h1>
+<p class="lede">Round 4: your mix. Floodlight's type and light, Livery's stripe, F1 DataStop red and carbon, today's rear-wing logo made better. Below it, a review of how the app's pages connect, and the structure that fixes the extra clicks. Figures are shaped like the real season; session times are sample data. Team colours, purple for fastest and tyre colours are the real ones and never change.</p>
+<nav class="toc" aria-label="Sections"><a href="#colours">The colours</a>@@TOC@@<a href="#flow">How it connects</a><a href="#tyres">Tyres</a><a href="#logos">Logo</a><a href="#open">Your picks</a></nav>
 
 <h2 id="colours">The colours: F1 DataStop red on carbon</h2>
 <p class="lede">Today's Deep Carbon ladder and one red, #E10600, in both themes, with white words on it. The change from today: secondary text is brighter (today's 64% grey on carbon is the grey on black), titles carry a faint red tint, and there is one red, not three.</p>
 @@IDENTITY@@
 
-<h2 id="pick">The three</h2>
-<div class="pick">@@PICK@@</div>
-
 @@CONCEPTS@@
+
+<h2 id="flow">How it connects</h2>
+<p class="lede">You said the app makes you click a lot and things feel displaced. This is why, page by page, and the structure that fixes it. The full review is <code>docs/design/audits/flows-2026-11-10.md</code>.</p>
+@@FLOW@@
 
 <h2 id="tyres">Grands Prix and tyres</h2>
 <p class="lede">A race is its Grand Prix and its flag, never "R21". Every list, card and picker leads with the flag and the Grand Prix name; the specimens above show the race card and a calendar list that way. Tyres are one Pirelli-style icon at every size: the black tyre, the compound's band near the rim, the letter in the band's colour, in one colour set shared by the app, the charts and the social cards. A stint is one strip summing to the race, with its words beside it.</p>
 <div class="panel">@@TYRES@@</div>
 
 <h2 id="logos">The logo: today's rear wing, redrawn</h2>
-<p class="lede">The mark stays: the rear wing of an F1 car seen from behind, on the red disc. Today's drawing is shown first; the four after it redraw it flat, with parts thick enough to hold at 16 px. Each at 16, 32 and 64 px, as the 180 px home-screen icon and as the lockup. The switch changes the lockup's typeface to each direction's.</p>
-<div class="switch" role="group" aria-label="Typeface for the lockup">@@SWITCH@@</div>
+<p class="lede">The mark stays: the rear wing of an F1 car seen from behind, on the red disc. Today's drawing is shown first; the four after it redraw it flat, with parts thick enough to hold at 16 px. Each at 16, 32 and 64 px, as the 180 px home-screen icon and as the lockup.</p>
 <div id="logo-set" class="c-flood">@@LOGOS@@</div>
 
-<h2 id="open">Your picks, and one question</h2>
+<h2 id="open">Your picks</h2>
 <div class="ask">
 <p><b>Nothing is built until you choose.</b> The answers go into <code>docs/design/decisions.md</code>.</p>
 <ol>
-<li>Direction: A Floodlight, B Classification or C Livery, all now in red and carbon, or a mix (say which parts).</li>
 <li>Logo: Refined, Bold, Open flap or Square, or keep today's drawing.</li>
+<li>The structure in "How it connects", D19 to D24: OK as proposed, or what to change.</li>
 <li>The Cockpit theme (D9): it is the glass one. Keep it as a third, solid theme in the new materials, fold it into night, or drop it?</li>
 <li>Type: keep the direction's pairing, or bring it to a specimen of three like Mondar's.</li>
 </ol>

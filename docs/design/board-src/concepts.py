@@ -22,33 +22,17 @@ PALETTE = {
                   ink3="#5D5D69", act="#E10600", on_act="#FFFFFF", mark="#E10600", heading="#4A0603", figure="#0A0A0F"),
 }
 
+# Round 4 (owner, 2026-11-10): one direction, a mix of A Floodlight and C Livery, with
+# Floodlight's type. Rounds 1 to 3 (Floodlight, Classification, Livery) are in git history.
 CONCEPTS = [
     {
-        "key": "flood", "letter": "A", "name": "Floodlight",
-        "idea": "A night race: carbon under white light from above, the red as the one signal.",
+        "key": "flood", "letter": "", "name": "Floodlight Livery",
+        "idea": "A night race in F1 DataStop red and carbon, lit from above, with a livery stripe on the lead card of each page that takes the team's colour on its own pages.",
         "display": "'Saira Condensed'", "sans": "'Saira'", "mono": "'JetBrains Mono'",
-        "type_note": "Saira Condensed for titles, set in capitals like trackside signage. Saira for the UI. JetBrains Mono for every time and gap.",
-        "material": "Solid raised surfaces with a soft light falling from the top of the page. Cards 18 px round, pills everywhere.",
-        "risk": "Capitals everywhere get loud; they stay on titles only.",
-        "upper": True, "radius": 18,
-    },
-    {
-        "key": "sheet", "letter": "B", "name": "Classification",
-        "idea": "The official timing sheet, set like a race-weekend magazine: hairline rules, serif titles, red ink.",
-        "display": "'Newsreader'", "sans": "'Geist'", "mono": "'DM Mono'",
-        "type_note": "Newsreader, a serif, for titles and driver names. Geist for the UI. DM Mono for the timing columns, like a printed classification.",
-        "material": "Ruled hairlines carry the structure, cards are 14 px round, flat with a 1 px line instead of a shadow.",
-        "risk": "The quietest of the three. Without care it can feel like a document rather than an app; the serif must stay on titles only.",
-        "upper": False, "radius": 14,
-    },
-    {
-        "key": "livery", "letter": "C", "name": "Livery",
-        "idea": "Every card wears a red livery stripe, and on a team or driver page the stripe takes the team's colour.",
-        "display": "'Unbounded'", "sans": "'Geist'", "mono": "'Geist Mono'",
-        "type_note": "Unbounded, wide and heavy like a car's number, for titles. Geist for the UI. Geist Mono for timing, as today.",
-        "material": "A diagonal livery stripe crosses the top of a card. Cards 22 px round, chunky pills.",
-        "risk": "The stripe is decoration; it stays on the top cards of a page, not on every card in a list.",
-        "upper": False, "radius": 22,
+        "type_note": "Floodlight's type: Saira Condensed for titles, in capitals like trackside signage. Saira for the UI. JetBrains Mono for every time, gap and points figure.",
+        "material": "Floodlight's solid raised surfaces with a soft light falling from the top of the page, and Livery's diagonal stripe across the lead card only: red on most pages, the team's colour on a team or driver page. Cards 20 px round, pills everywhere.",
+        "risk": "The stripe is decoration. It stays on the one lead card of a page, never on list rows, and never carries data meaning.",
+        "upper": True, "radius": 20,
     },
 ]
 for _c in CONCEPTS:
@@ -190,3 +174,38 @@ def racecard_html():
             '<div class="count"><span>Starts in</span><b class="num fig">9d 03:57:11</b></div>'
             '<div class="race-foot">' + "".join(tyre(x, 24) for x in "SMH")
             + '<span class="note">Soft C5, medium C4, hard C3</span></div></article>')
+
+
+def teamcard_html():
+    """The lead card of a team page: the livery stripe in the team's own colour."""
+    rows = "".join(f'<div class="tdrv"><span class="tm" style="background:{TEAM["mercedes"]}"></span><span class="who"><b>{n}</b>'
+                   f'<small>{w} wins</small></span><b class="num fig">{p}</b></div>'
+                   for n, w, p in (("Andrea Kimi Antonelli", 9, 390), ("George Russell", 3, 262)))
+    return (f'<article class="team" style="--stripe:{TEAM["mercedes"]}"><div class="race-top"><span class="live">P1 constructors</span></div>'
+            '<h4>Mercedes</h4><p class="where">652 points, 12 wins, 142 ahead of Ferrari</p>' + rows + "</article>")
+
+
+def drivercard_html():
+    """The lead card of a driver page: flag, name, team, and the stripe in the team's colour."""
+    from race_bits import flag
+    return ('<article class="team"><div class="race-top">' + flag("IT", 21, "Italy") + '<span class="live">P1 drivers</span></div>'
+            '<h4>Andrea Kimi Antonelli</h4><p class="where">Mercedes, car 12</p>'
+            '<div class="tdrv"><span class="who"><b>390 points</b><small>111 ahead of Verstappen</small></span><b class="num fig">9 wins</b></div>'
+            '<div class="tdrv"><span class="who"><b>Last race</b><small>São Paulo Grand Prix</small></span><b class="num fig">P1</b></div></article>')
+
+
+def livery(colour=None, number=None, flag_code=None, label=None):
+    """The livery stripe across a lead card's corner. Filled with a team or driver colour
+    (with the car number on it, in the ink that reads on that colour) or with a flag."""
+    from race_bits import flag_fill
+    if flag_code:
+        body, bg, ink = flag_fill(flag_code), "transparent", "#FFFFFF"
+    else:
+        bg = colour or "var(--mark)"
+        ink = max(("#FFFFFF", "#0A0A0F"), key=lambda x: contrast(x, colour)) if colour else "#FFFFFF"
+        body = ""
+    num = f'<span class="lv-n" style="color:{ink}">{number}</span>' if number else ""
+    a = f'role="img" aria-label="{label}"' if label else 'aria-hidden="true"'
+    trail = colour or "var(--mark)"
+    return (f'<span class="livery" {a}><span class="lv-band" style="background:{bg}">{body}{num}</span>'
+            f'<span class="lv-trail" style="background:{trail}"></span></span>')

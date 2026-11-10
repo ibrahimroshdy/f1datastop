@@ -11,9 +11,10 @@ import sys
 
 here = pathlib.Path(__file__).parent
 sys.path.insert(0, str(here))
-from concepts import CONCEPTS, contrast_table, css, lapchart_svg, racecard_html, standings_html, swatches  # noqa: E402
+from concepts import CONCEPTS, drivercard_html, livery, teamcard_html, contrast_table, css, lapchart_svg, racecard_html, standings_html, swatches  # noqa: E402
 from race_bits import TYRE, calendar_html, tyre, tyres_html  # noqa: E402
 from wing import wing_round  # noqa: E402
+from flow import DECISIONS as FLOW_D, flow_html  # noqa: E402
 
 
 def concept_section(c):
@@ -21,13 +22,14 @@ def concept_section(c):
     specs = []
     for t, label in (("dark", "Night"), ("light", "Day")):
         specs.append(
-            f'<div class="spec c-{k} t-{t}"><p class="spec-cap">{c["letter"]}, {label}</p>'
+            f'<div class="spec c-{k} t-{t}"><p class="spec-cap">{label}</p>'
             '<div class="bar"><span class="seg"><span class="on">Drivers</span><span>Constructors</span></span>'
             '<span><button class="btn q" type="button">Season 2026</button> <button class="btn" type="button">Open weekend</button></span></div>'
-            f'<div class="spec-grid"><div class="card">{racecard_html()}</div><div class="card">{standings_html()}</div>'
+            f'<div class="spec-grid"><div class="card lead">{livery(flag_code="US", label="United States flag")}{racecard_html()}</div><div class="card">{standings_html()}</div>'
             f'<div class="card">{calendar_html()}</div><div class="card">{tyres_html()}</div>'
+            f'<div class="card lead">{livery("#27F4D2", "12 63", label="Mercedes, cars 12 and 63")}{teamcard_html()}</div><div class="card lead">{livery("#27F4D2", "12", label="Car 12, Mercedes")}{drivercard_html()}</div>'
             f'<div class="card full"><div class="chart-h"><h4>Lap times, Las Vegas</h4><small>Laps 1 to 20, sample data. Pit stops, laps 11 to 14, run off the top.</small></div>{lapchart_svg(t)}</div></div></div>')
-    return (f'<h2 id="c-{k}">{c["letter"]}, {c["name"]}</h2><p class="lede">{c["idea"]}</p>'
+    return (f'<h2 id="c-{k}">The direction: {c["name"]}</h2><p class="lede">{c["idea"]}</p>'
             f'<div class="meta"><div><b>Materials</b>{c["material"]}</div><div><b>Type</b>{c["type_note"]}</div></div>'
             f'<div class="type c-{k} t-dark"><div class="d">Las Vegas Grand Prix</div>'
             '<div class="s">Antonelli leads by 111 points with three rounds left. Verstappen needs 112 to stay in it.</div>'
@@ -67,13 +69,10 @@ def decisions():
 
 src = (here / "board.tmpl.html").read_text()
 parts = {
-    "TOC": "".join(f'<a href="#c-{c["key"]}">{c["letter"]}, {c["name"]}</a>' for c in CONCEPTS),
-    "PICK": "".join(f'<a class="c-{c["key"]} t-dark" href="#c-{c["key"]}"><span class="L">{c["letter"]}</span><h3>{c["name"]}</h3><p>{c["idea"]}</p></a>'
-                    for c in CONCEPTS),
+    "TOC": '<a href="#c-flood">The direction</a>',
     "IDENTITY": identity(),
     "CONCEPTS": "".join(concept_section(c) for c in CONCEPTS),
-    "SWITCH": "".join(f'<button type="button" data-k="{c["key"]}" aria-pressed="{"true" if i == 0 else "false"}">{c["letter"]}, {c["name"]}</button>'
-                      for i, c in enumerate(CONCEPTS)),
+    "FLOW": flow_html(),
     "LOGOS": wing_round(),
     "TYRES": tyre_ladder(),
     "DECISIONS": decisions(),
