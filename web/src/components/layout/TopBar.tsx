@@ -1,95 +1,59 @@
-import { Button } from "@/components/ui/button";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 import f1Logo from "@/assets/f1-logo.svg";
-import { Link } from "react-router-dom";
 import NextRaceInfo from "./nextRace/NextRaceInfo";
 import SocialLinks from "./social/SocialLinks";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useTheme } from "@/context/ThemeContext";
-import { cn } from "@/lib/utils";
+import { ThemeSelector } from "@/components/theme/ThemeToggle";
+import { SeasonPill } from "./SeasonPill";
+import { isDetailRoute, parentRoute, routeTitle } from "@/config/navigation";
 
-interface TopBarProps {
-  sidebarOpen: boolean;
-  setSidebarOpen: (open: boolean) => void;
-}
+/**
+ * The top of the shell (docs/design/decisions.md D7), after Mondar PR #41.
+ * Phone: a solid floating header pill, 8 px under the status bar, with the logo (or a back
+ * circle on a detail page) and the section's name. Tablet and desktop: a solid floating bar
+ * beside the sidebar with the section's name, the next session, the links and the theme.
+ * The page's own h1 stays in the page; this names the section, so it is not a heading.
+ */
+const TopBar = () => {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const title = routeTitle(pathname);
+  const detail = isDetailRoute(pathname);
 
-const TopBar = ({
-  sidebarOpen,
-  setSidebarOpen
-}: TopBarProps) => {
-  const isMobile = useIsMobile();
-  const { isGlass } = useTheme();
+  const goBack = () => {
+    // React Router keeps an index in history.state; 0 means this is the first page of the visit.
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (idx > 0) navigate(-1);
+    else navigate(parentRoute(pathname), { viewTransition: true });
+  };
+
+  const circle =
+    "press grid h-10 w-10 shrink-0 place-items-center rounded-full bg-card ring-1 ring-border " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   return (
-    <div
-      className={cn(
-        "safe-top nav-stable sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 px-3 sm:px-4 lg:px-6",
-        "transition-all duration-200",
-        isGlass 
-          ? "glass-topbar" 
-          : "border-b bg-background"
+    <header className="shell-top">
+      {detail ? (
+        <button type="button" onClick={goBack} className={circle} aria-label="Back">
+          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+        </button>
+      ) : (
+        <Link to="/" viewTransition className="press shrink-0 md:hidden" aria-label="F1 DataStop, home">
+          <img src={f1Logo} alt="" className="h-9 w-9" />
+        </Link>
       )}
-    >
-      {/* Left section */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Toggle button - show on all screen sizes */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-8 w-8 rounded-md transition-all duration-200",
-            isGlass && "hover:bg-white/5"
-          )}
-          onClick={() => setSidebarOpen(!sidebarOpen)} 
-          aria-label="Toggle sidebar"
-        >
-          {sidebarOpen ? (
-            <PanelLeftClose className="h-4 w-4" />
-          ) : (
-            <PanelLeftOpen className="h-4 w-4" />
-          )}
-        </Button>
-        
-        {/* Logo - shown on mobile when sidebar is closed */}
-        {isMobile && !sidebarOpen && (
-          <Link 
-            to="/" 
-            className="flex items-center gap-2 group"
-          >
-            <div className={cn(
-              "p-1 rounded-md transition-all duration-200",
-              isGlass 
-                ? "glass group-hover:shadow-glow" 
-                : "bg-primary/10 group-hover:bg-primary/20"
-            )}>
-              <img src={f1Logo} alt="F1 DataStop" className="w-5 h-5" />
-            </div>
-            <span className="font-bold tracking-tight text-sm hidden xs:inline">
-              F1 DataStop
-            </span>
-          </Link>
-        )}
-
-        {/* Divider */}
-        {!isMobile && (
-          <div className={cn(
-            "h-5 w-px",
-            isGlass ? "bg-white/10" : "bg-border"
-          )} />
-        )}
-
-        {/* Next race info */}
+      <p className="shell-title min-w-0 flex-1 md:flex-none">{title}</p>
+      <div className="hidden min-w-0 md:flex">
         <NextRaceInfo />
       </div>
-      
-      {/* Right section */}
-      <div className="flex items-center gap-1 sm:gap-1.5">
-        {/* Social links - hidden on small mobile */}
-        <div className="hidden sm:flex items-center gap-0.5">
-          <SocialLinks />
-        </div>
+      <div className="ml-auto hidden items-center gap-1 lg:flex">
+        <SocialLinks />
       </div>
-    </div>
+      <SeasonPill className="ml-auto lg:ml-0" />
+      <div className="hidden md:block">
+        <ThemeSelector />
+      </div>
+    </header>
   );
 };
 

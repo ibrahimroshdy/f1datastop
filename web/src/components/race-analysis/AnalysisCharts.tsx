@@ -36,10 +36,10 @@ const FORMATS: Record<
   ChartFormat,
   { label: string; grid: string; aspect: string }
 > = {
-  landscape: { label: "Landscape · 16:9", grid: "grid-cols-1 lg:grid-cols-2", aspect: "16 / 9" },
-  twitter: { label: "Twitter · 16:9", grid: "grid-cols-1 lg:grid-cols-2", aspect: "16 / 9" },
-  instagram: { label: "Instagram · 1:1", grid: "grid-cols-2 lg:grid-cols-3", aspect: "1 / 1" },
-  story: { label: "Story · 9:16", grid: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4", aspect: "9 / 16" },
+  landscape: { label: "Landscape, 16:9", grid: "grid-cols-1 lg:grid-cols-2", aspect: "16 / 9" },
+  twitter: { label: "Twitter, 16:9", grid: "grid-cols-1 lg:grid-cols-2", aspect: "16 / 9" },
+  instagram: { label: "Instagram, 1:1", grid: "grid-cols-2 lg:grid-cols-3", aspect: "1 / 1" },
+  story: { label: "Story, 9:16", grid: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4", aspect: "9 / 16" },
 };
 const FORMAT_ORDER: ChartFormat[] = ["landscape", "twitter", "instagram", "story"];
 
@@ -190,7 +190,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
     <div className="flex flex-col gap-3 px-4 pb-4">
       {/* Controls: social format + download all */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="instrument-label text-muted-foreground">
+        <span className="text-xs font-semibold text-muted-foreground">
           {charts.length} chart{charts.length === 1 ? "" : "s"}
         </span>
         <div className="flex flex-wrap items-center gap-2">
@@ -235,7 +235,7 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
                     : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                {FORMATS[f].label.split("·")[0].trim()}
+                {FORMATS[f].label.split(",")[0].trim()}
               </button>
             ))}
           </div>
@@ -274,9 +274,9 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
                 className="h-10 w-16 shrink-0 rounded border border-border/60 object-cover"
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{c.title}</p>
+                <p className="text-sm font-medium">{c.title}</p>
                 {c.description ? (
-                  <p className="truncate text-xs text-muted-foreground">{c.description}</p>
+                  <p className="text-xs text-muted-foreground">{c.description}</p>
                 ) : null}
               </div>
               <Button
@@ -298,9 +298,9 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
                 <ChartImage src={c.thumb_url ?? c.public_url} alt={c.title} aspect={FORMATS[format].aspect} />
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{c.title}</p>
+                    <p className="text-sm font-semibold">{c.title}</p>
                     {c.description ? (
-                      <p className="truncate text-xs text-muted-foreground">{c.description}</p>
+                      <p className="text-xs text-muted-foreground">{c.description}</p>
                     ) : null}
                   </div>
                   <Button
@@ -337,10 +337,10 @@ export default function AnalysisCharts({ year, round, session = "R" }: AnalysisC
 type DlPhase = "idle" | "queued" | "processing" | "done" | "error";
 
 const SIZE_HINT: Record<ChartFormat, string> = {
-  landscape: "2560 × 1440 · ready now",
-  twitter: "2560 × 1440 · X/Twitter card",
-  instagram: "2160 × 2700 · 4:5 post",
-  story: "2160 × 3840 · 9:16 story",
+  landscape: "2560 × 1440, ready now",
+  twitter: "2560 × 1440, X/Twitter card",
+  instagram: "2160 × 2700, 4:5 post",
+  story: "2160 × 3840, 9:16 story",
 };
 
 function ChartDownloadDialog({
@@ -410,7 +410,7 @@ function ChartDownloadDialog({
     <Dialog open={!!chart} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Download · {chart.title}</DialogTitle>
+          <DialogTitle>Download {chart.title}</DialogTitle>
           <DialogDescription>
             Choose a size. Landscape is stored and downloads instantly; the other sizes are
             rendered for you on request and take a few minutes.
@@ -431,7 +431,7 @@ function ChartDownloadDialog({
                 busy && "opacity-60",
               )}
             >
-              <span className="font-medium">{FORMATS[f].label.split("·")[0].trim()}</span>
+              <span className="font-medium">{FORMATS[f].label.split(",")[0].trim()}</span>
               <span className="text-xs text-muted-foreground">{SIZE_HINT[f]}</span>
             </button>
           ))}

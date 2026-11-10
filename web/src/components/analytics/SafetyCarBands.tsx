@@ -8,7 +8,7 @@ export function SafetyLegend({ periods, className }: { periods: SafetyPeriod[]; 
   const kinds = Array.from(new Set(periods.map((p) => p.kind)));
   const seen: Record<SafetyPeriodKind, string> = { SC: "Safety Car", VSC: "Virtual SC", RED: "Red Flag" };
   return (
-    <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted-foreground", className)}>
+    <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground", className)}>
       {kinds.map((k) => (
         <span key={k} className="inline-flex items-center gap-1.5">
           <span

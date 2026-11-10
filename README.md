@@ -19,17 +19,17 @@
   </picture>
 </p>
 
-**Live site:** https://www.f1datastop.com · **Documentation:** https://docs.f1datastop.com
+**Live site:** https://www.f1datastop.com, **documentation:** https://docs.f1datastop.com
 
 Every page works without an account. All data appears after a session ends; there is no live timing.
 
 ## Features
 
-- **Dashboard**: standings, last race, countdown to the next race, season overview
-- **Analytics**: lap times, position changes, qualifying, pit stops, year comparisons
-- **Race calendar**: list, grid and 3D globe views
-- **Deep Dive**: telemetry charts and race replays
-- **Drivers and constructors**: profiles with team colours
+- **Home**: the next Grand Prix with every session in your time, the last race with its podium, both standings and the qualifying, grid and race Sankey
+- **Grand Prix pages**: results, lap times, positions, qualifying, pit stops, telemetry, replay, weather and team radio for every race, with a quick look from anywhere
+- **Pit Wall**: any lap of any driver, side by side
+- **Races**: every Grand Prix of a season, searchable, in list and grid views
+- **Drivers and teams**: profiles, season results and head to head, every name a link
 - **Embeddable widgets**: standings tables for your own site
 
 ## Quick start

@@ -1,7 +1,9 @@
 import React, { useMemo } from "react";
 import { useRaceQualifying, useQualifyingLaps } from "@/hooks/f1";
 import { getTeamColorById } from "@/constants/f1Colors";
-import { F1Skeleton, F1EmptyState, F1ErrorState } from "@/components/f1";
+import { F1Skeleton, F1EmptyState, F1ErrorState, TeamName } from "@/components/f1";
+import { DriverIdentity } from "@/components/f1/DriverIdentity";
+import { teamHref } from "@/lib/links";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,6 +26,8 @@ interface Row {
   code: string;
   firstName: string;
   lastName: string;
+  nationality?: string;
+  constructorId: string;
   team: string;
   teamColor: string;
   q1: string | null;
@@ -64,6 +68,8 @@ const QualifyingClassification: React.FC<QualifyingClassificationProps> = ({ yea
             `${r.Driver?.givenName?.[0] ?? ""}${r.Driver?.familyName?.slice(0, 2) ?? ""}`.toUpperCase(),
           firstName: r.Driver?.givenName ?? "",
           lastName: r.Driver?.familyName ?? "",
+          nationality: r.Driver?.nationality,
+          constructorId: r.Constructor?.constructorId ?? "",
           team: r.Constructor?.name ?? "Unknown",
           teamColor: getTeamColorById(constructorId),
           q1: r.Q1 ?? null,
@@ -149,7 +155,7 @@ const QualifyingClassification: React.FC<QualifyingClassificationProps> = ({ yea
   }
 
   const cell = "px-2 py-2.5 text-sm";
-  const headCell = "px-2 pb-2 text-left instrument-label whitespace-nowrap";
+  const headCell = "px-2 pb-2 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap";
 
   return (
     // The table is wider than a phone; it scrolls inside this box so the page body never does.
@@ -210,16 +216,24 @@ const QualifyingClassification: React.FC<QualifyingClassificationProps> = ({ yea
                 </td>
                 <td className={cn(cell, "timing text-muted-foreground")}>{row.number}</td>
                 <td className={cell}>
-                  <span className="font-medium text-foreground">
-                    <span className="hidden sm:inline">{row.firstName} </span>
-                    <span className="uppercase sm:normal-case">
-                      <span className="sm:hidden">{row.code}</span>
-                      <span className="hidden sm:inline">{row.lastName}</span>
-                    </span>
-                  </span>
-                  <span className="block text-xs text-muted-foreground sm:hidden">{row.team}</span>
+                  <DriverIdentity
+                    size={32}
+                    driverId={row.driverId}
+                    givenName={row.firstName}
+                    familyName={row.lastName || row.code}
+                    nationality={row.nationality}
+                    extra={
+                      row.constructorId ? (
+                        <span className="sm:hidden">
+                          <TeamName constructorId={row.constructorId} name={row.team} to={teamHref(row.constructorId)} size={14} />
+                        </span>
+                      ) : null
+                    }
+                  />
                 </td>
-                <td className={cn(cell, "hidden text-muted-foreground sm:table-cell")}>{row.team}</td>
+                <td className={cn(cell, "hidden text-muted-foreground sm:table-cell")}>
+                  {row.constructorId ? <TeamName constructorId={row.constructorId} name={row.team} to={teamHref(row.constructorId)} size={14} /> : row.team}
+                </td>
                 {SEGMENTS.map((seg) => {
                   const time = row[seg];
                   const isBest = time != null && time === bestBySegment[seg];

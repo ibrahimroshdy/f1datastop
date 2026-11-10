@@ -4,8 +4,9 @@ import { Timer, Flag, Zap, ArrowUpDown } from 'lucide-react';
 import { getTeamHexColor } from '@/components/standings/standingsUtils';
 import { getPitStops, getRaceResults } from '@/services/f1Service';
 import { cn } from '@/lib/utils';
-import TeamLogo from '@/components/common/TeamLogo';
-import { F1Badge, F1Card, F1Skeleton, F1EmptyState, F1ErrorState, PitIcon } from '@/components/f1';
+import { Link } from 'react-router-dom';
+import { F1Badge, F1Card, F1Skeleton, F1EmptyState, F1ErrorState, PitIcon, TeamName } from '@/components/f1';
+import { driverHref, teamHref } from '@/lib/links';
 import { useThemeVariant } from '@/hooks/useThemeVariant';
 import { ViewSwitcher } from '@/components/ui/view-switcher';
 
@@ -16,8 +17,12 @@ interface MuiPitStopTableProps {
 
 interface PitStopRow {
   id: string;
+  /** Surname, shown as a link to the driver's page. */
   driver: string;
+  driverId: string;
+  /** constructorId (colour, emblem and link). */
   team: string;
+  teamName: string;
   lap: number;
   /** null when the source has no duration (e.g. the car retired in the pit lane) */
   duration: number | null;
@@ -90,12 +95,13 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
         setCircuitName(resultsResponse.data.Circuit?.circuitName || resultsResponse.data.raceName || '');
 
         // Create driver info map
-        const driverInfo = new Map<string, { code: string; team: string }>(
+        const driverInfo = new Map<string, { name: string; team: string; teamName: string }>(
           resultsResponse.data.Results.map((result: ErgastResult) => [
             result.Driver.driverId,
             {
-              code: result.Driver.code || result.Driver.familyName.substring(0, 3).toUpperCase(),
-              team: result.Constructor?.name || result.Constructor?.constructorId || 'unknown',
+              name: result.Driver.familyName || result.Driver.code,
+              team: result.Constructor?.constructorId || result.Constructor?.name || 'unknown',
+              teamName: result.Constructor?.name || result.Constructor?.constructorId || 'Unknown',
             },
           ])
         );
@@ -111,8 +117,10 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
           const driver = driverInfo.get(stop.driverId);
           return {
             id: `${stop.driverId}-${stop.lap}-${index}`,
-            driver: driver?.code || stop.driverId.substring(0, 3).toUpperCase(),
+            driver: driver?.name || stop.driverId,
+            driverId: stop.driverId,
             team: driver?.team || 'unknown',
+            teamName: driver?.teamName || 'Unknown',
             lap: parseInt(stop.lap),
             duration: parseDuration(stop.duration),
             timeOfDay: stop.time,
@@ -138,12 +146,12 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
     if (pitStopData.length === 0) return [];
 
     // Get fastest stop per driver
-    const driverBestStops = new Map<string, { duration: number; team: string }>();
+    const driverBestStops = new Map<string, { duration: number; team: string; driverId: string }>();
     pitStopData.forEach(stop => {
       if (stop.duration === null) return;
       const existing = driverBestStops.get(stop.driver);
       if (!existing || stop.duration! < existing.duration) {
-        driverBestStops.set(stop.driver, { duration: stop.duration!, team: stop.team });
+        driverBestStops.set(stop.driver, { duration: stop.duration!, team: stop.team, driverId: stop.driverId });
       }
     });
 
@@ -153,15 +161,15 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
       .slice(0, 10);
 
     const minTime = sorted[0]?.[1].duration || 0;
-    const maxTime = sorted[sorted.length - 1]?.[1].duration || 0;
-    const range = maxTime - minTime;
 
     return sorted.map(([driver, data], index) => ({
       driver,
+      driverId: data.driverId,
       duration: data.duration,
       team: data.team,
       color: getTeamHexColor(data.team),
-      percentage: range > 0 ? ((data.duration - minTime) / range) * 100 : 100,
+      /** Seconds slower than the quickest stop, said in words instead of a bar. */
+      slower: data.duration - minTime,
       rank: index + 1,
     }));
   }, [pitStopData]);
@@ -187,7 +195,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
     return rows;
   }, [pitStopData, sortField, sortDir]);
 
-  const { min: fastestStop, max: maxDuration } = useMemo(
+  const { min: fastestStop } = useMemo(
     () => durationStats(pitStopData.map((d) => d.duration)),
     [pitStopData],
   );
@@ -258,8 +266,8 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
 
       {/* Top 10 fastest stops — leaderboard */}
       <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm" className="rounded-lg p-3">
-        <p className="instrument-label mb-2">
-          Top 10 Fastest Pit Stops
+        <p className="text-xs font-semibold text-muted-foreground mb-2">
+          Ten quickest stops
         </p>
         <div className="flex flex-col">
           {chartData.map((item, i) => (
@@ -276,22 +284,15 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
               >
                 {item.rank}
               </span>
-              {/* Driver code */}
-              <div className="flex w-10 items-center gap-1">
-                <span className="h-3 w-1 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="font-bold">{item.driver}</span>
-              </div>
-              {/* Bar */}
-              <div className="h-3 flex-1 overflow-hidden rounded bg-muted/40">
-                <div
-                  className="h-full rounded transition-all"
-                  style={{
-                    width: `${100 - item.percentage * 0.5}%`,
-                    backgroundColor: i === 0 ? 'hsl(var(--status-completed))' : item.color,
-                    opacity: i === 0 ? 1 : 0.8,
-                  }}
-                />
-              </div>
+              <span className="flex min-w-0 flex-1 items-center gap-2">
+                <span className="h-3 w-1 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                <Link to={driverHref(item.driverId)} viewTransition className="font-semibold text-heading hover:underline">
+                  {item.driver}
+                </Link>
+              </span>
+              <span className="text-muted-foreground">
+                {i === 0 ? 'Quickest' : `${item.slower.toFixed(3)} s slower`}
+              </span>
               {/* Time */}
               <span
                 className={cn(
@@ -308,7 +309,7 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
 
       {/* ── Mobile: sort control (desktop sorts via table headers) ─────────── */}
       <div className="mb-2 flex items-center gap-2 md:hidden">
-        <span className="instrument-label shrink-0 text-muted-foreground">Sort</span>
+        <span className="text-xs font-semibold shrink-0 text-muted-foreground">Sort</span>
         <ViewSwitcher
           stack
           compact
@@ -336,16 +337,14 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
             >
               <span className="h-8 w-1 shrink-0 rounded-full" style={{ backgroundColor: teamColor }} />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold">{row.driver}</span>
-                  <span className="wrap-break-word text-xs capitalize text-muted-foreground">
-                    {row.team.replace(/_/g, ' ')}
-                  </span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <Link to={driverHref(row.driverId)} viewTransition className="font-semibold text-heading hover:underline">
+                    {row.driver}
+                  </Link>
+                  <TeamName constructorId={row.team} name={row.teamName} to={teamHref(row.team)} size={13} className="text-xs text-muted-foreground" />
                 </div>
-                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="timing">Lap {row.lap}</span>
-                  <span className="opacity-40">•</span>
-                  <span className="timing">{row.timeOfDay}</span>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  <span className="timing">Lap {row.lap}</span>, <span className="timing">{row.timeOfDay}</span>
                 </div>
               </div>
               <span
@@ -367,47 +366,42 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              <th className="instrument-label px-3 py-2 text-left">
+              <th className="text-xs font-semibold text-muted-foreground px-3 py-2 text-left">
                 <SortHeader field="driver">Driver</SortHeader>
               </th>
-              <th className="instrument-label px-3 py-2 text-left">
+              <th className="text-xs font-semibold text-muted-foreground px-3 py-2 text-left">
                 Team
               </th>
-              <th className="instrument-label px-3 py-2 text-center">
+              <th className="text-xs font-semibold text-muted-foreground px-3 py-2 text-center">
                 <SortHeader field="lap" className="justify-center">Lap</SortHeader>
               </th>
-              <th className="instrument-label px-3 py-2 text-right">
+              <th className="text-xs font-semibold text-muted-foreground px-3 py-2 text-right">
                 <SortHeader field="duration" className="justify-end">Duration</SortHeader>
               </th>
-              <th className="instrument-label px-3 py-2 text-left">
+              <th className="text-xs font-semibold text-muted-foreground px-3 py-2 text-left">
                 Time
               </th>
-              <th className="w-[28%] px-3 py-2" />
             </tr>
           </thead>
           <tbody>
             {sortedRows.map(row => {
               const isRecord = row.duration === fastestStop;
               const teamColor = getTeamHexColor(row.team);
-              const barPct = maxDuration && row.duration ? (row.duration / maxDuration) * 100 : 0;
               return (
                 <tr key={row.id} className="border-b border-border last:border-b-0 hover:bg-muted/40">
                   <td className="px-3 py-1.5">
                     <div className="flex items-center gap-2">
                       <span className="h-4 w-1 rounded-full" style={{ backgroundColor: teamColor }} />
-                      <span className="text-xs font-bold">{row.driver}</span>
+                      <Link to={driverHref(row.driverId)} viewTransition className="text-sm font-semibold text-heading hover:underline">
+                        {row.driver}
+                      </Link>
                     </div>
                   </td>
                   <td className="px-3 py-1.5">
-                    <div className="flex items-center gap-2">
-                      <TeamLogo constructorId={row.team} size="sm" />
-                      <span className="text-xs capitalize text-muted-foreground">
-                        {row.team.replace(/_/g, ' ')}
-                      </span>
-                    </div>
+                    <TeamName constructorId={row.team} name={row.teamName} to={teamHref(row.team)} size={14} className="text-sm text-muted-foreground" />
                   </td>
                   <td className="px-3 py-1.5 text-center">
-                    <span className="timing text-xs text-muted-foreground">L{row.lap}</span>
+                    <span className="timing text-xs text-muted-foreground">{row.lap}</span>
                   </td>
                   <td className="px-3 py-1.5 text-right">
                     <span
@@ -422,17 +416,6 @@ const MuiPitStopTable: React.FC<MuiPitStopTableProps> = ({ year, round }) => {
                   </td>
                   <td className="px-3 py-1.5">
                     <span className="timing text-xs text-muted-foreground">{row.timeOfDay}</span>
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${barPct}%`,
-                          backgroundColor: isRecord ? 'hsl(var(--status-completed))' : teamColor,
-                        }}
-                      />
-                    </div>
                   </td>
                 </tr>
               );

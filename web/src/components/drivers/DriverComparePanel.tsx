@@ -1,5 +1,7 @@
 import { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { TeamName } from "@/components/f1/TeamName";
+import { driverHref, raceHref, teamHref } from "@/lib/links";
 import { DriverAvatar, F1Skeleton } from "@/components/f1";
 import CountryFlag from "@/components/common/CountryFlag";
 import { useDriverResultsBySeason } from "@/hooks/f1";
@@ -68,7 +70,7 @@ function StatRow({
       >
         {a}
       </span>
-      <span className="instrument-label flex-1 text-center text-muted-foreground">{label}</span>
+      <span className="flex-1 text-center text-[13px] text-muted-foreground">{label}</span>
       <span
         className={cn("readout w-16 text-right text-sm tabular-nums", bWins ? "font-bold" : "text-muted-foreground")}
         style={bWins ? { color: bColor } : undefined}
@@ -143,16 +145,16 @@ export default function DriverComparePanel({
       {/* rival picker — tactile chips; selection is URL-shareable (?vs=) and toggles off */}
       <div>
         <div className="mb-1.5 flex items-center justify-between gap-2">
-          <div className="instrument-label text-muted-foreground">
-            {bStanding ? `Comparing vs ${bStanding.Driver.code}` : "Compare with"}
+          <div className="text-[13px] font-semibold text-ink-2">
+            {bStanding ? `Against ${bStanding.Driver.familyName}` : "Compare with"}
           </div>
           {bId ? (
             <button
               type="button"
               onClick={() => setBId("")}
-              className="instrument-label text-primary transition-colors hover:text-foreground"
+              className="min-h-8 rounded-md px-2 text-[13px] font-medium text-ink-2 transition-colors hover:text-foreground"
             >
-              Clear ✕
+              Clear
             </button>
           ) : null}
         </div>
@@ -170,8 +172,8 @@ export default function DriverComparePanel({
                 className={cn(
                   "flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 transition-colors",
                   selected
-                    ? "border-primary bg-primary/10 text-foreground shadow-[0_0_0_1px_hsl(var(--primary)/0.4)]"
-                    : "border-border bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                    ? "border-transparent bg-act text-on-act"
+                    : "border-border bg-card/40 text-ink-2 hover:text-foreground",
                 )}
                 style={{ borderLeft: `3px solid ${col}` }}
               >
@@ -197,24 +199,41 @@ export default function DriverComparePanel({
                 src={headshot(driverAId)}
               />
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold leading-tight">{driverAName}</div>
-                <div className="instrument-label truncate text-muted-foreground">
-                  {aStanding?.Constructors?.[0]?.name}
-                </div>
+                <div className="text-sm font-semibold leading-tight text-heading">{driverAName}</div>
+                {aStanding?.Constructors?.[0]?.constructorId ? (
+                  <TeamName
+                    constructorId={aStanding.Constructors[0].constructorId}
+                    name={aStanding.Constructors[0].name}
+                    to={teamHref(aStanding.Constructors[0].constructorId, seasonYear)}
+                    size={13}
+                    className="text-[13px] text-muted-foreground"
+                  />
+                ) : null}
               </div>
             </div>
             <div className="flex w-10 items-center justify-center">
-              <span className="instrument-label text-muted-foreground">vs</span>
+              <span className="text-xs text-muted-foreground">vs</span>
             </div>
             <div
               className="flex flex-1 items-center justify-end gap-2.5 p-3 text-right"
               style={{ borderRight: `3px solid ${bColor}` }}
             >
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold leading-tight">{shortName(bStanding)}</div>
-                <div className="instrument-label text-muted-foreground">
-                  {bStanding.Constructors?.[0]?.name}
-                </div>
+              <div className="flex min-w-0 flex-col items-end">
+                <Link
+                  to={driverHref(bId, seasonYear)}
+                  className="text-sm font-semibold leading-tight text-heading hover:underline"
+                >
+                  {shortName(bStanding)}
+                </Link>
+                {bStanding.Constructors?.[0]?.constructorId ? (
+                  <TeamName
+                    constructorId={bStanding.Constructors[0].constructorId}
+                    name={bStanding.Constructors[0].name}
+                    to={teamHref(bStanding.Constructors[0].constructorId, seasonYear)}
+                    size={13}
+                    className="text-[13px] text-muted-foreground"
+                  />
+                ) : null}
               </div>
               <DriverAvatar
                 driverCode={bStanding.Driver.code}
@@ -270,12 +289,13 @@ export default function DriverComparePanel({
           {h2h.rows.length > 0 && (
             <div className="border-t border-border/60">
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="instrument-label text-muted-foreground">Head to head</span>
-                <span className="readout text-xs tabular-nums">
-                  <span style={{ color: driverAColor }}>{h2h.aAhead}</span>
-                  <span className="mx-1 text-muted-foreground">–</span>
-                  <span style={{ color: bColor }}>{h2h.bAhead}</span>
-                  <span className="ml-1.5 text-2xs text-muted-foreground">ahead ({h2h.rows.length})</span>
+                <span className="text-[13px] text-muted-foreground">
+                  Ahead at the finish in {h2h.aAhead} of {h2h.rows.length} races
+                </span>
+                <span className="readout text-base tabular-nums">
+                  <span className="text-figure">{h2h.aAhead}</span>
+                  <span className="mx-1.5 text-[13px] text-muted-foreground">to</span>
+                  <span className="text-figure">{h2h.bAhead}</span>
                 </span>
               </div>
               <div className="flex flex-wrap gap-1 px-3 pb-3">
@@ -284,24 +304,24 @@ export default function DriverComparePanel({
                   const bp = b.isDNF ? 99 : Number(b.position);
                   const aWon = ap < bp;
                   return (
-                    <div
+                    <Link
                       key={a.round}
-                      className="flex min-w-[3.1rem] flex-col items-center gap-0.5 rounded-md border border-border/60 px-1.5 py-1"
-                      title={`Round ${a.round}${a.country ? ` · ${a.country}` : ""}: P${a.isDNF ? "DNF" : a.position} vs P${b.isDNF ? "DNF" : b.position}`}
+                      to={raceHref(seasonYear, a.round)}
+                      className="flex min-w-[3.6rem] flex-col items-center gap-0.5 rounded-md border border-border/60 px-1.5 py-1 hover:border-foreground/30"
+                      title={`${a.raceName ?? a.country ?? ""}: ${a.isDNF ? "DNF" : `P${a.position}`} against ${b.isDNF ? "DNF" : `P${b.position}`}`}
                     >
                       {a.country ? (
                         <CountryFlag country={a.country} size={16} className="shrink-0 rounded-[2px]" />
                       ) : null}
-                      <span className="timing text-[9px] leading-none text-muted-foreground">R{a.round}</span>
                       <span
                         className="timing text-xs font-semibold tabular-nums"
                         style={{ color: aWon ? driverAColor : bColor }}
                       >
-                        {a.isDNF ? "—" : `P${a.position}`}
-                        <span className="mx-0.5 text-muted-foreground">·</span>
-                        {b.isDNF ? "—" : `P${b.position}`}
+                        {a.isDNF ? "DNF" : `P${a.position}`}
+                        <span className="mx-0.5 text-muted-foreground">/</span>
+                        {b.isDNF ? "DNF" : `P${b.position}`}
                       </span>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

@@ -1,39 +1,38 @@
 /*
- * F1 DataStop brand for Starlight.
- * Values come from the app's tokens in web/src/index.css (":root" = dark "Deep Carbon",
- * ".light" = light) and from f1datastop-design-board.html. The accent is the F1 red, hsl(0 100% 44%).
+ * F1 DataStop brand for Starlight, release 2 (docs/design/decisions.md D12, D17).
+ * Values come from the app's tokens in web/src/index.css (":root" = dark carbon, ".light" = light).
+ * The accent is F1 DataStop red, #E10600.
  * Starlight's own variables are in docs/node_modules/@astrojs/starlight/dist/style/props.css.
  */
 :root {
-  /* Type: Geist body, Geist Mono code, Clash Display headings (fonts load from <head>, see astro.config.mjs). */
-  --sl-font: 'Geist', 'SF Pro Display', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --sl-font-mono: 'Geist Mono', 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
-  --f1-font-display: 'Clash Display', 'Geist', 'SF Pro Display', system-ui, sans-serif;
+  /* Type (D17): Saira body, JetBrains Mono code, Saira Condensed headings in capitals (fonts load from <head>, see astro.config.mjs). */
+  --sl-font: 'Saira', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+  --f1-font-display: 'Saira Condensed', 'Saira', system-ui, sans-serif;
 
-  /* Dark: --background 240 8% 3.5%, --card 240 7% 6%, --border 240 6% 15%,
-     --muted-foreground 240 6% 64%, --foreground 220 15% 96%. */
-  --sl-color-black: hsl(240 8% 3.5%);
-  --sl-color-gray-6: hsl(240 7% 6%);
-  --sl-color-gray-5: hsl(240 6% 15%);
-  --sl-color-gray-4: hsl(240 5% 34%);
-  --sl-color-gray-3: hsl(240 6% 64%);
-  --sl-color-gray-2: hsl(220 14% 82%);
-  --sl-color-gray-1: hsl(220 15% 92%);
-  --sl-color-white: hsl(220 15% 96%);
+  /* Dark: ground #08080A, card #0F0F12, line #2A2A30, quiet text #ABACB5, secondary #D2D3DA, ink #F3F4F7. */
+  --sl-color-black: #08080a;
+  --sl-color-gray-6: #0f0f12;
+  --sl-color-gray-5: #2a2a30;
+  --sl-color-gray-4: #5d5d69;
+  --sl-color-gray-3: #abacb5;
+  --sl-color-gray-2: #d2d3da;
+  --sl-color-gray-1: #e6e7ec;
+  --sl-color-white: #f3f4f7;
 
   /* Accent = --primary 0 100% 44% (#e10600 family). Text links use a lighter red to keep AA contrast on dark. */
   --sl-color-accent-low: hsl(0 70% 15%);
-  --sl-color-accent: hsl(0 100% 44%);
-  --sl-color-accent-high: hsl(0 100% 74%);
+  --sl-color-accent: #e10600;
+  --sl-color-accent-high: hsl(2 100% 74%);
   --sl-color-text-accent: var(--sl-color-accent-high);
   --sl-color-bg-accent: var(--sl-color-accent);
   --sl-color-text-invert: #fff;
 
-  --sl-color-bg-nav: hsl(240 8% 3.5%);
-  --sl-color-bg-sidebar: hsl(240 7% 6%);
-  --sl-color-bg-inline-code: hsl(240 6% 14%);
-  --sl-color-hairline: hsl(240 6% 15%);
-  --sl-color-hairline-light: hsl(240 6% 15%);
+  --sl-color-bg-nav: #17171b;
+  --sl-color-bg-sidebar: #0f0f12;
+  --sl-color-bg-inline-code: #1c1c21;
+  --sl-color-hairline: #2a2a30;
+  --sl-color-hairline-light: #2a2a30;
 
   /* Status ramp from the app (--status-completed / --status-upcoming), used by asides. */
   --sl-color-green: hsl(142 71% 45%);
@@ -42,27 +41,27 @@
   --sl-color-red: hsl(0 84% 62%);
   --sl-color-purple: hsl(271 91% 68%);
 
-  /* --radius 0.5rem */
-  --f1-radius: 0.5rem;
+  /* Cards and controls round to 14 px, as in the app. */
+  --f1-radius: 14px;
   --sl-content-width: 50rem;
 }
 
 :root[data-theme='light'] {
   /* Light: --background 0 0% 98%, --card 0 0% 100%, --muted 240 5% 94%, --border 240 5% 87%,
      --muted-foreground 240 4% 46.1%, --foreground 240 10% 3.9%. */
-  --sl-color-black: hsl(0 0% 98%);
-  --sl-color-gray-7: hsl(0 0% 100%);
-  --sl-color-gray-6: hsl(240 5% 94%);
-  --sl-color-gray-5: hsl(240 5% 87%);
-  --sl-color-gray-4: hsl(240 4% 55%);
-  --sl-color-gray-3: hsl(240 4% 40%);
-  --sl-color-gray-2: hsl(240 6% 25%);
-  --sl-color-gray-1: hsl(240 8% 12%);
-  --sl-color-white: hsl(240 10% 3.9%);
+  --sl-color-black: #f5f5f7;
+  --sl-color-gray-7: #ffffff;
+  --sl-color-gray-6: #eeeef1;
+  --sl-color-gray-5: #dedee3;
+  --sl-color-gray-4: #8a8a95;
+  --sl-color-gray-3: #5d5d69;
+  --sl-color-gray-2: #44444e;
+  --sl-color-gray-1: #1c1c22;
+  --sl-color-white: #0a0a0f;
 
   --sl-color-accent-low: hsl(0 100% 94%);
-  --sl-color-accent: hsl(0 100% 44%);
-  --sl-color-accent-high: hsl(0 100% 35%);
+  --sl-color-accent: #e10600;
+  --sl-color-accent-high: hsl(2 100% 35%);
 
   --sl-color-bg-nav: hsl(0 0% 100%);
   --sl-color-bg-sidebar: hsl(0 0% 97%);
@@ -77,14 +76,18 @@
   --sl-color-purple: hsl(271 81% 50%);
 }
 
-/* Headings and the site title in Clash Display. */
+/* Headings and the site title in Saira Condensed capitals, as the app's titles (D17). */
 :root :is(h1, h2, h3, h4, h5, h6),
 :root .site-title,
 :root .sl-markdown-content :is(h1, h2, h3, h4, h5, h6) {
   font-family: var(--f1-font-display);
-  /* Clash Display drops its word spaces when tracked tight; keep them (same fix as the old docs). */
-  letter-spacing: 0;
-  word-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+}
+:root :is(h1, h2, h3),
+:root .site-title,
+:root .sl-markdown-content :is(h1, h2, h3) {
+  text-transform: uppercase;
 }
 /* Wordmark uses the normal text colour, as in the app's TopBar; red stays for accents and links. */
 :root .site-title {
@@ -98,12 +101,13 @@
 }
 
 /* Eyebrow-style sidebar group labels and page-title accent, as on the design board. */
+/* The current page is a filled red capsule, like the app's sidebar (D7). */
 .sidebar-content a[aria-current='page'] {
-  background-color: color-mix(in srgb, var(--sl-color-accent) 14%, transparent);
-  color: var(--sl-color-white);
-  box-shadow: inset 2px 0 0 var(--sl-color-accent);
+  background-color: var(--sl-color-accent);
+  color: #fff;
+  border-radius: 999px;
 }
-.sidebar-content a[aria-current='page']:hover { color: var(--sl-color-white); }
+.sidebar-content a[aria-current='page']:hover { color: #fff; }
 
 /* Content surfaces use the app's radius and card/border steps. */
 .sl-markdown-content :not(pre) > code {
@@ -118,10 +122,8 @@
 }
 .sl-markdown-content :is(th, td) code { overflow-wrap: anywhere; }
 .sl-markdown-content th {
-  font-family: 'Geist Mono', var(--sl-font-mono);
   font-size: var(--sl-text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 .sl-markdown-content .starlight-aside,
 .sl-markdown-content .expressive-code .frame { border-radius: var(--f1-radius); }

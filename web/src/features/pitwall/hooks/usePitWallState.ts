@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { currentSeason, FIRST_SEASON } from "@/lib/links";
 import {
   DEFAULT_PANELS,
   MAX_DRIVERS,
   PANELS,
-  PITWALL_SEASONS,
   type CompareMode,
   type PanelId,
   type SessionCode,
@@ -29,7 +29,9 @@ const VALID_SESSIONS: SessionCode[] = ["FP1", "FP2", "FP3", "Q", "SQ", "SS", "S"
 const VALID_PANELS = new Set<PanelId>(PANELS.map((p) => p.id));
 
 function parseParams(sp: URLSearchParams): PitWallState {
-  const year = Number(sp.get("year")) || PITWALL_SEASONS[0];
+  // The one season (useSeason): `?season=`, or an older/shared `?year=`, else the current one.
+  const rawYear = Number(sp.get("season") ?? sp.get("year"));
+  const year = Number.isInteger(rawYear) && rawYear >= FIRST_SEASON && rawYear <= currentSeason() ? rawYear : currentSeason();
   const roundRaw = Number(sp.get("round"));
   const round = roundRaw > 0 ? roundRaw : null;
   const sessRaw = sp.get("session") as SessionCode | null;
@@ -52,7 +54,10 @@ function parseParams(sp: URLSearchParams): PitWallState {
 }
 
 function serialize(p: URLSearchParams, s: PitWallState): void {
-  p.set("year", String(s.year));
+  // Same rule as useSeason: `?season=` only away from the current season.
+  p.delete("year");
+  if (s.year === currentSeason()) p.delete("season");
+  else p.set("season", String(s.year));
   if (s.round) p.set("round", String(s.round));
   else p.delete("round");
   p.set("session", s.session);
@@ -73,7 +78,7 @@ function serialize(p: URLSearchParams, s: PitWallState): void {
 
 /**
  * Shareable Pit Wall selection, entirely in the URL query string
- * (`?year=&round=&session=&drivers=&mode=&ref=&lap=&panels=`).
+ * (`?season=&round=&session=&drivers=&mode=&ref=&lap=&panels=`; `?year=` links still open).
  */
 export function usePitWallState() {
   const [sp, setSp] = useSearchParams();

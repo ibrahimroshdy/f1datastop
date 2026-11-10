@@ -8,13 +8,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { circuitHref, raceHref } from "@/lib/links";
 import { useTheme } from "@/context/ThemeContext";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
-import { getCalendarAnalytics } from "./calendarAnalytics";
+import { weekendDates } from "./raceRows";
+import { SprintChip } from "./RaceRowParts";
 import { useRaceDetailDialog } from "./race-detail/useRaceDetailDialog";
 import { RaceDetailSummary } from "./race-detail/RaceDetailHeader";
 import { RaceSchedulePanel } from "./race-detail/RaceSchedulePanel";
@@ -32,11 +33,10 @@ interface RaceDetailDialogProps {
   race: any;
 }
 
-// Underline tab grammar (mirrors Standings) — the dialog's session tabs sit on
-// the shared Tabs primitive, whose default is now the same underline treatment.
-const underlineTabTrigger =
-  "rounded-none border-b-2 border-transparent bg-transparent px-1.5 pb-2 pt-1 text-[11px] shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none";
-
+/**
+ * The quick look (docs/design/screens "quick", D30): flag and Grand Prix name, the circuit as a
+ * link and the weekend's dates, the winner, pole and fastest lap, then the sessions in tabs.
+ */
 const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   const navigate = useNavigate();
   const { isGlass } = useTheme();
@@ -58,8 +58,8 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   if (!race) return null;
 
   const season = parseInt(race.season || "0", 10);
-  const winner = raceResults?.data?.Results?.[0]?.Driver?.code || null;
-  const polePosition = qualifyingResults?.data?.QualifyingResults?.[0]?.Driver?.code || null;
+  const circuitId: string | undefined = race.Circuit?.circuitId;
+  const circuitName: string | undefined = race.Circuit?.circuitName;
 
   const cardStyle = isGlass
     ? {
@@ -78,77 +78,57 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
       <DialogContent
         className={cn(
-          "max-w-[calc(100vw-1.5rem)] sm:max-w-[720px] lg:max-w-[900px] max-h-[92dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6",
+          "max-w-[calc(100vw-1.5rem)] sm:max-w-[720px] lg:max-w-[900px] max-h-[92dvh] overflow-y-auto overflow-x-hidden p-4 outline-none sm:p-6",
           isGlass && "border-white/10",
         )}
         style={isGlass ? cardStyle : undefined}
+        // Focus the dialog itself on open, not the first tab panel (which drew its focus ring).
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          (e.currentTarget as HTMLElement | null)?.focus();
+        }}
       >
-        <DialogHeader className="pb-3">
-          <DialogTitle className="flex items-center gap-2.5 pr-8 font-display text-xl font-bold tracking-tight sm:text-2xl">
-            {race.Circuit?.Location?.country && (
-              <CountryFlag country={race.Circuit.Location.country} size={20} />
-            )}
+        <DialogHeader className="space-y-1 text-left">
+          <div className="flex items-center gap-2.5 pr-8">
+            {race.Circuit?.Location?.country && <CountryFlag country={race.Circuit.Location.country} size={24} />}
+            {hasSprint ? <SprintChip /> : null}
+          </div>
+          <DialogTitle className="text-2xl leading-tight sm:text-[26px]">
             {getRaceNameWithoutEmoji(race.raceName)}
           </DialogTitle>
-          <DialogDescription className="instrument-label text-[10px]">
-            Round {race.round} · {race.season} Formula 1 Season
+          <DialogDescription className="text-sm text-ink-2">
+            {circuitId && circuitName ? (
+              <Link to={circuitHref(circuitId)} className="font-medium text-foreground underline-offset-2 hover:underline">
+                {circuitName}
+              </Link>
+            ) : (
+              circuitName
+            )}
+            {race.date ? `, ${weekendDates(race)} ${race.season}` : null}
           </DialogDescription>
-          <RaceDetailSummary
-            race={race}
-            winner={winner}
-            polePosition={polePosition}
-            hasSprint={hasSprint}
-            isGlass={isGlass}
-            circuitName={race.Circuit?.circuitName}
-            locality={race.Circuit?.Location?.locality}
-            country={race.Circuit?.Location?.country}
-          />
         </DialogHeader>
 
+        <RaceDetailSummary
+          season={season}
+          results={raceResults?.data?.Results}
+          qualifying={qualifyingResults?.data?.QualifyingResults}
+        />
+
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList
-            className={cn(
-              `grid w-full ${hasSprint ? "grid-cols-5" : "grid-cols-4"} rounded-none border-b border-border bg-transparent p-0`,
-              isGlass && "bg-white/5",
-            )}
-          >
-            <TabsTrigger value="info" className={underlineTabTrigger}>
-              Schedule
-            </TabsTrigger>
-            {hasSprint && (
-              <TabsTrigger value="sprint-qualifying" className={cn(underlineTabTrigger, "gap-1")}>
-                <Zap className="h-2.5 w-2.5" />
-                <span className="hidden sm:inline">Sprint Q</span>
-                <span className="sm:hidden">SQ</span>
-              </TabsTrigger>
-            )}
-            {hasSprint && (
-              <TabsTrigger value="sprint" className={cn(underlineTabTrigger, "gap-1")}>
-                <Zap className="h-2.5 w-2.5" />
-                Sprint
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="qualifying" className={underlineTabTrigger}>
-              Qualifying
-            </TabsTrigger>
-            <TabsTrigger value="results" className={underlineTabTrigger}>
-              Results
-            </TabsTrigger>
+          <TabsList>
+            <TabsTrigger value="info">Schedule</TabsTrigger>
+            {hasSprint && <TabsTrigger value="sprint-qualifying">Sprint quali</TabsTrigger>}
+            {hasSprint && <TabsTrigger value="sprint">Sprint</TabsTrigger>}
+            <TabsTrigger value="qualifying">Qualifying</TabsTrigger>
+            <TabsTrigger value="results">Results</TabsTrigger>
           </TabsList>
 
           <div className="max-h-[58vh] sm:max-h-[560px] overflow-y-auto overflow-x-hidden">
-            <TabsContent value="info" className="mt-0">
-              <RaceSchedulePanel
-                race={race}
-                isGlass={isGlass}
-                onViewAnalysis={() => {
-                  getCalendarAnalytics()?.trackViewAnalysisClick?.(race);
-                  navigate(`/race-analysis/${race.season}/${race.round}`);
-                }}
-              />
+            <TabsContent value="info" className="mt-3">
+              <RaceSchedulePanel race={race} isGlass={isGlass} />
             </TabsContent>
 
-            <TabsContent value="results" className="mt-0">
+            <TabsContent value="results" className="mt-3">
               <RaceResultsPanel
                 isLoading={isResultsLoading}
                 results={raceResults?.data?.Results}
@@ -159,7 +139,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             </TabsContent>
 
             {hasSprint && (
-              <TabsContent value="sprint-qualifying" className="mt-0">
+              <TabsContent value="sprint-qualifying" className="mt-3">
                 <RaceSprintQualifyingPanel
                   isLoading={isSprintLoading}
                   results={sprintQualifyingResults ?? undefined}
@@ -168,27 +148,32 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
             )}
 
             {hasSprint && (
-              <TabsContent value="sprint" className="mt-0">
-                <RaceSprintPanel
-                  isLoading={isSprintLoading}
-                  results={sprintResults?.data?.SprintResults}
-                />
+              <TabsContent value="sprint" className="mt-3">
+                <RaceSprintPanel isLoading={isSprintLoading} results={sprintResults?.data?.SprintResults} />
               </TabsContent>
             )}
 
-            <TabsContent value="qualifying" className="mt-0">
+            <TabsContent value="qualifying" className="mt-3">
               <RaceQualifyingPanel
                 isLoading={isQualifyingLoading}
                 results={qualifyingResults?.data?.QualifyingResults}
               />
             </TabsContent>
-
           </div>
         </Tabs>
 
-        <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={closeDialog} className="min-h-11 px-4 text-xs">
+        <DialogFooter className="flex-row flex-wrap gap-2 pt-2 sm:justify-end">
+          <Button variant="outline" onClick={closeDialog} className="min-h-11 rounded-full px-5">
             Close
+          </Button>
+          <Button
+            onClick={() => {
+              closeDialog();
+              navigate(raceHref(race.season, race.round), { viewTransition: true });
+            }}
+            className="min-h-11 flex-1 rounded-full bg-act px-5 text-on-act hover:bg-act/90 sm:flex-none"
+          >
+            Open Grand Prix
           </Button>
         </DialogFooter>
       </DialogContent>

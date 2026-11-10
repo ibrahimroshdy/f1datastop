@@ -229,7 +229,7 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
     <div className="flex h-full flex-col">
       {/* Pit stop toggle */}
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        <span className="text-xs font-semibold text-muted-foreground">
           Position by Lap
         </span>
         <button
@@ -359,7 +359,7 @@ const MuiPositionChart: React.FC<MuiPositionChartProps> = ({ year, round }) => {
                       value: label,
                       position: 'insideBottomLeft',
                       angle: -90,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 600,
                       fill: color,
                     }}

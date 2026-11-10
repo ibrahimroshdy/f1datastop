@@ -34,8 +34,8 @@ const WEATHER_SERIES = {
   pressure: 'hsl(var(--weather-pressure))',
 } as const;
 
-const underlineTabTrigger =
-  "rounded-none border-b-2 border-transparent bg-transparent px-3 pb-2 pt-1 text-xs uppercase tracking-widest shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
+/** Tabs use the shared pill track and sliding act pill (D7); nothing to add here. */
+const underlineTabTrigger = "";
 
 const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   year,
@@ -125,7 +125,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
         {value}
         <span className="ml-0.5 text-xs font-normal text-muted-foreground">{unit}</span>
       </span>
-      <span className="instrument-label flex items-center gap-1 text-muted-foreground">
+      <span className="text-xs font-semibold flex items-center gap-1 text-muted-foreground">
         <Icon className="h-3 w-3" style={{ color }} />
         {label}
       </span>
@@ -174,7 +174,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
     if (!rows.length) return null;
     return (
       <div className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-xs shadow-card">
-        <div className="mb-1 uppercase tracking-widest tabular-nums text-muted-foreground">
+        <div className="mb-1 tabular-nums text-muted-foreground">
           {formatTimeForAxis(label ?? 0)}
         </div>
         {rows.map((p) => (
@@ -200,7 +200,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   }) => (
     <div className="mb-1 flex items-center gap-2 px-2">
       <Icon className="h-3 w-3" style={{ color }} />
-      <span className="instrument-label">{label}</span>
+      <span className="text-xs font-semibold text-muted-foreground">{label}</span>
     </div>
   );
 
@@ -282,7 +282,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
 
       {/* Charts */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="inline-flex h-auto w-full justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
+        <TabsList>
           <TabsTrigger value="all" className={underlineTabTrigger}>Overview</TabsTrigger>
           <TabsTrigger value="temp" className={underlineTabTrigger}>Temp</TabsTrigger>
           <TabsTrigger value="wind" className={underlineTabTrigger}>Wind</TabsTrigger>
@@ -317,7 +317,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       tickLine={false}
                       tick={axisTick}
                       stroke={axisColor}
-                      label={{ value: '°C', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                      label={{ value: '°C', angle: -90, position: 'insideLeft', fontSize: 12, fill: tickColor }}
                     />
                     <Tooltip content={<WeatherTooltip unit="°C" />} cursor={chartTheme.cursor} />
                     <Line
@@ -366,7 +366,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       tickLine={false}
                       tick={axisTick}
                       stroke={axisColor}
-                      label={{ value: 'm/s', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                      label={{ value: 'm/s', angle: -90, position: 'insideLeft', fontSize: 12, fill: tickColor }}
                     />
                     <Tooltip content={<WeatherTooltip unit=" m/s" />} cursor={chartTheme.cursor} />
                     <Line
@@ -406,7 +406,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       tickLine={false}
                       tick={axisTick}
                       stroke={axisColor}
-                      label={{ value: '%', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                      label={{ value: '%', angle: -90, position: 'insideLeft', fontSize: 12, fill: tickColor }}
                     />
                     <Tooltip content={<WeatherTooltip unit="%" />} cursor={chartTheme.cursor} />
                     <Line
@@ -446,7 +446,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                       tickLine={false}
                       tick={axisTick}
                       stroke={axisColor}
-                      label={{ value: 'mbar', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                      label={{ value: 'mbar', angle: -90, position: 'insideLeft', fontSize: 12, fill: tickColor }}
                     />
                     <Tooltip content={<WeatherTooltip unit=" mbar" />} cursor={chartTheme.cursor} />
                     <Line
@@ -513,10 +513,10 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   tickLine={false}
                   tick={axisTick}
                   stroke={axisColor}
-                  label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                  label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', fontSize: 12, fill: tickColor }}
                 />
                 <Tooltip content={<WeatherTooltip unit="°C" />} cursor={chartTheme.cursor} />
-                <Legend wrapperStyle={{ fontSize: 11 }} align="right" verticalAlign="top" />
+                <Legend wrapperStyle={{ fontSize: 12 }} align="right" verticalAlign="top" />
                 <Line
                   type="monotone"
                   dataKey="air_temperature"
@@ -563,7 +563,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   tickLine={false}
                   tick={axisTick}
                   stroke={axisColor}
-                  label={{ value: 'Wind Speed (m/s)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                  label={{ value: 'Wind Speed (m/s)', angle: -90, position: 'insideLeft', fontSize: 12, fill: tickColor }}
                 />
                 <Tooltip content={<WeatherTooltip unit=" m/s" />} cursor={chartTheme.cursor} />
                 <Area
@@ -603,7 +603,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   tickLine={false}
                   tick={axisTick}
                   stroke={axisColor}
-                  label={{ value: 'Humidity (%)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                  label={{ value: 'Humidity (%)', angle: -90, position: 'insideLeft', fontSize: 12, fill: tickColor }}
                 />
                 <Tooltip content={<WeatherTooltip unit="%" />} cursor={chartTheme.cursor} />
                 <Area
@@ -643,7 +643,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
                   tickLine={false}
                   tick={axisTick}
                   stroke={axisColor}
-                  label={{ value: 'Pressure (mbar)', angle: -90, position: 'insideLeft', fontSize: 11, fill: tickColor }}
+                  label={{ value: 'Pressure (mbar)', angle: -90, position: 'insideLeft', fontSize: 12, fill: tickColor }}
                 />
                 <Tooltip content={<WeatherTooltip unit=" mbar" />} cursor={chartTheme.cursor} />
                 <Area

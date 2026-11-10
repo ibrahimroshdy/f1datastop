@@ -130,20 +130,20 @@ export function LapTimePanel({ blob, selected, activeLap, currentLap, onSelectLa
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-2xs text-muted-foreground">
-          <ZoomIn className="h-3 w-3" /> Drag to zoom · click a lap for telemetry
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <ZoomIn className="h-3 w-3" /> Drag to zoom, click a lap for telemetry
         </span>
         <div className="flex items-center gap-2">
           {zoom && (
             <button
               type="button"
               onClick={() => setZoom(null)}
-              className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-2xs text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
             >
               <RotateCcw className="h-3 w-3" /> Reset
             </button>
           )}
-          <label className="flex cursor-pointer select-none items-center gap-1.5 text-2xs text-muted-foreground">
+          <label className="flex cursor-pointer select-none items-center gap-1.5 text-xs text-muted-foreground">
             <input
               type="checkbox"
               checked={showOutliers}
@@ -204,18 +204,18 @@ export function LapTimePanel({ blob, selected, activeLap, currentLap, onSelectLa
               x={currentLap}
               stroke={chartTheme.primary}
               strokeWidth={1.6}
-              label={{ value: `L${Math.round(currentLap)}`, position: "top", fill: chartTheme.primary, fontSize: 9 }}
+              label={{ value: `L${Math.round(currentLap)}`, position: "top", fill: chartTheme.primary, fontSize: 12 }}
             />
           )}
           {activeLap != null && (
-            <ReferenceLine x={activeLap} stroke={chartTheme.primary} strokeDasharray="2 2" label={{ value: "pinned", position: "top", fill: chartTheme.primary, fontSize: 9 }} />
+            <ReferenceLine x={activeLap} stroke={chartTheme.primary} strokeDasharray="2 2" label={{ value: "pinned", position: "top", fill: chartTheme.primary, fontSize: 12 }} />
           )}
           {fastest != null && (
             <ReferenceLine
               y={fastest}
               stroke={chartTheme.fastestLap}
               strokeDasharray="4 3"
-              label={{ value: "Fastest", position: "insideBottomRight", fill: chartTheme.fastestLap, fontSize: 9 }}
+              label={{ value: "Fastest", position: "insideBottomRight", fill: chartTheme.fastestLap, fontSize: 12 }}
             />
           )}
           {codes.map((code) => (
@@ -256,7 +256,7 @@ export function LapTimePanel({ blob, selected, activeLap, currentLap, onSelectLa
       </F1ChartContainer>
 
       {/* Tyre legend */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         {[
           ["S", "Soft"],
           ["M", "Medium"],

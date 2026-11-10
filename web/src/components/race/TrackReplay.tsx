@@ -162,7 +162,7 @@ function ReplaySVG({
         <span className="text-xs text-muted-foreground/60">/ {fmtClock(blob.duration_s)}</span>
         {active && (
           <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide animate-pulse"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold animate-pulse"
             style={{
               color: SAFETY_STYLE[active.kind].color,
               backgroundColor: `color-mix(in srgb, ${SAFETY_STYLE[active.kind].color} 16%, transparent)`,
@@ -217,7 +217,7 @@ function ReplaySVG({
           />
         </div>
         {kinds.length > 0 && (
-          <div className="flex items-center gap-3 text-2xs text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
             {kinds.map((k) => (
               <span key={k} className="inline-flex items-center gap-1">
                 <span className="h-2 w-2.5 rounded-sm" style={{ backgroundColor: SAFETY_STYLE[k].color }} />
@@ -314,8 +314,8 @@ function ReplaySVG({
       {/* Desktop driver table — timing-tower feel beside the track */}
       <div className="hidden lg:flex lg:h-[clamp(360px,52vh,560px)] lg:w-52 lg:shrink-0 lg:flex-col lg:overflow-hidden lg:rounded-lg lg:border lg:border-border/50">
         <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
-          <span className="instrument-label text-[10px]">Drivers</span>
-          <span className="text-2xs text-muted-foreground">{blob.drivers.length}</span>
+          <span className="text-xs font-semibold text-muted-foreground">Drivers</span>
+          <span className="text-xs text-muted-foreground">{blob.drivers.length}</span>
         </div>
         <div className="flex-1 divide-y divide-border/40 overflow-y-auto">
           {blob.drivers.map((d) => {
@@ -334,7 +334,7 @@ function ReplaySVG({
                   rowSel ? "bg-primary/10" : "hover:bg-accent/60",
                 )}
               >
-                <span className="w-5 shrink-0 text-right text-2xs tabular-nums text-muted-foreground">{d.number ?? ""}</span>
+                <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{d.number ?? ""}</span>
                 <span className="h-4 w-1 shrink-0 rounded-full" style={{ backgroundColor: d.team_color ?? "hsl(var(--muted-foreground))" }} />
                 <span className="text-sm font-bold" style={{ color: d.team_color ?? undefined }}>{dcode}</span>
               </button>
@@ -358,7 +358,7 @@ function ReplaySVG({
               onMouseEnter={() => setHover(id)}
               onMouseLeave={() => setHover((hv) => (hv === id ? null : hv))}
               className={cn(
-                "inline-flex min-h-7 shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-2xs font-medium tabular-nums transition-colors",
+                "inline-flex min-h-7 shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium tabular-nums transition-colors",
                 isSel
                   ? "border-primary/60 bg-primary/10 text-foreground"
                   : "border-border/50 text-muted-foreground hover:bg-accent",
@@ -438,7 +438,7 @@ export default function TrackReplay({ year, round }: Props) {
         <F1CardContent className="flex flex-col items-center justify-center gap-2 py-10 text-center">
           <MapIcon className="h-6 w-6 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">Track replay not available yet.</p>
-          <p className="text-2xs text-muted-foreground">Generated from FastF1 position data once the race is exported.</p>
+          <p className="text-xs text-muted-foreground">Generated from FastF1 position data once the race is exported.</p>
         </F1CardContent>
       </F1Card>
     );
@@ -449,7 +449,7 @@ export default function TrackReplay({ year, round }: Props) {
       <F1CardHeader className="flex-row items-center gap-2 pb-2">
         <MapIcon className="h-4 w-4 text-primary" />
         <F1CardTitle className="text-base">Track Replay</F1CardTitle>
-        <span className="instrument-label ml-auto text-muted-foreground">
+        <span className="text-xs font-semibold ml-auto text-muted-foreground">
           {index.data.driver_count ?? "—"} cars
         </span>
       </F1CardHeader>

@@ -47,6 +47,7 @@ interface F1EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Size variant */
   size?: "sm" | "md" | "lg";
   /** Whether to show the F1-themed decorative elements */
+  /** Kept for callers; the decoration is gone (D17), so it no longer changes anything. */
   showDecoration?: boolean;
 }
 
@@ -145,7 +146,7 @@ const F1EmptyState = React.forwardRef<HTMLDivElement, F1EmptyStateProps>(
     secondaryActionText,
     onSecondaryAction,
     size = "md",
-    showDecoration = true,
+    showDecoration: _showDecoration = true,
     ...props 
   }, ref) => {
     const config = emptyStateConfig[type];
@@ -162,30 +163,20 @@ const F1EmptyState = React.forwardRef<HTMLDivElement, F1EmptyStateProps>(
         )}
         {...props}
       >
-        {/* Decorative background */}
-        {showDecoration && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-5">
-            <div className="absolute top-1/4 left-1/4 w-32 h-32 border-2 border-primary rounded-full" />
-            <div className="absolute bottom-1/4 right-1/4 w-24 h-24 border-2 border-primary rounded-full" />
-            <div className="absolute top-1/2 right-1/3 w-16 h-16 border border-primary rotate-45" />
-          </div>
-        )}
-
-        {/* Icon */}
+        {/* Icon in a solid circle (D17: no decorative rings, no blur) */}
         <div className="relative mb-4">
-          <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl" />
-          <div className="relative p-4 bg-muted/40 rounded-full">
+          <div className="relative rounded-full bg-raised p-4 ring-1 ring-border">
             {icon || <IconComponent className={cn(sizes.icon, "text-muted-foreground")} />}
           </div>
         </div>
 
         {/* Title */}
-        <h3 className={cn("font-bold text-foreground mb-2", sizes.title)}>
+        <h3 className={cn("mb-2 font-bold", sizes.title)}>
           {title || config.title}
         </h3>
 
         {/* Description */}
-        <p className={cn("text-muted-foreground max-w-md mb-6", sizes.description)}>
+        <p className={cn("mb-6 max-w-md text-ink-2", sizes.description)}>
           {description || config.description}
         </p>
 
@@ -193,7 +184,7 @@ const F1EmptyState = React.forwardRef<HTMLDivElement, F1EmptyStateProps>(
         {(actionText || secondaryActionText) && (
           <div className="flex flex-wrap gap-3 justify-center">
             {actionText && onAction && (
-              <Button onClick={onAction} className="bg-primary hover:bg-primary/90">
+              <Button onClick={onAction} className="rounded-full bg-act text-on-act hover:bg-act/90">
                 {type === "loading-failed" && <RefreshCw className="mr-2 h-4 w-4" />}
                 {actionText}
               </Button>

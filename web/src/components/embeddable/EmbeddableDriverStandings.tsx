@@ -204,7 +204,7 @@ export default function EmbeddableDriverStandings({
           >
             F1DataStop
           </a> 
-          {' · '} 
+          {', '} 
           <a 
             href="https://twitter.com/f1datastop" 
             target="_blank" 

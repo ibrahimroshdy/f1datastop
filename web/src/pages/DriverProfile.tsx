@@ -1,362 +1,262 @@
-import { useParams } from "react-router-dom";
-import {
-  DriverAvatar,
-  F1Card,
-  F1CardContent,
-  F1EmptyState,
-  F1ErrorState,
-  F1Skeleton,
-  PageHeader,
-  PositionBadge,
-} from "@/components/f1";
+import { Link, useParams } from "react-router-dom";
+import { F1Avatar, F1Card, F1EmptyState, F1ErrorState, F1Skeleton } from "@/components/f1";
+import { DriverIdentity } from "@/components/f1/DriverIdentity";
+import { TeamName } from "@/components/f1/TeamName";
 import CountryFlag from "@/components/common/CountryFlag";
 import DriverCareerPanel from "@/components/drivers/DriverCareerPanel";
 import DriverPositionChart from "@/components/drivers/DriverPositionChart";
 import DriverComparePanel from "@/components/drivers/DriverComparePanel";
 import { useDriverCareer } from "@/hooks/entity";
 import { useDriverStandings, useDriverResultsBySeason } from "@/hooks/useF1Data";
-import { useTheme } from "@/context/ThemeContext";
-import { TEAM_COLORS } from "@/constants/f1Colors";
-import {
-  buildF1DriverHeadshotUrl,
-  getF1PortraitPathForErgastDriverId,
-} from "@/constants/f1DriverPortraitMedia";
+import { useSeason } from "@/hooks/useSeason";
+import { getTeamColorById } from "@/constants/f1Colors";
+import { buildF1DriverHeadshotUrl, getF1PortraitPathForErgastDriverId } from "@/constants/f1DriverPortraitMedia";
 import { pageShell, pageStack } from "@/lib/layout";
-import { CountUp } from "@/components/CountUp";
+import { raceHref, seasonSearch, teamHref } from "@/lib/links";
 import { isEntityDbConfigured } from "@/services/entityService";
-import { Activity, Flag as FlagIcon, GitCompare } from "lucide-react";
 import { BackLink } from "@/components/ui/back-link";
+import type { DriverStandingRow } from "@/components/standings/StandingsLists";
 import NotFound from "./NotFound";
 import { cn } from "@/lib/utils";
 import Seo from "@/components/common/Seo";
 
-// ── Instrument section eyebrow (mirrors Home) ──────────────────────────────
-const SectionLabel = ({
-  icon,
-  children,
-}: {
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-}) => (
-  <div className="instrument-label -mb-1 flex items-center gap-1.5 text-primary">
-    {icon}
-    <span>{children}</span>
-  </div>
-);
+type SeasonRace = {
+  round: string;
+  raceName: string;
+  date: string;
+  position?: string;
+  points: number;
+  country?: string;
+  isDNF?: boolean;
+  status?: string;
+  constructor?: string;
+  grid?: number;
+  qualiPosition?: number;
+};
+
+const fromWords = (grid?: number) =>
+  grid == null ? null : grid === 0 ? "From the pit lane" : `From P${grid}`;
+
+const pointsWords = (p: number) => (p === 1 ? "1 point" : `${p} points`);
 
 const DriverProfile = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { isGlass } = useTheme();
-  const cardVariant = isGlass ? "glass" : "default";
-  const glassVariant = isGlass ? "panel" : "default";
-  const currentYear = new Date().getFullYear();
+  const [season] = useSeason();
 
-  const {
-    data: profile,
-    isLoading: isProfileLoading,
-    isFetched: isProfileFetched,
-  } = useDriverCareer({ slug, enabled: !!slug });
-
-  const {
-    data: driverStandings,
-    isError: isStandingsError,
-    refetch: refetchStandings,
-  } = useDriverStandings(currentYear);
+  const { data: profile, isLoading: isProfileLoading, isFetched: isProfileFetched } = useDriverCareer({
+    slug,
+    enabled: !!slug,
+  });
+  const { data: driverStandings, isError: isStandingsError, refetch: refetchStandings } = useDriverStandings(season);
+  const standings = (driverStandings?.data ?? []) as DriverStandingRow[];
   const ergastId = profile?.ergast_id;
 
-  const standing = driverStandings?.data?.find(
-    (row: { Driver: { driverId: string } }) =>
-      row.Driver.driverId === ergastId ||
-      (slug && row.Driver.driverId.replace(/_/g, "-") === slug),
+  const standing = standings.find(
+    (row) => row.Driver.driverId === ergastId || (slug && row.Driver.driverId?.replace(/_/g, "-") === slug),
   );
-
   const resolvedDriverId = ergastId ?? standing?.Driver?.driverId ?? undefined;
 
-  const { data: seasonResultsResp } = useDriverResultsBySeason(
-    currentYear,
+  const { data: seasonResultsResp, isLoading: isResultsLoading } = useDriverResultsBySeason(
+    season,
     resolvedDriverId ?? "",
     !!resolvedDriverId,
   );
 
-  if (!slug) {
-    return <NotFound />;
-  }
+  if (!slug) return <NotFound />;
+  if (isEntityDbConfigured() && isProfileFetched && !profile && !isProfileLoading) return <NotFound />;
 
-  if (isEntityDbConfigured() && isProfileFetched && !profile && !isProfileLoading) {
-    return <NotFound />;
-  }
-
-  const constructorId = standing?.Constructors?.[0]?.constructorId ?? "";
-  const teamColor = TEAM_COLORS[constructorId] ?? TEAM_COLORS.default;
-  const teamName = standing?.Constructors?.[0]?.name;
+  const team = standing?.Constructors?.[standing.Constructors.length - 1];
+  const constructorId = team?.constructorId ?? "";
+  const teamColor = getTeamColorById(constructorId);
   const portraitPath =
-    profile?.portrait_path ??
-    (resolvedDriverId
-      ? getF1PortraitPathForErgastDriverId(resolvedDriverId)
-      : undefined);
-  const headshotUrl = portraitPath
-    ? buildF1DriverHeadshotUrl(portraitPath)
-    : undefined;
+    profile?.portrait_path ?? (resolvedDriverId ? getF1PortraitPathForErgastDriverId(resolvedDriverId) : undefined);
+  const headshotUrl = portraitPath ? buildF1DriverHeadshotUrl(portraitPath) : undefined;
 
   const displayName =
     profile?.display_name ??
-    (standing
-      ? `${standing.Driver.givenName} ${standing.Driver.familyName}`
-      : slug.replace(/-/g, " "));
-
-  const driverCode =
-    profile?.code ??
-    standing?.Driver?.code ??
-    displayName.slice(0, 3).toUpperCase();
-
+    (standing ? `${standing.Driver.givenName} ${standing.Driver.familyName}` : slug.replace(/-/g, " "));
   const nationality = profile?.nationality ?? standing?.Driver?.nationality;
-  const driverNumber = profile?.permanent_number ?? standing?.Driver?.permanentNumber;
+  const driverNumber = profile?.permanent_number ?? (standing?.Driver as { permanentNumber?: string } | undefined)?.permanentNumber;
 
-  const pointsHistory =
-    seasonResultsResp?.data?.map((race) => ({
-      round: race.round,
-      raceName: race.raceName,
-      date: race.date,
-      position: race.position,
-      points: Number(race.points) || 0,
-      country: race.country,
-      isDNF: race.isDNF,
-      constructor: race.constructor,
-      grid: race.grid,
-      qualiPosition: race.qualiPosition,
-    })) ?? [];
+  const races = ((seasonResultsResp?.data ?? []) as SeasonRace[]).map((r) => ({ ...r, points: Number(r.points) || 0 }));
+  const finished = races.filter((r) => !r.isDNF);
+  const wins = finished.filter((r) => Number(r.position) === 1).length;
+  const podiums = finished.filter((r) => Number(r.position) <= 3).length;
+  const hasQuali = races.some((r) => r.qualiPosition != null);
+  const poles = races.filter((r) => r.qualiPosition === 1).length;
+  const pointsFinishes = races.filter((r) => r.points > 0).length;
+  const points = standing ? Number(standing.points) : races.reduce((s, r) => s + r.points, 0);
 
-  const podiumCount = pointsHistory.filter(
-    (r) => !r.isDNF && Number(r.position) <= 3,
-  ).length;
-  const winCount = pointsHistory.filter(
-    (r) => !r.isDNF && Number(r.position) === 1,
-  ).length;
+  const teammates = standings.filter(
+    (row) =>
+      row.Driver.driverId !== resolvedDriverId &&
+      !!constructorId &&
+      row.Constructors[row.Constructors.length - 1]?.constructorId === constructorId,
+  );
 
-  const pointsNum = standing ? Number(standing.points) : NaN;
+  const tiles = [
+    { label: "Points", value: points.toLocaleString() },
+    { label: "Wins", value: wins },
+    { label: "Podiums", value: podiums },
+    hasQuali ? { label: "Poles", value: poles } : { label: "Points finishes", value: pointsFinishes },
+  ];
 
   return (
     <div className={pageShell}>
       <Seo
-        title={`${displayName} — F1 Stats & Telemetry`}
+        title={`${displayName}, F1 stats and results`}
         path={`/drivers/${slug}`}
         type="profile"
-        description={`${displayName}'s Formula 1 results, race pace, qualifying record and telemetry breakdowns.`}
+        description={`${displayName}'s Formula 1 results, race by race, head to head and career records.`}
       />
       <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
-        {/* ── Back link (← Drivers) ───────────────────────────────────────── */}
-        <BackLink to="/drivers">Drivers</BackLink>
+        <BackLink to={`/drivers${seasonSearch(season)}`}>Drivers</BackLink>
 
-        <PageHeader
-          eyebrow="Driver Profile"
-          title={displayName}
-          description={teamName ?? nationality ?? undefined}
-        />
+        {isStandingsError && <F1ErrorState type="network" variant="inline" onRetry={() => refetchStandings()} />}
 
-        {isStandingsError && (
-          <F1ErrorState
-            type="network"
-            variant="inline"
-            onRetry={() => refetchStandings()}
-          />
-        )}
-
-        {/* ── Compact identity + stat readouts header ─────────────────────── */}
-        <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-[minmax(0,360px)_1fr] lg:items-start">
-          {/* Identity row */}
-          <F1Card
-            variant={cardVariant}
-            glassVariant={glassVariant}
-            className="scope-frame overflow-hidden p-0"
-          >
-            <div
-              className="flex items-center gap-3 p-4"
-              style={{ borderLeft: `3px solid ${teamColor}` }}
-            >
-              <DriverAvatar
-                src={headshotUrl}
-                driverCode={driverCode}
-                driverName={displayName}
-                teamColor={teamColor}
-                size="xl"
-                className="shrink-0"
-              />
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="instrument-label flex items-center gap-1.5 text-primary">
-                  <FlagIcon className="h-3 w-3" />
-                  Driver Profile
-                </div>
-                <div className="font-heading text-xl font-bold leading-tight tracking-tight md:text-2xl truncate">
-                  {displayName}
-                </div>
-                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
-                  {driverNumber != null && (
-                    <span className="timing font-semibold text-foreground">
-                      #{driverNumber}
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
+          <div className="grid gap-4 md:gap-6">
+            {/* Lead card: face, name, flag and team, then the season in four figures. */}
+            <F1Card livery={teamColor} className="p-5 md:p-6">
+              <div className="flex items-center gap-4 pr-14">
+                <F1Avatar
+                  size="xl"
+                  src={headshotUrl}
+                  alt=""
+                  fallback={displayName
+                    .split(" ")
+                    .map((w) => w[0])
+                    .join("")
+                    .slice(0, 2)}
+                  teamColor={teamColor}
+                  showRing={!!constructorId}
+                />
+                <div className="min-w-0 space-y-1.5">
+                  {standing && (
+                    <span className="inline-flex rounded-full bg-act px-2.5 py-0.5 text-xs font-semibold text-on-act">
+                      P{standing.position} in the {season} championship
                     </span>
                   )}
-                  {teamName && (
-                    <span className="flex items-center gap-1.5">
-                      <span
-                        className="h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: teamColor }}
-                        aria-hidden
+                  <h1 className="text-2xl leading-tight md:text-3xl">{displayName}</h1>
+                  <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-ink-2">
+                    {nationality ? <CountryFlag country={nationality} size={16} /> : null}
+                    {team && constructorId ? (
+                      <TeamName constructorId={constructorId} name={team.name} to={teamHref(constructorId, season)} size={16} />
+                    ) : null}
+                    {driverNumber != null ? <span className="timing">Car {driverNumber}</span> : null}
+                  </p>
+                </div>
+              </div>
+              <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {tiles.map((t) => (
+                  <div key={t.label} className="flex flex-col-reverse rounded-xl bg-raised px-3 py-2.5">
+                    <dt className="text-[13px] text-muted-foreground">{t.label}</dt>
+                    <dd className="readout text-2xl font-semibold text-figure">{t.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </F1Card>
+
+            {/* The season, one row per Grand Prix. */}
+            <F1Card className="overflow-hidden p-0">
+              <h2 className="px-4 pb-1 pt-4 text-lg">{season} results</h2>
+              {isResultsLoading && resolvedDriverId ? (
+                <div className="p-4">
+                  <F1Skeleton variant="text" lines={5} />
+                </div>
+              ) : races.length === 0 ? (
+                <F1EmptyState type="no-data" className="py-8" title="No races yet" description={`No results for ${season} yet.`} />
+              ) : (
+                <ul className="divide-y divide-border">
+                  {races.map((r) => {
+                    const from = fromWords(r.grid);
+                    return (
+                      <li key={r.round} className="flex items-center gap-3 px-4 py-2.5">
+                        {r.country ? <CountryFlag country={r.country} size={21} className="shrink-0" /> : null}
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <Link
+                            to={raceHref(season, r.round)}
+                            viewTransition
+                            className="font-semibold leading-tight text-heading hover:underline"
+                          >
+                            {r.raceName}
+                          </Link>
+                          {from ? <span className="text-[13px] text-muted-foreground">{from}</span> : null}
+                        </span>
+                        <span className="flex shrink-0 flex-col items-end text-right">
+                          <span className={cn("readout text-base font-semibold", r.isDNF ? "text-loss" : "text-figure")}>
+                            {r.isDNF ? "DNF" : r.position ? `P${r.position}` : "–"}
+                          </span>
+                          <span className="text-[13px] text-muted-foreground">{pointsWords(r.points)}</span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </F1Card>
+          </div>
+
+          <div className="grid gap-4 md:gap-6">
+            {standings.length > 0 && resolvedDriverId && (
+              <F1Card className="p-4">
+                <h2 className="mb-3 text-lg">Head to head</h2>
+                <DriverComparePanel
+                  seasonYear={season}
+                  standings={standings as React.ComponentProps<typeof DriverComparePanel>["standings"]}
+                  driverAId={resolvedDriverId}
+                  driverAName={displayName}
+                  driverAColor={teamColor}
+                  historyA={races}
+                />
+              </F1Card>
+            )}
+
+            {teammates.length > 0 && (
+              <F1Card className="overflow-hidden p-0">
+                <h2 className="px-4 pb-1 pt-4 text-lg">{teammates.length === 1 ? "Teammate" : "Teammates"}</h2>
+                <ul className="divide-y divide-border">
+                  {teammates.map((m) => (
+                    <li key={m.Driver.driverId} className="flex items-center gap-3 px-4 py-2.5">
+                      <DriverIdentity
+                        driverId={m.Driver.driverId ?? m.Driver.code}
+                        givenName={m.Driver.givenName}
+                        familyName={m.Driver.familyName}
+                        nationality={m.Driver.nationality}
+                        constructorId={constructorId}
+                        teamName={team?.name}
+                        size={40}
+                        className="flex-1"
                       />
-                      <span className="truncate">{teamName}</span>
-                    </span>
-                  )}
-                  {nationality && (
-                    <span className="flex items-center gap-1.5">
-                      <CountryFlag country={nationality} size={14} />
-                      {nationality}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </F1Card>
+                      <span className="flex shrink-0 flex-col items-end text-right">
+                        <span className="readout text-base font-semibold text-figure">
+                          {Number(m.points).toLocaleString()}
+                          <span className="sr-only"> points</span>
+                        </span>
+                        <span className="text-[13px] text-muted-foreground">P{m.position}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </F1Card>
+            )}
 
-          {/* Stat readout cluster — hairline tiles, mono readouts */}
-          <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-lg border border-border sm:grid-cols-4">
-            {[
-              {
-                label: "Points",
-                node:
-                  Number.isFinite(pointsNum) ? <CountUp value={pointsNum} /> : standing?.points ?? "—",
-                accent: true,
-              },
-              { label: "Wins", node: <CountUp value={winCount} />, accent: false },
-              {
-                label: "Position",
-                node: standing ? `P${standing.position}` : "—",
-                accent: false,
-              },
-              { label: "Podiums", node: <CountUp value={podiumCount} />, accent: false },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="flex flex-col items-center justify-center gap-0.5 p-2.5 text-center"
-              >
-                <span
-                  className={cn(
-                    "readout text-lg font-semibold tabular-nums",
-                    s.accent ? "text-primary" : "text-foreground",
-                  )}
-                >
-                  {s.node}
-                </span>
-                <span className="instrument-label text-muted-foreground">{s.label}</span>
-              </div>
-            ))}
+            <F1Card className="p-4">
+              {isProfileLoading ? (
+                <F1Skeleton variant="card" className="h-32" />
+              ) : (
+                <DriverCareerPanel slug={slug} ergastId={resolvedDriverId} />
+              )}
+            </F1Card>
           </div>
         </div>
 
-        {/* ── Career records ──────────────────────────────────────────────── */}
-        <SectionLabel icon={<FlagIcon className="h-3 w-3" />}>
-          Career Records
-        </SectionLabel>
-        <F1Card variant={cardVariant} glassVariant={glassVariant}>
-          <F1CardContent className="pt-4 md:pt-5">
-            {isProfileLoading ? (
-              <F1Skeleton variant="card" className="h-32" />
-            ) : (
-              <DriverCareerPanel slug={slug} ergastId={resolvedDriverId} />
-            )}
-          </F1CardContent>
-        </F1Card>
-
-        {/* ── Head to head — compare this driver vs any rival ─────────────── */}
-        {(driverStandings?.data?.length ?? 0) > 0 && resolvedDriverId && (
-          <>
-            <SectionLabel icon={<GitCompare className="h-3 w-3" />}>
-              Head to Head
-            </SectionLabel>
-            <DriverComparePanel
-              seasonYear={currentYear}
-              standings={driverStandings?.data ?? []}
-              driverAId={resolvedDriverId}
-              driverAName={displayName}
-              driverAColor={teamColor}
-              historyA={pointsHistory}
-            />
-          </>
-        )}
-
-        {pointsHistory.length > 0 && (
-          <>
-            {/* ── Race progression scope — shown first (the season at a glance) ── */}
-            <SectionLabel icon={<Activity className="h-3 w-3" />}>
-              Race Progression Scope
-            </SectionLabel>
-            <DriverPositionChart history={pointsHistory} teamColor={teamColor} />
-
-            {/* ── Results — compact single-line hairline list w/ quali + grid ── */}
-            <SectionLabel icon={<FlagIcon className="h-3 w-3" />}>
-              {currentYear} Results
-            </SectionLabel>
-            <F1Card
-              variant={cardVariant}
-              glassVariant={glassVariant}
-              className="overflow-hidden p-0"
-            >
-              <ul className="divide-y divide-border">
-                {pointsHistory.map((race) => {
-                  const pos = Number(race.position);
-                  const isPodium = !race.isDNF && pos <= 3;
-                  return (
-                    <li
-                      key={race.round}
-                      className="flex items-center gap-2.5 px-3 py-1.5"
-                    >
-                      <span className="timing w-6 shrink-0 text-center text-2xs text-muted-foreground">
-                        R{race.round}
-                      </span>
-                      {race.country && (
-                        <CountryFlag country={race.country} size={15} className="shrink-0 rounded-[2px]" />
-                      )}
-                      <span className="min-w-0 flex-1 truncate text-xs font-semibold leading-tight">
-                        {race.raceName}
-                      </span>
-                      {/* Qualifying + grid — revealed where there's room */}
-                      <span className="hidden shrink-0 items-center gap-2.5 sm:flex">
-                        {race.qualiPosition != null && (
-                          <span className="timing tabular-nums text-2xs text-muted-foreground">
-                            Q{race.qualiPosition}
-                          </span>
-                        )}
-                        {race.grid != null && (
-                          <span className="timing tabular-nums text-2xs text-muted-foreground">
-                            Grid {race.grid}
-                          </span>
-                        )}
-                      </span>
-                      {race.isDNF ? (
-                        <span className="timing shrink-0 text-2xs font-semibold uppercase text-status-cancelled">
-                          DNF
-                        </span>
-                      ) : isPodium && Number.isFinite(pos) ? (
-                        <PositionBadge position={pos} showIcon={false} className="shrink-0" />
-                      ) : (
-                        <span className="timing w-7 shrink-0 text-center text-xs font-semibold tabular-nums">
-                          P{race.position}
-                        </span>
-                      )}
-                      <span className="timing w-9 shrink-0 text-right text-xs font-semibold tabular-nums">
-                        {race.points}
-                        <span className="ml-0.5 text-2xs text-muted-foreground">PTS</span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </F1Card>
-          </>
-        )}
+        {races.length > 0 && <DriverPositionChart history={races} teamColor={teamColor} />}
 
         {!isEntityDbConfigured() && !isProfileLoading && (
           <F1EmptyState
             type="coming-soon"
-            title="Entity database not configured"
+            title="Career records are not connected"
             description="Connect Supabase to load career records for this driver."
           />
         )}

@@ -119,11 +119,8 @@ const DriverPositionChart = ({ history, teamColor, code, compare }: DriverPositi
             {d.country ? (
               <CountryFlag country={d.country} size={14} className="rounded-[1px] shadow-xs" />
             ) : (
-              <span className="text-[9px] text-muted-foreground">R{d.round}</span>
+              <span className="text-xs leading-none text-muted-foreground">{d.gpShort}</span>
             )}
-            <span className="text-[8px] font-semibold uppercase leading-none tracking-wide text-muted-foreground">
-              {d.gpShort}
-            </span>
           </div>
         </foreignObject>
       </g>
@@ -135,7 +132,7 @@ const DriverPositionChart = ({ history, teamColor, code, compare }: DriverPositi
       <F1ChartContainer
         minHeight={200}
         isEmpty
-        emptyTitle="No Race Data"
+        emptyTitle="No race data"
         emptyDescription="No race data available for this driver yet."
       />
     );
@@ -147,11 +144,11 @@ const DriverPositionChart = ({ history, teamColor, code, compare }: DriverPositi
   return (
     <F1Card variant={cardVariant} glassVariant={glassVariant} className={cn("p-0", isGlass && "border-white/10")}>
       <F1CardHeader className="pb-2">
-        <div className="instrument-label text-muted-foreground">Season Position Trend</div>
-        <p className="text-xs text-muted-foreground">
+        <h3 className="text-base">Finishing positions</h3>
+        <p className="text-[13px] text-muted-foreground">
           {isCompare
-            ? `Race finishing positions · ${code ?? "Driver"} vs ${compare!.code}`
-            : "Race finishing positions throughout the season"}
+            ? `${code ?? "Driver"} against ${compare!.code}, race by race`
+            : "Where the race ended, race by race"}
         </p>
       </F1CardHeader>
       <F1CardContent className="pb-2">

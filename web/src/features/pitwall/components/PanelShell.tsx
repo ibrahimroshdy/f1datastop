@@ -26,7 +26,7 @@ export function PanelShell({ title, icon: Icon, onHide, right, className, bodyCl
     >
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />
-        <span className="instrument-label truncate text-foreground">{title}</span>
+        <span className="text-xs font-semibold text-foreground">{title}</span>
         <div className="ml-auto flex shrink-0 items-center gap-1">
           {right}
           <button

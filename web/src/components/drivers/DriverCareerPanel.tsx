@@ -71,7 +71,7 @@ const DriverCareerPanel = ({
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center gap-2">
         <PitIcon icon={Trophy} size="sm" className="text-primary" />
-        <h4 className="instrument-label text-muted-foreground">Career Records</h4>
+        <h3 className="text-base">Career</h3>
       </div>
 
       {/* Instrument cluster — hairline tiles, mono readouts (no rainbow icons) */}
@@ -82,7 +82,7 @@ const DriverCareerPanel = ({
         )}
       >
         {[
-          { label: "WDC", value: profile.championships, gold: (profile.championships ?? 0) > 0 },
+          { label: "Titles", value: profile.championships, gold: (profile.championships ?? 0) > 0 },
           { label: "Wins", value: profile.race_wins, gold: false },
           { label: "Podiums", value: profile.podiums, gold: false },
           { label: "Poles", value: profile.pole_positions, gold: false },
@@ -97,7 +97,7 @@ const DriverCareerPanel = ({
             >
               {formatStat(s.value)}
             </span>
-            <span className="instrument-label text-muted-foreground">{s.label}</span>
+            <span className="text-[13px] text-muted-foreground">{s.label}</span>
           </div>
         ))}
       </div>
@@ -118,7 +118,7 @@ const DriverCareerPanel = ({
             <F1Badge
               key={year}
               className={cn(
-                "text-[10px] font-semibold",
+                "text-xs font-semibold",
                 isGlass && "border-white/20 bg-white/5",
               )}
             >
@@ -132,7 +132,7 @@ const DriverCareerPanel = ({
         <p
           className={cn(
             "text-muted-foreground leading-relaxed",
-            compact ? "text-xs line-clamp-2" : "text-sm",
+            compact ? "text-[13px]" : "text-sm",
           )}
         >
           {profile.bio_short}
@@ -140,7 +140,7 @@ const DriverCareerPanel = ({
       )}
 
       {profile.scraped_at && !compact && (
-        <p className="text-[10px] text-muted-foreground/70">
+        <p className="text-xs text-muted-foreground">
           Stats as of {new Date(profile.scraped_at).toLocaleDateString()}
         </p>
       )}

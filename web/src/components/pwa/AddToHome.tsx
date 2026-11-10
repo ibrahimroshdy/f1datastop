@@ -91,7 +91,7 @@ export function AddToHome() {
         {ios ? (
           <ol className="mt-3 space-y-1.5 text-xs text-foreground">
             <li className="flex items-center gap-2">
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold ring-1 ring-border">
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold ring-1 ring-border">
                 1
               </span>
               Tap the
@@ -102,13 +102,13 @@ export function AddToHome() {
               Share button in Safari
             </li>
             <li className="flex items-center gap-2">
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold ring-1 ring-border">
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold ring-1 ring-border">
                 2
               </span>
               Scroll down (or tap <strong>More</strong>) in the share sheet
             </li>
             <li className="flex items-center gap-2">
-              <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold ring-1 ring-border">
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold ring-1 ring-border">
                 3
               </span>
               Choose

@@ -73,21 +73,21 @@ export function StintStrip({ blob, drivers, selected }: Props) {
                     key={i}
                     className="flex flex-col items-center justify-center leading-none text-black/75"
                     style={{ width: `${w}%`, backgroundColor: tyreColor(s.compound) }}
-                    title={`${s.compound ?? "?"} · ${laps} lap${laps === 1 ? "" : "s"} (${s.from}–${s.to})`}
+                    title={`${s.compound ?? "?"}, ${laps} lap${laps === 1 ? "" : "s"} (${s.from}–${s.to})`}
                   >
-                    {w > 6 && <span className="text-[9px] font-bold">{s.compound ?? ""}</span>}
-                    {w > 9 && <span className="text-[7px] font-semibold opacity-75">{laps}</span>}
+                    {w > 6 && <span className="text-xs font-bold">{s.compound ?? ""}</span>}
+                    {w > 9 && <span className="text-xs font-semibold opacity-75">{laps}</span>}
                   </div>
                 );
               })}
             </div>
-            <span className="w-14 shrink-0 text-right text-2xs text-muted-foreground">
+            <span className="w-14 shrink-0 text-right text-xs text-muted-foreground">
               {stops} stop{stops === 1 ? "" : "s"}
             </span>
           </div>
         );
       })}
-      <div className="text-2xs text-muted-foreground">Compound per stint across {totalLaps} laps.</div>
+      <div className="text-xs text-muted-foreground">Compound per stint across {totalLaps} laps.</div>
     </div>
   );
 }

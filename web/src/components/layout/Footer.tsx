@@ -45,7 +45,7 @@ const Footer = () => {
           )}
           {(appVersion || knownSha) && (
             <>
-              <span className="inline-flex min-h-11 items-center gap-2 font-mono text-[11px] opacity-70 md:min-h-0">
+              <span className="inline-flex min-h-11 items-center gap-2 font-mono text-xs opacity-70 md:min-h-0">
                 {appVersion &&
                   (repoUrl && released ? (
                     <a

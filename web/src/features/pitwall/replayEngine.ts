@@ -1,3 +1,4 @@
+import { TYRE_COLORS } from "@/constants/tyres";
 import type { CircuitGeometryBlob } from "@/services/circuitGeometryService";
 import type { RaceReplayBlob } from "@/services/raceReplayService";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -279,13 +280,8 @@ export function buildGeom(geom: CircuitGeometryBlob | undefined, blob: RaceRepla
 }
 
 export const SECTOR_COLOR = ["hsl(330 85% 60%)", "hsl(210 90% 58%)", "hsl(150 70% 48%)"];
-export const TYRE_HSL: Record<string, string> = {
-  S: "hsl(0 85% 55%)",
-  M: "hsl(45 95% 55%)",
-  H: "hsl(0 0% 92%)",
-  I: "hsl(140 68% 46%)",
-  W: "hsl(210 90% 56%)",
-};
+/** Kept for callers; the one Pirelli set lives in constants/tyres.ts (D16). */
+export const TYRE_HSL: Record<string, string> = TYRE_COLORS;
 export const SAFETY_STYLE: Record<string, { label: string; color: string }> = {
   SC: { label: "Safety Car", color: "hsl(45 96% 50%)" },
   VSC: { label: "Virtual SC", color: "hsl(45 96% 50%)" },

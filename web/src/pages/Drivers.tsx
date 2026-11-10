@@ -1,186 +1,117 @@
-
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Fragment, useMemo } from "react";
 import { useDriverStandings } from "@/hooks/useF1Data";
-import { useTheme } from "@/context/ThemeContext";
-import {
-  F1Card,
-  F1EmptyState,
-  F1ErrorState,
-  F1Skeleton,
-  PageHeader,
-  DriverAvatar,
-} from "@/components/f1";
-import {
-  buildF1DriverHeadshotUrl,
-  getF1PortraitPathForErgastDriverId,
-} from "@/constants/f1DriverPortraitMedia";
-
-/** F1-media headshot for a current-grid driver; undefined falls back to initials. */
-const headshotSrc = (driverId?: string): string | undefined => {
-  if (!driverId) return undefined;
-  const path = getF1PortraitPathForErgastDriverId(driverId);
-  return path ? buildF1DriverHeadshotUrl(path) : undefined;
-};
+import { useSeason } from "@/hooks/useSeason";
+import { F1Card, F1EmptyState, F1ErrorState, F1Skeleton, PageHeader } from "@/components/f1";
+import { DriverIdentity } from "@/components/f1/DriverIdentity";
+import { TeamName } from "@/components/f1/TeamName";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ListPager, SearchField, paginate, useListParams } from "@/components/drivers/ListControls";
+import { winsWords, type DriverStandingRow } from "@/components/standings/StandingsLists";
+import { teamHref } from "@/lib/links";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
-import { Search, Trophy, ChevronRight } from "lucide-react";
-import { HelmetIcon } from "@/components/common/HelmetIcon";
-import { Input } from "@/components/ui/input";
-import ReactCountryFlag from "react-country-flag";
-import {
-  normalizeTeamId,
-  getTeamHexColor,
-  getNationalityCode,
-} from "@/components/standings/standingsUtils";
-import YearSelector from "@/components/common/YearSelector";
 import Seo from "@/components/common/Seo";
 import { breadcrumbSchema } from "@/lib/structuredData";
 
-type DriverStandingEntry = {
-  position: string;
-  points: string;
-  wins: string;
-  Driver: {
-    driverId: string;
-    givenName: string;
-    familyName: string;
-    code: string;
-    nationality?: string;
-  };
-  Constructors: Array<{ constructorId?: string; name: string }>;
-};
+const ALL = "all";
 
-// ── Nationality flag chip (mirrors Standings) ────────────────────────────────
-const Flag = ({ nationality }: { nationality?: string }) => {
-  const code = getNationalityCode(nationality);
-  if (!code) return null;
-  return (
-    <ReactCountryFlag
-      countryCode={code}
-      svg
-      style={{ width: 13, height: "auto" }}
-      title={nationality}
-    />
-  );
-};
+const lastTeam = (d: DriverStandingRow) => d.Constructors[d.Constructors.length - 1];
 
-// ── Mono position cell — podium gets medal-tinted mono digits, rest stay muted.
-// (No pill: a badge in the w-6 column broke the mono column rhythm.)
-const Pos = ({ position }: { position: string }) => {
-  const n = Number(position);
-  const medal =
-    n === 1
-      ? "text-position-gold"
-      : n === 2
-        ? "text-position-silver"
-        : n === 3
-          ? "text-position-bronze"
-          : "text-muted-foreground";
-  return (
-    <span className={`timing w-6 shrink-0 text-center text-sm font-semibold ${medal}`}>
-      {position}
-    </span>
-  );
-};
-
-// ── Mono points readout (matches Home's `.readout` + PTS suffix) ─────────────
-const Points = ({ value }: { value: string }) => (
-  <span className="shrink-0 text-right">
-    <span className="readout text-sm md:text-base">{value}</span>
-    <span className="ml-1 text-2xs text-muted-foreground">PTS</span>
-  </span>
-);
-
-// ── Shared row skeleton (mono pos · hairline · avatar · name/team · pts · › ) ──
 const skeletonPlate = (
   <ul className="divide-y divide-border">
     {Array.from({ length: 10 }).map((_, i) => (
       <li key={i} className="flex items-center gap-3 px-4 py-2.5">
-        <F1Skeleton className="h-4 w-6 shrink-0" />
-        <F1Skeleton className="h-8 w-0.5 shrink-0" />
-        <F1Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+        <F1Skeleton className="h-10 w-10 shrink-0 rounded-full" />
         <div className="min-w-0 flex-1 space-y-1.5">
           <F1Skeleton className="h-4 w-32" />
-          <F1Skeleton className="h-3 w-20" />
+          <F1Skeleton className="h-3 w-24" />
         </div>
-        <F1Skeleton className="h-5 w-10 shrink-0" />
+        <F1Skeleton className="h-8 w-14 shrink-0" />
       </li>
     ))}
   </ul>
 );
 
 const Drivers = () => {
-  const { isGlass } = useTheme();
-  const cardVariant = isGlass ? "glass" : "default";
-  const glassVariant = isGlass ? "panel" : "default";
-  const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const { data: driverStandings, isLoading, isError, refetch } = useDriverStandings(selectedYear);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [season] = useSeason();
+  const { data, isLoading, isError, refetch } = useDriverStandings(season);
+  const list = useListParams();
+  const q = list.get("q");
+  const team = list.get("team");
+  const grouped = list.get("group") === "team";
 
-  const all = (driverStandings?.data ?? []) as DriverStandingEntry[];
-  const filteredDrivers = all.filter((driver) => {
-    const q = searchQuery.toLowerCase();
-    const fullName = `${driver.Driver.givenName} ${driver.Driver.familyName}`.toLowerCase();
-    return (
-      fullName.includes(q) ||
-      driver.Driver.code.toLowerCase().includes(q) ||
-      (driver.Constructors[0]?.name ?? "").toLowerCase().includes(q)
-    );
-  });
+  const all = useMemo(() => (data?.data ?? []) as DriverStandingRow[], [data]);
 
-  const driverRows = (
-    <ul className="divide-y divide-border stagger-children">
-      {filteredDrivers.map((driver) => {
-        const team = driver.Constructors[0];
-        const teamId = normalizeTeamId(team?.constructorId || "default");
-        const teamColor = getTeamHexColor(teamId);
-        const driverId = driver.Driver.driverId || driver.Driver.code;
-        const name = `${driver.Driver.givenName} ${driver.Driver.familyName}`.trim();
-        const wins = Number(driver.wins ?? 0);
+  // Teams in championship order of their best driver, for the filter and the groups.
+  const teams = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const d of all) {
+      const t = lastTeam(d);
+      if (t?.constructorId && !seen.has(t.constructorId)) seen.set(t.constructorId, t.name);
+    }
+    return [...seen.entries()].map(([id, name]) => ({ id, name }));
+  }, [all]);
 
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    let rows = all.filter((d) => {
+      if (team && lastTeam(d)?.constructorId !== team) return false;
+      if (!needle) return true;
+      const hay = `${d.Driver.givenName} ${d.Driver.familyName} ${d.Driver.code} ${lastTeam(d)?.name ?? ""}`.toLowerCase();
+      return hay.includes(needle);
+    });
+    if (grouped) {
+      const order = new Map(teams.map((t, i) => [t.id, i]));
+      rows = [...rows].sort(
+        (a, b) => (order.get(lastTeam(a)?.constructorId ?? "") ?? 99) - (order.get(lastTeam(b)?.constructorId ?? "") ?? 99),
+      );
+    }
+    return rows;
+  }, [all, q, team, grouped, teams]);
+
+  const pg = paginate(filtered, list.get("page"));
+
+  const rows = (
+    <ul className="divide-y divide-border">
+      {pg.items.map((d, i) => {
+        const t = lastTeam(d);
+        const prev = i > 0 ? lastTeam(pg.items[i - 1]) : undefined;
+        const header = grouped && t?.constructorId && prev?.constructorId !== t.constructorId;
         return (
-          <li key={driverId}>
-            <Link to={`/drivers/${driverId}`} className="group block">
-              <div className="flex items-center gap-3 px-4 py-2.5 transition-colors group-hover:bg-muted/50">
-                <Pos position={driver.position} />
-                <span
-                  className="h-8 w-0.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: teamColor }}
-                  aria-hidden
+          <Fragment key={d.Driver.driverId ?? d.Driver.code}>
+            {header && (
+              <li className="bg-raised px-4 py-2">
+                <TeamName
+                  constructorId={t.constructorId!}
+                  name={t.name}
+                  to={teamHref(t.constructorId!, season)}
+                  size={16}
+                  className="text-sm font-semibold text-heading"
                 />
-                <DriverAvatar
-                  driverCode={driver.Driver.code}
-                  driverName={name}
-                  teamColor={teamColor}
-                  size="sm"
-                  // Portraits are current-grid (team suit) — historical years keep initials.
-                  src={selectedYear === currentYear ? headshotSrc(driver.Driver.driverId) : undefined}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold leading-tight md:text-base">
-                    {name}
-                  </div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-2xs text-muted-foreground md:text-xs">
-                    <Flag nationality={driver.Driver.nationality} />
-                    <span className="timing font-medium">{driver.Driver.code}</span>
-                    <span className="opacity-40">·</span>
-                    <span className="truncate">{team?.name}</span>
-                  </div>
-                </div>
-
-                {/* Desktop-only extra column: wins (same row skeleton) */}
-                <span className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground md:flex">
-                  <Trophy className="h-3 w-3" />
-                  <span className="timing tabular-nums">{wins}</span>
+              </li>
+            )}
+            <li className="flex items-center gap-3 px-4 py-2.5">
+              <span className="timing w-6 shrink-0 text-center text-sm font-semibold text-ink-2" aria-label={`Position ${d.position}`}>
+                {d.position}
+              </span>
+              <DriverIdentity
+                driverId={d.Driver.driverId ?? d.Driver.code}
+                givenName={d.Driver.givenName}
+                familyName={d.Driver.familyName}
+                nationality={d.Driver.nationality}
+                constructorId={t?.constructorId}
+                teamName={t?.name}
+                className="flex-1"
+              />
+              <span className="flex shrink-0 flex-col items-end text-right">
+                <span className="readout text-base font-semibold text-figure">
+                  {Number(d.points).toLocaleString()}
+                  <span className="sr-only"> points</span>
                 </span>
-
-                <Points value={driver.points} />
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-              </div>
-            </Link>
-          </li>
+                <span className="text-[13px] text-muted-foreground">{winsWords(Number(d.wins ?? 0))}</span>
+              </span>
+            </li>
+          </Fragment>
         );
       })}
     </ul>
@@ -189,62 +120,65 @@ const Drivers = () => {
   return (
     <div className={pageShell}>
       <Seo
-        title={`${selectedYear} F1 Drivers`}
+        title={`${season} F1 Drivers`}
         path="/drivers"
-        description={`Every driver on the ${selectedYear} Formula 1 grid — championship position, points, wins and team, with per-driver telemetry and race analysis.`}
+        description={`Every driver on the ${season} Formula 1 grid: championship position, points, wins and team.`}
         jsonLd={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Drivers", path: "/drivers" }])}
       />
       <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
-        <PageHeader
-          eyebrow={`${selectedYear} Season`}
-          title="Drivers"
-          description={`Formula 1 drivers for the ${selectedYear} season`}
-          actions={<YearSelector selectedYear={selectedYear} onYearChange={setSelectedYear} />}
-        />
+        <PageHeader title="Drivers" description={`${season} season`} />
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-y border-border py-2 md:gap-3">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground md:top-3" />
-            <Input
-              placeholder="Search drivers..."
-              className="h-9 pl-9 md:h-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          {!isLoading && (
-            <div className="flex items-center gap-2">
-              <span className="instrument-label">Drivers</span>
-              <span className="readout text-base text-foreground md:text-lg">
-                {filteredDrivers.length}
-              </span>
-            </div>
-          )}
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <SearchField label="Search drivers" value={q} onChange={(v) => list.set({ q: v })} />
+          <Select value={team || ALL} onValueChange={(v) => list.set({ team: v === ALL ? null : v })}>
+            <SelectTrigger aria-label="Team" className="h-10 w-full sm:w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All teams</SelectItem>
+              {teams.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={grouped ? "team" : "none"} onValueChange={(v) => list.set({ group: v === "team" ? "team" : null })}>
+            <SelectTrigger aria-label="Grouping" className="h-10 w-full sm:w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No grouping</SelectItem>
+              <SelectItem value="team">Group by team</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
-          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-            <div className="instrument-label flex items-center gap-1.5 text-primary">
-              <HelmetIcon className="h-3 w-3" />
-              {`Drivers ${selectedYear}`}
-            </div>
-            {filteredDrivers.length > 0 && (
-              <span className="timing shrink-0 text-2xs text-muted-foreground">
-                {filteredDrivers.length} entries
-              </span>
-            )}
-          </div>
-
+        <F1Card className="overflow-hidden p-0">
           {isError ? (
             <F1ErrorState type="network" variant="inline" className="py-8" onRetry={() => refetch()} />
           ) : isLoading ? (
             skeletonPlate
-          ) : !filteredDrivers.length ? (
-            <F1EmptyState type="no-data" className="py-10" />
+          ) : !filtered.length ? (
+            <F1EmptyState
+              type="no-data"
+              className="py-10"
+              {...(all.length ? { title: "No drivers match", description: "Try another name or team." } : {})}
+            />
           ) : (
-            driverRows
+            rows
           )}
         </F1Card>
+
+        <ListPager
+          page={pg.page}
+          pages={pg.pages}
+          total={filtered.length}
+          from={pg.from}
+          shown={pg.items.length}
+          noun={filtered.length === 1 ? "driver" : "drivers"}
+          onPage={(p) => list.set({ page: p })}
+        />
       </div>
     </div>
   );

@@ -1,5 +1,8 @@
 /**
- * Shared "scope" chart theming for recharts — the Telemetry Terminal look.
+ * Shared chart theming for recharts, on the release-2 tokens (docs/design/decisions.md D4, D17):
+ * hairline grid, JetBrains Mono tabular ticks, a solid raised tooltip, a neutral cursor.
+ * Series keep their data colours (team colours, purple for fastest); the brand red is never a
+ * series or the cursor. Formerly the "Telemetry Terminal" look.
  * (see web/DESIGN_TERMINAL.md). Dark plot, hairline grid, mono tabular ticks,
  * dark-glass crosshair tooltip, gradient area-fade + soft series glow.
  *
@@ -24,25 +27,27 @@ export const chartTheme = {
     fill: "hsl(var(--muted-foreground))",
   },
   tooltipContentStyle: {
-    backgroundColor: "hsl(var(--card))",
+    backgroundColor: "hsl(var(--raised))",
     border: "1px solid hsl(var(--border))",
-    borderRadius: "0.5rem",
-    boxShadow: "var(--shadow-card)",
+    borderRadius: "14px",
+    boxShadow: "0 10px 28px rgb(0 0 0 / 0.35)",
+    padding: "8px 12px",
     fontSize: 12,
     fontFamily: MONO,
     color: "hsl(var(--foreground))",
   } as React.CSSProperties,
   tooltipLabelStyle: {
-    color: "hsl(var(--muted-foreground))",
-    fontSize: 11,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.1em",
+    color: "hsl(var(--ink-2))",
+    fontSize: 12,
+    fontFamily: "var(--font-sans)",
+    fontWeight: 600,
   } as React.CSSProperties,
-  cursor: { stroke: "hsl(var(--primary))", strokeWidth: 1, strokeDasharray: "3 3" },
+  cursor: { stroke: "hsl(var(--ink-2))", strokeWidth: 1, strokeDasharray: "3 3" },
   primary: "hsl(var(--primary))",
   fastestLap: "hsl(var(--fastest-lap))",
-  gain: "hsl(var(--status-completed))",
-  loss: "hsl(var(--destructive))",
+  gain: "hsl(var(--gain))",
+  loss: "hsl(var(--loss))",
+  hold: "hsl(var(--hold))",
 };
 
 /** Stable id for a per-series area-fade gradient. */

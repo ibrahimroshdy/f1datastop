@@ -2,6 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { F1Livery } from "./F1Livery";
 
 /** Card size for padding (used by F1CardHeader, F1CardContent when inside F1Card) */
 export type F1CardSize = "sm" | "default" | "lg" | "xl";
@@ -16,14 +17,15 @@ export type F1CardAccent = "none" | "red" | "team" | "top";
 export type F1CardGlassVariant = "default" | "glow" | "panel" | "subtle";
 
 const f1CardVariants = cva(
-  "relative rounded-xl overflow-hidden transition-all duration-300 ease-spring border",
+  // D17: solid card, 20 px round, a hairline edge; no lift on hover, a 0.97 press instead.
+  "relative rounded-[20px] overflow-hidden transition-[border-color,transform] duration-200 ease-spring border",
   {
     variants: {
       variant: {
-        default: "bg-card border-border shadow-card",
-        gradient: "bg-linear-to-br from-card to-card/80 border-border shadow-card",
+        default: "bg-card border-border",
+        gradient: "bg-card border-border",
         glass: "border-border/50",
-        "team-accent": "bg-card border-border shadow-card",
+        "team-accent": "bg-card border-border",
       },
       glassVariant: {
         default: "glass",
@@ -39,9 +41,9 @@ const f1CardVariants = cva(
       },
       hover: {
         false: "",
-        true: "hover:-translate-y-0.5 hover:shadow-premium-lg active:scale-[0.99] cursor-pointer",
-        lift: "hover:-translate-y-1 hover:shadow-premium-lg active:scale-[0.99] cursor-pointer",
-        glow: "hover:-translate-y-0.5 hover:shadow-glow hover:border-primary/30 cursor-pointer",
+        true: "press cursor-pointer hover:border-primary/40",
+        lift: "press cursor-pointer hover:border-primary/40",
+        glow: "press cursor-pointer hover:border-primary/40",
       },
       accent: {
         none: "",
@@ -115,6 +117,12 @@ export interface F1CardProps
    * Use sparingly for hero/feature panels — signature, not wallpaper.
    */
   scope?: boolean;
+  /**
+   * The livery stripe across the top-right corner (D17, D25). `true` paints it F1 DataStop
+   * red; a colour string paints it that colour (a team's, on its own pages). One per page,
+   * on the lead card only, never on list rows.
+   */
+  livery?: boolean | string;
 }
 
 const F1Card = React.forwardRef<HTMLDivElement, F1CardProps>(
@@ -132,6 +140,7 @@ const F1Card = React.forwardRef<HTMLDivElement, F1CardProps>(
       hover = false,
       accent = "none",
       scope = false,
+      livery,
       children,
       style,
       ...props
@@ -205,6 +214,7 @@ const F1Card = React.forwardRef<HTMLDivElement, F1CardProps>(
           style={accentStyles}
           {...props}
         >
+          {livery ? <F1Livery color={typeof livery === "string" ? livery : undefined} /> : null}
           <F1CardContext.Provider value={contextValue}>
             {children}
           </F1CardContext.Provider>
@@ -249,7 +259,7 @@ const F1CardTitle = React.forwardRef<
 >(({ className, icon, badge, children, ...props }, ref) => (
   <CardTitle
     ref={ref}
-    className={cn("flex items-center gap-2 text-lg font-bold", className)}
+    className={cn("flex items-center gap-2 text-lg font-bold leading-tight", className)}
     {...props}
   >
     {icon && <span className="text-primary">{icon}</span>}

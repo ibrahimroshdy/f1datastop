@@ -174,7 +174,7 @@ export default function RaceReplay({ year, round }: Props) {
         <div className="flex items-center gap-2">
           {activeSafety && (
             <span
-              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide"
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-bold"
               style={{
                 color: BAND_COLOR[activeSafety.kind],
                 backgroundColor: `color-mix(in srgb, ${BAND_COLOR[activeSafety.kind]} 18%, transparent)`,
@@ -183,7 +183,7 @@ export default function RaceReplay({ year, round }: Props) {
               {kindTag(activeSafety.kind)}
             </span>
           )}
-          <div className="instrument-label flex items-baseline gap-1 text-muted-foreground">
+          <div className="text-xs font-semibold flex items-baseline gap-1 text-muted-foreground">
             Lap <span className="readout text-lg text-primary">{lap}</span>
             <span className="text-muted-foreground/60">/ {lastLap}</span>
           </div>
@@ -271,7 +271,7 @@ export default function RaceReplay({ year, round }: Props) {
             aria-label="Lap scrubber"
           />
           {(allPitLaps.length > 0 || safety.length > 0) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted-foreground">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               {allPitLaps.length > 0 && (
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-2 w-px bg-foreground/50" /> pit stops
@@ -291,7 +291,7 @@ export default function RaceReplay({ year, round }: Props) {
         <div className="min-h-5">
           {lapOts.length > 0 && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-              <span className="instrument-label text-primary">Passes</span>
+              <span className="text-xs font-semibold text-primary">Passes</span>
               {lapOts.map((o, i) => (
                 <span key={i} className="inline-flex items-center gap-1 tabular-nums">
                   <span className="font-bold" style={{ color: color(o.overtaking_driver_id) }}>{code(o.overtaking_driver_id)}</span>
@@ -330,7 +330,7 @@ export default function RaceReplay({ year, round }: Props) {
                   <span className="w-9 shrink-0 text-sm font-bold" style={{ color: color(d.id) }}>{code(d.id)}</span>
 
                   {/* delta vs previous lap */}
-                  <span className="w-8 shrink-0 text-2xs tabular-nums">
+                  <span className="w-8 shrink-0 text-xs tabular-nums">
                     {d.delta > 0 ? (
                       <span className="text-status-completed">▲{d.delta}</span>
                     ) : d.delta < 0 ? (
@@ -354,7 +354,7 @@ export default function RaceReplay({ year, round }: Props) {
                       </span>
                     )}
                     {pitting && (
-                      <span className="rounded bg-position-gold/20 px-1.5 py-0.5 text-2xs font-bold uppercase tracking-wide text-position-gold">
+                      <span className="rounded bg-position-gold/20 px-1.5 py-0.5 text-xs font-bold text-position-gold">
                         In Pit
                       </span>
                     )}

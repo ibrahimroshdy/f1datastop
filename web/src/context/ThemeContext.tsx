@@ -86,7 +86,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     const baseTheme = getBaseTheme(theme);
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', baseTheme === 'dark' ? '#0a0a0f' : '#fafafa');
+      metaThemeColor.setAttribute('content', baseTheme === 'dark' ? '#08080A' : '#F5F5F7');
     }
   }, [theme]);
 

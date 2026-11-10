@@ -1,9 +1,9 @@
 import { pickInitialSession } from "@/lib/f1/sessionPick";
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Link2 } from "lucide-react";
-import { RaceAnalysisHeader } from "@/components/race-analysis/RaceAnalysisHeader";
+import { ArrowUpRight, Link2 } from "lucide-react";
+import { RaceAnalysisHeader, type RaceContext } from "@/components/race-analysis/RaceAnalysisHeader";
 import { RacePicker } from "@/components/race-analysis/RacePicker";
 import { RaceAnalysisTabs } from "@/components/race-analysis/RaceAnalysisTabs";
 import {
@@ -13,21 +13,19 @@ import {
 } from "@/components/race-analysis/raceAnalysisTabs.config";
 import { type SessionOption } from "@/components/f1";
 import { useRaceSchedule, useSpoilerShield } from "@/hooks/useF1Data";
+import { getLatestRace } from "@/hooks/f1/useSpoilerShield";
+import { useSeason } from "@/hooks/useSeason";
+import { raceHref, seasonSearch } from "@/lib/links";
 import { useDbSessions } from "@/hooks/useWarehouse";
 import { pageShell, pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
+import { F1Loader } from "@/components/f1";
 import Seo from "@/components/common/Seo";
-import { useTheme } from "@/context/ThemeContext";
 import { breadcrumbSchema, raceSchema } from "@/lib/structuredData";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
 import { Button } from "@/components/ui/button";
 
-type RaceScheduleEntry = {
-  round: string;
-  raceName: string;
-  date: string;
-  Circuit?: { circuitName?: string; Location?: { country?: string } };
-};
+type RaceScheduleEntry = RaceContext & { date: string };
 
 // Stable synthetic session_key per canonical code, so the existing RacePicker
 // (which keys sessions by number) keeps working without OpenF1 session keys.
@@ -35,12 +33,11 @@ const SESSION_KEY: Record<string, number> = {
   FP1: 1, FP2: 2, FP3: 3, SQ: 4, S: 5, Q: 6, R: 7,
 };
 
-const getDefaultYear = () => new Date().getFullYear();
-
 const RaceAnalysis = () => {
   const { year: urlYear, round: urlRound } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [season, setSeason] = useSeason();
 
   // A shared moment link (?driver=&lap=) opens the race at a specific lap and
   // driver on the lap-times tab.
@@ -49,10 +46,10 @@ const RaceAnalysis = () => {
   const focusLapParsed = focusLapRaw ? parseInt(focusLapRaw, 10) : NaN;
   const focusLap = Number.isFinite(focusLapParsed) ? focusLapParsed : undefined;
 
-  const [selectedYear, setSelectedYear] = useState<number>(
-    urlYear ? parseInt(urlYear, 10) : getDefaultYear()
-  );
-  const [selectedRace, setSelectedRace] = useState<string>(urlRound || "1");
+  // The race's season comes from the address (/race-analysis/:year/:round); without one, the
+  // season in the top bar (useSeason) and its latest finished race.
+  const selectedYear = urlYear ? parseInt(urlYear, 10) : season;
+  const selectedRace = urlRound ?? "";
   const [selectedTab, setSelectedTab] = useState<RaceAnalysisTabId>(() => {
     const t = searchParams.get("tab");
     // A moment link with a driver always opens the lap-times tab.
@@ -64,32 +61,46 @@ const RaceAnalysis = () => {
 
   const { data: raceScheduleData, isLoading: isRaceScheduleLoading } =
     useRaceSchedule(selectedYear);
+  const races = raceScheduleData?.data as RaceScheduleEntry[] | undefined;
   const { data: dbSessions, isLoading: isSessionsLoading } =
-    useDbSessions(selectedYear, parseInt(selectedRace, 10));
-  const { isGlass } = useTheme();
+    useDbSessions(selectedYear, parseInt(selectedRace || "0", 10));
+
+  // No round in the address: open the latest finished race of the season (round 1 before
+  // the season starts), keeping ?tab= and the other view parameters.
+  useEffect(() => {
+    if (urlRound || !races?.length) return;
+    const target = getLatestRace(races) ?? races[0];
+    const q = new URLSearchParams(searchParams);
+    q.delete("season");
+    q.delete("year");
+    const qs = q.toString();
+    navigate(`${raceHref(selectedYear, target.round)}${qs ? `?${qs}` : ""}`, { replace: true });
+  }, [urlRound, races, searchParams, selectedYear, navigate]);
+
+  // Keep the top-bar season on this race's season, and follow it when it changes there.
+  const syncedYear = useRef<string | null>(null);
+  useEffect(() => {
+    if (!urlYear) return;
+    const y = Number(urlYear);
+    if (syncedYear.current !== urlYear) {
+      syncedYear.current = urlYear;
+      if (season !== y) setSeason(y);
+      return;
+    }
+    if (season !== y) navigate(`/race-analysis${seasonSearch(season)}`);
+  }, [urlYear, season, setSeason, navigate]);
 
   const { isShielded: raceShielded, showResults: raceShowResults, latestRace: raceLatestRace } =
-    useSpoilerShield({ season: selectedYear, races: raceScheduleData?.data ?? null });
+    useSpoilerShield({ season: selectedYear, races: races ?? null });
   // Only the currently selected round is shielded, and only when it is the
   // latest race weekend; other rounds and past seasons are untouched.
   const isLatestRace = !!raceLatestRace && raceLatestRace.round === selectedRace;
   const shielded = isLatestRace && raceShielded;
 
-  const currentRace = useMemo(() => {
-    if (!raceScheduleData?.data) return null;
-    return raceScheduleData.data.find(
-      (race: RaceScheduleEntry) => race.round === selectedRace
-    );
-  }, [raceScheduleData, selectedRace]);
-
-  useEffect(() => {
-    if (urlYear) {
-      setSelectedYear(parseInt(urlYear, 10));
-    }
-    if (urlRound) {
-      setSelectedRace(urlRound);
-    }
-  }, [urlYear, urlRound]);
+  const currentRace = useMemo(
+    () => races?.find((race) => race.round === selectedRace) ?? null,
+    [races, selectedRace],
+  );
 
   // Keep the active tab in the URL so views are shareable, and react to a
   // shared link / back-button that carries a different ?tab=.
@@ -97,6 +108,11 @@ const RaceAnalysis = () => {
     const t = searchParams.get("tab");
     if (isRaceAnalysisTab(t) && t !== selectedTab) setSelectedTab(t);
   }, [searchParams, selectedTab]);
+
+  // A different race starts on its own session list.
+  useEffect(() => {
+    setSelectedSessionKey(null);
+  }, [selectedYear, selectedRace]);
 
   // Build the picker's session list from the warehouse (canonical, deduped,
   // correctly named). session_type IS the code (R/Q/S/SQ/FP1-3).
@@ -129,25 +145,14 @@ const RaceAnalysis = () => {
     }
   }, [dbSessions, isSessionsLoading, selectedRace, selectedSessionKey, searchParams]);
 
-  const hasSessions = availableSessions.length > 0;
-
   // The selected canonical session code (R/Q/S/SQ/FP1-3).
   const selectedSession = useMemo(() => {
     const s = availableSessions.find((x) => x.session_key === selectedSessionKey);
     return (s?.session_type as string) || "R";
   }, [availableSessions, selectedSessionKey]);
 
-  const handleYearChange = (year: number) => {
-    setSelectedYear(year);
-    setSelectedRace("1");
-    setSelectedSessionKey(null);
-    navigate(`/race-analysis/${year}/1?tab=${selectedTab}`);
-  };
-
   const handleRaceChange = (round: string) => {
-    setSelectedRace(round);
-    setSelectedSessionKey(null);
-    navigate(`/race-analysis/${selectedYear}/${round}?tab=${selectedTab}`);
+    navigate(raceHref(selectedYear, round, selectedTab));
   };
 
   const handleTabChange = (tab: RaceAnalysisTabId) => {
@@ -188,19 +193,26 @@ const RaceAnalysis = () => {
   // Race pages are the deepest, most numerous and most search-visible routes — each one
   // gets its own title, canonical and SportsEvent card rather than inheriting the
   // homepage's metadata.
-  const raceLabel = currentRace?.raceName
-    ? getRaceNameWithoutEmoji(currentRace.raceName)
-    : `Round ${selectedRace}`;
+  const raceLabel = currentRace?.raceName ? getRaceNameWithoutEmoji(currentRace.raceName) : "Grand Prix";
   const racePath = `/race-analysis/${selectedYear}/${selectedRace}`;
+  const pitWallQuery = new URLSearchParams({ year: String(selectedYear), round: selectedRace, session: selectedSession });
+
+  if (!urlRound) {
+    return (
+      <div className={pageShell}>
+        <F1Loader label="Finding the latest Grand Prix…" />
+      </div>
+    );
+  }
 
   return (
     <div className={pageShell}>
       <Seo
-        title={`${raceLabel} ${selectedYear} — Race Analysis`}
+        title={`${raceLabel} ${selectedYear}`}
         path={racePath}
         description={`Telemetry and strategy analysis for the ${selectedYear} ${raceLabel}${
           currentRace?.Circuit?.circuitName ? ` at ${currentRace.Circuit.circuitName}` : ""
-        } — lap times, tyre stints, pit strategy, sector pace and driver head-to-heads.`}
+        }: lap times, tyre stints, pit strategy, sector pace and driver head-to-heads.`}
         jsonLd={[
           raceSchema({
             name: `${raceLabel} ${selectedYear}`,
@@ -212,46 +224,41 @@ const RaceAnalysis = () => {
           }),
           breadcrumbSchema([
             { name: "Home", path: "/" },
-            { name: "Race Analysis", path: "/race-analysis" },
+            { name: "Grand Prix", path: "/race-analysis" },
             { name: `${raceLabel} ${selectedYear}`, path: racePath },
           ]),
         ]}
       />
-      <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
-        <RaceAnalysisHeader selectedYear={selectedYear} currentRace={currentRace} />
+      <div className={cn("mx-auto w-full min-w-0", pageStack, "animate-fade-in")}>
+        <RaceAnalysisHeader
+          selectedYear={selectedYear}
+          currentRace={currentRace}
+          actions={
+            <>
+              <Button asChild variant="secondary" size="sm" className="rounded-full">
+                <Link to={`/pit-wall?${pitWallQuery.toString()}`} viewTransition>
+                  Open in Pit Wall
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" className="rounded-full" onClick={handleCopyLink}>
+                <Link2 className="h-4 w-4" />
+                Copy link
+              </Button>
+            </>
+          }
+        />
 
-        {/* One-click link to the current moment (tab/session/driver/lap). */}
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopyLink}
-            title="Copy link to this moment"
-          >
-            <Link2 className="h-3.5 w-3.5" />
-            Copy link
-          </Button>
-        </div>
-
-        {/* Sticky race-context bar (desktop only — the picker is a single compact
-            row there; on mobile it stacks tall so it scrolls normally). Keeps the
-            selected GP/session visible while scrolling long analysis tabs. */}
-        <div className={cn("lg:sticky lg:top-0 lg:z-20 lg:-mx-6 lg:border-b lg:border-border/60 lg:px-6 lg:py-2", isGlass ? "lg:bg-background/90 lg:backdrop-blur-sm" : "lg:bg-background")}>
-          <RacePicker
-            selectedYear={selectedYear}
-            selectedRace={selectedRace}
-            currentRace={currentRace}
-            raceSchedule={raceScheduleData?.data}
-            isRaceScheduleLoading={isRaceScheduleLoading}
-            hasOpenF1Data={hasSessions}
-            availableSessions={availableSessions}
-            selectedSessionKey={selectedSessionKey}
-            isOpenF1Loading={isSessionsLoading}
-            onYearChange={handleYearChange}
-            onRaceChange={handleRaceChange}
-            onSessionChange={handleSessionChange}
-          />
-        </div>
+        <RacePicker
+          selectedRace={selectedRace}
+          raceSchedule={races}
+          isRaceScheduleLoading={isRaceScheduleLoading}
+          availableSessions={availableSessions}
+          selectedSessionKey={selectedSessionKey}
+          isSessionsLoading={isSessionsLoading}
+          onRaceChange={handleRaceChange}
+          onSessionChange={handleSessionChange}
+        />
 
         <RaceAnalysisTabs
           selectedTab={selectedTab}

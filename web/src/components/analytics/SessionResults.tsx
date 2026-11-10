@@ -2,14 +2,16 @@ import React, { useMemo } from 'react';
 import { Zap } from 'lucide-react';
 import { useRaceResults, useRaceQualifying, useSprintResults } from "@/hooks/f1";
 import { formatTime } from "@/utils/lapTimeUtils";
-import { getTeamColorById } from '@/constants/f1Colors';
+import { DriverIdentity } from "@/components/f1/DriverIdentity";
 import {
-  PositionBadge,
   F1Badge,
   F1Skeleton,
   F1EmptyState,
   F1ErrorState,
+  TeamName,
 } from "@/components/f1";
+import { teamHref } from "@/lib/links";
+import { cn } from "@/lib/utils";
 
 interface SessionResultsProps {
   year: number;
@@ -21,14 +23,19 @@ interface SessionResultsProps {
 interface ProcessedResult {
   id: number;
   position: number;
-  driver_number: number;
-  driver_name: string;
+  driver_id: string;
+  given_name: string;
+  family_name: string;
+  nationality?: string;
   driver_acronym: string;
+  constructor_id: string;
   constructor_name: string;
   best_lap_time: number | null;
   gap_to_leader: number;
   total_laps: number;
-  team_color: string;
+  /** Race time for the winner, the gap for the rest, or the status ("DNF", "+1 Lap"). */
+  result_text: string | null;
+  points: string | null;
 }
 
 interface ErgastDriver {
@@ -36,6 +43,7 @@ interface ErgastDriver {
   code: string;
   givenName?: string;
   familyName?: string;
+  nationality?: string;
 }
 interface ErgastConstructor {
   name: string;
@@ -45,6 +53,9 @@ interface ErgastResult {
   number: string;
   position: string;
   laps: string;
+  points?: string;
+  status?: string;
+  Time?: { time?: string };
   Driver: ErgastDriver;
   Constructor?: ErgastConstructor;
   Q1?: string;
@@ -90,18 +101,21 @@ const SessionResults: React.FC<SessionResultsProps> = ({
       const best = isQuali
         ? parseLap(r.Q3 || r.Q2 || r.Q1)
         : parseLap(r.FastestLap?.Time?.time);
-      const cid = r.Constructor?.constructorId || r.Constructor?.name || "";
       return {
         id: parseInt(r.number, 10) || i + 1,
         position: parseInt(r.position, 10) || i + 1,
-        driver_number: parseInt(r.number, 10) || 0,
-        driver_name: `${r.Driver?.givenName ?? ""} ${r.Driver?.familyName ?? ""}`.trim(),
+        driver_id: r.Driver?.driverId ?? "",
+        given_name: r.Driver?.givenName ?? "",
+        family_name: r.Driver?.familyName ?? r.Driver?.code ?? "",
+        nationality: r.Driver?.nationality,
         driver_acronym: r.Driver?.code || `${r.Driver?.givenName?.[0] ?? ""}${r.Driver?.familyName?.[0] ?? ""}`,
+        constructor_id: r.Constructor?.constructorId || "",
         constructor_name: r.Constructor?.name || "Unknown",
         best_lap_time: best,
         gap_to_leader: 0,
         total_laps: parseInt(r.laps, 10) || 0,
-        team_color: getTeamColorById(cid),
+        result_text: isQuali ? null : r.Time?.time ?? r.status ?? null,
+        points: isQuali ? null : r.points ?? null,
       };
     });
     rows.sort((a, b) => a.position - b.position);
@@ -168,112 +182,107 @@ const SessionResults: React.FC<SessionResultsProps> = ({
     <div className="flex flex-col gap-3">
       {/* Eyebrow + fastest lap */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="instrument-label">
+        <span className="text-xs font-semibold text-muted-foreground">
           Classification
         </span>
         {fastestLap?.best_lap_time != null && (
           <F1Badge variant="time" className="gap-1.5">
-            <Zap className="h-3 w-3 text-primary" />
-            <span className="text-primary">{fastestLap.driver_acronym}</span>
-            <span className="opacity-50">•</span>
-            {formatTime(fastestLap.best_lap_time)}
+            <Zap className="h-3 w-3 text-[hsl(var(--fastest-lap))]" />
+            Fastest lap, {fastestLap.family_name}, {formatTime(fastestLap.best_lap_time)}
           </F1Badge>
         )}
       </div>
 
-      {/* ── Mobile: compact cards (no horizontal scroll, names wrap) ── */}
-      <div className="flex flex-col gap-1.5 md:hidden">
+      {/* Phones: one row per driver, names wrap, nothing scrolls sideways */}
+      <ol className="flex flex-col divide-y divide-border md:hidden">
         {processedResults.map((result) => {
           const isFastest = fastestLap?.id === result.id;
           return (
-            <div
-              key={result.id}
-              className="flex items-center gap-2.5 rounded-lg border border-border bg-card/40 p-2"
-            >
-              {result.position <= 3 ? (
-                <PositionBadge position={result.position} showIcon={false} className="shrink-0" />
-              ) : (
-                <span className="w-7 shrink-0 text-center text-sm font-bold tabular-nums text-muted-foreground">
-                  {result.position}
+            <li key={result.id} className="flex items-center gap-3 py-2.5">
+              <span className="w-6 shrink-0 text-center text-sm font-bold tabular-nums text-figure">{result.position}</span>
+              <DriverIdentity
+                className="flex-1"
+                driverId={result.driver_id}
+                givenName={result.given_name}
+                familyName={result.family_name}
+                nationality={result.nationality}
+                constructorId={result.constructor_id}
+                teamName={result.constructor_name}
+                extra={isFastest ? <span className="text-[hsl(var(--fastest-lap))]">fastest lap</span> : null}
+              />
+              <span className="shrink-0 text-right">
+                <span className="timing block text-sm">
+                  {isQuali
+                    ? result.best_lap_time ? formatTime(result.best_lap_time) : "No time"
+                    : result.result_text ?? "No time"}
                 </span>
-              )}
-              <div
-                className="min-w-0 flex-1 border-l-2 pl-2.5"
-                style={{ borderColor: result.team_color }}
-              >
-                <div className="flex items-center gap-1.5 font-bold leading-tight">
-                  <span className="font-mono">{result.driver_acronym}</span>
-                  {isFastest && <Zap className="h-3 w-3 shrink-0 text-primary" />}
-                </div>
-                <div className="mt-0.5 wrap-break-word text-xs text-muted-foreground">
-                  {result.constructor_name}
-                </div>
-              </div>
-              <div className="shrink-0 text-right">
-                <div className="timing text-sm leading-none">
-                  {result.best_lap_time ? formatTime(result.best_lap_time) : '--'}
-                </div>
-                {result.gap_to_leader > 0 && (
-                  <div className="timing mt-0.5 text-xs text-muted-foreground">
-                    +{result.gap_to_leader.toFixed(3)}
-                  </div>
-                )}
-              </div>
-            </div>
+                {result.points && result.points !== "0" ? (
+                  <span className="block text-xs text-muted-foreground">{result.points} pts</span>
+                ) : null}
+              </span>
+            </li>
           );
         })}
-      </div>
+      </ol>
 
-      {/* ── Desktop: dense timing-screen table ── */}
+      {/* Wider screens: the full classification table */}
       <div className="hidden md:block">
-        <table className="w-full border-separate border-spacing-0">
+        <table className="w-full border-separate border-spacing-0 text-sm">
           <thead>
-            <tr className="instrument-label">
+            <tr className="text-xs font-semibold text-muted-foreground">
               <th className="border-b border-border py-2 pr-3 text-left font-semibold">Pos</th>
               <th className="border-b border-border py-2 pr-3 text-left font-semibold">Driver</th>
               <th className="border-b border-border py-2 pr-3 text-left font-semibold">Team</th>
-              <th className="border-b border-border py-2 pr-3 text-right font-semibold">Best Lap</th>
-              <th className="border-b border-border py-2 text-right font-semibold">Gap</th>
+              <th className="border-b border-border py-2 pr-3 text-right font-semibold">Laps</th>
+              <th className="border-b border-border py-2 pr-3 text-right font-semibold">{isQuali ? "Best" : "Time"}</th>
+              <th className="border-b border-border py-2 pr-3 text-right font-semibold">{isQuali ? "Gap" : "Fastest"}</th>
+              {!isQuali && <th className="border-b border-border py-2 text-right font-semibold">Pts</th>}
             </tr>
           </thead>
           <tbody>
             {processedResults.map((result) => {
               const isFastest = fastestLap?.id === result.id;
               return (
-                <tr key={result.id} className="group">
-                  <td className="border-b border-border py-1.5 pr-3 align-middle">
-                    {result.position <= 3 ? (
-                      <PositionBadge position={result.position} showIcon={false} />
+                <tr key={result.id}>
+                  <td className="border-b border-border py-2 pr-3 align-middle font-bold tabular-nums text-figure">{result.position}</td>
+                  <td className="border-b border-border py-2 pr-3 align-middle">
+                    <DriverIdentity
+                      size={32}
+                      driverId={result.driver_id}
+                      givenName={result.given_name}
+                      familyName={result.family_name}
+                      nationality={result.nationality}
+                      constructorId={result.constructor_id}
+                    />
+                  </td>
+                  <td className="border-b border-border py-2 pr-3 align-middle">
+                    {result.constructor_id ? (
+                      <TeamName constructorId={result.constructor_id} name={result.constructor_name} to={teamHref(result.constructor_id)} size={16} />
                     ) : (
-                      <span className="inline-block w-7 text-center text-sm font-bold tabular-nums text-muted-foreground">
-                        {result.position}
-                      </span>
+                      result.constructor_name
                     )}
                   </td>
-                  <td className="border-b border-border py-1.5 pr-3 align-middle">
-                    <div
-                      className="flex items-center gap-2 border-l-2 pl-2.5"
-                      style={{ borderColor: result.team_color }}
-                    >
-                      <span className="font-mono text-sm font-bold">{result.driver_acronym}</span>
-                      {isFastest && <Zap className="h-3 w-3 shrink-0 text-primary" />}
-                    </div>
+                  <td className="timing border-b border-border py-2 pr-3 text-right align-middle">{result.total_laps || "No laps"}</td>
+                  <td className="timing border-b border-border py-2 pr-3 text-right align-middle">
+                    {isQuali
+                      ? result.best_lap_time ? formatTime(result.best_lap_time) : "No time"
+                      : result.result_text ?? "No time"}
                   </td>
-                  <td className="border-b border-border py-1.5 pr-3 align-middle">
-                    <span className="wrap-break-word text-sm text-muted-foreground">
-                      {result.constructor_name}
-                    </span>
+                  <td
+                    className={cn(
+                      "timing border-b border-border py-2 pr-3 text-right align-middle",
+                      isFastest ? "font-semibold text-[hsl(var(--fastest-lap))]" : "text-muted-foreground",
+                    )}
+                  >
+                    {isQuali
+                      ? result.gap_to_leader > 0 ? `+${result.gap_to_leader.toFixed(3)}` : isFastest ? "Pole" : ""
+                      : isFastest && result.best_lap_time ? formatTime(result.best_lap_time) : ""}
                   </td>
-                  <td className="border-b border-border py-1.5 pr-3 text-right align-middle">
-                    <span className="timing text-sm">
-                      {result.best_lap_time ? formatTime(result.best_lap_time) : '--'}
-                    </span>
-                  </td>
-                  <td className="border-b border-border py-1.5 text-right align-middle">
-                    <span className="timing text-sm text-muted-foreground">
-                      {result.gap_to_leader > 0 ? `+${result.gap_to_leader.toFixed(3)}` : '--'}
-                    </span>
-                  </td>
+                  {!isQuali && (
+                    <td className="timing border-b border-border py-2 text-right align-middle font-semibold text-figure">
+                      {result.points ?? ""}
+                    </td>
+                  )}
                 </tr>
               );
             })}

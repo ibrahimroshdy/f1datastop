@@ -43,6 +43,12 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
 
   --color-card: hsl(var(--card));
+  --color-raised: hsl(var(--raised));
+  --color-ink-2: hsl(var(--ink-2));
+  --color-heading: hsl(var(--heading));
+  --color-figure: hsl(var(--figure));
+  --color-act: hsl(var(--act));
+  --color-on-act: hsl(var(--on-act));
   --color-card-foreground: hsl(var(--card-foreground));
 
   --color-sidebar: hsl(var(--sidebar-background));
@@ -114,11 +120,11 @@
   --min-width-sidebar-collapsed: 64px;
   --min-width-sidebar-expanded: 240px;
 
+  /* D17: Floodlight's type. Saira for the UI, Saira Condensed for titles, JetBrains Mono for figures. */
   --font-sans:
-    Geist, SF Pro Display, system-ui, -apple-system, BlinkMacSystemFont,
-    Segoe UI, Roboto, sans-serif;
-  --font-mono: Geist Mono, JetBrains Mono, SF Mono, Monaco, Consolas, monospace;
-  --font-display: Clash Display, Geist, SF Pro Display, system-ui, sans-serif;
+    Saira, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+  --font-mono: JetBrains Mono, SF Mono, Monaco, Consolas, monospace;
+  --font-display: Saira Condensed, Saira, system-ui, sans-serif;
 
   --text-2xs: 0.625rem;
   --text-2xs--line-height: 0.875rem;
@@ -732,8 +738,7 @@
 
 @utility stat-numeral {
   /* Pit Wall typography utilities (R0) */
-  font-family: "Clash Display", "Geist", system-ui, sans-serif;
-  letter-spacing: -0.015em;
+  font-family: var(--font-mono);
   @apply text-2xl font-bold tabular-nums tracking-tight;
 }
 
@@ -759,8 +764,8 @@
 }
 
 @utility instrument-label {
-  /* Micro instrument label / eyebrow above a value */
-  @apply text-xs font-semibold uppercase tracking-widest text-muted-foreground;
+  /* A label above a value: sentence case, 13 px, quiet (D17: no tracked capitals). */
+  @apply text-[13px] font-medium text-muted-foreground;
 }
 
 @utility hairline-grid {
@@ -893,63 +898,79 @@
      DARK THEME (Default) - Pure Black
      ============================================ */
   :root {
+    /* F1 DataStop release 2 (docs/design/decisions.md D12, D17): Deep Carbon and one red.
+       Raised = floating bars, popovers and sheets; ink-2 = secondary text (12.8:1 on card);
+       heading and figure carry the faint tints that keep pages from reading flat (D21-style). */
+    --raised: 240 8% 9.8%;
+    --ink-2: 232 10% 83.9%;
+    --heading: 5 100% 95.3%;
+    --figure: 0 0% 100%;
+    --act: 2 100% 44.1%;
+    --on-act: 0 0% 100%;
+    --hold: 240 6% 39%;
+    /* Shell (D7): sizes of the floating header pill and dock, used to pad the one scroller. */
+    --pill-h: 56px;
+    --dock-h: 66px;
+    /* D7 motion, from Mondar PR #41: drawer for anything that travels, pop for presses. */
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-pop: cubic-bezier(0.22, 1, 0.36, 1);
     /* Deep Carbon ladder — hue-shifted near-blacks, real elevation steps.
        bg 3.5 → popover 5 → card 6 → muted 10 → accent 14 → border 15 */
-    --background: 240 8% 3.5%;
-    --foreground: 220 15% 96%;
+    --background: 240 11% 3.5%;
+    --foreground: 225 20% 96.1%;
 
-    --card: 240 7% 6%;
-    --card-foreground: 220 15% 96%;
+    --card: 240 9% 6.5%;
+    --card-foreground: 225 20% 96.1%;
 
-    --popover: 240 8% 5%;
-    --popover-foreground: 220 15% 96%;
+    --popover: 240 8% 9.8%;
+    --popover-foreground: 225 20% 96.1%;
 
-    --primary: 0 100% 44%;
+    --primary: 2 100% 44.1%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 7% 11%;
-    --secondary-foreground: 220 14% 94%;
+    --secondary: 240 8% 12%;
+    --secondary-foreground: 225 20% 96.1%;
 
-    --muted: 240 7% 10%;
-    --muted-foreground: 240 6% 64%;
+    --muted: 240 8% 12%;
+    --muted-foreground: 234 6% 69%;
 
-    --accent: 240 6% 14%;
-    --accent-foreground: 220 14% 96%;
+    --accent: 240 8% 14.5%;
+    --accent-foreground: 225 20% 96.1%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 6% 15%;
-    --input: 240 6% 15%;
-    --ring: 0 100% 44%;
+    --border: 240 7% 17.6%;
+    --input: 240 7% 17.6%;
+    --ring: 2 100% 44.1%;
 
     /* Raised surface (card-on-card / elevated panels) */
-    --elevated: 240 7% 8.5%;
+    --elevated: 240 8% 9.8%;
 
     /* Sharper radius for professional look */
-    --radius: 0.5rem;
+    --radius: 0.875rem;
 
     /* Sidebar */
-    --sidebar-background: 240 8% 3.5%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 0 100% 44%;
+    --sidebar-background: 240 8% 9.8%;
+    --sidebar-foreground: 225 20% 96.1%;
+    --sidebar-primary: 2 100% 44.1%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 7% 11%;
+    --sidebar-accent: 240 8% 14.5%;
     --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 240 6% 15%;
-    --sidebar-ring: 0 100% 44%;
+    --sidebar-border: 240 7% 17.6%;
+    --sidebar-ring: 2 100% 44.1%;
     
     /* Sidebar widths */
     --sidebar-collapsed: 64px;
     --sidebar-expanded: 240px;
 
     /* Chart Design System */
-    --chart-background: 240 7% 6%;
-    --chart-grid: 240 6% 15%;
-    --chart-axis: 240 6% 64%;
-    --chart-tooltip-bg: 0 0% 0%;
-    --chart-tooltip-border: 0 0% 15%;
-    --chart-tooltip-text: 0 0% 98%;
+    --chart-background: 240 9% 6.5%;
+    --chart-grid: 240 7% 17.6%;
+    --chart-axis: 234 6% 69%;
+    --chart-tooltip-bg: 240 8% 9.8%;
+    --chart-tooltip-border: 240 7% 17.6%;
+    --chart-tooltip-text: 225 20% 96.1%;
 
     /* Weather metric series (categorical chart hues, per DESIGN.md §1.7) */
     --weather-air: 217 91% 60%;
@@ -959,7 +980,7 @@
     --weather-pressure: 262 60% 60%;
 
     /* F1 Brand Colors */
-    --f1-red: 0 100% 44%;
+    --f1-red: 2 100% 44.1%;
     --f1-black: 240 20% 7%;
     --f1-white: 0 0% 100%;
     
@@ -1032,51 +1053,58 @@
      LIGHT THEME
      ============================================ */
   .light {
-    --background: 0 0% 98%;
-    --foreground: 240 10% 3.9%;
+    --raised: 0 0% 100%;
+    --ink-2: 240 7% 28.6%;
+    --heading: 3 92% 15.1%;
+    --figure: 240 20% 4.9%;
+    --act: 2 100% 44.1%;
+    --on-act: 0 0% 100%;
+    --hold: 240 6% 69%;
+    --background: 240 11% 96.5%;
+    --foreground: 240 20% 4.9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 240 20% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 240 20% 4.9%;
 
-    --primary: 0 100% 44%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 2 100% 44.1%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 10% 3.9%;
+    --secondary: 240 10% 93.9%;
+    --secondary-foreground: 240 20% 4.9%;
 
-    --muted: 240 5% 94%;
-    --muted-foreground: 240 4% 46.1%;
+    --muted: 240 10% 93.9%;
+    --muted-foreground: 240 6% 38.8%;
 
-    --accent: 240 5% 92%;
-    --accent-foreground: 240 10% 3.9%;
+    --accent: 240 9% 91.4%;
+    --accent-foreground: 240 20% 4.9%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 5% 87%;
-    --input: 240 5% 87%;
-    --ring: 0 100% 44%;
+    --border: 240 8% 88%;
+    --input: 240 8% 88%;
+    --ring: 2 100% 44.1%;
 
     /* Sidebar - Light */
-    --sidebar-background: 0 0% 97%;
-    --sidebar-foreground: 240 10% 3.9%;
-    --sidebar-primary: 0 100% 44%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 20% 4.9%;
+    --sidebar-primary: 2 100% 44.1%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 92%;
+    --sidebar-accent: 240 9% 91.4%;
     --sidebar-accent-foreground: 240 10% 3.9%;
-    --sidebar-border: 240 5% 87%;
-    --sidebar-ring: 0 100% 44%;
+    --sidebar-border: 240 8% 88%;
+    --sidebar-ring: 2 100% 44.1%;
 
     /* Chart Design System - Light */
     --chart-background: 0 0% 100%;
-    --chart-grid: 240 5% 92%;
-    --chart-axis: 240 4% 46%;
+    --chart-grid: 240 8% 88%;
+    --chart-axis: 240 6% 38.8%;
     --chart-tooltip-bg: 0 0% 100%;
-    --chart-tooltip-border: 240 5% 87%;
-    --chart-tooltip-text: 240 10% 4%;
+    --chart-tooltip-border: 240 8% 88%;
+    --chart-tooltip-text: 240 20% 4.9%;
 
     /* Weather metric series (categorical chart hues, per DESIGN.md §1.7) */
     --weather-air: 217 91% 50%;
@@ -1086,7 +1114,7 @@
     --weather-pressure: 262 55% 52%;
 
     /* F1 Brand Colors - Same in both themes */
-    --f1-red: 0 100% 44%;
+    --f1-red: 2 100% 44.1%;
     --f1-black: 240 20% 7%;
     --f1-white: 0 0% 100%;
     
@@ -1253,14 +1281,19 @@
 
   body {
     @apply bg-background text-foreground overflow-hidden antialiased;
-    font-family: "Geist", "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    font-family: var(--font-sans);
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 
+  /* D17: titles in Saira Condensed capitals, with the faint heading tint. */
   h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: "Clash Display", "Geist", system-ui, sans-serif;
-    letter-spacing: -0.015em;
-    font-weight: 600;
+    font-family: var(--font-display);
+    letter-spacing: 0.005em;
+    font-weight: 700;
+  }
+  h1, h2, h3, .font-heading {
+    text-transform: uppercase;
+    color: hsl(var(--heading));
   }
 
   /* Smooth transitions for theme changes */
@@ -1571,4 +1604,181 @@
 /* Keep fixed bars from re-rasterizing (iOS standalone flicker) */
 .nav-stable {
   transform: none;
+}
+
+/* ============================================
+   SHELL (docs/design/decisions.md D7), after Mondar PR #41.
+   Floating solid bars over one scroller at every width; nothing is see-through.
+   Phone (< 768): header pill on top, dock at the bottom.
+   Tablet and desktop: floating sidebar (rail 72 px, column 232 px) and top bar.
+   ============================================ */
+.shell {
+  --gap: 12px;
+  --side-w: 232px;
+  --top-h: 64px;
+  height: 100dvh;
+  background: hsl(var(--background));
+}
+.shell[data-rail="true"] { --side-w: 72px; }
+
+/* The one scroller. It sits behind every bar and pads its content clear of them. */
+.shell-scroll {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  padding-top: calc(env(safe-area-inset-top) + 8px + var(--pill-h) + 16px);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 12px + var(--dock-h) + 24px);
+  background:
+    radial-gradient(110% 340px at 50% -60px, hsl(var(--heading) / 0.05), transparent 70%),
+    hsl(var(--background));
+}
+@media (min-width: 768px) {
+  .shell-scroll {
+    padding-top: calc(var(--gap) + var(--top-h) + 20px);
+    padding-bottom: 0;
+    padding-left: calc(var(--gap) + var(--side-w));
+  }
+}
+
+/* Solid floating surfaces: raised, a hairline, the controls' small shadow. */
+.shell-top,
+.shell-side,
+.shell-dock,
+.shell-more {
+  background: hsl(var(--raised));
+  box-shadow: 0 0 0 1px hsl(var(--border)), 0 12px 32px rgb(0 0 0 / 0.55);
+}
+.light .shell-top, .light .shell-side, .light .shell-dock, .light .shell-more {
+  box-shadow: 0 0 0 1px hsl(var(--border)), 0 10px 28px rgb(0 0 0 / 0.12);
+}
+
+/* Header pill (phone) / top bar (tablet, desktop) */
+.shell-top {
+  position: fixed;
+  z-index: 40;
+  top: calc(env(safe-area-inset-top) + 8px);
+  left: 12px;
+  right: 12px;
+  height: var(--pill-h);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 0 10px;
+  view-transition-name: shell-top;
+}
+.shell-title {
+  min-width: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 21px;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: hsl(var(--heading));
+}
+@media (min-width: 768px) {
+  .shell-top {
+    top: var(--gap);
+    left: calc(var(--gap) * 2 + var(--side-w));
+    right: var(--gap);
+    height: var(--top-h);
+    border-radius: 22px;
+    padding: 0 12px 0 20px;
+    gap: 14px;
+  }
+  .shell-title { font-size: 26px; }
+}
+
+/* Sidebar (tablet rail, desktop column) */
+.shell-side {
+  display: none;
+}
+@media (min-width: 768px) {
+  .shell-side {
+    position: fixed;
+    z-index: 40;
+    left: var(--gap);
+    top: var(--gap);
+    bottom: var(--gap);
+    width: var(--side-w);
+    border-radius: 24px;
+    padding: 16px 10px;
+    display: flex;
+    flex-direction: column;
+    view-transition-name: shell-side;
+  }
+}
+
+/* Dock (phone): every tab one footprint, 6 px inside the dock. */
+.shell-dock {
+  position: fixed;
+  z-index: 40;
+  left: 16px;
+  right: 16px;
+  bottom: calc(env(safe-area-inset-bottom) + 12px);
+  height: var(--dock-h);
+  border-radius: 26px;
+  padding: 6px;
+  display: flex;
+  gap: 2px;
+  view-transition-name: shell-dock;
+}
+/* Content fades out under the dock instead of running into it. */
+.dock-scrim {
+  position: fixed;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(env(safe-area-inset-bottom) + 12px + var(--dock-h) + 36px);
+  background: linear-gradient(to top, hsl(var(--background)) 55%, transparent);
+  pointer-events: none;
+}
+
+/* More panel (phone): a solid card rising from the dock. */
+.shell-more {
+  position: fixed;
+  z-index: 41;
+  left: 16px;
+  right: 16px;
+  bottom: calc(env(safe-area-inset-bottom) + 12px + var(--dock-h) + 8px);
+  max-height: 70dvh;
+  overflow-y: auto;
+  border-radius: 24px;
+  padding: 8px;
+  animation: shell-rise 0.3s var(--ease-drawer) both;
+}
+@keyframes shell-rise {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* The 0.97 press, at every width. */
+.press {
+  transition: transform 0.16s var(--ease-pop), background-color 0.2s, color 0.2s;
+}
+.press:active { transform: scale(0.97); }
+
+/* View Transitions between pages: the page crossfades, the bars hold still. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.22s;
+  animation-timing-function: var(--ease-pop);
+}
+::view-transition-group(shell-top),
+::view-transition-group(shell-side),
+::view-transition-group(shell-dock) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation-duration: 0.01ms; }
+  .press:active { transform: none; }
+}
+/* The dock, its scrim and the More panel are phone-only (this block sits outside Tailwind's
+   layers, so it states the breakpoint itself rather than relying on md:hidden). */
+@media (min-width: 768px) {
+  .shell-dock, .dock-scrim, .shell-more { display: none; }
 }

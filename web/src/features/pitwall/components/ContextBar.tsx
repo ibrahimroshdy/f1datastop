@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { Flag, Link2, Star, Users } from "lucide-react";
+import { ArrowUpRight, Link2, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CountryFlag from "@/components/common/CountryFlag";
@@ -8,7 +9,10 @@ import { cn } from "@/lib/utils";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { useRaceSchedule } from "@/hooks/f1/useSchedule";
 import type { RaceContext } from "@/components/race-analysis/RaceAnalysisHeader";
-import { PITWALL_SEASONS, sessionsForRace, type CompareMode, type SessionCode } from "../pitwall.config";
+import { raceHref } from "@/lib/links";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { isSprintWeekend } from "@/components/race-analysis/raceContext";
+import { sessionsForRace, type CompareMode, type SessionCode } from "../pitwall.config";
 import type { PitWallState } from "../hooks/usePitWallState";
 
 interface Props {
@@ -19,11 +23,9 @@ interface Props {
 type ScheduleRace = RaceContext & { date?: string };
 
 const SESSION_NAME: Record<string, string> = {
-  R: "Race", Q: "Qualifying", S: "Sprint", SQ: "Sprint Qualifying", SS: "Sprint Shootout",
+  R: "Race", Q: "Qualifying", S: "Sprint", SQ: "Sprint qualifying", SS: "Sprint shootout",
   FP1: "Practice 1", FP2: "Practice 2", FP3: "Practice 3",
 };
-const cleanName = (n: string) => n.replace(/grand prix/i, "GP").replace(/[\u{1F1E0}-\u{1F1FF}]{2}/gu, "").trim();
-const isSprint = (r: { Sprint?: unknown; SprintQualifying?: unknown }) => !!(r.Sprint || r.SprintQualifying);
 
 export function ContextBar({ state, patch }: Props) {
   const { cardVariant, glassVariant, isGlass } = useThemeVariant();
@@ -36,7 +38,7 @@ export function ContextBar({ state, patch }: Props) {
   const sessions = sessionsForRace(currentRace);
   const sessionOptions: SessionOption[] = sessions.map((s, i) => ({
     session_key: i + 1,
-    session_name: s.short,
+    session_name: s.label,
     session_type: s.code,
     date_start: "",
     date_end: "",
@@ -44,7 +46,7 @@ export function ContextBar({ state, patch }: Props) {
   }));
   const selectedSessionKey =
     sessionOptions.find((o) => o.session_type === state.session)?.session_key ?? null;
-  const raceLabel = currentRace ? cleanName(currentRace.raceName) : "";
+  const raceLabel = currentRace ? getRaceNameWithoutEmoji(currentRace.raceName) : "";
 
   const onShare = () => {
     navigator.clipboard?.writeText(window.location.href).then(
@@ -55,50 +57,45 @@ export function ContextBar({ state, patch }: Props) {
 
   return (
     <F1Card size="sm" variant={cardVariant} glassVariant={glassVariant} className={cn("overflow-hidden p-0", isGlass && "border-white/10")}>
-      {/* Summary strip — flag + session + GP + round (mirrors the Race Analysis picker) */}
-      <div className="flex items-center gap-2.5 border-b border-border px-3 py-2 md:px-4">
-        <span className="instrument-label flex shrink-0 items-center gap-1.5 text-primary">
-          <Flag className="h-3 w-3" /> {SESSION_NAME[state.session] ?? state.session}
-        </span>
-        {currentRace && <CountryFlag country={currentRace.Circuit?.Location?.country ?? ""} size={16} className="rounded-[1px]" />}
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">
-          {raceLabel || <span className="text-muted-foreground">Select a Grand Prix</span>}
-        </span>
+      {/* The Grand Prix and session on screen, with the way back to its full page */}
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 border-b border-border px-3 py-2.5 md:px-4">
+        {currentRace && <CountryFlag country={currentRace.Circuit?.Location?.country ?? ""} size={18} />}
+        {currentRace ? (
+          <Link to={raceHref(state.year, currentRace.round, undefined, state.session)} viewTransition className="min-w-0 text-sm font-semibold text-heading hover:underline">
+            {state.year} {raceLabel}
+          </Link>
+        ) : (
+          <span className="text-sm text-muted-foreground">Pick a Grand Prix</span>
+        )}
+        <span className="text-sm text-ink-2">{SESSION_NAME[state.session] ?? state.session}</span>
         {currentRace && (
-          <span className="timing shrink-0 rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">R{currentRace.round}</span>
+          <Link
+            to={raceHref(state.year, currentRace.round, undefined, state.session)}
+            viewTransition
+            className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-heading hover:underline"
+          >
+            Grand Prix page <ArrowUpRight className="h-4 w-4" />
+          </Link>
         )}
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap items-end gap-2 px-3 py-2.5 md:gap-3 md:px-4">
-        <div>
-          <label className="instrument-label mb-1 block">Season</label>
-          <Select value={String(state.year)} onValueChange={(v) => patch({ year: Number(v), round: null, drivers: [], ref: null, lap: null })}>
-            <SelectTrigger className="h-9 w-[92px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {PITWALL_SEASONS.map((y) => (
-                <SelectItem key={y} value={String(y)} className="timing">{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         <div className="min-w-[180px] flex-1">
-          <label className="instrument-label mb-1 block">Grand Prix</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Grand Prix</label>
           <Select
             value={state.round ? String(state.round) : ""}
             onValueChange={(v) => patch({ round: Number(v), lap: null })}
             disabled={schedule.isLoading || races.length === 0}
           >
-            <SelectTrigger className="h-9 w-full"><SelectValue placeholder={schedule.isLoading ? "Loading races…" : "Select a race"} /></SelectTrigger>
+            <SelectTrigger className="h-9 w-full"><SelectValue placeholder={schedule.isLoading ? "Loading races…" : "Pick a Grand Prix"} /></SelectTrigger>
             <SelectContent>
               {races.map((r) => (
                 <SelectItem key={r.round} value={String(r.round)}>
                   <span className="flex items-center gap-2">
                     <CountryFlag country={r.Circuit?.Location?.country ?? ""} size={14} />
-                    <span className="timing text-xs text-muted-foreground">R{r.round}</span>
-                    <span className="truncate">{r.Circuit?.circuitName || cleanName(r.raceName)}</span>
-                    {isSprint(r) && <Star className="h-3 w-3 shrink-0 fill-current text-position-gold" aria-label="Sprint weekend" />}
+                    <span>{getRaceNameWithoutEmoji(r.raceName)}</span>
+                    {isSprintWeekend(r) && <span className="text-xs text-muted-foreground">Sprint</span>}
                   </span>
                 </SelectItem>
               ))}
@@ -118,7 +115,7 @@ export function ContextBar({ state, patch }: Props) {
 
         <div className="ml-auto flex items-end gap-2">
           <div>
-            <label className="instrument-label mb-1 block">Compare</label>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Compare</label>
             <div className="flex overflow-hidden rounded-lg border border-border">
               {(["focus", "overlay"] as CompareMode[]).map((m) => (
                 <button

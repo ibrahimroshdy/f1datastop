@@ -1,195 +1,138 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { F1Card, F1CardContent, F1CardHeader, F1CardTitle } from "@/components/f1";
+import { F1Card } from "@/components/f1";
 import { F1EmptyState } from "@/components/f1/F1EmptyState";
 import { StandingsSkeleton } from "@/components/f1/F1Skeleton";
+import { DriverIdentity } from "@/components/f1/DriverIdentity";
+import { TeamName } from "@/components/f1/TeamName";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useThemeVariant } from "@/hooks/useThemeVariant";
-import { cn } from "@/lib/utils";
-import { Car, Calendar, Flag, Trophy } from "lucide-react";
-import { HelmetIcon } from "@/components/common/HelmetIcon";
-import CombinedStandingsTab from "@/components/standings/CombinedStandingsTab";
-import ConstructorStandingsCard from "@/components/standings/ConstructorStandingsCard";
-import DriverStandingsCard from "@/components/standings/DriverStandingsCard";
-import {
-  DEFAULT_CONSTRUCTORS_VISIBLE,
-  DEFAULT_DRIVERS_VISIBLE,
-} from "@/components/standings/standingsUtils";
+import { getTeamColorById } from "@/constants/f1Colors";
+import { currentSeason, seasonSearch, teamHref } from "@/lib/links";
+import { CompactRow } from "./CompactRow";
+import { gapInWords } from "./gapInWords";
 
-export interface CombinedStandingsCardProps {
-  driverStandings: any;
-  constructorStandings: any;
-  getTeamColor: (constructorId: string) => string;
-  onExpandChange?: (expanded: boolean) => void;
-  isLoading?: boolean;
-  error?: Error | null;
-  onRetry?: () => void;
+interface DriverStanding {
+  position?: string;
+  points?: string;
+  wins?: string;
+  Driver?: { driverId: string; givenName?: string; familyName: string; nationality?: string };
+  Constructors?: { constructorId: string; name: string }[];
 }
 
-type StandingsTab = "combined" | "drivers" | "constructors";
+interface TeamStanding {
+  position?: string;
+  points?: string;
+  wins?: string;
+  Constructor?: { constructorId: string; name: string };
+}
 
-const underlineTabTrigger =
-  "rounded-none border-b-2 border-transparent bg-transparent px-2 py-1.5 text-xs shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none lg:px-3 lg:py-2 lg:text-sm";
+export interface CombinedStandingsCardProps {
+  driverStandings: { data?: DriverStanding[] | null } | null | undefined;
+  constructorStandings: { data?: TeamStanding[] | null } | null | undefined;
+  season: number;
+  isLoading?: boolean;
+}
 
-const CombinedStandingsCard = ({
-  driverStandings,
-  constructorStandings,
-  getTeamColor: _getTeamColor,
-  onExpandChange,
-  isLoading = false,
-  error = null,
-  onRetry,
-}: CombinedStandingsCardProps) => {
-  const { isGlass, cardVariant, glassVariant } = useThemeVariant();
-  const [tab, setTab] = useState<StandingsTab>("drivers");
-  const [showAll, setShowAll] = useState(false);
+const DRIVERS_SHOWN = 5;
+const TEAMS_SHOWN = 3;
 
-  const hasSeasonStarted = useMemo(
-    () => (driverStandings?.data || []).some((d: any) => Number(d.points || 0) > 0),
-    [driverStandings?.data],
-  );
-
-  const hasData = useMemo(
-    () => (driverStandings?.data?.length > 0) || (constructorStandings?.data?.length > 0),
-    [driverStandings?.data, constructorStandings?.data],
-  );
-
-  const toggleShowAll = () => {
-    setShowAll((prev) => {
-      const next = !prev;
-      onExpandChange?.(next);
-      return next;
-    });
-  };
-
-  const titleIcon = tab === "drivers"
-    ? <HelmetIcon className="h-5 w-5 text-primary" />
-    : tab === "constructors"
-      ? <Car className="h-5 w-5 text-primary" />
-      : <Trophy className="h-5 w-5 text-primary" />;
-
-  const toggleText = (() => {
-    if (tab === "drivers") {
-      return showAll ? `Show Top ${DEFAULT_DRIVERS_VISIBLE}` : "Show All Drivers";
-    }
-    const totalTeams = constructorStandings?.data?.length || 0;
-    if (totalTeams <= DEFAULT_CONSTRUCTORS_VISIBLE) {
-      return showAll ? "Collapse" : "Show All Teams";
-    }
-    return showAll ? `Show Top ${DEFAULT_CONSTRUCTORS_VISIBLE}` : "Show All Teams";
-  })();
-
-  const showContent = !isLoading && !error && hasData && hasSeasonStarted;
+/**
+ * Home's standings card: the top five drivers and the top three teams as uniform compact rows,
+ * the gap in words, every name a link (D19, D29). "Show all" goes to the standings page.
+ */
+const CombinedStandingsCard = ({ driverStandings, constructorStandings, season, isLoading = false }: CombinedStandingsCardProps) => {
+  const [tab, setTab] = useState<"drivers" | "teams">("drivers");
+  const drivers = driverStandings?.data ?? [];
+  const teams = constructorStandings?.data ?? [];
+  const started = drivers.some((d) => Number(d.points || 0) > 0);
+  const leaderPts = Number(drivers[0]?.points || 0);
+  const leaderTeamPts = Number(teams[0]?.points || 0);
 
   return (
-    <F1Card
-      variant={cardVariant}
-      glassVariant={glassVariant}
-      className={cn("h-full p-0", isGlass && "border-white/10")}
-    >
-      <F1CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <F1CardTitle icon={titleIcon} className="text-base font-semibold">
-            Standings
-          </F1CardTitle>
-          <button
-            onClick={toggleShowAll}
-            className="text-xs lg:text-sm text-muted-foreground hover:text-foreground"
-          >
-            {toggleText}
-          </button>
-        </div>
+    <F1Card className="h-full">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl">Standings{season !== currentSeason() ? ` ${season}` : ""}</h2>
+        <Link to={`/standings${seasonSearch(season)}`} className="text-sm font-medium text-primary hover:underline">
+          Show all
+        </Link>
+      </div>
 
-        <div className="mt-2">
-          <Tabs value={tab} onValueChange={(v) => setTab(v as StandingsTab)}>
-            <div className="w-full flex justify-center lg:justify-end">
-              <TabsList className="inline-flex h-auto mx-auto lg:mx-0 gap-0 rounded-none border-b border-border bg-transparent p-0">
-                <TabsTrigger value="combined" className={cn(underlineTabTrigger, "gap-1")}>
-                  <Trophy className="h-4 w-4" /> Combined
-                </TabsTrigger>
-                <TabsTrigger value="drivers" className={cn(underlineTabTrigger, "gap-1")}>
-                  <HelmetIcon className="h-4 w-4" /> Drivers
-                </TabsTrigger>
-                <TabsTrigger value="constructors" className={cn(underlineTabTrigger, "gap-1")}>
-                  <Car className="h-4 w-4" /> Constructors
-                </TabsTrigger>
-              </TabsList>
-            </div>
-          </Tabs>
-        </div>
-      </F1CardHeader>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "drivers" | "teams")} className="mt-3">
+        <TabsList>
+          <TabsTrigger value="drivers">Drivers</TabsTrigger>
+          <TabsTrigger value="teams">Teams</TabsTrigger>
+        </TabsList>
 
-      <F1CardContent className="pt-0">
-        {isLoading && <StandingsSkeleton rows={8} />}
-
-        {error && !isLoading && (
+        {isLoading ? (
+          <StandingsSkeleton rows={DRIVERS_SHOWN} />
+        ) : !started ? (
           <F1EmptyState
-            type="loading-failed"
-            title="Failed to Load"
-            description="Couldn't load standings."
-            actionText={onRetry ? "Retry" : undefined}
-            onAction={onRetry}
+            type="season-start"
+            title="Season starting"
+            description={drivers.length ? "Every driver is on 0 points." : "Standings appear after the first race."}
             size="sm"
+            showDecoration={false}
           />
-        )}
-
-        {!isLoading && !error && hasData && !hasSeasonStarted && (
-          <div className="py-4">
-            <F1EmptyState
-              type="season-start"
-              title="Season Starting"
-              description="All drivers at 0 points."
-              icon={<Calendar className="h-8 w-8 text-muted-foreground" />}
-              size="sm"
-              showDecoration={false}
-            />
-          </div>
-        )}
-
-        {!isLoading && !error && !hasData && (
-          <F1EmptyState
-            type="no-data"
-            title="No Data"
-            description="Standings not available."
-            icon={<Flag className="h-8 w-8 text-muted-foreground" />}
-            size="sm"
-          />
-        )}
-
-        {showContent && (
-          <Tabs value={tab}>
-            <TabsContent value="combined" className="mt-0">
-              <CombinedStandingsTab
-                driverStandings={driverStandings}
-                constructorStandings={constructorStandings}
-                showAll={showAll}
-              />
+        ) : (
+          <>
+            <TabsContent value="drivers">
+              <ul className="divide-y divide-border">
+                {drivers.slice(0, DRIVERS_SHOWN).map((s, i) => {
+                  if (!s.Driver) return null;
+                  const team = s.Constructors?.[s.Constructors.length - 1];
+                  const pts = Number(s.points || 0);
+                  return (
+                    <CompactRow key={s.Driver.driverId} pos={s.position ?? i + 1} figure={pts} note={gapInWords(leaderPts, pts, i)}>
+                      <DriverIdentity
+                        compact
+                        size={32}
+                        driverId={s.Driver.driverId}
+                        givenName={s.Driver.givenName}
+                        familyName={s.Driver.familyName}
+                        nationality={s.Driver.nationality}
+                        constructorId={team?.constructorId}
+                        teamName={team?.name}
+                      />
+                    </CompactRow>
+                  );
+                })}
+              </ul>
             </TabsContent>
-            <TabsContent value="drivers" className="mt-0">
-              <DriverStandingsCard
-                driverStandings={driverStandings}
-                constructorStandings={constructorStandings}
-                showAll={showAll}
-              />
+            <TabsContent value="teams">
+              <ul className="divide-y divide-border">
+                {teams.slice(0, TEAMS_SHOWN).map((t, i) => {
+                  if (!t.Constructor) return null;
+                  const pts = Number(t.points || 0);
+                  const wins = Number(t.wins || 0);
+                  return (
+                    <CompactRow key={t.Constructor.constructorId} pos={t.position ?? i + 1} figure={pts} note={gapInWords(leaderTeamPts, pts, i)}>
+                      <span className="flex items-stretch gap-2.5">
+                        <span
+                          aria-hidden="true"
+                          className="w-1.5 shrink-0 rounded-full"
+                          style={{ background: getTeamColorById(t.Constructor.constructorId) }}
+                        />
+                        <span className="flex min-w-0 flex-col">
+                          <TeamName
+                            constructorId={t.Constructor.constructorId}
+                            name={t.Constructor.name}
+                            to={teamHref(t.Constructor.constructorId, season)}
+                            size={18}
+                            className="font-semibold text-heading"
+                          />
+                          <span className="mt-0.5 text-[13px] text-muted-foreground">
+                            {wins === 1 ? "1 win" : `${wins} wins`}
+                          </span>
+                        </span>
+                      </span>
+                    </CompactRow>
+                  );
+                })}
+              </ul>
             </TabsContent>
-            <TabsContent value="constructors" className="mt-0">
-              <ConstructorStandingsCard
-                constructorStandings={constructorStandings}
-                showAll={showAll}
-              />
-            </TabsContent>
-          </Tabs>
+          </>
         )}
-
-        <div className="pt-3 border-t border-border mt-3">
-          <Link
-            to="/standings"
-            className="text-xs lg:text-sm text-primary hover:underline"
-          >
-            View full standings →
-          </Link>
-        </div>
-      </F1CardContent>
+      </Tabs>
     </F1Card>
   );
 };

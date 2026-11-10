@@ -15,9 +15,9 @@ import { cn } from '@/lib/utils';
 
 // Semantic SVG color tokens (DESIGN.md: SVG fills/strokes route through hsl(var(--*)))
 const TOKEN = {
-  gain: 'hsl(var(--status-completed))',
-  loss: 'hsl(var(--destructive))',
-  neutral: 'hsl(var(--muted-foreground))',
+  gain: 'hsl(var(--gain))',
+  loss: 'hsl(var(--loss))',
+  neutral: 'hsl(var(--hold))',
 } as const;
 
 // Ensure a value is a finite number >= minVal (prevents NaN in the d3-sankey layout)
@@ -260,15 +260,15 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
         <div className="flex h-full flex-col">
           {/* Legend */}
           <div className="mb-4 flex flex-wrap items-center justify-center gap-3 px-2 py-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Position Change
+            <span className="text-[13px] font-medium text-muted-foreground">
+              Position change
             </span>
             <div className="flex items-center gap-3 font-mono text-xs">
-              <span className="flex items-center gap-1 text-status-completed">
+              <span className="flex items-center gap-1 text-[hsl(var(--gain))]">
                 <ArrowUp className="h-3 w-3" />
                 Gain
               </span>
-              <span className="flex items-center gap-1 text-destructive">
+              <span className="flex items-center gap-1 text-[hsl(var(--loss))]">
                 <ArrowDown className="h-3 w-3" />
                 Loss
               </span>
@@ -583,10 +583,10 @@ function LinkTooltipContent({ link }: { link: LaidOutLink & SankeyLinkData }) {
   else if (isGridToRace) change = (sourceNode?.position ?? 0) - (targetNode?.position ?? 0);
   if (change > 0) {
     changeText = `+${change} positions`;
-    changeColor = 'text-status-completed';
+    changeColor = 'text-[hsl(var(--gain))]';
   } else if (change < 0) {
     changeText = `${change} positions`;
-    changeColor = 'text-destructive';
+    changeColor = 'text-[hsl(var(--loss))]';
   }
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2 font-mono text-xs text-foreground shadow-card">

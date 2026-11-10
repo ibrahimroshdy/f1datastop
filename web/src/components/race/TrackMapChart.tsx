@@ -89,7 +89,7 @@ const TrackMapChart = ({ year, round, session = "R" }: Props) => {
   return (
     <F1Card variant="default" className="border-0 bg-transparent p-0 shadow-none">
       <F1CardHeader className="px-0 pt-0">
-        <F1CardTitle className="text-base">Track map · speed</F1CardTitle>
+        <F1CardTitle className="text-base">Track map, speed</F1CardTitle>
         <F1CardDescription className="text-xs">
           Racing line coloured by speed — fastest lap
         </F1CardDescription>

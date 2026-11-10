@@ -50,7 +50,9 @@ export function useRaceDetailDialog(race: RaceLike | null | undefined, isOpen: b
         );
       }
       setDialogOpenTime(Date.now());
-      setSelectedTab("info");
+      // A finished race opens on its results, an upcoming one on its schedule (owner, 2026-11-10).
+      const raceDay = (race as { date?: string }).date;
+      setSelectedTab(raceDay && new Date(`${raceDay}T23:59:59Z`).getTime() < Date.now() ? "results" : "info");
 
       const sessions: string[] = [];
       if (race.FirstPractice) sessions.push("FirstPractice");

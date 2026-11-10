@@ -71,7 +71,7 @@ const F1Badge = React.forwardRef<HTMLDivElement, F1BadgeProps>(
         live: {
           classes: "bg-status-live/20 text-status-live border-status-live/30 animate-pulse",
           icon: Zap,
-          label: "LIVE"
+          label: "Live"
         },
         cancelled: {
           classes: "bg-status-cancelled/20 text-status-cancelled border-status-cancelled/30",

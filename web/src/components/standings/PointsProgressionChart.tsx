@@ -4,7 +4,8 @@ import { F1Card, F1CardContent, F1CardFooter, F1CardHeader } from "@/components/
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { chartTheme, ScopeDefs, SCOPE_GLOW } from "@/lib/chartTheme";
 import CountryFlag from "@/components/common/CountryFlag";
-import TeamLogo from "@/components/common/TeamLogo";
+import { TeamName } from "@/components/f1/TeamName";
+import { Switch } from "@/components/ui/switch";
 import { getF1TeamLogoUrl } from "@/constants/f1TeamLogoMedia";
 import {
   buildF1DriverHeadshotUrl,
@@ -150,11 +151,8 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
             {d.country ? (
               <CountryFlag country={String(d.country)} size={14} className="rounded-[1px] shadow-xs" />
             ) : (
-              <span className="text-[9px] text-muted-foreground">R{d.round}</span>
+              <span className="text-xs leading-none text-muted-foreground">{d.gpShort}</span>
             )}
-            <span className="text-[8px] font-semibold uppercase leading-none tracking-wide text-muted-foreground">
-              {d.gpShort}
-            </span>
           </div>
         </foreignObject>
       </g>
@@ -166,17 +164,12 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
       <F1CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="instrument-label text-muted-foreground">{title ?? "Points Progression"}</div>
-            <p className="text-xs text-muted-foreground">{subtitle ?? "Cumulative points through the season"}</p>
+            <h3 className="text-base">{title ?? "Points after each round"}</h3>
+            {subtitle ? <p className="text-[13px] text-muted-foreground">{subtitle}</p> : null}
           </div>
-          <label className="flex shrink-0 cursor-pointer select-none items-center gap-1.5 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={showImages}
-              onChange={(e) => setShowImages(e.target.checked)}
-              className="h-3.5 w-3.5 accent-primary"
-            />
-            Images
+          <label className="flex shrink-0 cursor-pointer select-none items-center gap-2 text-[13px] text-muted-foreground">
+            <Switch checked={showImages} onCheckedChange={setShowImages} aria-label="Show pictures at the line ends" />
+            Pictures
           </label>
         </div>
       </F1CardHeader>
@@ -275,7 +268,7 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
           </ChartContainer>
         )}
       </F1CardContent>
-      <F1CardFooter className="grid grid-cols-3 gap-x-2 gap-y-1.5 border-t-0 pt-0 sm:grid-cols-4 lg:grid-cols-6">
+      <F1CardFooter className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t-0 pt-0">
         {series.map((s) => (
           <span key={s.code} className="flex items-center gap-1.5" title={s.code}>
             <svg width="14" height="4" className="shrink-0" aria-hidden>
@@ -290,10 +283,11 @@ export default function PointsProgressionChart({ year, series, title, subtitle }
                 strokeDasharray={dashByCode[s.code] ? "3 2" : undefined}
               />
             </svg>
-            {s.constructorId ? (
-              <TeamLogo constructorId={s.constructorId} size="sm" noBackground className="h-3.5! w-auto shrink-0" />
-            ) : null}
-            <span className="timing text-2xs font-semibold">{s.code}</span>
+            {s.constructorId && !s.driverId ? (
+              <TeamName constructorId={s.constructorId} name={s.code} size={13} className="text-xs" />
+            ) : (
+              <span className="timing text-xs font-semibold">{s.code}</span>
+            )}
           </span>
         ))}
       </F1CardFooter>

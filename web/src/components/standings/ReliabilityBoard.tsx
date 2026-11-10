@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { driverHref, raceHref } from "@/lib/links";
 import { useSeasonResults, useAllDriverResultsBySeason } from "@/hooks/f1";
 import { getTeamHexColor, normalizeTeamId } from "@/components/standings/standingsUtils";
 import CountryFlag from "@/components/common/CountryFlag";
@@ -106,6 +107,7 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
           id,
           code: d.Driver.code,
           name: `${d.Driver.givenName} ${d.Driver.familyName}`,
+          familyName: d.Driver.familyName,
           teamColor: getTeamHexColor(normalizeTeamId(d.Constructors?.[0]?.constructorId || "default")),
           byRound: new Map(races.map((r) => [Number(r.round), r])),
           dnfs: races.filter((r) => r.isDNF).length,
@@ -124,8 +126,8 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="instrument-label text-muted-foreground">
-          {year} · {totalDnfs} DNFs across {rounds.length} rounds
+        <span className="text-[13px] text-muted-foreground">
+          {totalDnfs} {totalDnfs === 1 ? "retirement" : "retirements"} across {rounds.length} races in {year}
         </span>
         <div className="flex items-center gap-3">
           <div className="flex gap-1" role="group" aria-label="Cell metric">
@@ -138,7 +140,7 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
                 className={cn(
                   "min-h-8 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                   metric === m
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-act text-on-act"
                     : "bg-muted/40 text-muted-foreground hover:bg-muted",
                 )}
               >
@@ -149,9 +151,10 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
           <button
             type="button"
             onClick={() => setSortByDnf((v) => !v)}
-            className="instrument-label text-primary transition-colors hover:text-foreground"
+            aria-pressed={sortByDnf}
+            className="min-h-8 rounded-md px-2.5 py-1 text-xs font-medium text-ink-2 transition-colors hover:text-foreground"
           >
-            {sortByDnf ? "Championship" : "Sort DNFs ↓"}
+            {sortByDnf ? "Championship order" : "Most DNFs first"}
           </button>
         </div>
       </div>
@@ -162,18 +165,26 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
             <thead>
               <tr className="border-b border-border">
                 <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left">
-                  <span className="instrument-label text-muted-foreground">Driver</span>
+                  <span className="text-xs font-semibold text-muted-foreground">Driver</span>
                 </th>
                 {rounds.map((r) => (
-                  <th key={r.round} className="px-1.5 py-2 text-center align-bottom" title={r.name}>
-                    <div className="flex flex-col items-center gap-0.5">
-                      {r.country ? <CountryFlag country={r.country} size={14} className="rounded-[1px]" /> : null}
-                      <span className="timing text-[9px] text-muted-foreground">R{r.round}</span>
-                    </div>
+                  <th key={r.round} className="px-1.5 py-2 text-center align-bottom">
+                    <Link
+                      to={raceHref(year, r.round)}
+                      title={r.name}
+                      aria-label={r.name ?? `Race ${r.round}`}
+                      className="inline-flex flex-col items-center hover:opacity-80"
+                    >
+                      {r.country ? (
+                        <CountryFlag country={r.country} size={16} className="rounded-[1px]" />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{r.round}</span>
+                      )}
+                    </Link>
                   </th>
                 ))}
                 <th className="sticky right-0 z-10 bg-card px-2.5 py-2 text-center">
-                  <span className="instrument-label text-primary">{metric === "points" ? "PTS" : "DNF"}</span>
+                  <span className="text-xs font-semibold text-heading">{metric === "points" ? "Points" : "DNFs"}</span>
                 </th>
               </tr>
             </thead>
@@ -193,15 +204,17 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
                         src={headshot(row.id)}
                         className="shrink-0"
                       />
-                      <span className="timing text-xs font-bold">{row.code}</span>
+                      <Link to={driverHref(row.id, year)} className="text-[13px] font-semibold text-heading hover:underline">
+                        {row.familyName}
+                      </Link>
                     </div>
                   </td>
                   {rounds.map((r) => {
                     const res = row.byRound.get(r.round);
                     if (!res)
                       return (
-                        <td key={r.round} className="px-1.5 py-1.5 text-center text-2xs text-muted-foreground/40">
-                          ·
+                        <td key={r.round} className="px-1.5 py-1.5 text-center text-xs text-muted-foreground/50">
+                          <span aria-label="No result">–</span>
                         </td>
                       );
                     if (res.isDNF)
@@ -209,9 +222,9 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
                         <td
                           key={r.round}
                           className="bg-loss/10 px-1.5 py-1.5 text-center"
-                          title={`R${r.round} ${res.raceName ?? ""} — ${res.status ?? "DNF"}`}
+                          title={`${res.raceName ?? r.name ?? ""}: ${res.status ?? "DNF"}`}
                         >
-                          <span className="timing text-2xs font-bold text-loss">DNF</span>
+                          <span className="timing text-xs font-bold text-loss">DNF</span>
                         </td>
                       );
                     const pos = Number(res.position);
@@ -220,7 +233,7 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
                       <td
                         key={r.round}
                         className="px-1.5 py-1.5 text-center"
-                        title={`R${r.round} ${res.raceName ?? ""} — P${res.position} · ${pts} pts`}
+                        title={`${res.raceName ?? r.name ?? ""}: P${res.position}, ${pts} points`}
                       >
                         {metric === "points" ? (
                           <span
@@ -241,7 +254,7 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
                     <span
                       className={cn(
                         "readout text-sm font-bold tabular-nums",
-                        metric === "points" || row.dnfs ? "text-primary" : "text-muted-foreground",
+                        metric === "points" || row.dnfs ? "text-figure" : "text-muted-foreground",
                       )}
                     >
                       {metric === "points" ? row.points : row.dnfs}
@@ -253,9 +266,9 @@ export default function ReliabilityBoard({ year, drivers }: { year: number; driv
           </table>
         </div>
       </F1Card>
-      <p className="text-2xs text-muted-foreground">
-        Every driver × every round. <span className="font-semibold text-loss">DNF</span> = retirement / did-not-start /
-        disqualified; lapped finishers show their position. Scroll for all races.
+      <p className="text-[13px] text-muted-foreground">
+        Every driver in every race. <span className="font-semibold text-loss">DNF</span> means retired, did not start or
+        disqualified; lapped finishers show their position. Scroll sideways for every race.
       </p>
     </div>
   );

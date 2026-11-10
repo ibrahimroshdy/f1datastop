@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // F1 DataStop's public images, on the app's Deep Carbon tokens (web/src/index.css) with the locked
-// mark (web/src/assets/f1-logo.svg), Clash Display, Geist and Geist Mono:
+// mark (web/src/assets/f1-logo.svg), Saira Condensed, Saira and JetBrains Mono (docs/design/decisions.md D17):
 //
 //   docs/public/assets/social-preview.png   GitHub's social preview (1280×640): the lockup, the
 //                                           tagline, the badge and the big mark. GitHub doesn't
@@ -32,7 +32,7 @@ const { chromium } = brand('playwright');
 const sharp = brand('sharp');
 
 const TAGLINE = 'Every Formula 1 race, lap by lap, in clear charts.';
-const BADGE = 'Free · Open source';
+const BADGE = 'Free and open source';
 
 const b64 = (buf) => Buffer.from(buf).toString('base64');
 const file = (rel, type) => `data:${type};base64,${b64(readFileSync(root + rel))}`;
@@ -68,18 +68,18 @@ async function fonts() {
       css += face.replace(/src:[^;]+;/, `src:url(${data}) format('woff2');`) + '\n';
     }
   }
-  if (!/Clash Display/.test(css) || !/Geist Mono/.test(css)) throw new Error('fonts missing from web/index.html');
+  if (!/Saira Condensed/.test(css) || !/JetBrains Mono/.test(css)) throw new Error('fonts missing from web/index.html');
   return css;
 }
 
 /** Deep Carbon (:root) and light (.light) tokens from web/src/index.css. */
-const DARK = '--bg:hsl(240 8% 3.5%);--card:hsl(240 7% 6%);--elev:hsl(240 7% 8.5%);--line:hsl(240 6% 15%);--fg:hsl(220 15% 96%);--muted:hsl(240 6% 64%)';
-const LIGHT = '--bg:hsl(0 0% 98%);--card:hsl(0 0% 100%);--elev:hsl(240 5% 96%);--line:hsl(240 5% 87%);--fg:hsl(240 10% 3.9%);--muted:hsl(240 4% 46.1%)';
+const DARK = '--bg:#08080A;--card:#0F0F12;--elev:#17171B;--line:#2A2A30;--fg:#F3F4F7;--muted:#ABACB5';
+const LIGHT = '--bg:#F5F5F7;--card:#FFFFFF;--elev:#FFFFFF;--line:#DEDEE3;--fg:#0A0A0F;--muted:#5D5D69';
 
 const BASE = (fontCss) => `${fontCss}
-:root{--red:hsl(0 100% 44%)}
+:root{--red:#E10600}
 html,body{margin:0}
-body{font-family:Geist,system-ui,sans-serif;color:var(--fg);-webkit-font-smoothing:antialiased;box-sizing:border-box}
+body{font-family:Saira,system-ui,sans-serif;color:var(--fg);-webkit-font-smoothing:antialiased;box-sizing:border-box}
 .carbon{background:var(--bg);background-image:radial-gradient(120% 75% at 50% -12%,hsl(0 100% 44% / .07),transparent 55%),
   radial-gradient(90% 90% at 100% 0%,hsl(240 24% 10% / .55),transparent 60%)}
 .grid{position:absolute;inset:0;pointer-events:none;
@@ -87,18 +87,18 @@ body{font-family:Geist,system-ui,sans-serif;color:var(--fg);-webkit-font-smoothi
   background-size:64px 64px;mask-image:radial-gradient(80% 90% at 75% 50%,#000 10%,transparent 70%)}
 main{position:relative;display:grid;align-content:center}
 .lockup{display:flex;align-items:center}
-.lockup b{font:600 1em/1 'Clash Display';letter-spacing:0;word-spacing:.12em;white-space:nowrap}
-h1{margin:0;font-family:'Clash Display';font-weight:600;letter-spacing:0;word-spacing:.1em;text-wrap:balance}
+.lockup b{font:700 1em/1 'Saira Condensed';text-transform:uppercase;letter-spacing:.005em;white-space:nowrap}
+h1{margin:0;font-family:'Saira Condensed';font-weight:700;text-transform:uppercase;letter-spacing:.005em;text-wrap:balance}
 .badge{justify-self:start;display:inline-flex;align-items:center;gap:12px;background:var(--red);color:#fff;border-radius:2px;
-  font:600 18px/1 'Geist Mono';letter-spacing:.14em;text-transform:uppercase;padding:12px 16px 11px;white-space:nowrap}
+  font:600 18px/1 'JetBrains Mono';letter-spacing:.04em;padding:12px 16px 11px;white-space:nowrap}
 .badge i{width:8px;height:8px;border-radius:50%;background:#fff}
-.url{font:500 18px/1 'Geist Mono';color:var(--muted);letter-spacing:.04em}
+.url{font:500 18px/1 'JetBrains Mono';color:var(--muted);letter-spacing:.04em}
 .frame{border:1px solid var(--line);background:var(--card);overflow:hidden}
 .frame img{display:block;width:100%;height:auto}
 .desktop{border-radius:12px}
 .bar{display:flex;align-items:center;gap:7px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--elev)}
 .bar i{width:9px;height:9px;border-radius:50%;background:var(--line)}
-.bar span{margin-left:auto;margin-right:auto;transform:translateX(-14px);font:500 11px/1 'Geist Mono';color:var(--muted);
+.bar span{margin-left:auto;margin-right:auto;transform:translateX(-14px);font:500 11px/1 'JetBrains Mono';color:var(--muted);
   background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 14px}
 .phone{border-radius:26px;border:6px solid #16161a;background:#16161a;box-shadow:0 0 0 1px hsl(240 6% 22%)}
 .phone img{border-radius:20px}

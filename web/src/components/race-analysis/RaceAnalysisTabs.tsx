@@ -62,68 +62,6 @@ const TabLoadingFallback = () => {
   );
 };
 
-interface TabButtonGroupProps {
-  label: string;
-  tabs: typeof CORE_TABS;
-  selectedTab: string;
-  onTabChange: (tabId: RaceAnalysisTabId) => void;
-}
-
-function TabButtonGroup({ label, tabs, selectedTab, onTabChange }: TabButtonGroupProps) {
-  return (
-    <div className="flex items-center gap-3 border-b border-border py-1.5">
-      <span className="instrument-label w-24 shrink-0 whitespace-nowrap text-primary">
-        {label}
-      </span>
-      <div className="flex flex-wrap gap-1">
-        {tabs.map((tab) => {
-          const active = selectedTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onTabChange(tab.id)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-fast",
-                active
-                  ? "border-primary/40 bg-primary text-primary-foreground shadow-glow"
-                  : "border-transparent text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground"
-              )}
-            >
-              <tab.icon className="h-3.5 w-3.5" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// Mobile: canonical ViewSwitcher (stack grid — all views visible, no scroll).
-function MobileTabGroup({ label, tabs, selectedTab, onTabChange }: TabButtonGroupProps) {
-  const items: ViewItem<RaceAnalysisTabId>[] = tabs.map((tab) => ({
-    key: tab.id as RaceAnalysisTabId,
-    label: tab.label,
-    icon: tab.icon,
-  }));
-  return (
-    <div className="space-y-1">
-      <span className="instrument-label text-primary">{label}</span>
-      <ViewSwitcher
-        stack
-        compact
-        cols={3}
-        items={items}
-        value={selectedTab as RaceAnalysisTabId}
-        onChange={onTabChange}
-        className="w-full sm:w-full"
-      />
-    </div>
-  );
-}
-
 interface RaceAnalysisTabsProps {
   selectedTab: RaceAnalysisTabId;
   onTabChange: (tabId: RaceAnalysisTabId) => void;
@@ -153,43 +91,20 @@ export function RaceAnalysisTabs({
 }: RaceAnalysisTabsProps) {
   const { cardVariant, glassVariant } = useThemeVariant();
   const cardClassName = "overflow-hidden p-0";
+  const sections: ViewItem<RaceAnalysisTabId>[] = (hasOpenF1Data ? [...CORE_TABS, ...LIVE_TABS] : CORE_TABS).map(
+    (tab) => ({ key: tab.id, label: tab.label, icon: tab.icon }),
+  );
 
   return (
     <Tabs value={selectedTab} onValueChange={(value) => onTabChange(value as RaceAnalysisTabId)}>
-      <div className="hidden lg:flex lg:flex-col lg:gap-1">
-        <TabButtonGroup
-          label="Race"
-          tabs={CORE_TABS}
-          selectedTab={selectedTab}
-          onTabChange={onTabChange}
-        />
-        {hasOpenF1Data ? (
-          <TabButtonGroup
-            label="Live"
-            tabs={LIVE_TABS}
-            selectedTab={selectedTab}
-            onTabChange={onTabChange}
-          />
-        ) : null}
-      </div>
-
-      {/* Mobile: compact icon-tile grid — all views visible, no horizontal scroll */}
-      <div className="mb-3 block space-y-2 lg:hidden">
-        <MobileTabGroup
-          label="Race"
-          tabs={CORE_TABS}
-          selectedTab={selectedTab}
-          onTabChange={onTabChange}
-        />
-        {hasOpenF1Data ? (
-          <MobileTabGroup
-            label="Live"
-            tabs={LIVE_TABS}
-            selectedTab={selectedTab}
-            onTabChange={onTabChange}
-          />
-        ) : null}
-      </div>
+      {/* Every section in one switcher; it wraps onto more rows instead of scrolling sideways
+          or cutting a label short. */}
+      <ViewSwitcher
+        items={sections}
+        value={selectedTab}
+        onChange={onTabChange}
+        className="flex h-auto w-full flex-wrap gap-y-1"
+      />
 
       <Suspense fallback={<TabLoadingFallback />}>
         <TabsContent value="overview" className="mt-4">
@@ -197,7 +112,7 @@ export function RaceAnalysisTabs({
             <F1CardHeader className="px-4 pb-2 pt-3">
               <div className="flex items-center gap-2">
                 <LayoutDashboard className="h-4 w-4 text-primary" />
-                <F1CardTitle className="text-base">Race Overview</F1CardTitle>
+                <F1CardTitle className="text-base">Race overview</F1CardTitle>
               </div>
               <F1CardDescription className="text-xs">
                 Key takeaways, grid-to-finish moves, and teammate head-to-head
@@ -214,10 +129,10 @@ export function RaceAnalysisTabs({
             <F1CardHeader className="px-4 pb-2 pt-3">
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-primary" />
-                <F1CardTitle className="text-base">Deep Dive</F1CardTitle>
+                <F1CardTitle className="text-base">Deep dive</F1CardTitle>
               </div>
               <F1CardDescription className="text-xs">
-                Telemetry &amp; strategy charts, generated after each race weekend
+                Telemetry and strategy charts, made after each race weekend
               </F1CardDescription>
             </F1CardHeader>
             <F1CardContent className="min-h-[400px] px-0 pb-2 pt-2">
@@ -239,7 +154,7 @@ export function RaceAnalysisTabs({
               <F1CardHeader className="px-4 pb-2 pt-3">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-primary" />
-                  <F1CardTitle className="text-base">Lap Time Analysis</F1CardTitle>
+                  <F1CardTitle className="text-base">Lap times</F1CardTitle>
                 </div>
                 <F1CardDescription className="text-xs">
                   Compare lap-by-lap times between drivers
@@ -263,7 +178,7 @@ export function RaceAnalysisTabs({
               <F1CardHeader className="px-4 pb-2 pt-3">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-primary" />
-                  <F1CardTitle className="text-base">Position Changes</F1CardTitle>
+                  <F1CardTitle className="text-base">Position changes</F1CardTitle>
                 </div>
                 <F1CardDescription className="text-xs">
                   Track position changes throughout the race
@@ -281,10 +196,10 @@ export function RaceAnalysisTabs({
             <F1CardHeader className="px-4 pb-2 pt-3">
               <div className="flex items-center gap-2">
                 <Flag className="h-4 w-4 text-primary" />
-                <F1CardTitle className="text-base">Qualifying Classification</F1CardTitle>
+                <F1CardTitle className="text-base">Qualifying classification</F1CardTitle>
               </div>
               <F1CardDescription className="text-xs">
-                Full session result — Q1, Q2 and Q3 times with laps completed
+                Q1, Q2 and Q3 times, with laps completed
               </F1CardDescription>
             </F1CardHeader>
             <F1CardContent className="px-4 pb-4">
@@ -296,7 +211,7 @@ export function RaceAnalysisTabs({
             <F1CardHeader className="px-4 pb-2 pt-3">
               <div className="flex items-center gap-2">
                 <Flag className="h-4 w-4 text-primary" />
-                <F1CardTitle className="text-base">Qualifying Analysis</F1CardTitle>
+                <F1CardTitle className="text-base">Qualifying times</F1CardTitle>
               </div>
               <F1CardDescription className="text-xs">
                 Compare qualifying times across Q1, Q2, and Q3
@@ -313,7 +228,7 @@ export function RaceAnalysisTabs({
             <F1CardHeader className="px-4 pb-2 pt-3">
               <div className="flex items-center gap-2">
                 <TrendingUpIcon className="h-4 w-4 text-primary" />
-                <F1CardTitle className="text-base">Qualifying to Race Progression</F1CardTitle>
+                <F1CardTitle className="text-base">Qualifying to race</F1CardTitle>
               </div>
               <F1CardDescription className="text-xs">
                 Visualize progression from qualifying to race results
@@ -330,13 +245,13 @@ export function RaceAnalysisTabs({
             <F1CardHeader className="px-4 pb-2 pt-3">
               <div className="flex items-center gap-2">
                 <Wrench className="h-4 w-4 text-primary" />
-                <F1CardTitle className="text-base">Pit Stop Analysis</F1CardTitle>
+                <F1CardTitle className="text-base">Pit stops</F1CardTitle>
               </div>
               <F1CardDescription className="text-xs">
                 Individual pit stop durations for each driver
               </F1CardDescription>
             </F1CardHeader>
-            <F1CardContent className="h-[600px] px-4 pb-4">
+            <F1CardContent className="min-h-[600px] px-4 pb-4">
               <MuiPitStopTable year={selectedYear} round={selectedRace} />
             </F1CardContent>
           </F1Card>
@@ -349,7 +264,7 @@ export function RaceAnalysisTabs({
                 <F1CardHeader className="px-4 pb-2 pt-3">
                   <div className="flex items-center gap-2">
                     <Cloud className="h-4 w-4 text-primary" />
-                    <F1CardTitle className="text-base">Weather Conditions</F1CardTitle>
+                    <F1CardTitle className="text-base">Weather</F1CardTitle>
                   </div>
                   <F1CardDescription className="text-xs">
                     Track temperature, humidity, and wind conditions
@@ -370,7 +285,7 @@ export function RaceAnalysisTabs({
                 <F1CardHeader className="px-4 pb-2 pt-3">
                   <div className="flex items-center gap-2">
                     <Radio className="h-4 w-4 text-primary" />
-                    <F1CardTitle className="text-base">Team Radio</F1CardTitle>
+                    <F1CardTitle className="text-base">Team radio</F1CardTitle>
                   </div>
                   <F1CardDescription className="text-xs">
                     Driver and team radio communications
@@ -379,7 +294,7 @@ export function RaceAnalysisTabs({
                 <F1CardContent className="min-h-[400px] px-4 pb-4">
                   <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 text-center">
                     <Radio className="h-8 w-8 text-muted-foreground/50" />
-                    <p className="text-sm font-medium">Team Radio coming soon</p>
+                    <p className="text-sm font-medium">Team radio is coming soon</p>
                     <p className="max-w-sm text-xs text-muted-foreground">
                       A richer team-radio experience is in the works, sourced directly
                       from the official F1 feed.
@@ -396,7 +311,7 @@ export function RaceAnalysisTabs({
                 <F1CardHeader className="px-4 pb-2 pt-3">
                   <div className="flex items-center gap-2">
                     <Gauge className="h-4 w-4 text-primary" />
-                    <F1CardTitle className="text-base">Telemetry Dashboard</F1CardTitle>
+                    <F1CardTitle className="text-base">Telemetry</F1CardTitle>
                   </div>
                   <F1CardDescription className="text-xs">
                     Speed, throttle, brake, and gear data
@@ -417,7 +332,7 @@ export function RaceAnalysisTabs({
                   <F1CardHeader className="px-4 pb-2 pt-3">
                     <div className="flex items-center gap-2">
                       <Trophy className="h-4 w-4 text-primary" />
-                      <F1CardTitle className="text-base">Session Results</F1CardTitle>
+                      <F1CardTitle className="text-base">Session results</F1CardTitle>
                     </div>
                     <F1CardDescription className="text-xs">
                       Final classification and standings

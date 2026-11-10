@@ -74,7 +74,7 @@ export function PositionChart({ blob, selected, currentLap }: Props) {
             x={marker}
             stroke={chartTheme.primary}
             strokeWidth={1.6}
-            label={{ value: `L${Math.round(marker)}`, position: "top", fill: chartTheme.primary, fontSize: 9 }}
+            label={{ value: `L${Math.round(marker)}`, position: "top", fill: chartTheme.primary, fontSize: 12 }}
           />
         )}
         <YAxis
@@ -83,7 +83,7 @@ export function PositionChart({ blob, selected, currentLap }: Props) {
           ticks={[1, Math.ceil(maxPos / 2), maxPos]}
           width={22}
           stroke={chartTheme.axis}
-          tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+          tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
           tickLine={false}
           axisLine={false}
           allowDecimals={false}

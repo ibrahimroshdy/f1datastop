@@ -46,7 +46,7 @@ interface Props {
   onSetRef: (code: string) => void;
 }
 
-/** Sectors 1·2·3 as an LED gauge — fastest-lap token = session best, gain = personal best, position-gold =
+/** Sectors 1, 2, 3 as an LED gauge — fastest-lap token = session best, gain = personal best, position-gold =
  *  a completed sector, dim = not set yet. Fills left→right in order as the lap runs. */
 function SectorLeds({ sec, pb, id, bestHolder }: { sec?: (number | null)[]; pb?: [number, number, number]; id: string; bestHolder: (string | null)[] }) {
   if (!sec) return null;
@@ -66,7 +66,7 @@ function SectorLeds({ sec, pb, id, bestHolder }: { sec?: (number | null)[]; pb?:
           what = "set";
         }
         // Per-dot title: the times are the point of the gauge, and one label on the group
-        // ("Sectors 1·2·3") gave no way to read them.
+        // ("Sectors 1, 2, 3") gave no way to read them.
         return (
           <span
             key={k}
@@ -132,8 +132,8 @@ export function DriverBoard({
   return (
     <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm" className="flex flex-col overflow-hidden rounded-2xl p-0">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <span className="instrument-label text-primary">Drivers</span>
-        <span className="text-2xs text-muted-foreground">{selected.length}/{rows.length}</span>
+        <span className="text-xs font-semibold text-primary">Drivers</span>
+        <span className="text-xs text-muted-foreground">{selected.length}/{rows.length}</span>
       </div>
       <div className="flex-1 overflow-y-auto p-1.5">
         <AnimatePresence initial={false}>
@@ -175,7 +175,7 @@ export function DriverBoard({
                       {src ? (
                         <img src={src} alt={r.code} className="h-full w-full object-cover object-top" loading="lazy" />
                       ) : (
-                        <span className="text-[8px] font-bold text-muted-foreground">{r.code}</span>
+                        <span className="text-xs font-bold text-muted-foreground">{r.code}</span>
                       )}
                     </span>
                     <span className="flex min-w-0 flex-1 items-center gap-2">
@@ -188,23 +188,23 @@ export function DriverBoard({
                           {cid && <TeamLogo constructorId={cid} size="sm" noBackground className="h-3! w-auto shrink-0" />}
                         </span>
                         {blob && (r.tyre || r.speed != null || r.pit) && (
-                          <span className="flex items-center gap-2 text-[10px] leading-none text-muted-foreground">
+                          <span className="flex items-center gap-2 text-xs leading-none text-muted-foreground">
                             {r.tyre && <TyreBadge compound={r.tyre} age={r.tyl} />}
                             {r.speed != null && (
-                              <span className="readout text-foreground/80">{Math.round(r.speed)}<span className="text-[8px] text-muted-foreground"> km/h</span></span>
+                              <span className="readout text-foreground/80">{Math.round(r.speed)}<span className="text-xs text-muted-foreground"> km/h</span></span>
                             )}
                             {r.pit && (
-                              <span className="grid h-3 w-3 shrink-0 place-items-center rounded-[3px] border border-foreground/40 text-[7px] font-bold leading-none text-foreground" title="In the pit lane">P</span>
+                              <span className="grid h-3 w-3 shrink-0 place-items-center rounded-[3px] border border-foreground/40 text-xs font-bold leading-none text-foreground" title="In the pit lane">P</span>
                             )}
                           </span>
                         )}
                       </span>
-                      {/* Right — lap time · delta · sectors, stacked */}
+                      {/* Right — lap time, delta, sectors, stacked */}
                       <span className="flex shrink-0 flex-col items-end gap-[3px] leading-none">
                         {r.lastTime != null && (
-                          <span className={cn("readout text-[11px]", r.isFL ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(r.lastTime)}</span>
+                          <span className={cn("readout text-xs", r.isFL ? "text-fastest-lap" : "text-foreground/90")}>{fmtLap(r.lastTime)}</span>
                         )}
-                        {gapText && <span className="timing text-[9px] text-muted-foreground">{gapText}</span>}
+                        {gapText && <span className="timing text-xs text-muted-foreground">{gapText}</span>}
                         {blob && r.sec && <SectorLeds sec={r.sec} pb={r.pb} id={r.code} bestHolder={bestHolder} />}
                       </span>
                     </span>
