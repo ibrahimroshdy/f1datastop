@@ -167,3 +167,6 @@ ul,ol{list-style:none}
 .team-n{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}
 .tlogo{display:block;width:auto;max-width:48px;object-fit:contain;flex:none}
 .frame.t-light .tlogo{filter:invert(1)}
+
+.dsub{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px}
+.who small .flag{margin-top:3px}

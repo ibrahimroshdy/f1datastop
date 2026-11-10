@@ -106,11 +106,12 @@ def standings_html():
     lead = STANDINGS[0][5]
     rows = []
     from avatars import avatar, team_logo
+    from race_bits import nat_flag
     for pos, name, team, tid, wins, pts, did in STANDINGS:
         gap = "Leader" if pos == 1 else f"{lead - pts} behind"
         rows.append(
             f'<tr><td class="pos num">{pos}</td>'
-            f'<td>{avatar(did, name, TEAM[tid], 40)}<span class="who"><b>{name}</b><small>{team_logo(tid, team, 13)}</small></span></td>'
+            f'<td>{avatar(did, name, TEAM[tid], 40)}<span class="who"><b>{name}</b><small><span class="dsub">{nat_flag(did, 11)}{team_logo(tid, team, 13)}</span></small></span></td>'
             f'<td class="num hide-s">{wins}</td><td class="num"><b class="fig">{pts}</b><small>{gap}</small></td></tr>')
     return ('<table class="stand"><caption>Drivers, after round 20</caption><thead><tr><th class="num">Pos</th><th>Driver</th>'
             '<th class="num hide-s">Wins</th><th class="num">Points</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table>")
@@ -168,7 +169,7 @@ def racecard_html():
     from race_bits import flag, tyre
     return ('<article class="race"><div class="race-top">' + flag("US", 27, "United States")
             + '<span class="live">Next</span></div>'
-            '<h4>Las Vegas Grand Prix</h4><p class="where">Las Vegas Strip Circuit, United States</p>'
+            '<h4>Las Vegas Grand Prix</h4><p class="where">Las Vegas Strip Circuit</p>'
             '<dl class="sess"><div><dt>Practice 1</dt><dd class="num">Fri 20 Nov, 02:30</dd></div>'
             '<div><dt>Qualifying</dt><dd class="num">Sat 21 Nov, 06:00</dd></div>'
             '<div><dt>Race</dt><dd class="num">Sun 22 Nov, 06:00</dd></div></dl>'
@@ -190,8 +191,9 @@ def teamcard_html():
 def drivercard_html():
     """The lead card of a driver page: the headshot, name and team, the stripe in the team's colour."""
     from avatars import avatar, team_logo
+    from race_bits import nat_flag
     return ('<article class="team"><div class="dhead">' + avatar("antonelli", "Andrea Kimi Antonelli", TEAM["mercedes"], 72)
-            + '<div><span class="live">P1 drivers</span><h4>Andrea Kimi Antonelli</h4><p class="where">' + team_logo("mercedes", "Mercedes", 16, ", Italy") + '</p></div></div>'
+            + '<div><span class="live">P1 drivers</span><h4>Andrea Kimi Antonelli</h4><p class="where"><span class="dsub">' + nat_flag("antonelli", 12) + team_logo("mercedes", "Mercedes", 16) + '</span></p></div></div>'
             '<div class="tdrv"><span class="who"><b>390 points</b><small>111 ahead of Verstappen</small></span><b class="num fig">9 wins</b></div>'
             '<div class="tdrv"><span class="who"><b>Last race</b><small>São Paulo Grand Prix</small></span><b class="num fig">P1</b></div></article>')
 

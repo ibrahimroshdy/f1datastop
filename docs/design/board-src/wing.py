@@ -69,7 +69,7 @@ def today():
 
 
 VERSIONS = [
-    ("today", "Today", "logo.svg as it ships. The gradient, the thin white strokes and the faint rim disappear below 32 px; at 16 px it is a red dot.", today),
+    ("today", "F1 DataStop", "logo.svg, the rear wing on the red disc, as it ships. Phase 7 exports it to the favicon, app icon and social sizes unchanged.", today),
     ("refined", "Refined", "The same wing, flat: main plane, flap and endplates in carbon on the white pylon, all thick enough to hold at 16 px. Closest to today.", refined),
     ("bold", "Bold", "Main plane and flap merged into one bar, with a red line for the slot. The plainest at 16 px.", bold),
     ("open", "Open flap", "The flap lifted off the main plane on its two actuators, the slot open: the wing in its low-drag mode. More character, more parts.", open_flap),
@@ -89,9 +89,10 @@ def app_icon(key, fn):
     return svg(f'<rect width="64" height="64" rx="14.2" fill="{CARBON}"/><g transform="translate(32 32) scale(.84) translate(-32 -32)">{fn()}</g>', 180)
 
 
-def wing_round():
+def wing_round(only=("today",)):
+    """The logo section. Since D35 only F1 DataStop's own logo is shown; the redraws stay in VERSIONS as history."""
     out = []
-    for key, name, why, fn in VERSIONS:
+    for key, name, why, fn in [v for v in VERSIONS if v[0] in only]:
         sizes = "".join(f"<figure>{svg(fn(), s)}<figcaption>{s} px</figcaption></figure>" for s in (16, 32, 64))
         app = f"<figure>{app_icon(key, fn)}<figcaption>180 px app icon</figcaption></figure>"
         lock = (f'<span class="lockup" role="img" aria-label="F1 DataStop, {name} logo">{svg(fn(), 44)}'

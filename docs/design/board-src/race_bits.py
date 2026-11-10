@@ -13,6 +13,10 @@ TYRE = {"S": ("Soft", "#DA291C"), "M": ("Medium", "#FFD12E"), "H": ("Hard", "#F0
 RUBBER = "#16161A"
 
 FLAGS = {
+    "NL": '<rect width="24" height="6" fill="#AE1C28"/><rect y="6" width="24" height="6" fill="#fff"/><rect y="12" width="24" height="6" fill="#21468B"/>',
+    "MC": '<rect width="24" height="9" fill="#CE1126"/><rect y="9" width="24" height="9" fill="#fff"/>',
+    "GB": '<rect width="24" height="18" fill="#012169"/><path d="M0 0 24 18M24 0 0 18" stroke="#fff" stroke-width="3.6"/><path d="M0 0 24 18M24 0 0 18" stroke="#C8102E" stroke-width="1.2"/><path d="M12 0v18M0 9h24" stroke="#fff" stroke-width="6"/><path d="M12 0v18M0 9h24" stroke="#C8102E" stroke-width="3.6"/>',
+    "AU": '<rect width="24" height="18" fill="#012169"/><path d="M0 0 12 9M12 0 0 9" stroke="#fff" stroke-width="1.8"/><path d="M6 0v9M0 4.5h12" stroke="#fff" stroke-width="3"/><path d="M6 0v9M0 4.5h12" stroke="#C8102E" stroke-width="1.8"/><circle cx="6" cy="13.5" r="1.6" fill="#fff"/><circle cx="18" cy="5" r=".9" fill="#fff"/><circle cx="15.5" cy="9" r=".9" fill="#fff"/><circle cx="20.5" cy="8" r=".9" fill="#fff"/><circle cx="18" cy="14.5" r=".9" fill="#fff"/>',
     "SG": '<rect width="24" height="9" fill="#EF3340"/><rect y="9" width="24" height="9" fill="#fff"/><circle cx="5.2" cy="4.5" r="2.6" fill="#fff"/><circle cx="6.2" cy="4.5" r="2.3" fill="#EF3340"/>',
     "MX": '<rect width="8" height="18" fill="#006847"/><rect x="8" width="8" height="18" fill="#fff"/><rect x="16" width="8" height="18" fill="#CE1126"/><circle cx="12" cy="9" r="2" fill="#8C5B2F"/>',
     "IT": '<rect width="8" height="18" fill="#009246"/><rect x="8" width="8" height="18" fill="#fff"/><rect x="16" width="8" height="18" fill="#CE2B37"/>',
@@ -29,6 +33,17 @@ FLAGS = {
            '<circle cx="12" cy="9" r="3.9" fill="#002776"/>'
            '<path d="M8.3 8.1 Q12 7.4 15.7 9.6" stroke="#fff" stroke-width=".7" fill="none"/>'),
 }
+
+
+NATION = {"antonelli": ("IT", "Italy"), "max_verstappen": ("NL", "Netherlands"), "russell": ("GB", "United Kingdom"),
+          "hamilton": ("GB", "United Kingdom"), "norris": ("GB", "United Kingdom"), "leclerc": ("MC", "Monaco"),
+          "piastri": ("AU", "Australia")}
+
+
+def nat_flag(driver_id, h=12):
+    """A driver's nationality as a flag, never the country's name (D34). The name is the flag's label."""
+    code, name = NATION[driver_id]
+    return flag(code, h, name)
 
 
 def flag(code, h=18, label=None):
@@ -55,7 +70,7 @@ def tyre(c, size=20, label=True):
 
 
 CALENDAR = [
-    ("BR", "São Paulo Grand Prix", "Interlagos, São Paulo", "6 to 8 Nov", "done", "Antonelli won"),
+    ("BR", "São Paulo Grand Prix", "Interlagos, São Paulo", "6 to 8 Nov", "done", "antonelli"),
     ("US", "Las Vegas Grand Prix", "Las Vegas Strip Circuit", "20 to 22 Nov", "next", "Next"),
     ("QA", "Qatar Grand Prix", "Lusail International Circuit", "27 to 29 Nov", "", ""),
     ("AE", "Abu Dhabi Grand Prix", "Yas Marina Circuit", "4 to 6 Dec", "", ""),
@@ -65,7 +80,11 @@ CALENDAR = [
 def calendar_html():
     rows = []
     for code, gp, where, when, state, note in CALENDAR:
-        chip = f'<span class="chip-s {state}">{note}</span>' if note else ""
+        if state == "done":  # the winner's face, a link to their page, not "Antonelli won" (D34)
+            from avatars import avatar
+            chip = f'<a class="win" href="#" aria-label="Won by Andrea Kimi Antonelli">{avatar(note, "Andrea Kimi Antonelli", "#27F4D2", 28)}</a>'
+        else:
+            chip = f'<span class="chip-s {state}">{note}</span>' if note else ""
         rows.append(f'<li class="{state}">{flag(code, 21, gp.replace(" Grand Prix", ""))}<span class="gp"><b>{gp}</b>'
                     f'<small>{where}</small></span><span class="when"><span class="num">{when}</span>{chip}</span></li>')
     return '<h4>November and December</h4><ul class="cal">' + "".join(rows) + "</ul>"
