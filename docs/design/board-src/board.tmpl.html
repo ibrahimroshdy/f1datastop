@@ -1,0 +1,179 @@
+<title>F1 DataStop Design Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;700;800&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&family=DM+Mono:wght@400;500&family=Unbounded:wght@500;700;800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap">
+<style>
+/* Board chrome: a neutral warm page so the three concepts are judged on their own panels. */
+:root{color-scheme:light;--bg:#F1EEE9;--panel:#FBFAF8;--ink:#1B1916;--ink-2:#4F4A44;--line:#DAD4CB;--hl:#1B1916;--on-hl:#FBFAF8;
+  --ui:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;--code:"Geist Mono",ui-monospace,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#151412;--panel:#1F1D1A;--ink:#F4F0EA;--ink-2:#CFC8BE;--line:#38342F;--hl:#F4F0EA;--on-hl:#151412}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#151412;--panel:#1F1D1A;--ink:#F4F0EA;--ink-2:#CFC8BE;--line:#38342F;--hl:#F4F0EA;--on-hl:#151412}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--ui);overflow-x:hidden}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 96px}
+h1,h2,h3,h4{margin:0;line-height:1.15}
+h1{font-size:30px;font-weight:700;letter-spacing:-.02em}
+h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-top:56px}
+.lede{color:var(--ink-2);max-width:68ch;margin:8px 0 0}
+.kicker{font:600 12px/1 var(--code);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 0}
+.toc a{color:var(--ink);text-decoration:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 14px;font-size:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;margin-top:16px}
+.pick{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:16px}
+.pick a{display:block;text-decoration:none;border-radius:20px;padding:20px;border:1px solid var(--line-x,transparent);background:var(--ground);color:var(--ink)}
+.pick .L{font:700 13px/1 var(--code);color:var(--mark)}
+.pick h3{font-family:var(--display);text-transform:var(--tt);font-size:28px;margin:10px 0 6px;color:var(--heading)}
+.pick p{margin:0;color:var(--ink2)}
+.meta{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:16px}
+.meta div{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.meta b{display:block;font-size:13px;color:var(--ink-2);font-weight:600;margin-bottom:4px}
+/* Palette */
+.pal{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-top:16px}
+.pal>div{border-radius:16px;padding:14px;background:var(--ground);color:var(--ink)}
+.pal h4{font:600 13px/1 var(--code);margin-bottom:10px;color:var(--ink2)}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
+.chip{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0}
+.chip span{width:26px;height:26px;border-radius:8px;flex:none;box-shadow:inset 0 0 0 1px rgba(127,127,127,.35)}
+.chip b{font-weight:500}.chip code{font:12px var(--code);color:var(--ink3);margin-left:auto}
+.ctab{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.ctab th,.ctab td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ctab thead th{font:600 12px var(--code);color:var(--ink-2)}
+.ctab td{font-family:var(--code);font-size:12px}
+.ctab .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.ctab .sw{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:6px;vertical-align:-1px;box-shadow:inset 0 0 0 1px rgba(127,127,127,.4)}
+.scroll-x{overflow-x:auto}
+/* Type specimen */
+.type{border-radius:16px;padding:18px;background:var(--card);color:var(--ink);margin-top:16px}
+.type .d{font-family:var(--display);text-transform:var(--tt);font-weight:700;font-size:40px;line-height:1.05;color:var(--heading);letter-spacing:-.01em}
+.type .s{font-family:var(--sans);font-size:16px;margin-top:10px;color:var(--ink2);max-width:60ch}
+.type .m{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:22px;margin-top:12px;color:var(--figure);display:flex;flex-wrap:wrap;gap:6px 22px}
+.type .m span{white-space:nowrap}
+.type .m .p{color:var(--fastest)}
+/* Specimens: one panel per theme, in the concept's own materials */
+.spec{border-radius:24px;padding:16px;background:var(--ground);color:var(--ink);font-family:var(--sans);margin-top:16px;position:relative;overflow:hidden}
+.c-flood.spec{background:radial-gradient(110% 55% at 50% -8%,color-mix(in srgb,var(--heading) 11%,transparent),transparent 62%),var(--ground)}
+.c-sheet.spec{background:repeating-linear-gradient(0deg,transparent 0 27px,color-mix(in srgb,var(--ink) 5%,transparent) 27px 28px),var(--ground)}
+.c-livery.spec{background:linear-gradient(180deg,color-mix(in srgb,var(--mark) 7%,transparent),transparent 40%),var(--ground)}
+.spec-cap{font:600 12px var(--mono);color:var(--ink3);margin:0 0 12px;letter-spacing:.04em}
+.spec-grid{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.spec-grid{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}.spec-grid .full{grid-column:1/-1}}
+.card{background:var(--card);border-radius:var(--rc);padding:16px;box-shadow:0 0 0 1px var(--line),0 8px 24px rgba(0,0,0,.12);position:relative;overflow:hidden}
+.t-dark .card{box-shadow:0 0 0 1px var(--line),0 10px 28px rgba(0,0,0,.45)}
+.c-sheet .card{box-shadow:0 0 0 1px var(--line)}
+.c-livery .card:not(.full)::before{content:"";position:absolute;right:-30px;top:-14px;width:120px;height:26px;background:var(--mark);transform:rotate(-24deg);opacity:.9}
+.c-livery .card:not(.full)::after{content:"";position:absolute;right:-30px;top:16px;width:120px;height:8px;background:var(--mark);transform:rotate(-24deg);opacity:.45}
+.card h4,.card caption{font-family:var(--display);text-transform:var(--tt);color:var(--heading);font-weight:700;letter-spacing:-.005em}
+.c-sheet .card h4,.c-sheet .card caption{font-weight:600}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.fig{color:var(--figure)}
+/* Shell bits so the act colour can be judged */
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.seg{display:inline-flex;background:var(--raised);border-radius:999px;padding:4px;box-shadow:0 0 0 1px var(--line)}
+.seg span{padding:7px 14px;border-radius:999px;font-size:14px;font-weight:500;color:var(--ink2)}
+.seg .on{background:var(--act);color:var(--on-act)}
+.btn{display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border-radius:999px;background:var(--act);color:var(--on-act);font-weight:600;font-size:14px;border:0}
+.btn.q{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+/* Race card */
+.race h4{font-size:26px;margin:10px 0 2px;line-height:1.05}
+.c-livery .race h4{font-size:21px}
+.race .where{margin:0;color:var(--ink2);font-size:14px}
+.race-top{padding-right:72px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rnd{font:600 13px var(--mono);color:var(--ink3)}
+.live{font-size:12px;font-weight:600;background:var(--mark);color:var(--on-mark);border-radius:999px;padding:3px 10px}
+.sess{display:grid;gap:0;margin:14px 0 0}
+.sess div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding:8px 0;border-top:1px solid var(--line)}
+.sess dt{font-weight:500}.sess dd{margin:0;color:var(--ink2)}
+.count{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px;border-top:1px solid var(--line);padding-top:10px;margin-top:2px}
+.count span{color:var(--ink2);font-size:14px}.count b{font-size:24px;font-weight:600}
+.race-foot{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.tyre{width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;font:700 12px var(--mono);background:#1a1a1a;border:3px solid}
+.tyre.s{border-color:#E8002D;color:#fff}.tyre.m{border-color:#FFD12E;color:#fff}.tyre.h{border-color:#F0F0EC;color:#fff}
+.note{font-size:13px;color:var(--ink3);margin-left:4px}
+/* Standings */
+.stand{width:100%;border-collapse:collapse}
+.stand caption{text-align:left;font-size:20px;padding-bottom:10px}
+.stand th{font-size:12px;font-weight:600;color:var(--ink3);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.stand td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.stand tr:last-child td{border-bottom:0}
+.stand .num{text-align:right}
+.stand td.pos{font-weight:700;font-size:17px;color:var(--ink);width:2.2em}
+.stand td:nth-child(2){display:flex;gap:10px;align-items:flex-start}
+.tm{width:4px;align-self:stretch;border-radius:4px;flex:none;min-height:34px}
+.who{display:flex;flex-direction:column;min-width:0}
+.who b{font-weight:600;color:var(--heading);overflow-wrap:break-word}
+.c-sheet .who b{font-family:var(--display);font-size:17px}
+.who small,.stand td small{color:var(--ink3);font-size:13px}
+.stand td.num b{display:block;font-size:17px}
+.stand td.num small{display:block;font-family:var(--sans)}
+@media (max-width:420px){.hide-s{display:none}.spec{padding:10px;border-radius:20px}.card{padding:14px}.stand td,.stand th{padding-left:5px;padding-right:5px}.tm{min-height:28px}}
+/* Lap chart */
+.lap{width:100%;height:auto;display:block}.lap-w{display:none}@media (min-width:700px){.lap-s{display:none}.lap-w{display:block}}
+.lap .grid{stroke:var(--line);stroke-width:1}
+.lap .ax{font:11px var(--mono);fill:var(--ink3)}
+.lap .lbl{font:700 12px var(--mono)}
+.chart-h{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:6px}
+.chart-h small{color:var(--ink3)}
+.risk{margin-top:14px;padding:14px 16px;border-radius:16px;border:1px dashed var(--line);color:var(--ink-2);font-size:14px}
+/* Logos */
+.switch{display:inline-flex;flex-wrap:wrap;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px;margin-top:16px}
+.switch button{font:500 14px var(--ui);border:0;background:transparent;color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer;min-height:40px}
+.switch button[aria-pressed="true"]{background:var(--hl);color:var(--on-hl)}
+.logo{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;margin-top:14px}
+.logo header p{margin:4px 0 0;color:var(--ink-2);max-width:70ch}
+.logo-stages{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-top:14px}
+.stage{border-radius:16px;padding:16px;box-shadow:0 0 0 1px var(--line);background:var(--card);color:var(--ink);display:flex;flex-direction:column;gap:16px}
+.stage figure{margin:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.stage figcaption{font:12px var(--mono);color:var(--ink3)}
+.stage svg{display:block;max-width:100%;height:auto}
+.stage svg[width="16"],.stage svg[width="32"]{height:auto}
+.sizes{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end}
+.lockup{display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap}
+.lockup .word{font-family:var(--display);text-transform:var(--tt);font-size:28px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.lockup .w1{color:var(--mark)}
+.dec{width:100%;border-collapse:collapse;font-size:14px}
+.dec th,.dec td{text-align:left;vertical-align:top;padding:10px 8px;border-bottom:1px solid var(--line)}
+.dec th{white-space:nowrap;font-family:var(--code)}
+.ask{background:var(--hl);color:var(--on-hl);border-radius:20px;padding:20px;margin-top:16px}
+.ask ol{margin:8px 0 0;padding-left:20px}.ask li{margin:6px 0}
+</style>
+<div class="wrap">
+<p class="kicker">F1 DataStop design release, round 1, 10 Nov 2026</p>
+<h1>Three directions and six marks</h1>
+<p class="lede">Pick one direction and one mark, or mix: a mark from one list can wear another direction's colours. Each direction is shown in its own night and day, with the same three pieces: a race card, the standings and a lap chart. Figures are shaped like the real season; session times are sample data. Team colours, purple for fastest and tyre colours are the real ones and never change.</p>
+<nav class="toc" aria-label="Sections"><a href="#pick">The three</a>@@TOC@@<a href="#logos">Marks</a><a href="#open">Your picks</a></nav>
+
+<h2 id="pick">The three</h2>
+<div class="pick">@@PICK@@</div>
+
+@@CONCEPTS@@
+
+<h2 id="logos">Marks, round 1</h2>
+<p class="lede">Six marks, each at 16 px and 32 px as a favicon, without a tile, at 180 px as the home-screen icon, and as the lockup. Switch the direction to see each mark in its colours. The current roundel is not in the round: at 16 px it reads as a red dot.</p>
+<div class="switch" role="group" aria-label="Colours for the marks">@@SWITCH@@</div>
+<div id="logo-set" class="c-flood">@@LOGOS@@</div>
+
+<h2 id="open">Your picks, and one question</h2>
+<div class="ask">
+<p><b>Nothing is built until you choose.</b> The answers go into <code>docs/design/decisions.md</code> as D10 onwards.</p>
+<ol>
+<li>Direction: A Floodlight, B Classification, C Livery, or a mix (say which parts).</li>
+<li>Mark: Apex, Pit box, Stop flag, Pit board, Speed trace or Grid slot, or none and a second round.</li>
+<li>The Cockpit theme (D9): it is the glass one. Keep it as a third, solid theme in the new materials, fold it into night, or drop it?</li>
+<li>Type: keep the direction's pairing, or bring it to a specimen of three like Mondar's.</li>
+</ol>
+</div>
+<div class="panel"><h3>Decisions so far</h3><div class="scroll-x"><table class="dec">@@DECISIONS@@</table></div></div>
+</div>
+<script>
+(function(){
+  var set=document.getElementById('logo-set');
+  var bs=document.querySelectorAll('.switch button');
+  bs.forEach(function(b){b.addEventListener('click',function(){
+    set.className='c-'+b.dataset.k;
+    set.querySelectorAll('.stage').forEach(function(s){s.className='stage c-'+b.dataset.k+' '+(s.classList.contains('t-light')?'t-light':'t-dark');});
+    bs.forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});
+  });});
+})();
+</script>
