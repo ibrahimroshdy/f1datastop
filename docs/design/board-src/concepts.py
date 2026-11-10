@@ -98,7 +98,7 @@ STANDINGS = [
     (2, "Max Verstappen", "Red Bull Racing", "red_bull", 5, 279, "max_verstappen"),
     (3, "George Russell", "Mercedes", "mercedes", 3, 262, "russell"),
     (4, "Lewis Hamilton", "Ferrari", "ferrari", 1, 261, "hamilton"),
-    (5, "Lando Norris", "McLaren", "mclaren", 1, 246, "norris"),
+    (5, "Charles Leclerc", "Ferrari", "ferrari", 0, 249, "leclerc"),
 ]
 
 

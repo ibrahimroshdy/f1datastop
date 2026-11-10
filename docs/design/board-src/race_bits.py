@@ -13,6 +13,8 @@ TYRE = {"S": ("Soft", "#DA291C"), "M": ("Medium", "#FFD12E"), "H": ("Hard", "#F0
 RUBBER = "#16161A"
 
 FLAGS = {
+    "SG": '<rect width="24" height="9" fill="#EF3340"/><rect y="9" width="24" height="9" fill="#fff"/><circle cx="5.2" cy="4.5" r="2.6" fill="#fff"/><circle cx="6.2" cy="4.5" r="2.3" fill="#EF3340"/>',
+    "MX": '<rect width="8" height="18" fill="#006847"/><rect x="8" width="8" height="18" fill="#fff"/><rect x="16" width="8" height="18" fill="#CE1126"/><circle cx="12" cy="9" r="2" fill="#8C5B2F"/>',
     "IT": '<rect width="8" height="18" fill="#009246"/><rect x="8" width="8" height="18" fill="#fff"/><rect x="16" width="8" height="18" fill="#CE2B37"/>',
     "US": ('<rect width="24" height="18" fill="#B22234"/>'
            + "".join(f'<rect y="{18 / 13 * i:.2f}" width="24" height="{18 / 13:.2f}" fill="#fff"/>' for i in range(1, 13, 2))
