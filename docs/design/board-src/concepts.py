@@ -1,9 +1,10 @@
-"""The three directions on the concepts board: palettes, contrast and specimens.
+"""The three directions on the concepts board, round 2: one identity, three treatments.
 
-Each concept is a dict of roles per theme. build.py turns them into CSS classes
-(.c-<key>.t-dark / .t-light), a contrast table and three specimens (lap chart,
-standings table, race card). Team colours come from web/src/constants/f1Colors.ts
-and never change between concepts.
+Round 2 (owner, 2026-11-10): F1 DataStop keeps its own red and carbon. The three
+directions now differ in type and material only; they share PALETTE. build.py turns it
+into CSS classes (.c-<key>.t-dark / .t-light), one contrast table and three specimens
+per direction (race card, standings table, lap chart). Team colours come from
+web/src/constants/f1Colors.ts and never change.
 """
 
 # Real data colours, copied from web/src/constants/f1Colors.ts and index.css.
@@ -12,47 +13,46 @@ FASTEST = {"dark": "#B57BF7", "light": "#7C2BD9"}  # --fastest-lap, purple = fas
 
 ROLES = ["ground", "card", "raised", "line", "ink", "ink2", "ink3", "act", "on_act", "mark", "heading", "figure"]
 
+# F1 DataStop's identity: the Deep Carbon ladder and F1 DataStop red (#E10600), with
+# brighter secondary text than today (today's 64% grey on carbon is the "grey on black").
+PALETTE = {
+    "dark": dict(ground="#08080A", card="#0F0F12", raised="#17171B", line="#2A2A30", ink="#F3F4F7", ink2="#D2D3DA",
+                 ink3="#ABACB5", act="#E10600", on_act="#FFFFFF", mark="#E10600", heading="#FFE9E7", figure="#FFFFFF"),
+    "light": dict(ground="#F5F5F7", card="#FFFFFF", raised="#FFFFFF", line="#DEDEE3", ink="#0A0A0F", ink2="#44444E",
+                  ink3="#5D5D69", act="#E10600", on_act="#FFFFFF", mark="#E10600", heading="#4A0603", figure="#0A0A0F"),
+}
+
 CONCEPTS = [
     {
         "key": "flood", "letter": "A", "name": "Floodlight",
-        "idea": "A night race: warm asphalt, white light from above, one sodium-orange signal.",
+        "idea": "A night race: carbon under white light from above, the red as the one signal.",
         "display": "'Saira Condensed'", "sans": "'Saira'", "mono": "'JetBrains Mono'",
         "type_note": "Saira Condensed for titles, set in capitals like trackside signage. Saira for the UI. JetBrains Mono for every time and gap.",
         "material": "Solid raised surfaces with a soft light falling from the top of the page. Cards 18 px round, pills everywhere.",
-        "risk": "The orange sits close to McLaren (#FF8700). It is kept off chart lines and rows, but a McLaren line next to an orange button still competes.",
+        "risk": "Capitals everywhere get loud; they stay on titles only.",
         "upper": True, "radius": 18,
-        "dark": dict(ground="#12100E", card="#1D1A17", raised="#272320", line="#3A342E", ink="#F7F2EA", ink2="#D6CCBF",
-                     ink3="#B3A797", act="#FF7A2F", on_act="#1F0B00", mark="#FF7A2F", heading="#FFE4C8", figure="#FFF1DA"),
-        "light": dict(ground="#EEEAE3", card="#FAF8F4", raised="#FFFFFF", line="#D9D2C7", ink="#1A1714", ink2="#4D4640",
-                      ink3="#655D55", act="#B8400D", on_act="#FFFFFF", mark="#E0611F", heading="#5A2709", figure="#2E1E12"),
     },
     {
         "key": "sheet", "letter": "B", "name": "Classification",
-        "idea": "The official timing sheet, set like a race-weekend magazine: paper, navy ink, hairline rules.",
+        "idea": "The official timing sheet, set like a race-weekend magazine: hairline rules, serif titles, red ink.",
         "display": "'Newsreader'", "sans": "'Geist'", "mono": "'DM Mono'",
         "type_note": "Newsreader, a serif, for titles and driver names. Geist for the UI. DM Mono for the timing columns, like a printed classification.",
-        "material": "Paper and ink. Ruled hairlines carry the structure, cards are 14 px round, and the act colour is the ink itself: navy by day, paper at night. Vermilion only on the mark.",
+        "material": "Ruled hairlines carry the structure, cards are 14 px round, flat with a 1 px line instead of a shadow.",
         "risk": "The quietest of the three. Without care it can feel like a document rather than an app; the serif must stay on titles only.",
         "upper": False, "radius": 14,
-        "dark": dict(ground="#0F1220", card="#181C2E", raised="#21263A", line="#323850", ink="#F3EEE3", ink2="#CFC9D9",
-                     ink3="#A9A4B8", act="#F3EEE3", on_act="#0F1220", mark="#FF6B4A", heading="#FFE2D6", figure="#F6EBD3"),
-        "light": dict(ground="#F3EFE5", card="#FBF8F1", raised="#FFFFFF", line="#D8D1C2", ink="#14182B", ink2="#41465B",
-                      ink3="#5A5F73", act="#14182B", on_act="#FBF8F1", mark="#C8371D", heading="#7A1F0E", figure="#14182B"),
     },
     {
         "key": "livery", "letter": "C", "name": "Livery",
-        "idea": "Every page wears a livery: a bold magenta by default, and the team's own colour on its team and driver pages.",
+        "idea": "Every card wears a red livery stripe, and on a team or driver page the stripe takes the team's colour.",
         "display": "'Unbounded'", "sans": "'Geist'", "mono": "'Geist Mono'",
         "type_note": "Unbounded, wide and heavy like a car's number, for titles. Geist for the UI. Geist Mono for timing, as today.",
-        "material": "Aubergine-black and blush paper. A diagonal livery stripe crosses the top of a card. Cards 22 px round, chunky pills.",
-        "risk": "Magenta is near Alpine pink (#FF87BC). On a team page the act colour becomes the team's, which must pass contrast per team (Haas grey and Williams cyan need dark ink on them).",
+        "material": "A diagonal livery stripe crosses the top of a card. Cards 22 px round, chunky pills.",
+        "risk": "The stripe is decoration; it stays on the top cards of a page, not on every card in a list.",
         "upper": False, "radius": 22,
-        "dark": dict(ground="#16111A", card="#221B27", raised="#2C2432", line="#3D3345", ink="#FBF5FF", ink2="#DDD0E6",
-                     ink3="#B8A9C2", act="#FF3D8B", on_act="#1C0010", mark="#FF3D8B", heading="#FFD3E6", figure="#FFF0F7"),
-        "light": dict(ground="#F5EFF3", card="#FFFFFF", raised="#FFFFFF", line="#E3D6DE", ink="#1D1420", ink2="#4A3F4F",
-                      ink3="#625668", act="#C81E64", on_act="#FFFFFF", mark="#E62B78", heading="#6B0E36", figure="#1D1420"),
     },
 ]
+for _c in CONCEPTS:
+    _c["dark"], _c["light"] = PALETTE["dark"], PALETTE["light"]
 
 
 def _lum(hexc):
@@ -76,7 +76,7 @@ def css():
             p = c[t]
             vars_ = "".join(f"--{k.replace('_', '-')}:{v};" for k, v in p.items())
             on_mark = max(("#FFFFFF", p["ground"], p["on_act"]), key=lambda x: contrast(x, p["mark"]))
-            vars_ += f"--fastest:{FASTEST[t]};--tile:{p['ground']};--on-mark:{on_mark};color-scheme:{t};"
+            vars_ += f"--fastest:{FASTEST[t]};--tile:{p['ground']};--on-mark:{on_mark};--ink-on-mark:#0A0A0F;color-scheme:{t};"
             out.append(f".c-{c['key']}.t-{t}{{{vars_}}}")
     return "\n".join(out)
 

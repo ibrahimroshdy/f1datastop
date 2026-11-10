@@ -1,4 +1,5 @@
-"""Logo round 1 for F1 DataStop. One 64-unit geometry per mark, so every size on the
+"""Logo rounds for F1 DataStop. Round 1 offered six marks; the owner picked Stop flag
+(2026-11-10), so round 2 shows it in F1 DataStop red with three variations. One 64-unit geometry per mark, so every size on the
 board is the same drawing. Colours are CSS variables, so a mark takes the colours of
 whichever concept it sits in: --tile (ground), --ink (strokes) and --mark (the one accent).
 """
@@ -51,13 +52,52 @@ def grid():
             '<rect x="39" y="33" width="10" height="14" rx="3.5" style="fill:var(--ink);opacity:.35"/>')
 
 
+_n = [0]
+OCT = "32,9 48.3,15.7 55,32 48.3,48.3 32,55 15.7,48.3 9,32 15.7,15.7"
+
+
+def _uid(p):
+    _n[0] += 1
+    return f"{p}{_n[0]}"
+
+
+def waving():
+    """Round 2: the octagon carrying a waving chequered flag on a short pole."""
+    cid = _uid("wv")
+    flag = "M22 21 C27 17.5 31 24.5 37 21 C41 19 44 20 46 21 V37 C44 36 41 35 37 37 C31 40.5 27 33.5 22 37 Z"
+    sq = "".join(f'<rect x="{22 + 4 * c}" y="{17 + 4 * r}" width="4.05" height="4.05"/>'
+                 for r in range(6) for c in range(6) if (r + c) % 2 == 0)
+    return (f'<defs><clipPath id="{cid}"><path d="{flag}"/></clipPath></defs>'
+            f'<polygon points="{OCT}" style="{MARK};stroke:var(--mark);stroke-width:2;stroke-linejoin:round"/>'
+            f'<path d="{flag}" style="fill:none;stroke:var(--on-mark);stroke-width:1.6"/>'
+            f'<g clip-path="url(#{cid})" style="fill:var(--on-mark)">{sq}</g>'
+            '<rect x="19" y="19" width="3" height="27" rx="1.5" style="fill:var(--on-mark)"/>')
+
+
+def ring():
+    """Round 2: a red octagon outline, the chequer in the ink colour inside it."""
+    sq = "".join(f'<rect x="{23 + 4.5 * c}" y="{23 + 4.5 * r}" width="4.55" height="4.55" style="fill:var(--ink)"/>'
+                 for r in range(4) for c in range(4) if (r + c) % 2 == 0)
+    return f'<polygon points="{OCT}" style="fill:none;stroke:var(--mark);stroke-width:5.5;stroke-linejoin:round"/>{sq}'
+
+
+def finish():
+    """Round 2: the finish line crossing the stop octagon on a slant."""
+    cid = _uid("fn")
+    sq = "".join(f'<rect x="{-4 + 6 * c}" y="{26 + 6 * r}" width="6.05" height="6.05"/>'
+                 for r in range(2) for c in range(13) if (r + c) % 2 == 0)
+    return (f'<defs><clipPath id="{cid}"><polygon points="{OCT}"/></clipPath></defs>'
+            f'<polygon points="{OCT}" style="{MARK};stroke:var(--mark);stroke-width:2;stroke-linejoin:round"/>'
+            f'<g clip-path="url(#{cid})"><g transform="rotate(-24 32 32)">'
+            '<rect x="-4" y="26" width="72" height="12" style="fill:var(--ink-on-mark)"/>'
+            f'<g style="fill:var(--on-mark)">{sq}</g></g></g>')
+
+
 MARKS = [
-    ("apex", "Apex", "The racing line through a corner, the apex hit. Reads as a curve and a dot at 16 px.", apex),
-    ("pitbox", "Pit box", "A D drawn as the pit lane, with the car stopped in its box. The D and the stop in one shape.", pitbox),
-    ("stopflag", "Stop flag", "A stop octagon carrying the chequered flag: Stop from the name, the finish from the sport.", stopflag),
-    ("pitboard", "Pit board", "The board the team holds over the wall. Says P1 at every size; the only mark with letters in it.", pitboard),
-    ("trace", "Speed trace", "Flat out, brake, turn in, power: the telemetry line, the braking point marked.", trace),
-    ("grid", "Grid slot", "Two staggered grid slots from above, pole taken. Plain, geometric, only F1 has it.", grid),
+    ("stopflag", "Stop flag, as picked", "Round 1's mark in F1 DataStop red: a stop octagon carrying a 4 by 4 chequer. The red silhouette keeps the place of today's red roundel.", stopflag),
+    ("waving", "Waving flag", "The chequered flag waving on its pole, inside the octagon. More movement; the wave blurs at 16 px.", waving),
+    ("finish", "Finish line", "A slanted finish line crosses the octagon, like the line painted across the track. Reads as a red octagon and a stripe at 16 px.", finish),
+    ("ring", "Ring", "The octagon as a red outline with the chequer inside in the ink colour. Lighter; on the app icon the carbon does more of the work.", ring),
 ]
 
 
