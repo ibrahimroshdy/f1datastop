@@ -180,11 +180,13 @@ def lapchart_svg(theme):
 
 
 def racecard_html():
-    return ('<article class="race"><div class="race-top"><span class="rnd">Round 21</span><span class="live">Next</span></div>'
+    from race_bits import flag, tyre
+    return ('<article class="race"><div class="race-top">' + flag("US", 27, "United States")
+            + '<span class="live">Next</span></div>'
             '<h4>Las Vegas Grand Prix</h4><p class="where">Las Vegas Strip Circuit, United States</p>'
-            '<dl class="sess"><div><dt>FP1</dt><dd class="num">Fri 20 Nov, 02:30</dd></div>'
+            '<dl class="sess"><div><dt>Practice 1</dt><dd class="num">Fri 20 Nov, 02:30</dd></div>'
             '<div><dt>Qualifying</dt><dd class="num">Sat 21 Nov, 06:00</dd></div>'
             '<div><dt>Race</dt><dd class="num">Sun 22 Nov, 06:00</dd></div></dl>'
             '<div class="count"><span>Starts in</span><b class="num fig">9d 03:57:11</b></div>'
-            '<div class="race-foot"><span class="tyre s">S</span><span class="tyre m">M</span><span class="tyre h">H</span>'
-            '<span class="note">Compounds C3, C4, C5</span></div></article>')
+            '<div class="race-foot">' + "".join(tyre(x, 24) for x in "SMH")
+            + '<span class="note">Soft C5, medium C4, hard C3</span></div></article>')

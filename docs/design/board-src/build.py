@@ -12,7 +12,8 @@ import sys
 here = pathlib.Path(__file__).parent
 sys.path.insert(0, str(here))
 from concepts import CONCEPTS, contrast_table, css, lapchart_svg, racecard_html, standings_html, swatches  # noqa: E402
-from logos import logo_round  # noqa: E402
+from race_bits import TYRE, calendar_html, tyre, tyres_html  # noqa: E402
+from wing import wing_round  # noqa: E402
 
 
 def concept_section(c):
@@ -24,6 +25,7 @@ def concept_section(c):
             '<div class="bar"><span class="seg"><span class="on">Drivers</span><span>Constructors</span></span>'
             '<span><button class="btn q" type="button">Season 2026</button> <button class="btn" type="button">Open weekend</button></span></div>'
             f'<div class="spec-grid"><div class="card">{racecard_html()}</div><div class="card">{standings_html()}</div>'
+            f'<div class="card">{calendar_html()}</div><div class="card">{tyres_html()}</div>'
             f'<div class="card full"><div class="chart-h"><h4>Lap times, Las Vegas</h4><small>Laps 1 to 20, sample data. Pit stops, laps 11 to 14, run off the top.</small></div>{lapchart_svg(t)}</div></div></div>')
     return (f'<h2 id="c-{k}">{c["letter"]}, {c["name"]}</h2><p class="lede">{c["idea"]}</p>'
             f'<div class="meta"><div><b>Materials</b>{c["material"]}</div><div><b>Type</b>{c["type_note"]}</div></div>'
@@ -38,6 +40,16 @@ def identity():
     pal = "".join(f'<div class="c-flood t-{t}"><h4>{label}</h4><div class="chips">{swatches(c, t)}</div></div>'
                   for t, label in (("dark", "Night"), ("light", "Day")))
     return f'<div class="pal">{pal}</div><div class="panel scroll-x">{contrast_table(c)}</div>'
+
+
+def tyre_ladder():
+    out = []
+    for t in ("dark", "light"):
+        rows = "".join(f'<div class="tl-row"><span class="tl-n">{TYRE[c][0]}</span>'
+                       + "".join(f"<figure>{tyre(c, s)}<figcaption>{s}</figcaption></figure>" for s in (16, 20, 24, 32, 48))
+                       + "</div>" for c in TYRE)
+        out.append(f'<div class="stage c-flood t-{t}">{rows}</div>')
+    return f'<div class="logo-stages">{"".join(out)}</div>'
 
 
 def decisions():
@@ -62,7 +74,8 @@ parts = {
     "CONCEPTS": "".join(concept_section(c) for c in CONCEPTS),
     "SWITCH": "".join(f'<button type="button" data-k="{c["key"]}" aria-pressed="{"true" if i == 0 else "false"}">{c["letter"]}, {c["name"]}</button>'
                       for i, c in enumerate(CONCEPTS)),
-    "LOGOS": logo_round().replace('class="stage t-', 'class="stage c-flood t-'),
+    "LOGOS": wing_round(),
+    "TYRES": tyre_ladder(),
     "DECISIONS": decisions(),
 }
 out = re.sub(r"@@([A-Z]+)@@", lambda m: parts[m.group(1)], src)
