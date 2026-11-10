@@ -34,8 +34,8 @@ const WEATHER_SERIES = {
   pressure: 'hsl(var(--weather-pressure))',
 } as const;
 
-const underlineTabTrigger =
-  "rounded-none border-b-2 border-transparent bg-transparent px-3 pb-2 pt-1 text-xs uppercase tracking-widest shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none";
+/** Tabs use the shared pill track and sliding act pill (D7); nothing to add here. */
+const underlineTabTrigger = "";
 
 const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
   year,
@@ -282,7 +282,7 @@ const WeatherAnalysis: React.FC<WeatherAnalysisProps> = ({
 
       {/* Charts */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="inline-flex h-auto w-full justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
+        <TabsList>
           <TabsTrigger value="all" className={underlineTabTrigger}>Overview</TabsTrigger>
           <TabsTrigger value="temp" className={underlineTabTrigger}>Temp</TabsTrigger>
           <TabsTrigger value="wind" className={underlineTabTrigger}>Wind</TabsTrigger>

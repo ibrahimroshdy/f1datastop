@@ -167,8 +167,7 @@ const F1ErrorState = React.forwardRef<HTMLDivElement, F1ErrorStateProps>(
           {...props}
         >
           <div className="relative mb-6">
-            <div className="absolute inset-0 bg-destructive/20 rounded-full blur-xl" />
-            <div className="relative p-6 bg-destructive/10 rounded-full">
+            <div className="relative rounded-full bg-raised p-6 ring-1 ring-border">
               <IconComponent className="h-16 w-16 text-destructive" />
             </div>
           </div>

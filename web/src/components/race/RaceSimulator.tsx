@@ -1,3 +1,4 @@
+import { TYRE_COLORS } from "@/constants/tyres";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Play, Pause, RotateCcw, Flag, ShieldAlert, Radio, Layers } from "lucide-react";
@@ -35,13 +36,8 @@ const SESSION_NAME: Record<string, string> = {
 // Sessions we generate replays for (race/quali/sprint). Practice is not replayed.
 const SUPPORTED_SESSIONS = new Set(["R", "Q", "S"]);
 
-const TYRE_COLOR: Record<string, string> = {
-  S: "hsl(0 85% 55%)",
-  M: "hsl(45 95% 55%)",
-  H: "hsl(0 0% 92%)",
-  I: "hsl(140 68% 46%)",
-  W: "hsl(210 90% 56%)",
-};
+/** The one Pirelli set (D16). */
+const TYRE_COLOR: Record<string, string> = TYRE_COLORS;
 
 const RC_KIND_COLOR: Record<string, string> = {
   sc: "hsl(45 96% 50%)",

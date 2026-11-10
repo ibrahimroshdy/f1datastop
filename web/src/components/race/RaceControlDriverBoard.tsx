@@ -1,3 +1,4 @@
+import { TyreIcon } from "@/components/f1/TyreIcon";
 import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import TeamLogo from "@/components/common/TeamLogo";
@@ -49,13 +50,6 @@ export interface DriverRow {
   drs: boolean;
 }
 
-const TYRE_COLOR: Record<string, string> = {
-  S: "hsl(0 85% 55%)",
-  M: "hsl(45 95% 55%)",
-  H: "hsl(0 0% 92%)",
-  I: "hsl(140 68% 46%)",
-  W: "hsl(210 90% 56%)",
-};
 
 const fmtLap = (s: number | null) => {
   if (s == null) return "—";
@@ -112,16 +106,7 @@ function SectorLeds({
 }
 
 function TyreBadge({ compound, age }: { compound: string; age: number | null }) {
-  return (
-    <span
-      className="inline-flex items-baseline gap-px text-[10px] font-bold leading-none"
-      style={{ color: TYRE_COLOR[compound] ?? "hsl(var(--muted-foreground))" }}
-      title={age != null ? `${compound} · ${age} laps old` : compound}
-    >
-      {compound}
-      {age != null && <span className="text-[8px] text-muted-foreground">{age}</span>}
-    </span>
-  );
+  return <TyreIcon compound={compound} age={age} size={16} />;
 }
 
 interface Props {

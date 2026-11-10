@@ -63,8 +63,8 @@ type ConstructorStandingRow = {
 
 const currentSeason = new Date().getFullYear();
 
-const underlineTabTrigger =
-  "rounded-none border-b-2 border-transparent bg-transparent px-3 pb-2 pt-1 text-sm shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none md:px-4 md:text-base";
+/** Tabs use the shared pill track and sliding act pill (D7); nothing to add here. */
+const underlineTabTrigger = "";
 
 // ── Nationality flag chip ────────────────────────────────────────────────────
 const Flag = ({ nationality }: { nationality?: string }) => {
@@ -347,7 +347,7 @@ const Standings = () => {
 
         <Tabs defaultValue="drivers" value={activeTab}
           onValueChange={(v) => setActiveTab(v as "drivers" | "constructors" | "reliability")} className="w-full">
-          <TabsList className="inline-flex h-auto w-full justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
+          <TabsList>
             <TabsTrigger value="drivers" className={cn(underlineTabTrigger, "inline-flex items-center gap-1.5")}>
               <HelmetIcon className="h-4 w-4" /> Drivers
             </TabsTrigger>

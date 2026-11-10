@@ -34,8 +34,8 @@ interface RaceDetailDialogProps {
 
 // Underline tab grammar (mirrors Standings) — the dialog's session tabs sit on
 // the shared Tabs primitive, whose default is now the same underline treatment.
-const underlineTabTrigger =
-  "rounded-none border-b-2 border-transparent bg-transparent px-1.5 pb-2 pt-1 text-[11px] shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none";
+/** Tabs use the shared pill track and sliding act pill (D7); nothing to add here. */
+const underlineTabTrigger = "";
 
 const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
   const navigate = useNavigate();
@@ -106,12 +106,7 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
         </DialogHeader>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList
-            className={cn(
-              `grid w-full ${hasSprint ? "grid-cols-5" : "grid-cols-4"} rounded-none border-b border-border bg-transparent p-0`,
-              isGlass && "bg-white/5",
-            )}
-          >
+          <TabsList>
             <TabsTrigger value="info" className={underlineTabTrigger}>
               Schedule
             </TabsTrigger>

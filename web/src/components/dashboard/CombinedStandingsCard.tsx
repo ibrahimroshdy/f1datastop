@@ -28,8 +28,8 @@ export interface CombinedStandingsCardProps {
 
 type StandingsTab = "combined" | "drivers" | "constructors";
 
-const underlineTabTrigger =
-  "rounded-none border-b-2 border-transparent bg-transparent px-2 py-1.5 text-xs shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none lg:px-3 lg:py-2 lg:text-sm";
+/** Tabs use the shared pill track and sliding act pill (D7); nothing to add here. */
+const underlineTabTrigger = "";
 
 const CombinedStandingsCard = ({
   driverStandings,
@@ -103,7 +103,7 @@ const CombinedStandingsCard = ({
         <div className="mt-2">
           <Tabs value={tab} onValueChange={(v) => setTab(v as StandingsTab)}>
             <div className="w-full flex justify-center lg:justify-end">
-              <TabsList className="inline-flex h-auto mx-auto lg:mx-0 gap-0 rounded-none border-b border-border bg-transparent p-0">
+              <TabsList className="mx-auto lg:mx-0">
                 <TabsTrigger value="combined" className={cn(underlineTabTrigger, "gap-1")}>
                   <Trophy className="h-4 w-4" /> Combined
                 </TabsTrigger>

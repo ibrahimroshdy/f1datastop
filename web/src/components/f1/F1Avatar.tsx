@@ -30,12 +30,13 @@ const sizeClasses = {
   xl: "h-20 w-20 text-xl",
 };
 
+// D26: the team colour rings the face directly, no gap.
 const ringClasses = {
-  xs: "ring-1 ring-offset-1",
-  sm: "ring-2 ring-offset-1",
-  md: "ring-2 ring-offset-2",
-  lg: "ring-2 ring-offset-2",
-  xl: "ring-3 ring-offset-2",
+  xs: "ring-1",
+  sm: "ring-2",
+  md: "ring-2",
+  lg: "ring-2",
+  xl: "ring-3",
 };
 
 const F1Avatar = React.forwardRef<HTMLDivElement, F1AvatarProps>(
@@ -61,7 +62,7 @@ const F1Avatar = React.forwardRef<HTMLDivElement, F1AvatarProps>(
           className={cn(
             sizeClasses[size],
             showRing && ringClasses[size],
-            showRing && "ring-offset-background",
+            "bg-raised",
             isTeam && "rounded-md",
           )}
           style={ringStyle}

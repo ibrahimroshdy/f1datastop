@@ -1,8 +1,9 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
+import { SlidingPill } from "@/components/ui/sliding-pill";
 
 export type ViewItem<T extends string> = {
   key: T;
@@ -62,25 +63,27 @@ export function ViewSwitcher<T extends string>({
   className?: string;
 }) {
   const gridCols = GRID_COLS[cols ?? items.length] ?? "grid-cols-3";
+  const track = useRef<HTMLDivElement>(null);
 
   const itemClass = (active: boolean) =>
     cn(
-      "rounded-md font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      "press relative z-10 rounded-full font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       stack
         ? cn(
-            "flex flex-col items-center justify-center gap-1 px-1 text-center text-[11px] leading-tight sm:min-h-0 sm:flex-row sm:gap-1.5 sm:px-3 sm:py-0 sm:text-xs",
+            "flex flex-col items-center justify-center gap-1 rounded-2xl px-1 text-center text-xs leading-tight sm:min-h-0 sm:flex-row sm:gap-1.5 sm:rounded-full sm:px-3.5 sm:py-0 sm:text-sm",
             compact ? "min-h-[44px] py-1.5" : "min-h-[52px] py-2",
           )
-        : "inline-flex min-h-[36px] items-center justify-center gap-1.5 px-3 text-xs",
+        : "inline-flex min-h-9 items-center justify-center gap-1.5 px-3.5 text-sm",
       active
-        ? "bg-card text-foreground shadow-xs"
-        : "text-muted-foreground hover:text-foreground",
+        ? "bg-act text-on-act group-data-[pill=ready]/seg:bg-transparent"
+        : "text-ink-2 hover:text-foreground",
     );
 
   return (
     <div
+      ref={track}
       className={cn(
-        "rounded-lg bg-muted/60 p-1",
+        "group/seg relative rounded-[22px] bg-muted p-1 ring-1 ring-border",
         stack
           ? cn("grid gap-1 sm:inline-flex sm:h-10 sm:gap-0", gridCols)
           : "inline-flex h-10",
@@ -88,6 +91,7 @@ export function ViewSwitcher<T extends string>({
       )}
       role="tablist"
     >
+      <SlidingPill containerRef={track} activeSelector="[aria-selected=true],[aria-current=page]" />
       {items.map(({ key, label, icon: Icon, to, end, dot }) => {
         const content = (
           <>
@@ -102,7 +106,7 @@ export function ViewSwitcher<T extends string>({
                 ) : null}
               </span>
             ) : null}
-            <span className={stack ? "line-clamp-2" : undefined}>{label}</span>
+            <span>{label}</span>
             {dot && !Icon ? (
               <span aria-hidden className="ms-1 inline-flex h-2 w-2 rounded-full bg-primary" />
             ) : null}

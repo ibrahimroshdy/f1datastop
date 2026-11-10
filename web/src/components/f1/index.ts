@@ -83,3 +83,6 @@ export { PageHeader, type PageHeaderProps } from "./PageHeader";
 export { PitIcon, type PitIconProps, type PitIconSize } from "./PitIcon";
 export { F1Loader } from "./F1Loader";
 
+export { F1Livery } from "./F1Livery";
+export { TyreIcon } from "./TyreIcon";
+export { TeamName } from "./TeamName";

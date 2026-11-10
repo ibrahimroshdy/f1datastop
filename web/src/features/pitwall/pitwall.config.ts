@@ -1,3 +1,4 @@
+import { TYRE_COLORS as BASE_TYRE_COLORS, TYRE_LABELS } from "@/constants/tyres";
 import type { LucideIcon } from "lucide-react";
 import { CircleDot, CloudSun, Gauge, LineChart, ListOrdered } from "lucide-react";
 import { TEAM_COLORS } from "@/constants/f1Colors";
@@ -71,19 +72,10 @@ export const PANELS: PanelDef[] = [
 
 export const DEFAULT_PANELS: PanelId[] = PANELS.map((p) => p.id);
 
-/** F1 tyre compound → chip colour (single-letter or full-name keys). */
-export const TYRE_COLORS: Record<string, string> = {
-  S: "#ef4444",
-  SOFT: "#ef4444",
-  M: "#eab308",
-  MEDIUM: "#eab308",
-  H: "#e5e7eb",
-  HARD: "#e5e7eb",
-  I: "#22c55e",
-  INTERMEDIATE: "#22c55e",
-  W: "#3b82f6",
-  WET: "#3b82f6",
-};
+/** F1 tyre compound → colour: the one Pirelli set in constants/tyres.ts (D16), letter or full-name keys. */
+export const TYRE_COLORS: Record<string, string> = Object.fromEntries(
+  Object.entries(BASE_TYRE_COLORS).flatMap(([k, v]) => [[k, v], [TYRE_LABELS[k].toUpperCase(), v]]),
+);
 
 export const tyreColor = (c?: string | null): string =>
   (c && TYRE_COLORS[c.trim().toUpperCase()]) || TEAM_COLORS.default;
