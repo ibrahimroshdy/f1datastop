@@ -62,12 +62,17 @@ h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-top:56px}
 .card{background:var(--card);border-radius:var(--rc);padding:16px;box-shadow:0 0 0 1px var(--line),0 8px 24px rgba(0,0,0,.12);position:relative;overflow:hidden}
 .t-dark .card{box-shadow:0 0 0 1px var(--line),0 10px 28px rgba(0,0,0,.45)}
 .c-sheet .card{box-shadow:0 0 0 1px var(--line)}
-.livery{position:absolute;right:-40px;top:-6px;width:170px;height:58px;transform:rotate(-24deg);pointer-events:none}
-.lv-band{position:absolute;left:0;right:0;top:0;height:32px;overflow:hidden;display:flex;align-items:center;justify-content:flex-start;padding-left:34px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-.lv-flag{position:absolute;inset:0;width:100%;height:100%}
-.lv-n{position:relative;font:800 italic 24px/1 var(--display);letter-spacing:.02em;white-space:nowrap}
-.lv-trail{position:absolute;left:0;right:0;top:38px;height:7px;opacity:.5}
-.c-flood .card.lead .race-top,.c-flood .card.lead h4{padding-right:96px}
+.livery{position:absolute;right:-46px;top:-10px;width:150px;height:52px;transform:rotate(-24deg);pointer-events:none}
+.lv-band{position:absolute;left:0;right:0;top:0;height:24px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.lv-trail{position:absolute;left:0;right:0;top:30px;height:7px;opacity:.5}
+.c-flood .card.lead .race-top,.c-flood .card.lead h4{padding-right:72px}
+.av{position:relative;display:inline-grid;place-items:center;flex:none;border-radius:50%;background:var(--raised);box-shadow:0 0 0 2px var(--ring);overflow:hidden}
+.av img{width:100%;height:100%;object-fit:cover;display:block}
+.av-i{font:600 13px var(--sans);color:var(--ink2)}
+.stand td:nth-child(2){align-items:center}
+.tdrv{align-items:center}
+.dhead{display:flex;gap:14px;align-items:center;padding-right:60px}
+.dhead h4{margin:6px 0 2px;padding-right:0!important}
 .card h4,.card caption{font-family:var(--display);text-transform:var(--tt);color:var(--heading);font-weight:700;letter-spacing:-.005em}
 .c-sheet .card h4,.c-sheet .card caption{font-weight:600}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
@@ -115,7 +120,7 @@ h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-top:56px}
 .stints{list-style:none;margin:8px 0 0;padding:0}
 .stints li{padding:10px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
 .st-h{display:flex;justify-content:space-between;gap:8px;align-items:center}
-.st-h b{color:var(--heading);font-weight:600}
+.st-h b{color:var(--heading);font-weight:600}.st-w{display:flex;gap:8px;align-items:center}
 .st-i{display:flex;gap:4px}
 .strip{display:flex;height:10px;border-radius:999px;overflow:hidden;gap:2px;background:var(--line)}
 .stints small{color:var(--ink3);font-size:13px}
@@ -140,7 +145,7 @@ h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-top:56px}
 .who small,.stand td small{color:var(--ink3);font-size:13px}
 .stand td.num b{display:block;font-size:17px}
 .stand td.num small{display:block;font-family:var(--sans)}
-@media (max-width:420px){.hide-s{display:none}.spec{padding:10px;border-radius:20px}.card{padding:14px}.stand td,.stand th{padding-left:5px;padding-right:5px}.tm{min-height:28px}}
+@media (max-width:420px){.hide-s{display:none}.stand .av{width:32px!important;height:32px!important}.stand td:nth-child(2){gap:8px}.spec{padding:10px;border-radius:20px}.card{padding:14px}.stand td,.stand th{padding-left:5px;padding-right:5px}.tm{min-height:28px}}
 /* Lap chart */
 .lap{width:100%;height:auto;display:block}.lap-w{display:none}@media (min-width:700px){.lap-s{display:none}.lap-w{display:block}}
 .lap .grid{stroke:var(--line);stroke-width:1}

@@ -69,16 +69,18 @@ def calendar_html():
     return '<h4>November and December</h4><ul class="cal">' + "".join(rows) + "</ul>"
 
 
-STINTS = [("Antonelli", [("M", 1, 18), ("H", 19, 50)]), ("Verstappen", [("M", 1, 21), ("H", 22, 50)]),
-          ("Hamilton", [("S", 1, 12), ("H", 13, 37), ("S", 38, 50)])]
+STINTS = [("Antonelli", "antonelli", "#27F4D2", [("M", 1, 18), ("H", 19, 50)]),
+          ("Verstappen", "max_verstappen", "#3671C6", [("M", 1, 21), ("H", 22, 50)]),
+          ("Hamilton", "hamilton", "#F91536", [("S", 1, 12), ("H", 13, 37), ("S", 38, 50)])]
 
 
 def tyres_html():
     rows = []
-    for who, segs in STINTS:
+    from avatars import avatar
+    for who, did, col, segs in STINTS:
         bar = "".join(f'<span style="flex:{b - a + 1};background:{TYRE[c][1]}" title="{TYRE[c][0]}, laps {a} to {b}"></span>' for c, a, b in segs)
         words = ", then ".join(f"{TYRE[c][0].lower()} {b - a + 1}" for c, a, b in segs)
-        rows.append(f'<li><span class="st-h"><b>{who}</b><span class="st-i">{"".join(tyre(c, 20) for c, _, _ in segs)}</span></span>'
+        rows.append(f'<li><span class="st-h"><span class="st-w">{avatar(did, who, col, 28)}<b>{who}</b></span><span class="st-i">{"".join(tyre(c, 20) for c, _, _ in segs)}</span></span>'
                     f'<span class="strip" role="img" aria-label="{who}: {words} laps">{bar}</span><small>{words[0].upper() + words[1:]} laps</small></li>')
     key = "".join(f'<span class="tk">{tyre(c, 24)}{TYRE[c][0]}</span>' for c in TYRE)
     return (f'<h4>Tyres, Las Vegas</h4><div class="tkey">{key}</div><ul class="stints">{"".join(rows)}</ul>')

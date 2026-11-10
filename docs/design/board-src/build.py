@@ -25,9 +25,9 @@ def concept_section(c):
             f'<div class="spec c-{k} t-{t}"><p class="spec-cap">{label}</p>'
             '<div class="bar"><span class="seg"><span class="on">Drivers</span><span>Constructors</span></span>'
             '<span><button class="btn q" type="button">Season 2026</button> <button class="btn" type="button">Open weekend</button></span></div>'
-            f'<div class="spec-grid"><div class="card lead">{livery(flag_code="US", label="United States flag")}{racecard_html()}</div><div class="card">{standings_html()}</div>'
+            f'<div class="spec-grid"><div class="card lead">{livery()}{racecard_html()}</div><div class="card">{standings_html()}</div>'
             f'<div class="card">{calendar_html()}</div><div class="card">{tyres_html()}</div>'
-            f'<div class="card lead">{livery("#27F4D2", "12 63", label="Mercedes, cars 12 and 63")}{teamcard_html()}</div><div class="card lead">{livery("#27F4D2", "12", label="Car 12, Mercedes")}{drivercard_html()}</div>'
+            f'<div class="card lead">{livery("#27F4D2")}{teamcard_html()}</div><div class="card lead">{livery("#27F4D2")}{drivercard_html()}</div>'
             f'<div class="card full"><div class="chart-h"><h4>Lap times, Las Vegas</h4><small>Laps 1 to 20, sample data. Pit stops, laps 11 to 14, run off the top.</small></div>{lapchart_svg(t)}</div></div></div>')
     return (f'<h2 id="c-{k}">The direction: {c["name"]}</h2><p class="lede">{c["idea"]}</p>'
             f'<div class="meta"><div><b>Materials</b>{c["material"]}</div><div><b>Type</b>{c["type_note"]}</div></div>'

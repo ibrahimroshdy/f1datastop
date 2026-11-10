@@ -94,22 +94,23 @@ def swatches(c, t):
 
 # Sample data shaped like the real thing (2026, round 20 standings from the live site).
 STANDINGS = [
-    (1, "Andrea Kimi Antonelli", "Mercedes", "mercedes", 9, 390),
-    (2, "Max Verstappen", "Red Bull Racing", "red_bull", 5, 279),
-    (3, "George Russell", "Mercedes", "mercedes", 3, 262),
-    (4, "Lewis Hamilton", "Ferrari", "ferrari", 1, 261),
-    (5, "Lando Norris", "McLaren", "mclaren", 1, 246),
+    (1, "Andrea Kimi Antonelli", "Mercedes", "mercedes", 9, 390, "antonelli"),
+    (2, "Max Verstappen", "Red Bull Racing", "red_bull", 5, 279, "max_verstappen"),
+    (3, "George Russell", "Mercedes", "mercedes", 3, 262, "russell"),
+    (4, "Lewis Hamilton", "Ferrari", "ferrari", 1, 261, "hamilton"),
+    (5, "Lando Norris", "McLaren", "mclaren", 1, 246, "norris"),
 ]
 
 
 def standings_html():
     lead = STANDINGS[0][5]
     rows = []
-    for pos, name, team, tid, wins, pts in STANDINGS:
+    from avatars import avatar
+    for pos, name, team, tid, wins, pts, did in STANDINGS:
         gap = "Leader" if pos == 1 else f"{lead - pts} behind"
         rows.append(
             f'<tr><td class="pos num">{pos}</td>'
-            f'<td><span class="tm" style="background:{TEAM[tid]}"></span><span class="who"><b>{name}</b><small>{team}</small></span></td>'
+            f'<td>{avatar(did, name, TEAM[tid], 40)}<span class="who"><b>{name}</b><small>{team}</small></span></td>'
             f'<td class="num hide-s">{wins}</td><td class="num"><b class="fig">{pts}</b><small>{gap}</small></td></tr>')
     return ('<table class="stand"><caption>Drivers, after round 20</caption><thead><tr><th class="num">Pos</th><th>Driver</th>'
             '<th class="num hide-s">Wins</th><th class="num">Points</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table>")
@@ -177,35 +178,27 @@ def racecard_html():
 
 
 def teamcard_html():
-    """The lead card of a team page: the livery stripe in the team's own colour."""
-    rows = "".join(f'<div class="tdrv"><span class="tm" style="background:{TEAM["mercedes"]}"></span><span class="who"><b>{n}</b>'
+    """The lead card of a team page: the stripe in the team's colour, its drivers with avatars."""
+    from avatars import avatar
+    rows = "".join(f'<div class="tdrv">{avatar(d, n, TEAM["mercedes"], 44)}<span class="who"><b>{n}</b>'
                    f'<small>{w} wins</small></span><b class="num fig">{p}</b></div>'
-                   for n, w, p in (("Andrea Kimi Antonelli", 9, 390), ("George Russell", 3, 262)))
-    return (f'<article class="team" style="--stripe:{TEAM["mercedes"]}"><div class="race-top"><span class="live">P1 constructors</span></div>'
+                   for n, w, p, d in (("Andrea Kimi Antonelli", 9, 390, "antonelli"), ("George Russell", 3, 262, "russell")))
+    return ('<article class="team"><div class="race-top"><span class="live">P1 constructors</span></div>'
             '<h4>Mercedes</h4><p class="where">652 points, 12 wins, 142 ahead of Ferrari</p>' + rows + "</article>")
 
 
 def drivercard_html():
-    """The lead card of a driver page: flag, name, team, and the stripe in the team's colour."""
-    from race_bits import flag
-    return ('<article class="team"><div class="race-top">' + flag("IT", 21, "Italy") + '<span class="live">P1 drivers</span></div>'
-            '<h4>Andrea Kimi Antonelli</h4><p class="where">Mercedes, car 12</p>'
+    """The lead card of a driver page: the headshot, name and team, the stripe in the team's colour."""
+    from avatars import avatar
+    return ('<article class="team"><div class="dhead">' + avatar("antonelli", "Andrea Kimi Antonelli", TEAM["mercedes"], 72)
+            + '<div><span class="live">P1 drivers</span><h4>Andrea Kimi Antonelli</h4><p class="where">Mercedes, Italy</p></div></div>'
             '<div class="tdrv"><span class="who"><b>390 points</b><small>111 ahead of Verstappen</small></span><b class="num fig">9 wins</b></div>'
             '<div class="tdrv"><span class="who"><b>Last race</b><small>São Paulo Grand Prix</small></span><b class="num fig">P1</b></div></article>')
 
 
-def livery(colour=None, number=None, flag_code=None, label=None):
-    """The livery stripe across a lead card's corner. Filled with a team or driver colour
-    (with the car number on it, in the ink that reads on that colour) or with a flag."""
-    from race_bits import flag_fill
-    if flag_code:
-        body, bg, ink = flag_fill(flag_code), "transparent", "#FFFFFF"
-    else:
-        bg = colour or "var(--mark)"
-        ink = max(("#FFFFFF", "#0A0A0F"), key=lambda x: contrast(x, colour)) if colour else "#FFFFFF"
-        body = ""
-    num = f'<span class="lv-n" style="color:{ink}">{number}</span>' if number else ""
-    a = f'role="img" aria-label="{label}"' if label else 'aria-hidden="true"'
-    trail = colour or "var(--mark)"
-    return (f'<span class="livery" {a}><span class="lv-band" style="background:{bg}">{body}{num}</span>'
-            f'<span class="lv-trail" style="background:{trail}"></span></span>')
+def livery(colour=None):
+    """The livery stripe across a lead card's corner: F1 DataStop red, or the team's colour
+    on its team and driver pages. Colour only (owner, 2026-11-10)."""
+    c = colour or "var(--mark)"
+    return (f'<span class="livery" aria-hidden="true"><span class="lv-band" style="background:{c}"></span>'
+            f'<span class="lv-trail" style="background:{c}"></span></span>')
