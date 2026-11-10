@@ -1,6 +1,6 @@
 """The six key screens and one sheet. Each function returns (phone_html, desktop_html)."""
 from avatars import avatar
-from charts import progression, speed_trace
+from charts import progression, sankey, speed_trace
 from concepts import _lapchart, livery
 from data import DRIVER_RESULTS, DRIVERS, FASTEST, RACES, RESULTS, STANDINGS, TEAM, TEAM_NAME, TEAMS
 from race_bits import TYRE, flag, tyre
@@ -17,6 +17,17 @@ def drow(did, end, pos=None, size=40, sub=None):
     p = f'<span class="pos">{pos}</span>' if pos is not None else ""
     return (f'<li>{p}{av(did, size)}<span class="who"><b class="lnk">{n}</b><small>{sub or TEAM_NAME[t]}</small></span>'
             f'<span class="end">{end}</span></li>')
+
+
+def crow(did, value, pos, sub=None):
+    """The one compact row (D29): position, 32 px face, surname over team, one figure. One height everywhere."""
+    _, short, t = DRIVERS[did]
+    return (f'<li class="cr"><span class="pos">{pos}</span>{av(did, 32)}<span class="who"><b class="lnk">{short}</b>'
+            f'<small>{sub or TEAM_NAME[t]}</small></span><span class="end"><b>{value}</b></span></li>')
+
+
+def compact_standings(n=5):
+    return "".join(crow(d, p, i + 1) for i, (d, p, _) in enumerate(STANDINGS[:n]))
 
 
 def standings_rows(n=5, size=40):
@@ -47,7 +58,7 @@ def next_gp(full=True):
 
 
 def last_gp():
-    pod = "".join(drow(d, f'<b>{"" if i else ""}{t}</b>', i + 1, 40) for i, (d, t, _, _) in enumerate(RESULTS[:3]))
+    pod = "".join(crow(d, t, i + 1) for i, (d, t, _, _) in enumerate(RESULTS[:3]))
     return (f'<article class="cd"><div style="display:flex;gap:10px;align-items:center">{flag("BR", 24, "Brazil")}'
             '<span class="chip">Last race</span></div>'
             '<h3 class="ttl lnk" style="font-size:22px;margin:10px 0 2px">São Paulo Grand Prix</h3>'
@@ -56,12 +67,17 @@ def last_gp():
 
 
 def home():
-    drivers = f'<article class="cd"><h3>Drivers <a>All</a></h3><ul class="rows" style="margin-top:6px">{standings_rows(5)}</ul></article>'
+    drivers = f'<article class="cd"><h3>Drivers <a>All</a></h3><ul class="rows" style="margin-top:6px">{compact_standings(5)}</ul></article>'
     teams = f'<article class="cd"><h3>Teams <a>All</a></h3><ul class="rows" style="margin-top:6px">{team_rows(3)}</ul></article>'
-    ph = phone(next_gp(False) + last_gp() + drivers + teams, "Home", "home")
+    ph = phone(next_gp(False) + last_gp() + sankey_card(300, 290) + drivers + teams, "Home", "home")
     dk = desktop(f'<div class="g3">{next_gp()}{last_gp()}{drivers}</div>'
-                 f'<div class="g73">{lapcard("Lap times, São Paulo", True)}{teams}</div>', "Home", "home")
+                 f'<div class="g73">{sankey_card(620, 220)}{teams}</div>', "Home", "home")
     return ph, dk
+
+
+def sankey_card(W, H, title="Qualifying to race, São Paulo"):
+    return (f'<article class="cd"><h3>{title} <a>Open</a></h3>'
+            f'<div style="margin-top:8px">{sankey(W, H)}</div></article>')
 
 
 def lapcard(title, wide):
@@ -105,7 +121,7 @@ def result_rows(n):
 def grand_prix():
     sess = '<div class="chips"><span class="ck">Sprint</span><span class="ck">Qualifying</span><span class="ck on">Race</span></div>'
     ph = phone(gp_head(True) + section_pill("Results") + sess
-               + f'<article class="cd"><ul class="rows">{result_rows(6)}</ul></article>',
+               + f'<article class="cd"><ul class="rows">{result_rows(5)}</ul></article>' + sankey_card(300, 290, "Qualifying to race"),
                "São Paulo GP", "races", "Interlagos, 6 to 8 Nov", back=True)
     rows = "".join(
         f'<tr><td class="num">{i + 1}</td><td class="dv">{av(d, 32)}<b class="lnk">{DRIVERS[d][0]}</b></td>'
@@ -121,7 +137,8 @@ def grand_prix():
         f'<span class="strip">{"".join(f"<span style=flex:{w};background:{TYRE[c][1]}></span>" for c, w in zip(ty, (30, 41, 10)))}</span></li>'
         for d, _, ty, _ in RESULTS[:3])
     dk = desktop(f'{tabs("Results")}<div style="display:flex;justify-content:space-between">{sess}<span class="pill">Open in Pit Wall {ic("go", 16)}</span></div>'
-                 f'<div class="g73">{table}<div style="display:grid;gap:12px">{side}<article class="cd"><h3>Strategy</h3><ul class="rows">{strat}</ul></article></div></div>',
+                 f'<div class="g73"><div style="display:grid;gap:12px">{table}<article class="cd"><h3>Strategy</h3><ul class="rows">{strat}</ul></article></div>'
+                 f'<div style="display:grid;gap:12px">{side}{sankey_card(340, 300, "Qualifying to race")}</div></div>',
                  "São Paulo Grand Prix", "races", flag("BR", 22, "Brazil"))
     return ph, dk
 
@@ -222,3 +239,27 @@ def sheet():
     seg = '<div class="seg fill"><span class="on">Drivers</span><span>Teams</span></div>'
     return phone(seg + f'<article class="cd"><ul class="rows">{standings_rows(7)}</ul></article>', "Standings", "standings",
                  "After São Paulo", overlay=over)
+
+
+def quick_look():
+    """A race opens a quick look first (D30): a sheet on a phone, a dialog on a desktop, with its own
+    URL (?race=sao-paulo), the summary, the Sankey and the way into the full page."""
+    tiles = "".join(f'<div class="ql-t">{av(d, 36)}<span class="who"><small>{lbl}</small><b class="lnk">{DRIVERS[d][1]}</b>'
+                    f'{f"<small class=num>{x}</small>" if x else ""}</span></div>'
+                    for lbl, d, x in (("Winner", "antonelli", ""), ("Pole", "max_verstappen", ""),
+                                      ("Fastest lap", "max_verstappen", '<span class="purple">1:12.486</span>')))
+    body = (f'<div style="display:flex;gap:10px;align-items:center">{flag("BR", 24, "Brazil")}<span class="chip">Sprint weekend</span></div>'
+            '<h3 class="ttl" style="font-size:26px;margin:8px 0 2px">São Paulo Grand Prix</h3>'
+            '<p class="s2" style="font-size:14px"><span class="lnk">Interlagos</span>, 6 to 8 Nov</p>'
+            f'<div class="ql-g">{tiles}</div>'
+            '<p class="h3" style="margin:4px 0 6px;font-size:15px">Qualifying to race</p>{SANKEY}'
+            '<div class="chips" style="margin-top:12px"><span class="ck">Results</span><span class="ck">Laps</span><span class="ck">Telemetry</span><span class="ck">Strategy</span></div>'
+            f'<span class="pill act" style="width:100%;justify-content:center;height:46px;margin-top:12px;font-size:15px">Open Grand Prix {ic("go", 16)}</span>')
+    under = f'<article class="cd"><ul class="rows">{races()}</ul></article>'
+    ph_over = ('<div class="veil"></div><div class="sheet" style="padding-bottom:30px"><div class="grab"></div>'
+               + body.replace("{SANKEY}", sankey(320, 230)) + "</div>")
+    ph = phone(under, "Races", "races", "Season 2026", overlay=ph_over)
+    dk_over = ('<div class="veil" style="border-radius:22px"></div><div class="dlg sur">'
+               + body.replace("{SANKEY}", sankey(560, 200)) + "</div>")
+    dk = desktop(f'<article class="cd"><ul class="rows">{races()}</ul></article>', "Races", "races") + dk_over
+    return ph, dk

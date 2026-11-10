@@ -3,7 +3,8 @@ on the live site; results, times and session clocks are invented). Team colours 
 real ones from web/src/constants/f1Colors.ts."""
 import math
 
-TEAM = {"mercedes": "#27F4D2", "red_bull": "#3671C6", "ferrari": "#F91536", "mclaren": "#FF8700"}
+TEAM = {"mercedes": "#27F4D2", "red_bull": "#3671C6", "ferrari": "#F91536", "mclaren": "#FF8700",
+        "aston_martin": "#229971", "alpine": "#FF87BC", "williams": "#37BEDD"}
 TEAM_NAME = {"mercedes": "Mercedes", "red_bull": "Red Bull Racing", "ferrari": "Ferrari", "mclaren": "McLaren"}
 
 DRIVERS = {  # id: (name, short, team)
@@ -61,3 +62,9 @@ def points_progress(total, wins, seed):
         out.append(acc)
     k = total / out[-1]
     return [p * k for p in out]
+
+
+# São Paulo: qualifying order and finishing order, top ten (sample). Codes and team ids.
+QUALI = [("VER", "red_bull"), ("ANT", "mercedes"), ("RUS", "mercedes"), ("NOR", "mclaren"), ("LEC", "ferrari"),
+         ("HAM", "ferrari"), ("PIA", "mclaren"), ("ALO", "aston_martin"), ("GAS", "alpine"), ("ALB", "williams")]
+FINISH = ["ANT", "VER", "RUS", "NOR", "HAM", "LEC", "PIA", "GAS", "ALB", "ALO"]

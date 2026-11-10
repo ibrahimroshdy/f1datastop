@@ -1,7 +1,7 @@
 """Charts drawn for the screens: a speed trace and the points progression. The lap chart
 is the board's own (concepts._lapchart). Series take team colours; nothing takes the brand
 red."""
-from data import CORNERS, DRIVERS, LAP_KM, STANDINGS, TEAM, points_progress, speed
+from data import CORNERS, DRIVERS, FINISH, LAP_KM, QUALI, STANDINGS, TEAM, points_progress, speed
 
 
 def speed_trace(W, H, compact=False):
@@ -47,3 +47,34 @@ def progression(W, H):
         placed.append(y)
         g.append(f'<text x="{W - R + 6}" y="{y + 4:.1f}" class="lbl" fill="{col}">{n}</text>')
     return f'<svg viewBox="0 0 {W} {H}" class="lap" role="img" aria-label="Points after each round, top four">{"".join(g)}</svg>'
+
+
+def sankey(W, H):
+    """Qualifying to race: each driver's band runs from grid slot to finishing place, in the team colour.
+    Places gained or lost are written beside the finish, never shown by colour alone."""
+    L, R, T, B, gap = 62, 78, 22, 6, 4
+    n = len(QUALI)
+    h = (H - T - B - gap * (n - 1)) / n
+    y = lambda i: T + i * (h + gap)
+    team = dict(QUALI)
+    g = [f'<text x="{L - 8}" y="12" class="ax" text-anchor="end">Grid</text>',
+         f'<text x="{W - R + 8}" y="12" class="ax">Finish</text>']
+    for qi, (code, tid) in enumerate(QUALI):
+        fi = FINISH.index(code)
+        x0, x1 = L + 6, W - R - 6
+        y0, y1 = y(qi), y(fi)
+        mx = (x0 + x1) / 2
+        g.append(f'<path d="M{x0} {y0:.1f} C{mx} {y0:.1f} {mx} {y1:.1f} {x1} {y1:.1f} L{x1} {y1 + h:.1f} '
+                 f'C{mx} {y1 + h:.1f} {mx} {y0 + h:.1f} {x0} {y0 + h:.1f} Z" fill="{TEAM[tid]}" fill-opacity=".42"/>')
+        g.append(f'<rect x="{L}" y="{y0:.1f}" width="6" height="{h:.1f}" rx="2" fill="{TEAM[tid]}"/>'
+                 f'<text x="{L - 8}" y="{y0 + h / 2 + 4:.1f}" class="lbl" text-anchor="end" fill="var(--ink)">{qi + 1} {code}</text>')
+    for fi, code in enumerate(FINISH):
+        qi = [c for c, _ in QUALI].index(code)
+        d = qi - fi
+        mv = f"+{d}" if d > 0 else (f"{d}".replace("-", "\u2212") if d < 0 else "=")
+        y1 = y(fi)
+        g.append(f'<rect x="{W - R - 6}" y="{y1:.1f}" width="6" height="{h:.1f}" rx="2" fill="{TEAM[team[code]]}"/>'
+                 f'<text x="{W - R + 8}" y="{y1 + h / 2 + 4:.1f}" class="lbl" fill="var(--ink)">{fi + 1} {code}</text>'
+                 f'<text x="{W - 4}" y="{y1 + h / 2 + 4:.1f}" class="ax" text-anchor="end">{mv}</text>')
+    return (f'<svg viewBox="0 0 {W} {H}" class="lap" role="img" aria-label="Qualifying to race, top ten: '
+            f'{", ".join(f"{c} from {[q for q, _ in QUALI].index(c) + 1} to {i + 1}" for i, c in enumerate(FINISH))}">{"".join(g)}</svg>')

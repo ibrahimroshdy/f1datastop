@@ -83,7 +83,7 @@ ul,ol{list-style:none}
 .top .t h1{font-family:var(--display);text-transform:uppercase;font-weight:700;font-size:26px;color:var(--heading);line-height:1}
 .srch{display:flex;align-items:center;gap:8px;width:300px;height:40px;padding:0 14px;border-radius:999px;background:var(--card);box-shadow:0 0 0 1px var(--line);color:var(--ink3);font-size:14px}
 .srch kbd{margin-left:auto;font:500 12px var(--mono);color:var(--ink3)}
-.dsc{position:absolute;left:252px;right:12px;top:90px;bottom:0;display:grid;gap:12px;align-content:start;padding-bottom:20px}
+.dsc{position:absolute;left:252px;right:12px;top:90px;display:grid;gap:12px;align-content:start;padding-bottom:20px}
 
 /* cards and parts */
 .cd{background:var(--card);border-radius:20px;padding:16px;position:relative;overflow:hidden;box-shadow:0 0 0 1px var(--line)}
@@ -146,3 +146,12 @@ ul,ol{list-style:none}
 .sheet .opt{display:flex;justify-content:space-between;align-items:center;height:52px;border-top:1px solid var(--line);font-size:16px}
 .sheet .opt:first-of-type{border-top:0}
 .ok{color:var(--mark)}
+
+/* compact row (D29): one height, surname over team */
+.rows>li.cr{min-height:56px;padding:8px 0}
+.cr .who b{white-space:nowrap}
+/* quick look (D30) */
+.ql-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.ql-t{display:flex;flex-direction:column;gap:6px;background:var(--card);border-radius:14px;padding:10px;box-shadow:0 0 0 1px var(--line)}
+.ql-t .who small{font-size:12px}
+.dlg{position:absolute;left:calc(50% + 120px);top:50%;width:580px;transform:translate(-50%,-50%);border-radius:28px;padding:22px;z-index:7}

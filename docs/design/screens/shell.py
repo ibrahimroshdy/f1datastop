@@ -4,7 +4,7 @@ import sys
 import pathlib
 
 sys.path.insert(0, str(pathlib.Path(__file__).parents[1] / "board-src"))
-from wing import refined, svg as wsvg  # noqa: E402
+from wing import today, svg as wsvg  # noqa: E402
 
 _P = {
     "home": '<path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/>',
@@ -31,7 +31,7 @@ def ic(name, size=22, sw=2):
 
 
 def logo(size):
-    return wsvg(refined(), size, "F1 DataStop")
+    return wsvg(today(), size, "F1 DataStop")
 
 
 DOCK = [("home", "Home"), ("races", "Races"), ("standings", "Standings"), ("drivers", "Drivers"), ("more", "More")]
