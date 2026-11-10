@@ -64,7 +64,13 @@ def points_progress(total, wins, seed):
     return [p * k for p in out]
 
 
-# São Paulo: qualifying order and finishing order, top ten (sample). Codes and team ids.
-QUALI = [("VER", "red_bull"), ("ANT", "mercedes"), ("RUS", "mercedes"), ("NOR", "mclaren"), ("LEC", "ferrari"),
-         ("HAM", "ferrari"), ("PIA", "mclaren"), ("ALO", "aston_martin"), ("GAS", "alpine"), ("ALB", "williams")]
-FINISH = ["ANT", "VER", "RUS", "NOR", "HAM", "LEC", "PIA", "GAS", "ALB", "ALO"]
+# São Paulo: qualifying, grid and race order for all 22 cars (sample). Alonso takes a five-place
+# grid penalty, Perez retires. Team colours from web/src/constants/f1Colors.ts.
+CAR_TEAM = {"NOR": "#FF8700", "PIA": "#FF8700", "RUS": "#27F4D2", "ANT": "#27F4D2", "LEC": "#F91536", "HAM": "#F91536",
+            "VER": "#3671C6", "HAD": "#3671C6", "LAW": "#5E8FAA", "LIN": "#5E8FAA", "HUL": "#FF0000", "BOR": "#FF0000",
+            "ALO": "#229971", "STR": "#229971", "ALB": "#37BEDD", "SAI": "#37BEDD", "GAS": "#FF87BC", "COL": "#FF87BC",
+            "OCO": "#B6BABD", "BEA": "#B6BABD", "PER": "#C4A747", "BOT": "#C4A747"}
+QUALI = "VER ANT RUS NOR LEC HAM PIA ALO GAS ALB HAD LAW SAI HUL BOR STR OCO BEA COL LIN PER BOT".split()
+GRID = "VER ANT RUS NOR LEC HAM PIA GAS ALB HAD LAW SAI ALO HUL BOR STR OCO BEA COL LIN PER BOT".split()
+RACE = "ANT VER RUS NOR HAM LEC PIA GAS ALB ALO HAD SAI LAW BEA HUL OCO STR BOR LIN COL BOT PER".split()
+DNF = {"PER"}

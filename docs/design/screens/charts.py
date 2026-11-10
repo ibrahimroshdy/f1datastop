@@ -1,7 +1,7 @@
 """Charts drawn for the screens: a speed trace and the points progression. The lap chart
 is the board's own (concepts._lapchart). Series take team colours; nothing takes the brand
 red."""
-from data import CORNERS, DRIVERS, FINISH, LAP_KM, QUALI, STANDINGS, TEAM, points_progress, speed
+from data import CAR_TEAM, CORNERS, DNF, DRIVERS, GRID, LAP_KM, QUALI, RACE, STANDINGS, TEAM, points_progress, speed
 
 
 def speed_trace(W, H, compact=False):
@@ -49,32 +49,41 @@ def progression(W, H):
     return f'<svg viewBox="0 0 {W} {H}" class="lap" role="img" aria-label="Points after each round, top four">{"".join(g)}</svg>'
 
 
-def sankey(W, H):
-    """Qualifying grid to race: each driver's band runs from grid slot to finishing place, in the team colour.
-    Places gained or lost are written beside the finish, never shown by colour alone."""
-    L, R, T, B, gap = 62, 78, 22, 6, 4
+def sankey(W, H, compact=False):
+    """Qualifying, grid, race, as the app draws it (MuiSankeyChart): three columns, every car, a team-coloured
+    marker per place, and each band coloured by the change between columns: gain, loss or hold. A retirement's
+    band is dimmed. The legend names the colours, so they are never the only cue."""
+    L, R, T, B = (46, 46, 30, 4) if compact else (58, 58, 30, 4)
     n = len(QUALI)
-    h = (H - T - B - gap * (n - 1)) / n
-    y = lambda i: T + i * (h + gap)
-    team = dict(QUALI)
-    g = [f'<text x="{L}" y="12" class="ax">Qualifying grid</text>',
-         f'<text x="{W - R}" y="12" class="ax" text-anchor="end">Race</text>']
-    for qi, (code, tid) in enumerate(QUALI):
-        fi = FINISH.index(code)
-        x0, x1 = L + 6, W - R - 6
-        y0, y1 = y(qi), y(fi)
-        mx = (x0 + x1) / 2
-        g.append(f'<path d="M{x0} {y0:.1f} C{mx} {y0:.1f} {mx} {y1:.1f} {x1} {y1:.1f} L{x1} {y1 + h:.1f} '
-                 f'C{mx} {y1 + h:.1f} {mx} {y0 + h:.1f} {x0} {y0 + h:.1f} Z" fill="{TEAM[tid]}" fill-opacity=".42"/>')
-        g.append(f'<rect x="{L}" y="{y0:.1f}" width="6" height="{h:.1f}" rx="2" fill="{TEAM[tid]}"/>'
-                 f'<text x="{L - 8}" y="{y0 + h / 2 + 4:.1f}" class="lbl" text-anchor="end" fill="var(--ink)">{qi + 1} {code}</text>')
-    for fi, code in enumerate(FINISH):
-        qi = [c for c, _ in QUALI].index(code)
-        d = qi - fi
-        mv = f"+{d}" if d > 0 else (f"{d}".replace("-", "\u2212") if d < 0 else "=")
-        y1 = y(fi)
-        g.append(f'<rect x="{W - R - 6}" y="{y1:.1f}" width="6" height="{h:.1f}" rx="2" fill="{TEAM[team[code]]}"/>'
-                 f'<text x="{W - R + 8}" y="{y1 + h / 2 + 4:.1f}" class="lbl" fill="var(--ink)">{fi + 1} {code}</text>'
-                 f'<text x="{W - 4}" y="{y1 + h / 2 + 4:.1f}" class="ax" text-anchor="end">{mv}</text>')
-    return (f'<svg viewBox="0 0 {W} {H}" class="lap" role="img" aria-label="Qualifying to race, top ten: '
-            f'{", ".join(f"{c} from {[q for q, _ in QUALI].index(c) + 1} to {i + 1}" for i, c in enumerate(FINISH))}">{"".join(g)}</svg>')
+    step = (H - T - B) / n
+    m = 9 if compact else 11
+    cols = [L, (L + W - R - m) / 2, W - R - m]
+    y = lambda i: T + i * step + (step - m) / 2
+    fs = 9 if compact else 11
+    g = [f'<text x="{x + m / 2:.1f}" y="12" class="ax" text-anchor="middle" style="letter-spacing:.12em">{t}</text>'
+         for x, t in zip(cols, ("QUALI", "GRID", "RACE"))]
+    bw = max(2.0, m - 4)
+    for (a, b), (xa, xb) in zip(((QUALI, GRID), (GRID, RACE)), ((cols[0], cols[1]), (cols[1], cols[2]))):
+        for i, code in enumerate(a):
+            j = b.index(code)
+            col = "var(--gain)" if j < i else ("var(--loss)" if j > i else "var(--hold)")
+            op = .18 if (code in DNF and b is RACE) else .55
+            y0, y1 = y(i) + m / 2, y(j) + m / 2
+            x0, x1 = xa + m, xb
+            mx = (x0 + x1) / 2
+            g.append(f'<path d="M{x0:.1f} {y0:.1f} C{mx:.1f} {y0:.1f} {mx:.1f} {y1:.1f} {x1:.1f} {y1:.1f}" fill="none" '
+                     f'stroke="{col}" stroke-opacity="{op}" stroke-width="{bw:.1f}"/>')
+    for x, order in zip(cols, (QUALI, GRID, RACE)):
+        for i, code in enumerate(order):
+            g.append(f'<rect x="{x:.1f}" y="{y(i):.1f}" width="{m}" height="{m}" rx="2.5" fill="{CAR_TEAM[code]}"/>')
+    for i, code in enumerate(QUALI):
+        g.append(f'<text x="{cols[0] - 5:.1f}" y="{y(i) + m - 1.5:.1f}" class="sk" text-anchor="end" style="font-size:{fs}px">{i + 1} {code}</text>')
+    for i, code in enumerate(RACE):
+        g.append(f'<text x="{cols[2] + m + 5:.1f}" y="{y(i) + m - 1.5:.1f}" class="sk" style="font-size:{fs}px">{code} {i + 1}</text>')
+    return (f'<svg viewBox="0 0 {W} {H}" class="lap" role="img" aria-label="Qualifying, grid and race order for 22 cars. '
+            f'Winner Antonelli from second; Alonso started 13th after a grid penalty and finished 10th; Perez retired.">{"".join(g)}</svg>')
+
+
+def sankey_legend():
+    return ('<span class="skl"><span><i style="background:var(--gain)"></i>&#8593; Gain</span>'
+            '<span><i style="background:var(--loss)"></i>&#8595; Loss</span><span><i style="background:var(--hold)"></i>Hold</span></span>')

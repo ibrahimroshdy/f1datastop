@@ -155,3 +155,10 @@ ul,ol{list-style:none}
 .ql-t{display:flex;flex-direction:column;gap:6px;background:var(--card);border-radius:14px;padding:10px;box-shadow:0 0 0 1px var(--line)}
 .ql-t .who small{font-size:12px}
 .dlg{position:absolute;left:calc(50% + 120px);top:50%;width:580px;transform:translate(-50%,-50%);border-radius:28px;padding:22px;z-index:7}
+
+/* Sankey: change colours, as the app's --status-completed / --destructive / muted (D31) */
+.frame.t-dark{--gain:#2EBD6B;--loss:#E5484D;--hold:#5D5D69}
+.frame.t-light{--gain:#15803D;--loss:#C62828;--hold:#A9AAB3}
+.lap .sk{font-family:var(--mono);fill:var(--ink2)}
+.skl{display:flex;flex-wrap:wrap;gap:4px 12px;font:500 12px var(--mono);color:var(--ink2);margin-top:6px}
+.skl span{display:inline-flex;align-items:center;gap:5px}.skl i{width:12px;height:4px;border-radius:2px;display:inline-block}
