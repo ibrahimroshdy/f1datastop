@@ -1,3 +1,4 @@
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import React, { useMemo, useState, useEffect } from 'react';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { TEAM_COLORS } from '@/constants/f1Colors';
@@ -320,38 +321,38 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
             </div>
             {mode === 'driver' && drivers.length > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Driver:</span>
-                <select
-                  aria-label="Driver filter"
-                  value={selectedDriver ?? ""}
-                  onChange={(e) => setSelectedDriver(e.target.value || null)}
-                  className="bg-input border border-input rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  <option value="">— select —</option>
-                  {drivers.map((d) => (
-                    <option key={d.code} value={d.code}>
-                      {d.code} · {d.teamName}
-                    </option>
-                  ))}
-                </select>
+                <span className="text-sm text-ink-2">Driver</span>
+                <Select value={selectedDriver ?? "all"} onValueChange={(v) => setSelectedDriver(v === "all" ? null : v)}>
+                  <SelectTrigger aria-label="Driver filter" className="h-9 w-auto min-w-[10rem] rounded-full text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All drivers</SelectItem>
+                    {drivers.map((d) => (
+                      <SelectItem key={d.code} value={d.code}>
+                        {d.code}, {d.teamName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
             {mode === 'team' && teams.length > 0 && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Team:</span>
-                <select
-                  aria-label="Team filter"
-                  value={selectedTeam ?? ""}
-                  onChange={(e) => setSelectedTeam(e.target.value || null)}
-                  className="bg-input border border-input rounded-md px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  <option value="">— select —</option>
-                  {teams.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
+                <span className="text-sm text-ink-2">Team</span>
+                <Select value={selectedTeam ?? "all"} onValueChange={(v) => setSelectedTeam(v === "all" ? null : v)}>
+                  <SelectTrigger aria-label="Team filter" className="h-9 w-auto min-w-[10rem] rounded-full text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All teams</SelectItem>
+                    {teams.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>
