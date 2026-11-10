@@ -4,6 +4,7 @@ import f1Logo from "@/assets/f1-logo.svg";
 import NextRaceInfo from "./nextRace/NextRaceInfo";
 import SocialLinks from "./social/SocialLinks";
 import { ThemeSelector } from "@/components/theme/ThemeToggle";
+import { SeasonPill } from "./SeasonPill";
 import { isDetailRoute, parentRoute, routeTitle } from "@/config/navigation";
 
 /**
@@ -41,13 +42,14 @@ const TopBar = () => {
           <img src={f1Logo} alt="" className="h-9 w-9" />
         </Link>
       )}
-      <p className="shell-title">{title}</p>
+      <p className="shell-title min-w-0 flex-1 md:flex-none">{title}</p>
       <div className="hidden min-w-0 md:flex">
         <NextRaceInfo />
       </div>
-      <div className="ml-auto hidden items-center gap-1 sm:flex">
+      <div className="ml-auto hidden items-center gap-1 lg:flex">
         <SocialLinks />
       </div>
+      <SeasonPill className="ml-auto lg:ml-0" />
       <div className="hidden md:block">
         <ThemeSelector />
       </div>

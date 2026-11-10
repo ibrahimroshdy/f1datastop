@@ -4,6 +4,8 @@ import { ExternalLink } from "lucide-react";
 import { isNavActive, moreItems } from "@/config/navigation";
 import { ThemeSelector } from "@/components/theme/ThemeToggle";
 import { cn } from "@/lib/utils";
+import { useSeason } from "@/hooks/useSeason";
+import { seasonSearch } from "@/lib/links";
 
 interface MorePanelProps {
   open: boolean;
@@ -17,6 +19,7 @@ interface MorePanelProps {
  */
 const MorePanel = ({ open, onClose }: MorePanelProps) => {
   const { pathname } = useLocation();
+  const [season] = useSeason();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,7 +65,7 @@ const MorePanel = ({ open, onClose }: MorePanelProps) => {
                 </a>
               ) : (
                 <Link
-                  to={item.href}
+                  to={item.href + seasonSearch(season)}
                   viewTransition
                   aria-current={active ? "page" : undefined}
                   className={cn(row, active ? "bg-act text-on-act" : "text-foreground hover:bg-accent")}

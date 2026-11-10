@@ -7,6 +7,7 @@ import Dock from "./Dock";
 import PullToRefresh from "./PullToRefresh";
 import ScrollToTop from "./ScrollToTop";
 import { AddToHome } from "@/components/pwa/AddToHome";
+import { QuickLookHost } from "@/components/calendar/QuickLook";
 import { useIsMediumOrSmaller } from "@/hooks/use-mobile";
 
 const RAIL_KEY = "f1ds_sidebar_collapsed";
@@ -76,6 +77,7 @@ const MainLayout = () => {
       </main>
 
       <AddToHome />
+      <QuickLookHost />
       <Dock />
     </div>
   );

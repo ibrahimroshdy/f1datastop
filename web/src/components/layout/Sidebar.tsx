@@ -6,6 +6,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AdSenseUnit } from "@/components/ads/AdSenseUnit";
 import { adsenseSlots } from "@/config/adsense";
 import { cn } from "@/lib/utils";
+import { useSeason } from "@/hooks/useSeason";
+import { seasonSearch } from "@/lib/links";
 
 interface SidebarProps {
   /** Folded to the icon rail. Always folded from 768 to 1023 px. */
@@ -22,6 +24,7 @@ interface SidebarProps {
  */
 const Sidebar = ({ rail, canExpand, onToggle }: SidebarProps) => {
   const { pathname } = useLocation();
+  const [season] = useSeason();
 
   const item = (it: NavItem) => {
     const Icon = it.icon;
@@ -45,7 +48,7 @@ const Sidebar = ({ rail, canExpand, onToggle }: SidebarProps) => {
       </a>
     ) : (
       <Link
-        to={it.href}
+        to={it.href + seasonSearch(season)}
         viewTransition
         className={cls}
         aria-current={active ? "page" : undefined}

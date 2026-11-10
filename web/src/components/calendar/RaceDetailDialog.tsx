@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { raceHref } from "@/lib/links";
 import { useTheme } from "@/context/ThemeContext";
 import CountryFlag from "@/components/common/CountryFlag";
 import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
@@ -181,9 +182,18 @@ const RaceDetailDialog = ({ isOpen, onClose, race }: RaceDetailDialogProps) => {
           </div>
         </Tabs>
 
-        <DialogFooter className="pt-2">
-          <Button variant="outline" size="sm" onClick={closeDialog} className="min-h-11 px-4 text-xs">
+        <DialogFooter className="flex-row flex-wrap gap-2 pt-2 sm:justify-end">
+          <Button variant="outline" onClick={closeDialog} className="min-h-11 rounded-full px-5">
             Close
+          </Button>
+          <Button
+            onClick={() => {
+              closeDialog();
+              navigate(raceHref(race.season, race.round), { viewTransition: true });
+            }}
+            className="min-h-11 flex-1 rounded-full bg-act px-5 text-on-act hover:bg-act/90 sm:flex-none"
+          >
+            Open Grand Prix
           </Button>
         </DialogFooter>
       </DialogContent>

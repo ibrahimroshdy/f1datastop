@@ -4,6 +4,8 @@ import { MoreHorizontal } from "lucide-react";
 import { dockItems, isNavActive, moreItems } from "@/config/navigation";
 import MorePanel from "./MorePanel";
 import { cn } from "@/lib/utils";
+import { useSeason } from "@/hooks/useSeason";
+import { seasonSearch } from "@/lib/links";
 
 /**
  * The phone's floating dock (docs/design/decisions.md D7, D22), after Mondar PR #41:
@@ -13,6 +15,7 @@ import { cn } from "@/lib/utils";
  */
 const Dock = () => {
   const { pathname } = useLocation();
+  const [season] = useSeason();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreActive = moreItems.some((i) => isNavActive(i, pathname));
 
@@ -33,7 +36,7 @@ const Dock = () => {
           return (
             <Link
               key={item.href}
-              to={item.href}
+              to={item.href + seasonSearch(season)}
               viewTransition
               aria-current={active ? "page" : undefined}
               className={cn(tab, active ? "bg-act text-on-act" : "text-ink-2 hover:text-foreground")}
