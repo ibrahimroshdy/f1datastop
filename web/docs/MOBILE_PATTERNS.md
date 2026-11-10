@@ -50,10 +50,16 @@ at" (tabs, segments, modes). Raised pill marks the active view on a muted track.
 ### Page shell — `web/src/lib/layout.ts`
 `pageShell` (max-w-7xl, responsive px), `pageStack` (gap column). Every page uses one.
 
-### Bottom nav — `components/layout/BottomNav.tsx`
-Opaque bg (**no `backdrop-blur`** on fixed bars — iOS re-raster flicker), `nav-stable`,
-`.safe-bottom`, ~56px height, active icon in a pill, `text-[10px]/text-3xs` labels.
-Overflow items go in the **More sheet** (`MoreNavSheet`) — bottom `Sheet`, 44px tiles.
+### Shell — `components/layout/{MainLayout,TopBar,Dock,MorePanel,Sidebar}.tsx`
+Floating solid bars over one scroller (`#main-content`), after Mondar PR #41
+(`docs/design/decisions.md` D7). **No `backdrop-blur`** anywhere.
+- Phone: a header pill at the top (logo, or a back circle on a detail page, and the section
+  name) and a dock at the bottom: Home, Races, Standings, Drivers, More. Every tab has the
+  same footprint; the current one is filled with the act colour. Labels 12 px.
+- More opens a solid panel above the dock (Teams, Race analysis, Pit Wall, Docs, Privacy, theme).
+- From 768 px: a floating sidebar (icon rail to 1023 px, a 232 px column from 1024 px that
+  folds with ⌘\) and a floating top bar.
+- Every nav link uses `viewTransition`; the bars hold still while the page crossfades.
 
 ### Cards / lists / tables
 - Card: `F1Card` (`overflow-hidden p-0`); list inside = `ul` with `divide-y divide-border`,

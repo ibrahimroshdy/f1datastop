@@ -26,8 +26,9 @@ const NextRaceInfo = () => {
 
   return (
     <>
-      <div 
-        className="hidden md:flex items-center gap-2 text-sm bg-card rounded-lg px-3 py-1.5 border border-transparent hover:border-primary hover:shadow-md cursor-pointer transition-all duration-200 hover:bg-card/90"
+      <button
+        type="button"
+        className="press hidden min-w-0 items-center gap-2 rounded-full bg-card px-3.5 py-2 text-sm ring-1 ring-border hover:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
         onClick={openRaceDetails}
       >
       <CalendarDays size={16} className="text-primary" />
@@ -45,8 +46,8 @@ const NextRaceInfo = () => {
           </span>
         )}
       </div>
-    </div>
-      
+    </button>
+
       {nextRace && 
         <RaceDetailDialog 
           isOpen={isDialogOpen} 
