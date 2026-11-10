@@ -90,8 +90,8 @@ const F1Avatar = React.forwardRef<HTMLDivElement, F1AvatarProps>(
             className={cn(
               "absolute -bottom-1 -right-1 flex items-center justify-center",
               "rounded-full text-primary-foreground font-bold shadow-premium-sm",
-              size === "xs" && "h-3 w-3 text-2xs",
-              size === "sm" && "h-4 w-4 text-2xs",
+              size === "xs" && "h-5 w-5 text-xs",
+              size === "sm" && "h-5 w-5 text-xs",
               size === "md" && "h-5 w-5 text-xs",
               size === "lg" && "h-6 w-6 text-xs",
               size === "xl" && "h-8 w-8 text-sm",

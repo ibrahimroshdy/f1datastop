@@ -59,19 +59,19 @@ export function RaceProgressBar({ blob, playhead }: Props) {
           <RotateCcw className="h-3.5 w-3.5" />
         </button>
         {isRace ? (
-          <div className="instrument-label ml-1 flex items-baseline gap-1 text-muted-foreground">
+          <div className="text-xs font-semibold ml-1 flex items-baseline gap-1 text-muted-foreground">
             Lap <span className="readout text-lg text-primary">{leaderLap || "—"}</span>
             <span className="text-muted-foreground/60">/ {blob.total_laps ?? "—"}</span>
           </div>
         ) : (
-          <span className="instrument-label ml-1 text-muted-foreground">Best-lap order</span>
+          <span className="text-xs font-semibold ml-1 text-muted-foreground">Best-lap order</span>
         )}
         <span className="timing ml-1 text-xs text-muted-foreground">
           {fmtClock(t)} / {fmtClock(dur)}
         </span>
         {active && (
           <span
-            className="ml-1 rounded px-1.5 py-0.5 text-2xs font-bold text-black"
+            className="ml-1 rounded px-1.5 py-0.5 text-xs font-bold text-black"
             style={{ backgroundColor: SAFETY_STYLE[active.kind].color }}
           >
             {SAFETY_STYLE[active.kind].label}
@@ -85,7 +85,7 @@ export function RaceProgressBar({ blob, playhead }: Props) {
         />
       </div>
 
-      {/* Timeline — SC solid · VSC hatched · red · overtake ticks */}
+      {/* Timeline — SC solid, VSC hatched, red, overtake ticks */}
       <div className="space-y-1">
         {hasMarks && (
           <div className="relative h-2.5 w-full overflow-hidden rounded-sm bg-muted/40">
@@ -141,7 +141,7 @@ export function RaceProgressBar({ blob, playhead }: Props) {
           aria-label="Race position"
         />
         {hasMarks && (
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[9px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-muted-foreground">
             {safety.some((p) => p.kind === "SC") && (
               <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm" style={{ backgroundColor: SAFETY_STYLE.SC.color }} /> SC</span>
             )}

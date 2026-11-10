@@ -76,7 +76,7 @@ export default function ReplaySpeedControl({
             aria-label={`Playback speed ${label} times real time`}
             title={`${label}× real time`}
             className={cn(
-              "min-h-8 px-2 py-1 text-2xs font-semibold tabular-nums transition-colors",
+              "min-h-8 px-2 py-1 text-xs font-semibold tabular-nums transition-colors",
               speed === s
                 ? "bg-foreground text-background"
                 : "text-muted-foreground hover:text-foreground",

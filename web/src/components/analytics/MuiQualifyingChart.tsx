@@ -201,7 +201,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
               value: 'Gap to Pole (s)',
               position: 'insideBottom',
               offset: -10,
-              fontSize: 11,
+              fontSize: 12,
               fill: chartTheme.tick.fill,
             }}
           />
@@ -241,7 +241,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
     <div className="mb-2 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <span
-          className="instrument-label inline-flex items-center gap-1.5"
+          className="text-xs font-semibold text-muted-foreground inline-flex items-center gap-1.5"
           style={{ color: PHASE_TOKEN[phase] }}
         >
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: PHASE_TOKEN[phase] }} />
@@ -307,7 +307,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
             type="button"
             onClick={() => setSelectedSession(session)}
             className={cn(
-              "rounded-none border-b-2 px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-widest transition-fast",
+              "rounded-none border-b-2 px-3 pb-1 pt-1 text-xs font-semibold transition-fast",
               selectedSession === session
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -323,7 +323,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
           onClick={() => setSelectedSession('ALL')}
           aria-pressed={selectedSession === 'ALL'}
           className={cn(
-            "rounded-none border-b-2 px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-widest transition-fast",
+            "rounded-none border-b-2 px-3 pb-1 pt-1 text-xs font-semibold transition-fast",
             selectedSession === 'ALL'
               ? "border-primary text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -335,7 +335,7 @@ const MuiQualifyingChart: React.FC<MuiQualifyingChartProps> = ({ year, round }) 
         {/* Pole time (only show for single session) */}
         {selectedSession !== 'ALL' && 'fastestSessionTime' in muiChartData && (muiChartData.fastestSessionTime ?? 0) > 0 && (
           <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="instrument-label">Pole</span>
+            <span className="text-xs font-semibold text-muted-foreground">Pole</span>
             <span className="opacity-40">•</span>
             <span className="timing font-medium text-primary">
               {formatTime(muiChartData.fastestSessionTime!)}

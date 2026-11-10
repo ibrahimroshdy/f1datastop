@@ -1,64 +1,79 @@
-import { useEffect } from "react";
+import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import YearSelector from "@/components/common/YearSelector";
-import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import { Grid3x3, List } from "lucide-react";
 import CalendarAnalyticsTracker from "@/components/calendar/CalendarAnalyticsTracker";
-import RaceCalendarListView from "@/components/calendar/RaceCalendarListView";
-import RaceCalendarGridView from "@/components/calendar/RaceCalendarGridView";
+import RaceCalendarListView, { RaceCalendarListSkeleton } from "@/components/calendar/RaceCalendarListView";
+import RaceCalendarGridView, { RaceCalendarGridSkeleton } from "@/components/calendar/RaceCalendarGridView";
+import { RaceListTools } from "@/components/calendar/RaceListTools";
+import { useRaceRows } from "@/components/calendar/useRaceRows";
+import { useOpenQuickLook } from "@/components/calendar/QuickLook";
+import { getCalendarAnalytics } from "@/components/calendar/calendarAnalytics";
+import {
+  groupByMonth,
+  matchesFilter,
+  matchesSearch,
+  parseRaceFilter,
+  RACE_FILTERS,
+  type RaceFilter,
+  type RaceRow,
+} from "@/components/calendar/raceRows";
+import { F1EmptyState, PageHeader } from "@/components/f1";
+import { ViewSwitcher } from "@/components/ui/view-switcher";
 import { pageShell, pageStack } from "@/lib/layout";
-import { PageHeader } from "@/components/f1";
-import { useRaceCalendar } from "@/hooks/useRaceCalendar";
-import { useThemeVariant } from "@/hooks/useThemeVariant";
+import { useSeason } from "@/hooks/useSeason";
 import { useUrlTab } from "@/hooks/useUrlTab";
 import { cn } from "@/lib/utils";
-import { Grid3x3, List, Star } from "lucide-react";
 import Seo from "@/components/common/Seo";
 import { breadcrumbSchema } from "@/lib/structuredData";
 
+const VIEWS = ["list", "grid"] as const;
+
 const RaceCalendar = () => {
-  const { isGlass, cardVariant, glassVariant } = useThemeVariant();
-  const {
-    selectedYear,
-    selectedRace,
-    isDialogOpen,
-    expandedRaces,
-    raceSchedule,
-    isLoading,
-    handleYearChange,
-    toggleRaceExpansion,
-    openRaceDetails,
-    closeRaceDetails,
-    getRaceStatus,
-    raceTypes,
-    racesWithBreak,
-  } = useRaceCalendar();
-  // List/grid view is URL-backed so a shared /calendar link keeps the chosen view.
-  const [viewMode, setViewMode] = useUrlTab("view", ["list", "grid"] as const, "list");
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [season] = useSeason();
+  const [viewMode, setViewMode] = useUrlTab("view", VIEWS, "list");
+  const [params, setParams] = useSearchParams();
+  const query = params.get("q") ?? "";
+  const filter = parseRaceFilter(params.get("filter"));
+  const openQuickLook = useOpenQuickLook();
+  const { rows, isLoading } = useRaceRows(season);
 
-  // Season is URL-backed (?year=) so a shared /calendar link pins the year.
-  useEffect(() => {
-    const y = parseInt(searchParams.get("year") ?? "", 10);
-    if (!Number.isNaN(y) && y !== selectedYear) handleYearChange(y);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  const setParam = (key: string, value: string | null) =>
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        if (value) p.set(key, value);
+        else p.delete(key);
+        return p;
+      },
+      { replace: true },
+    );
 
-  const onYearChange = (year: number) => {
-    handleYearChange(year);
-    const next = new URLSearchParams(searchParams);
-    next.set("year", String(year));
-    setSearchParams(next, { replace: true });
+  const counts = useMemo(() => {
+    const searched = rows.filter((r) => matchesSearch(r, query));
+    return Object.fromEntries(RACE_FILTERS.map((f) => [f, searched.filter((r) => matchesFilter(r, f)).length])) as Record<
+      RaceFilter,
+      number
+    >;
+  }, [rows, query]);
+
+  const groups = useMemo(
+    () => groupByMonth(rows.filter((r) => matchesFilter(r, filter) && matchesSearch(r, query))),
+    [rows, filter, query],
+  );
+
+  const open = (row: RaceRow) => {
+    getCalendarAnalytics()?.trackRaceCardClick?.(row.race);
+    openQuickLook(row.race.season, row.race.round);
   };
 
-  const raceCount = raceSchedule?.data?.length ?? 0;
+  const sprintCount = rows.filter((r) => r.sprint).length;
 
   return (
-    <CalendarAnalyticsTracker selectedYear={selectedYear} viewType="list">
+    <CalendarAnalyticsTracker selectedYear={season} viewType="list">
       <Seo
-        title={`${selectedYear} F1 Race Calendar`}
+        title={`${season} F1 Race Calendar`}
         path="/calendar"
-        description={`Every round of the ${selectedYear} Formula 1 season — dates, circuits, session times and results as the season unfolds.`}
+        description={`Every Grand Prix of the ${season} Formula 1 season: dates, circuits, session times and results as the season unfolds.`}
         jsonLd={breadcrumbSchema([
           { name: "Home", path: "/" },
           { name: "Calendar", path: "/calendar" },
@@ -66,109 +81,63 @@ const RaceCalendar = () => {
       />
       <div className={pageShell}>
         <div className={cn("mx-auto w-full", pageStack, "animate-fade-in")}>
-          {/* ── Compact app header (eyebrow + title + round readout) ──────── */}
           <PageHeader
-            eyebrow={`Season ${selectedYear}`}
-            title="Race Calendar"
+            title="Races"
+            description={
+              rows.length
+                ? `Season ${season}, ${rows.length} Grands Prix${sprintCount ? `, ${sprintCount} with a sprint` : ""}`
+                : `Season ${season}`
+            }
             actions={
-              <>
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-primary">
-                  Rounds
-                  <span className="timing">{String(raceCount).padStart(2, "0")}</span>
-                </span>
-                <div className="flex items-center rounded-lg border border-border bg-card p-1 shadow-card">
-                  <Button
-                    variant={viewMode === "list" ? "default" : "ghost"}
-                    size="sm"
-                    className={cn(
-                      "h-8 gap-1.5 px-2 text-xs font-semibold uppercase tracking-widest sm:px-3",
-                      viewMode === "list" && "bg-primary text-primary-foreground",
-                    )}
-                    onClick={() => setViewMode("list")}
-                  >
-                    <List className="h-4 w-4" />
-                    <span className="hidden sm:inline">List</span>
-                  </Button>
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "ghost"}
-                    size="sm"
-                    className={cn(
-                      "h-8 gap-1.5 px-2 text-xs font-semibold uppercase tracking-widest sm:px-3",
-                      viewMode === "grid" && "bg-primary text-primary-foreground",
-                    )}
-                    onClick={() => setViewMode("grid")}
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                    <span className="hidden sm:inline">Grid</span>
-                  </Button>
-                </div>
-                <YearSelector selectedYear={selectedYear} onYearChange={onYearChange} />
-              </>
+              <ViewSwitcher
+                items={[
+                  { key: "list", label: "List", icon: List },
+                  { key: "grid", label: "Grid", icon: Grid3x3 },
+                ]}
+                value={viewMode}
+                onChange={setViewMode}
+              />
             }
           />
 
-          {/* ── Weekend-encoding legend (compact instrument row) ──────────── */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-            <span className="instrument-label hidden text-primary sm:inline">Legend</span>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-1 rounded-full bg-status-upcoming" aria-hidden />
-              <span className="instrument-label">Single</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-1 rounded-full bg-status-completed" aria-hidden />
-              <span className="instrument-label">Double</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2.5 w-1 rounded-full bg-primary" aria-hidden />
-              <span className="instrument-label">Triple</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Star className="h-3 w-3 fill-position-gold text-position-gold" aria-hidden />
-              <span className="instrument-label">Sprint</span>
-            </div>
-          </div>
-
-          {viewMode === "list" && (
-            <RaceCalendarListView
-              selectedYear={selectedYear}
-              isLoading={isLoading}
-              raceCount={raceCount}
-              racesWithBreak={racesWithBreak}
-              raceTypes={raceTypes}
-              expandedRaces={expandedRaces}
-              cardVariant={cardVariant}
-              glassVariant={glassVariant}
-              isGlass={isGlass}
-              getRaceStatus={getRaceStatus}
-              openRaceDetails={openRaceDetails}
-              toggleRaceExpansion={toggleRaceExpansion}
-            />
-          )}
-
-          {viewMode === "grid" && (
-            <RaceCalendarGridView
-              selectedYear={selectedYear}
-              isLoading={isLoading}
-              raceCount={raceCount}
-              racesWithBreak={racesWithBreak}
-              raceTypes={raceTypes}
-              cardVariant={cardVariant}
-              glassVariant={glassVariant}
-              isGlass={isGlass}
-              getRaceStatus={getRaceStatus}
-              openRaceDetails={openRaceDetails}
-            />
-          )}
-
-        </div>
-
-        {selectedRace && (
-          <RaceDetailDialog
-            isOpen={isDialogOpen}
-            onClose={closeRaceDetails}
-            race={selectedRace}
+          <RaceListTools
+            query={query}
+            onQuery={(q) => setParam("q", q || null)}
+            filter={filter}
+            onFilter={(f) => setParam("filter", f === "all" ? null : f)}
+            counts={counts}
           />
-        )}
+
+          {isLoading ? (
+            viewMode === "list" ? (
+              <RaceCalendarListSkeleton />
+            ) : (
+              <RaceCalendarGridSkeleton />
+            )
+          ) : rows.length === 0 ? (
+            <F1EmptyState
+              type="no-races"
+              title={`No calendar for ${season} yet`}
+              description="Pick another season, or come back when the calendar is published."
+              size="md"
+              showDecoration={false}
+              className="rounded-xl border border-border bg-card/40 py-10"
+            />
+          ) : groups.length === 0 ? (
+            <F1EmptyState
+              type="no-races"
+              title="No races match"
+              description="Try another name, or show all races."
+              size="md"
+              showDecoration={false}
+              className="rounded-xl border border-border bg-card/40 py-10"
+            />
+          ) : viewMode === "list" ? (
+            <RaceCalendarListView season={season} groups={groups} onOpen={open} />
+          ) : (
+            <RaceCalendarGridView season={season} groups={groups} onOpen={open} />
+          )}
+        </div>
       </div>
     </CalendarAnalyticsTracker>
   );

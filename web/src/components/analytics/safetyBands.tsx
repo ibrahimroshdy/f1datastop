@@ -31,7 +31,7 @@ export function safetyBands(periods: SafetyPeriod[]): JSX.Element[] {
       label={{
         value: kindTag(p.kind),
         position: "insideTop",
-        fontSize: 9,
+        fontSize: 12,
         fill: BAND_COLOR[p.kind],
         fontFamily: "var(--font-mono, monospace)",
       }}

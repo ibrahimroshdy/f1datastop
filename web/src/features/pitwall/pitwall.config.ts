@@ -42,14 +42,6 @@ export function sessionsForRace(
   });
 }
 
-/** Seasons with FastF1 telemetry/position coverage (2018→now). */
-export const PITWALL_SEASONS: number[] = (() => {
-  const now = new Date().getFullYear();
-  const arr: number[] = [];
-  for (let y = now; y >= 2018; y--) arr.push(y);
-  return arr;
-})();
-
 export const MAX_DRIVERS = 6;
 
 export type CompareMode = "focus" | "overlay";
@@ -63,10 +55,10 @@ export interface PanelDef {
 }
 
 export const PANELS: PanelDef[] = [
-  { id: "lap", label: "Lap Times", icon: LineChart },
+  { id: "lap", label: "Lap times", icon: LineChart },
   { id: "position", label: "Positions", icon: ListOrdered },
   { id: "telemetry", label: "Telemetry", icon: Gauge },
-  { id: "stint", label: "Stints & Pits", icon: CircleDot },
+  { id: "stint", label: "Stints and pits", icon: CircleDot },
   { id: "weather", label: "Weather", icon: CloudSun },
 ];
 

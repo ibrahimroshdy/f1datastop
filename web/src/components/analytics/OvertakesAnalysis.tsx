@@ -9,7 +9,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { driverHref } from "@/lib/links";
 import { useDbOvertakes, useDbLaps, useDbRaceControl } from "@/hooks/useWarehouse";
 import { useRaceResults } from "@/hooks/f1";
 import { getTeamColorById } from "@/constants/f1Colors";
@@ -54,13 +56,14 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
 
   // driver_id -> { code, color }
   const driverMeta = useMemo(() => {
-    const map: Record<string, { code: string; color: string }> = {};
+    const map: Record<string, { code: string; name: string; color: string }> = {};
     const results: ErgastResult[] = race.data?.data?.Results ?? [];
     results.forEach((r) => {
       const id = r.Driver?.driverId;
       if (!id) return;
       map[id] = {
         code: r.Driver?.code || id.slice(0, 3).toUpperCase(),
+        name: r.Driver?.familyName || r.Driver?.code || id,
         color: getTeamColorById(r.Constructor?.constructorId || r.Constructor?.name || ""),
       };
     });
@@ -70,6 +73,15 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
   const code = (id: string | number) => {
     const sid = String(id);
     return driverMeta[sid]?.code || sid.slice(0, 3).toUpperCase();
+  };
+  /** A driver's surname, linked to their page. */
+  const who = (id: string | number, className?: string) => {
+    const sid = String(id);
+    return (
+      <Link to={driverHref(sid)} viewTransition className={cn("font-semibold text-heading hover:underline", className)}>
+        {driverMeta[sid]?.name || code(sid)}
+      </Link>
+    );
   };
   const color = (id: string) => driverMeta[id]?.color || "hsl(var(--muted-foreground))";
 
@@ -143,7 +155,6 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
         .slice(0, 8),
     [stats],
   );
-  const maxBar = Math.max(1, ...netMovers.map((m) => Math.max(m.made, m.recv)));
 
   if (isLoading) {
     return (
@@ -214,7 +225,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
       <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
         <div className="rounded-lg border border-border bg-muted/40 p-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Overtakes</span>
+            <span className="text-xs text-muted-foreground">Overtakes</span>
             <Car className="h-3.5 w-3.5 text-primary" />
           </div>
           <span className="font-mono text-2xl font-bold tabular-nums">{totalOvertakes}</span>
@@ -222,17 +233,20 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
         {topMover && (
           <div className="rounded-lg border border-border bg-muted/40 p-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-widest text-muted-foreground">Most passes</span>
+              <span className="text-xs text-muted-foreground">Most passes</span>
               <TrendingUp className="h-3.5 w-3.5 text-primary" />
             </div>
-            <span className="font-mono text-2xl font-bold tabular-nums">
-              {code(topMover.id)} <span className="text-base text-muted-foreground">·{topMover.made}</span>
+            <span className="block text-lg">
+              {who(topMover.id)}
+              <span className="block text-sm text-muted-foreground">
+                {topMover.made} pass{topMover.made === 1 ? "" : "es"}
+              </span>
             </span>
           </div>
         )}
         <div className="rounded-lg border border-border bg-muted/40 p-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Race laps</span>
+            <span className="text-xs text-muted-foreground">Race laps</span>
             <TrendingUp className="h-3.5 w-3.5 text-primary" />
           </div>
           <span className="font-mono text-2xl font-bold tabular-nums">{positionChart.rows.length}</span>
@@ -243,7 +257,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
       <div>
         <div className="mb-1 flex items-center gap-2 px-1">
           <TrendingUp className="h-3 w-3 text-primary" />
-          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             Position by lap
           </span>
         </div>
@@ -264,7 +278,7 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
               tickLine={false}
               tick={chartTheme.tick}
               stroke={chartTheme.axis}
-              label={{ value: "Lap", position: "insideBottom", offset: -8, fontSize: 11, fill: chartTheme.tick.fill }}
+              label={{ value: "Lap", position: "insideBottom", offset: -8, fontSize: 12, fill: chartTheme.tick.fill }}
             />
             <YAxis
               reversed
@@ -299,13 +313,13 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
         <div className="overflow-hidden rounded-xl border border-border bg-card/40">
           <div className="flex items-center gap-2 border-b border-border px-3 py-2">
             <Car className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               Overtakes
             </span>
             <span className="readout text-sm text-foreground">{totalOvertakes}</span>
             {busiestLap && busiestLap.n > 1 && (
-              <span className="ml-auto text-2xs text-muted-foreground">
-                busiest — <span className="timing text-foreground/80">L{busiestLap.lap}</span> ({busiestLap.n})
+              <span className="ml-auto text-xs text-muted-foreground">
+                Busiest: lap <span className="timing text-foreground/80">{busiestLap.lap}</span>, {busiestLap.n} passes
               </span>
             )}
           </div>
@@ -329,49 +343,26 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
                   />
                 ))}
               </div>
-              <div className="mt-1 flex justify-between text-[9px] text-muted-foreground">
-                <span>L1</span>
-                <span>L{lapDensity.bars.length}</span>
+              <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+                <span>Lap 1</span>
+                <span>Lap {lapDensity.bars.length}</span>
               </div>
             </div>
           )}
 
-          {/* Who gained — passes made vs conceded, as opposing bars */}
+          {/* Who gained: passes made and conceded, in words */}
           {netMovers.length > 0 && (
-            <div className="space-y-1 border-b border-border px-3 py-2.5">
-              <div className="mb-1.5 flex items-center justify-between text-[9px] uppercase tracking-widest text-muted-foreground">
-                <span>Passes made</span>
-                <span>Conceded</span>
-              </div>
+            <ul className="divide-y divide-border/50 border-b border-border">
               {netMovers.map((m) => (
-                <div key={m.id} className="flex items-center gap-2">
-                  <span className="w-9 shrink-0 text-xs font-bold" style={{ color: color(m.id) }}>
-                    {code(m.id)}
+                <li key={m.id} className="flex flex-wrap items-center gap-x-2 px-3 py-1.5 text-sm">
+                  <span className="h-3 w-1 shrink-0 rounded-full" style={{ backgroundColor: color(m.id) }} />
+                  {who(m.id)}
+                  <span className="ml-auto text-muted-foreground">
+                    made {m.made}, conceded {m.recv}
                   </span>
-                  {/* made — grows leftwards from centre so gains and losses read as a tug-of-war */}
-                  <span className="flex flex-1 justify-end">
-                    <span
-                      className="h-2.5 rounded-l-sm bg-gain/80"
-                      style={{ width: `${(m.made / maxBar) * 100}%` }}
-                      title={`${code(m.id)} made ${m.made} pass${m.made === 1 ? "" : "es"}`}
-                    />
-                  </span>
-                  <span className="timing w-6 shrink-0 text-center text-[10px] text-muted-foreground">
-                    {m.made}
-                  </span>
-                  <span className="flex flex-1 justify-start">
-                    <span
-                      className="h-2.5 rounded-r-sm bg-loss/70"
-                      style={{ width: `${(m.recv / maxBar) * 100}%` }}
-                      title={`${code(m.id)} was passed ${m.recv} time${m.recv === 1 ? "" : "s"}`}
-                    />
-                  </span>
-                  <span className="timing w-6 shrink-0 text-center text-[10px] text-muted-foreground">
-                    {m.recv}
-                  </span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
 
           {/* Feed */}
@@ -381,20 +372,10 @@ const OvertakesAnalysis: React.FC<OvertakesAnalysisProps> = ({ year, round }) =>
                 key={i}
                 className="flex items-center gap-2 border-b border-border/50 px-3 py-1.5 text-sm last:border-0"
               >
-                <span className="timing w-9 shrink-0 text-xs text-muted-foreground">L{o.lap_number}</span>
-                <span
-                  className="rounded px-1.5 py-0.5 text-xs font-bold"
-                  style={{
-                    color: color(o.overtaking_driver_id),
-                    backgroundColor: `${color(o.overtaking_driver_id)}1f`,
-                  }}
-                >
-                  {code(o.overtaking_driver_id)}
-                </span>
-                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gain" />
-                <span className="text-xs font-bold" style={{ color: color(o.overtaken_driver_id) }}>
-                  {code(o.overtaken_driver_id)}
-                </span>
+                <span className="timing w-14 shrink-0 text-xs text-muted-foreground">Lap {o.lap_number}</span>
+                {who(o.overtaking_driver_id)}
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-gain" aria-label="passed" />
+                {who(o.overtaken_driver_id, "font-medium text-ink-2")}
                 {o.position != null && (
                   <span className="timing ml-auto text-xs text-muted-foreground">P{o.position}</span>
                 )}

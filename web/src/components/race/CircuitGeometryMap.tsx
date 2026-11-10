@@ -177,7 +177,7 @@ export function CircuitGeometryMap({ season, round, circuitId, className, accent
         <F1CardContent className="flex flex-col items-center justify-center gap-2 py-10 text-center">
           <MapPin className="h-6 w-6 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">Track map not available yet.</p>
-          <p className="text-2xs text-muted-foreground">Generated from race telemetry once the session runs.</p>
+          <p className="text-xs text-muted-foreground">Generated from race telemetry once the session runs.</p>
         </F1CardContent>
       </F1Card>
     );
@@ -188,8 +188,8 @@ export function CircuitGeometryMap({ season, round, circuitId, className, accent
       <F1CardHeader className="flex-row items-center justify-between pb-2">
         <div>
           <F1CardTitle className="text-base">{index.data.circuit_name ?? "Track map"}</F1CardTitle>
-          <p className="instrument-label mt-0.5 text-muted-foreground">
-            <span className="readout text-primary">{index.data.corner_count ?? "—"}</span> corners ·{" "}
+          <p className="text-xs font-semibold mt-0.5 text-muted-foreground">
+            <span className="readout text-primary">{index.data.corner_count ?? "—"}</span> corners,{" "}
             <span className="readout text-primary">{index.data.straight_count ?? "—"}</span> straights
           </p>
         </div>

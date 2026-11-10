@@ -342,7 +342,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
   if (isLoading) {
     return (
       <div className="flex flex-col gap-2">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        <p className="font-mono text-xs text-muted-foreground">
           Loading lap times • {loadingProgress}%
           {retryCount > 0 ? ` • rate-limited retry ${retryCount}/15` : ""}
         </p>
@@ -436,7 +436,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
     if (!rows.length) return null;
     return (
       <div className="rounded-lg border border-border bg-card px-2 py-1.5 font-mono text-xs shadow-card">
-        <div className="mb-1 font-mono uppercase tracking-widest text-muted-foreground">
+        <div className="mb-1 font-mono text-muted-foreground">
           Lap {label}
         </div>
         {rows.map((p) => (
@@ -453,7 +453,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
   return (
       <div className="flex h-full flex-col gap-2">
         <div className="flex flex-row items-center gap-2">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          <span className="font-mono text-xs text-muted-foreground">
             Pace
           </span>
           <DisplayModeToggle displayMode={displayMode} onToggle={toggleDisplayMode} />
@@ -493,7 +493,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
             Renders nothing when the replay blob is unavailable. */}
         {sectorData && Object.keys(sectorData).length > 0 && (
           <div className="flex flex-col gap-1">
-            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            <span className="font-mono text-xs text-muted-foreground">
               Sector times
             </span>
             {selectedDrivers.map((driverCode) => {
@@ -530,7 +530,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
                       return (
                         <div
                           key={lap}
-                          className="flex items-center gap-1 font-mono text-[10px] tabular-nums"
+                          className="flex items-center gap-2 font-mono text-xs tabular-nums"
                         >
                           <span className="w-5 text-muted-foreground">
                             L{lap}
@@ -539,12 +539,10 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
                             value={s.s1}
                             isFastest={s.s1 != null && s.s1 === fastest}
                           />
-                          <span className="text-muted-foreground">·</span>
                           <SectorCell
                             value={s.s2}
                             isFastest={s.s2 != null && s.s2 === fastest}
                           />
-                          <span className="text-muted-foreground">·</span>
                           <SectorCell
                             value={s.s3}
                             isFastest={s.s3 != null && s.s3 === fastest}
@@ -591,7 +589,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
                     label={{
                       value: `Lap ${focusLap}`,
                       position: 'insideTopRight',
-                      fontSize: 11,
+                      fontSize: 12,
                       fill: 'hsl(var(--primary))',
                       fontFamily: 'var(--font-mono, monospace)',
                     }}
@@ -624,7 +622,7 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
                     label={{
                       value: `FL ${formatTime(fastestLapTime.time)} (${fastestLapTime.driver})`,
                       position: 'insideTopRight',
-                      fontSize: 11,
+                      fontSize: 12,
                       fill: 'hsl(var(--primary))',
                       fontFamily: 'var(--font-mono, monospace)',
                     }}
@@ -645,10 +643,10 @@ const MuiLapTimeChart: React.FC<MuiLapTimeChartProps> = ({
                           ? (ps.drivers.length > 1
                               ? `${ps.drivers[0]} +${ps.drivers.length - 1}`
                               : `${ps.drivers[0]} ${ps.durations[0]}s`)
-                          : ps.drivers.map((d, i) => `${d} ${ps.durations[i]}s`).join(' · '),
+                          : ps.drivers.map((d, i) => `${d} ${ps.durations[i]}s`).join(', '),
                         position: 'insideBottomLeft',
                         angle: -90,
-                        fontSize: 11,
+                        fontSize: 12,
                         fill: color,
                         fontFamily: 'var(--font-mono, monospace)',
                       }}

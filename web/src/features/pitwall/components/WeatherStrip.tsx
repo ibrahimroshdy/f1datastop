@@ -16,7 +16,7 @@ function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; v
     <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm" className="flex items-center gap-2 rounded-lg px-2.5 py-2">
       <Icon className="h-4 w-4 shrink-0 text-primary" />
       <div className="min-w-0">
-        <div className="instrument-label text-[9px] text-muted-foreground">{label}</div>
+        <div className="text-xs font-semibold text-muted-foreground">{label}</div>
         <div className="readout text-sm leading-none">{value}</div>
       </div>
     </F1Card>
@@ -45,7 +45,7 @@ export function WeatherStrip({ year, round, session }: Props) {
         <Stat icon={Wind} label="Wind" value={`${avg("wind_speed").toFixed(1)} m/s`} />
         <Stat icon={rain ? CloudRain : Gauge} label={rain ? "Rain" : "Pressure"} value={rain ? "Wet" : `${Math.round(avg("pressure"))} mb`} />
       </div>
-      <div className="text-2xs text-muted-foreground">Session average across {rows.length} samples.</div>
+      <div className="text-xs text-muted-foreground">Session average across {rows.length} samples.</div>
     </div>
   );
 }

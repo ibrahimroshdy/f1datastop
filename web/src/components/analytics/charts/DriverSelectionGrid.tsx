@@ -61,7 +61,7 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
             <button
               key={driver.code}
               className={cn(
-                "flex items-center justify-between gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium transition-all",
+                "flex items-center justify-between gap-0.5 px-1 py-0.5 rounded text-xs font-medium transition-all",
                 isSelected
                   ? "bg-accent text-accent-foreground shadow-xs"
                   : "bg-transparent text-muted-foreground hover:bg-muted/50",
@@ -91,13 +91,13 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
               {/* Right: Change indicator */}
               {summary && !isDNF ? (
                 <span className={cn(
-                  "text-[8px] font-mono",
+                  "text-xs font-mono",
                   summary.improved ? "text-gain" : summary.change < 0 ? "text-loss" : "text-muted-foreground"
                 )}>
                   {summary.improved ? `+${summary.change}` : summary.change < 0 ? summary.change : "="}
                 </span>
               ) : isDNF ? (
-                <span className="text-[7px] text-loss font-bold">DNF</span>
+                <span className="text-xs text-loss font-bold">DNF</span>
               ) : null}
             </button>
           );
@@ -105,7 +105,7 @@ const DriverSelectionGrid: React.FC<DriverSelectionGridProps> = ({
       </div>
       
       {/* Inline legend */}
-      <div className="flex items-center gap-2 text-[8px] text-muted-foreground px-0.5">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground px-0.5">
         <span className="flex items-center gap-0.5">
           <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />1st
         </span>

@@ -260,7 +260,7 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
         <div className="flex h-full flex-col">
           {/* Legend */}
           <div className="mb-4 flex flex-wrap items-center justify-center gap-3 px-2 py-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <span className="text-[13px] font-medium text-muted-foreground">
               Position change
             </span>
             <div className="flex items-center gap-3 font-mono text-xs">

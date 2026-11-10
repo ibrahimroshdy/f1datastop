@@ -120,7 +120,7 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
       <F1CardHeader className="px-4 pb-2 pt-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="instrument-label text-foreground">Build a custom chart</span>
+          <span className="text-xs font-semibold text-foreground">Build a custom chart</span>
         </div>
         <p className="text-xs text-muted-foreground">
           {maxDrivers === 2
@@ -150,9 +150,9 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
               ))}
             </SelectContent>
           </Select>
-          <span className="instrument-label text-muted-foreground">
+          <span className="text-xs font-semibold text-muted-foreground">
             {picked.length}/{maxDrivers} selected
-            {picked.length >= maxDrivers && <span className="ml-1 text-primary">· full</span>}
+            {picked.length >= maxDrivers && <span className="ml-1 text-primary">, full</span>}
           </span>
         </div>
 
@@ -215,7 +215,7 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-2xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Usually under a minute — it appears here automatically.
             </p>
           </div>
@@ -239,7 +239,7 @@ export default function CustomChartBuilder({ year, round, session }: CustomChart
                   type="button"
                   onClick={() => setFmt(f)}
                   className={cn(
-                    "rounded px-2 py-0.5 text-2xs uppercase tracking-wide transition-colors",
+                    "rounded px-2 py-0.5 text-xs transition-colors",
                     fmt === f ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground",
                   )}
                 >

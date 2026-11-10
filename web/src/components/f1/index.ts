@@ -86,3 +86,4 @@ export { F1Loader } from "./F1Loader";
 export { F1Livery } from "./F1Livery";
 export { TyreIcon } from "./TyreIcon";
 export { TeamName } from "./TeamName";
+export { DriverIdentity } from "./DriverIdentity";

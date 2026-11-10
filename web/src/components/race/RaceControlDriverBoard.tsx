@@ -63,7 +63,7 @@ const fmtGap = (s: number | null) => (s == null ? "—" : s < 0.05 ? "—" : `+$
 const fmtSector = (ms: number | null | undefined) =>
   ms == null ? "—" : (ms / 1000).toFixed(3);
 
-/** Sectors 1·2·3 as an LED gauge — fastest-lap token = session best, gain = personal best,
+/** Sectors 1, 2, 3 as an LED gauge — fastest-lap token = session best, gain = personal best,
  *  position-gold = set this lap, dim = not yet. Each dot carries its own time on hover. */
 function SectorLeds({
   sec,
@@ -92,7 +92,7 @@ function SectorLeds({
           what = "set";
         }
         // Per-dot title: the whole point of the gauge is the times behind it, and a single
-        // label on the group ("Sectors 1·2·3") gave no way to read them.
+        // label on the group ("Sectors 1, 2, 3") gave no way to read them.
         return (
           <span
             key={k}
@@ -167,13 +167,13 @@ export default function RaceControlDriverBoard({
   return (
     <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm" className="flex h-full flex-col overflow-hidden rounded-2xl p-0">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <span className="instrument-label text-primary">Drivers</span>
-        <span className="text-2xs text-muted-foreground">{rows.length}</span>
+        <span className="text-xs font-semibold text-primary">Drivers</span>
+        <span className="text-xs text-muted-foreground">{rows.length}</span>
         {selected && (
           <button
             type="button"
             onClick={() => onSelect(null)}
-            className="ml-auto text-2xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            className="ml-auto text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >
             Clear follow
           </button>
@@ -238,7 +238,7 @@ export default function RaceControlDriverBoard({
                         loading="lazy"
                       />
                     ) : (
-                      <span className="text-[8px] font-bold text-muted-foreground">{r.code}</span>
+                      <span className="text-xs font-bold text-muted-foreground">{r.code}</span>
                     )}
                   </span>
 
@@ -258,12 +258,12 @@ export default function RaceControlDriverBoard({
                           />
                         )}
                         {r.isFL && (
-                          <span className="text-[8px] leading-none text-fastest-lap" title="Fastest lap">
+                          <span className="text-xs leading-none text-fastest-lap" title="Fastest lap">
                             ◆
                           </span>
                         )}
                       </span>
-                      <span className="flex items-center gap-2 text-[10px] leading-none text-muted-foreground">
+                      <span className="flex items-center gap-2 text-xs leading-none text-muted-foreground">
                         {r.tyre && <TyreBadge compound={r.tyre} age={r.tyl} />}
                         {r.drs && (
                           <span
@@ -273,7 +273,7 @@ export default function RaceControlDriverBoard({
                         )}
                         {r.pit && (
                           <span
-                            className="grid h-3 w-3 shrink-0 place-items-center rounded-[3px] border border-foreground/40 text-[7px] font-bold leading-none text-foreground"
+                            className="grid h-3 w-3 shrink-0 place-items-center rounded-[3px] border border-foreground/40 text-xs font-bold leading-none text-foreground"
                             title="In the pit lane"
                           >
                             P
@@ -286,7 +286,7 @@ export default function RaceControlDriverBoard({
                     <span className="flex shrink-0 flex-col items-end gap-[3px] leading-none">
                       <span
                         className={cn(
-                          "readout text-[11px]",
+                          "readout text-xs",
                           r.isFLLap ? "text-fastest-lap" : "text-foreground/90",
                         )}
                       >
@@ -294,11 +294,11 @@ export default function RaceControlDriverBoard({
                       </span>
                       <span className="flex items-baseline gap-1">
                         {gapText && (
-                          <span className="timing text-[9px] text-muted-foreground">{gapText}</span>
+                          <span className="timing text-xs text-muted-foreground">{gapText}</span>
                         )}
                         {r.pos !== 1 && r.int != null && (
                           <span
-                            className="timing text-[9px] text-muted-foreground/60"
+                            className="timing text-xs text-muted-foreground/60"
                             title="Interval to car ahead"
                           >
                             {fmtGap(r.int)}

@@ -137,7 +137,7 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
     <F1Card variant="default" className="border-0 bg-transparent p-0 shadow-none">
       <F1CardHeader className="px-0 pt-0">
         <div>
-          <F1CardTitle className="text-base">Telemetry · fastest laps</F1CardTitle>
+          <F1CardTitle className="text-base">Telemetry, fastest laps</F1CardTitle>
           <F1CardDescription className="text-xs">
             {isDelta
               ? pair
@@ -188,7 +188,7 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
                   borderLeft: `2px solid ${teamColor ?? "hsl(var(--border))"}`,
                 }}
               >
-                <span className="flex items-center gap-1 truncate">
+                <span className="flex items-center gap-1">
                   <span
                     className="h-1.5 w-1.5 shrink-0 rounded-full"
                     style={{ backgroundColor: teamColor ?? "hsl(var(--muted-foreground))" }}
@@ -225,13 +225,13 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
                   stroke={chartTheme.axis}
                   tick={chartTheme.tick}
                   tickFormatter={(v) => `${v}m`}
-                  label={{ value: "Distance", position: "insideBottomRight", offset: -2, fontSize: 11, fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)" }}
+                  label={{ value: "Distance", position: "insideBottomRight", offset: -2, fontSize: 12, fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)" }}
                 />
                 <YAxis
                   stroke={chartTheme.axis}
                   tick={chartTheme.tick}
                   width={44}
-                  label={{ value: metricMeta.unit, angle: -90, position: "insideLeft", fontSize: 11, fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)" }}
+                  label={{ value: metricMeta.unit, angle: -90, position: "insideLeft", fontSize: 12, fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)" }}
                 />
                 <Tooltip
                   contentStyle={chartTheme.tooltipContentStyle}
@@ -260,7 +260,7 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
                       key={lap.driver}
                       type={metricMeta.step ? "stepAfter" : "monotone"}
                       dataKey={lap.driver}
-                      name={isMobile ? lap.driver : `${lap.driver}${lap.lap_time ? ` · ${lap.lap_time}` : ""}`}
+                      name={isMobile ? lap.driver : `${lap.driver}${lap.lap_time ? `, ${lap.lap_time}` : ""}`}
                       stroke={lap.team_color || TEAM_COLORS.default}
                       strokeWidth={2}
                       dot={false}
@@ -285,8 +285,8 @@ const FastF1TelemetryChart = ({ year, round, session = "R" }: Props) => {
               >
                 <div className="text-sm font-semibold">{lap.driver}</div>
                 <div className="mt-0.5 font-mono text-xs leading-tight text-muted-foreground tabular-nums">
-                  top {lap.metrics.top_speed ?? "–"} km/h · {lap.metrics.full_throttle_pct ?? "–"}% WOT
-                  {" · "}
+                  top {lap.metrics.top_speed ?? "–"} km/h, {lap.metrics.full_throttle_pct ?? "–"}% WOT
+                  {", "}
                   {lap.metrics.brake_zones ?? "–"} brake zones
                 </div>
               </div>

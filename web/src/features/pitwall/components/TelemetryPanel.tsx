@@ -202,14 +202,14 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
       {ready.length > 0 && (
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-2xs text-muted-foreground">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <ZoomIn className="h-3 w-3" /> Drag to zoom
             </span>
             {zoom && (
               <button
                 type="button"
                 onClick={() => setZoom(null)}
-                className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-2xs text-muted-foreground hover:text-foreground"
+                className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
               >
                 <RotateCcw className="h-3 w-3" /> Reset
               </button>
@@ -221,13 +221,13 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
               {ready.map((r) => (
                 <span
                   key={r.code}
-                  className="flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-2xs"
+                  className="flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-xs"
                   style={{ borderColor: `${r.color}55`, backgroundColor: `${r.color}14` }}
                 >
                   <span className="timing font-bold" style={{ color: r.color }}>{r.code}</span>
                   <span className="readout">
                     {Math.round(r.blob.channels.speed?.[cursorIdx] ?? 0)}
-                    <span className="text-[9px] text-muted-foreground"> km/h</span>
+                    <span className="text-xs text-muted-foreground"> km/h</span>
                   </span>
                   <span className="text-muted-foreground">G{r.blob.channels.gear?.[cursorIdx] ?? "—"}</span>
                 </span>
@@ -272,7 +272,7 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
             />
           ))}
           {activeDist != null && (
-            <div className="text-right text-2xs text-muted-foreground">{Math.round(activeDist)} m</div>
+            <div className="text-right text-xs text-muted-foreground">{Math.round(activeDist)} m</div>
           )}
         </div>
       )}
@@ -282,7 +282,7 @@ export function TelemetryPanel({ telemetry, drivers, refCode, mode, crosshairFra
 
 function StatusChip({ t, color, time, dash }: { t: DriverTelemetry; color: string; time?: string | null; dash?: string }) {
   const s = t.state?.status;
-  const base = "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-2xs font-semibold";
+  const base = "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold";
   if (s === "done") {
     return (
       <span className={cn(base, "border-transparent text-foreground")} style={{ backgroundColor: `${color}22` }}>
@@ -291,18 +291,18 @@ function StatusChip({ t, color, time, dash }: { t: DriverTelemetry; color: strin
           className="h-[3px] w-3.5 shrink-0 rounded-full"
           style={dash ? { backgroundImage: `repeating-linear-gradient(90deg, ${color} 0 3px, transparent 3px 6px)` } : { backgroundColor: color }}
         />
-        {t.code} · L{t.lap}
+        {t.code}, lap {t.lap}
         {time && <span className="readout font-normal text-muted-foreground">{time.replace(/^0:/, "")}</span>}
       </span>
     );
   }
   if (s === "error") {
-    return <span className={cn(base, "border-destructive/40 text-destructive")}>{t.code} · unavailable</span>;
+    return <span className={cn(base, "border-destructive/40 text-destructive")}>{t.code} unavailable</span>;
   }
   // queued / processing / loading
   return (
     <span className={cn(base, "border-border text-muted-foreground")}>
-      <F1Loader size="sm" className="gap-0" /> {t.code} · generating L{t.lap}…
+      <F1Loader size="sm" className="gap-0" /> {t.code}, loading lap {t.lap}…
     </span>
   );
 }
@@ -360,7 +360,7 @@ const ChartBody = memo(function ChartBody({
           width={34}
           domain={domain ?? ["auto", "auto"]}
           stroke={chartTheme.axis}
-          tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+          tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
           tickLine={false}
           axisLine={false}
         />
@@ -396,7 +396,7 @@ interface TraceProps extends ChartBodyProps {
 function Trace({ label, chFrac, ...body }: TraceProps) {
   return (
     <div>
-      <div className="px-1 pb-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="px-1 pb-0.5 text-xs font-semibold text-muted-foreground">
         {label}
       </div>
       <div className="relative" style={{ height: body.height }}>

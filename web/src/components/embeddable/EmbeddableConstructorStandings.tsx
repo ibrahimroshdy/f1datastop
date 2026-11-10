@@ -165,7 +165,7 @@ const EmbeddableConstructorStandings: React.FC<EmbeddableConstructorStandingsPro
           >
             F1DataStop
           </a> 
-          {' · '} 
+          {', '} 
           <a 
             href="https://twitter.com/f1datastop" 
             target="_blank" 

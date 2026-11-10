@@ -265,7 +265,7 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
         <div className="flex h-full flex-col">
           {/* Filter bar */}
           <div className="mb-3 flex flex-wrap items-center justify-center gap-2 px-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <span className="text-[13px] font-medium text-muted-foreground">
               Filter
             </span>
             <div className="flex items-center gap-1 border border-input bg-input rounded-md p-1">
@@ -359,7 +359,7 @@ const SeasonSankeyChart: React.FC<SeasonSankeyChartProps> = ({ year }) => {
 
           {/* Legend */}
           <div className="mb-4 flex flex-wrap items-center justify-center gap-3 px-2 py-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <span className="text-[13px] font-medium text-muted-foreground">
               Grid → Finish
             </span>
             <div className="flex items-center gap-3 font-mono text-xs">

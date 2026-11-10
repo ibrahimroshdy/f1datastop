@@ -43,22 +43,22 @@ export interface RaceAnalysisTabConfig {
 export const CORE_TABS: RaceAnalysisTabConfig[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, group: "core" },
   { id: "results", label: "Results", icon: Trophy, group: "core" },
-  { id: "lapTimes", label: "Lap Times", icon: Clock, group: "core" },
+  { id: "lapTimes", label: "Lap times", icon: Clock, group: "core" },
   { id: "positions", label: "Positions", icon: TrendingUp, group: "core" },
   { id: "qualifying", label: "Qualifying", icon: Flag, group: "core" },
-  { id: "progression", label: "Quali / Race", icon: TrendingUpIcon, group: "core" },
-  { id: "pitstops", label: "Pit Stops", icon: Wrench, group: "core" },
+  { id: "progression", label: "Quali to race", icon: TrendingUpIcon, group: "core" },
+  { id: "pitstops", label: "Pit stops", icon: Wrench, group: "core" },
   { id: "telemetry", label: "Telemetry", icon: Gauge, group: "core" },
-  { id: "deepDive", label: "Deep Dive", icon: Activity, group: "core" },
+  { id: "deepDive", label: "Deep dive", icon: Activity, group: "core" },
 ];
 
 // LIVE — OpenF1 live-timing only (position / overtakes / weather / radio).
 // OpenF1 covers 2023+ and lags the current season, so these are gated on
 // session availability.
 export const LIVE_TABS: RaceAnalysisTabConfig[] = [
-  { id: "racecontrol", label: "Race Control", icon: Car, group: "live" },
+  { id: "racecontrol", label: "Race control", icon: Car, group: "live" },
   { id: "weather", label: "Weather", icon: Cloud, group: "live" },
-  { id: "radio", label: "Team Radio", icon: Radio, group: "live" },
+  { id: "radio", label: "Team radio", icon: Radio, group: "live" },
 ];
 
 export const DEFAULT_RACE_ANALYSIS_TAB: RaceAnalysisTabId = "overview";

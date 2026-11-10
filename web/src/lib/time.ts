@@ -2,7 +2,7 @@ import { format, parseISO } from "date-fns";
 
 /** F1 schedule times are UTC. Anchor the parse to UTC (append `Z` when the string
  *  carries no timezone) so date-fns renders it in the user's LOCAL timezone. */
-export function f1ToLocal(dateStr?: string, timeStr?: string, fmt = "MMM d, yyyy · HH:mm"): string {
+export function f1ToLocal(dateStr?: string, timeStr?: string, fmt = "d MMM yyyy, HH:mm"): string {
   if (!dateStr) return "-";
   const t = timeStr || "00:00:00";
   const hasTz = /[zZ]$|[+-]\d\d:?\d\d$/.test(t);
@@ -14,7 +14,7 @@ export function f1ToLocal(dateStr?: string, timeStr?: string, fmt = "MMM d, yyyy
 }
 
 /** Format a full ISO datetime (already tz-anchored, e.g. a deadline) in local time. */
-export function isoToLocal(iso: string, fmt = "EEE dd MMM · HH:mm"): string {
+export function isoToLocal(iso: string, fmt = "EEE d MMM, HH:mm"): string {
   try {
     return format(parseISO(iso), fmt);
   } catch {

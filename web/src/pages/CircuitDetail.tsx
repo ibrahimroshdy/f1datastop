@@ -1,16 +1,12 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BackLink } from "@/components/ui/back-link";
-import {
-  ArrowRight,
-  CalendarDays,
-  Gauge,
-  MapPin,
-  Ruler,
-  Timer,
-  Trophy,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useRaceSchedule } from "@/hooks/useF1Data";
+import { useSeason } from "@/hooks/useSeason";
+import { useCircuitHistory } from "@/components/circuits/useCircuitHistory";
+import { DriverFace } from "@/components/calendar/DriverFace";
+import { driverHref, raceHref } from "@/lib/links";
 import { useCircuitDetail } from "@/hooks/useCircuitDetail";
 import { useTheme } from "@/context/ThemeContext";
 import { getCircuitTrack } from "@/components/calendar/CircuitTrackMap";
@@ -35,19 +31,23 @@ type ScheduleRace = {
 
 const CircuitDetail = () => {
   const { circuitId } = useParams<{ circuitId: string }>();
-  const currentYear = new Date().getFullYear();
+  const [season] = useSeason();
   const { isGlass } = useTheme();
   const { data: circuit, isLoading, isError, refetch } = useCircuitDetail(circuitId);
-  const { data: schedule } = useRaceSchedule(currentYear);
+  const { data: schedule } = useRaceSchedule(season);
+  const { data: history } = useCircuitHistory(circuitId);
 
   const cardVariant = isGlass ? "glass" : "default";
   const glassVariant = isGlass ? "panel" : "default";
 
-  // current-season round for this circuit (for the race-analysis link)
-  const thisYear = useMemo(() => {
+  // The race analysis to offer: this circuit in the chosen season, else its latest edition.
+  const analysis = useMemo(() => {
     const races = (schedule?.data ?? []) as ScheduleRace[];
-    return races.find((r) => r.Circuit?.circuitId === circuitId) ?? null;
-  }, [schedule?.data, circuitId]);
+    const inSeason = races.find((r) => r.Circuit?.circuitId === circuitId);
+    if (inSeason) return { season, round: Number(inSeason.round) };
+    const latest = [...(history ?? [])].sort((a, b) => b.season - a.season)[0];
+    return latest ? { season: latest.season, round: latest.round } : null;
+  }, [schedule?.data, history, circuitId, season]);
 
   if (isError) {
     return (
@@ -80,8 +80,8 @@ const CircuitDetail = () => {
     circuit.first_season && circuit.last_season
       ? circuit.first_season === circuit.last_season
         ? `${circuit.first_season}`
-        : `${circuit.first_season}–${circuit.last_season}`
-      : "—";
+        : `${circuit.first_season} to ${circuit.last_season}`
+      : "None";
 
   return (
     <div className={pageShell}>
@@ -92,113 +92,98 @@ const CircuitDetail = () => {
       />
       <div className={cn("mx-auto w-full max-w-4xl", pageStack, "animate-fade-in")}>
         {/* ── BackLink ──────────────────────────────────────────────────────── */}
-        <BackLink to="/calendar">Calendar</BackLink>
+        <BackLink to="/calendar">Races</BackLink>
 
-        {/* ── Compact identity (eyebrow + name + locality flag) ──────────────── */}
-        <PageHeader
-          eyebrow="Circuit"
-          title={circuit.name}
-          description={`${circuit.locality}, ${circuit.country}`}
-        />
+        <PageHeader title={circuit.name} description={`Circuit in ${circuit.locality}, ${circuit.country}`} />
 
         {/* ── Telemetry-derived track map (numbered corners + straights) ─────── */}
         <CircuitGeometryMap circuitId={circuit.circuit_id} />
 
-        {/* ── Stat readout cluster — hairline tiles, mono readouts ───────────── */}
-        <div className="grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-lg border border-border sm:grid-cols-4">
+        <dl className="m-0 grid grid-cols-2 divide-x divide-y divide-border overflow-hidden rounded-lg border border-border sm:grid-cols-4 sm:divide-y-0">
           {[
+            { label: "Length", value: lengthKm ? `${lengthKm} km` : "Not known" },
+            { label: "Races", value: circuit.races_in_db != null ? <CountUp value={circuit.races_in_db} /> : "None" },
+            { label: "Seasons", value: seasons },
             {
-              icon: <Ruler className="h-3 w-3" />,
-              label: "Length",
-              value: lengthKm ? `${lengthKm} km` : "—",
-            },
-            {
-              icon: <Gauge className="h-3 w-3" />,
-              label: "Races",
-              value: circuit.races_in_db != null ? <CountUp value={circuit.races_in_db} /> : "—",
-            },
-            {
-              icon: <CalendarDays className="h-3 w-3" />,
-              label: "Seasons",
-              value: seasons,
-            },
-            {
-              icon: <MapPin className="h-3 w-3" />,
-              label: "Coords",
+              label: "Location",
               value:
                 circuit.lat != null && circuit.lng != null
                   ? `${Number(circuit.lat).toFixed(2)}, ${Number(circuit.lng).toFixed(2)}`
-                  : "—",
+                  : "Not known",
             },
           ].map((s) => (
-            <div
-              key={s.label}
-              className="flex flex-col items-center justify-center gap-0.5 p-2.5 text-center"
-            >
-              <span className="readout text-lg font-semibold tabular-nums text-foreground">
-                {s.value}
-              </span>
-              <span className="instrument-label flex items-center gap-1.5 text-muted-foreground">
-                {s.icon}
-                {s.label}
-              </span>
+            <div key={s.label} className="flex flex-col-reverse items-center justify-center gap-1 p-3 text-center">
+              <dt className="text-[13px] text-muted-foreground">{s.label}</dt>
+              <dd className="m-0 font-mono text-lg font-semibold tabular-nums text-figure">{s.value}</dd>
             </div>
           ))}
-        </div>
+        </dl>
 
-        {/* ── Lap record — the signature readout ────────────────────────────── */}
         <F1Card variant={cardVariant} glassVariant={glassVariant} className="overflow-hidden p-0">
-          <div className="flex items-center gap-1.5 border-b border-border px-4 py-3">
-            <div className="instrument-label flex items-center gap-1.5 text-primary">
-              <Trophy className="h-3 w-3" />
-              Lap Record
-            </div>
-          </div>
+          <h2 className="border-b border-border px-4 py-3 text-lg">Lap record</h2>
           {circuit.record_time ? (
-            <div className="flex flex-wrap items-end gap-x-8 gap-y-3 px-4 py-4 md:gap-x-12">
+            <div className="flex flex-wrap items-end gap-x-8 gap-y-4 px-4 py-4 md:gap-x-12">
               <div>
-                <div className="instrument-label flex items-center gap-1.5">
-                  <Timer className="h-3 w-3" /> Fastest race lap
-                </div>
-                <div className="readout mt-1.5 text-3xl text-primary md:text-4xl">
+                <p className="text-[13px] text-muted-foreground">Fastest race lap</p>
+                <p className="mt-1 font-mono text-3xl font-semibold tabular-nums text-fastest-lap md:text-4xl">
                   {circuit.record_time}
-                </div>
+                </p>
               </div>
               <div>
-                <div className="instrument-label">Holder</div>
-                <div className="mt-1.5 text-lg font-semibold leading-tight">
-                  {circuit.record_driver_name ?? circuit.record_driver_code ?? "—"}
-                  {circuit.record_driver_code && circuit.record_driver_name ? (
-                    <span className="timing ml-2 text-sm font-normal tabular-nums text-muted-foreground">
-                      {circuit.record_driver_code}
+                <p className="text-[13px] text-muted-foreground">Holder</p>
+                <div className="mt-1 flex items-center gap-2.5">
+                  {circuit.record_driver_id ? (
+                    <>
+                      <DriverFace
+                        driverId={circuit.record_driver_id}
+                        familyName={circuit.record_driver_name ?? circuit.record_driver_code ?? ""}
+                        label={circuit.record_driver_name ?? circuit.record_driver_code ?? "Lap record holder"}
+                        size="sm"
+                      />
+                      <Link
+                        to={driverHref(circuit.record_driver_id)}
+                        className="text-lg font-semibold leading-tight text-heading hover:underline"
+                      >
+                        {circuit.record_driver_name ?? circuit.record_driver_code}
+                      </Link>
+                    </>
+                  ) : (
+                    <span className="text-lg font-semibold leading-tight">
+                      {circuit.record_driver_name ?? circuit.record_driver_code ?? "Not known"}
                     </span>
-                  ) : null}
+                  )}
                 </div>
               </div>
               <div>
-                <div className="instrument-label">Set in</div>
-                <div className="readout mt-1.5 text-lg tabular-nums">
-                  {circuit.record_season ?? "—"}
-                </div>
+                <p className="text-[13px] text-muted-foreground">Set in</p>
+                <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
+                  {circuit.record_season && circuit.record_round ? (
+                    <Link
+                      to={raceHref(circuit.record_season, circuit.record_round)}
+                      className="text-heading hover:underline"
+                    >
+                      {circuit.record_season}
+                    </Link>
+                  ) : (
+                    (circuit.record_season ?? "Not known")
+                  )}
+                </p>
               </div>
             </div>
           ) : (
-            <p className="px-4 py-6 text-sm text-muted-foreground">
-              No lap data on record for this circuit yet.
-            </p>
+            <p className="px-4 py-6 text-sm text-muted-foreground">No lap data on record for this circuit yet.</p>
           )}
         </F1Card>
 
         {/* ── Circuit history — winners + poles across the years ─────────────── */}
         <CircuitHistoryCard circuitId={circuit.circuit_id} />
 
-        {/* ── Race analysis CTA ─────────────────────────────────────────────── */}
-        {thisYear && (
+        {analysis && (
           <Link
-            to={`/race-analysis/${currentYear}/${thisYear.round}`}
-            className="group inline-flex w-fit items-center gap-1.5 min-h-11 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            to={raceHref(analysis.season, analysis.round)}
+            className="group inline-flex min-h-11 w-fit items-center gap-1.5 rounded-full bg-act px-5 py-2.5 text-sm font-semibold text-on-act transition-opacity hover:opacity-90"
           >
-            View {currentYear} race analysis
+            View {analysis.season} race analysis
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
         )}

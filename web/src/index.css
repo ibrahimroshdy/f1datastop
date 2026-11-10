@@ -764,8 +764,8 @@
 }
 
 @utility instrument-label {
-  /* Micro instrument label / eyebrow above a value */
-  @apply text-xs font-semibold uppercase tracking-widest text-muted-foreground;
+  /* A label above a value: sentence case, 13 px, quiet (D17: no tracked capitals). */
+  @apply text-[13px] font-medium text-muted-foreground;
 }
 
 @utility hairline-grid {

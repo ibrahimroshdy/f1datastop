@@ -49,11 +49,11 @@ export function DriverDossier({ year, blob, drivers, selected, refCode }: Props)
               <div className="flex items-center gap-1.5">
                 <span className="timing text-sm font-bold leading-none">{d.code}</span>
                 {refCode === d.code && (
-                  <span className="rounded bg-primary/15 px-1 text-[9px] font-semibold uppercase text-primary">Ref</span>
+                  <span className="rounded bg-primary/15 px-1 text-xs font-semibold text-primary">Ref</span>
                 )}
               </div>
-              <div className="mt-0.5 text-[10px] leading-none text-muted-foreground">
-                {d.number != null ? `#${d.number} · ` : ""}
+              <div className="mt-0.5 text-xs leading-none text-muted-foreground">
+                {d.number != null ? `#${d.number}, ` : ""}
                 <span className="timing">{fmt(best)}</span>
               </div>
             </div>

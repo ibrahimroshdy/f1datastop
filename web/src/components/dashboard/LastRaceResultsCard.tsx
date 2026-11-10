@@ -1,188 +1,98 @@
-import { Clock, Flag } from "lucide-react";
-import { F1Card, F1CardContent, F1CardHeader, F1Badge } from "@/components/f1";
-import { TEAM_COLORS } from "@/constants/f1Colors";
-import ReactCountryFlag from "react-country-flag";
-import { getCountryCode } from "@/components/common/CountryFlag";
-import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
-import { useState, useEffect } from "react";
-import { useRaceSchedule } from "@/hooks/useF1Data";
-import RaceDetailDialog from "@/components/calendar/RaceDetailDialog";
+import { F1Card } from "@/components/f1";
 import { F1EmptyState } from "@/components/f1/F1EmptyState";
 import { StandingsSkeleton } from "@/components/f1/F1Skeleton";
-import { useTheme } from "@/context/ThemeContext";
-import { cn } from "@/lib/utils";
+import { DriverIdentity } from "@/components/f1/DriverIdentity";
+import CountryFlag from "@/components/common/CountryFlag";
+import { useOpenQuickLook } from "@/components/calendar/QuickLook";
+import { getRaceNameWithoutEmoji } from "@/utils/countryUtils";
+import { CompactRow } from "./CompactRow";
 
-interface LastRaceResultsCardProps {
-  lastRaceResults: any;
-  isResultsLoading: boolean;
-  getTeamColor: (constructorId: string) => string;
+interface RaceResult {
+  position: string;
+  laps?: string;
+  status?: string;
+  Time?: { time?: string };
+  Driver: { driverId: string; givenName?: string; familyName: string; nationality?: string };
+  Constructor: { constructorId: string; name: string };
+  FastestLap?: { rank?: string; lap?: string; Time?: { time?: string } };
 }
 
-// Helper function to get team color
-const getTeamHexColor = (teamId: string): string => {
-  let normalizedTeamId = teamId.toLowerCase();
-  if (normalizedTeamId === "alphatauri") normalizedTeamId = "rb";
-  else if (normalizedTeamId === "alfa") normalizedTeamId = "sauber";
-  return TEAM_COLORS[normalizedTeamId] || TEAM_COLORS.default;
+export interface LastRaceResultsCardProps {
+  lastRaceResults: { data?: { raceName?: string; season?: string; round?: string; results?: RaceResult[] } | null } | null | undefined;
+  isResultsLoading: boolean;
+  /** The schedule entry for the same race, for its country. */
+  country?: string;
+}
+
+/** What the end of a podium row says: the winner's race time, then the gap or the status. */
+const timeLabel = (r: RaceResult, winner: boolean) => {
+  const t = r.Time?.time;
+  if (!t) return r.status || "";
+  return winner || t.startsWith("+") ? t : `+${t}`;
 };
 
-const LastRaceResultsCard = ({
-  lastRaceResults,
-  isResultsLoading,
-  getTeamColor: _getTeamColor,
-}: LastRaceResultsCardProps) => {
-  const [raceName, setRaceName] = useState<string>("");
-  const [countryName, setCountryName] = useState<string>("");
-  const [countryCode, setCountryCode] = useState<string>("");
-  const [lastRace, setLastRace] = useState<any>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { data: raceScheduleData } = useRaceSchedule();
-  const { isGlass } = useTheme();
-  const surfaceVariant = isGlass ? ("glass" as const) : ("default" as const);
-  const surfaceGlass = isGlass ? ("panel" as const) : ("default" as const);
-  
-  useEffect(() => {
-    if (raceScheduleData?.data) {
-      const races = raceScheduleData.data;
-      const now = new Date();
-      const completedRaces = races.filter((race: any) => new Date(race.date) < now);
-      
-      if (completedRaces.length > 0) {
-        const lastRaceData = completedRaces[completedRaces.length - 1];
-        setRaceName(getRaceNameWithoutEmoji(lastRaceData.raceName));
-        const country = lastRaceData.Circuit?.Location?.country || "";
-        setCountryName(country);
-        setCountryCode(getCountryCode(country) || "");
-        setLastRace(lastRaceData);
-      }
-    } else if (lastRaceResults?.data?.raceName) {
-      setRaceName(getRaceNameWithoutEmoji(lastRaceResults.data.raceName));
-      const country = lastRaceResults.data?.Circuit?.Location?.country || "";
-      setCountryName(country);
-      setCountryCode(getCountryCode(country) || "");
-      setLastRace(lastRaceResults.data);
-    } else {
-      setRaceName("");
-      setCountryName("");
-      setCountryCode("");
-      setLastRace(null);
-    }
-  }, [lastRaceResults, raceScheduleData]);
-
-  // Get fastest lap driver
-  const fastestLapDriver = lastRaceResults?.data?.results?.find(
-    (result: any) => result.FastestLap?.rank === "1"
-  );
+/** Home's last Grand Prix: its flag and name (opens the quick look), the fastest lap, the podium. */
+const LastRaceResultsCard = ({ lastRaceResults, isResultsLoading, country }: LastRaceResultsCardProps) => {
+  const openQuickLook = useOpenQuickLook();
+  const race = lastRaceResults?.data;
+  const results = race?.results ?? [];
+  const fastest = results.find((r) => r.FastestLap?.rank === "1");
 
   return (
-    <>
-      <F1Card
-        variant={surfaceVariant}
-        glassVariant={surfaceGlass}
-        className={cn("h-full overflow-hidden p-0", isGlass && "border-white/10")}
-      >
-        <F1CardHeader className="pb-2 pt-3 px-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-primary shrink-0" />
-              <h3 className="font-semibold text-sm">Last Race Results</h3>
-            </div>
-          
-            {/* GP Badge - Top Right */}
-            {!isResultsLoading && raceName && (
-              <button
-                onClick={() => setIsDialogOpen(true)}
-                className="shrink-0 rounded-md border text-xs font-medium border-border bg-secondary/50 text-secondary-foreground hover:bg-secondary flex items-center gap-1.5 py-1 px-2 cursor-pointer hover:border-primary/50 transition-all"
-              >
-                {countryCode && (
-                  <ReactCountryFlag
-                    countryCode={countryCode}
-                    svg
-                    style={{ width: "14px", height: "auto" }}
-                    title={countryName}
-                  />
-                )}
-                <span>{raceName}</span>
-              </button>
-            )}
-          </div>
-          
-          {/* Fastest Lap */}
-          {!isResultsLoading && fastestLapDriver && (
-                    <div className="mt-2 flex items-center justify-center">
-              <div className="border border-fastest-lap/40 bg-fastest-lap/5 px-2 py-0.5 rounded-md inline-flex items-center gap-1.5 text-xs">
-                <span className="text-fastest-lap font-medium">Fastest:</span>
-                          <span
-                            className="timing font-bold"
-                            style={{ color: getTeamHexColor(fastestLapDriver.Constructor.constructorId) }}
-                          >
-                            {fastestLapDriver.Driver.code}
-                          </span>
-                          <span className="text-muted-foreground">·</span>
-                          <span className="timing text-fastest-lap">{fastestLapDriver.FastestLap?.Time.time}</span>
-                        </div>
-                      </div>
-          )}
-        </F1CardHeader>
-        
-        <F1CardContent className="px-2">
-          {isResultsLoading ? (
-            <StandingsSkeleton rows={5} />
-          ) : !lastRaceResults?.data?.raceName ? (
-            <F1EmptyState
-              type="no-results"
-              title="No Results Yet"
-              description="Results appear after races."
-              icon={<Flag className="h-8 w-8 text-muted-foreground" />}
-              size="sm"
-              showDecoration={false}
-            />
-          ) : (
-            <div className="divide-y divide-border">
-              {lastRaceResults?.data?.results?.slice(0, 5).map((result: any) => {
-                const position = Number(result.position);
-                const teamColor = getTeamHexColor(result.Constructor.constructorId);
-                const isWinner = position === 1;
-                // Gap can be absent (provisional data, or a status like "+1 Lap"/"DNF").
-                // Never render "+" + undefined — fall back to the status text.
-                const gap: string | undefined = result.Time?.time;
-                const timeLabel = isWinner
-                  ? (gap || result.status || "")
-                  : gap
-                    ? (gap.startsWith("+") ? gap : "+" + gap)
-                    : (result.status || "");
-                return (
-                  <div
-                    key={result.position}
-                    className="flex items-center gap-2.5 py-1.5 transition-colors hover:bg-accent/40"
-                  >
-                    <span className="w-5 shrink-0 text-center text-sm font-bold tabular-nums text-muted-foreground">
-                      {result.position}
-                    </span>
-                    <span className="h-5 w-1 shrink-0 rounded-full" style={{ backgroundColor: teamColor }} />
-                    <div className="min-w-0 flex-1">
-                      <span className="timing text-sm font-semibold">{result.Driver.code}</span>
-                      <span className="ml-1.5 text-xs capitalize text-muted-foreground">{result.Constructor.name}</span>
-                    </div>
-                    <span className="timing shrink-0 whitespace-nowrap text-sm text-foreground">{timeLabel}</span>
-                    <F1Badge variant="time" className="shrink-0 text-xs">Lap {result.laps}</F1Badge>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </F1CardContent>
-      </F1Card>
-      
-      {/* Race Detail Dialog */}
-      {lastRace && (
-        <RaceDetailDialog 
-          isOpen={isDialogOpen} 
-          onClose={() => setIsDialogOpen(false)} 
-          race={lastRace} 
+    <F1Card className="h-full">
+      <div className="flex items-center gap-2.5">
+        {country ? <CountryFlag country={country} size={24} /> : null}
+        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-ink-2">Last race</span>
+      </div>
+
+      {isResultsLoading ? (
+        <StandingsSkeleton rows={3} />
+      ) : !race?.raceName || !race.season || !race.round ? (
+        <F1EmptyState
+          type="no-results"
+          title="No results yet"
+          description="Results appear after the first race."
+          size="sm"
+          showDecoration={false}
         />
+      ) : (
+        <>
+          <h2 className="mt-2.5 text-[22px] leading-tight">
+            <button
+              type="button"
+              onClick={() => openQuickLook(race.season!, race.round!)}
+              className="text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {getRaceNameWithoutEmoji(race.raceName)}
+            </button>
+          </h2>
+          {fastest?.FastestLap?.Time?.time ? (
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Fastest lap{" "}
+              <span className="font-mono tabular-nums text-fastest-lap">{fastest.FastestLap.Time.time}</span>
+              , {fastest.Driver.familyName}
+              {fastest.FastestLap.lap ? `, lap ${fastest.FastestLap.lap}` : ""}
+            </p>
+          ) : null}
+          <ul className="mt-1.5 divide-y divide-border">
+            {results.slice(0, 3).map((r, i) => (
+              <CompactRow key={r.Driver.driverId} pos={r.position} figure={timeLabel(r, i === 0)}>
+                <DriverIdentity
+                  compact
+                  size={32}
+                  driverId={r.Driver.driverId}
+                  givenName={r.Driver.givenName}
+                  familyName={r.Driver.familyName}
+                  nationality={r.Driver.nationality}
+                  constructorId={r.Constructor.constructorId}
+                  teamName={r.Constructor.name}
+                />
+              </CompactRow>
+            ))}
+          </ul>
+        </>
       )}
-    </>
+    </F1Card>
   );
 };
 

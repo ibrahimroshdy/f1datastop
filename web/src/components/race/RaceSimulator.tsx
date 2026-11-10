@@ -361,8 +361,8 @@ export default function RaceSimulator({ year, round, session = "R" }: Props) {
       <F1CardHeader className="flex-row items-center gap-2 pb-2">
         <Radio className="h-4 w-4 text-primary" />
         <F1CardTitle className="text-base">Race Control</F1CardTitle>
-        <span className="instrument-label ml-auto text-muted-foreground">
-          {SESSION_NAME[session] ?? session}{index.data?.driver_count ? ` · ${index.data.driver_count} cars` : ""}
+        <span className="text-xs font-semibold ml-auto text-muted-foreground">
+          {SESSION_NAME[session] ?? session}{index.data?.driver_count ? `, ${index.data.driver_count} cars` : ""}
         </span>
       </F1CardHeader>
       <F1CardContent>
@@ -374,12 +374,12 @@ export default function RaceSimulator({ year, round, session = "R" }: Props) {
             {SUPPORTED_SESSIONS.has(session) ? (
               <>
                 <p className="text-sm text-muted-foreground">{SESSION_NAME[session] ?? session} replay not available for this round yet.</p>
-                <p className="text-2xs text-muted-foreground">Pick another session above, or it appears once FastF1 exports it.</p>
+                <p className="text-xs text-muted-foreground">Pick another session above, or it appears once FastF1 exports it.</p>
               </>
             ) : (
               <>
                 <p className="text-sm text-muted-foreground">Live replay covers Race, Qualifying &amp; Sprint.</p>
-                <p className="text-2xs text-muted-foreground">Practice sessions aren’t replayed — pick Race, Quali or Sprint above.</p>
+                <p className="text-xs text-muted-foreground">Practice sessions aren’t replayed — pick Race, Quali or Sprint above.</p>
               </>
             )}
           </div>
@@ -455,16 +455,16 @@ function SimBody({
           <RotateCcw className="h-3.5 w-3.5" />
         </button>
         {isRace ? (
-          <div className="instrument-label ml-1 flex items-baseline gap-1 text-muted-foreground">
+          <div className="text-xs font-semibold ml-1 flex items-baseline gap-1 text-muted-foreground">
             Lap <span className="readout text-lg text-primary">{leaderLap || "—"}</span>
             <span className="text-muted-foreground/60">/ {blob.total_laps ?? "—"}</span>
           </div>
         ) : (
-          <div className="instrument-label ml-1 text-primary">{sessionName}</div>
+          <div className="text-xs font-semibold ml-1 text-primary">{sessionName}</div>
         )}
         <span className="readout ml-2 text-sm text-foreground/80">{fmtClock(t)}</span>
         {active && (
-          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide animate-pulse" style={{ color: SAFETY_STYLE[active.kind].color, backgroundColor: `color-mix(in srgb, ${SAFETY_STYLE[active.kind].color} 16%, transparent)` }}>
+          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold animate-pulse" style={{ color: SAFETY_STYLE[active.kind].color, backgroundColor: `color-mix(in srgb, ${SAFETY_STYLE[active.kind].color} 16%, transparent)` }}>
             {active.kind === "RED" ? <Flag className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
             {active.kind}
           </span>
@@ -516,7 +516,7 @@ function SimBody({
         )}
       </div>
       {!hasTiming && (
-        <p className="text-2xs text-muted-foreground">Live timing tower is regenerating for this race — the track replay is ready now.</p>
+        <p className="text-xs text-muted-foreground">Live timing tower is regenerating for this race — the track replay is ready now.</p>
       )}
 
       {/* Selected-driver focus — sector times + tyre, colour-coded vs bests */}
@@ -525,10 +525,10 @@ function SimBody({
           <span className="flex items-center gap-1.5">
             <span className="h-4 w-1.5 rounded-full" style={{ backgroundColor: selSnap.color }} />
             <span className="text-sm font-bold" style={{ color: selSnap.color }}>{selSnap.code}</span>
-            <span className="text-2xs text-muted-foreground">P{selSnap.pos ?? "—"}</span>
+            <span className="text-xs text-muted-foreground">P{selSnap.pos ?? "—"}</span>
             {selSnap.tyre && (
-              <span className="inline-flex items-baseline gap-px text-[10px] font-bold" style={{ color: TYRE_COLOR[selSnap.tyre] ?? "hsl(var(--muted-foreground))" }}>
-                {selSnap.tyre}{selSnap.tyl != null && <span className="text-[9px] text-muted-foreground">{selSnap.tyl}</span>}
+              <span className="inline-flex items-baseline gap-px text-xs font-bold" style={{ color: TYRE_COLOR[selSnap.tyre] ?? "hsl(var(--muted-foreground))" }}>
+                {selSnap.tyre}{selSnap.tyl != null && <span className="text-xs text-muted-foreground">{selSnap.tyl}</span>}
               </span>
             )}
           </span>
@@ -537,7 +537,7 @@ function SimBody({
               const cls = v == null ? "text-muted-foreground/40" : v === bestSession[k] ? "text-fastest-lap" : v === selSnap.pb[k] ? "text-gain" : "text-foreground";
               return (
                 <span key={k} className="flex items-baseline gap-1">
-                  <span className="text-[9px] uppercase text-muted-foreground/60">S{k + 1}</span>
+                  <span className="text-xs text-muted-foreground/60">S{k + 1}</span>
                   <span className={cn("readout", cls)}>{fmtSec(v)}</span>
                 </span>
               );
@@ -545,11 +545,11 @@ function SimBody({
           </span>
           <span className="ml-auto flex items-center gap-3 text-xs">
             <span className="flex items-baseline gap-1">
-              <span className="text-[9px] uppercase text-muted-foreground/60">Last</span>
+              <span className="text-xs text-muted-foreground/60">Last</span>
               <span className={cn("readout", selSnap.isFLLap ? "text-fastest-lap" : "text-foreground")}>{fmtLap(selSnap.lastTime)}</span>
             </span>
             <span className="flex items-baseline gap-1">
-              <span className="text-[9px] uppercase text-muted-foreground/60">Gap</span>
+              <span className="text-xs text-muted-foreground/60">Gap</span>
               <span className="readout text-muted-foreground">{selSnap.pos === 1 ? (isRace ? "LEADER" : "—") : isRace && selSnap.lapsDown >= 1 ? `+${selSnap.lapsDown}L` : fmtGap(selSnap.gap)}</span>
             </span>
           </span>
@@ -558,7 +558,7 @@ function SimBody({
 
       {/* Sector legend (when the track is sector-coloured) */}
       {showSectors && (
-        <div className="flex items-center gap-3 text-2xs text-muted-foreground">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           {["Sector 1", "Sector 2", "Sector 3"].map((l, i) => (
             <span key={i} className="inline-flex items-center gap-1">
               <span className="h-1.5 w-3 rounded" style={{ backgroundColor: SECTOR_COLOR[i] }} />
@@ -572,14 +572,14 @@ function SimBody({
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {feedMsgs.length > 0 && (
           <div className="min-w-0 rounded-lg border border-border/50 bg-card/40 p-2">
-            <div className="instrument-label mb-1 flex items-center gap-1 text-[9px]">
+            <div className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
               <Radio className="h-2.5 w-2.5 text-primary" /> Race Control
             </div>
             <div className="flex flex-col gap-0.5">
               {feedMsgs.map((m, i) => (
-                <div key={i} className={cn("flex items-start gap-1.5 text-2xs", i === 0 ? "text-foreground" : "text-muted-foreground")}>
+                <div key={i} className={cn("flex items-start gap-1.5 text-xs", i === 0 ? "text-foreground" : "text-muted-foreground")}>
                   <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: RC_KIND_COLOR[m.kind] ?? RC_KIND_COLOR.info }} />
-                  <span className="truncate">{m.msg}</span>
+                  <span>{m.msg}</span>
                 </div>
               ))}
             </div>
@@ -587,8 +587,8 @@ function SimBody({
         )}
         {recentPass.length > 0 && (
           <div className="min-w-0 rounded-lg border border-border/50 bg-card/40 p-2">
-            <div className="instrument-label mb-1 flex items-center gap-1 text-[9px] text-primary">Overtakes</div>
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-2xs tabular-nums">
+            <div className="text-xs font-semibold mb-1 flex items-center gap-1 text-primary">Overtakes</div>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs tabular-nums">
               {recentPass.slice(-6).reverse().map((o, i) => (
                 <span key={i} className="text-muted-foreground">
                   <span className="font-bold text-gain">{codeOf(o.by)}</span> ▸ {codeOf(o.on)}

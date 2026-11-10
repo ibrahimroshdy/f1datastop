@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
 import { Trophy } from "lucide-react";
 import { F1EmptyState, F1Badge, PitIcon } from "@/components/f1";
-import TeamLogo from "@/components/common/TeamLogo";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { useConstructorCareer } from "@/hooks/entity";
 import { cn } from "@/lib/utils";
+import { teamHref } from "@/lib/links";
 
 export interface TeamHeritagePanelProps {
   constructorId: string;
@@ -23,8 +23,6 @@ function formatStat(value: number | null | undefined): string {
 const TeamHeritagePanel = ({
   constructorId,
   slug,
-  teamName,
-  teamColor,
   compact = false,
   className,
 }: TeamHeritagePanelProps) => {
@@ -35,9 +33,7 @@ const TeamHeritagePanel = ({
   });
 
   const mutedSurface = isGlass ? "bg-white/5" : "bg-muted";
-  const displayName = profile?.display_name ?? teamName ?? "Team";
   const profileSlug = profile?.slug ?? slug;
-  const color = profile?.team_color_hex ?? teamColor;
 
   if (isLoading) {
     return (
@@ -96,45 +92,19 @@ const TeamHeritagePanel = ({
 
   return (
     <div className={cn("space-y-3", className)}>
-      {!compact && color && (
-        <div
-          className="h-1 w-full rounded-full"
-          style={{ backgroundColor: color }}
-          aria-hidden
-        />
-      )}
-
       <div className="flex items-center gap-3">
-        {!compact && (
-          <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border-2 bg-neutral-950 px-1.5"
-            style={{ borderColor: color ?? undefined }}
-          >
-            <TeamLogo
-              constructorId={constructorId}
-              alt={displayName}
-              className="max-h-9 max-w-28 object-contain"
-              noBackground
-            />
-          </div>
-        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <PitIcon icon={Trophy} size="sm" className="text-primary shrink-0" />
-            <h4 className="instrument-label truncate text-muted-foreground">
-              {compact ? "Heritage" : "Team Heritage"}
-            </h4>
+            <h3 className="text-base">History</h3>
           </div>
-          {!compact && profile.nationality && (
-            <p className="text-xs text-muted-foreground">{profile.nationality}</p>
-          )}
         </div>
         {profileSlug && compact && (
           <Link
-            to={`/teams/${profileSlug}`}
-            className="text-xs text-primary hover:underline shrink-0"
+            to={teamHref(profileSlug)}
+            className="shrink-0 text-[13px] text-ink-2 hover:text-foreground hover:underline"
           >
-            Profile →
+            Team page
           </Link>
         )}
       </div>
@@ -164,7 +134,7 @@ const TeamHeritagePanel = ({
             >
               {s.value}
             </span>
-            <span className="instrument-label text-muted-foreground">{s.label}</span>
+            <span className="text-[13px] text-muted-foreground">{s.label}</span>
           </div>
         ))}
       </div>
@@ -175,7 +145,7 @@ const TeamHeritagePanel = ({
             <F1Badge
               key={year}
               className={cn(
-                "text-[10px] font-semibold",
+                "text-xs font-semibold",
                 isGlass && "border-white/20 bg-white/5",
               )}
             >
@@ -192,7 +162,7 @@ const TeamHeritagePanel = ({
       )}
 
       {profile.scraped_at && !compact && (
-        <p className="text-[10px] text-muted-foreground/70">
+        <p className="text-xs text-muted-foreground">
           Stats as of {new Date(profile.scraped_at).toLocaleDateString()}
         </p>
       )}

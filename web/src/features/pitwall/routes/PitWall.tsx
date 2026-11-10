@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from "react";
-import { Flag, Gauge, Pin, Radio, Route, X } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
+import { Gauge, Pin, Route, X } from "lucide-react";
 import Seo from "@/components/common/Seo";
 import { pageStack } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { useRaceSchedule } from "@/hooks/f1/useSchedule";
+import { getLatestRace } from "@/hooks/f1/useSpoilerShield";
 import type { RaceContext } from "@/components/race-analysis/RaceAnalysisHeader";
 import { ContextBar } from "../components/ContextBar";
 import { PanelShell } from "../components/PanelShell";
@@ -19,7 +20,7 @@ import { RaceProgressBar } from "../components/RaceProgressBar";
 import { usePitWallState } from "../hooks/usePitWallState";
 import { usePitWallData } from "../hooks/usePitWallData";
 import { usePitWallTelemetry } from "../hooks/usePitWallTelemetry";
-import { F1Card, F1EmptyState } from "@/components/f1";
+import { F1Card, F1EmptyState, F1Loader } from "@/components/f1";
 import { useThemeVariant } from "@/hooks/useThemeVariant";
 import { useReplayPlayhead } from "../hooks/useReplayPlayhead";
 import { useConstructorByDriver } from "../hooks/useConstructorByDriver";
@@ -37,6 +38,22 @@ export default function PitWall() {
     () => races.find((r) => Number(r.round) === state.round) ?? null,
     [races, state.round],
   );
+  // No Grand Prix in the address: open the latest finished race of the season (round 1
+  // before the season starts). A new season from the top bar starts over the same way.
+  const lastYear = useRef(state.year);
+  useEffect(() => {
+    if (lastYear.current !== state.year) {
+      lastYear.current = state.year;
+      if (state.round) {
+        patch({ round: null, drivers: [], ref: null, lap: null });
+        return;
+      }
+    }
+    if (state.round || !races.length) return;
+    const latest = getLatestRace(races as { round: string; raceName: string; date: string }[]) ?? races[0];
+    patch({ round: Number(latest.round) });
+  }, [state.year, state.round, races, patch]);
+
   // Clamp the session to what this weekend actually has (URL may carry a stale S).
   const session = sessionsForRace(currentRace).some((s) => s.code === state.session)
     ? state.session
@@ -116,22 +133,17 @@ export default function PitWall() {
         description="Race-engineer console: any-lap telemetry, track map, sector times and side-by-side driver traces."
       />
       <div className="space-y-1">
-        <div className="instrument-label flex items-center gap-1.5 text-primary">
-          <Radio className="h-3 w-3" /> Pit Wall
-        </div>
-        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">The Pit Wall</h1>
+        <h1 className="text-3xl leading-none md:text-4xl">Pit Wall</h1>
         <p className="max-w-prose text-sm text-muted-foreground">
-          A race engineer's console — telemetry, gaps and inputs synchronized on one lap.
-          Pick a Grand Prix and your drivers, then press play.
+          Telemetry, gaps and inputs for one race, lined up on the same lap. Pick your drivers, then press play.
         </p>
       </div>
 
       <ContextBar state={{ ...state, session }} patch={patch} />
 
       {!state.round ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-16 text-center">
-          <Flag className="h-6 w-6 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Select a Grand Prix above to load the session.</p>
+        <div className="grid place-items-center py-16">
+          <F1Loader label="Finding the latest Grand Prix…" />
         </div>
       ) : (
         <div className="space-y-3">
@@ -158,19 +170,19 @@ export default function PitWall() {
             {/* MIDDLE — cockpit: track + transport + live inputs + stints */}
             <div className="mb-3 space-y-2.5 lg:sticky lg:top-16 lg:mb-0">
               <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm" className="rounded-2xl p-2.5">
-                <div className="instrument-label mb-1.5 flex items-center gap-1.5 text-muted-foreground">
+                <div className="text-xs font-semibold mb-1.5 flex items-center gap-1.5 text-muted-foreground">
                   <Route className="h-3 w-3" /> Track position
                 </div>
                 <div className="aspect-4/3 w-full">
                   {data.blob ? (
                     <CockpitTrack blob={data.blob} geom={data.geom} frame={replay.frame} selected={state.drivers} />
                   ) : (
-                    <div className="grid h-full place-items-center text-2xs text-muted-foreground">Track loads with the session</div>
+                    <div className="grid h-full place-items-center text-xs text-muted-foreground">Track loads with the session</div>
                   )}
                 </div>
               </F1Card>
               <F1Card variant={cardVariant} glassVariant={glassVariant} size="sm" className="rounded-2xl p-2.5">
-                <div className="instrument-label mb-1.5 flex items-center gap-1.5 text-muted-foreground">
+                <div className="text-xs font-semibold mb-1.5 flex items-center gap-1.5 text-muted-foreground">
                   <Gauge className="h-3 w-3" /> Live inputs
                 </div>
                 <LiveInputs laps={model.laps} indices={indices} refCode={state.ref} onSetRef={setRef} />
@@ -195,9 +207,9 @@ export default function PitWall() {
               ) : (
                 <>
                   <PanelShell title="Telemetry" icon={PANELS.find((p) => p.id === "telemetry")!.icon}>
-                    {/* Lap mode: Auto-follow · each driver's Fastest lap · or a pinned lap */}
+                    {/* Lap mode: auto-follow, each driver's fastest lap, or a pinned lap */}
                     <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                      <div className="flex overflow-hidden rounded-full border border-border text-2xs font-semibold">
+                      <div className="flex overflow-hidden rounded-full border border-border text-xs font-semibold">
                         <button
                           type="button"
                           onClick={() => patch({ fastest: false, lap: null })}
@@ -214,9 +226,9 @@ export default function PitWall() {
                         </button>
                       </div>
                       {state.fastest ? (
-                        <span className="text-2xs text-muted-foreground">each driver's fastest lap · compare</span>
+                        <span className="text-xs text-muted-foreground">Each driver's fastest lap</span>
                       ) : pinned ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-2xs font-semibold text-primary">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
                           <Pin className="h-3 w-3" /> Lap {state.lap} pinned
                           <button type="button" onClick={() => patch({ lap: null })} className="ml-0.5 hover:text-foreground" aria-label="Unpin — auto-follow">
                             <X className="h-3 w-3" />
@@ -224,11 +236,11 @@ export default function PitWall() {
                         </span>
                       ) : (
                         <span
-                          className="inline-flex items-center gap-1.5 text-2xs text-muted-foreground"
+                          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
                           title={usingFastest ? "Per-lap telemetry isn't in the database yet, so each trace shows that driver's fastest lap." : undefined}
                         >
-                          following lap {leaderLap || "—"}
-                          {usingFastest && <span className="text-muted-foreground">· <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-fastest-lap align-middle" aria-hidden />fastest-lap shown (per-lap not synced)</span>}
+                          Following lap {leaderLap || "—"}
+                          {usingFastest && <span className="text-muted-foreground">, showing fastest laps (this lap has no telemetry yet)</span>}
                         </span>
                       )}
                     </div>
@@ -252,7 +264,7 @@ export default function PitWall() {
                           type="button"
                           onClick={() => togglePanel(p.id)}
                           className={cn(
-                            "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-2xs font-semibold transition-colors",
+                            "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors",
                             on ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground",
                           )}
                         >

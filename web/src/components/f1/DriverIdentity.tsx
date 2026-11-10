@@ -5,6 +5,7 @@ import { TeamName } from "./TeamName";
 import { getTeamColorById } from "@/constants/f1Colors";
 import { buildF1DriverHeadshotUrl, getF1PortraitPathForErgastDriverId } from "@/constants/f1DriverPortraitMedia";
 import { driverHref, teamHref } from "@/lib/links";
+import { useSeason } from "@/hooks/useSeason";
 import { cn } from "@/lib/utils";
 
 const AVATAR = { 28: "xs", 32: "sm", 40: "md", 56: "lg", 72: "xl" } as const;
@@ -39,6 +40,7 @@ export function DriverIdentity({
   extra?: React.ReactNode;
   className?: string;
 }) {
+  const [season] = useSeason();
   const color = constructorId ? getTeamColorById(constructorId) : undefined;
   const path = getF1PortraitPathForErgastDriverId(driverId);
   const name = compact || !givenName ? familyName : `${givenName} ${familyName}`;
@@ -53,12 +55,12 @@ export function DriverIdentity({
         showRing={!!color}
       />
       <span className="flex min-w-0 flex-col">
-        <Link to={driverHref(driverId)} viewTransition className="font-semibold leading-tight text-heading hover:underline">
+        <Link to={driverHref(driverId, season)} viewTransition className="font-semibold leading-tight text-heading hover:underline">
           {name}
         </Link>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
           {nationality ? <CountryFlag country={nationality} size={14} /> : null}
-          {constructorId && teamName ? <TeamName constructorId={constructorId} name={teamName} to={teamHref(constructorId)} size={13} /> : null}
+          {constructorId && teamName ? <TeamName constructorId={constructorId} name={teamName} to={teamHref(constructorId, season)} size={13} /> : null}
           {extra}
         </span>
       </span>
