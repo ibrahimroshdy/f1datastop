@@ -31,7 +31,7 @@ SCREENS = [
      ["A finished race shows its winner; the next one is marked.", "Phones list five at a time with Show earlier; desktop pages by twenty."]),
     ("quick", "A Grand Prix, quick look", content.quick_look,
      "Tapping a race anywhere opens a quick look first: a sheet on a phone, a dialog on a desktop. It has its own address, so Back closes it and a link opens it. Open Grand Prix goes to the full page.",
-     ["Winner, pole and fastest lap with faces; the qualifying to race Sankey; shortcuts to each section of the full page.",
+     ["Winner, pole and fastest lap with faces; the qualifying grid to race Sankey; shortcuts to each section of the full page.",
       "Desktop: the dialog sits over the Races list; Escape or a click outside closes it."]),
     ("driver", "A driver", content.driver,
      "The driver page leads with the face and the team-colour stripe (D25, D26), then every race of the season as a link.",

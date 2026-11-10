@@ -50,15 +50,15 @@ def progression(W, H):
 
 
 def sankey(W, H):
-    """Qualifying to race: each driver's band runs from grid slot to finishing place, in the team colour.
+    """Qualifying grid to race: each driver's band runs from grid slot to finishing place, in the team colour.
     Places gained or lost are written beside the finish, never shown by colour alone."""
     L, R, T, B, gap = 62, 78, 22, 6, 4
     n = len(QUALI)
     h = (H - T - B - gap * (n - 1)) / n
     y = lambda i: T + i * (h + gap)
     team = dict(QUALI)
-    g = [f'<text x="{L - 8}" y="12" class="ax" text-anchor="end">Grid</text>',
-         f'<text x="{W - R + 8}" y="12" class="ax">Finish</text>']
+    g = [f'<text x="{L}" y="12" class="ax">Qualifying grid</text>',
+         f'<text x="{W - R}" y="12" class="ax" text-anchor="end">Race</text>']
     for qi, (code, tid) in enumerate(QUALI):
         fi = FINISH.index(code)
         x0, x1 = L + 6, W - R - 6

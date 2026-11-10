@@ -75,7 +75,7 @@ def home():
     return ph, dk
 
 
-def sankey_card(W, H, title="Qualifying to race, São Paulo"):
+def sankey_card(W, H, title="Qualifying grid to race, São Paulo"):
     return (f'<article class="cd"><h3>{title} <a>Open</a></h3>'
             f'<div style="margin-top:8px">{sankey(W, H)}</div></article>')
 
@@ -121,7 +121,7 @@ def result_rows(n):
 def grand_prix():
     sess = '<div class="chips"><span class="ck">Sprint</span><span class="ck">Qualifying</span><span class="ck on">Race</span></div>'
     ph = phone(gp_head(True) + section_pill("Results") + sess
-               + f'<article class="cd"><ul class="rows">{result_rows(5)}</ul></article>' + sankey_card(300, 290, "Qualifying to race"),
+               + f'<article class="cd"><ul class="rows">{result_rows(5)}</ul></article>' + sankey_card(300, 290, "Qualifying grid to race"),
                "São Paulo GP", "races", "Interlagos, 6 to 8 Nov", back=True)
     rows = "".join(
         f'<tr><td class="num">{i + 1}</td><td class="dv">{av(d, 32)}<b class="lnk">{DRIVERS[d][0]}</b></td>'
@@ -138,7 +138,7 @@ def grand_prix():
         for d, _, ty, _ in RESULTS[:3])
     dk = desktop(f'{tabs("Results")}<div style="display:flex;justify-content:space-between">{sess}<span class="pill">Open in Pit Wall {ic("go", 16)}</span></div>'
                  f'<div class="g73"><div style="display:grid;gap:12px">{table}<article class="cd"><h3>Strategy</h3><ul class="rows">{strat}</ul></article></div>'
-                 f'<div style="display:grid;gap:12px">{side}{sankey_card(340, 300, "Qualifying to race")}</div></div>',
+                 f'<div style="display:grid;gap:12px">{side}{sankey_card(340, 300, "Qualifying grid to race")}</div></div>',
                  "São Paulo Grand Prix", "races", flag("BR", 22, "Brazil"))
     return ph, dk
 
@@ -252,7 +252,7 @@ def quick_look():
             '<h3 class="ttl" style="font-size:26px;margin:8px 0 2px">São Paulo Grand Prix</h3>'
             '<p class="s2" style="font-size:14px"><span class="lnk">Interlagos</span>, 6 to 8 Nov</p>'
             f'<div class="ql-g">{tiles}</div>'
-            '<p class="h3" style="margin:4px 0 6px;font-size:15px">Qualifying to race</p>{SANKEY}'
+            '<p class="h3" style="margin:4px 0 6px;font-size:15px">Qualifying grid to race</p>{SANKEY}'
             '<div class="chips" style="margin-top:12px"><span class="ck">Results</span><span class="ck">Laps</span><span class="ck">Telemetry</span><span class="ck">Strategy</span></div>'
             f'<span class="pill act" style="width:100%;justify-content:center;height:46px;margin-top:12px;font-size:15px">Open Grand Prix {ic("go", 16)}</span>')
     under = f'<article class="cd"><ul class="rows">{races()}</ul></article>'
