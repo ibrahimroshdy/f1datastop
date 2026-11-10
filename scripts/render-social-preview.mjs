@@ -32,7 +32,7 @@ const { chromium } = brand('playwright');
 const sharp = brand('sharp');
 
 const TAGLINE = 'Every Formula 1 race, lap by lap, in clear charts.';
-const BADGE = 'Free · Open source';
+const BADGE = 'Free and open source';
 
 const b64 = (buf) => Buffer.from(buf).toString('base64');
 const file = (rel, type) => `data:${type};base64,${b64(readFileSync(root + rel))}`;
