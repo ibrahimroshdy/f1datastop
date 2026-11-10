@@ -1,5 +1,5 @@
 """The six key screens and one sheet. Each function returns (phone_html, desktop_html)."""
-from avatars import avatar
+from avatars import avatar, team_logo
 from charts import progression, sankey, sankey_legend, speed_trace
 from concepts import _lapchart, livery
 from data import DRIVER_RESULTS, DRIVERS, FASTEST, RACES, RESULTS, STANDINGS, TEAM, TEAM_NAME, TEAMS
@@ -12,10 +12,14 @@ def av(did, size=40):
     return avatar(did, n, TEAM[t], size)
 
 
+def tl(t, h=14, tail=""):
+    return team_logo(t, TEAM_NAME[t], h, tail)
+
+
 def drow(did, end, pos=None, size=40, sub=None):
     n, _, t = DRIVERS[did]
     p = f'<span class="pos">{pos}</span>' if pos is not None else ""
-    return (f'<li>{p}{av(did, size)}<span class="who"><b class="lnk">{n}</b><small>{sub or TEAM_NAME[t]}</small></span>'
+    return (f'<li>{p}{av(did, size)}<span class="who"><b class="lnk">{n}</b><small>{sub or tl(t)}</small></span>'
             f'<span class="end">{end}</span></li>')
 
 
@@ -23,7 +27,7 @@ def crow(did, value, pos, sub=None):
     """The one compact row (D29): position, 32 px face, surname over team, one figure. One height everywhere."""
     _, short, t = DRIVERS[did]
     return (f'<li class="cr"><span class="pos">{pos}</span>{av(did, 32)}<span class="who"><b class="lnk">{short}</b>'
-            f'<small>{sub or TEAM_NAME[t]}</small></span><span class="end"><b>{value}</b></span></li>')
+            f'<small>{sub or tl(t, 13)}</small></span><span class="end"><b>{value}</b></span></li>')
 
 
 def compact_standings(n=5):
@@ -39,7 +43,7 @@ def standings_rows(n=5, size=40):
 def team_rows(n=3):
     lead = TEAMS[0][1]
     return "".join(f'<li><span class="pos">{i + 1}</span><span class="tmk" style="width:6px;align-self:stretch;border-radius:3px;background:{TEAM[t]}"></span>'
-                   f'<span class="who"><b class="lnk">{TEAM_NAME[t]}</b><small>{w} wins</small></span>'
+                   f'<span class="who"><b class="lnk">{tl(t, 18)}</b><small>{w} wins</small></span>'
                    f'<span class="end"><b>{p}</b><small>{"Leader" if i == 0 else f"{lead - p} behind"}</small></span></li>'
                    for i, (t, p, w) in enumerate(TEAMS[:n]))
 
@@ -112,7 +116,7 @@ def result_rows(n):
     out = []
     for i, (d, t, tyres, pts) in enumerate(RESULTS[:n]):
         fl = d == FASTEST[0]
-        sub = f'{TEAM_NAME[DRIVERS[d][2]]}' + (f', <span class="purple">fastest lap</span>' if fl else "")
+        sub = tl(DRIVERS[d][2], 14, ', <span class="purple">fastest lap</span>' if fl else "")
         ty = "".join(tyre(c, 16) for c in tyres)
         out.append(drow(d, f'<b class="{"fig"}">{t}</b><small style="display:flex;gap:3px;justify-content:flex-end;margin-top:3px">{ty}</small>', i + 1, 40, sub))
     return "".join(out)
@@ -125,7 +129,7 @@ def grand_prix():
                "São Paulo GP", "races", "Interlagos, 6 to 8 Nov", back=True)
     rows = "".join(
         f'<tr><td class="num">{i + 1}</td><td class="dv">{av(d, 32)}<b class="lnk">{DRIVERS[d][0]}</b></td>'
-        f'<td><span class="lnk">{TEAM_NAME[DRIVERS[d][2]]}</span></td><td class="r num">71</td>'
+        f'<td>{tl(DRIVERS[d][2], 16)}</td><td class="r num">71</td>'
         f'<td class="r num">{t}</td><td><span style="display:flex;gap:3px">{"".join(tyre(c, 18) for c in ty)}</span></td>'
         f'<td class="r num {"purple" if d == FASTEST[0] else ""}">{FASTEST[1] if d == FASTEST[0] else ""}</td><td class="r num fig">{p}</td></tr>'
         for i, (d, t, ty, p) in enumerate(RESULTS))
@@ -164,7 +168,7 @@ def standings():
     seg = '<div class="seg fill"><span class="on">Drivers</span><span>Teams</span></div>'
     ph = phone(seg + f'<article class="cd"><ul class="rows">{standings_rows(7)}</ul></article>', "Standings", "standings", "After São Paulo")
     rows = "".join(f'<tr><td class="num">{i + 1}</td><td class="dv">{av(d, 32)}<b class="lnk">{DRIVERS[d][0]}</b></td>'
-                   f'<td><span class="lnk">{TEAM_NAME[DRIVERS[d][2]]}</span></td><td class="r num">{w}</td>'
+                   f'<td>{tl(DRIVERS[d][2], 16)}</td><td class="r num">{w}</td>'
                    f'<td class="r num fig">{p}</td><td class="r s2">{"Leader" if i == 0 else f"{STANDINGS[0][1] - p} behind"}</td></tr>'
                    for i, (d, p, w) in enumerate(STANDINGS))
     table = ('<article class="cd"><table class="tbl"><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th class="r">Wins</th>'
@@ -214,7 +218,7 @@ def driver():
     head = (f'<article class="cd">{livery(TEAM["mercedes"])}<div style="display:flex;gap:14px;align-items:center;padding-right:60px">'
             f'{av("antonelli", 72)}<div><span class="chip red">P1 drivers</span>'
             '<h3 class="ttl" style="font-size:26px;margin:6px 0 2px">Andrea Kimi Antonelli</h3>'
-            '<p class="s2" style="font-size:14px"><span class="lnk">Mercedes</span>, Italy</p></div></div>'
+            f'<p class="s2" style="font-size:14px">{tl("mercedes", 16, ", Italy")}</p></div></div>'
             '<div class="stat" style="margin-top:14px"><div><b>390</b><small>Points</small></div><div><b>9</b><small>Wins</small></div>'
             '<div><b>14</b><small>Podiums</small></div><div><b>7</b><small>Poles</small></div></div></article>')
     res = "".join(f'<li>{flag(fc, 21, "")}<span class="who"><b class="lnk">{n}</b><small>From P{g}</small></span>'

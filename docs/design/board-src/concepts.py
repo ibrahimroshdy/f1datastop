@@ -105,12 +105,12 @@ STANDINGS = [
 def standings_html():
     lead = STANDINGS[0][5]
     rows = []
-    from avatars import avatar
+    from avatars import avatar, team_logo
     for pos, name, team, tid, wins, pts, did in STANDINGS:
         gap = "Leader" if pos == 1 else f"{lead - pts} behind"
         rows.append(
             f'<tr><td class="pos num">{pos}</td>'
-            f'<td>{avatar(did, name, TEAM[tid], 40)}<span class="who"><b>{name}</b><small>{team}</small></span></td>'
+            f'<td>{avatar(did, name, TEAM[tid], 40)}<span class="who"><b>{name}</b><small>{team_logo(tid, team, 13)}</small></span></td>'
             f'<td class="num hide-s">{wins}</td><td class="num"><b class="fig">{pts}</b><small>{gap}</small></td></tr>')
     return ('<table class="stand"><caption>Drivers, after round 20</caption><thead><tr><th class="num">Pos</th><th>Driver</th>'
             '<th class="num hide-s">Wins</th><th class="num">Points</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table>")
@@ -178,20 +178,20 @@ def racecard_html():
 
 
 def teamcard_html():
-    """The lead card of a team page: the stripe in the team's colour, its drivers with avatars."""
-    from avatars import avatar
+    """The lead card of a team page: the stripe in the team's colour, its logo, its drivers with avatars."""
+    from avatars import avatar, team_logo
     rows = "".join(f'<div class="tdrv">{avatar(d, n, TEAM["mercedes"], 44)}<span class="who"><b>{n}</b>'
                    f'<small>{w} wins</small></span><b class="num fig">{p}</b></div>'
                    for n, w, p, d in (("Andrea Kimi Antonelli", 9, 390, "antonelli"), ("George Russell", 3, 262, "russell")))
     return ('<article class="team"><div class="race-top"><span class="live">P1 constructors</span></div>'
-            '<h4>Mercedes</h4><p class="where">652 points, 12 wins, 142 ahead of Ferrari</p>' + rows + "</article>")
+            + '<h4>' + team_logo("mercedes", "Mercedes", 26) + '</h4><p class="where">652 points, 12 wins, 142 ahead of Ferrari</p>' + rows + "</article>")
 
 
 def drivercard_html():
     """The lead card of a driver page: the headshot, name and team, the stripe in the team's colour."""
-    from avatars import avatar
+    from avatars import avatar, team_logo
     return ('<article class="team"><div class="dhead">' + avatar("antonelli", "Andrea Kimi Antonelli", TEAM["mercedes"], 72)
-            + '<div><span class="live">P1 drivers</span><h4>Andrea Kimi Antonelli</h4><p class="where">Mercedes, Italy</p></div></div>'
+            + '<div><span class="live">P1 drivers</span><h4>Andrea Kimi Antonelli</h4><p class="where">' + team_logo("mercedes", "Mercedes", 16, ", Italy") + '</p></div></div>'
             '<div class="tdrv"><span class="who"><b>390 points</b><small>111 ahead of Verstappen</small></span><b class="num fig">9 wins</b></div>'
             '<div class="tdrv"><span class="who"><b>Last race</b><small>São Paulo Grand Prix</small></span><b class="num fig">P1</b></div></article>')
 

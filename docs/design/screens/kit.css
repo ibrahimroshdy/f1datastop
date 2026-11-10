@@ -162,3 +162,8 @@ ul,ol{list-style:none}
 .lap .sk{font-family:var(--mono);fill:var(--ink2)}
 .skl{display:flex;flex-wrap:wrap;gap:4px 12px;font:500 12px var(--mono);color:var(--ink2);margin-top:6px}
 .skl span{display:inline-flex;align-items:center;gap:5px}.skl i{width:12px;height:4px;border-radius:2px;display:inline-block}
+
+/* team wordmarks (D33): the official white logos, inverted on light themes, as TeamLogo.tsx does */
+.team-n{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}
+.tlogo{display:block;width:auto;max-width:48px;object-fit:contain;flex:none}
+.frame.t-light .tlogo{filter:invert(1)}
