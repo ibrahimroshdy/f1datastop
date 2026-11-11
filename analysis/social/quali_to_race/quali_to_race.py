@@ -84,11 +84,36 @@ def _get(url):
         return json.load(r)
 
 
+def official_race_name(season, rnd, fallback):
+    """The Grand Prix name from the official F1 event schedule (FastF1, F1 live-timing data, e.g. "São Paulo
+    Grand Prix"), else the CDN {season}/schedule.json, else the given fallback (Jolpica). Jolpica and the CDN
+    copy use Ergast names ("Brazilian Grand Prix"), which is not what formula1.com calls the event."""
+    try:
+        import logging, fastf1
+        logging.getLogger("fastf1").setLevel(logging.ERROR)
+        ev = fastf1.get_event_schedule(int(season), include_testing=False)
+        hit = ev[ev["RoundNumber"] == int(rnd)]
+        if len(hit) == 1 and str(hit.iloc[0]["EventName"]).strip():
+            return str(hit.iloc[0]["EventName"]).strip()
+    except Exception as e:  # noqa: BLE001  no fastf1 or no network: next source
+        print(f"official race name: FastF1 schedule unavailable ({e})", file=sys.stderr)
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+        from cdn_schedule import _fetch_cdn_schedule
+        hit = [r for r in _fetch_cdn_schedule(season) if str(r.get("round")) == str(rnd)]
+        if len(hit) == 1 and hit[0].get("raceName"): return hit[0]["raceName"]
+    except Exception as e:  # noqa: BLE001
+        print(f"official race name: CDN schedule unavailable ({e})", file=sys.stderr)
+    return fallback
+
+
 def fetch(season, rnd):
-    """Jolpica race + qualifying for one round (the payload the site's hook passes to sankey.ts)."""
+    """Jolpica race + qualifying for one round (the payload the site's hook passes to sankey.ts).
+    The race name comes from the official schedule (official_race_name)."""
     res = _get(f"{JOLPICA}/{season}/{rnd}/results.json?limit=100")["MRData"]["RaceTable"]["Races"]
     if not res: return None
     race = res[0]
+    race["raceName"] = official_race_name(season, rnd, race["raceName"])
     q = _get(f"{JOLPICA}/{season}/{rnd}/qualifying.json?limit=100")["MRData"]["RaceTable"]["Races"]
     race["QualifyingResults"] = q[0]["QualifyingResults"] if q else []
     return race
@@ -107,6 +132,9 @@ def build(race):
     for r in race["Results"]:
         g = int(r["grid"]) if str(r.get("grid", "")).lstrip("-").isdigit() else 0
         if g > 0: used.add(g)
+    if not used:
+        print("WARNING: Jolpica has no grid for this race yet; GRID falls back to qualifying order, so grid "
+              "penalties are missing. Use --f1 SLUG (official formula1.com starting grid) instead.", file=sys.stderr)
     nxt = max(list(used) + list(quali.values()) + [19]) + 1
     for r in race["Results"]:
         did = r["Driver"]["driverId"]; qp = quali.get(did)
@@ -117,11 +145,12 @@ def build(race):
             used.add(g)
         st = r.get("status", ""); pt = r.get("positionText", r["position"])
         finished = st == "Finished" or st == "Lapped" or st.startswith("+")
+        dns = st == "Did not start" or pt == "W"         # Jolpica: status "Did not start", positionText "W"
         rows.append(dict(code=r["Driver"].get("code") or r["Driver"]["familyName"][:3].upper(),
             family=r["Driver"]["familyName"], team=r["Constructor"]["constructorId"],
             quali=qp if qp is not None else g, has_quali=qp is not None, grid=g, race=int(r["position"]),
             quali_label="NC" if did in nc else str(qp if qp is not None else g),
-            race_label=pt if pt.isdigit() else "DNF", dnf=not finished, status=st))
+            race_label=pt if pt.isdigit() else "DNS" if dns else "DNF", dnf=not finished, status=st))
     return rows
 
 
@@ -145,6 +174,7 @@ def fetch_f1(season, slug, title=None):
     if not res: sys.exit(f"formula1.com has no race result yet: {rurl}")
     rnd = R.event_info(season, slug)["round"]
     race = _get(f"{JOLPICA}/{season}/{rnd}.json")["MRData"]["RaceTable"]["Races"][0]
+    race["raceName"] = official_race_name(season, rnd, race["raceName"])
     race["title"] = title or f"{race['raceName']} {season}"
 
     def order(rows):                                 # numbered places first, then the rest in page order
@@ -162,7 +192,7 @@ def fetch_f1(season, slug, title=None):
         if gs is None: gs = nxt; nxt += 1           # not on the published grid (pit lane): behind the last slot
         qs = qo.get(n, gs); ql = qpos.get(n, "")
         ql = "DQ" if ql in ("DQ", "DSQ", "EX") else ql if ql.isdigit() else ("NC" if ql else str(gs))
-        rl = p if p.isdigit() else "DQ" if p in ("DQ", "DSQ", "EX") else "DNF"
+        rl = p if p.isdigit() else "DQ" if p in ("DQ", "DSQ", "EX") else "DNS" if "DNS" in (p, ret) else "DNF"
         rows.append(dict(code=r["code"] or r["driver"].split()[-1][:3].upper(), family=r["driver"].split()[-1],
             team=team, quali=qs, has_quali=n in qo, grid=gs, race=ro[n], quali_label=ql, race_label=rl,
             dnf=not p.isdigit() or ret in NOT_RUN, status=ret or p))
@@ -292,6 +322,7 @@ def render(race, rows, W, H, path, stat):
     links = Image.new("RGBA", img.size, (0, 0, 0, 0))
     for a, b in (("quali", "grid"), ("grid", "race")):
         for r in sorted(rows, key=lambda r: r[a]):
+            if a == "grid" and r["race_label"] == "DNS": continue   # never started: no grid-to-race band
             ch = r[a] - r[b]                          # gain when the source slot number is larger
             col = GAIN if ch > 0 else LOSS if ch < 0 else HOLD
             dim = (a == "grid" and r["dnf"])
