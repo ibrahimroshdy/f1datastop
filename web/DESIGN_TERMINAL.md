@@ -1,5 +1,7 @@
 # f1datastop — "Telemetry Terminal" visual skin
 
+> **Superseded for visual design by [`docs/design/DESIGN_SYSTEM.md`](../docs/design/DESIGN_SYSTEM.md)** (v1.8 release). Where this file disagrees (fonts, glass surfaces, colours, shell), follow that guide.
+
 The locked art direction (chosen 2026-06-26). This is the **skin on top of `DESIGN.md`** — DESIGN.md's token system and component rules still govern; this doc defines the *feel*: an expensive piece of motorsport engineering software. Bloomberg data-density × Linear/Teenage-Engineering craft. Dense AND premium. When this doc and a generic design instinct conflict, this doc + DESIGN.md win.
 
 ## The one feeling

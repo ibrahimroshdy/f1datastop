@@ -1,5 +1,7 @@
 # f1datastop Design Language — DESIGN.md
 
+> **Superseded for visual design by [`docs/design/DESIGN_SYSTEM.md`](../docs/design/DESIGN_SYSTEM.md)** (v1.8 release). Where this file disagrees (fonts, glass surfaces, colours, shell), follow that guide.
+
 The single, prescriptive design language for the f1datastop frontend. Quality bar: "35 top frontend engineers." If a choice is not described here, it does not ship. Reference implementations: `web/src/pages/Standings.tsx` and `web/src/pages/RaceCalendar.tsx`.
 
 ---

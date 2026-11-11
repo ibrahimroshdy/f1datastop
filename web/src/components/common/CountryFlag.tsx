@@ -159,9 +159,14 @@ const CountryFlag: React.FC<CountryFlagProps> = ({
       <ReactCountryFlag
         countryCode={countryCode}
         svg
+        // D15: 4:3, 3 px round, with a hairline so white flags hold on white.
         style={{
           width: `${size}px`,
           height: 'auto',
+          aspectRatio: '4 / 3',
+          objectFit: 'cover',
+          borderRadius: '3px',
+          boxShadow: '0 0 0 1px hsl(var(--border))',
         }}
         title={country}
       />

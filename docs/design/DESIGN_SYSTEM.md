@@ -18,8 +18,8 @@ condensed capitals, solid floating bars, and a coloured livery stripe on a page'
   2. [`decisions.md`](decisions.md): why each choice was made (D1 to D42). This guide cites them.
   3. This file, which summarises 1 and 2.
 - **Older documents are superseded where they disagree.** `web/DESIGN.md` and
-  `web/DESIGN_TERMINAL.md` predate this release. They describe Clash Display and Geist type and
-  glass surfaces, which are gone. Follow this file.
+  `web/DESIGN_TERMINAL.md` predate this release and carry a note saying so. They describe Clash
+  Display and Geist type and glass surfaces, which are gone. Follow this file.
 - **The owner decides taste.** Direction, logo, names and taglines are picked by the owner. Do not
   invent a new look; work inside this one.
 
@@ -173,7 +173,7 @@ JetBrains Mono 400 to 700.
 | Pill track (tabs, ViewSwitcher) | 22 px |
 | Chart tooltip | 14 px |
 | Base `--radius` (shadcn `rounded-lg`) | 0.875 rem (14 px) |
-| Flag | 3 px with a hairline (D15; not yet in `CountryFlag`) |
+| Flag | 3 px, with a hairline (D15) |
 
 **Elevation.** Solid only. Floating bars use `bg-raised` plus
 `box-shadow: 0 0 0 1px border, 0 12px 32px rgb(0 0 0 / 0.55)` (light: `0 10px 28px rgb(0 0 0 / 0.12)`).
@@ -320,8 +320,8 @@ app's own `Select`, never a native `<select>`.
 
 **`CountryFlag`** (`components/common/CountryFlag.tsx`): `country` (a nationality or country
 name) and `size` (the width in px: 14 under names, 20 by default). It renders `react-country-flag`
-SVGs at 4:3. An unknown country shows a muted flag icon, never a guessed flag. D15 also asks for a
-3 px radius and a hairline, so white flags hold on white; the component does not have them yet.
+SVGs at 4:3, 3 px round, with a hairline in `--border` so white flags hold on white (D15). An
+unknown country shows a muted flag icon, never a guessed flag.
 
 **A race** is always its **flag and Grand Prix name** ("Las Vegas Grand Prix"). Never "R21" or
 "Round 21" in titles, rows or pickers (D15). A finished race in a list shows **the winner's face**
