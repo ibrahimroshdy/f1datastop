@@ -13,7 +13,7 @@ Charts with no data are skipped. If none render, <out>/NO_DATA.txt is written
 and the exit code is still 0.
 
 grid_flow is never taken from generate.py. It is drawn by the site-style renderer
-/workspace/final/templates/quali_to_race/quali_to_race.py (port of the website's
+analysis/social/quali_to_race/quali_to_race.py in this repo (port of the website's
 "Qualifying to Race" card), natively laid out for each size, from Jolpica qualifying and
 race results. It needs a finished Grand Prix, so it is skipped for Q, sprint and practice.
 
@@ -33,9 +33,9 @@ import argparse, datetime, glob, io, os, re, sys, tempfile
 
 REPO = "/workspace/f1datastop-repo/analysis"
 VENV_PY = "/workspace/venv-f1/bin/python"
-BG = (9, 10, 14)                      # stat_19_v3.make_background base colour (shared theme)
+BG = (8, 8, 10)                       # site ground #08080A (design system v1.8.1), the social background base
 SIZES = {"x": (1080, 1350), "ig": (1080, 1440), "threads": (1440, 1920)}
-Q2R = "/workspace/final/templates/quali_to_race"
+Q2R = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "quali_to_race")   # repo renderer
 SITE_STYLE = {"grid_flow"}            # drawn by quali_to_race.py, not generate.py
 CHARTS = {
     "S": ["team_pace", "driver_compare", "teammate_pace", "tyre_strategy", "race_analysis"],
