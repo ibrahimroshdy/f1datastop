@@ -18,5 +18,6 @@ export type ErgastResult = {
   Time?: { time?: string };
   FastestLap?: { rank?: string; lap?: string; Time?: { time?: string } };
   Driver: ErgastDriver;
-  Constructor: { constructorId: string; name: string };
+  /** Missing on some rows from the live feed (a reserve or a late entry); never assume it. */
+  Constructor?: { constructorId: string; name: string };
 };
