@@ -18,7 +18,6 @@ import useClarity from "@/hooks/useClarity";
 import Seo from "@/components/common/Seo";
 
 const MuiSankeyChart = lazy(() => import("@/components/analytics/MuiSankeyChart"));
-const SeasonSankeyChart = lazy(() => import("@/components/analytics/SeasonSankeyChart"));
 
 const raceStart = (r: NextRace) => new Date(`${r.date}T${r.time || "00:00:00Z"}`);
 
@@ -131,16 +130,6 @@ const Index = () => {
             )}
           </F1Card>
 
-          {/* The whole season, grid to finish: kept on Home with the race Sankey (D30). */}
-          <F1Card className="order-5 p-0 md:col-span-2 lg:col-span-3">
-            <div className="px-4 pt-4 md:px-6 md:pt-6">
-              <h2 className="text-xl">Season, grid to finish</h2>
-              <p className="mt-1 text-sm text-ink-2">Every start and finish of {season} so far.</p>
-            </div>
-            <Suspense fallback={<F1Loader label="Loading the season" className="h-[400px]" />}>
-              <SeasonSankeyChart year={season} />
-            </Suspense>
-          </F1Card>
         </div>
 
         <div className="flex justify-center py-2">

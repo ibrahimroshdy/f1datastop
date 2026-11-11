@@ -145,8 +145,8 @@ function ResultList({
               givenName={r.Driver.givenName}
               familyName={r.Driver.familyName}
               nationality={r.Driver.nationality}
-              constructorId={r.Constructor.constructorId}
-              teamName={r.Constructor.name}
+              constructorId={r.Constructor?.constructorId}
+              teamName={r.Constructor?.name}
               size={32}
               className="flex-1"
             />

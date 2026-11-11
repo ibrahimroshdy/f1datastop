@@ -12,6 +12,7 @@ import { TEAM_COLORS } from '@/constants/f1Colors';
 import { F1ChartContainer } from '@/components/f1';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SankeySeasonContext, SankeyTooltipPerson } from './SankeyTooltipPerson';
 
 // Semantic SVG color tokens (DESIGN.md: SVG fills/strokes route through hsl(var(--*)))
 const TOKEN = {
@@ -287,7 +288,9 @@ const MuiSankeyChart: React.FC<MuiSankeyChartProps> = ({ year, round }) => {
           </div>
 
           {/* Sankey Chart - only render when container has non-zero size to avoid NaN in d3-sankey layout */}
-          <SankeyWithDimensionGuard sankeyData={sankeyData} />
+          <SankeySeasonContext.Provider value={year}>
+            <SankeyWithDimensionGuard sankeyData={sankeyData} />
+          </SankeySeasonContext.Provider>
 
           <p className="mt-2 px-2 text-center text-xs text-muted-foreground">
             Drivers without a qualifying time (e.g. pit lane start) appear only in Grid and Race.
@@ -549,19 +552,18 @@ function SankeyTooltip({ x, y, children }: { x: number; y: number; children: Rea
 
 function NodeTooltipContent({ node }: { node: LaidOutNode & SankeyNodeData }) {
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 font-mono text-xs text-foreground shadow-card">
-      <div className="mb-1 font-bold">{node.fullName || node.name}</div>
-      <div className="mb-2 text-muted-foreground">{node.teamName}</div>
+    <div className="min-w-[220px] rounded-[14px] border border-border bg-raised px-3 py-2.5 font-mono text-xs text-foreground shadow-lg">
+      <SankeyTooltipPerson code={node.name} name={node.fullName || node.name} constructorId={node.team} teamName={node.teamName} />
       <div className="flex justify-between gap-4">
         <span className="text-muted-foreground">
-          {node.type === 'qualifying' ? 'Quali' : node.type === 'grid' ? 'Grid' : 'Race'} Position
+          {node.type === 'qualifying' ? 'Qualifying' : node.type === 'grid' ? 'Grid' : 'Race'} position
         </span>
         <span className="font-mono font-medium tabular-nums">P{node.position}</span>
       </div>
       {node.type === 'race' && node.points !== undefined && node.points > 0 && (
         <div className="mt-1 flex justify-between gap-4">
           <span className="text-muted-foreground">Points</span>
-          <span className="font-mono font-medium tabular-nums text-primary">{node.points}</span>
+          <span className="font-mono font-medium tabular-nums text-figure">{node.points}</span>
         </div>
       )}
       {node.isDNF && node.status && (
@@ -589,9 +591,13 @@ function LinkTooltipContent({ link }: { link: LaidOutLink & SankeyLinkData }) {
     changeColor = 'text-[hsl(var(--loss))]';
   }
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 font-mono text-xs text-foreground shadow-card">
-      <div className="mb-1 font-bold">{link.driverName || sourceNode?.name}</div>
-      <div className="mb-2 text-muted-foreground">{link.team || sourceNode?.teamName}</div>
+    <div className="min-w-[220px] rounded-[14px] border border-border bg-raised px-3 py-2.5 font-mono text-xs text-foreground shadow-lg">
+      <SankeyTooltipPerson
+        code={link.driverCode || sourceNode?.name}
+        name={link.driverName || sourceNode?.fullName || sourceNode?.name}
+        constructorId={sourceNode?.team}
+        teamName={link.team || sourceNode?.teamName}
+      />
       <div className="flex flex-col gap-1">
         <div className="flex justify-between gap-4">
           <span className="text-muted-foreground">{isQualiToGrid ? 'Qualifying' : 'Grid'}</span>
@@ -608,7 +614,7 @@ function LinkTooltipContent({ link }: { link: LaidOutLink & SankeyLinkData }) {
         {isGridToRace && link.points !== undefined && link.points > 0 && (
           <div className="mt-1 flex justify-between gap-4 border-t border-border pt-1">
             <span className="text-muted-foreground">Points</span>
-            <span className="font-mono font-medium tabular-nums text-primary">{link.points}</span>
+            <span className="font-mono font-medium tabular-nums text-figure">{link.points}</span>
           </div>
         )}
       </div>

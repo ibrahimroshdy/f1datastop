@@ -19,12 +19,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # Build and publish are separate jobs, as GitHub's Pages starter does: the publish job waits
+  # for the build to finish, which gives the uploaded site time to register. In one job, publish
+  # once ran a second after the upload and found no artifact (run 42927211056, 2026-11-10).
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -40,5 +40,14 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4

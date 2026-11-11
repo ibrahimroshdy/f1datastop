@@ -44,7 +44,7 @@ export function RaceDetailSummary({
               driverId={d.driverId}
               givenName={d.givenName}
               familyName={d.familyName}
-              constructorId={result.Constructor.constructorId}
+              constructorId={result.Constructor?.constructorId}
               season={season}
               label={`${label}, ${full}`}
               size="md"
