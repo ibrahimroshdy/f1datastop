@@ -4,7 +4,7 @@
 
 Same design as the site: three columns QUALI / GRID / RACE, one team coloured node per
 driver ordered by position (P1 at top), ribbons between columns coloured by position
-change (gain green, loss red, hold muted), held ribbons at 0.09 opacity, retirements dimmed
+change (gain green, loss red, hold muted), held ribbons at 0.35 opacity on social (site 0.09), retirements dimmed
 to 0.14, everything else 0.5; labels "1 NOR" on the left and "NOR 1" on the right, grid
 column unlabelled, "Position change  Gain  Loss  Hold" legend, mono labels.
 Type and colour follow the site design system v1.8.1 (Nov 2026): Saira Condensed bold caps for the
@@ -295,7 +295,9 @@ def render(race, rows, W, H, path, stat):
             ch = r[a] - r[b]                          # gain when the source slot number is larger
             col = GAIN if ch > 0 else LOSS if ch < 0 else HOLD
             dim = (a == "grid" and r["dnf"])
-            op = 0.14 if dim else 0.09 if ch == 0 else 0.5
+            # social: holds at 0.35 (site 0.09) so a held band shows on a phone; gain/loss stay at 0.5
+            # and brighter, retirements stay dimmest
+            op = 0.14 if dim else 0.35 if ch == 0 else 0.5
             (sx, sy), (tx, ty) = pos[(a, r["code"])], pos[(b, r["code"])]
             ribbon(links, sx + nw, sy + kh / 2, tx, ty + kh / 2, max((1 if ch == 0 else 2) * s, kh), col, op)
     img.alpha_composite(links); d = ImageDraw.Draw(img)
