@@ -6,7 +6,12 @@ Same design as the site: three columns QUALI / GRID / RACE, one team coloured no
 driver ordered by position (P1 at top), ribbons between columns coloured by position
 change (gain green, loss red, hold muted), held ribbons at 0.09 opacity, retirements dimmed
 to 0.14, everything else 0.5; labels "1 NOR" on the left and "NOR 1" on the right, grid
-column unlabelled, "POSITION CHANGE  Gain  Loss  Hold" legend, mono labels.
+column unlabelled, "Position change  Gain  Loss  Hold" legend, mono labels.
+Type and colour follow the site design system v1.8.1 (Nov 2026): Saira Condensed bold caps for the
+title, Saira for labels (sentence case), JetBrains Mono for every figure; Deep Carbon surfaces
+(#08080A ground, #0F0F12 card, #2A2A30 hairline); data colours gain #21C45D, loss #EF4D4D, hold
+#5D5D69. Social-only: carbon weave + red glow background (driver_cards template bg26), no livery
+stripe, no watermark. Nothing under 12 px at a 390 px wide phone.
 Laid out natively for each portrait size (no padding), F1 DataStop logo top right, race
 flag next to the race and circuit name.
 
@@ -29,22 +34,27 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, "/workspace/final/templates/driver_cards")
 import template as T
 
-THEME_SRC = "/workspace/charts/mocks/stat_19_v3.py"
-def _load_theme():
-    src = open(THEME_SRC).read(); cut = src.index("# ---------------- data")
-    ns = {"__name__": "stat_19_theme"}; exec(compile(src[:cut], THEME_SRC, "exec"), ns); return ns
-make_background = _load_theme()["make_background"]
+def make_background(w, h, watermark="", **_):
+    """Social 2026 background: carbon weave and red glow on the site ground #08080A
+    (driver_cards template bg26). No watermark (CEO, Oct 31 2026); extra kwargs are ignored."""
+    return T.bg26(w, h)
 
-GF = "/usr/share/fonts/truetype/sand-box/google/"
-MONO = GF + "Geist Mono/GeistMono-VariableFont_wght.ttf"
-SANS = GF + "Geist/Geist-VariableFont_wght.ttf"
+# site fonts (web/index.html): static instances installed in ~/.local/share/fonts/f1ds
+FD = os.path.expanduser("~/.local/share/fonts/f1ds/")
+MONO = {500: FD + "JetBrainsMono-Medium.ttf", 600: FD + "JetBrainsMono-SemiBold.ttf", 700: FD + "JetBrainsMono-Bold.ttf"}
+SANS = {500: FD + "Saira-Medium.ttf", 600: FD + "Saira-SemiBold.ttf", 700: FD + "Saira-Bold.ttf"}
+DISPLAY = {600: FD + "SairaCondensed-SemiBold.ttf", 700: FD + "SairaCondensed-Bold.ttf", 800: FD + "SairaCondensed-ExtraBold.ttf"}
+for _fam in (MONO, SANS, DISPLAY):
+    for _p in _fam.values(): assert os.path.exists(_p), f"font missing (no fallback allowed): {_p}"
+MIN_PX = 12 / 390 * 1080                            # 12 px on a 390 px wide phone, in 1080-wide px
 SIZES = T.SIZES
 BANNED = re.compile(r"[|\u2022\u00b7]|https?://|www\.|\.com\b", re.I)
 JOLPICA = "https://api.jolpi.ca/ergast/f1"
 
-# site tokens (web/src/index.css): --status-completed, --destructive, --muted-foreground
-GAIN = (34, 197, 94); LOSS = (239, 68, 68); HOLD = (157, 157, 168)
-INK = (242, 243, 245); MUTE = (157, 157, 168); CARD = (14, 14, 17); BORDER = (38, 38, 44); RED = (225, 6, 0)
+# site tokens (design system v1.8.1, dark): --gain, --loss, --hold, ink, card, border
+GAIN = (0x21, 0xC4, 0x5D); LOSS = (0xEF, 0x4D, 0x4D); HOLD = (0x5D, 0x5D, 0x69)
+INK = (0xF3, 0xF4, 0xF7); INK2 = (0xD2, 0xD3, 0xDA); MUTE = (0xAB, 0xAC, 0xB5); HEAD = (0xFF, 0xE9, 0xE7)
+CARD = (0x0F, 0x0F, 0x12); BORDER = (0x2A, 0x2A, 0x30); RED = (0xE1, 0x06, 0x00)   # red: brand marks only
 # web/src/constants/f1Colors.ts TEAM_COLORS (constructorId)
 TEAM_COLORS = {"red_bull": "#3671C6", "ferrari": "#F91536", "mercedes": "#27F4D2", "mclaren": "#FF8700",
     "aston_martin": "#229971", "alpine": "#FF87BC", "williams": "#37BEDD", "rb": "#5E8FAA",
@@ -59,11 +69,10 @@ COUNTRY_FLAG = {"Australia": "au", "China": "cn", "Japan": "jp", "Bahrain": "bh"
     "France": "fr", "Portugal": "pt", "Argentina": "ar"}
 
 
-def font(path, size, weight):
-    f = ImageFont.truetype(path, max(1, int(size)))
-    try: f.set_variation_by_axes([weight])
-    except Exception: pass
-    return f
+def font(fam, size, weight):
+    """fam is MONO, SANS or DISPLAY; the nearest installed static weight is used."""
+    w = min(fam, key=lambda k: abs(k - weight))
+    return ImageFont.truetype(fam[w], max(1, int(size)))
 
 
 def rgba(c, a): return tuple(c) + (int(round(255 * a)),)
@@ -205,7 +214,7 @@ def tracked(d, xy, s, f, fill, track, anchor="l"):
 
 def render(race, rows, W, H, path, stat):
     SS = 2; s = W / 1080 * SS                      # supersampled scale
-    base = make_background(W * SS, H * SS, wm_y=0.6, wm_alpha=10).convert("RGBA")
+    base = make_background(W * SS, H * SS).convert("RGBA")
     img = base; d = ImageDraw.Draw(img)
     portrait_tall = H / W > 1.3                     # ig / threads get more row height, same structure
     M = 52 * s
@@ -219,52 +228,55 @@ def render(race, rows, W, H, path, stat):
         sys.exit(f"no flag for {race['Circuit']['Location']['country']} in {T.FL}")
     fh = int(40 * s); fl = T.flag(cc, fh); y = 78 * s
     img.alpha_composite(fl, (int(M), int(y - fh / 2)))
-    fk = font(MONO, 25 * s, 600); title = race.get("title")
-    head = "QUALIFYING TO RACE" if title else f"{race['season']} {race['raceName'].upper()}"
-    tracked(d, (M + fl.width + 18 * s, y), head, fk, INK, 2.2 * s)
+    fk = font(SANS, 34 * s, 600); title = race.get("title")
+    head = "Qualifying to race" if title else f"{race['raceName']} {race['season']}"   # eyebrow: sentence case
+    d.text((M + fl.width + 18 * s, y), head, font=fk, fill=INK2, anchor="lm")
     y = 150 * s
-    title = title or "Qualifying to Race"; tsz = 84
-    while tsz > 40 and d.textlength(title, font=font(SANS, tsz * s, 800)) > W * SS - 2 * M: tsz -= 2
-    ft = font(SANS, tsz * s, 800)
-    d.text((M, y), title, font=ft, fill=INK, anchor="lm")
+    title = (title or "Qualifying to Race").upper(); tsz = 92   # title: Saira Condensed bold caps, heading tint
+    while tsz > 40 and d.textlength(title, font=font(DISPLAY, tsz * s, 700)) > W * SS - 2 * M: tsz -= 2
+    ft = font(DISPLAY, tsz * s, 700)
+    d.text((M, y), title, font=ft, fill=HEAD, anchor="lm")
     y += 72 * s
-    fc = font(SANS, 30 * s, 500)
-    d.text((M, y), race["Circuit"]["circuitName"], font=fc, fill=MUTE, anchor="lm")
+    fc = font(SANS, 34 * s, 500)
+    d.text((M, y), race["Circuit"]["circuitName"], font=fc, fill=INK2, anchor="lm")
     y += 50 * s
-    fs = font(SANS, 32 * s, 600)
+    ssz = 36
+    while ssz > MIN_PX and d.textlength(stat, font=font(SANS, ssz * s, 600)) > W * SS - 2 * M: ssz -= 1
+    fs = font(SANS, ssz * s, 600)
+    assert d.textlength(stat, font=fs) <= W * SS - 2 * M, f"stat line too long at 12 px phone size: {stat!r}"
     d.text((M, y), stat, font=fs, fill=INK, anchor="lm")
     y += 50 * s
 
     # card (site Card + scope frame corner ticks)
     cx0, cy0, cx1, cy1 = M - 20 * s, y, W * SS - M + 20 * s, H * SS - 44 * s
     card = Image.new("RGBA", img.size, (0, 0, 0, 0)); cd = ImageDraw.Draw(card)
-    cd.rounded_rectangle((cx0, cy0, cx1, cy1), radius=int(20 * s), fill=rgba(CARD, 0.78), outline=rgba(BORDER, 1), width=max(1, int(1.5 * s)))
+    cd.rounded_rectangle((cx0, cy0, cx1, cy1), radius=int(20 * s), fill=rgba(CARD, 1), outline=rgba(BORDER, 1), width=max(1, int(1.5 * s)))   # solid card (D7)
     L = 26 * s; lw = max(2, int(3 * s)); o = 10 * s
-    cd.line([(cx0 + o, cy0 + o + L), (cx0 + o, cy0 + o), (cx0 + o + L, cy0 + o)], fill=rgba(RED, 1), width=lw)
-    cd.line([(cx1 - o, cy1 - o - L), (cx1 - o, cy1 - o), (cx1 - o - L, cy1 - o)], fill=rgba(RED, 1), width=lw)
+    cd.line([(cx0 + o, cy0 + o + L), (cx0 + o, cy0 + o), (cx0 + o + L, cy0 + o)], fill=rgba(RED, 0.55), width=lw)   # site .scope-frame: primary at 55%
+    cd.line([(cx1 - o, cy1 - o - L), (cx1 - o, cy1 - o), (cx1 - o - L, cy1 - o)], fill=rgba(RED, 0.55), width=lw)   # site .scope-frame: primary at 55%
     img.alpha_composite(card); d = ImageDraw.Draw(img)
 
-    # legend: POSITION CHANGE  ↑ Gain  ↓ Loss  – Hold (centred, like the site)
+    # legend: Position change  ↑ Gain  ↓ Loss  – Hold (centred, like the site)
     y = cy0 + 54 * s
-    fl1 = font(MONO, 22 * s, 600); fl2 = font(MONO, 22 * s, 500); tr = 1.6 * s
-    parts = [("POSITION CHANGE", MUTE, fl1, tr), ("\u2191 Gain", GAIN, fl2, 0), ("\u2193 Loss", LOSS, fl2, 0), ("\u2013 Hold", MUTE, fl2, 0)]
+    fl1 = font(SANS, 34 * s, 500); fl2 = font(MONO, 34 * s, 600)
+    parts = [("Position change", MUTE, fl1, 0), ("\u2191 Gain", GAIN, fl2, 0), ("\u2193 Loss", LOSS, fl2, 0), ("\u2013 Hold", MUTE, fl2, 0)]
     gap = 26 * s; tot = sum(text_w(d, p[0], p[2], p[3]) for p in parts) + gap * (len(parts) - 1)
     x = W * SS / 2 - tot / 2
     for txt, col, f, t in parts:
         x += tracked(d, (x, y), txt, f, col, t) + gap
 
     # chart extent (site margins: 100 px left/right for labels)
-    fn = font(MONO, (26 if not portrait_tall else 27) * s, 600)
+    fn = font(MONO, (34 if not portrait_tall else 36) * s, 600)
     lab_w = max(text_w(d, f"{r['quali_label']} {r['code']}", fn) for r in rows)
     lab_w = max(lab_w, max(text_w(d, f"{r['code']} {r['race_label']}", fn) for r in rows))
     lp = 14 * s
     x0 = cx0 + 30 * s + lab_w + lp; x1 = cx1 - 30 * s - lab_w - lp
     nw = 16 * s
     yh = y + 62 * s                                 # column header row
-    fhd = font(MONO, 22 * s, 500)
+    fhd = font(SANS, 34 * s, 600)
     cols = [x0, (x0 + x1 - nw) / 2, x1 - nw]
-    for name, cxn in zip(("QUALI", "GRID", "RACE"), cols):
-        tracked(d, (cxn + nw / 2, yh), name, fhd, MUTE, 4.4 * s, anchor="m")
+    for name, cxn in zip(("Quali", "Grid", "Race"), cols):   # sentence-case labels, no tracking
+        d.text((cxn + nw / 2, yh), name, font=fhd, fill=MUTE, anchor="mm")
     ey0 = yh + 40 * s; ey1 = cy1 - 34 * s
 
     # nodes: each column sorted by position, equal heights (every node carries value 1)
