@@ -30,31 +30,20 @@ Race fastest laps (race only, --times auto|on|off|only; auto = on for the race, 
 <slug base>_times_{x,ig,threads}.png + _times_data.csv. Every driver's fastest race lap from the formula1.com
 fastest-laps page, ranked, gap to the fastest and the lap it was set on; the overall fastest in purple.
 A failure prints a WARNING and the other cards still render.
+
+Fonts and assets: --font-dir / F1DS_FONT_DIR and --asset-dir / F1DS_ASSET_DIR (see common/design.py).
 """
-import argparse, csv, html, json, os, re, sys, time, unicodedata, urllib.request
+import argparse, csv, html, io, json, os, re, sys, time, unicodedata, urllib.request
+
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
-sys.path.insert(0, "/workspace/final/templates/driver_cards")
-import template as T                                    # brand, flag, fonts, headshot dir
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # analysis/social
+from common import design                                                         # noqa: E402
 
-THEME_SRC = "/workspace/charts/mocks/stat_19_v3.py"
-def _load_theme():
-    src = open(THEME_SRC).read(); cut = src.index("# ---------------- data")
-    ns = {"__name__": "stat_19_theme"}; exec(compile(src[:cut], THEME_SRC, "exec"), ns); return ns
-make_background = _load_theme()["make_background"]
-
-GF = "/usr/share/fonts/truetype/sand-box/google/"
-BLK = GF + "Barlow Condensed/BarlowCondensed-Black.ttf"
-XB = GF + "Barlow Condensed/BarlowCondensed-ExtraBold.ttf"
-BLD = GF + "Barlow Condensed/BarlowCondensed-Bold.ttf"
-SEMI = GF + "Barlow Condensed/BarlowCondensed-SemiBold.ttf"
-MED = GF + "Barlow Condensed/BarlowCondensed-Medium.ttf"
-for _p in ("SEMI", "MED"):
-    if not os.path.exists(globals()[_p]): globals()[_p] = BLD
-SIZES = T.SIZES
-LOGOS = "/workspace/assets/team-logos/"
-HS_CACHE = "/workspace/assets/headshots/session/"       # headshots fetched for drivers not in T.HS
+BLK, XB, BLD = design.CARD_BLACK, design.CARD_XBOLD, design.CARD_BOLD
+SEMI, MED = design.CARD_SEMI, design.CARD_MEDIUM                                  # fall back to bold
+SIZES = design.SIZES
 F1 = "https://www.formula1.com"
 JOLPICA = "https://api.jolpi.ca/ergast/f1"
 OPENF1 = "https://api.openf1.org/v1"
@@ -64,8 +53,8 @@ TYRE = {"SOFT": ("S", (218, 41, 28)), "MEDIUM": ("M", (255, 209, 46)), "HARD": (
         "INTERMEDIATE": ("I", (67, 176, 42)), "WET": ("W", (47, 140, 255))}
 UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) f1datastop"}
 BANNED = re.compile(r"[|\u2022\u00b7]|https?://|www\.|\.com\b", re.I)
-INK = (242, 243, 245); SEC = (214, 216, 224); MUTE = (170, 172, 184); GOLD = (231, 176, 8); RED = (225, 6, 0)
-PURPLE = (168, 85, 247)   # F1 fastest-time purple: P1's lap time (race winner's time)
+INK, SEC, MUTE, GOLD, RED = design.INK, design.INK2, design.MUTE, design.GOLD, design.RED
+PURPLE = design.PURPLE   # F1 fastest-time purple: P1's lap time (race winner's time)
 
 SESSIONS = {   # key: (formula1.com results path, title label, kind)
     "fp1": ("practice/1", "Practice 1", "practice"), "fp2": ("practice/2", "Practice 2", "practice"),
@@ -80,29 +69,14 @@ SESSION_ALIASES = {"q": "quali", "qualifying": "quali", "sq": "sprint_quali", "s
 TEAM_LOGO = {"ferrari": "ferrari", "mercedes": "mercedes", "red bull racing": "red_bull", "red bull": "red_bull",
     "mclaren": "mclaren", "aston martin": "aston_martin", "alpine": "alpine", "williams": "williams",
     "racing bulls": "racing_bulls", "audi": "audi", "haas f1 team": "haas", "haas": "haas", "cadillac": "cadillac"}
-TEAM_COLOUR = {"ferrari": "#E8002D", "mercedes": "#27F4D2", "red_bull": "#3671C6", "mclaren": "#FF8000",
-    "aston_martin": "#229971", "alpine": "#FF87BC", "williams": "#1868DB", "racing_bulls": "#6692FF",
-    "audi": "#F50537", "haas": "#B6BABD", "cadillac": "#C4A747"}
+TEAM_COLOUR = {k: c for k, (_, c) in design.TEAMS_2026.items()}
 TEAM_SHORT = {"red_bull": "RED BULL", "aston_martin": "ASTON MARTIN", "racing_bulls": "RACING BULLS", "haas": "HAAS"}
-# driver code -> ISO 3166 flag (2026 grid and 2026 FP1 drivers; checked against Wikipedia)
-NATION = {"VER": "nl", "HAD": "fr", "LEC": "mc", "HAM": "gb", "RUS": "gb", "ANT": "it", "NOR": "gb", "PIA": "au",
-    "ALO": "es", "STR": "ca", "GAS": "fr", "COL": "ar", "ALB": "th", "SAI": "es", "LAW": "nz", "LIN": "gb",
-    "HUL": "de", "BOR": "br", "OCO": "fr", "BEA": "gb", "PER": "mx", "BOT": "fi", "TSU": "jp", "DOO": "au",
-    "VES": "dk", "IWA": "jp", "TSO": "bg", "MIN": "it", "HIR": "jp", "FOR": "it", "CRA": "us", "BRO": "gb",
-    "SLA": "gb", "HER": "us", "DRU": "br", "ARO": "ee", "BEG": "it", "MAR": "es", "DUN": "ie", "SHW": "cn",
-    "ZHO": "cn", "VAN": "nl", "OSU": "jp", "FIT": "br", "LIN_": "gb"}
-COUNTRY_FLAG = {"Australia": "au", "China": "cn", "Japan": "jp", "Bahrain": "bh", "Saudi Arabia": "sa",
-    "USA": "us", "United States": "us", "Italy": "it", "Monaco": "mc", "Spain": "es", "Canada": "ca",
-    "Austria": "at", "UK": "gb", "United Kingdom": "gb", "Belgium": "be", "Hungary": "hu",
-    "Netherlands": "nl", "Azerbaijan": "az", "Singapore": "sg", "Mexico": "mx", "Brazil": "br",
-    "Qatar": "qa", "UAE": "ae", "United Arab Emirates": "ae", "Malaysia": "my", "Germany": "de",
-    "France": "fr", "Portugal": "pt", "Argentina": "ar"}
+NATION, COUNTRY_FLAG = design.NATION, design.COUNTRY_FLAG
 SLUG_ALIAS = {"united-states": "americas", "great-britain": "silverstone", "barcelona-catalunya": "catalunya",
     "abu-dhabi": "yas_marina", "las-vegas": "vegas", "saudi-arabia": "jeddah", "emilia-romagna": "imola"}
 
 
-def F(p, s): return ImageFont.truetype(p, max(1, int(s)))
-def rgb(c): return T.rgb(c)
+F, rgb, ensure_flag = design.F, design.rgb, design.ensure_flag
 
 
 def _get(url, as_json=False, tries=3):
@@ -306,8 +280,7 @@ def fetch_tyres(season, ev, s, rows, kind):
     return out
 
 
-BADGE_FONT = GF + "Barlow/Barlow-Bold.ttf"              # clean geometric S (condensed S reads like a $ when small)
-if not os.path.exists(BADGE_FONT): BADGE_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+BADGE_FONT = design.CARD_BADGE                          # clean geometric S (condensed S reads like a $ when small)
 
 
 def tyre_badge(comp, D, ss=8):
@@ -346,28 +319,20 @@ def stint_strip(img, d, segs, total, x, cy, w, h, S):
 
 
 # ---------------------------------------------------------------- assets
-def ensure_flag(cc):
-    p = T.FL + cc + ".png"
-    if not os.path.exists(p):
-        b = _get(f"https://flagcdn.com/w320/{cc}.png"); open(p, "wb").write(b)
-        with open(T.FL + "SOURCES_ADDED.txt", "a") as f: f.write(f"{cc}.png flagcdn.com/w320/{cc}.png (added {time.strftime('%Y-%m-%d')})\n")
-    return cc
-
-
 def headshot(e):
     """The formula1.com 2026 portrait for that driver in that team (from the results row), cached
-    under HS_CACHE; else the local portrait T.HS/<code>.webp. Returns a path or None."""
-    p = T.HS + e["code"] + ".webp"
+    in the headshot cache folder; else the local portrait <headshot dir>/<CODE>.webp. Returns a path or None."""
+    p = design.headshot_path(e["code"])
     u = e.get("headshot_url") or ""
     if not u: return p if os.path.exists(p) else None
     u = re.sub(r"/d_common:[^/]+/", "/", u)              # drop the silhouette fallback
-    os.makedirs(HS_CACHE, exist_ok=True)
-    c = HS_CACHE + e["code"] + "_" + norm(e["team"]) + ".webp"
+    cache = design.headshot_cache_dir(); os.makedirs(cache, exist_ok=True)
+    c = os.path.join(cache, e["code"] + "_" + norm(e["team"]) + ".webp")
     if not os.path.exists(c):
         best = None
         for w in ("w_720", "w_440", "w_256"):
             try:
-                b = _get(re.sub(r"c_lfill,w_\d+", "c_lfill," + w, u)); im = Image.open(__import__("io").BytesIO(b))
+                b = _get(re.sub(r"c_lfill,w_\d+", "c_lfill," + w, u)); im = Image.open(io.BytesIO(b))
                 if best is None or im.width > best[0]: best = (im.width, b)
             except Exception: pass
         if not best: return p if os.path.exists(p) else None
@@ -393,8 +358,8 @@ def ring_avatar(path, d, ring, ss=4):
 
 
 def team_logo(tk, h):
-    p = LOGOS + (tk or "") + ".png"
-    return T.small_logo(p, h) if tk and os.path.exists(p) else None
+    p = design.team_logo_path(tk)
+    return design.small_logo(p, h) if tk and os.path.exists(p) else None
 
 
 # ---------------------------------------------------------------- text
@@ -463,7 +428,7 @@ def draw_row(img, d, e, kind, x, y, w, h, S, first):
     tw_ = max(d.textlength(big, font=bf), d.textlength(small, font=sf) if small else 0)
     room = rx - tw_ - S(14) - cx
     # line 1: flag + name; line 2: number + team logo + team
-    ns = min(h * 0.36, w * 0.060); fl = T.flag(ensure_flag(e["flag"]), int(ns * 0.62))
+    ns = min(h * 0.36, w * 0.060); fl = design.flag(ensure_flag(e["flag"]), int(ns * 0.62))
     img.alpha_composite(fl, (int(cx), int(cy - h * 0.20 - fl.height / 2)))
     nx = cx + fl.width + S(8)
     nf = fit(d, e["driver"], BLD, ns, room - fl.width - S(8))
@@ -472,7 +437,7 @@ def draw_row(img, d, e, kind, x, y, w, h, S, first):
     num = e["number"]; d.text((cx, ly), num, font=lf, fill=tc if sum(tc) > 160 else SEC, anchor="lm")
     lx = cx + d.textlength(num, font=lf) + S(10)
     lg = team_logo(e["team_key"], int(min(h * 0.24, w * 0.040)))
-    if lg is None: sys.exit(f"no team logo for {e['team']!r} in {LOGOS}")
+    if lg is None: sys.exit(f"no team logo for {e['team']!r} in {design.team_logo_dir()}")
     img.alpha_composite(lg, (int(lx), int(ly - lg.height / 2))); lx += lg.width + S(8)
     tn = TEAM_SHORT.get(e["team_key"], e["team"].upper()); end = cx + room
     if kind == "fastlap" and e.get("tyre") in TYRE:  # times card: small compound badge of that lap, end of line 2
@@ -488,10 +453,10 @@ def draw_row(img, d, e, kind, x, y, w, h, S, first):
 
 def render(ev, rows, kind, label, stat, W, H, path):
     SS = 2; k = W / 1080 * SS; S = lambda v: int(v * k)
-    img = make_background(W * SS, H * SS, watermark=None).convert("RGBA"); d = ImageDraw.Draw(img, "RGBA")
+    img = design.background(W * SS, H * SS); d = ImageDraw.Draw(img, "RGBA")
     M = S(48); top = S(70)
-    T.brand(img, W * SS - M, top, S(54))
-    fl = T.flag(ensure_flag(ev["flag"]), S(34)); img.alpha_composite(fl, (M, int(top - fl.height / 2)))
+    design.brand(img, W * SS - M, top, S(54))
+    fl = design.flag(ensure_flag(ev["flag"]), S(34)); img.alpha_composite(fl, (M, int(top - fl.height / 2)))
     cf = fit(d, ev["circuit"].upper(), BLD, S(34), W * SS * 0.55 - fl.width)
     d.text((M + fl.width + S(14), top), ev["circuit"].upper(), font=cf, fill=RED, anchor="lm")
     title = f"{ev['gp']} {label}"
@@ -593,7 +558,7 @@ def h2h_stat(pairs, kind):
 
 
 def _logo_fit(tk, bw, bh):
-    lg = Image.open(LOGOS + tk + ".png").convert("RGBA"); lg = lg.crop(lg.getbbox())
+    lg = Image.open(design.require_file(design.team_logo_path(tk), "team logo")).convert("RGBA"); lg = lg.crop(lg.getbbox())
     s = min(bw / lg.width, bh / lg.height)
     return lg.resize((max(1, int(lg.width * s)), max(1, int(lg.height * s))), Image.LANCZOS)
 
@@ -607,7 +572,7 @@ def h2h_driver(img, d, e, side, x0, x1, cy, h, S, fastest, faster):
     else: img.alpha_composite(av, (int(x1 - ad), int(cy - ad / 2))); tx0, tx1 = x0, x1 - ad - S(12)
     room = tx1 - tx0
     # line 1: flag + surname
-    ns = h * 0.30; fl = T.flag(ensure_flag(e["flag"]), int(ns * 0.66)); name = surname(e)
+    ns = h * 0.30; fl = design.flag(ensure_flag(e["flag"]), int(ns * 0.66)); name = surname(e)
     nf = fit(d, name, BLD, ns, room - fl.width - S(8)); ny = cy - h * 0.19
     if side == "l":
         img.alpha_composite(fl, (int(tx0), int(ny - fl.height / 2)))
@@ -666,10 +631,10 @@ def h2h_row(img, d, p, x, y, w, h, S, maxgap, fastest_codes):
 
 def render_h2h(ev, pairs, label, stat, W, H, path, fastest_codes):
     SS = 2; k = W / 1080 * SS; S = lambda v: int(v * k)
-    img = make_background(W * SS, H * SS, watermark=None).convert("RGBA"); d = ImageDraw.Draw(img, "RGBA")
+    img = design.background(W * SS, H * SS); d = ImageDraw.Draw(img, "RGBA")
     M = S(48); top = S(70)
-    T.brand(img, W * SS - M, top, S(54))
-    fl = T.flag(ensure_flag(ev["flag"]), S(34)); img.alpha_composite(fl, (M, int(top - fl.height / 2)))
+    design.brand(img, W * SS - M, top, S(54))
+    fl = design.flag(ensure_flag(ev["flag"]), S(34)); img.alpha_composite(fl, (M, int(top - fl.height / 2)))
     sub = f"{ev['gp']} {label}".upper()
     cf = fit(d, sub, BLD, S(34), W * SS * 0.55 - fl.width)
     d.text((M + fl.width + S(14), top), sub, font=cf, fill=RED, anchor="lm")
@@ -774,11 +739,7 @@ def run_times(a, ev, s, rows, slug, segs):
     print(f"times source {src}\ntimes stat {stat}\ntimes {len(tr)} drivers", file=sys.stderr)
 
 
-def free(path):
-    if not os.path.exists(path): return path
-    b, e = os.path.splitext(path); i = 2
-    while os.path.exists(f"{b}_{i}{e}"): i += 1
-    return f"{b}_{i}{e}"
+free = design.free_path
 
 
 FIELDS = ["pos", "number", "code", "driver", "team", "flag", "time", "gap", "segment", "status", "laps", "pts",
@@ -803,7 +764,9 @@ def main():
     ap.add_argument("--times-data", help="CSV or JSON fastest laps instead of formula1.com (Pos., No., Driver, Team, Lap, Time)")
     ap.add_argument("--times-stat", help="override the fastest laps stat line")
     ap.add_argument("--sizes", default="x,ig,threads"); ap.add_argument("--out", default="."); ap.add_argument("--slug")
-    a = ap.parse_args()
+    design.add_settings_args(ap)
+    a = ap.parse_args(); design.apply_settings(a)
+    design.require_fonts(design.SITE_FONTS + design.CARD_FONTS)
     t0 = time.time()
     s = SESSION_ALIASES.get(a.session.lower(), a.session.lower())
     if s not in SESSIONS or s in ("fastest_laps", "starting_grid"): sys.exit(f"unknown session {a.session!r}")
