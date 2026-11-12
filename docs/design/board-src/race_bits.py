@@ -1,7 +1,6 @@
 """Grands Prix with flags, and the tyre icon, for the board's specimens.
 
-Owner, 2026-11-10: "stress on prix not be R1..R2.. and be flags, also perfected tyres
-and their icons". A race is named by its Grand Prix and its country's flag, never by a
+A race is named by its Grand Prix and its country's flag, never by a
 round code. Flags here are simplified inline SVG (the board cannot load the flag-icons
 CDN the app uses through react-country-flag). Tyre colours are the Pirelli set from the
 social cards (analysis/social/session_results/session_results.py, TYRE).

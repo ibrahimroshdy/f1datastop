@@ -1,6 +1,6 @@
 """The three directions on the concepts board, round 2: one identity, three treatments.
 
-Round 2 (owner, 2026-11-10): F1 DataStop keeps its own red and carbon. The three
+Round 2: F1 DataStop keeps its own red and carbon. The three
 directions now differ in type and material only; they share PALETTE. build.py turns it
 into CSS classes (.c-<key>.t-dark / .t-light), one contrast table and three specimens
 per direction (race card, standings table, lap chart). Team colours come from
@@ -22,7 +22,7 @@ PALETTE = {
                   ink3="#5D5D69", act="#E10600", on_act="#FFFFFF", mark="#E10600", heading="#4A0603", figure="#0A0A0F"),
 }
 
-# Round 4 (owner, 2026-11-10): one direction, a mix of A Floodlight and C Livery, with
+# Round 4: one direction, a mix of A Floodlight and C Livery, with
 # Floodlight's type. Rounds 1 to 3 (Floodlight, Classification, Livery) are in git history.
 CONCEPTS = [
     {
@@ -200,7 +200,7 @@ def drivercard_html():
 
 def livery(colour=None):
     """The livery stripe across a lead card's corner: F1 DataStop red, or the team's colour
-    on its team and driver pages. Colour only (owner, 2026-11-10)."""
+    on its team and driver pages. Colour only (D25)."""
     c = colour or "var(--mark)"
     return (f'<span class="livery" aria-hidden="true"><span class="lv-band" style="background:{c}"></span>'
             f'<span class="lv-trail" style="background:{c}"></span></span>')

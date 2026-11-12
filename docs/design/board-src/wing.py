@@ -1,6 +1,6 @@
 """Logo round 3: today's mark, redrawn. The F1 DataStop logo is the rear wing of an F1
-car seen from behind, on a red disc (logo.svg). The owner keeps the idea (2026-11-10:
-"don't need a revamp of logo but need the existing one better"), so this round redraws
+car seen from behind, on a red disc (logo.svg). The idea stays and the
+mark gets better rather than replaced, so this round redraws
 it in flat colours with parts thick enough to survive 16 px. One 64-unit geometry per
 version; colours are fixed brand colours, not theme variables.
 """

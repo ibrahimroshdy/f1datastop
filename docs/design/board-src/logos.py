@@ -1,5 +1,5 @@
-"""Logo rounds for F1 DataStop. Round 1 offered six marks; the owner picked Stop flag
-(2026-11-10), so round 2 shows it in F1 DataStop red with three variations. One 64-unit geometry per mark, so every size on the
+"""Logo rounds for F1 DataStop. Round 1 offered six marks; Stop flag was
+picked, so round 2 shows it in F1 DataStop red with three variations. One 64-unit geometry per mark, so every size on the
 board is the same drawing. Colours are CSS variables, so a mark takes the colours of
 whichever concept it sits in: --tile (ground), --ink (strokes) and --mark (the one accent).
 """
