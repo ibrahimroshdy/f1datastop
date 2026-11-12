@@ -260,7 +260,7 @@ def render(race, rows, W, H, path, stat):
     # legend: Position change  ↑ Gain  ↓ Loss  – Hold (centred, like the site)
     y = cy0 + 54 * s
     fl1 = font(SANS, 34 * s, 500); fl2 = font(MONO, 34 * s, 600)
-    parts = [("Position change", MUTE, fl1, 0), ("\u2191 Gain", GAIN, fl2, 0), ("\u2193 Loss", LOSS, fl2, 0), ("\u2013 Hold", MUTE, fl2, 0)]
+    parts = [("Position change", MUTE, fl1, 0), ("\u2191 Gain", GAIN, fl2, 0), ("\u2193 Loss", LOSS, fl2, 0), ("\u2013 Hold", HOLD, fl2, 0)]
     gap = 26 * s; tot = sum(text_w(d, p[0], p[2], p[3]) for p in parts) + gap * (len(parts) - 1)
     x = W * SS / 2 - tot / 2
     for txt, col, f, t in parts:
