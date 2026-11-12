@@ -387,6 +387,17 @@ the status and position tokens.
 - **Composition of a whole** is one stacked strip, for example a race's tyre stints summing to the
   race distance with the laps in words.
 
+### Social images
+
+The images in `analysis/social/` use the same tokens, type and data colours, drawn from one
+module, `analysis/social/common/design.py`. These differences are on purpose, not drift:
+
+- **Hold bands at 0.35 opacity** (the site uses 0.09), so a held place still shows on a phone.
+  The legend's Hold label is drawn in the hold colour.
+- **Carbon background with a red glow** on the ground colour, instead of a flat surface.
+- **No livery stripe.**
+- **No watermark**, and no URL, credit or source line.
+
 ## 11. Lists and pages
 
 - **Every list** (Drivers, Teams, Races) has **search, filters, grouping and pagination backed by
