@@ -10,8 +10,8 @@ column unlabelled, "Position change  Gain  Loss  Hold" legend, mono labels.
 Type and colour follow the site design system v1.8.1 (Nov 2026): Saira Condensed bold caps for the
 title, Saira for labels (sentence case), JetBrains Mono for every figure; Deep Carbon surfaces
 (#08080A ground, #0F0F12 card, #2A2A30 hairline); data colours gain #21C45D, loss #EF4D4D, hold
-#5D5D69. Social-only: carbon weave + red glow background (driver_cards template bg26), no livery
-stripe, no watermark. Nothing under 12 px at a 390 px wide phone.
+#5D5D69. Social-only: carbon weave + red glow background, no livery stripe, no watermark
+(docs/design/DESIGN_SYSTEM.md, "Social images"). Nothing under 12 px at a 390 px wide phone.
 Laid out natively for each portrait size (no padding), F1 DataStop logo top right, race
 flag next to the race and circuit name.
 
@@ -26,56 +26,36 @@ as "DQ", a non-classified finish as "DNF". The headline becomes the event title 
 
 Writes DIR/<slug>_x.png 1080x1350, _ig 1080x1440, _threads 1440x1920. Never overwrites:
 a clash gets _2, _3 ... Data: Jolpica qualifying + race results (same fields the site uses).
+Fonts and assets: --font-dir / F1DS_FONT_DIR and --asset-dir / F1DS_ASSET_DIR (see common/design.py).
 """
-import argparse, json, math, os, re, sys, urllib.request
+import argparse, json, logging, os, re, sys, urllib.request
+
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
-sys.path.insert(0, "/workspace/final/templates/driver_cards")
-import template as T
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))                          # analysis/social: shared design module
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "session_results"))
+from common import design                                          # noqa: E402
+import session_results                                             # noqa: E402  formula1.com pages (--f1)
 
-def make_background(w, h, watermark="", **_):
-    """Social 2026 background: carbon weave and red glow on the site ground #08080A
-    (driver_cards template bg26). No watermark (CEO, Oct 31 2026); extra kwargs are ignored."""
-    return T.bg26(w, h)
+try:
+    import fastf1                                                  # optional: official event names
+    logging.getLogger("fastf1").setLevel(logging.ERROR)
+except ImportError:
+    fastf1 = None
 
-# site fonts (web/index.html): static instances installed in ~/.local/share/fonts/f1ds
-FD = os.path.expanduser("~/.local/share/fonts/f1ds/")
-MONO = {500: FD + "JetBrainsMono-Medium.ttf", 600: FD + "JetBrainsMono-SemiBold.ttf", 700: FD + "JetBrainsMono-Bold.ttf"}
-SANS = {500: FD + "Saira-Medium.ttf", 600: FD + "Saira-SemiBold.ttf", 700: FD + "Saira-Bold.ttf"}
-DISPLAY = {600: FD + "SairaCondensed-SemiBold.ttf", 700: FD + "SairaCondensed-Bold.ttf", 800: FD + "SairaCondensed-ExtraBold.ttf"}
-for _fam in (MONO, SANS, DISPLAY):
-    for _p in _fam.values(): assert os.path.exists(_p), f"font missing (no fallback allowed): {_p}"
+MONO, SANS, DISPLAY, font, rgba = design.MONO, design.SANS, design.DISPLAY, design.font, design.rgba
 MIN_PX = 12 / 390 * 1080                            # 12 px on a 390 px wide phone, in 1080-wide px
-SIZES = T.SIZES
+SIZES = design.SIZES
 BANNED = re.compile(r"[|\u2022\u00b7]|https?://|www\.|\.com\b", re.I)
 JOLPICA = "https://api.jolpi.ca/ergast/f1"
 
-# site tokens (design system v1.8.1, dark): --gain, --loss, --hold, ink, card, border
-GAIN = (0x21, 0xC4, 0x5D); LOSS = (0xEF, 0x4D, 0x4D); HOLD = (0x5D, 0x5D, 0x69)
-INK = (0xF3, 0xF4, 0xF7); INK2 = (0xD2, 0xD3, 0xDA); MUTE = (0xAB, 0xAC, 0xB5); HEAD = (0xFF, 0xE9, 0xE7)
-CARD = (0x0F, 0x0F, 0x12); BORDER = (0x2A, 0x2A, 0x30); RED = (0xE1, 0x06, 0x00)   # red: brand marks only
-# web/src/constants/f1Colors.ts TEAM_COLORS (constructorId)
-TEAM_COLORS = {"red_bull": "#3671C6", "ferrari": "#F91536", "mercedes": "#27F4D2", "mclaren": "#FF8700",
-    "aston_martin": "#229971", "alpine": "#FF87BC", "williams": "#37BEDD", "rb": "#5E8FAA",
-    "sauber": "#52E252", "haas": "#B6BABD", "cadillac": "#C4A747", "audi": "#FF0000",
-    "alphatauri": "#5E8FAA", "alfa": "#900000", "racing_point": "#F596C8", "renault": "#FFF500",
-    "toro_rosso": "#469BFF", "force_india": "#F596C8", "default": "#888888"}
-COUNTRY_FLAG = {"Australia": "au", "China": "cn", "Japan": "jp", "Bahrain": "bh", "Saudi Arabia": "sa",
-    "USA": "us", "United States": "us", "Italy": "it", "Monaco": "mc", "Spain": "es", "Canada": "ca",
-    "Austria": "at", "UK": "gb", "United Kingdom": "gb", "Belgium": "be", "Hungary": "hu",
-    "Netherlands": "nl", "Azerbaijan": "az", "Singapore": "sg", "Mexico": "mx", "Brazil": "br",
-    "Qatar": "qa", "UAE": "ae", "United Arab Emirates": "ae", "Malaysia": "my", "Germany": "de",
-    "France": "fr", "Portugal": "pt", "Argentina": "ar"}
-
-
-def font(fam, size, weight):
-    """fam is MONO, SANS or DISPLAY; the nearest installed static weight is used."""
-    w = min(fam, key=lambda k: abs(k - weight))
-    return ImageFont.truetype(fam[w], max(1, int(size)))
-
-
-def rgba(c, a): return tuple(c) + (int(round(255 * a)),)
+# site tokens (design system v1.8.1, dark), shared with every social script
+GAIN, LOSS, HOLD = design.GAIN, design.LOSS, design.HOLD
+INK, INK2, MUTE, HEAD = design.INK, design.INK2, design.MUTE, design.HEAD
+CARD, BORDER, RED = design.CARD, design.BORDER, design.RED   # red: brand marks only
+TEAM_COLORS, COUNTRY_FLAG = design.TEAM_COLORS, design.COUNTRY_FLAG
 
 
 # ---------------------------------------------------------------- data
@@ -85,25 +65,19 @@ def _get(url):
 
 
 def official_race_name(season, rnd, fallback):
-    """The Grand Prix name from the official F1 event schedule (FastF1, F1 live-timing data, e.g. "São Paulo
-    Grand Prix"), else the CDN {season}/schedule.json, else the given fallback (Jolpica). Jolpica and the CDN
-    copy use Ergast names ("Brazilian Grand Prix"), which is not what formula1.com calls the event."""
+    """The Grand Prix name from the official F1 event schedule (FastF1, F1 live-timing data, e.g.
+    "São Paulo Grand Prix"). Without FastF1 or a network it returns the given fallback, which is
+    Jolpica's Ergast name ("Brazilian Grand Prix") and not the official one."""
+    if fastf1 is None:
+        print("official race name: FastF1 not installed, using the Jolpica name", file=sys.stderr)
+        return fallback
     try:
-        import logging, fastf1
-        logging.getLogger("fastf1").setLevel(logging.ERROR)
         ev = fastf1.get_event_schedule(int(season), include_testing=False)
         hit = ev[ev["RoundNumber"] == int(rnd)]
         if len(hit) == 1 and str(hit.iloc[0]["EventName"]).strip():
             return str(hit.iloc[0]["EventName"]).strip()
-    except Exception as e:  # noqa: BLE001  no fastf1 or no network: next source
-        print(f"official race name: FastF1 schedule unavailable ({e})", file=sys.stderr)
-    try:
-        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-        from cdn_schedule import _fetch_cdn_schedule
-        hit = [r for r in _fetch_cdn_schedule(season) if str(r.get("round")) == str(rnd)]
-        if len(hit) == 1 and hit[0].get("raceName"): return hit[0]["raceName"]
-    except Exception as e:  # noqa: BLE001
-        print(f"official race name: CDN schedule unavailable ({e})", file=sys.stderr)
+    except Exception as e:  # noqa: BLE001  no network: use the fallback
+        print(f"official race name: FastF1 schedule unavailable ({e}), using the Jolpica name", file=sys.stderr)
     return fallback
 
 
@@ -155,7 +129,6 @@ def build(race):
 
 
 # ---------------------------------------------------------------- formula1.com adapter (--f1)
-SR_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "session_results")
 F1_TEAM = {"red bull racing": "red_bull", "red bull": "red_bull", "ferrari": "ferrari", "mercedes": "mercedes",
     "mclaren": "mclaren", "aston martin": "aston_martin", "alpine": "alpine", "williams": "williams",
     "racing bulls": "rb", "rb": "rb", "kick sauber": "sauber", "sauber": "sauber", "audi": "audi",
@@ -166,13 +139,12 @@ NOT_RUN = ("DNF", "DNS", "DQ", "DSQ", "EX", "NC")
 def fetch_f1(season, slug, title=None):
     """Race dict + rows from formula1.com (qualifying, official starting grid, race result) and the
     Jolpica schedule for the race name and circuit. Exits if the grid or result is not published."""
-    sys.path.insert(0, os.path.abspath(SR_DIR)); import session_results as R
-    q, _ = R.fetch_f1(season, slug, "quali")
-    g, gurl = R.fetch_f1(season, slug, "starting_grid")
-    res, rurl = R.fetch_f1(season, slug, "race")
+    q, _ = session_results.fetch_f1(season, slug, "quali")
+    g, gurl = session_results.fetch_f1(season, slug, "starting_grid")
+    res, rurl = session_results.fetch_f1(season, slug, "race")
     if not g: sys.exit(f"formula1.com has no starting grid yet: {gurl}")
     if not res: sys.exit(f"formula1.com has no race result yet: {rurl}")
-    rnd = R.event_info(season, slug)["round"]
+    rnd = session_results.event_info(season, slug)["round"]
     race = _get(f"{JOLPICA}/{season}/{rnd}.json")["MRData"]["RaceTable"]["Races"][0]
     race["raceName"] = official_race_name(season, rnd, race["raceName"])
     race["title"] = title or f"{race['raceName']} {season}"
@@ -244,19 +216,18 @@ def tracked(d, xy, s, f, fill, track, anchor="l"):
 
 def render(race, rows, W, H, path, stat):
     SS = 2; s = W / 1080 * SS                      # supersampled scale
-    base = make_background(W * SS, H * SS).convert("RGBA")
+    base = design.background(W * SS, H * SS)
     img = base; d = ImageDraw.Draw(img)
     portrait_tall = H / W > 1.3                     # ig / threads get more row height, same structure
     M = 52 * s
 
     # brand top right (site icon + wordmark)
-    T.brand(img, int(W * SS - M), int(78 * s), int(56 * s))
+    design.brand(img, int(W * SS - M), int(78 * s), int(56 * s))
 
     # header: race flag + race name, circuit, title, stat
     cc = COUNTRY_FLAG.get(race["Circuit"]["Location"]["country"])
-    if not cc or not os.path.exists(T.FL + cc + ".png"):
-        sys.exit(f"no flag for {race['Circuit']['Location']['country']} in {T.FL}")
-    fh = int(40 * s); fl = T.flag(cc, fh); y = 78 * s
+    if not cc: sys.exit(f"no flag code for {race['Circuit']['Location']['country']} in COUNTRY_FLAG")
+    fh = int(40 * s); fl = design.flag(cc, fh); y = 78 * s
     img.alpha_composite(fl, (int(M), int(y - fh / 2)))
     fk = font(SANS, 34 * s, 600); title = race.get("title")
     head = "Qualifying to race" if title else f"{race['raceName']} {race['season']}"   # eyebrow: sentence case
@@ -273,7 +244,7 @@ def render(race, rows, W, H, path, stat):
     ssz = 36
     while ssz > MIN_PX and d.textlength(stat, font=font(SANS, ssz * s, 600)) > W * SS - 2 * M: ssz -= 1
     fs = font(SANS, ssz * s, 600)
-    assert d.textlength(stat, font=fs) <= W * SS - 2 * M, f"stat line too long at 12 px phone size: {stat!r}"
+    if d.textlength(stat, font=fs) > W * SS - 2 * M: raise ValueError(f"stat line too long at 12 px phone size: {stat!r}")
     d.text((M, y), stat, font=fs, fill=INK, anchor="lm")
     y += 50 * s
 
@@ -289,7 +260,7 @@ def render(race, rows, W, H, path, stat):
     # legend: Position change  ↑ Gain  ↓ Loss  – Hold (centred, like the site)
     y = cy0 + 54 * s
     fl1 = font(SANS, 34 * s, 500); fl2 = font(MONO, 34 * s, 600)
-    parts = [("Position change", MUTE, fl1, 0), ("\u2191 Gain", GAIN, fl2, 0), ("\u2193 Loss", LOSS, fl2, 0), ("\u2013 Hold", MUTE, fl2, 0)]
+    parts = [("Position change", MUTE, fl1, 0), ("\u2191 Gain", GAIN, fl2, 0), ("\u2193 Loss", LOSS, fl2, 0), ("\u2013 Hold", HOLD, fl2, 0)]
     gap = 26 * s; tot = sum(text_w(d, p[0], p[2], p[3]) for p in parts) + gap * (len(parts) - 1)
     x = W * SS / 2 - tot / 2
     for txt, col, f, t in parts:
@@ -328,14 +299,14 @@ def render(race, rows, W, H, path, stat):
             dim = (a == "grid" and r["dnf"])
             # social: holds at 0.35 (site 0.09) so a held band shows on a phone; gain/loss stay at 0.5
             # and brighter, retirements stay dimmest
-            op = 0.14 if dim else 0.35 if ch == 0 else 0.5
+            op = 0.14 if dim else design.HOLD_OPACITY if ch == 0 else 0.5
             (sx, sy), (tx, ty) = pos[(a, r["code"])], pos[(b, r["code"])]
             ribbon(links, sx + nw, sy + kh / 2, tx, ty + kh / 2, max((1 if ch == 0 else 2) * s, kh), col, op)
     img.alpha_composite(links); d = ImageDraw.Draw(img)
 
     for (key, code), (nx, ny) in pos.items():
         r = next(q for q in rows if q["code"] == code)
-        c = T.rgb(TEAM_COLORS.get(r["team"], TEAM_COLORS["default"]))
+        c = design.rgb(TEAM_COLORS.get(r["team"], TEAM_COLORS["default"]))
         d.rounded_rectangle((nx, ny, nx + nw, ny + kh), radius=int(3 * s), fill=rgba(c, 0.95))
         cyl = ny + kh / 2
         if key == "quali":
@@ -348,14 +319,8 @@ def render(race, rows, W, H, path, stat):
     return path
 
 
-def free(path):
-    if not os.path.exists(path): return path
-    b, e = os.path.splitext(path); i = 2
-    while os.path.exists(f"{b}_{i}{e}"): i += 1
-    return f"{b}_{i}{e}"
-
-
 def render_all(race, out, slug, stat=None, sizes=None):
+    design.require_fonts(design.SITE_FONTS)
     rows = build(race)
     if not rows: return []
     stat = stat or auto_stat(rows)
@@ -364,7 +329,7 @@ def render_all(race, out, slug, stat=None, sizes=None):
     os.makedirs(out, exist_ok=True); done = []
     for k, (W, H) in SIZES.items():
         if sizes and k not in sizes: continue
-        done.append(render(race, rows, W, H, free(os.path.join(out, f"{slug}_{k}.png")), stat))
+        done.append(render(race, rows, W, H, design.free_path(os.path.join(out, f"{slug}_{k}.png")), stat))
     return done
 
 
@@ -374,7 +339,8 @@ def main():
     ap.add_argument("--f1", metavar="SLUG", help="formula1.com race slug (e.g. mexico): official grid + result")
     ap.add_argument("--title", help="headline in --f1 mode (default '<Grand Prix name> <season>')")
     ap.add_argument("--stat"); ap.add_argument("--out", default="."); ap.add_argument("--slug")
-    a = ap.parse_args()
+    design.add_settings_args(ap)
+    a = ap.parse_args(); design.apply_settings(a)
     if a.f1:
         race = fetch_f1(a.season, a.f1, a.title)
         for p in render_all(race, a.out, a.slug or f"quali_to_race_{a.season}_{a.f1}", a.stat): print(p)

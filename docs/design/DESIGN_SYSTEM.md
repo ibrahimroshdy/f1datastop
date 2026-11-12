@@ -20,8 +20,8 @@ condensed capitals, solid floating bars, and a coloured livery stripe on a page'
 - **Older documents are superseded where they disagree.** `web/DESIGN.md` and
   `web/DESIGN_TERMINAL.md` predate this release and carry a note saying so. They describe Clash
   Display and Geist type and glass surfaces, which are gone. Follow this file.
-- **The owner decides taste.** Direction, logo, names and taglines are picked by the owner. Do not
-  invent a new look; work inside this one.
+- **Taste is already decided.** Direction, logo, names and taglines are settled in
+  [`decisions.md`](decisions.md). Do not invent a new look; work inside this one.
 
 ## 1. What changed in this release
 
@@ -387,6 +387,17 @@ the status and position tokens.
 - **Composition of a whole** is one stacked strip, for example a race's tyre stints summing to the
   race distance with the laps in words.
 
+### Social images
+
+The images in `analysis/social/` use the same tokens, type and data colours, drawn from one
+module, `analysis/social/common/design.py`. These differences are on purpose, not drift:
+
+- **Hold bands at 0.35 opacity** (the site uses 0.09), so a held place still shows on a phone.
+  The legend's Hold label is drawn in the hold colour.
+- **Carbon background with a red glow** on the ground colour, instead of a flat surface.
+- **No livery stripe.**
+- **No watermark**, and no URL, credit or source line.
+
 ## 11. Lists and pages
 
 - **Every list** (Drivers, Teams, Races) has **search, filters, grouping and pagination backed by
@@ -445,7 +456,7 @@ the status and position tokens.
 |---|---|---|
 | Dark (default) | `:root` | This system |
 | Light | `.light` | This system |
-| Cockpit | `.dark-glass` | **Open (D9).** It keeps its old glass look until the owner decides to make it solid, fold it into Dark, or drop it. Do not build new work on it, and do not use the `glass*`, `premium-card` or glow utilities elsewhere. |
+| Cockpit | `.dark-glass` | **Open (D9).** It keeps its old glass look until D9 decides whether to make it solid, fold it into Dark, or drop it. Do not build new work on it, and do not use the `glass*`, `premium-card` or glow utilities elsewhere. |
 
 Check every change in **Dark and Light at 320, 375, 768 and 1280 px** before calling it done.
 
