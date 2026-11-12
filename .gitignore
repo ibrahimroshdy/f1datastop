@@ -188,3 +188,6 @@ _site/
 
 # Astro (docs site)
 .astro/
+
+# Social image assets (headshots, flags, team logos): local only, see analysis/social/README.md
+analysis/social/assets/
