@@ -50,4 +50,4 @@ def flow_html():
         "<li>Four copies of the standings, three of the race results.</li></ol></div>"
         f'<div class="panel scroll-x"><h3>Clicks, today and proposed</h3><table class="dec flowt"><thead><tr><th>Task</th><th>Today</th><th>Proposed</th></tr></thead><tbody>{rows}</tbody></table></div>'
         f'<div class="panel"><h3>The proposed structure</h3><p class="lede">Pages are the nouns of the sport. Each one links to every other noun it mentions.</p><div class="nodes">{pages}</div></div>'
-        f'<div class="panel"><h3>Proposed, for your OK</h3><div class="scroll-x"><table class="dec">{decs}</table></div></div>')
+        f'<div class="panel"><h3>Proposed</h3><div class="scroll-x"><table class="dec">{decs}</table></div></div>')

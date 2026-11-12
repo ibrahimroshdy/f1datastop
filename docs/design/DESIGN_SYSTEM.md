@@ -1,8 +1,7 @@
 # F1 DataStop design system
 
 The rules and building blocks of the F1 DataStop web app and installed PWA, as shipped in
-**v1.8.0** (PR #120) and **v1.8.1** (PR #121). Read this before changing any screen. It is written
-for people and for coding agents.
+**v1.8.0** (PR #120) and **v1.8.1** (PR #121). Read this before changing any screen.
 
 **Direction: Floodlight Livery.** Carbon near-blacks, one red (`#E10600`), titles in
 condensed capitals, solid floating bars, and a coloured livery stripe on a page's lead card.

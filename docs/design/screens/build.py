@@ -71,7 +71,7 @@ page = f"""<!DOCTYPE html>
 {css()}</style></head><body><div class="wrap">
 <p class="kicker">F1 DataStop design release, key screens, 10 Nov 2026</p>
 <h1>The key screens, before any build</h1>
-<p class="lede">Floodlight Livery in red and carbon, on the connected structure you accepted: every name a link, one page per Grand Prix, one season kept on every page, navigation by Home, Races, Standings, Drivers and More. The shell is Mondar's: a floating header pill, a floating dock, a floating sidebar and top bar on desktop, opaque sheets, nothing see-through. The logo is the Refined rear wing until you pick. Standings are the real ones after round 20; results, times and lap data are sample data.</p>
+<p class="lede">Floodlight Livery in red and carbon, on the connected structure of D19 to D24: every name a link, one page per Grand Prix, one season kept on every page, navigation by Home, Races, Standings, Drivers and More. The shell is Mondar's: a floating header pill, a floating dock, a floating sidebar and top bar on desktop, opaque sheets, nothing see-through. The logo shown is the Refined rear wing. Standings are the real ones after round 20; results, times and lap data are sample data.</p>
 <nav class="toc" aria-label="Screens">{toc}</nav>
 {body}
 </div>

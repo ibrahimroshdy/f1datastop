@@ -13,7 +13,7 @@ interface StandingDriver {
 }
 
 /**
- * The top of a Sankey tooltip (owner, 2026-11-11): the driver's face ringed in the team
+ * The top of a Sankey tooltip: the driver's face ringed in the team
  * colour, their name, and under it their flag and team with its emblem (D26, D33, D34).
  * The chart's data has only the three-letter code, so the driver is found by code in the
  * season's standings (already cached by Home and Standings). Unknown drivers keep a plain name.

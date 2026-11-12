@@ -50,7 +50,7 @@ export function useRaceDetailDialog(race: RaceLike | null | undefined, isOpen: b
         );
       }
       setDialogOpenTime(Date.now());
-      // A finished race opens on its results, an upcoming one on its schedule (owner, 2026-11-10).
+      // A finished race opens on its results, an upcoming one on its schedule.
       const raceDay = (race as { date?: string }).date;
       setSelectedTab(raceDay && new Date(`${raceDay}T23:59:59Z`).getTime() < Date.now() ? "results" : "info");
 

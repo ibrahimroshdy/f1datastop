@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildSankeyFromRoundResults, processDataForSankey } from "./sankey";
 
-// The live feed sometimes sends a result row without its team (owner, 2026-11-11: the
-// Australian Grand Prix quick look crashed on one). The Sankey must draw it, not throw.
+// The live feed sometimes sends a result row without its team (the
+// Australian Grand Prix quick look once crashed on one). The Sankey must draw it, not throw.
 const withTeam = (pos: number, code: string) => ({
   position: String(pos),
   grid: String(pos),
