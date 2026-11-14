@@ -4,7 +4,7 @@
   python3 news_card.py --headline "..." --number 102 [--label "POINTS CLEAR"]
                        [--driver ANT [--name "Kimi Antonelli"] | --team mercedes]
                        [--date "Nov 12"] [--race-flag us [--race "Las Vegas GP"]] [--reported]
-                       [--accent "#27F4D2"] [--out DIR] [--slug NAME]
+                       [--tags "Audi,Racing Bulls"] [--accent "#27F4D2"] [--out DIR] [--slug NAME]
 
 Writes DIR/<slug>_x.png 1080x1350, _ig 1080x1440, _threads 1440x1920 (never overwrites:
 a clash gets _2, _3 ...). Background, colours, brand, fonts, flags, headshots and team
@@ -33,6 +33,32 @@ def team_key(s):
     if k not in TEAMS:
         sys.exit(f"unknown team '{s}', use one of: {', '.join(TEAMS)}")
     return k
+
+
+def tag_colour(label, fallback):
+    k = re.sub(r"[^a-z]+", "_", label.lower()).strip("_")
+    k = {"redbull": "red_bull", "red_bull_racing": "red_bull", "rb": "racing_bulls",
+         "aston": "aston_martin", "astonmartin": "aston_martin"}.get(k, k)
+    if k in TEAMS:
+        return design.rgb(TEAMS[k][1])
+    return fallback
+
+
+def tag_chips(tags="", team=None, driver=None, name=None, accent=TEAL, reported=False):
+    """Chips above the headline: --tags, or the automatic team or driver tag, plus REPORTED."""
+    chips = []
+    if tags:
+        for raw in tags.split(","):
+            lab = raw.strip()
+            if lab:
+                chips.append((lab.upper(), tag_colour(lab, accent), "fill"))
+    elif team:
+        chips.append((TEAMS[team][0].upper(), accent, "fill"))
+    elif driver:
+        chips.append(((name or driver).upper(), accent, "fill"))
+    if reported:
+        chips.append(("REPORTED", INK, "line"))
+    return chips
 
 
 def wrap(d, text, font, width):
@@ -138,10 +164,7 @@ def render(a, W, H, path):
     img.alpha_composite(sh)
     d = ImageDraw.Draw(img, "RGBA")
     d.rounded_rectangle((L, top - int(34 * s), L + int(90 * s), top - int(24 * s)), radius=int(5 * s), fill=RED)
-    chips = []
-    if a.team: chips.append((TEAMS[a.team][0].upper(), accent, "fill"))
-    elif a.driver: chips.append(((a.name or a.driver).upper(), accent, "fill"))
-    if a.reported: chips.append(("REPORTED", INK, "line"))
+    chips = tag_chips(a.tags, a.team, a.driver, a.name, accent, a.reported)
     cf = design.font(design.DISPLAY, 34 * s, 700); cx = L + int(90 * s) + int(22 * s); ch = int(50 * s); cy0 = top - int(29 * s) - ch // 2
     for txt, col, kind in chips:
         tw = int(d.textlength(txt, font=cf)) + int(36 * s)
@@ -171,6 +194,7 @@ def main():
     ap.add_argument("--race", help="header text top left instead of the team name, e.g. 'Las Vegas GP' (optional)")
     ap.add_argument("--date", help="announcement date shown after the team name top left, e.g. 'Nov 12'")
     ap.add_argument("--reported", action="store_true", help="rumour variant: adds a REPORTED tag next to the team or driver tag")
+    ap.add_argument("--tags", default="", help="comma-separated tag chips, e.g. 'Audi,Racing Bulls' (overrides the automatic team or driver tag)")
     ap.add_argument("--out", default=".")
     ap.add_argument("--slug", default="news_card")
     design.add_settings_args(ap)
@@ -178,7 +202,7 @@ def main():
     design.require_fonts(design.SITE_FONTS)
     if a.team: a.team = team_key(a.team)
     if a.driver and a.driver not in NATION: sys.exit(f"unknown driver code {a.driver}")
-    for t in (a.headline, a.number, a.label, a.name or "", a.race or "", a.date or ""):
+    for t in (a.headline, a.number, a.label, a.name or "", a.race or "", a.date or "", a.tags or ""):
         if BANNED.search(t): sys.exit(f"banned character or URL in: {t!r}")
     os.makedirs(a.out, exist_ok=True)
     for k, (W, H) in SIZES.items():

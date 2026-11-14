@@ -43,8 +43,8 @@ The F1 DataStop icon comes from `web/public/icon-512.png`.
   Race only: `--times auto|on|off|only` (auto = on for the race) adds the fastest-laps card from the
   formula1.com fastest-laps page, `<slug>_times_{x,ig,threads}.png` + `_times_data.csv`; a failure
   prints a WARNING and the other cards still render.
-- `news_card/news_card.py`: one headline, one number, optional driver or team, with a team and date header
-  and an optional REPORTED tag. See `news_card/README.md`.
+- `news_card/news_card.py`: one headline, one number, optional driver or team, with a team and date header,
+  an optional REPORTED tag, and optional `--tags` for more than one team chip. See `news_card/README.md`.
 - `statement_card/statement_card.py`: one fact as one plain sentence plus one big pixel number, with a
   pixel-art car in the team colour; dark or light. See `statement_card/README.md`.
 

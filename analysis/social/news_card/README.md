@@ -15,6 +15,11 @@ python news_card.py --headline "Antonelli leads the championship by 102 points a
 # team card
 python news_card.py --headline "McLaren win in Mexico for the first time since 1989" \
   --number 36 --label "years between wins" --team mclaren --out test --slug test_team_mclaren
+
+# two team tags (overrides the automatic single team or driver tag)
+python news_card.py --headline "Hearing set for the appeal of a race decision" \
+  --number 25 --label "November hearing" --driver TSU --name "Yuki Tsunoda" --team racing_bulls \
+  --tags "Audi,Racing Bulls" --out test --slug test_two_tags
 ```
 
 - `--driver`: 2026 grid code (headshot `<asset dir>/headshots/<CODE>.webp`, flag `<asset dir>/flags/<iso2>.png`)
@@ -22,6 +27,9 @@ python news_card.py --headline "McLaren win in Mexico for the first time since 1
   (logos `<asset dir>/team-logos/<team>.png`)
 - Top left: the team name and `--date "Nov 12"` (the announcement date). Optional `--race-flag us` adds a
   flag in front, and `--race "Las Vegas GP"` replaces the team name with that text.
+- `--tags "Audi,Racing Bulls"`: comma-separated tag chips above the headline. Overrides the automatic
+  team or driver tag. A label that matches a known team uses that team's colour; otherwise it uses
+  the accent. Omit it to keep the single team or driver tag.
 - `--reported`: rumour variant, adds a REPORTED tag next to the team (or driver) tag above the headline.
   Use it for reports that are not confirmed yet.
 - `--accent "#RRGGBB"`: overrides the colour (default: the team colour, or teal)
