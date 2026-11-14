@@ -193,6 +193,8 @@ def classify(raw, kind):
             elif tr.startswith("+"): e["gap"] = tr
             elif ms(tr) is not None: e["time"] = tr
             else: e["status"] = tr or st
+            if not e["time"] and not e["gap"] and g("gap"):   # saved CSVs (our own *_data.csv) keep the gap in its own column
+                e["gap"] = g("gap"); e["status"] = ""
             e["pts"] = g("pts", "Pts.", "Pts")
         if e["pos"].upper() in ("DQ", "DSQ", "EX"):          # disqualified: no time on the card, ever
             e["pos"] = "DQ"; e["time"] = e["gap"] = ""; e["status"] = "DQ"; e["segment"] = ""
