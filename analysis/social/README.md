@@ -14,7 +14,7 @@ settings from the environment:
 
 | Setting | Default | Holds |
 |---|---|---|
-| `F1DS_FONT_DIR` | `analysis/fonts`, then the system font folders | Saira Condensed, Saira and JetBrains Mono static TTFs (site type); Barlow Condensed, Barlow and Titillium Web for the session and news cards |
+| `F1DS_FONT_DIR` | `analysis/fonts`, then the system font folders | Saira Condensed, Saira and JetBrains Mono static TTFs (site type); Barlow Condensed, Barlow and Titillium Web for the session cards |
 | `F1DS_ASSET_DIR` | `analysis/social/assets` (git ignored) | `headshots/<CODE>.webp`, `flags/<iso2>.png`, `team-logos/<team>.png` |
 | `F1DS_HEADSHOT_DIR`, `F1DS_FLAG_DIR`, `F1DS_TEAM_LOGO_DIR` | inside the asset folder | one folder each, when they live apart |
 
@@ -43,6 +43,9 @@ The F1 DataStop icon comes from `web/public/icon-512.png`.
   Race only: `--times auto|on|off|only` (auto = on for the race) adds the fastest-laps card from the
   formula1.com fastest-laps page, `<slug>_times_{x,ig,threads}.png` + `_times_data.csv`; a failure
   prints a WARNING and the other cards still render.
-- `news_card/news_card.py`: one headline, one number, optional driver or team. See `news_card/README.md`.
+- `news_card/news_card.py`: one headline, one number, optional driver or team, with a team and date header
+  and an optional REPORTED tag. See `news_card/README.md`.
+- `statement_card/statement_card.py`: one fact as one plain sentence plus one big pixel number, with a
+  pixel-art car in the team colour; dark or light. See `statement_card/README.md`.
 
 No output overwrites an existing file. No image carries a URL, credits or the | and dot separators.
