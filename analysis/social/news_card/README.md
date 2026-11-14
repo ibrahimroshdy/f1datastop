@@ -20,7 +20,12 @@ python news_card.py --headline "McLaren win in Mexico for the first time since 1
 - `--driver`: 2026 grid code (headshot `<asset dir>/headshots/<CODE>.webp`, flag `<asset dir>/flags/<iso2>.png`)
 - `--team`: mercedes ferrari mclaren red_bull alpine racing_bulls haas aston_martin williams audi cadillac
   (logos `<asset dir>/team-logos/<team>.png`)
+- Top left: the team name and `--date "Nov 12"` (the announcement date). Optional `--race-flag us` adds a
+  flag in front, and `--race "Las Vegas GP"` replaces the team name with that text.
+- `--reported`: rumour variant, adds a REPORTED tag next to the team (or driver) tag above the headline.
+  Use it for reports that are not confirmed yet.
 - `--accent "#RRGGBB"`: overrides the colour (default: the team colour, or teal)
+- Site type: Saira Condensed for words, JetBrains Mono for the big number.
 - Background, colours, brand, fonts and flags come from `../common/design.py`. Fonts and assets:
   `--font-dir` / `F1DS_FONT_DIR` and `--asset-dir` / `F1DS_ASSET_DIR` (see `../README.md`).
 - Text containing `|`, `•`, `·` or a URL is refused. No credits or source line is drawn.
